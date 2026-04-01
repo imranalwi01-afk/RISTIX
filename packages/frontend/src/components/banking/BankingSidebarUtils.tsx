@@ -120,6 +120,8 @@ const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'executive-dashboard': 'banking.analytics.view',
     'advanced-export': 'banking.analytics.view',
     'maintenance': 'admin.maintenance.access',
+    approval: 'approval.requests.approve',
+    'audit-logs': 'admin.maintenance.access',
     'access-management': ['admin.users.manage', 'admin.roles.manage', 'admin.maintenance.access'],
     'user-management': 'admin.users.manage',
     'role-management': 'admin.roles.manage',
@@ -127,6 +129,7 @@ const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'job-monitoring': ['jobs.view', 'jobs.manage', 'admin.system.manage'],
     'assessment-workspace': 'banking.individual.view',
     'assessment-workspace-old': 'banking.individual.view',
+    'assessment-workspace-old-imran': 'banking.individual.view',
     'customer-list': 'banking.individual.view',
     'workflow-management': 'approval.requests.approve',
     'approval-system': 'approval.requests.approve',
@@ -392,6 +395,13 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 href: '/banking/individual/assessment-old',
                 icon: <HistoryToggleOff />,
                 description: 'Legacy workspace snapshot'
+            },
+            {
+                id: 'assessment-workspace-old-imran',
+                label: '(Old - Imran) Assessment Workspace',
+                href: '/banking/individual/assessment-old-imran',
+                icon: <HistoryToggleOff />,
+                description: 'Legacy workspace snapshot from Imran'
             },
             {
                 id: 'customer-list',
@@ -933,6 +943,7 @@ export const getIconForMenuItem = (code: string, level: number): React.ReactElem
         'ecl-configuration': <Calculate />,
         'assessment-override': <Assessment />,
         'assessment-workspace-old': <HistoryToggleOff />,
+        'assessment-workspace-old-imran': <HistoryToggleOff />,
         'customer-list': <People />,
         'impairment-module': <Warning />,
         'ecl-calculations': <Calculate />,
@@ -992,6 +1003,7 @@ const MENU_ICON_MAP: Record<string, string> = {
     'individual-impairment': 'person',
     'assessment-override': 'assessment',
     'assessment-workspace-old': 'history_toggle_off',
+    'assessment-workspace-old-imran': 'history_toggle_off',
     'customer-list': 'people',
     'list-individual-report': 'table_chart',
     'review-scenario': 'approval',

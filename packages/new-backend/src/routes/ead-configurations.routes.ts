@@ -2,11 +2,12 @@ import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import { legacyDb as db } from '../config'
 import { frs9ImpCaEadConfig } from '../db/schema'
 import { eq, and, like, desc } from 'drizzle-orm'
-import { Effect } from 'effect'
+import { Effect, pipe } from 'effect'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
 import { runEffect } from '../lib/effect/runtime'
+import { buildErrorResponse } from '../lib/http/error-response'
 
 export const eadConfigurationsRoutes = new OpenAPIHono<AppContext>()
 
@@ -92,6 +93,23 @@ const transformEadConfig = (config: typeof frs9ImpCaEadConfig.$inferSelect) => (
     updated_date: config.updateddate,
 })
 
+const getEadConfigSnapshot = (id: number) =>
+    Effect.tryPromise({
+        try: async () => {
+            const [config] = await db
+                .select()
+                .from(frs9ImpCaEadConfig)
+                .where(eq(frs9ImpCaEadConfig.pkid, id))
+
+            if (!config) {
+                throw new Error('EAD configuration not found')
+            }
+
+            return transformEadConfig(config)
+        },
+        catch: (error: any) => error
+    })
+
 // ============================================================================
 // ENDPOINTS
 // ============================================================================
@@ -145,7 +163,7 @@ eadConfigurationsRoutes.openapi(
             } as any)
         } catch (error) {
             console.error('Error fetching EAD configurations:', error)
-            return c.json({ success: false, message: 'Failed to fetch EAD configurations', error: String(error) }, 500)
+            return c.json(buildErrorResponse(c, { error: 'Failed to fetch EAD configurations', message: 'Failed to fetch EAD configurations', code: 'EAD_CONFIGURATION_ERROR', details: String(error) }), 500)
         }
     }
 )
@@ -170,7 +188,7 @@ eadConfigurationsRoutes.openapi(
     async (c) => {
         try {
             const { id } = c.req.valid('param')
-            if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400) as any;
+            if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400) as any;
 
             const [config] = await db
                 .select()
@@ -178,12 +196,12 @@ eadConfigurationsRoutes.openapi(
                 .where(eq(frs9ImpCaEadConfig.pkid, id))
 
             if (!config) {
-                return c.json({ success: false, message: 'EAD configuration not found' }, 404) as any
+                return c.json(buildErrorResponse(c, { error: 'EAD configuration not found', message: 'EAD configuration not found', code: 'NOT_FOUND' }), 404) as any
             }
 
             return c.json({ success: true, data: transformEadConfig(config) } as any)
         } catch (error) {
-            return c.json({ success: false, message: 'Failed to fetch EAD configuration', error: String(error) }, 500)
+            return c.json(buildErrorResponse(c, { error: 'Failed to fetch EAD configuration', message: 'Failed to fetch EAD configuration', code: 'EAD_CONFIGURATION_ERROR', details: String(error) }), 500)
         }
     }
 )
@@ -265,43 +283,50 @@ eadConfigurationsRoutes.openapi(
     }),
     async (c) => {
         const { id } = c.req.valid('param')
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400) as any;
+        if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400) as any;
         const userId = c.get('userId') as string
         const tenantId = c.get('tenantId') as string
         const userPermissions = c.get('permissions') || []
         const data = c.req.valid('json')
 
-        const effect = interceptUpdate(
-            tenantId,
-            userId,
-            userPermissions,
-            'ead_configuration',
-            id.toString(),
-            data,
-            () => Effect.tryPromise({
-                try: async () => {
-                    const [updated] = await db
-                        .update(frs9ImpCaEadConfig)
-                        .set({
-                            eadModelName: data.model_name,
-                            segmentId: data.segment_id,
-                            eadMethod: data.ead_method,
-                            calcMethod: data.calc_method,
-                            activeFlag: data.is_active,
-                            updatedby: userId,
-                            updateddate: new Date().toISOString(),
-                            updatedhost: 'localhost',
-                        } as any)
-                        .where(eq(frs9ImpCaEadConfig.pkid, id))
-                        .returning()
+        const effect = pipe(
+            getEadConfigSnapshot(id),
+            Effect.flatMap((oldValues) =>
+                interceptUpdate(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'ead_configuration',
+                    id.toString(),
+                    data,
+                    () => Effect.tryPromise({
+                        try: async () => {
+                            const [updated] = await db
+                                .update(frs9ImpCaEadConfig)
+                                .set({
+                                    eadModelName: data.model_name,
+                                    segmentId: data.segment_id,
+                                    eadMethod: data.ead_method,
+                                    calcMethod: data.calc_method,
+                                    activeFlag: data.is_active,
+                                    updatedby: userId,
+                                    updateddate: new Date().toISOString(),
+                                    updatedhost: 'localhost',
+                                } as any)
+                                .where(eq(frs9ImpCaEadConfig.pkid, id))
+                                .returning()
 
-                    if (!updated) {
-                        throw new Error('EAD configuration not found')
-                    }
-                    return { success: true, data: transformEadConfig(updated) };
-                },
-                catch: (error: any) => error
-            })
+                            if (!updated) {
+                                throw new Error('EAD configuration not found')
+                            }
+                            return { success: true, data: transformEadConfig(updated) };
+                        },
+                        catch: (error: any) => error
+                    }),
+                    'medium',
+                    oldValues
+                )
+            )
         )
         return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }
@@ -327,32 +352,39 @@ eadConfigurationsRoutes.openapi(
     }),
     async (c) => {
         const { id } = c.req.valid('param')
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
+        if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400);
 
         const userId = c.get('userId') as string
         const tenantId = c.get('tenantId') as string
         const userPermissions = c.get('permissions') || []
 
-        const effect = interceptDelete(
-            tenantId,
-            userId,
-            userPermissions,
-            'ead_configuration',
-            id.toString(),
-            () => Effect.tryPromise({
-                try: async () => {
-                    const [deleted] = await db
-                        .delete(frs9ImpCaEadConfig)
-                        .where(eq(frs9ImpCaEadConfig.pkid, id))
-                        .returning()
+        const effect = pipe(
+            getEadConfigSnapshot(id),
+            Effect.flatMap((oldValues) =>
+                interceptDelete(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'ead_configuration',
+                    id.toString(),
+                    () => Effect.tryPromise({
+                        try: async () => {
+                            const [deleted] = await db
+                                .delete(frs9ImpCaEadConfig)
+                                .where(eq(frs9ImpCaEadConfig.pkid, id))
+                                .returning()
 
-                    if (!deleted) {
-                        throw new Error('EAD configuration not found')
-                    }
-                    return { success: true, message: 'EAD configuration deleted successfully' };
-                },
-                catch: (error: any) => error
-            })
+                            if (!deleted) {
+                                throw new Error('EAD configuration not found')
+                            }
+                            return { success: true, message: 'EAD configuration deleted successfully' };
+                        },
+                        catch: (error: any) => error
+                    }),
+                    'high',
+                    oldValues
+                )
+            )
         )
         return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }

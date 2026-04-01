@@ -60,7 +60,15 @@ import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 
 import EmptyState from '@/components/banking/shared/EmptyState';
 import api, { handleAPIError, bankingAPI } from '../../../../services/api';
-import { ApprovalStatusBadge, PendingChangesDialog } from '@/components/approval';
+import {
+  ApprovalNotification,
+  ApprovalStatusBadge,
+  PendingChangesDialog,
+  buildApprovalConflictNotification,
+  buildApprovalNotification,
+  createClosedApprovalNotification,
+  type ApprovalNotificationState,
+} from '@/components/approval';
 import { Can } from '@/components/rbac/Can';
 import { usePermission } from '@/hooks/usePermission';
 
@@ -189,6 +197,7 @@ export default function ApplicationSettingPage() {
   const [data, setData] = useState<ApplicationSettingDataTable[]>([]);
   const canViewApplication = hasAnyPermission(['banking.setup.application.view', 'banking.setup.application.manage', 'banking.setup.application', 'admin.super_admin']);
   const canManageApplication = hasAnyPermission(['banking.setup.application.manage', 'banking.setup.application.create', 'banking.setup.application.update', 'banking.setup.application.delete', 'admin.super_admin']);
+  const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
 
   // Pagination State (Segmentation Pattern)
   const [page, setPage] = useState(0);
@@ -214,6 +223,13 @@ export default function ApplicationSettingPage() {
 
   const [selectedRecord, setSelectedRecord] = useState<ApplicationSettingDataTable | null>(null);
   const [selectedDetail, setSelectedDetail] = useState<ApplicationSettingDetailDataTable | null>(null);
+  const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
+  const showApprovalConflict = (error: unknown, fallbackMessage: string) => {
+    const notification = buildApprovalConflictNotification(error, fallbackMessage);
+    if (!notification) return false;
+    setApprovalNotification(notification);
+    return true;
+  };
 
   const [detailData, setDetailData] = useState<ApplicationSettingDetailDataTable[]>([]);
 
@@ -396,15 +412,16 @@ export default function ApplicationSettingPage() {
     try {
       setLoading(true);
       const result = await api.applicationParameter.headers.delete(row.CommonCode);
-      // Check if approval is required
       if (result.approvalRequired) {
-        setSuccess('Deletion submitted for approval');
+        setApprovalNotification(buildApprovalNotification(result, 'Deletion submitted for approval'));
       } else {
         setSuccess('Deleted successfully');
       }
       await loadData();
     } catch (e) {
-      setError(handleAPIError(e).message);
+      if (!showApprovalConflict(e, 'Deletion submitted for approval')) {
+        setError(handleAPIError(e).message);
+      }
     } finally {
       setLoading(false);
     }
@@ -422,9 +439,8 @@ export default function ApplicationSettingPage() {
 
       if (selectedRecord) {
         const result = await api.applicationParameter.headers.update(selectedRecord.CommonCode, payload);
-        // Check if approval is required
         if (result.approvalRequired) {
-          setSuccess('Update submitted for approval');
+          setApprovalNotification(buildApprovalNotification(result, 'Update submitted for approval'));
         } else {
           setSuccess('Updated successfully');
         }
@@ -434,9 +450,8 @@ export default function ApplicationSettingPage() {
           return;
         }
         const result = await api.applicationParameter.headers.create(payload);
-        // Check if approval is required
         if (result.approvalRequired) {
-          setSuccess('Creation submitted for approval');
+          setApprovalNotification(buildApprovalNotification(result, 'Creation submitted for approval'));
         } else {
           setSuccess('Created successfully');
         }
@@ -445,7 +460,9 @@ export default function ApplicationSettingPage() {
       setEditModalOpen(false);
       loadData();
     } catch (e) {
-      setError(handleAPIError(e).message);
+      if (!showApprovalConflict(e, 'Request submitted for approval')) {
+        setError(handleAPIError(e).message);
+      }
     } finally {
       setLoading(false);
     }
@@ -471,14 +488,20 @@ export default function ApplicationSettingPage() {
     if (!canManageApplication) return;
     if (!confirm(`Delete detail sequence ${detail.SeqNo}?`)) return;
     try {
-      await api.applicationParameter.details.delete(detail.ID.toString());
-      setSuccess('Detail deleted');
+      const result = await api.applicationParameter.details.delete(detail.ID.toString());
+      if (result?.approvalRequired) {
+        setApprovalNotification(buildApprovalNotification(result, 'Detail deletion submitted for approval'));
+      } else {
+        setSuccess('Detail deleted');
+      }
       refreshCallback(); // For ApplicationDetailPanel
       setDetailRefreshTrigger(prev => prev + 1); // For other panels if needed
       if (selectedRecord) loadDetailData(selectedRecord.CommonCode); // For View Dialog
 
     } catch (e) {
-      setError(handleAPIError(e).message);
+      if (!showApprovalConflict(e, 'Detail deletion submitted for approval')) {
+        setError(handleAPIError(e).message);
+      }
     }
   }
   // Export function removed temporarily due to missing dependencies
@@ -530,18 +553,29 @@ export default function ApplicationSettingPage() {
       };
 
       if (selectedDetail) {
-        await api.applicationParameter.details.update(selectedDetail.ID.toString(), payload);
+        const result = await api.applicationParameter.details.update(selectedDetail.ID.toString(), payload);
+        if (result?.approvalRequired) {
+          setApprovalNotification(buildApprovalNotification(result, 'Detail update submitted for approval'));
+        } else {
+          setSuccess('Detail updated successfully');
+        }
       } else {
-        await api.applicationParameter.details.create(selectedRecord.CommonCode, payload);
+        const result = await api.applicationParameter.details.create(selectedRecord.CommonCode, payload);
+        if (result?.approvalRequired) {
+          setApprovalNotification(buildApprovalNotification(result, 'Detail creation submitted for approval'));
+        } else {
+          setSuccess('Detail created successfully');
+        }
       }
-      setSuccess('Detail saved');
       setDetailModalOpen(false);
       setDetailRefreshTrigger(prev => prev + 1);
       // Force refresh of the grid - simpler to just let user re-expand or auto-refresh if we tracked expanded state
       // For now, the detail panel itself fetches on mount/update so we are good if we trigger a re-render or if the user collapses/expands
       loadData(); // This refreshes the parent, but details are fetched by the panel
     } catch (e) {
-      setError(handleAPIError(e).message);
+      if (!showApprovalConflict(e, 'Request submitted for approval')) {
+        setError(handleAPIError(e).message);
+      }
     } finally {
       setDetailLoading(false);
     }
@@ -894,12 +928,18 @@ export default function ApplicationSettingPage() {
                                     }
                                     try {
                                       setDetailLoading(true);
-                                      await api.applicationParameter.details.delete(detail.ID.toString());
+                                      const result = await api.applicationParameter.details.delete(detail.ID.toString());
                                       await loadDetailData(selectedRecord?.CommonCode || '');
-                                      setSuccess('Parameter detail deleted successfully');
+                                      if (result?.approvalRequired) {
+                                        setApprovalNotification(buildApprovalNotification(result, 'Detail deletion submitted for approval'));
+                                      } else {
+                                        setSuccess('Parameter detail deleted successfully');
+                                      }
                                     } catch (error) {
                                       console.error('❌ Failed to delete detail:', error);
-                                      setError(`Failed to delete detail: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                                      if (!showApprovalConflict(error, 'Detail deletion submitted for approval')) {
+                                        setError(`Failed to delete detail: ${handleAPIError(error).message}`);
+                                      }
                                     } finally {
                                       setDetailLoading(false);
                                     }
@@ -948,6 +988,14 @@ export default function ApplicationSettingPage() {
       <Snackbar open={!!success} autoHideDuration={4000} onClose={() => setSuccess(null)}>
         <Alert severity="success">{success}</Alert>
       </Snackbar>
+      <ApprovalNotification
+        open={approvalNotification.open}
+        message={approvalNotification.message}
+        requestId={approvalNotification.requestId}
+        actionLabel={canOpenApprovalInbox ? 'Open Approval' : undefined}
+        actionHref={canOpenApprovalInbox ? (approvalNotification.requestId ? `/banking/maintenance/approval?requestId=${encodeURIComponent(approvalNotification.requestId)}` : '/banking/maintenance/approval') : undefined}
+        onClose={() => setApprovalNotification(createClosedApprovalNotification())}
+      />
       <Snackbar
         open={!!error}
         autoHideDuration={6000}

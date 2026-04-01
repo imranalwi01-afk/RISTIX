@@ -1,4 +1,8 @@
-
+/**
+ * Executes tenant and legacy job workloads behind the scheduling and workflow layer.
+ * This service is the main bridge between job definitions and actual SQL, script,
+ * or shell execution at runtime.
+ */
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as schema from '../db/schema';
 import { sql } from 'drizzle-orm';
@@ -16,18 +20,36 @@ export type JobResult = {
     executionTimeMs: number;
 };
 
-type SqlRuntimeMetadata = {
+export type SqlRuntimeMetadata = {
     dbBackendPid: number;
     dbName: string;
     dbSessionStart?: string;
 };
 
-type ExecutorOptions = {
+export type ExecutorOptions = {
     onSqlRuntime?: (metadata: SqlRuntimeMetadata) => Promise<void> | void;
 };
 
 export class JobExecutorService<TSchema extends Record<string, unknown> = typeof schema> {
     constructor(private db: PostgresJsDatabase<TSchema>, private options: ExecutorOptions = {}) { }
+
+    private normalizeSqlArgument(value: unknown): any {
+        if (value === undefined || value === null) return null
+        if (value instanceof Date) return value.toISOString()
+        if (Buffer.isBuffer(value)) return value
+        if (value instanceof ArrayBuffer) return Buffer.from(value)
+        if (ArrayBuffer.isView(value)) return Buffer.from(value.buffer as ArrayBuffer)
+
+        if (typeof value === 'object') {
+            try {
+                return JSON.stringify(value)
+            } catch (error: any) {
+                throw new Error(`Failed to serialize SQL argument object: ${error?.message || String(error)}`)
+            }
+        }
+
+        return value
+    }
 
     private formatExecutionError(error: any, context: { jobType: string; parameters: any }): string {
         const parts: string[] = []
@@ -118,7 +140,10 @@ export class JobExecutorService<TSchema extends Record<string, unknown> = typeof
      */
     private async executeSqlSp(parameters: any): Promise<any> {
         const { procedureName, schemaName, targetDatabase = 'TENANT', parameters: args = [], params = [] } = parameters;
-        const finalArgs = args.length > 0 ? args : params;
+        const rawArgs = args.length > 0 ? args : params;
+        const finalArgs: any[] = Array.isArray(rawArgs)
+            ? rawArgs.map((arg) => this.normalizeSqlArgument(arg))
+            : [];
 
         if (!procedureName) throw new Error('procedureName is required for SQL_SP');
 

@@ -3,6 +3,7 @@ import { Effect, pipe } from 'effect'
 import { db } from '@/config'
 import { sql } from 'drizzle-orm'
 import { dbOperation, runEffect } from '@/lib/effect'
+import { buildErrorResponse } from '@/lib/http/error-response'
 
 // Health check routes
 export const healthRoutes = new OpenAPIHono()
@@ -36,7 +37,11 @@ const healthCheckRoute = createRoute({
                     schema: z.object({
                         success: z.boolean().default(false),
                         error: z.string(),
+                        message: z.string().optional(),
                         code: z.string().optional(),
+                        requestId: z.string().nullable().optional(),
+                        timestamp: z.string().optional(),
+                        details: z.unknown().optional(),
                     }),
                 },
             },
@@ -44,7 +49,7 @@ const healthCheckRoute = createRoute({
     },
 })
 
-healthRoutes.openapi(healthCheckRoute, async (c) => {
+healthRoutes.openapi(healthCheckRoute, async (c): Promise<any> => {
     const healthCheck = pipe(
         dbOperation('query', () => db.execute(sql`SELECT 1`)),
         Effect.map(() => ({
@@ -68,11 +73,11 @@ healthRoutes.openapi(healthCheckRoute, async (c) => {
     if (result._tag === 'Success') {
         const payload = result.value
         if (payload.status === 'error') {
-            return c.json({
-                success: false,
+            return c.json(buildErrorResponse(c, {
                 error: (payload as any).error || 'Health check failed',
+                message: (payload as any).error || 'Health check failed',
                 code: 'HEALTH_CHECK_FAILED',
-            }, 500)
+            }), 500)
         }
         return c.json({
             success: true,
@@ -81,11 +86,9 @@ healthRoutes.openapi(healthCheckRoute, async (c) => {
     }
 
     const error = result.cause as unknown as Error
-    return c.json({
-        success: false,
+    return c.json(buildErrorResponse(c, {
         error: error.message || 'Internal server error',
+        message: error.message || 'Internal server error',
         code: 'INTERNAL_ERROR',
-    }, 500)
+    }), 500)
 })
-
-

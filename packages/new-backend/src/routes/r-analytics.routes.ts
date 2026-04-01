@@ -1,5 +1,6 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import type { AppContext } from '../app'
+import { buildErrorResponse } from '../lib/http/error-response'
 
 /**
  * R Analytics Routes (STUB)
@@ -64,6 +65,11 @@ const RScriptDetailResponse = z.object({
 const ErrorResponse = z.object({
     success: z.boolean(),
     message: z.string(),
+    error: z.string().optional(),
+    code: z.string().optional(),
+    requestId: z.string().nullable().optional(),
+    timestamp: z.string().optional(),
+    details: z.unknown().optional(),
 }).openapi('ErrorResponse')
 
 // ============================================================================
@@ -85,7 +91,7 @@ rAnalyticsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c): Promise<any> => {
         try {
             const body = await c.req.json()
             return c.json({
@@ -98,7 +104,7 @@ rAnalyticsRoutes.openapi(
                 message: 'R analytics job submitted - stub implementation',
             })
         } catch (error) {
-            return c.json({ success: false, message: 'Failed to submit R job' }, 500)
+            return c.json(buildErrorResponse(c, { error: 'Failed to submit R job', message: 'Failed to submit R job', code: 'R_ANALYTICS_ERROR' }), 500)
         }
     }
 )
@@ -118,7 +124,7 @@ rAnalyticsRoutes.openapi(
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' }
         }
     }),
-    async (c) => {
+    async (c): Promise<any> => {
         const jobId = c.req.param('jobId')
         return c.json({
             success: true,
@@ -149,7 +155,7 @@ rAnalyticsRoutes.openapi(
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' }
         }
     }),
-    async (c) => {
+    async (c): Promise<any> => {
         const jobId = c.req.param('jobId')
         return c.json({
             success: true,
@@ -175,7 +181,7 @@ rAnalyticsRoutes.openapi(
             200: { content: { 'application/json': { schema: RScriptListResponse } }, description: 'List Scripts' }
         }
     }),
-    async (c) => {
+    async (c): Promise<any> => {
         return c.json({
             success: true,
             data: [],
@@ -199,7 +205,7 @@ rAnalyticsRoutes.openapi(
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' }
         }
     }),
-    async (c) => {
+    async (c): Promise<any> => {
         const scriptId = c.req.param('scriptId')
         return c.json({
             success: true,

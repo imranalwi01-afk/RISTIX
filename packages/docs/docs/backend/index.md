@@ -28,6 +28,10 @@ We use BullMQ for reliable background job execution.
 - [DBML Schema Reference](./dbml-schema-reference)
 - [DBDocs Publishing Runbook](./dbdocs-publishing-runbook)
 
+## 6. Documentation Standards
+- [Backend JSDoc Guidelines](./jsdoc-guidelines)
+- [Backend API Reference Guide](./api-reference-guide)
+
 ```mermaid
 graph LR
     API[Hono API] -->|job.add| Redis[(Redis)]

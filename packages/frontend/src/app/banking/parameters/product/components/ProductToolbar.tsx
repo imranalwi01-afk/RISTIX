@@ -60,6 +60,7 @@ export default function ProductToolbar({
           fullWidth
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
+          inputProps={{ 'data-testid': 'input-search-product' }}
           slotProps={{
             input: {
               startAdornment: (
@@ -74,6 +75,7 @@ export default function ProductToolbar({
           variant="outlined"
           startIcon={<FilterIcon />}
           onClick={onFilterClick}
+          data-testid="btn-filter-product"
           sx={{ whiteSpace: 'nowrap' }}
           color={activeFilterCount > 0 ? "primary" : "inherit"}
         >
@@ -83,7 +85,7 @@ export default function ProductToolbar({
 
       <Stack direction="row" spacing={1}>
         <Tooltip title="Refresh Data">
-          <IconButton onClick={onRefreshClick} disabled={loading}>
+          <IconButton onClick={onRefreshClick} disabled={loading} data-testid="btn-refresh-product">
             <RefreshIcon />
           </IconButton>
         </Tooltip>
@@ -93,6 +95,7 @@ export default function ProductToolbar({
             startIcon={<DownloadIcon />}
             onClick={onExportClick}
             disabled={loading}
+            data-testid="btn-export-product"
           >
             Export
           </Button>
@@ -103,6 +106,7 @@ export default function ProductToolbar({
             startIcon={<AddIcon />}
             onClick={onAddClick}
             disabled={loading}
+            data-testid="btn-add-product"
           >
             Add Product
           </Button>

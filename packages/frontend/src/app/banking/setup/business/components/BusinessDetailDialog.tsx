@@ -29,6 +29,14 @@ import {
     CloudUpload as CloudUploadIcon
 } from '@mui/icons-material';
 import { bankingAPI, handleAPIError } from '../../../../../services/api';
+import {
+    ApprovalNotification,
+    buildApprovalConflictNotification,
+    buildApprovalNotification,
+    createClosedApprovalNotification,
+    type ApprovalNotificationState,
+} from '@/components/approval';
+import { usePermission } from '@/hooks/usePermission';
 
 // Interface matching Backend
 export interface BusinessParameterDetail {
@@ -64,10 +72,19 @@ interface BusinessDetailDialogProps {
 }
 
 export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetailDialogProps) {
+    const { hasAnyPermission } = usePermission();
+    const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
     const [loading, setLoading] = useState(false);
     const [details, setDetails] = useState<BusinessParameterDetail[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+    const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
+    const showApprovalConflict = (error: unknown, fallbackMessage: string) => {
+        const notification = buildApprovalConflictNotification(error, fallbackMessage);
+        if (!notification) return false;
+        setApprovalNotification(notification);
+        return true;
+    };
 
     // Form State
     const [isEditing, setIsEditing] = useState(false);
@@ -145,11 +162,17 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
 
         try {
             setLoading(true);
-            await bankingAPI.businessSetup.deleteDetail(detail.id);
-            setSuccess('Detail deleted successfully');
+            const result = await bankingAPI.businessSetup.deleteDetail(detail.id);
+            if (result?.approvalRequired) {
+                setApprovalNotification(buildApprovalNotification(result, 'Detail deletion submitted for approval'));
+            } else {
+                setSuccess('Detail deleted successfully');
+            }
             await loadDetails();
         } catch (err) {
-            setError(`Failed to delete detail: ${handleAPIError(err).message}`);
+            if (!showApprovalConflict(err, 'Detail deletion submitted for approval')) {
+                setError(`Failed to delete detail: ${handleAPIError(err).message}`);
+            }
         } finally {
             setLoading(false);
         }
@@ -185,12 +208,20 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
 
             if (editingDetail) {
                 // Update
-                await bankingAPI.businessSetup.updateDetail(editingDetail.id, payload);
-                setSuccess('Detail updated successfully');
+                const result = await bankingAPI.businessSetup.updateDetail(editingDetail.id, payload);
+                if (result?.approvalRequired) {
+                    setApprovalNotification(buildApprovalNotification(result, 'Detail update submitted for approval'));
+                } else {
+                    setSuccess('Detail updated successfully');
+                }
             } else {
                 // Create
-                await bankingAPI.businessSetup.createDetail(parameter.param_code, payload);
-                setSuccess('Detail created successfully');
+                const result = await bankingAPI.businessSetup.createDetail(parameter.param_code, payload);
+                if (result?.approvalRequired) {
+                    setApprovalNotification(buildApprovalNotification(result, 'Detail creation submitted for approval'));
+                } else {
+                    setSuccess('Detail created successfully');
+                }
             }
 
             setIsEditing(false);
@@ -198,7 +229,9 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
 
         } catch (err) {
             console.error('Save failed:', err);
-            setError(`Failed to save: ${handleAPIError(err).message}`);
+            if (!showApprovalConflict(err, editingDetail ? 'Detail update submitted for approval' : 'Detail creation submitted for approval')) {
+                setError(`Failed to save: ${handleAPIError(err).message}`);
+            }
         } finally {
             setLoading(false);
         }
@@ -252,6 +285,14 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
                 {/* Notifications */}
                 {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
                 {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
+                <ApprovalNotification
+                    open={approvalNotification.open}
+                    message={approvalNotification.message}
+                    requestId={approvalNotification.requestId}
+                    actionLabel={canOpenApprovalInbox ? 'Open Approval' : undefined}
+                    actionHref={canOpenApprovalInbox ? (approvalNotification.requestId ? `/banking/maintenance/approval?requestId=${encodeURIComponent(approvalNotification.requestId)}` : '/banking/maintenance/approval') : undefined}
+                    onClose={() => setApprovalNotification(createClosedApprovalNotification())}
+                />
 
                 {/* Form Mode */}
                 {isEditing ? (
@@ -427,5 +468,3 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
         </Dialog>
     );
 }
-
-

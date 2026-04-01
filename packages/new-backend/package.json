@@ -24,6 +24,9 @@
         "test:auth-route-contract": "bun test src/test/routes/auth.response-contract.test.ts",
         "test:notifications-route-contract": "bun test src/test/routes/notifications.response-contract.test.ts",
         "test:approval-route-contract": "bun test src/test/routes/approval.response-contract.test.ts",
+        "test:approval-endpoint-execution": "bun test src/test/routes/approval.endpoint-execution.integration.test.ts",
+        "test:approval-reconciliation": "bun test src/test/services/approval.reconciliation.test.ts src/test/lib/approval-reconciliation-report.test.ts",
+        "test:approval-execution": "pnpm test:approval-endpoint-execution && pnpm test:approval-reconciliation && bun test src/test/services/approval.executor.integration.test.ts && bun test src/test/services/approval.service.test.ts --test-name-pattern \"processApprovalAction executes (user and user_status branches|role and role_assignment branches|parameter-setting branches|role-permission update branch with id/code resolution|configuration, bucket, rule base, product, and journal branches)\"",
         "test:jobs-route-contract": "bun test src/test/routes/jobs.response-contract.test.ts",
         "test:ifrs9-route-contract": "bun test src/test/routes/ifrs9.response-contract.test.ts",
         "test:tenants-route-contract": "bun test src/test/routes/tenants.response-contract.test.ts",
@@ -50,7 +53,8 @@
         "db:seed": "bun run src/db/seed.ts",
         "docs": "typedoc",
         "docs:serve": "npx serve docs",
-        "ops": "bun run src/cli.ts"
+        "ops": "bun run src/cli.ts",
+        "approval:reconcile": "bun run scripts/reconcile-approved-requests.ts"
     },
     "dependencies": {
         "@hono/zod-openapi": "0.18.3",

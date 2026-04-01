@@ -39,6 +39,9 @@ services:
       - db
       - full
       - dev
+      - app
+      - backend
+      - backend-only
 
   # ============================================================================
   # 📊 REDIS (Development)
@@ -62,6 +65,9 @@ services:
       - db
       - full
       - dev
+      - app
+      - backend
+      - backend-only
 
   # ============================================================================
   # 🚀 NEW BACKEND SERVICE (Hono + Drizzle + Bun)
@@ -73,7 +79,7 @@ services:
       target: builder
     container_name: ifrs9-new-backend-dev
     env_file:
-      - backend.env
+      - backend.env.example
     environment:
       # Only set what needs to be different from .env
       NODE_ENV: development
@@ -90,6 +96,12 @@ services:
       - "4232:4232"
     networks:
       - ifrs9-dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
     volumes:
       - ../../packages/new-backend/src:/app/src:ro
       - ../../packages/new-backend/package.json:/app/package.json
@@ -120,7 +132,7 @@ services:
       dockerfile: Dockerfile
     container_name: ifrs9-frontend-dev
     env_file:
-      - frontend.env
+      - frontend.env.example
     environment:
       NODE_ENV: development
       HOSTNAME: "0.0.0.0"
@@ -179,7 +191,7 @@ services:
       dockerfile: Dockerfile
     container_name: ifrs9-r-analytics-dev
     env_file:
-      - .env
+      - .env.example
     environment:
       R_PORT: ${R_ANALYTICS_PORT:-4236}
       R_SERVICE_PORT: ${R_SERVICE_PORT:-4241}
@@ -242,11 +254,11 @@ services:
 # ============================================================================
 volumes:
   postgres-dev-data:
-    external: true
     name: ifrs9-iaf_postgres-dev-data
+    driver: local
   redis-dev-data:
-    external: true
     name: ifrs9-iaf_redis-dev-data
+    driver: local
   new-backend-node-modules:
     driver: local
   r-analytics-logs:

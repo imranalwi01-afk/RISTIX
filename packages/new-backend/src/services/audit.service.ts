@@ -357,17 +357,28 @@ export const logApproval = {
         requestId: string,
         title: string,
         requestedBy: string,
-        tenantId: string
+        tenantId: string,
+        details?: {
+            entityType?: string
+            entityId?: string
+            description?: string
+            oldValues?: any
+            newValues?: any
+            metadata?: any
+        }
     ) => {
         await logAuditEvent({
             tenantId,
             userId: requestedBy,
             eventType: 'approval',
             action: 'approval_requested',
-            entityType: 'approval_request',
+            entityType: details?.entityType || 'approval_request',
             entityId: requestId,
             entityName: title,
-            description: `Created approval request: ${title}`,
+            oldValues: details?.oldValues,
+            newValues: details?.newValues,
+            metadata: details?.metadata,
+            description: details?.description || `Created approval request: ${title}`,
             // riskLevel: 'medium'
         })
     },
@@ -377,17 +388,23 @@ export const logApproval = {
         title: string,
         approvedBy: string,
         tenantId: string,
-        comment?: string
+        comment?: string,
+        details?: {
+            entityType?: string
+            newValues?: any
+            metadata?: any
+        }
     ) => {
         await logAuditEvent({
             tenantId,
             userId: approvedBy,
             eventType: 'approval',
             action: 'approval_granted',
-            entityType: 'approval_request',
+            entityType: details?.entityType || 'approval_request',
             entityId: requestId,
             entityName: title,
-            newValues: { comment },
+            newValues: details?.newValues ?? { comment },
+            metadata: details?.metadata,
             description: `Approved: ${title}`,
             // riskLevel: 'high'
         })
@@ -398,19 +415,103 @@ export const logApproval = {
         title: string,
         rejectedBy: string,
         tenantId: string,
-        reason?: string
+        reason?: string,
+        details?: {
+            entityType?: string
+            newValues?: any
+            metadata?: any
+        }
     ) => {
         await logAuditEvent({
             tenantId,
             userId: rejectedBy,
             eventType: 'approval',
             action: 'approval_rejected',
-            entityType: 'approval_request',
+            entityType: details?.entityType || 'approval_request',
             entityId: requestId,
             entityName: title,
-            newValues: { reason },
+            newValues: details?.newValues ?? { reason },
+            metadata: details?.metadata,
             description: `Rejected: ${title}`,
             // riskLevel: 'high'
+        })
+    },
+
+    infoRequested: async (
+        requestId: string,
+        title: string,
+        requestedBy: string,
+        tenantId: string,
+        comment?: string,
+        details?: {
+            entityType?: string
+            newValues?: any
+            metadata?: any
+        }
+    ) => {
+        await logAuditEvent({
+            tenantId,
+            userId: requestedBy,
+            eventType: 'approval',
+            action: 'approval_info_requested',
+            entityType: details?.entityType || 'approval_request',
+            entityId: requestId,
+            entityName: title,
+            newValues: details?.newValues ?? { comment },
+            metadata: details?.metadata,
+            description: `Requested info: ${title}`,
+        })
+    },
+
+    cancelled: async (
+        requestId: string,
+        title: string,
+        cancelledBy: string,
+        tenantId: string,
+        reason?: string,
+        details?: {
+            entityType?: string
+            newValues?: any
+            metadata?: any
+        }
+    ) => {
+        await logAuditEvent({
+            tenantId,
+            userId: cancelledBy,
+            eventType: 'approval',
+            action: 'approval_cancelled',
+            entityType: details?.entityType || 'approval_request',
+            entityId: requestId,
+            entityName: title,
+            newValues: details?.newValues ?? { reason },
+            metadata: details?.metadata,
+            description: `Cancelled: ${title}`,
+        })
+    },
+
+    delegated: async (
+        requestId: string,
+        title: string,
+        delegatedBy: string,
+        tenantId: string,
+        delegatedTo?: string,
+        details?: {
+            entityType?: string
+            newValues?: any
+            metadata?: any
+        }
+    ) => {
+        await logAuditEvent({
+            tenantId,
+            userId: delegatedBy,
+            eventType: 'approval',
+            action: 'approval_delegated',
+            entityType: details?.entityType || 'approval_request',
+            entityId: requestId,
+            entityName: title,
+            newValues: details?.newValues ?? { delegatedTo },
+            metadata: details?.metadata,
+            description: `Delegated: ${title}`,
         })
     }
 }

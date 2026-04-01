@@ -82,7 +82,6 @@ interface Role {
   description: string;
   type: 'SYSTEM' | 'BANKING' | 'CUSTOM';
   level: 'PLATFORM' | 'TENANT' | 'DEPARTMENT';
-  bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
   isActive: boolean;
   isBuiltIn: boolean;
   permissions: Record<string, Permission[]>; // Grouped by category
@@ -115,7 +114,6 @@ interface RoleFormData {
   description: string;
   type: 'SYSTEM' | 'BANKING' | 'CUSTOM';
   level: 'PLATFORM' | 'TENANT' | 'DEPARTMENT';
-  bankingAccess: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
   isActive: boolean;
   permissions: string[];
 }
@@ -159,7 +157,6 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
     description: '',
     type: 'CUSTOM',
     level: 'TENANT',
-    bankingAccess: 'CONVENTIONAL',
     isActive: true,
     permissions: []
   });
@@ -200,10 +197,6 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
     level: {
       required: true,
       message: 'Role level is required'
-    },
-    bankingAccess: {
-      required: false,
-      message: 'Banking access is required for banking roles'
     }
   };
 
@@ -273,11 +266,6 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
       }
     });
 
-    // Special validations
-    if (formData.type === 'BANKING' && !formData.bankingAccess) {
-      errors.bankingAccess = 'Banking access is required for banking roles';
-    }
-
     // Check for duplicate role name
     const duplicateRole = roles.find(
       role => role.name === formData.name && role.id !== crudDialog.role?.id
@@ -317,7 +305,6 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
       description: '',
       type: 'CUSTOM',
       level: 'TENANT',
-      bankingAccess: 'CONVENTIONAL',
       isActive: true,
       permissions: []
     });
@@ -334,7 +321,6 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
       description: role.description || '',
       type: role.type,
       level: role.level,
-      bankingAccess: role.bankingAccess || 'CONVENTIONAL',
       isActive: role.isActive,
       permissions: flattenPermissions(role.permissions).map(p => p.id)
     });
@@ -559,25 +545,6 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
               </FormControl>
             </Grid>
 
-            <Grid size={{ xs: 12, md: 4 }}>
-              <FormControl fullWidth>
-                <InputLabel>Banking Access</InputLabel>
-                <Select
-                  value={formData.bankingAccess}
-                  onChange={handleFieldChange('bankingAccess')}
-                  label="Banking Access"
-                  disabled={crudDialog.mode === 'view' || crudDialog.mode === 'delete'}
-                >
-                  <MenuItem value="CONVENTIONAL">Conventional</MenuItem>
-                  <MenuItem value="SYARIAH">Syariah</MenuItem>
-                  <MenuItem value="BOTH">Both</MenuItem>
-                </Select>
-                {formErrors.bankingAccess && (
-                  <FormHelperText error>{formErrors.bankingAccess}</FormHelperText>
-                )}
-              </FormControl>
-            </Grid>
-
             <Grid size={{ xs: 12 }}>
               <FormControlLabel
                 control={
@@ -713,11 +680,6 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
                 <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="subtitle2">Configuration</Typography>
                   <Divider sx={{ my: 1 }} />
-                  {formData.bankingAccess && (
-                    <Typography variant="body2">
-                      <strong>Banking Access:</strong> {formData.bankingAccess}
-                    </Typography>
-                  )}
                   <Typography variant="body2">
                     <strong>Permissions:</strong> {selectedPermissions.length} selected
                   </Typography>

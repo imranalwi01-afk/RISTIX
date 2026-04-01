@@ -172,6 +172,7 @@ export const AssessmentKPI: React.FC<AssessmentKPIProps> = ({ watchlist, loading
         loading={loading && !summary}
         delay={300}
       />
+
       {summary?.dataDate && (
         <Box sx={{ gridColumn: '1 / -1', mt: 1, textAlign: 'right' }}>
             <Typography variant="caption" color="text.secondary">

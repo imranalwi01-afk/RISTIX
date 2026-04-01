@@ -13,6 +13,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "type-check": "tsc --noEmit",
+    "test:access-management": "bun test src/components/maintenance/access-management.utils.test.ts",
+    "test:collective-validation": "bun test src/lib/validation/collective-config.validation.test.ts",
     "test:users-api-utils": "bun test src/services/users-api.utils.test.ts",
     "test:roles-api-utils": "bun test src/services/roles-api.utils.test.ts",
     "clean": "bun ops clean",

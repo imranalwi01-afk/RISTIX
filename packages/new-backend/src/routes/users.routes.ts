@@ -257,7 +257,6 @@ usersRoutes.openapi(
             isSystemUser ||
             userPermissions.includes('admin.super_admin') ||
             userPermissions.includes('admin.users.manage') ||
-            userPermissions.includes('SUPER_ADMIN') ||
             userPermissions.includes('MANAGE_USERS')
 
         if (!canResetPassword) {
@@ -663,6 +662,7 @@ usersRoutes.openapi(
         const userId = c.get('userId')!
         const userPermissions = (c.get('userPermissions') as string[]) || []
         const body = c.req.valid('json')
+        const currentUser = await Effect.runPromise(usersService.getUserById(id))
 
         // Define the actual user update operation
         const executeUpdate = () => usersService.updateUser(id, body)
@@ -677,7 +677,18 @@ usersRoutes.openapi(
                 id,
                 body,
                 executeUpdate,
-                'medium'
+                'medium',
+                {
+                    id: currentUser.id,
+                    email: currentUser.email,
+                    fullName: currentUser.fullName,
+                    username: currentUser.username,
+                    phone: currentUser.phone ?? null,
+                    department: currentUser.department ?? null,
+                    position: currentUser.position ?? null,
+                    tenantId: currentUser.tenantId ?? null,
+                    isActive: currentUser.isActive ?? false,
+                }
             ),
             Effect.map((response: ApprovalResponse) => {
                 if (response.approvalRequired) {
@@ -745,6 +756,7 @@ usersRoutes.openapi(
         const tenantId = c.get('tenantId')!
         const userId = c.get('userId')!
         const userPermissions = (c.get('userPermissions') as string[]) || []
+        const currentUser = await Effect.runPromise(usersService.getUserById(id))
 
         // Define the actual user deletion operation
         const executeDelete = () => usersService.deleteUser(id)
@@ -758,7 +770,18 @@ usersRoutes.openapi(
                 'user',
                 id,
                 executeDelete,
-                'high' // Deleting users is high impact
+                'high', // Deleting users is high impact
+                {
+                    id: currentUser.id,
+                    email: currentUser.email,
+                    fullName: currentUser.fullName,
+                    username: currentUser.username,
+                    phone: currentUser.phone ?? null,
+                    department: currentUser.department ?? null,
+                    position: currentUser.position ?? null,
+                    tenantId: currentUser.tenantId ?? null,
+                    isActive: currentUser.isActive ?? false,
+                }
             ),
             Effect.map((response: ApprovalResponse) => {
                 if (response.approvalRequired) {
@@ -813,6 +836,7 @@ usersRoutes.openapi(
             const { id } = c.req.valid('param')
             const tenantId = c.get('tenantId')!
             const requestedBy = c.get('userId')!
+            const currentUser = await Effect.runPromise(usersService.getUserById(id))
 
             const request = await Effect.runPromise(
                 createApprovalRequest({
@@ -824,6 +848,10 @@ usersRoutes.openapi(
                     requestData: {
                         operation: 'update',
                         entityType: 'user_status',
+                        oldValues: {
+                            id: currentUser.id,
+                            isActive: currentUser.isActive ?? false,
+                        },
                         data: {
                             id,
                             isActive: true,
@@ -840,7 +868,19 @@ usersRoutes.openapi(
                 request.id,
                 request.title,
                 requestedBy,
-                tenantId
+                tenantId,
+                {
+                    entityType: 'user_status',
+                    oldValues: {
+                        id: currentUser.id,
+                        isActive: currentUser.isActive ?? false,
+                    },
+                    newValues: {
+                        id,
+                        isActive: true,
+                        tenantId,
+                    },
+                }
             )
 
             return c.json(
@@ -893,6 +933,7 @@ usersRoutes.openapi(
             const { id } = c.req.valid('param')
             const tenantId = c.get('tenantId')!
             const requestedBy = c.get('userId')!
+            const currentUser = await Effect.runPromise(usersService.getUserById(id))
 
             const request = await Effect.runPromise(
                 createApprovalRequest({
@@ -904,6 +945,10 @@ usersRoutes.openapi(
                     requestData: {
                         operation: 'update',
                         entityType: 'user_status',
+                        oldValues: {
+                            id: currentUser.id,
+                            isActive: currentUser.isActive ?? false,
+                        },
                         data: {
                             id,
                             isActive: false,
@@ -920,7 +965,19 @@ usersRoutes.openapi(
                 request.id,
                 request.title,
                 requestedBy,
-                tenantId
+                tenantId,
+                {
+                    entityType: 'user_status',
+                    oldValues: {
+                        id: currentUser.id,
+                        isActive: currentUser.isActive ?? false,
+                    },
+                    newValues: {
+                        id,
+                        isActive: false,
+                        tenantId,
+                    },
+                }
             )
 
             return c.json(

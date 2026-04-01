@@ -301,16 +301,33 @@ export const login = (
                 // 1. Try by exact ID (if it looks like a UUID)
                 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
                 let tenant = null
-                if (uuidRegex.test(input.tenantId)) {
-                    tenant = await TenantRepository.findById(input.tenantId)
+                const requestedTenantId = input.tenantId.trim()
+                const normalizedTenantCandidates = Array.from(
+                    new Set(
+                        [
+                            requestedTenantId,
+                            requestedTenantId.replace(/^tenant_/i, ''),
+                            requestedTenantId.replace(/^ifrspro_tenant_/i, ''),
+                        ].filter(Boolean)
+                    )
+                )
+
+                if (uuidRegex.test(requestedTenantId)) {
+                    tenant = await TenantRepository.findById(requestedTenantId)
                 }
 
-                // 2. Fallback to lookup by slug
+                // 2. Fallback to lookup by slug or tenant code, with compatibility aliases.
                 if (!tenant) {
-                    tenant = await TenantRepository.findBySlug(input.tenantId)
+                    for (const candidate of normalizedTenantCandidates) {
+                        tenant =
+                            (await TenantRepository.findBySlug(candidate)) ??
+                            (await TenantRepository.findByCode(candidate.toUpperCase())) ??
+                            (await TenantRepository.findByCode(candidate))
+                        if (tenant) break
+                    }
                 }
 
-                console.log(`[AuthDebug] input.tenantId=${input.tenantId} -> foundTenant=${!!tenant} id=${tenant?.id}`);
+                console.log(`[AuthDebug] input.tenantId=${input.tenantId} normalized=${normalizedTenantCandidates.join(',')} -> foundTenant=${!!tenant} id=${tenant?.id}`);
                 if (!tenant) throw new Error('Tenant not found')
                 return tenant.id
             },
@@ -491,7 +508,6 @@ export const login = (
             if (!resolvedTenantId) {
                 const hasPlatformAccess =
                     permissions.includes('admin.super_admin') ||
-                    permissions.includes('SUPER_ADMIN') ||
                     permissions.includes('PLATFORM_ADMIN') ||
                     permissions.includes('admin.system.manage')
 
@@ -527,7 +543,6 @@ export const login = (
                         !resolvedTenantId &&
                         (
                             permissions.includes('admin.super_admin') ||
-                            permissions.includes('SUPER_ADMIN') ||
                             permissions.includes('admin.system.manage') ||
                             permissions.includes('MANAGE_SYSTEM') || // backward-compat
                             permissions.includes('PLATFORM_ADMIN')

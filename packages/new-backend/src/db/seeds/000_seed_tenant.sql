@@ -1,7 +1,7 @@
 -- Ensure IAF Tenant Exists with specific UUID to match defaults
 INSERT INTO platform_admin.tenants (id, code, name, slug, description, banking_mode, is_active)
 VALUES (
-    'a24af6d2-3032-4d53-ae82-9cfa84f97a20'::uuid,
+    'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'::uuid,
     'IAF',
     'Indonesia Airawata Finance',
     'iaf',

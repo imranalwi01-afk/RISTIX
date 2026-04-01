@@ -11,6 +11,7 @@ import {
   Grid,
   TextField,
   Button,
+  Alert,
   Select,
   FormControl,
   InputLabel,
@@ -50,15 +51,25 @@ interface FilterState {
 }
 
 interface NominativeReportRow {
+  download_date?: string;
   facility_number?: string;
   cif_name?: string;
   account_number: string;
+  loan_start_date?: string;
+  loan_maturity_date?: string;
   outstanding?: number | string;
   ecl_final_amt?: number | string;
   ecl_final?: number | string; // from eclResult
+  ecl_coverage?: number | string;
   stage?: number | string;
+  group_segment?: string;
   segment?: string;
+  sub_segment?: string;
   branch_code?: string;
+  currency?: string;
+  interest_rate?: number | string;
+  rating_bucket?: number | string;
+  watchlist?: string;
   [key: string]: string | number | boolean | null | undefined;
 }
 
@@ -93,22 +104,46 @@ const NominativeReport: React.FC = () => {
 
   // UI State
   const [quickSearch, setQuickSearch] = useState('');
+  const [effectivePrcDate, setEffectivePrcDate] = useState<string | null>(null);
 
   // Column Definitions
   const columns = [
+    { key: 'download_date', label: 'Download Date', width: 130 },
     { key: 'facility_number', label: 'Contract No', width: 150 },
     { key: 'cif_name', label: 'Customer', width: 200 },
     { key: 'account_number', label: 'Account No', width: 150 },
+    { key: 'loan_start_date', label: 'Loan Start Date', width: 140 },
+    { key: 'loan_maturity_date', label: 'Loan Maturity Date', width: 150 },
+    { key: 'currency', label: 'Currency', width: 100 },
+    { key: 'interest_rate', label: 'Interest Rate', width: 120, align: 'right' as const, headerAlign: 'right' as const },
     { key: 'outstanding', label: 'Outstanding', width: 180, align: 'right' as const, headerAlign: 'right' as const, type: 'currency' },
     { key: 'ecl_final_amt', label: 'ECL Amount', width: 180, align: 'right' as const, headerAlign: 'right' as const, type: 'currency' },
+    { key: 'ecl_coverage', label: 'ECL Coverage', width: 130, align: 'right' as const, headerAlign: 'right' as const },
     { key: 'stage', label: 'Stage', width: 100, align: 'center' as const, headerAlign: 'center' as const },
-    { key: 'segment', label: 'Profit Center', width: 150 },
+    { key: 'group_segment', label: 'Group Segment', width: 160 },
+    { key: 'segment', label: 'Segment', width: 150 },
+    { key: 'sub_segment', label: 'Sub Segment', width: 150 },
+    { key: 'rating_bucket', label: 'Rating Bucket', width: 120, align: 'center' as const, headerAlign: 'center' as const },
+    { key: 'watchlist', label: 'Watchlist', width: 110, align: 'center' as const, headerAlign: 'center' as const },
     { key: 'branch_code', label: 'Branch', width: 120 }
   ];
 
-  // Dummy options (still dummy for filter UI until we have metadata API connected for these)
-  const profitCenterOptions = ['Corporate', 'SME', 'Retail', 'Treasury', 'Investment'];
-  const branchOptions = ['JKT001', 'JKT002', 'SBY001', 'BDG001', 'MKS001'];
+  const profitCenterOptions = useMemo(
+    () => Array.from(new Set(
+      data
+        .map((row) => row.group_segment || row.segment)
+        .filter((value): value is string => typeof value === 'string' && value.length > 0)
+    )).sort(),
+    [data],
+  );
+  const branchOptions = useMemo(
+    () => Array.from(new Set(
+      data
+        .map((row) => row.branch_code)
+        .filter((value): value is string => typeof value === 'string' && value.length > 0)
+    )).sort(),
+    [data],
+  );
 
   // Handle Search / Fetch Data
   const fetchData = useCallback(async () => {
@@ -117,9 +152,11 @@ const NominativeReport: React.FC = () => {
       // 1. Fetch Nominative Report Data (Paginated)
       const tableParams: Record<string, string | number | string[] | undefined> = {
         prc_date: filters.asOfDate,
+        download_start_date: filters.downloadDateStart,
+        download_end_date: filters.downloadDateEnd,
         page: paginationModel.page + 1,
         limit: paginationModel.pageSize,
-        segment: filters.profitCenters.length > 0 ? filters.profitCenters : undefined,
+        group_segment: filters.profitCenters.length > 0 ? filters.profitCenters : undefined,
         branch_code: filters.branches.length > 0 ? filters.branches : undefined
       };
       
@@ -127,8 +164,8 @@ const NominativeReport: React.FC = () => {
       // The backend controller supports `stage` param.
       // If multiple stages are selected in UI, and backend only supports one, we might need to adjust.
       // For now, let's send the first one if only one is selected, or don't send if all are selected.
-      if (filters.stages.length === 1) {
-        tableParams.stage = filters.stages[0];
+      if (filters.stages.length > 0) {
+        tableParams.stage = filters.stages.map((stage) => String(stage));
       }
 
       const tableResponse = await reportsAPI.nominativeReport.get(tableParams);
@@ -137,6 +174,7 @@ const NominativeReport: React.FC = () => {
         setData(tableResponse.data);
         const total = tableResponse.pagination ? tableResponse.pagination.total : tableResponse.data.length;
         setTotalRows(total);
+        setEffectivePrcDate(tableResponse.effectivePrcDate ?? null);
 
         // Update Summary Stats from API Response (Dynamic based on filters)
         if (tableResponse.summary) {
@@ -149,6 +187,9 @@ const NominativeReport: React.FC = () => {
                 totalOutstanding: tableResponse.summary.totalOutstanding
             });
         }
+      } else {
+        setData([]);
+        setTotalRows(0);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -173,6 +214,7 @@ const NominativeReport: React.FC = () => {
       branches: [],
       stages: [1, 2, 3]
     });
+    setEffectivePrcDate(null);
     setPaginationModel({ pageSize: 20, page: 0 });
   }, []);
 
@@ -181,7 +223,7 @@ const NominativeReport: React.FC = () => {
     try {
         setLoading(true);
         const params = {
-          prc_date: filters.asOfDate,
+          prc_date: effectivePrcDate ?? filters.asOfDate,
           branch_code: filters.branches.length > 0 ? filters.branches[0] : undefined,
           format: 'xlsx'
         };
@@ -192,27 +234,37 @@ const NominativeReport: React.FC = () => {
              const url = window.URL.createObjectURL(new Blob([response.data]));
              const link = document.createElement('a');
              link.href = url;
-             link.setAttribute('download', `Nominative_Report_${filters.asOfDate}.xlsx`);
+             link.setAttribute('download', `Nominative_Report_${effectivePrcDate ?? filters.asOfDate}.xlsx`);
              document.body.appendChild(link);
              link.click();
              link.parentNode?.removeChild(link);
         } else {
              // Fallback: Client side export of current data (better than nothing)
               const exportData = data.map(row => ({
+                'Download Date': row.download_date,
                 'Contract No': row.facility_number,
                 'Customer': row.cif_name,
                 'Account No': row.account_number,
+                'Loan Start Date': row.loan_start_date,
+                'Loan Maturity Date': row.loan_maturity_date,
+                'Currency': row.currency,
+                'Interest Rate': row.interest_rate,
                 'Outstanding (IDR)': row.outstanding,
                 'ECL Amount (IDR)': row.ecl_final_amt,
+                'ECL Coverage': row.ecl_coverage,
                 'Stage': row.stage,
-                'Profit Center': row.segment,
+                'Group Segment': row.group_segment,
+                'Segment': row.segment,
+                'Sub Segment': row.sub_segment,
+                'Rating Bucket': row.rating_bucket,
+                'Watchlist': row.watchlist,
                 'Branch': row.branch_code
               }));
               
               const ws = XLSX.utils.json_to_sheet(exportData);
               const wb = XLSX.utils.book_new();
               XLSX.utils.book_append_sheet(wb, ws, "Nominative Report");
-              XLSX.writeFile(wb, `Nominative_Report_Page_${filters.asOfDate}.xlsx`);
+              XLSX.writeFile(wb, `Nominative_Report_Page_${effectivePrcDate ?? filters.asOfDate}.xlsx`);
         }
     } catch (error) {
       console.error('❌ Export failed:', error);
@@ -220,7 +272,7 @@ const NominativeReport: React.FC = () => {
     } finally {
         setLoading(false);
     }
-  }, [data, filters.asOfDate, filters.branches]);
+  }, [data, effectivePrcDate, filters.asOfDate, filters.branches]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -253,10 +305,15 @@ const NominativeReport: React.FC = () => {
 
     const searchTerm = quickSearch.toLowerCase().trim();
     return data.filter(row => 
+      row.download_date?.toLowerCase().includes(searchTerm) ||
       row.facility_number?.toLowerCase().includes(searchTerm) ||
       row.cif_name?.toLowerCase().includes(searchTerm) ||
       row.account_number?.toLowerCase().includes(searchTerm) ||
+      row.group_segment?.toLowerCase().includes(searchTerm) ||
       row.segment?.toLowerCase().includes(searchTerm) ||
+      row.sub_segment?.toLowerCase().includes(searchTerm) ||
+      row.currency?.toLowerCase().includes(searchTerm) ||
+      row.watchlist?.toLowerCase().includes(searchTerm) ||
       row.branch_code?.toLowerCase().includes(searchTerm)
     );
   }, [data, quickSearch]);
@@ -586,7 +643,7 @@ const NominativeReport: React.FC = () => {
 
                 <Grid size={{ xs: 12, md: 6 }}>
                   <FormControl fullWidth size="small">
-                    <InputLabel>Profit Center</InputLabel>
+                    <InputLabel>Group Segment</InputLabel>
                     <Select
                       multiple
                       value={filters.profitCenters}
@@ -594,7 +651,7 @@ const NominativeReport: React.FC = () => {
                         ...prev, 
                         profitCenters: typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value as string[] 
                       }))}
-                      label="Profit Center"
+                      label="Group Segment"
                       renderValue={(selected) => (
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                           {selected.map((value) => (
@@ -675,6 +732,13 @@ const NominativeReport: React.FC = () => {
                   />
                 </Grid>
 
+            {effectivePrcDate && effectivePrcDate !== filters.asOfDate && (
+              <Grid size={{ xs: 12 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Snapshot used: <strong>{effectivePrcDate}</strong> (latest available data on or before selected As-of Date)
+                </Typography>
+              </Grid>
+            )}
 
 
             {/* Active Filter Chips */}
@@ -784,6 +848,12 @@ const NominativeReport: React.FC = () => {
         )}
       </Box>
 
+      {quickSearch && filteredData.length === 0 && (
+        <Alert severity="info" sx={{ mb: 3, borderRadius: 3 }}>
+          No matching nominative records were found for the current keyword on this page.
+        </Alert>
+      )}
+
       {/* Data Grid - Enhanced */}
       <Paper 
         sx={{ 
@@ -839,6 +909,17 @@ const NominativeReport: React.FC = () => {
                   };
                 }
 
+                if (col.key === 'ecl_coverage' || col.key === 'interest_rate') {
+                  return {
+                    ...baseCol,
+                    valueFormatter: (value: number | string | null | undefined) => {
+                      if (value == null || value === '') return '';
+                      const numericValue = Number(value);
+                      return Number.isFinite(numericValue) ? `${numericValue.toFixed(2)}%` : String(value);
+                    }
+                  };
+                }
+
                 if (col.key === 'stage') {
                   return {
                     ...baseCol,
@@ -850,6 +931,29 @@ const NominativeReport: React.FC = () => {
                         color={params.value == 1 ? 'success' : params.value == 2 ? 'warning' : 'error'}
                       />
                     )
+                  };
+                }
+
+                if (col.key === 'watchlist') {
+                  return {
+                    ...baseCol,
+                    renderCell: (params: GridRenderCellParams<NominativeReportRow, string>) => (
+                      <Chip
+                        label={params.value || 'No'}
+                        size="small"
+                        color={params.value === 'Yes' ? 'warning' : 'default'}
+                      />
+                    )
+                  };
+                }
+
+                if (col.key.includes('date')) {
+                  return {
+                    ...baseCol,
+                    valueFormatter: (value: string | null | undefined) => {
+                      if (!value) return '';
+                      return new Date(value).toLocaleDateString('id-ID');
+                    }
                   };
                 }
 

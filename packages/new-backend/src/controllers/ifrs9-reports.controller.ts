@@ -1,8 +1,22 @@
 
 import { Context } from 'hono';
 import { ifrs9ReportsService } from '../services/ifrs9-reports.service';
+import { buildErrorResponse } from '../lib/http/error-response';
 
 export const ifrs9ReportsController = {
+    handleError: (c: Context, error: any) => {
+        console.error('❌ [IFRS9] Controller error:', error);
+        const message = error?.message || 'Internal server error';
+        return c.json(
+            buildErrorResponse(c, {
+                error: message,
+                message,
+                code: 'REPORT_ERROR',
+            }),
+            500
+        );
+    },
+
     getMetadata: async (c: Context) => {
         return c.json({
             success: true,
@@ -42,11 +56,11 @@ export const ifrs9ReportsController = {
                     total: result.total,
                     totalPages: result.totalPages
                 },
+                effectivePrcDate: result.effectivePrcDate,
                 message: result.total === 0 ? "No Lifetime PD Data available" : undefined
             });
         } catch (error: any) {
-            console.error('❌ [IFRS9] Error in getLifetimePDYearly:', error);
-            return c.json({ success: false, message: error.message }, 500);
+            return ifrs9ReportsController.handleError(c, error);
         }
     },
 
@@ -79,11 +93,11 @@ export const ifrs9ReportsController = {
                     total: result.total,
                     totalPages: result.totalPages
                 },
+                effectivePrcDate: result.effectivePrcDate,
                 message: result.total === 0 ? "No Lifetime PD Monthly Data available" : undefined
             });
         } catch (error: any) {
-            console.error('❌ [IFRS9] Error in getLifetimePDMonthly:', error);
-            return c.json({ success: false, message: error.message }, 500);
+            return ifrs9ReportsController.handleError(c, error);
         }
     },
 
@@ -113,11 +127,11 @@ export const ifrs9ReportsController = {
                     total: result.total,
                     totalPages: result.totalPages
                 },
+                effectivePrcDate: result.effectivePrcDate,
                 message: result.total === 0 ? "No Lifetime PD Account Details available" : undefined
             });
         } catch (error: any) {
-            console.error('❌ [IFRS9] Error in getLifetimePDAccountDetails:', error);
-            return c.json({ success: false, message: error.message }, 500);
+            return ifrs9ReportsController.handleError(c, error);
         }
     },
 
@@ -132,12 +146,14 @@ export const ifrs9ReportsController = {
             const lgd_config_id = c.req.query('lgd_config_id') ? Number(c.req.query('lgd_config_id')) : 1;
             const lgd_method = c.req.query('lgd_method') ? Number(c.req.query('lgd_method')) : undefined;
             const model_id = c.req.query('model_id') ? Number(c.req.query('model_id')) : undefined;
+            const segment_id = c.req.query('segment_id') ? Number(c.req.query('segment_id')) : undefined;
+            const fl_flag = c.req.query('fl_flag') === 'true' ? true : c.req.query('fl_flag') === 'false' ? false : undefined;
 
             const result = await ifrs9ReportsService.getLifetimeLGDDetail(
                 tenantId,
                 page,
                 limit,
-                { prc_date, lgd_config_id, lgd_method, model_id }
+                { prc_date, lgd_config_id, lgd_method, model_id, segment_id, fl_flag }
             );
 
             return c.json({
@@ -149,11 +165,11 @@ export const ifrs9ReportsController = {
                     total: result.total,
                     totalPages: result.totalPages
                 },
+                effectivePrcDate: result.effectivePrcDate,
                 message: result.total === 0 ? "No Lifetime LGD Data available" : undefined
             });
         } catch (error: any) {
-            console.error('❌ [IFRS9] Error in getLifetimeLGD:', error);
-            return c.json({ success: false, message: error.message }, 500);
+            return ifrs9ReportsController.handleError(c, error);
         }
     },
 
@@ -187,22 +203,22 @@ export const ifrs9ReportsController = {
                 message: result.total === 0 ? "No EAD Model Data available" : undefined
             });
         } catch (error: any) {
-            console.error('❌ [IFRS9] Error in getEADModel:', error);
-            return c.json({ success: false, message: error.message }, 500);
+            return ifrs9ReportsController.handleError(c, error);
         }
     },
 
     getEADModelSummary: async (c: Context) => {
         try {
             const tenantId = (c as any).get('tenantId');
-            
+
             // Extract filter parameters
             const prc_date = c.req.query('prc_date') || '2023-12-31';
             const ead_config_id = c.req.query('ead_config_id') ? Number(c.req.query('ead_config_id')) : undefined;
+            const segment_id = c.req.query('segment_id') ? Number(c.req.query('segment_id')) : undefined;
 
             const result = await ifrs9ReportsService.getEADModelSummary(
                 tenantId,
-                { prc_date, ead_config_id }
+                { prc_date, ead_config_id, segment_id }
             );
 
             return c.json({
@@ -211,8 +227,7 @@ export const ifrs9ReportsController = {
                 message: (!result.data || result.data.length === 0) ? "No EAD Model Summary Data available" : undefined
             });
         } catch (error: any) {
-            console.error('❌ [IFRS9] Error in getEADModelSummary:', error);
-            return c.json({ success: false, message: error.message }, 500);
+            return ifrs9ReportsController.handleError(c, error);
         }
     },
 
@@ -243,11 +258,11 @@ export const ifrs9ReportsController = {
                     total: result.total,
                     totalPages: result.totalPages
                 },
+                effectivePrcDate: result.effectivePrcDate,
                 message: result.total === 0 ? "No ECL Result Data available" : undefined
             });
         } catch (error: any) {
-            console.error('❌ [IFRS9] Error in getECLResult:', error);
-            return c.json({ success: false, message: error.message }, 500);
+            return ifrs9ReportsController.handleError(c, error);
         }
     },
 
@@ -268,8 +283,7 @@ export const ifrs9ReportsController = {
                 message: result.data.length === 0 ? "No ECL Movement Data available" : undefined
             });
         } catch (error: any) {
-            console.error('❌ [IFRS9] Error in getECLMovement:', error);
-            return c.json({ success: false, message: error.message }, 500);
+            return ifrs9ReportsController.handleError(c, error);
         }
     },
 
@@ -290,8 +304,7 @@ export const ifrs9ReportsController = {
                 message: result.data.length === 0 ? "No GCA Movement Data available" : undefined
             });
         } catch (error: any) {
-            console.error('❌ [IFRS9] Error in getGCAMovement:', error);
-            return c.json({ success: false, message: error.message }, 500);
+            return ifrs9ReportsController.handleError(c, error);
         }
     },
 
@@ -302,6 +315,9 @@ export const ifrs9ReportsController = {
             const limit = Number(c.req.query('limit') || 20);
             // Extract filter parameters
             const prc_date = c.req.query('prc_date') || '2023-12-31';
+            const download_start_date = c.req.query('download_start_date') || undefined;
+            const download_end_date = c.req.query('download_end_date') || undefined;
+            const group_segment = c.req.queries('group_segment') || (c.req.query('group_segment') ? [c.req.query('group_segment')!] : undefined);
             const segment = c.req.queries('segment') || (c.req.query('segment') ? [c.req.query('segment')!] : undefined);
             const stage = c.req.queries('stage') || (c.req.query('stage') ? [c.req.query('stage')!] : undefined);
             const branch_code = c.req.queries('branch_code') || (c.req.query('branch_code') ? [c.req.query('branch_code')!] : undefined);
@@ -309,7 +325,7 @@ export const ifrs9ReportsController = {
                 tenantId,
                 page,
                 limit,
-                { prc_date, segment, stage, branch_code }
+                { prc_date, download_start_date, download_end_date, group_segment, segment, stage, branch_code }
             );
             return c.json({
                 success: true,
@@ -321,11 +337,11 @@ export const ifrs9ReportsController = {
                     totalPages: result.totalPages
                 },
                 summary: result.summary,
+                effectivePrcDate: result.effectivePrcDate,
                 message: result.total === 0 ? "No Nominative Report Data available" : undefined
             });
         } catch (error: any) {
-            console.error('❌ [IFRS9] Error in getNominativeReport:', error);
-            return c.json({ success: false, message: error.message }, 500);
+            return ifrs9ReportsController.handleError(c, error);
         }
     },
 

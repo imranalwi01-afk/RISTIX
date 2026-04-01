@@ -99,7 +99,7 @@ app.get('/users/:id', async (c) => {
 **Pros:** Well-established  
 **Cons:** Discontinued in favor of Effect, harder learning curve
 
-### Alternative 3: Custom Result<T, E>
+### Alternative 3: Custom `Result<T, E>`
 
 **Pros:** Full control, minimal overhead  
 **Cons:** Reinventing the wheel, no async support

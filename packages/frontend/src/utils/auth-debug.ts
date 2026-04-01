@@ -2,13 +2,13 @@
 // 🔍 AUTHENTICATION DEBUGGING UTILITY
 // ============================================================================
 /**
-// ✅ HELPS DEBUG: Authentication token issues between frontend and backend
-// ✅ PROVIDES TOOLS: Token validation, cache clearing, re-authentication
-// ============================================================================
+ * Debug helper for authentication state inspection in browser environments.
+ * This module is intentionally documented because it is used during support
+ * and incident handling for token, session, and backend connectivity issues.
  */
 import { getAuthToken } from './auth-token';
 
-interface AuthDebugInfo {
+export interface AuthDebugInfo {
   hasToken: boolean;
   hasUserData: boolean;
   hasRefreshToken: boolean;

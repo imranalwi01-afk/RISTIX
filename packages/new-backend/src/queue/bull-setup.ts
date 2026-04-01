@@ -1,7 +1,9 @@
-import { Queue, Worker } from 'bullmq'
-import Redis from 'ioredis'
+/**
+ * Central BullMQ queue registry for approval notifications, ECL jobs, and compliance checks.
+ * Generated docs should treat this module as the queue integration surface for the backend.
+ */
+import { Queue } from 'bullmq'
 import { logger } from '../lib/logger'
-import { Effect } from 'effect'
 import { getRedisConnectionOptions } from '../config/redis' // ✅ Centralized config
 import { env } from '../config/env'
 
@@ -10,24 +12,7 @@ import { env } from '../config/env'
  */
 
 // Redis connection for Bull queues
-const redisOptions = getRedisConnectionOptions(parseInt(env.REDIS_QUEUE_DB)) // Use Queue DB (default 0)
-const redis = new Redis({ ...redisOptions, maxRetriesPerRequest: null })
-
-// Suppress error logging during initial connection attempts
-let isConnected = false
-redis.on('connect', () => {
-    if (!isConnected) {
-        logger.info('Redis connected for Bull queues')
-        isConnected = true
-    }
-})
-
-redis.on('error', (err) => {
-    // Only log errors after initial connection
-    if (isConnected) {
-        logger.error({ err }, 'Bull Redis error')
-    }
-})
+const connectionOptions = getRedisConnectionOptions(parseInt(env.REDIS_QUEUE_DB)) as any
 
 // Default queue options (env-tunable)
 const queueDefaults = {
@@ -59,18 +44,18 @@ const queueDefaults = {
 
 // Queue instances with defaults
 export const approvalNotificationQueue = new Queue('approval-notifications', {
-    connection: redis,
+    connection: connectionOptions,
 })
 export const eclCalculationQueue = new Queue('ecl-calculations', {
-    connection: redis,
+    connection: connectionOptions,
 })
 export const complianceCheckQueue = new Queue('compliance-checks', {
-    connection: redis,
+    connection: connectionOptions,
 })
 // Dead-letter queues (DLQ)
-export const approvalDLQ = new Queue('approval-notifications-dlq', { connection: redis })
-export const eclDLQ = new Queue('ecl-calculations-dlq', { connection: redis })
-export const complianceDLQ = new Queue('compliance-checks-dlq', { connection: redis })
+export const approvalDLQ = new Queue('approval-notifications-dlq', { connection: connectionOptions })
+export const eclDLQ = new Queue('ecl-calculations-dlq', { connection: connectionOptions })
+export const complianceDLQ = new Queue('compliance-checks-dlq', { connection: connectionOptions })
 
 // Job data types
 export interface ApprovalNotificationJob {
@@ -126,7 +111,6 @@ export async function closeQueues(): Promise<void> {
         approvalDLQ.close(),
         eclDLQ.close(),
         complianceDLQ.close(),
-        redis.quit(),
     ])
 }
 

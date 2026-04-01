@@ -236,7 +236,18 @@ const defaultMatrices = [
             {
                 level: 1,
                 name: 'Parameter Approver',
-                requiredRoles: ['approval.parameter.create', 'approval.parameter.update', 'approval.parameter.delete'],
+                requiredRoles: ['CHECKER', 'IAF_IFRS_MANAGER', 'IAF_TENANT_SUPERADMIN'],
+                requiredPermissionCodes: ['approval.requests.approve', 'approval.all', 'admin.super_admin'],
+                permissionMatchMode: 'ANY',
+                requiredCount: 1,
+                timeoutHours: 24,
+            },
+            {
+                level: 2,
+                name: 'Final Approval',
+                requiredRoles: ['APPROVER', 'IAF_BANK_CRO', 'IAF_TENANT_SUPERADMIN'],
+                requiredPermissionCodes: ['approval.requests.approve', 'approval.all', 'admin.super_admin'],
+                permissionMatchMode: 'ANY',
                 requiredCount: 1,
                 timeoutHours: 24,
             },
@@ -498,7 +509,92 @@ const defaultMatrices = [
     },
 ]
 
-const toStrictFourEyesLevels = (levels: Array<{
+const ADMIN_APPROVAL_ENTITIES = new Set([
+    'user',
+    'user_status',
+    'role',
+    'role_permission',
+    'role_assignment',
+])
+
+const ADMIN_APPROVAL_PERMISSION_CODES = [
+    'approval.requests.approve',
+    'approval.user.create',
+    'approval.user.update',
+    'approval.user.delete',
+    'approval.user_status.create',
+    'approval.user_status.update',
+    'approval.user_status.delete',
+    'approval.role.create',
+    'approval.role.update',
+    'approval.role.delete',
+    'approval.role_permission.create',
+    'approval.role_permission.update',
+    'approval.role_permission.delete',
+    'approval.role_assignment.create',
+    'approval.role_assignment.update',
+    'approval.role_assignment.delete',
+]
+
+const BUSINESS_APPROVAL_PERMISSION_CODES = [
+    'approval.requests.approve',
+    'approval.parameter.create',
+    'approval.parameter.update',
+    'approval.parameter.delete',
+    'approval.configuration.create',
+    'approval.configuration.update',
+    'approval.configuration.delete',
+    'approval.product_parameter.create',
+    'approval.product_parameter.update',
+    'approval.product_parameter.delete',
+    'approval.journal_parameter.create',
+    'approval.journal_parameter.update',
+    'approval.journal_parameter.delete',
+    'approval.segmentation.create',
+    'approval.segmentation.update',
+    'approval.segmentation.delete',
+    'approval.rule_base_setting.create',
+    'approval.rule_base_setting.update',
+    'approval.rule_base_setting.delete',
+    'approval.bucket_parameter.create',
+    'approval.bucket_parameter.update',
+    'approval.bucket_parameter.delete',
+    'approval.pd_configuration.create',
+    'approval.pd_configuration.update',
+    'approval.pd_configuration.delete',
+    'approval.lgd_configuration.create',
+    'approval.lgd_configuration.update',
+    'approval.lgd_configuration.delete',
+    'approval.ead_configuration.create',
+    'approval.ead_configuration.update',
+    'approval.ead_configuration.delete',
+    'approval.ecl_configuration.create',
+    'approval.ecl_configuration.update',
+    'approval.ecl_configuration.delete',
+    'approval.fl_scalar.create',
+    'approval.fl_scalar.update',
+    'approval.fl_scalar.delete',
+]
+
+const BUSINESS_CHECKER_ROLES = ['CHECKER', 'IAF_IFRS_MANAGER']
+const BUSINESS_APPROVER_ROLES = ['APPROVER', 'IAF_BANK_CRO']
+const ADMIN_CHECKER_ROLES = ['IAF_TENANT_ADMIN']
+const ADMIN_APPROVER_ROLES = ['IAF_TENANT_SUPERADMIN']
+
+const getStrictFourEyesRoleSet = (entityType?: string | null) =>
+    ADMIN_APPROVAL_ENTITIES.has(String(entityType || '').toLowerCase())
+        ? {
+              checkerRoles: ADMIN_CHECKER_ROLES,
+              approverRoles: ADMIN_APPROVER_ROLES,
+          }
+        : {
+              checkerRoles: BUSINESS_CHECKER_ROLES,
+              approverRoles: BUSINESS_APPROVER_ROLES,
+          }
+
+const toStrictFourEyesLevels = (
+    entityType: string,
+    levels: Array<{
     level: number
     name: string
     requiredRoles: string[]
@@ -513,19 +609,20 @@ const toStrictFourEyesLevels = (levels: Array<{
 }> => {
     const checkerLevel = levels.find((level) => level.level === 1)
     const approverLevel = levels.find((level) => level.level === 2)
+    const roleSet = getStrictFourEyesRoleSet(entityType)
 
     return [
         {
             level: 1,
             name: checkerLevel?.name || 'Checker Review',
-            requiredRoles: ['CHECKER'],
+            requiredRoles: roleSet.checkerRoles,
             requiredCount: Math.max(1, checkerLevel?.requiredCount || 1),
             timeoutHours: checkerLevel?.timeoutHours || 24,
         },
         {
             level: 2,
             name: approverLevel?.name || 'Final Approval',
-            requiredRoles: ['APPROVER'],
+            requiredRoles: roleSet.approverRoles,
             requiredCount: Math.max(1, approverLevel?.requiredCount || 1),
             timeoutHours: approverLevel?.timeoutHours || 24,
         },
@@ -584,7 +681,7 @@ export async function seedApprovalMatrices(tenantId: string) {
     // Upsert approval matrices + levels
     for (const matrix of defaultMatrices) {
         const { levels: originalLevels, ...matrixData } = matrix
-        const levels = toStrictFourEyesLevels(originalLevels)
+        const levels = toStrictFourEyesLevels(matrixData.entityType, originalLevels)
 
         const existingMatrix = await db.query.approvalMatrices.findFirst({
             where: and(
@@ -689,8 +786,6 @@ export async function assignApprovalPermissionsToRoles() {
 
     const roleByCode = new Map(roleRows.map((role) => [role.roleCode, role.id]))
     const permissionByCode = new Map(approvalPermissionRows.map((permission) => [permission.code, permission.id]))
-    const allApprovalPermissionIds = approvalPermissionRows.map((permission) => permission.id)
-
     const assignByRoleCode = async (roleCode: string, permissionCodes: string[]) => {
         const roleId = roleByCode.get(roleCode)
         if (!roleId) {
@@ -712,22 +807,8 @@ export async function assignApprovalPermissionsToRoles() {
         console.log(`  ✓ Upserted ${permissionIds.length} approval permission(s) for ${roleCode}`)
     }
 
-    const assignAllApprovalsByRoleCode = async (roleCode: string) => {
-        const roleId = roleByCode.get(roleCode)
-        if (!roleId) {
-            console.log(`  ⚠ Role ${roleCode} not found, skipping`)
-            return
-        }
-
-        if (allApprovalPermissionIds.length === 0) return
-
-        await db
-            .insert(rolePermissions)
-            .values(allApprovalPermissionIds.map((permissionId) => ({ roleId, permissionId })))
-            .onConflictDoNothing()
-
-        console.log(`  ✓ Upserted ${allApprovalPermissionIds.length} approval permission(s) for ${roleCode}`)
-    }
+    const businessApprovalCodes = BUSINESS_APPROVAL_PERMISSION_CODES
+    const adminApprovalCodes = ADMIN_APPROVAL_PERMISSION_CODES
 
     // Existing generic role codes
     await assignByRoleCode('PLATFORM_ADMIN', ['approval.all'])
@@ -751,6 +832,7 @@ export async function assignApprovalPermissionsToRoles() {
     // IAF role codes
     await assignByRoleCode('IAF_TENANT_SUPERADMIN', ['approval.all'])
     await assignByRoleCode('IAF_TENANT_ADMIN', [
+        ...adminApprovalCodes,
         'approval.parameter.create',
         'approval.parameter.update',
         'approval.parameter.delete',
@@ -758,8 +840,10 @@ export async function assignApprovalPermissionsToRoles() {
         'approval.configuration.update',
         'approval.configuration.delete',
     ])
-    await assignAllApprovalsByRoleCode('CHECKER')
-    await assignByRoleCode('APPROVER', ['approval.all'])
+    await assignByRoleCode('IAF_IFRS_MANAGER', businessApprovalCodes)
+    await assignByRoleCode('IAF_BANK_CRO', businessApprovalCodes)
+    await assignByRoleCode('CHECKER', businessApprovalCodes)
+    await assignByRoleCode('APPROVER', businessApprovalCodes)
 
     console.log('✅ Permission assignment complete!')
 }
@@ -780,7 +864,7 @@ export async function assignApprovalPermissionsToRoles() {
  * ```
  */
 
-const IAF_TENANT_ID = 'a24af6d2-3032-4d53-ae82-9cfa84f97a20'
+const IAF_TENANT_ID = 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
 
 if (import.meta.main) {
     console.log(`Using IAF tenant ID: ${IAF_TENANT_ID}\n`)

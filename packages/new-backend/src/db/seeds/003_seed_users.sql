@@ -17,10 +17,10 @@ SET client_min_messages = WARNING;
 -- =====================================================================
 
 INSERT INTO core.users (id, email, username, full_name, password_hash, is_active, tenant_id) VALUES
-('550e8400-1111-2222-3333-444455555201', 'admin@iaf.co.id', 'admin_iaf', 'IAF Tenant Super Administrator', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/RK.s5uO.GG', true, 'a24af6d2-3032-4d53-ae82-9cfa84f97a20'),
-('550e8400-1111-2222-3333-444455555202', 'ifrs.manager@iaf.co.id', 'ifrs_manager_iaf', 'IAF IFRS 9 Manager', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/RK.s5uO.GG', true, 'a24af6d2-3032-4d53-ae82-9cfa84f97a20'),
-('550e8400-1111-2222-3333-444455555203', 'cro@iaf.co.id', 'cro_iaf', 'IAF Chief Risk Officer', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/RK.s5uO.GG', true, 'a24af6d2-3032-4d53-ae82-9cfa84f97a20'),
-('550e8400-1111-2222-3333-444455555204', 'risk.analyst@iaf.co.id', 'risk_analyst_iaf', 'IAF Risk Analyst', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/RK.s5uO.GG', true, 'a24af6d2-3032-4d53-ae82-9cfa84f97a20')
+('550e8400-1111-2222-3333-444455555201', 'admin@iaf.co.id', 'admin_iaf', 'IAF Tenant Super Administrator', '$2b$12$tKOOToVFaC2Jg80mdawWGuZgOMH1YBIobz8eJuMSVDkq0WqCBaZpm', true, 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'),
+('550e8400-1111-2222-3333-444455555202', 'ifrs.manager@iaf.co.id', 'ifrs_manager_iaf', 'IAF IFRS 9 Manager', '$2b$12$tKOOToVFaC2Jg80mdawWGuZgOMH1YBIobz8eJuMSVDkq0WqCBaZpm', true, 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'),
+('550e8400-1111-2222-3333-444455555203', 'cro@iaf.co.id', 'cro_iaf', 'IAF Chief Risk Officer', '$2b$12$tKOOToVFaC2Jg80mdawWGuZgOMH1YBIobz8eJuMSVDkq0WqCBaZpm', true, 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'),
+('550e8400-1111-2222-3333-444455555204', 'risk.analyst@iaf.co.id', 'risk_analyst_iaf', 'IAF Risk Analyst', '$2b$12$tKOOToVFaC2Jg80mdawWGuZgOMH1YBIobz8eJuMSVDkq0WqCBaZpm', true, 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be')
 ON CONFLICT (email, tenant_id) DO NOTHING;
 
 -- =====================================================================
@@ -62,7 +62,7 @@ COMMIT;
 -- =====================================================================
 
 -- Show users created
-SELECT 'Users Created' as status, COUNT(*) as count FROM core.users WHERE tenant_id = 'a24af6d2-3032-4d53-ae82-9cfa84f97a20';
+SELECT 'Users Created' as status, COUNT(*) as count FROM core.users WHERE tenant_id = 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be';
 
 -- Show user roles assigned
 SELECT 'User Roles Assigned' as status, COUNT(*) as count FROM core.user_roles;
@@ -77,7 +77,7 @@ SELECT
 FROM core.users u
 LEFT JOIN core.user_roles ur ON u.id = ur.user_id
 LEFT JOIN core.roles r ON ur.role_id = r.id
-WHERE u.tenant_id = 'a24af6d2-3032-4d53-ae82-9cfa84f97a20'
+WHERE u.tenant_id = 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
 GROUP BY u.id, u.email, u.username, u.full_name, u.is_active
 ORDER BY u.email;
 

@@ -3,7 +3,7 @@ import { roles } from '@/db/schema/rbac.schema'
 import { tenants } from '@/db/schema/core'
 import { eq } from 'drizzle-orm'
 
-const TENANT_ID = 'a24af6d2-3032-4d53-ae82-9cfa84f97a20'
+const TENANT_ID = 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
 
 const SYSTEM_ROLES = [
     {

@@ -6,8 +6,6 @@ import { JobExecutorService } from './job-executor.service'
 import { jobExecutions, jobDefinitions } from '../db/schema'
 import { eq } from 'drizzle-orm'
 
-import Redis from 'ioredis'
-
 // Constants
 const QUEUE_NAME = 'jobs-queue' // Standard queue name
 const redisOptions = getRedisConnectionOptions(parseInt(env.REDIS_QUEUE_DB))
@@ -15,13 +13,11 @@ const redisOptions = getRedisConnectionOptions(parseInt(env.REDIS_QUEUE_DB))
 // Debug logging (masked)
 console.log(`[QueueService] Initializing Redis with host=${redisOptions.host} port=${redisOptions.port} db=${redisOptions.db} hasPassword=${!!redisOptions.password}`);
 
-const connection = new Redis(redisOptions as any)
-
 // =============================================================================
 // QUEUE DEFINITION
 // =============================================================================
 export const jobsQueue = new Queue(QUEUE_NAME, {
-    connection
+    connection: redisOptions as any,
 })
 
 export const jobsQueueRef = jobsQueue;

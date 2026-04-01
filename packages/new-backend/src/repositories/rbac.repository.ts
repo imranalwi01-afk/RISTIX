@@ -1,5 +1,5 @@
 import { Effect, pipe } from 'effect'
-import { eq, and, or, asc, desc, count, isNull, lte, gte, inArray, ilike } from 'drizzle-orm'
+import { eq, and, or, asc, desc, count, lte, gte, inArray, ilike, isNull } from 'drizzle-orm'
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import * as schema from '@/db/schema'
 import {
@@ -58,8 +58,6 @@ export type RoleWithPermissions = Role & {
  * Options for querying roles.
  */
 export interface RolesQueryOptions extends QueryOptions {
-    /** Filter by banking type system */
-    bankingType?: string
     /** Whether to only include system-defined roles */
     systemRolesOnly?: boolean
 }
@@ -121,21 +119,6 @@ export class RolesRepository {
             if (!options?.includeInactive) {
                 conditions.push(eq(roles.isActive, true))
             }
-            // Temporarily removed bankingType and systemRolesOnly filters logic if schemas mismatch or simple query preferred
-            // But keeping logical filters if columns exist (migrated correctly).
-
-            // Assuming schema is synced.
-            if (options?.bankingType) {
-                // Check if bankingTypeSpecific is in schema (we migrated using psql so it should be)
-                // However, we rely on Drizzle Schema 'roles'.
-                conditions.push(
-                    or(
-                        eq((roles as any).bankingTypeSpecific, options.bankingType),
-                        eq((roles as any).bankingTypeSpecific, 'BOTH'),
-                        isNull((roles as any).bankingTypeSpecific)
-                    )!
-                )
-            }
             if (options?.systemRolesOnly) {
                 conditions.push(eq(roles.isSystemRole, true))
             }
@@ -188,17 +171,6 @@ export class RolesRepository {
             const conditions = [eq(roles.tenantId, tenantId)]
             if (!options?.includeInactive) {
                 conditions.push(eq(roles.isActive, true))
-            }
-            // Removed filter checks for schema fields that might be missing in simpler queries, 
-            // but keeping bankingType as it's standard now.
-            if (options?.bankingType) {
-                conditions.push(
-                    or(
-                        eq((roles as any).bankingTypeSpecific, options.bankingType),
-                        eq((roles as any).bankingTypeSpecific, 'BOTH'),
-                        isNull((roles as any).bankingTypeSpecific)
-                    )!
-                )
             }
             if (options?.search) {
                 const searchPattern = `%${options.search}%`;

@@ -29,7 +29,14 @@ import {
   FormHelperText,
   Snackbar
 } from '@mui/material';
-import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
+import {
+  ApprovalNotification,
+  ApprovalStatusBadge,
+  buildApprovalConflictNotification,
+  buildApprovalNotification,
+  createClosedApprovalNotification,
+  type ApprovalNotificationState,
+} from '@/components/approval';
 import { bankingAPI } from '@/services/api';
 import {
   Add as AddIcon,
@@ -50,6 +57,7 @@ import { PopulationSegment, filterPopulationSegmentsByType } from '../../../../s
 import { FLScalarWithDetails } from '../../../../services/api/fl-scalar.api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import { usePermission } from '@/hooks/usePermission';
+import { lgdConfigurationSchema, validateWithSchema } from '@/lib/validation/collective-config.validation';
 
 // Safe DataGrid wrapper to prevent bundling issues
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
@@ -58,13 +66,29 @@ import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeD
 interface LGDConfigUI extends LGDConfiguration {
   segment_name?: string;
   method_name?: string;
+  population_type_name?: string;
   scalar_name?: string;
 }
+
+const createEmptyFormData = (): Partial<LGDConfiguration> => ({
+  model_name: '',
+  segment_id: undefined,
+  lgd_method: '',
+  population_type: '',
+  observation_period: '',
+  workout_period: undefined,
+  fl_flag: false,
+  fl_scalar_id: undefined,
+  lgd_rate: undefined,
+  is_active: true,
+  observation_start_date: undefined,
+});
 
 export default function LGDSetupPage() {
   const { hasAnyPermission } = usePermission();
   const canViewLgdSetup = hasAnyPermission(['banking.collective.lgd_setup.view', 'banking.collective.lgd_setup.manage', 'banking.collective.manage', 'banking.collective', 'admin.super_admin']);
   const canManageLgdSetup = hasAnyPermission(['banking.collective.lgd_setup.manage', 'banking.collective.lgd_setup.create', 'banking.collective.lgd_setup.update', 'banking.collective.lgd_setup.delete', 'banking.collective.manage', 'admin.super_admin']);
+  const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
 
   const router = useRouter();
 
@@ -85,26 +109,29 @@ export default function LGDSetupPage() {
   const [selectedConfig, setSelectedConfig] = useState<LGDConfigUI | null>(null);
 
   // Form Data
-  const [formData, setFormData] = useState<Partial<LGDConfiguration>>({
-    model_name: '',
-    segment_id: undefined,
-    lgd_method: '1',
-    population_type: 'Monthly',
-    observation_period: '',
-    workout_period: 12,
-    fl_flag: false,
-    fl_scalar_id: undefined,
-    lgd_rate: 0,
-    is_active: true,
-    observation_start_date: undefined
-  });
+  const [formData, setFormData] = useState<Partial<LGDConfiguration>>(createEmptyFormData());
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState('');
 
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
-  const [approvalNotification, setApprovalNotification] = useState<{ open: boolean, message: string }>({ open: false, message: '' });
+  const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
+  const showApprovalConflict = (error: unknown, fallbackMessage: string) => {
+    const notification = buildApprovalConflictNotification(error, fallbackMessage);
+    if (!notification) return false;
+    setApprovalNotification(notification);
+    return true;
+  };
   const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'error' }>({ open: false, message: '', type: 'success' });
+
+  const updateFormField = <K extends keyof LGDConfiguration>(field: K, value: LGDConfiguration[K]) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const lgdRateInputValue =
+    typeof formData.lgd_rate === 'number' && Number.isFinite(formData.lgd_rate)
+      ? formData.lgd_rate
+      : '';
 
   // Load Data
   const loadData = useCallback(async () => {
@@ -128,6 +155,7 @@ export default function LGDSetupPage() {
       const enrichedConfigs = configsRes.map(config => {
         const segment = lgdSegments.find(s => String(s.id) === String(config.segment_id));
         const method = methodsRes.find(m => String(m.value) === String(config.lgd_method));
+        const populationType = popTypesRes.find(m => String(m.value) === String(config.population_type));
         // Note: flScalarsRes uses 'pkid', config uses 'fl_scalar_id'
         const scalar = flScalarsRes.find(s => String(s.pkid) === String(config.fl_scalar_id));
 
@@ -135,6 +163,7 @@ export default function LGDSetupPage() {
           ...config,
           segment_name: segment?.segment_name || String(config.segment_id || 'Unknown'),
           method_name: method?.label || String(config.lgd_method),
+          population_type_name: populationType?.label || String(config.population_type || ''),
           scalar_name: scalar?.scalar_name
         };
       });
@@ -178,27 +207,21 @@ export default function LGDSetupPage() {
 
   // Validations
   const validateForm = () => {
-    const errors: Record<string, string> = {};
-    if (!formData.model_name?.trim()) errors.model_name = 'Model Name is required';
-    if (!formData.segment_id) errors.segment_id = 'Segment is required';
-    if (!formData.lgd_method) errors.lgd_method = 'Method is required';
-
-    if (formData.fl_flag && !formData.fl_scalar_id) {
-      errors.fl_scalar_id = 'FL Scalar is required when FL Flag is active';
-    }
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
+    const result = validateWithSchema(lgdConfigurationSchema, formData);
+    setFormErrors(result.errors);
+    return result.success;
   };
 
   const handleSave = async () => {
     if (!canManageLgdSetup) return;
     if (!validateForm()) return;
+    setLoading(true);
+    setError(null);
     try {
       const payload: any = {
         model_name: formData.model_name,
         segment_id: formData.segment_id,
-        lgd_method: formData.lgd_method || '1',
+        lgd_method: formData.lgd_method,
         population_type: formData.population_type,
         observation_period: formData.observation_period,
         workout_period: formData.workout_period,
@@ -219,10 +242,7 @@ export default function LGDSetupPage() {
       const isApprovalResponse = response.approvalRequired || response.status === 202;
 
       if (isApprovalResponse) {
-        setApprovalNotification({
-          open: true,
-          message: response.message || 'Request submitted for approval'
-        });
+        setApprovalNotification(buildApprovalNotification(response, 'Request submitted for approval'));
       } else {
         setSnackbar({
           open: true,
@@ -234,11 +254,14 @@ export default function LGDSetupPage() {
       await loadData();
       await loadPendingApprovals();
       setIsDialogOpen(false);
-      setFormData({});
+      setFormData(createEmptyFormData());
+      setFormErrors({});
       setSelectedConfig(null);
     } catch (err) {
       console.error('Save failed:', err);
-      setError('Failed to save configuration.');
+      if (!showApprovalConflict(err, 'Request submitted for approval')) {
+        setError(err instanceof Error ? err.message : 'Failed to save configuration.');
+      }
     } finally {
       setLoading(false);
     }
@@ -247,15 +270,14 @@ export default function LGDSetupPage() {
   const handleDelete = async (id: number) => {
     if (!canManageLgdSetup) return;
     if (!confirm('Are you sure you want to delete this configuration?')) return;
+    setLoading(true);
+    setError(null);
     try {
       const response = await api.banking.lgdConfigurations.delete(String(id)) as any;
       const isApprovalResponse = response.approvalRequired || response.status === 202;
 
       if (isApprovalResponse) {
-        setApprovalNotification({
-          open: true,
-          message: response.message || 'Deletion request submitted for approval'
-        });
+        setApprovalNotification(buildApprovalNotification(response, 'Deletion request submitted for approval'));
       } else {
         setSnackbar({ open: true, message: 'Configuration deleted', type: 'success' });
       }
@@ -264,7 +286,9 @@ export default function LGDSetupPage() {
       await loadPendingApprovals();
     } catch (err) {
       console.error('Delete failed:', err);
-      setError('Failed to delete configuration.');
+      if (!showApprovalConflict(err, 'Deletion request submitted for approval')) {
+        setError(err instanceof Error ? err.message : 'Failed to delete configuration.');
+      }
     } finally {
       setLoading(false);
     }
@@ -274,7 +298,7 @@ export default function LGDSetupPage() {
     { field: 'model_name', headerName: 'Model Name', width: 200 },
     { field: 'segment_name', headerName: 'Segment', width: 150 },
     { field: 'method_name', headerName: 'Method', width: 150 },
-    { field: 'population_type', headerName: 'Pop Type', width: 120 },
+    { field: 'population_type_name', headerName: 'Pop Type', width: 160 },
     {
       field: 'fl_flag',
       headerName: 'FL Flag',
@@ -315,6 +339,7 @@ export default function LGDSetupPage() {
           key="edit"
           icon={<EditIcon color="primary" />}
           label="Edit"
+          data-testid="edit-lgd-config-btn"
           onClick={() => {
             setSelectedConfig(params.row);
             setFormData(params.row);
@@ -326,6 +351,7 @@ export default function LGDSetupPage() {
           key="delete"
           icon={<DeleteIcon color="error" />}
           label="Delete"
+          data-testid="delete-lgd-config-btn"
           onClick={() => handleDelete(params.row.id!)}
         />
       ] : []
@@ -347,20 +373,15 @@ export default function LGDSetupPage() {
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h4" component="h1">LGD Setup Management</Typography>
         <Box>
-          <Button startIcon={<RefreshIcon />} onClick={loadData} disabled={loading} sx={{ mr: 1 }}>Refresh</Button>
+          <Button startIcon={<RefreshIcon />} onClick={loadData} disabled={loading} sx={{ mr: 1 }} data-testid="refresh-lgd-btn">Refresh</Button>
           {canManageLgdSetup && (
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
               setSelectedConfig(null);
-              setFormData({
-                is_active: true,
-                lgd_method: '1',
-                population_type: 'Monthly',
-                workout_period: 12,
-                fl_flag: false
-              });
+              setFormData(createEmptyFormData());
+              setFormErrors({});
               setIsEditing(false);
               setIsDialogOpen(true);
-            }}>Add Configuration</Button>
+            }} data-testid="add-lgd-config-btn">Add Configuration</Button>
           )}
         </Box>
       </Box>
@@ -383,6 +404,7 @@ export default function LGDSetupPage() {
               label="Search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              data-testid="search-lgd-input"
               InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} /> }}
             />
           </Box>
@@ -410,16 +432,18 @@ export default function LGDSetupPage() {
                 fullWidth
                 label="Model Name"
                 value={formData.model_name || ''}
-                onChange={(e) => setFormData({ ...formData, model_name: e.target.value })}
+                onChange={(e) => updateFormField('model_name', e.target.value)}
                 error={!!formErrors.model_name}
                 helperText={formErrors.model_name}
+                data-testid="lgd-model-name-input"
               />
               <FormControl fullWidth error={!!formErrors.segment_id}>
                 <InputLabel>Population Segment</InputLabel>
                 <Select
                   value={formData.segment_id || ''}
                   label="Population Segment"
-                  onChange={(e) => setFormData({ ...formData, segment_id: Number(e.target.value) })}
+                  onChange={(e) => updateFormField('segment_id', Number(e.target.value))}
+                  data-testid="lgd-segment-select"
                 >
                   {populationSegments.map(s => (
                     <MenuItem key={s.id} value={s.id}>{s.segment_name}</MenuItem>
@@ -433,9 +457,10 @@ export default function LGDSetupPage() {
               <FormControl fullWidth error={!!formErrors.lgd_method}>
                 <InputLabel>Method</InputLabel>
                 <Select
-                  value={formData.lgd_method || '1'}
+                  value={formData.lgd_method || ''}
                   label="Method"
-                  onChange={(e) => setFormData({ ...formData, lgd_method: e.target.value })}
+                  onChange={(e) => updateFormField('lgd_method', e.target.value)}
+                  data-testid="lgd-method-select"
                 >
                   {methodOptions.map((m, idx) => <MenuItem key={`${m.value}-${idx}`} value={m.value}>{m.label}</MenuItem>)}
                 </Select>
@@ -444,31 +469,43 @@ export default function LGDSetupPage() {
                 </FormHelperText>
               </FormControl>
 
-              <FormControl fullWidth>
+              <FormControl fullWidth error={!!formErrors.population_type}>
                 <InputLabel>Population Type</InputLabel>
                 <Select
-                  value={formData.population_type || 'Monthly'}
+                  value={formData.population_type || ''}
                   label="Population Type"
-                  onChange={(e) => setFormData({ ...formData, population_type: e.target.value })}
+                  onChange={(e) => updateFormField('population_type', e.target.value)}
+                  data-testid="lgd-population-type-select"
                 >
                   {popTypeOptions.map((m, idx) => <MenuItem key={`${m.value}-${idx}`} value={m.value}>{m.label}</MenuItem>)}
                 </Select>
-                <FormHelperText>Source: Business Setting B0023</FormHelperText>
+                <FormHelperText error={!!formErrors.population_type}>
+                  {formErrors.population_type || 'Source: Business Setting B0023'}
+                </FormHelperText>
               </FormControl>
 
               <TextField
                 fullWidth
                 label="Observation Period"
                 value={formData.observation_period || ''}
-                onChange={(e) => setFormData({ ...formData, observation_period: e.target.value })}
-                helperText="e.g. 2020-2023 or 24 months"
+                onChange={(e) => updateFormField('observation_period', e.target.value)}
+                error={!!formErrors.observation_period}
+                helperText={formErrors.observation_period || 'e.g. 2020-2023 or 24 months'}
+                data-testid="lgd-observation-period-input"
               />
 
               <DatePicker
                 label="Observation Start Date"
                 value={formData.observation_start_date ? dayjs(formData.observation_start_date) : null}
-                onChange={(date) => setFormData({ ...formData, observation_start_date: date ? dayjs(date).format('YYYY-MM-DD') : undefined })}
-                slotProps={{ textField: { fullWidth: true } }}
+                onChange={(date) => updateFormField('observation_start_date', date ? dayjs(date).format('YYYY-MM-DD') : undefined)}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    error: !!formErrors.observation_start_date,
+                    helperText: formErrors.observation_start_date,
+                    'data-testid': 'lgd-observation-start-date-input',
+                  } as any
+                }}
               />
 
               <TextField
@@ -476,25 +513,27 @@ export default function LGDSetupPage() {
                 type="number"
                 label="Workout Period (Months)"
                 value={formData.workout_period || ''}
-                onChange={(e) => setFormData({ ...formData, workout_period: Number(e.target.value) })}
+                onChange={(e) => updateFormField('workout_period', e.target.value === '' ? undefined : Number(e.target.value))}
+                data-testid="lgd-workout-period-input"
               />
 
               <TextField
                 fullWidth
                 type="number"
                 label="LGD Rate (%)"
-                value={formData.lgd_rate || 0}
-                onChange={(e) => setFormData({ ...formData, lgd_rate: Number(e.target.value) })}
+                value={lgdRateInputValue}
+                onChange={(e) => updateFormField('lgd_rate', e.target.value === '' ? undefined : Number(e.target.value))}
                 inputProps={{ step: 0.001 }}
+                data-testid="lgd-rate-input"
               />
 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <FormControlLabel
-                  control={<Switch checked={!!formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} />}
+                  control={<Switch checked={!!formData.is_active} onChange={(e) => updateFormField('is_active', e.target.checked)} />}
                   label="Active"
                 />
                 <FormControlLabel
-                  control={<Switch checked={!!formData.fl_flag} onChange={(e) => setFormData({ ...formData, fl_flag: e.target.checked })} />}
+                  control={<Switch checked={!!formData.fl_flag} onChange={(e) => updateFormField('fl_flag', e.target.checked)} data-testid="lgd-fl-flag-switch" />}
                   label="FL Flag"
                 />
               </Box>
@@ -505,7 +544,8 @@ export default function LGDSetupPage() {
                   <Select
                     value={formData.fl_scalar_id || ''}
                     label="FL Scalar"
-                    onChange={(e) => setFormData({ ...formData, fl_scalar_id: Number(e.target.value) })}
+                    onChange={(e) => updateFormField('fl_scalar_id', Number(e.target.value))}
+                    data-testid="lgd-fl-scalar-select"
                   >
                     {flScalars.map(s => (
                       <MenuItem key={s.pkid} value={s.pkid}>{s.scalar_name}</MenuItem>
@@ -521,16 +561,22 @@ export default function LGDSetupPage() {
           </LocalizationProvider>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => {
+            setIsDialogOpen(false);
+            setFormErrors({});
+          }} data-testid="cancel-lgd-config-btn">Cancel</Button>
           {canManageLgdSetup && (
-            <Button variant="contained" onClick={handleSave} disabled={loading}>{selectedConfig ? 'Update' : 'Create'}</Button>
+            <Button variant="contained" onClick={handleSave} disabled={loading} data-testid="save-lgd-config-btn">{selectedConfig ? 'Update' : 'Create'}</Button>
           )}
         </DialogActions>
       </Dialog>
       <ApprovalNotification
         open={approvalNotification.open}
         message={approvalNotification.message}
-        onClose={() => setApprovalNotification({ ...approvalNotification, open: false })}
+        requestId={approvalNotification.requestId}
+        actionLabel={canOpenApprovalInbox ? 'Open Approval' : undefined}
+        actionHref={canOpenApprovalInbox ? (approvalNotification.requestId ? `/banking/maintenance/approval?requestId=${encodeURIComponent(approvalNotification.requestId)}` : '/banking/maintenance/approval') : undefined}
+        onClose={() => setApprovalNotification(createClosedApprovalNotification())}
       />
       <FullstackIndicator />
     </Container>

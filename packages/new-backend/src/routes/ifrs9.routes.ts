@@ -62,7 +62,7 @@ ifrs9Routes.openapi(
         tags: ['IFRS9'],
         summary: 'Get Calculation Summary',
         request: {
-            query: z.object({ date: z.string().optional() })
+            query: z.object({ date: z.string().optional(), mode: z.string().optional() })
         },
         responses: {
             200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: z.any() }) } }, description: 'Summary' }
@@ -78,7 +78,7 @@ ifrs9Routes.openapi(
         tags: ['IFRS9'],
         summary: 'Get Portfolio Trend',
         request: {
-            query: z.object({ date: z.string().optional() })
+            query: z.object({ date: z.string().optional(), mode: z.string().optional() })
         },
         responses: {
             200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: z.any() }) } }, description: 'Trend' }
@@ -93,6 +93,9 @@ ifrs9Routes.openapi(
         path: '/available-dates',
         tags: ['IFRS9'],
         summary: 'Get Available Process Dates',
+        request: {
+            query: z.object({ mode: z.string().optional() })
+        },
         responses: {
             200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: z.array(z.string()) }) } }, description: 'Available Dates' }
         }
@@ -106,6 +109,9 @@ ifrs9Routes.openapi(
         path: '/calculation-batches',
         tags: ['IFRS9'],
         summary: 'Get Calculation Batches',
+        request: {
+            query: z.object({ mode: z.string().optional() })
+        },
         responses: {
             200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: z.any() }) } }, description: 'Batches' }
         }
@@ -127,6 +133,22 @@ ifrs9Routes.openapi(
         }
     }),
     (c: any) => ifrs9CalculationsController.runCalculation(c)
+)
+
+ifrs9Routes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/calculations/ecl/preview',
+        tags: ['IFRS9'],
+        summary: 'Run ECL Preview Calculation',
+        request: {
+            body: { content: { 'application/json': { schema: z.any() } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: z.any() } }, description: 'Result' }
+        }
+    }),
+    (c: any) => ifrs9CalculationsController.runPreviewCalculation(c)
 )
 
 // --- Legacy Stub Routes ---
@@ -158,7 +180,7 @@ ifrs9Routes.openapi(
         tags: ['IFRS9'],
         summary: 'Get Calculation Batch Results',
         request: {
-            query: z.object({ date: z.string().optional() })
+            query: z.object({ date: z.string().optional(), mode: z.string().optional() })
         },
         responses: {
             200: { content: { 'application/json': { schema: CalculationListResponse } }, description: 'Batch Results' }

@@ -16,7 +16,7 @@ import {
 } from './utils/permission-evaluator';
 
 // ✅ Route to Permission Mapping (Strictly Permission-Based)
-const ROUTE_PERMISSION_MAP: Record<string, string> = {
+const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   // Module Access
   '/platform': 'admin.system.manage',
   '/consultant': 'consultant.access',
@@ -41,6 +41,10 @@ const ROUTE_PERMISSION_MAP: Record<string, string> = {
   '/banking/setup': 'banking.setup',
   '/banking/parameters': 'banking.parameter',
   '/banking/administration': 'admin.users.manage',
+  '/banking/maintenance/approval': 'approval.requests.approve',
+  '/banking/maintenance/audit': 'admin.maintenance.access',
+  '/banking/maintenance/user-activity': 'admin.maintenance.access',
+  '/banking/maintenance/access-management': ['admin.users.manage', 'admin.roles.manage', 'admin.maintenance.access'],
   '/banking/maintenance/job-monitoring': 'jobs',
   '/banking/maintenance': 'admin.users.manage', // Often includes role management
 
@@ -214,7 +218,7 @@ function hasRouteAccess(user: any, pathname: string): {
 
   const userPermissions = user.permissions || [];
   const permissionContext = buildPermissionContext(userPermissions);
-  if (permissionContext.isSuperAdmin || userPermissions.includes('SUPER_ADMIN')) {
+  if (permissionContext.isSuperAdmin) {
     console.log(`[ProxyDebug] Super admin permission for ${user.email} - access granted`);
     return { allowed: true, reason: 'super_admin_bypass' };
   }
@@ -233,18 +237,27 @@ function hasRouteAccess(user: any, pathname: string): {
   for (const routePath of protectedPaths) {
     if (pathname === routePath || pathname.startsWith(routePath + '/')) {
       const requiredPermission = ROUTE_PERMISSION_MAP[routePath];
-      const evaluation = evaluatePermission(requiredPermission, permissionContext);
+      const permissionCandidates = Array.isArray(requiredPermission) ? requiredPermission : [requiredPermission];
+      const evaluation = permissionCandidates
+        .map((candidate) => evaluatePermission(candidate, permissionContext))
+        .find((result) => result.allowed)
+        || evaluatePermission(permissionCandidates[0], permissionContext);
       if (evaluation.allowed) {
-        return { allowed: true, reason: evaluation.reason, matchedRoute: routePath, requiredPermission };
+        return {
+          allowed: true,
+          reason: evaluation.reason,
+          matchedRoute: routePath,
+          requiredPermission: permissionCandidates[0],
+        };
       }
 
       // If we matched a pattern but didn't have the permission, deny access
-      console.warn(`[ProxyDebug] User ${user.email} missing required permission ${requiredPermission} for ${pathname}`);
+      console.warn(`[ProxyDebug] User ${user.email} missing required permission ${permissionCandidates.join(' OR ')} for ${pathname}`);
       console.warn(`[ProxyDebug] User roles: ${JSON.stringify(userRoles)}, User permissions: ${JSON.stringify(userPermissions)}`);
       return {
         allowed: false,
         matchedRoute: routePath,
-        requiredPermission,
+        requiredPermission: permissionCandidates[0],
         reason: 'missing_required_permission',
         debug: evaluation,
       };

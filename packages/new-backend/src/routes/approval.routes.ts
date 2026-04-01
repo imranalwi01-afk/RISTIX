@@ -4,6 +4,7 @@ import type { AppContext } from '../app'
 import { authMiddleware, tenantMiddleware } from '../middleware'
 import { runEffect } from '../lib/effect'
 import * as approvalService from '../services/approval.service'
+import * as auditService from '../services/audit.service'
 
 export const approvalRoutes = new OpenAPIHono<AppContext>()
 
@@ -170,6 +171,37 @@ const buildRequestedByMeta = (request: any): {
     }
 }
 
+const serializeApprovalRequestForAudit = (request: any) => ({
+    id: request.id,
+    title: request.title,
+    entityType: request.entityType,
+    entityId: request.entityId ?? null,
+    status: request.status,
+    currentLevel: request.currentLevel ?? null,
+    approvalsRequired: request.approvalsRequired ?? null,
+    approvalsReceived: request.approvalsReceived ?? null,
+    impactLevel: request.impactLevel ?? null,
+    requestData: request.requestData ?? null,
+})
+
+const serializeApprovalMatrixForAudit = (matrix: any, levels?: unknown[]) => ({
+    id: matrix.id,
+    name: matrix.name,
+    description: matrix.description ?? null,
+    entityType: matrix.entityType,
+    operationType: matrix.operationType ?? null,
+    bankingMode: matrix.bankingMode ?? null,
+    syariahBoardRequired: Boolean(matrix.syariahBoardRequired),
+    isActive: typeof matrix.isActive === 'boolean' ? matrix.isActive : true,
+    levels: levels ?? matrix.levels ?? [],
+})
+
+const promiseEffect = <A>(fn: () => Promise<A>) =>
+    Effect.tryPromise({
+        try: fn,
+        catch: (error) => error as any,
+    })
+
 // =============================================================================
 // ROUTES
 // =============================================================================
@@ -254,17 +286,44 @@ approvalRoutes.openapi(
     async (c) => {
         const { id } = c.req.valid('param')
         const userId = c.get('userId')!
+        const tenantId = c.get('tenantId')!
         const body = c.req.valid('json')
         const isSystemUser = c.get('isSystemUser') === true
 
         const effect = pipe(
-            approvalService.cancelApprovalRequest({
-                requestId: id,
-                cancelledBy: userId,
-                isSystemUser,
-                reason: body.reason,
-            }),
-            Effect.map((result) => ({ success: true, result }))
+            approvalService.getApprovalRequest(id),
+            Effect.flatMap((existingRequest) =>
+                pipe(
+                    approvalService.cancelApprovalRequest({
+                        requestId: id,
+                        cancelledBy: userId,
+                        isSystemUser,
+                        reason: body.reason,
+                    }),
+                    Effect.tap((result) =>
+                        promiseEffect(() =>
+                            auditService.logApproval.cancelled(
+                                id,
+                                existingRequest.title,
+                                userId,
+                                tenantId,
+                                body.reason,
+                                {
+                                    entityType: existingRequest.entityType,
+                                    newValues: {
+                                        reason: body.reason,
+                                        status: result.status,
+                                    },
+                                    metadata: {
+                                        cancelledBySystemUser: isSystemUser,
+                                    },
+                                }
+                            )
+                        )
+                    ),
+                    Effect.map((result) => ({ success: true, result }))
+                )
+            )
         )
 
         return runEffect(c, effect)
@@ -306,6 +365,7 @@ approvalRoutes.openapi(
     }),
     async (c) => {
         const tenantId = c.get('tenantId')!
+        const userId = c.get('userId')!
         const { id } = c.req.valid('param')
         const body = c.req.valid('json')
 
@@ -337,16 +397,34 @@ approvalRoutes.openapi(
         const matrixData = { ...body } as Record<string, unknown>
         delete matrixData.levels
         const effect = pipe(
-            approvalService.updateApprovalMatrix(
-                tenantId,
-                id,
-                matrixData as any,
-                levels as any
-            ),
-            Effect.map((matrix) => ({
-                ...matrix,
-                createdAt: matrix.createdAt.toISOString(),
-            }))
+            approvalService.getApprovalMatrices(tenantId),
+            Effect.flatMap((currentMatrices) => {
+                const existingMatrix = currentMatrices.find((matrix: any) => matrix.id === id)
+                return pipe(
+                    approvalService.updateApprovalMatrix(
+                        tenantId,
+                        id,
+                        matrixData as any,
+                        levels as any
+                    ),
+                    Effect.tap((updatedMatrix) =>
+                        promiseEffect(() =>
+                            auditService.logDataChange.update(
+                                'approval_matrix',
+                                id,
+                                existingMatrix ? serializeApprovalMatrixForAudit(existingMatrix) : {},
+                                serializeApprovalMatrixForAudit(updatedMatrix, levels),
+                                userId,
+                                tenantId
+                            )
+                        )
+                    ),
+                    Effect.map((updatedMatrix) => ({
+                        ...updatedMatrix,
+                        createdAt: updatedMatrix.createdAt.toISOString(),
+                    }))
+                )
+            })
         )
 
         return runEffect(c, effect)
@@ -461,6 +539,24 @@ approvalRoutes.openapi(
                 requestedBy: userId,
                 requestData,
             }),
+            Effect.tap((request) =>
+                promiseEffect(() =>
+                    auditService.logApproval.requested(
+                        request.id,
+                        request.title,
+                        userId,
+                        tenantId,
+                        {
+                            entityType: request.entityType,
+                            description: request.description || `Created approval request: ${request.title}`,
+                            oldValues: typeof request.requestData === 'object' && request.requestData
+                                ? ((request.requestData as Record<string, unknown>).oldValues ?? undefined)
+                                : undefined,
+                            newValues: serializeApprovalRequestForAudit(request),
+                        }
+                    )
+                )
+            ),
             Effect.map((request) => ({
                 ...request,
                 description: request.description ?? null,
@@ -557,18 +653,46 @@ approvalRoutes.openapi(
     async (c) => {
         const { id } = c.req.valid('param')
         const userId = c.get('userId')!
+        const tenantId = c.get('tenantId')!
         const body = c.req.valid('json')
 
         const effect = pipe(
-            approvalService.processApprovalAction({
-                requestId: id,
-                approverId: userId,
-                action: 'approve',
-                comment: body.comment,
-                conditions: body.conditions,
-                riskScore: body.riskScore,
-            }),
-            Effect.map((result) => ({ success: true, result }))
+            approvalService.getApprovalRequest(id),
+            Effect.flatMap((existingRequest) =>
+                pipe(
+                    approvalService.processApprovalAction({
+                        requestId: id,
+                        approverId: userId,
+                        action: 'approve',
+                        comment: body.comment,
+                        conditions: body.conditions,
+                        riskScore: body.riskScore,
+                    }),
+                    Effect.tap((result) =>
+                        promiseEffect(() =>
+                            auditService.logApproval.approved(
+                                id,
+                                existingRequest.title,
+                                userId,
+                                tenantId,
+                                body.comment,
+                                {
+                                    entityType: existingRequest.entityType,
+                                    newValues: {
+                                        comment: body.comment,
+                                        conditions: body.conditions,
+                                        riskScore: body.riskScore,
+                                        status: result.status,
+                                        completed: result.completed,
+                                        requestData: existingRequest.requestData ?? null,
+                                    },
+                                }
+                            )
+                        )
+                    ),
+                    Effect.map((result) => ({ success: true, result }))
+                )
+            )
         )
 
         return runEffect(c, effect)
@@ -611,16 +735,120 @@ approvalRoutes.openapi(
     async (c) => {
         const { id } = c.req.valid('param')
         const userId = c.get('userId')!
+        const tenantId = c.get('tenantId')!
         const body = c.req.valid('json')
 
         const effect = pipe(
-            approvalService.processApprovalAction({
-                requestId: id,
-                approverId: userId,
-                action: 'reject',
-                comment: body.comment,
+            approvalService.getApprovalRequest(id),
+            Effect.flatMap((existingRequest) =>
+                pipe(
+                    approvalService.processApprovalAction({
+                        requestId: id,
+                        approverId: userId,
+                        action: 'reject',
+                        comment: body.comment,
+                    }),
+                    Effect.tap((result) =>
+                        promiseEffect(() =>
+                            auditService.logApproval.rejected(
+                                id,
+                                existingRequest.title,
+                                userId,
+                                tenantId,
+                                body.comment,
+                                {
+                                    entityType: existingRequest.entityType,
+                                    newValues: {
+                                        reason: body.comment,
+                                        status: result.status,
+                                        completed: result.completed,
+                                        requestData: existingRequest.requestData ?? null,
+                                    },
+                                }
+                            )
+                        )
+                    ),
+                    Effect.map((result) => ({ success: true, result }))
+                )
+            )
+        )
+
+        return runEffect(c, effect)
+    }
+)
+
+/**
+ * POST /approvals/requests/:id/request-info - Ask requester for more information
+ */
+approvalRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/requests/{id}/request-info',
+        tags: ['Approvals'],
+        summary: 'Request More Information',
+        security: [{ BearerAuth: [] }],
+        request: {
+            params: z.object({
+                id: z.string().openapi({ param: { name: 'id', in: 'path' } }),
             }),
-            Effect.map((result) => ({ success: true, result }))
+            body: {
+                content: {
+                    'application/json': {
+                        schema: ProcessActionSchema.partial(),
+                    },
+                },
+            },
+        },
+        responses: {
+            200: {
+                content: {
+                    'application/json': {
+                        schema: z.object({ success: z.boolean(), result: z.any() }),
+                    },
+                },
+                description: 'Info requested',
+            },
+        },
+    }),
+    async (c) => {
+        const { id } = c.req.valid('param')
+        const userId = c.get('userId')!
+        const tenantId = c.get('tenantId')!
+        const body = c.req.valid('json')
+
+        const effect = pipe(
+            approvalService.getApprovalRequest(id),
+            Effect.flatMap((existingRequest) =>
+                pipe(
+                    approvalService.processApprovalAction({
+                        requestId: id,
+                        approverId: userId,
+                        action: 'request_info',
+                        comment: body.comment,
+                    }),
+                    Effect.tap((result) =>
+                        promiseEffect(() =>
+                            auditService.logApproval.infoRequested(
+                                id,
+                                existingRequest.title,
+                                userId,
+                                tenantId,
+                                body.comment,
+                                {
+                                    entityType: existingRequest.entityType,
+                                    newValues: {
+                                        comment: body.comment,
+                                        status: result.status,
+                                        completed: result.completed,
+                                        requestData: existingRequest.requestData ?? null,
+                                    },
+                                }
+                            )
+                        )
+                    ),
+                    Effect.map((result) => ({ success: true, result }))
+                )
+            )
         )
 
         return runEffect(c, effect)
@@ -666,17 +894,44 @@ approvalRoutes.openapi(
     async (c) => {
         const { id } = c.req.valid('param')
         const userId = c.get('userId')!
+        const tenantId = c.get('tenantId')!
         const body = c.req.valid('json')
 
         const effect = pipe(
-            approvalService.processApprovalAction({
-                requestId: id,
-                approverId: userId,
-                action: 'delegate',
-                delegatedTo: body.delegatedTo,
-                comment: body.reason,
-            }),
-            Effect.map((result) => ({ success: true, result }))
+            approvalService.getApprovalRequest(id),
+            Effect.flatMap((existingRequest) =>
+                pipe(
+                    approvalService.processApprovalAction({
+                        requestId: id,
+                        approverId: userId,
+                        action: 'delegate',
+                        delegatedTo: body.delegatedTo,
+                        comment: body.reason,
+                    }),
+                    Effect.tap((result) =>
+                        promiseEffect(() =>
+                            auditService.logApproval.delegated(
+                                id,
+                                existingRequest.title,
+                                userId,
+                                tenantId,
+                                body.delegatedTo,
+                                {
+                                    entityType: existingRequest.entityType,
+                                    newValues: {
+                                        delegatedTo: body.delegatedTo,
+                                        reason: body.reason,
+                                        status: result.status,
+                                        completed: result.completed,
+                                        requestData: existingRequest.requestData ?? null,
+                                    },
+                                }
+                            )
+                        )
+                    ),
+                    Effect.map((result) => ({ success: true, result }))
+                )
+            )
         )
 
         return runEffect(c, effect)
@@ -804,6 +1059,7 @@ approvalRoutes.openapi(
     }),
     async (c) => {
         const tenantId = c.get('tenantId')!
+        const userId = c.get('userId')!
         const body = c.req.valid('json')
 
         const { levels, ...matrixData } = body
@@ -832,6 +1088,17 @@ approvalRoutes.openapi(
             approvalService.createApprovalMatrix(
                 { ...matrixData, tenantId },
                 normalizedLevels
+            ),
+            Effect.tap((matrix) =>
+                promiseEffect(() =>
+                    auditService.logDataChange.create(
+                        'approval_matrix',
+                        matrix.id,
+                        serializeApprovalMatrixForAudit(matrix, normalizedLevels),
+                        userId,
+                        tenantId
+                    )
+                )
             ),
             Effect.map((matrix) => ({
                 ...matrix,

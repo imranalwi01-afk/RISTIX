@@ -1,10 +1,12 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import { Effect, pipe } from 'effect'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { EclConfigurationsService } from '../services/ecl-configurations.service'
 import { runEffect } from '../lib/effect/runtime'
 import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
 import type { ApprovalResponse } from '../lib/approval-helpers'
+import { buildErrorResponse } from '../lib/http/error-response'
 
 const app = new OpenAPIHono<AppContext>()
 
@@ -61,7 +63,7 @@ const EclDetailInputSchema = z.object({
     eadModelId: z.number().int().optional(),
     overlayRate: z.number().optional().default(100),
     periodType: z.number().int().optional(),
-    periodDate: z.string().optional(),
+    periodDate: z.string().nullable().optional(),
 }).openapi('EclDetailInput')
 
 const CreateEclConfigSchema = z.object({
@@ -124,7 +126,7 @@ app.openapi(
     }),
     async (c) => {
         const { id } = c.req.valid('param')
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400)
         return runEffect(c, EclConfigurationsService.get(id) as any) as any
     }
 )
@@ -185,16 +187,23 @@ app.openapi(
         const tenantId = c.get('tenantId') as string
         const userPermissions = c.get('permissions') || []
 
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400)
 
-        const effect = interceptUpdate(
-            tenantId,
-            userId,
-            userPermissions,
-            'ecl_configuration',
-            id.toString(),
-            data,
-            () => EclConfigurationsService.update(id, data, userId) as any
+        const effect = pipe(
+            EclConfigurationsService.get(id) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                interceptUpdate(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'ecl_configuration',
+                    id.toString(),
+                    data,
+                    () => EclConfigurationsService.update(id, data, userId) as any,
+                    'medium',
+                    oldValues
+                )
+            )
         )
         return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }
@@ -221,15 +230,22 @@ app.openapi(
         const tenantId = c.get('tenantId') as string
         const userPermissions = c.get('permissions') || []
 
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400)
 
-        const effect = interceptDelete(
-            tenantId,
-            userId,
-            userPermissions,
-            'ecl_configuration',
-            id.toString(),
-            () => EclConfigurationsService.delete(id) as any
+        const effect = pipe(
+            EclConfigurationsService.get(id) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                interceptDelete(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'ecl_configuration',
+                    id.toString(),
+                    () => EclConfigurationsService.delete(id) as any,
+                    'high',
+                    oldValues
+                )
+            )
         )
         return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }

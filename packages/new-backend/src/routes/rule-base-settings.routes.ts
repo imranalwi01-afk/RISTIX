@@ -1,10 +1,12 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import { Effect, pipe } from 'effect'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { RuleBaseSettingsService } from '../services/rule-base-settings.service'
 import { runEffect } from '../lib/effect/runtime'
 import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
 import type { ApprovalResponse } from '../lib/approval-helpers'
+import { buildErrorResponse } from '../lib/http/error-response'
 
 const app = new OpenAPIHono<AppContext>()
 
@@ -190,7 +192,7 @@ app.openapi(
     }),
     async (c) => {
         const { id } = c.req.valid('param')
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400)
         return runEffect(c, RuleBaseSettingsService.getHeader(id) as any) as any
     }
 )
@@ -275,7 +277,7 @@ app.openapi(
         const userId = c.get('userId') as string || 'system'
         const tenantId = c.get('tenantId') as string
         const userPermissions = c.get('permissions') || []
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400)
 
         const payload = {
             ruleName: data.rule_name,
@@ -287,14 +289,21 @@ app.openapi(
             activeFlag: data.active_flag
         }
 
-        const effect = interceptUpdate(
-            tenantId,
-            userId,
-            userPermissions,
-            'rule_base_setting',
-            id.toString(),
-            payload,
-            () => RuleBaseSettingsService.updateHeader(id, payload, userId) as any
+        const effect = pipe(
+            RuleBaseSettingsService.getHeader(id) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                interceptUpdate(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'rule_base_setting',
+                    id.toString(),
+                    payload,
+                    () => RuleBaseSettingsService.updateHeader(id, payload, userId) as any,
+                    'medium',
+                    oldValues
+                )
+            )
         )
         return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }
@@ -327,15 +336,22 @@ app.openapi(
         const userId = c.get('userId') as string || 'system'
         const tenantId = c.get('tenantId') as string
         const userPermissions = c.get('permissions') || []
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400)
 
-        const effect = interceptDelete(
-            tenantId,
-            userId,
-            userPermissions,
-            'rule_base_setting',
-            id.toString(),
-            () => RuleBaseSettingsService.deleteHeader(id) as any
+        const effect = pipe(
+            RuleBaseSettingsService.getHeader(id) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                interceptDelete(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'rule_base_setting',
+                    id.toString(),
+                    () => RuleBaseSettingsService.deleteHeader(id) as any,
+                    'high',
+                    oldValues
+                )
+            )
         )
         return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }
@@ -368,7 +384,7 @@ app.openapi(
     }),
     async (c) => {
         const { ruleId } = c.req.valid('param')
-        if (isNaN(ruleId)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        if (isNaN(ruleId)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400)
         return runEffect(c, RuleBaseSettingsService.listDetails(ruleId) as any) as any
     }
 )
@@ -391,6 +407,7 @@ app.openapi(
         },
         responses: {
             201: { content: { 'application/json': { schema: RuleDetailItemResponse } }, description: 'Created' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Pending Approval' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
@@ -399,7 +416,9 @@ app.openapi(
         const { ruleId } = c.req.valid('param')
         const data = c.req.valid('json')
         const userId = c.get('userId') as string || 'system'
-        if (isNaN(ruleId)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = c.get('permissions') || []
+        if (isNaN(ruleId)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400)
 
         const payload = {
             queryGroup: data.query_group,
@@ -415,7 +434,18 @@ app.openapi(
             stageFrom: data.stage_from,
             stageTo: data.stage_to
         }
-        return runEffect(c, RuleBaseSettingsService.createDetail(ruleId, payload, userId) as any) as any
+
+        const effect = interceptCreate(
+            tenantId,
+            userId,
+            userPermissions,
+            'rule_base_setting',
+            { ...payload, ruleId, scope: 'detail' },
+            () => RuleBaseSettingsService.createDetail(ruleId, payload, userId) as any
+        )
+        return runEffect(c, effect as any, (result: ApprovalResponse | { success: boolean; data: unknown }) =>
+            'approvalRequired' in result && result.approvalRequired ? 202 : 201
+        ) as any
     }
 )
 
@@ -437,6 +467,7 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: RuleDetailItemResponse } }, description: 'Updated' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Pending Approval' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
@@ -446,7 +477,9 @@ app.openapi(
         const { detailId } = c.req.valid('param')
         const data = c.req.valid('json')
         const userId = c.get('userId') as string || 'system'
-        if (isNaN(detailId)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = c.get('permissions') || []
+        if (isNaN(detailId)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400)
 
         const payload = {
             queryGroup: data.query_group,
@@ -462,7 +495,26 @@ app.openapi(
             stageFrom: data.stage_from,
             stageTo: data.stage_to
         }
-        return runEffect(c, RuleBaseSettingsService.updateDetail(detailId, payload, userId) as any) as any
+
+        const effect = pipe(
+            RuleBaseSettingsService.getDetail(detailId) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                interceptUpdate(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'rule_base_setting',
+                    `detail:${detailId}`,
+                    { ...payload, detailId, scope: 'detail' },
+                    () => RuleBaseSettingsService.updateDetail(detailId, payload, userId) as any,
+                    'medium',
+                    oldValues
+                )
+            )
+        )
+        return runEffect(c, effect as any, (result: ApprovalResponse | { success: boolean; data: unknown }) =>
+            'approvalRequired' in result && result.approvalRequired ? 202 : 200
+        ) as any
     }
 )
 
@@ -483,14 +535,36 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Deleted' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Pending Approval' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
         const { detailId } = c.req.valid('param')
-        if (isNaN(detailId)) return c.json({ success: false, message: 'Invalid ID' }, 400)
-        return runEffect(c, RuleBaseSettingsService.deleteDetail(detailId) as any) as any
+        const userId = c.get('userId') as string || 'system'
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = c.get('permissions') || []
+        if (isNaN(detailId)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400)
+
+        const effect = pipe(
+            RuleBaseSettingsService.getDetail(detailId) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                interceptDelete(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'rule_base_setting',
+                    `detail:${detailId}`,
+                    () => RuleBaseSettingsService.deleteDetail(detailId) as any,
+                    'high',
+                    oldValues
+                )
+            )
+        )
+        return runEffect(c, effect as any, (result: ApprovalResponse | { success: boolean; message: string }) =>
+            'approvalRequired' in result && result.approvalRequired ? 202 : 200
+        ) as any
     }
 )
 

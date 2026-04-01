@@ -59,7 +59,14 @@ import {
 import { useRouter } from 'next/navigation';
 import { bucketParameterAPI, BucketParameterHeader, BucketParameterDetail } from '../../../../services/api.bucketparameter';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
-import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
+import {
+  ApprovalNotification,
+  ApprovalStatusBadge,
+  buildApprovalConflictNotification,
+  buildApprovalNotification,
+  createClosedApprovalNotification,
+  type ApprovalNotificationState,
+} from '@/components/approval';
 import { bankingAPI } from '@/services/api';
 import { usePermission } from '@/hooks/usePermission';
 
@@ -79,6 +86,34 @@ interface BucketHeaderRowProps {
   onDeleteDetail: (detail: BucketParameterDetail) => void;
   pendingRequests?: any[];
 }
+
+const getBucketHeaderValidationMessage = (header: Partial<BucketParameterHeader>): string | null => {
+  if (!String(header.bucket_group || '').trim() || !String(header.basis || '').trim()) {
+    return 'Bucket group id and basis are required';
+  }
+
+  return null;
+};
+
+const getBucketDetailValidationMessage = (detail: Partial<BucketParameterDetail>): string | null => {
+  if (!String(detail.bucket_name || '').trim()) {
+    return 'Bucket name are required';
+  }
+
+  if (detail.range_start === undefined || detail.range_start === null || Number.isNaN(Number(detail.range_start))) {
+    return 'Range start is required';
+  }
+
+  if (
+    detail.range_end !== undefined &&
+    detail.range_end !== null &&
+    Number.isNaN(Number(detail.range_end))
+  ) {
+    return 'Range end must be numeric';
+  }
+
+  return null;
+};
 
 const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
   header,
@@ -327,6 +362,7 @@ export default function BucketParameterPage() {
   const { hasAnyPermission } = usePermission();
   const canViewBucket = hasAnyPermission(['banking.collective.bucket.view', 'banking.collective.bucket.manage', 'banking.collective.manage', 'banking.collective', 'admin.super_admin']);
   const canManageBucket = hasAnyPermission(['banking.collective.bucket.manage', 'banking.collective.bucket.create', 'banking.collective.bucket.update', 'banking.collective.bucket.delete', 'banking.collective.manage', 'admin.super_admin']);
+  const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
 
   const router = useRouter();
 
@@ -358,11 +394,19 @@ export default function BucketParameterPage() {
   const [detailFormData, setDetailFormData] = useState<Partial<BucketParameterDetail>>({});
 
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
-  const [approvalNotification, setApprovalNotification] = useState<{ open: boolean, message: string }>({ open: false, message: '' });
+  const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
+  const showApprovalConflict = (error: unknown, fallbackMessage: string) => {
+    const notification = buildApprovalConflictNotification(error, fallbackMessage);
+    if (!notification) return false;
+    setApprovalNotification(notification);
+    return true;
+  };
   const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'error' }>({ open: false, message: '', type: 'success' });
 
   // Error State
   const [error, setError] = useState<string | null>(null);
+  const headerValidationMessage = getBucketHeaderValidationMessage(headerFormData);
+  const detailValidationMessage = getBucketDetailValidationMessage(detailFormData);
 
   // ============================================================================
   // DATA LOADING FUNCTIONS
@@ -482,17 +526,16 @@ export default function BucketParameterPage() {
       const isApprovalResponse = response.approvalRequired || response.status === 202;
 
       if (isApprovalResponse) {
-        setApprovalNotification({
-          open: true,
-          message: response.message || 'Deletion request submitted for approval'
-        });
+        setApprovalNotification(buildApprovalNotification(response, 'Deletion request submitted for approval'));
       } else {
         setSnackbar({ open: true, message: 'Bucket group deleted', type: 'success' });
       }
       loadBucketHeaders();
       loadPendingApprovals();
     } catch (error) {
-      setSnackbar({ open: true, message: error.message || 'Error deleting bucket parameter', type: 'error' });
+      if (!showApprovalConflict(error, 'Deletion request submitted for approval')) {
+        setSnackbar({ open: true, message: error.message || 'Error deleting bucket parameter', type: 'error' });
+      }
     }
   };
 
@@ -529,22 +572,26 @@ export default function BucketParameterPage() {
       const isApprovalResponse = response.approvalRequired || response.status === 202;
 
       if (isApprovalResponse) {
-        setApprovalNotification({
-          open: true,
-          message: response.message || 'Deletion request submitted for approval'
-        });
+        setApprovalNotification(buildApprovalNotification(response, 'Deletion request submitted for approval'));
       } else {
         setSnackbar({ open: true, message: 'Detail deleted successfully', type: 'success' });
       }
       loadBucketHeaders();
       loadPendingApprovals();
     } catch (error) {
-      setSnackbar({ open: true, message: error.message || 'Error deleting detail', type: 'error' });
+      if (!showApprovalConflict(error, 'Deletion request submitted for approval')) {
+        setSnackbar({ open: true, message: error.message || 'Error deleting detail', type: 'error' });
+      }
     }
   };
 
   const handleSaveHeader = async () => {
     if (!canManageBucket) return;
+    const validationMessage = getBucketHeaderValidationMessage(headerFormData);
+    if (validationMessage) {
+      setSnackbar({ open: true, message: validationMessage, type: 'error' });
+      return;
+    }
     try {
       if (editMode && !selectedHeader?.id) return;
 
@@ -555,10 +602,7 @@ export default function BucketParameterPage() {
       const isApprovalResponse = response.approvalRequired || response.status === 202;
 
       if (isApprovalResponse) {
-        setApprovalNotification({
-          open: true,
-          message: response.message || 'Request submitted for approval'
-        });
+        setApprovalNotification(buildApprovalNotification(response, 'Request submitted for approval'));
       } else {
         setSnackbar({
           open: true,
@@ -571,12 +615,19 @@ export default function BucketParameterPage() {
       loadBucketHeaders();
       loadPendingApprovals();
     } catch (error) {
-      setSnackbar({ open: true, message: error.message || 'Error saving bucket parameter', type: 'error' });
+      if (!showApprovalConflict(error, 'Request submitted for approval')) {
+        setSnackbar({ open: true, message: error.message || 'Error saving bucket parameter', type: 'error' });
+      }
     }
   };
 
   const handleSaveDetail = async () => {
     if (!canManageBucket) return;
+    const validationMessage = getBucketDetailValidationMessage(detailFormData);
+    if (validationMessage) {
+      setSnackbar({ open: true, message: validationMessage, type: 'error' });
+      return;
+    }
     try {
       if (!editMode && !selectedHeader?.id) return;
       if (editMode && !detailFormData.id) return;
@@ -588,10 +639,7 @@ export default function BucketParameterPage() {
       const isApprovalResponse = response.approvalRequired || response.status === 202;
 
       if (isApprovalResponse) {
-        setApprovalNotification({
-          open: true,
-          message: response.message || 'Request submitted for approval'
-        });
+        setApprovalNotification(buildApprovalNotification(response, 'Request submitted for approval'));
       } else {
         setSnackbar({
           open: true,
@@ -604,7 +652,9 @@ export default function BucketParameterPage() {
       loadBucketHeaders();
       loadPendingApprovals();
     } catch (error) {
-      setSnackbar({ open: true, message: error.message || 'Error saving bucket detail', type: 'error' });
+      if (!showApprovalConflict(error, 'Request submitted for approval')) {
+        setSnackbar({ open: true, message: error.message || 'Error saving bucket detail', type: 'error' });
+      }
     }
   };
 
@@ -813,6 +863,11 @@ export default function BucketParameterPage() {
         </DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2 }}>
+            {headerValidationMessage ? (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                {headerValidationMessage}
+              </Alert>
+            ) : null}
             <Box sx={{ pt: 2, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 3 }}>
               <Box>
                 <TextField
@@ -894,7 +949,14 @@ export default function BucketParameterPage() {
         <DialogActions>
           <Button onClick={() => setHeaderDialogOpen(false)}>Cancel</Button>
           {canManageBucket && (
-            <Button variant="contained" onClick={handleSaveHeader} data-testid="save-header-btn">Save</Button>
+            <Button
+              variant="contained"
+              onClick={handleSaveHeader}
+              data-testid="save-header-btn"
+              disabled={Boolean(headerValidationMessage)}
+            >
+              Save
+            </Button>
           )}
         </DialogActions>
       </Dialog>
@@ -906,6 +968,11 @@ export default function BucketParameterPage() {
         </DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2 }}>
+            {detailValidationMessage ? (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                {detailValidationMessage}
+              </Alert>
+            ) : null}
             <Box sx={{ pt: 2, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 3 }}>
               <Box sx={{ gridColumn: 'span 2' }}>
                 <TextField
@@ -956,14 +1023,24 @@ export default function BucketParameterPage() {
         <DialogActions>
           <Button onClick={() => setDetailDialogOpen(false)}>Cancel</Button>
           {canManageBucket && (
-            <Button variant="contained" onClick={handleSaveDetail} data-testid="save-detail-btn">Save</Button>
+            <Button
+              variant="contained"
+              onClick={handleSaveDetail}
+              data-testid="save-detail-btn"
+              disabled={Boolean(detailValidationMessage)}
+            >
+              Save
+            </Button>
           )}
         </DialogActions>
       </Dialog>
       <ApprovalNotification
         open={approvalNotification.open}
         message={approvalNotification.message}
-        onClose={() => setApprovalNotification({ ...approvalNotification, open: false })}
+        requestId={approvalNotification.requestId}
+        actionLabel={canOpenApprovalInbox ? 'Open Approval' : undefined}
+        actionHref={canOpenApprovalInbox ? (approvalNotification.requestId ? `/banking/maintenance/approval?requestId=${encodeURIComponent(approvalNotification.requestId)}` : '/banking/maintenance/approval') : undefined}
+        onClose={() => setApprovalNotification(createClosedApprovalNotification())}
       />
     </Container>
   );

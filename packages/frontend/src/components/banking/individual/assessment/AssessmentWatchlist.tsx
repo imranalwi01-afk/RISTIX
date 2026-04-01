@@ -11,7 +11,8 @@ import {
   Typography,
   IconButton,
   Tooltip,
-  Skeleton
+  Skeleton,
+  Chip
 } from '@mui/material';
 import {
   Visibility as VisibilityIcon,
@@ -41,6 +42,8 @@ interface AssessmentWatchlistProps {
   onAccountSelect: (account: IndividualImpairmentWatchlistItem) => void;
   onEditAssessment: (account: IndividualImpairmentWatchlistItem) => void;
   onResetAssessment?: (account: IndividualImpairmentWatchlistItem) => void;
+  onViewDetails?: (account: IndividualImpairmentWatchlistItem) => void;
+  mode?: string;
 }
 
 export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
@@ -51,7 +54,9 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
   onRowsPerPageChange,
   onAccountSelect,
   onEditAssessment,
-  onResetAssessment
+  onResetAssessment,
+  onViewDetails,
+  mode
 }) => {
   if (loading && watchlist.length === 0) {
     return (
@@ -76,6 +81,20 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
 
   return (
     <>
+      <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h6" component="h2" sx={{ fontWeight: 600 }}>
+          Individual Assessment Watchlist
+        </Typography>
+        {mode && (
+          <Chip 
+            label={`${mode.toUpperCase()} Mode`}
+            color="primary"
+            variant="outlined"
+            size="small"
+            sx={{ fontWeight: 600 }}
+          />
+        )}
+      </Box>
       <TableContainer 
         sx={{ 
           maxHeight: 'calc(100vh - 420px)',
@@ -264,7 +283,7 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
                     <Tooltip title="View Details">
                       <IconButton
                         size="small"
-                        onClick={() => onAccountSelect(account)}
+                        onClick={() => onViewDetails?.(account)}
                         color="primary"
                       >
                         <VisibilityIcon />

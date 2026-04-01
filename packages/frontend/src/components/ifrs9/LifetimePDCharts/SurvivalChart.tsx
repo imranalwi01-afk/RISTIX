@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent, Typography } from '@mui/material';
+import { Box, Card, CardContent, Typography } from '@mui/material';
 import {
   ComposedChart,
   Line,
@@ -16,14 +16,7 @@ interface SurvivalChartProps {
 }
 
 export default function SurvivalChart({ data }: SurvivalChartProps) {
-  // Mock data if none provided
-  const chartData = data?.length > 0 ? data : [
-    { year: 'Y1', survival: 0.98, cumulativePD: 0.02 },
-    { year: 'Y2', survival: 0.95, cumulativePD: 0.05 },
-    { year: 'Y3', survival: 0.92, cumulativePD: 0.08 },
-    { year: 'Y4', survival: 0.88, cumulativePD: 0.12 },
-    { year: 'Y5', survival: 0.85, cumulativePD: 0.15 },
-  ];
+  const chartData = data?.length > 0 ? data : [];
 
   return (
     <Card sx={{ 
@@ -36,6 +29,13 @@ export default function SurvivalChart({ data }: SurvivalChartProps) {
         <Typography variant="h6" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
           Survival vs Cumulative PD
         </Typography>
+        {chartData.length === 0 ? (
+          <Box sx={{ height: 350, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              No lifetime PD data available for the selected filters.
+            </Typography>
+          </Box>
+        ) : (
         <ResponsiveContainer width="100%" height={350}>
           <ComposedChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
@@ -109,6 +109,7 @@ export default function SurvivalChart({ data }: SurvivalChartProps) {
             )}
           </ComposedChart>
         </ResponsiveContainer>
+        )}
       </CardContent>
     </Card>
   );

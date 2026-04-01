@@ -23,12 +23,14 @@ import { env, isProduction } from './config'
 }
 import { routes } from './routes'
 import { businessSettingsRoutes } from './routes/business-settings.routes'
+import { auditMiddleware } from './middleware'
 import { errorHandler } from './middleware/error-handler'
 import { platformDb } from './config/database'
 import { platformTenants } from './db/schema/platform.schema'
 import { eq } from 'drizzle-orm'
 
 import type { User } from './db/schema'
+import { buildErrorResponse } from './lib/http/error-response'
 
 /**
  * Application context type
@@ -182,6 +184,9 @@ export function createApp() {
     })
     // === END INTERNAL FIX ROUTE ===
 
+    // Audit all write API requests after downstream auth/tenant middleware resolve user context.
+    app.use('/api/v1/*', auditMiddleware)
+
     // API routes
     app.route('/api/v1/banking/business-settings', businessSettingsRoutes) // Explicit mount for business settings
     app.route('/api/v1', routes)
@@ -222,12 +227,12 @@ export function createApp() {
     // 404 handler
     app.notFound((c) =>
         c.json(
-            {
-                success: false,
+            buildErrorResponse(c, {
                 error: 'Not Found',
+                message: 'Not Found',
                 code: 'NOT_FOUND',
                 path: c.req.path,
-            },
+            }),
             404
         )
     )

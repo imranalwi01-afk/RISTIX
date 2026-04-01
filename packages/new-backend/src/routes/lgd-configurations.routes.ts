@@ -1,10 +1,12 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import { Effect, pipe } from 'effect'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { LgdConfigurationsService } from '../services/lgd-configurations.service'
 import { runEffect } from '../lib/effect/runtime'
 import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
 import type { ApprovalResponse } from '../lib/approval-helpers'
+import { buildErrorResponse } from '../lib/http/error-response'
 
 const app = new OpenAPIHono<AppContext>()
 
@@ -130,7 +132,7 @@ app.openapi(
     }),
     async (c) => {
         const id = c.req.valid('param').id
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400)
 
         return runEffect(c, LgdConfigurationsService.get(id)) as any
     }
@@ -206,7 +208,7 @@ app.openapi(
     }),
     async (c) => {
         const id = c.req.valid('param').id
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400)
 
         const data = c.req.valid('json')
         const userId = c.get('userId') as string || 'system'
@@ -227,14 +229,21 @@ app.openapi(
             observationStartDate: data.observation_start_date
         }
 
-        const effect = interceptUpdate(
-            tenantId,
-            userId,
-            userPermissions,
-            'lgd_configuration',
-            id.toString(),
-            payload,
-            () => LgdConfigurationsService.update(id, payload, userId) as any
+        const effect = pipe(
+            LgdConfigurationsService.get(id) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                interceptUpdate(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'lgd_configuration',
+                    id.toString(),
+                    payload,
+                    () => LgdConfigurationsService.update(id, payload, userId) as any,
+                    'medium',
+                    oldValues
+                )
+            )
         )
         return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }
@@ -260,19 +269,26 @@ app.openapi(
     }),
     async (c) => {
         const id = c.req.valid('param').id
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400)
 
         const userId = c.get('userId') as string || 'system'
         const tenantId = c.get('tenantId') as string
         const userPermissions = c.get('permissions') || []
 
-        const effect = interceptDelete(
-            tenantId,
-            userId,
-            userPermissions,
-            'lgd_configuration',
-            id.toString(),
-            () => LgdConfigurationsService.delete(id) as any
+        const effect = pipe(
+            LgdConfigurationsService.get(id) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                interceptDelete(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'lgd_configuration',
+                    id.toString(),
+                    () => LgdConfigurationsService.delete(id) as any,
+                    'high',
+                    oldValues
+                )
+            )
         )
         return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }

@@ -2,6 +2,7 @@ import { Effect, pipe } from 'effect'
 import { getDatabase } from '@/config/database'
 import { ApprovalRepository } from '@/repositories/approval.repository'
 import { createApprovalRequest } from '@/services/approval.service'
+import * as auditService from '@/services/audit.service'
 import type { ApprovalMatrix } from '@/db/schema'
 import {
     shouldAutoApprove,
@@ -33,6 +34,7 @@ export interface InterceptorContext {
     operation: 'create' | 'update' | 'delete'
     data: Record<string, any>
     entityId?: string
+    oldValues?: Record<string, any>
     impactLevel?: 'low' | 'medium' | 'high' | 'critical'
 }
 
@@ -179,6 +181,7 @@ export const interceptCRUDOperation = <T>(
                     requestData: {
                         operation: context.operation,
                         entityType: context.entityType,
+                        oldValues: context.oldValues,
                         data: context.data,
                         approvalRouting: !checkResult.matrix && requiresStrictFourEyes(context.entityType)
                             ? { levels: buildDefaultFourEyesRouting(context.entityType) }
@@ -187,6 +190,35 @@ export const interceptCRUDOperation = <T>(
                     requestedBy: context.userId,
                     impactLevel: context.impactLevel || 'medium',
                 }),
+                Effect.tap((approvalRequest) =>
+                    Effect.sync(() => {
+                        void auditService.logApproval.requested(
+                            approvalRequest.id,
+                            approvalRequest.title,
+                            context.userId,
+                            context.tenantId,
+                            {
+                                entityType: context.entityType,
+                                description: buildApprovalDescription(
+                                    context.operation,
+                                    context.entityType,
+                                    context.data
+                                ),
+                                oldValues: context.oldValues,
+                                newValues: {
+                                    operation: context.operation,
+                                    entityType: context.entityType,
+                                    entityId: context.entityId,
+                                    oldValues: context.oldValues,
+                                    data: context.data,
+                                },
+                                metadata: {
+                                    source: 'approval-interceptor',
+                                },
+                            }
+                        )
+                    })
+                ),
                 Effect.map((approvalRequest): InterceptorResult<T> => ({
                     shouldExecute: false,
                     approvalRequired: true,
@@ -235,18 +267,6 @@ export const interceptCreate = <T>(
     executeCreate: () => Effect.Effect<T, any>,
     impactLevel?: 'low' | 'medium' | 'high' | 'critical'
 ): Effect.Effect<ApprovalResponse, any> => {
-    // Development bypass for segmentation operations
-    if ((process.env.NODE_ENV === 'development' || userPermissions.includes('*')) && entityType === 'segmentation') {
-        console.log('🔓 Development/Admin mode: Bypassing approval for segmentation create');
-        return Effect.tryPromise({
-            try: async () => {
-                const result = await Effect.runPromise(executeCreate());
-                return formatDirectExecutionResponse(result, 'Create completed successfully (bypass mode)');
-            },
-            catch: (error) => error
-        });
-    }
-
     return withApprovalCheck(
         {
             tenantId,
@@ -272,20 +292,9 @@ export const interceptUpdate = <T>(
     entityId: string,
     data: Record<string, any>,
     executeUpdate: () => Effect.Effect<T, any>,
-    impactLevel?: 'low' | 'medium' | 'high' | 'critical'
+    impactLevel?: 'low' | 'medium' | 'high' | 'critical',
+    oldValues?: Record<string, any>
 ): Effect.Effect<ApprovalResponse, any> => {
-    // Development bypass for segmentation operations
-    if ((process.env.NODE_ENV === 'development' || userPermissions.includes('*')) && entityType === 'segmentation') {
-        console.log('🔓 Development/Admin mode: Bypassing approval for segmentation update');
-        return Effect.tryPromise({
-            try: async () => {
-                const result = await Effect.runPromise(executeUpdate());
-                return formatDirectExecutionResponse(result, 'Update completed successfully (bypass mode)');
-            },
-            catch: (error) => error
-        });
-    }
-
     return withApprovalCheck(
         {
             tenantId,
@@ -295,6 +304,7 @@ export const interceptUpdate = <T>(
             operation: 'update',
             data,
             entityId,
+            oldValues,
             impactLevel,
         },
         executeUpdate
@@ -311,31 +321,9 @@ export const interceptDelete = <T>(
     entityType: string,
     entityId: string,
     executeDelete: () => Effect.Effect<T, any>,
-    impactLevel?: 'low' | 'medium' | 'high' | 'critical'
+    impactLevel?: 'low' | 'medium' | 'high' | 'critical',
+    oldValues?: Record<string, any>
 ): Effect.Effect<ApprovalResponse, any> => {
-    // Debug logging
-    console.log('🔍 DELETE Debug Info:', {
-        entityType,
-        entityId,
-        userPermissions,
-        hasWildcard: userPermissions.includes('*'),
-        isDevelopment: process.env.NODE_ENV === 'development',
-        bypassCondition: (process.env.NODE_ENV === 'development' || userPermissions.includes('*')) && entityType === 'segmentation'
-    });
-
-    // Development bypass for segmentation operations
-    if ((process.env.NODE_ENV === 'development' || userPermissions.includes('*')) && entityType === 'segmentation') {
-        console.log('🔓 Development/Admin mode: Bypassing approval for segmentation delete');
-        return Effect.tryPromise({
-            try: async () => {
-                const result = await Effect.runPromise(executeDelete());
-                return formatDirectExecutionResponse(result, 'Delete completed successfully (bypass mode)');
-            },
-            catch: (error) => error
-        });
-    }
-
-    console.log('📋 Proceeding with normal approval workflow...');
     return withApprovalCheck(
         {
             tenantId,
@@ -345,6 +333,7 @@ export const interceptDelete = <T>(
             operation: 'delete',
             data: { id: entityId },
             entityId,
+            oldValues,
             impactLevel,
         },
         executeDelete

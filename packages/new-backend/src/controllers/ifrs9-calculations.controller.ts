@@ -2,8 +2,14 @@ import { Context } from 'hono';
 import { ifrs9CalculationsService } from '../services/ifrs9-calculations.service';
 import { tenantsRepository } from '../repositories/tenants.repository';
 import { Effect } from 'effect';
+import { internalError, badRequest } from '../lib/http/route-errors';
 
 export class Ifrs9CalculationsController {
+    private handleError(c: Context, error: unknown): Response {
+        const message = error instanceof Error ? error.message : 'IFRS 9 calculation request failed';
+        return internalError(c, message, 'IFRS9_CALCULATION_ERROR');
+    }
+
     private async resolveTenantId(tenantId: string | null): Promise<string> {
         if (!tenantId) {
             console.warn('⚠️ No tenantId provided in context, falling back to default "iaf"');
@@ -15,7 +21,7 @@ export class Ifrs9CalculationsController {
         if (uuidRegex.test(tenantId)) return tenantId;
 
         if (tenantId === 'iaf') {
-            return 'a24af6d2-3032-4d53-ae82-9cfa84f97a20';
+            return 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be';
         }
 
         // Try to resolve slug to UUID
@@ -38,11 +44,12 @@ export class Ifrs9CalculationsController {
             const rawTenantId = c.get('tenantId');
             const tenantId = await this.resolveTenantId(rawTenantId);
             const date = c.req.query('date');
-            const summary = await ifrs9CalculationsService.getSummary(tenantId, date);
+            const mode = c.req.query('mode');
+            const summary = await ifrs9CalculationsService.getSummary(tenantId, date, mode);
             return c.json({ success: true, data: summary });
         } catch (error: any) {
             console.error('❌ Controller error fetching calculation summary:', error);
-            return c.json({ success: false, message: error.message }, 500);
+            return this.handleError(c, error);
         }
     }
 
@@ -50,11 +57,12 @@ export class Ifrs9CalculationsController {
         try {
             const rawTenantId = c.get('tenantId');
             const tenantId = await this.resolveTenantId(rawTenantId);
-            const data = await ifrs9CalculationsService.getBatches(tenantId);
+            const mode = c.req.query('mode');
+            const data = await ifrs9CalculationsService.getBatches(tenantId, mode);
             return c.json({ success: true, data });
         } catch (error: any) {
             console.error('Error fetching calculation batches:', error);
-            return c.json({ success: false, message: error.message }, 500);
+            return this.handleError(c, error);
         }
     }
 
@@ -68,7 +76,21 @@ export class Ifrs9CalculationsController {
             return c.json(result);
         } catch (error: any) {
             console.error('Error running calculation:', error);
-            return c.json({ success: false, message: error.message }, 500);
+            return this.handleError(c, error);
+        }
+    }
+
+    async runPreviewCalculation(c: Context) {
+        try {
+            const rawTenantId = c.get('tenantId');
+            const tenantId = await this.resolveTenantId(rawTenantId);
+            console.log(`🚀 Triggering preview calculation for tenant: ${tenantId}`);
+            const body = await c.req.json();
+            const result = await ifrs9CalculationsService.runPreviewCalculation(tenantId, body);
+            return c.json(result);
+        } catch (error: any) {
+            console.error('Error running preview calculation:', error);
+            return this.handleError(c, error);
         }
     }
 
@@ -77,10 +99,11 @@ export class Ifrs9CalculationsController {
             const rawTenantId = c.get('tenantId');
             const tenantId = await this.resolveTenantId(rawTenantId);
             const date = c.req.query('date');
-            const trend = await ifrs9CalculationsService.getPortfolioTrend(tenantId, date);
+            const mode = c.req.query('mode');
+            const trend = await ifrs9CalculationsService.getPortfolioTrend(tenantId, date, mode);
             return c.json({ success: true, data: trend || [] });
         } catch (error: any) {
-            return c.json({ success: false, message: error.message }, 500);
+            return this.handleError(c, error);
         }
     }
 
@@ -88,10 +111,11 @@ export class Ifrs9CalculationsController {
         try {
             const rawTenantId = c.get('tenantId');
             const tenantId = await this.resolveTenantId(rawTenantId);
-            const dates = await ifrs9CalculationsService.getAvailableDates(tenantId);
+            const mode = c.req.query('mode');
+            const dates = await ifrs9CalculationsService.getAvailableDates(tenantId, mode);
             return c.json({ success: true, data: dates });
         } catch (error: any) {
-            return c.json({ success: false, message: error.message }, 500);
+            return this.handleError(c, error);
         }
     }
 
@@ -100,21 +124,20 @@ export class Ifrs9CalculationsController {
             const rawTenantId = c.get('tenantId');
             const tenantId = await this.resolveTenantId(rawTenantId);
             const processDate = c.req.query("date");
+            const mode = c.req.query("mode");
 
             if (!processDate)
-                return c.json(
-                    { success: false, message: "Process date required" },
-                    400,
-                );
+                return badRequest(c, 'Process date required');
 
             const result = await ifrs9CalculationsService.getBatchResults(
                 tenantId,
                 processDate,
+                mode
             );
             return c.json({ success: true, data: { items: result.data } });
         } catch (error: any) {
             console.error("Error fetching batch results:", error);
-            return c.json({ success: false, message: error.message }, 500);
+            return this.handleError(c, error);
         }
     }
 

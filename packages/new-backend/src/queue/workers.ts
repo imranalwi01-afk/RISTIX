@@ -1,5 +1,4 @@
 import { Worker } from 'bullmq'
-import Redis from 'ioredis'
 import { ApprovalNotificationJob, ECLCalculationJob, enqueueDeadLetter } from '../queue/bull-setup'
 import { getNotificationSocket } from '../socket/notification.socket'
 import * as NotificationService from '../services/notification.service'
@@ -12,7 +11,6 @@ import { env } from '../config/env'
 
 const connectionOptions = getRedisConnectionOptions(parseInt(env.REDIS_QUEUE_DB))
 console.log('Worker Redis Options:', JSON.stringify(connectionOptions, null, 2)) // DEBUG
-const redis = new Redis({ ...connectionOptions, maxRetriesPerRequest: null })
 
 /**
  * Approval Notification Worker
@@ -87,7 +85,7 @@ export function setupApprovalNotificationWorker(db: PostgresJsDatabase<typeof sc
                 throw err
             }
         },
-        { connection: redis, concurrency: 5 }
+        { connection: connectionOptions as any, concurrency: 5 }
     )
 
     worker.on('completed', (job) => {
@@ -175,7 +173,7 @@ export function setupECLCalculationWorker(db: PostgresJsDatabase<typeof schema>)
                 throw err
             }
         },
-        { connection: redis, concurrency: 2 } // Lower concurrency for heavy calculations
+        { connection: connectionOptions as any, concurrency: 2 } // Lower concurrency for heavy calculations
     )
 
     worker.on('completed', (job) => {

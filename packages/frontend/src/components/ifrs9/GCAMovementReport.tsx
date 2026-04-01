@@ -70,6 +70,19 @@ interface SummaryStats {
   movementTrend: MovementTrendItem[];
 }
 
+interface MovementMatrixRow {
+  movement_order?: number;
+  movement?: string;
+  stage_1_collective?: number | string;
+  stage_2_collective?: number | string;
+  stage_3_collective?: number | string;
+  stage_1_individual?: number | string;
+  stage_2_individual?: number | string;
+  stage_3_individual?: number | string;
+  poci?: number | string;
+  total?: number | string;
+}
+
 const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
   const items: KPIItem[] = [
     {
@@ -660,43 +673,74 @@ const GCAMovementReport: React.FC = () => {
         movementTrend: []
       };
 
-      const stats = data.reduce<SummaryStats>((acc, row) => {
-        acc.openingGCA += parseFloat(row.opening_gca as string) || 0;
-        acc.closingGCA += parseFloat(row.closing_gca as string) || 0;
-        acc.newBusinessGCA += parseFloat(row.new_business as string) || 0;
-        acc.repayments += parseFloat(row.repayments as string) || 0;
-        acc.writeOffs += parseFloat(row.write_offs as string) || 0;
+      const aggregated = new Map<number, MovementMatrixRow>();
+      data.forEach((row) => {
+        const order = Number(row.movement_order || 0);
+        if (!order) return;
 
-        acc.stageTransfers.stage1To2 += parseFloat(row.stage1_to_stage2 as string) || 0;
-        acc.stageTransfers.stage2To1 += parseFloat(row.stage2_to_stage1 as string) || 0;
-        acc.stageTransfers.stage2To3 += parseFloat(row.stage2_to_stage3 as string) || 0;
-        acc.stageTransfers.stage3To2 += parseFloat(row.stage3_to_stage2 as string) || 0;
+        const current = aggregated.get(order) || {
+          movement_order: order,
+          movement: String(row.movement || `Movement ${order}`),
+          stage_1_collective: 0,
+          stage_2_collective: 0,
+          stage_3_collective: 0,
+          stage_1_individual: 0,
+          stage_2_individual: 0,
+          stage_3_individual: 0,
+          poci: 0,
+          total: 0,
+        };
 
-        return acc;
-      }, initialStats);
+        current.stage_1_collective = (parseFloat(String(current.stage_1_collective || 0)) || 0) + (parseFloat(String(row.stage_1_collective || 0)) || 0);
+        current.stage_2_collective = (parseFloat(String(current.stage_2_collective || 0)) || 0) + (parseFloat(String(row.stage_2_collective || 0)) || 0);
+        current.stage_3_collective = (parseFloat(String(current.stage_3_collective || 0)) || 0) + (parseFloat(String(row.stage_3_collective || 0)) || 0);
+        current.stage_1_individual = (parseFloat(String(current.stage_1_individual || 0)) || 0) + (parseFloat(String(row.stage_1_individual || 0)) || 0);
+        current.stage_2_individual = (parseFloat(String(current.stage_2_individual || 0)) || 0) + (parseFloat(String(row.stage_2_individual || 0)) || 0);
+        current.stage_3_individual = (parseFloat(String(current.stage_3_individual || 0)) || 0) + (parseFloat(String(row.stage_3_individual || 0)) || 0);
+        current.poci = (parseFloat(String(current.poci || 0)) || 0) + (parseFloat(String(row.poci || 0)) || 0);
+        current.total = (parseFloat(String(current.total || 0)) || 0) + (parseFloat(String(row.total || 0)) || 0);
+        aggregated.set(order, current);
+      });
+
+      const getRow = (order: number) => aggregated.get(order);
+      const getAmount = (order: number) => parseFloat(String(getRow(order)?.total || 0)) || 0;
+
+      const openingRow = getRow(1);
+      const closingRow = getRow(14);
+
+      const stats = {
+        ...initialStats,
+        openingGCA: getAmount(1),
+        closingGCA: getAmount(14),
+        newBusinessGCA: Math.max(getAmount(7), 0),
+        repayments: Math.abs(getAmount(10)),
+        writeOffs: Math.abs(getAmount(11)),
+        stageTransfers: {
+          stage1To2: Math.abs(getAmount(2)),
+          stage2To1: Math.abs(getAmount(4)),
+          stage2To3: Math.abs(getAmount(5)),
+          stage3To2: Math.abs(getAmount(6)),
+        },
+      };
 
       const netGCAMovement = stats.closingGCA - stats.openingGCA;
 
-      const stageMap = new Map<string, GCAByStageItem>();
-      data.forEach(row => {
-        const stage = (row.current_stage || 1) as number;
-        const stageKey = `Stage ${stage}`;
+      const stageMap = new Map<string, GCAByStageItem>([
+        ['Stage 1', { stage: 'Stage 1', opening: 0, closing: 0, accounts: 1, color: '#4CAF50' }],
+        ['Stage 2', { stage: 'Stage 2', opening: 0, closing: 0, accounts: 1, color: '#FF9800' }],
+        ['Stage 3', { stage: 'Stage 3', opening: 0, closing: 0, accounts: 1, color: '#F44336' }],
+      ]);
 
-        if (!stageMap.has(stageKey)) {
-          stageMap.set(stageKey, {
-            stage: stageKey,
-            opening: 0,
-            closing: 0,
-            accounts: 0,
-            color: stage === 1 ? '#4CAF50' : stage === 2 ? '#FF9800' : '#F44336'
-          });
-        }
+      const stage1 = stageMap.get('Stage 1')!;
+      const stage2 = stageMap.get('Stage 2')!;
+      const stage3 = stageMap.get('Stage 3')!;
 
-        const stageData = stageMap.get(stageKey)!;
-        stageData.opening += parseFloat(row.opening_gca as string) || 0;
-        stageData.closing += parseFloat(row.closing_gca as string) || 0;
-        stageData.accounts += 1;
-      });
+      stage1.opening = (parseFloat(String(openingRow?.stage_1_collective || 0)) || 0) + (parseFloat(String(openingRow?.stage_1_individual || 0)) || 0);
+      stage2.opening = (parseFloat(String(openingRow?.stage_2_collective || 0)) || 0) + (parseFloat(String(openingRow?.stage_2_individual || 0)) || 0);
+      stage3.opening = (parseFloat(String(openingRow?.stage_3_collective || 0)) || 0) + (parseFloat(String(openingRow?.stage_3_individual || 0)) || 0);
+      stage1.closing = (parseFloat(String(closingRow?.stage_1_collective || 0)) || 0) + (parseFloat(String(closingRow?.stage_1_individual || 0)) || 0);
+      stage2.closing = (parseFloat(String(closingRow?.stage_2_collective || 0)) || 0) + (parseFloat(String(closingRow?.stage_2_individual || 0)) || 0);
+      stage3.closing = (parseFloat(String(closingRow?.stage_3_collective || 0)) || 0) + (parseFloat(String(closingRow?.stage_3_individual || 0)) || 0);
 
       const trendData: MovementTrendItem[] = [
         { period: 'Opening', gca: stats.openingGCA, cumulative: stats.openingGCA },
@@ -716,7 +760,7 @@ const GCAMovementReport: React.FC = () => {
   }, []);
 
   const requiredParams = useMemo(() => ['prc_date'], []);
-  const optionalParams = useMemo(() => ['segment_id', 'stage'], []);
+  const optionalParams = useMemo(() => ['segment_id', 'group_segment', 'stage'], []);
 
   return (
     <BaseIfrs9Report
