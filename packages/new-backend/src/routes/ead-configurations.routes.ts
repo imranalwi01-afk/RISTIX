@@ -8,8 +8,9 @@ import { authMiddleware } from '../middleware'
 import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
 import { runEffect } from '../lib/effect/runtime'
 import { buildErrorResponse } from '../lib/http/error-response'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-export const eadConfigurationsRoutes = new OpenAPIHono<AppContext>()
+export const eadConfigurationsRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 eadConfigurationsRoutes.use('*', authMiddleware)
 

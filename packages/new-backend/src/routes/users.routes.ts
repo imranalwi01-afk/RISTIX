@@ -9,8 +9,9 @@ import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware
 import { buildDefaultFourEyesRouting, type ApprovalResponse } from '../lib/approval-helpers'
 import { createApprovalRequest } from '../services/approval.service'
 import * as auditService from '../services/audit.service'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-export const usersRoutes: any = new OpenAPIHono<AppContext>()
+export const usersRoutes: any = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 // Apply auth and tenant middleware
 usersRoutes.use('*', authMiddleware)

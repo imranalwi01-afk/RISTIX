@@ -8,8 +8,9 @@ import { runEffect } from '../lib/effect/runtime'
 import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
 import type { ApprovalResponse } from '../lib/approval-helpers'
 import { buildErrorResponse } from '../lib/http/error-response'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-const app = new OpenAPIHono<AppContext>()
+const app = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 app.use('*', authMiddleware)
 
