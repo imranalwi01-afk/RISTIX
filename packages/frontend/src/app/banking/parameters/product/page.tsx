@@ -300,7 +300,7 @@ export default function ProductParametersPage() {
         setError(res.message || 'Save failed');
       }
     } catch (err) {
-      if (!showApprovalConflict(err, 'Deletion submitted for approval')) {
+      if (!showApprovalConflict(err, `${selectedProduct && !selectedProduct?._clone ? 'Update' : 'Creation'} submitted for approval`)) {
         setError(handleAPIError(err).message);
       }
     } finally {

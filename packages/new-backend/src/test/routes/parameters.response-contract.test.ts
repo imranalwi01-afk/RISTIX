@@ -205,6 +205,41 @@ describe('product and journal parameter routes response contracts', () => {
     expect(productCreateMock).toHaveBeenCalledTimes(0)
   })
 
+  test('POST /api/v1/banking/collective/product returns detailed 400 validation payload', async () => {
+    const app = new OpenAPIHono()
+    app.route('/api/v1/banking/collective/product', productParameterRoutes)
+
+    const response = await app.request('/api/v1/banking/collective/product', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        mode: 'conventional',
+        dataSource: 'SRC',
+        prdGroup: 'GRP',
+        prdType: 'TYPE',
+        prdCode: 'PRD001',
+        prdDesc: 'Product 001',
+      }),
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(body).toMatchObject({
+      success: false,
+      code: 'VALIDATION_ERROR',
+      error: 'Validation failed',
+      message: 'Validation failed',
+    })
+    expect(Array.isArray(body.details)).toBe(true)
+    expect(body.details).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: 'currency',
+        }),
+      ])
+    )
+  })
+
   test('GET /api/v1/banking/collective/journal/{id} returns standardized 400 for invalid id', async () => {
     const app = new OpenAPIHono()
     app.route('/api/v1/banking/collective/journal', journalParameterRoutes)
