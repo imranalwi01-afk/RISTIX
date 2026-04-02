@@ -6,8 +6,9 @@ import { db, getDatabase } from '../config/database'
 import { auditLogs, userActivityLogs, dataAccessLogs } from '../db/schema'
 import { eq, and, desc, gte, lte, like, sql, or } from 'drizzle-orm'
 import { buildErrorResponse } from '../lib/http/error-response'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-export const auditRoutes = new OpenAPIHono<AppContext>()
+export const auditRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 const buildRequestIdCondition = (requestId: string) =>
     or(

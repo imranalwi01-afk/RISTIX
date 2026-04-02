@@ -5,8 +5,9 @@ import { eq, and, like, or } from 'drizzle-orm'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { buildErrorResponse } from '../lib/http/error-response'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-export const populationSegmentsRoutes = new OpenAPIHono<AppContext>()
+export const populationSegmentsRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 populationSegmentsRoutes.use('*', authMiddleware)
 

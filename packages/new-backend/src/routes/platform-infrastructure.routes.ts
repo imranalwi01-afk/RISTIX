@@ -1,11 +1,12 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import type { AppContext } from '../app'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
 /**
  * Platform Infrastructure Routes (STUB)
  * TODO: Implement infrastructure management
  */
-export const platformInfrastructureRoutes = new OpenAPIHono<AppContext>()
+export const platformInfrastructureRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 // ============================================================================
 // SCHEMAS

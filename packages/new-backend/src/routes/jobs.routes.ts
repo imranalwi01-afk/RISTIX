@@ -7,8 +7,9 @@ import { eq, desc, and, sql, inArray } from 'drizzle-orm'
 import { addJob, getJob } from '../services/queue.service'
 import { buildErrorResponse } from '../lib/http/error-response'
 import { badRequest, notFound } from '../lib/http/route-errors'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-export const jobsRoutes = new OpenAPIHono<AppContext>()
+export const jobsRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 // Apply auth middleware
 jobsRoutes.use('*', authMiddleware)

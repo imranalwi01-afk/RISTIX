@@ -5,6 +5,7 @@
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import api from '../../services/api';
+import { getErrorMessage } from '@/utils/error-message';
 
 // Types
 export interface ProductParameter {
@@ -69,90 +70,122 @@ const initialState: ParametersState = {
 // Async thunks for products
 export const fetchProductParameters = createAsyncThunk(
   'parameters/fetchProducts',
-  async (params?: any) => {
-    const response = await api.banking.productParameters.getAll(params);
-    if (!response.success) {
-      throw new Error(response.message);
+  async (params: any = undefined, { rejectWithValue }) => {
+    try {
+      const response = await api.banking.productParameters.getAll(params);
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch product parameters'));
     }
-    return response.data;
   }
 );
 
 export const createProductParameter = createAsyncThunk(
   'parameters/createProduct',
-  async (data: Partial<ProductParameter>) => {
-    const response = await api.banking.productParameters.create(data);
-    if (!response.success) {
-      throw new Error(response.message);
+  async (data: Partial<ProductParameter>, { rejectWithValue }) => {
+    try {
+      const response = await api.banking.productParameters.create(data);
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to create product parameter'));
     }
-    return response.data;
   }
 );
 
 export const updateProductParameter = createAsyncThunk(
   'parameters/updateProduct',
-  async ({ id, data }: { id: number; data: Partial<ProductParameter> }) => {
-    const response = await api.banking.productParameters.update(id.toString(), data);
-    if (!response.success) {
-      throw new Error(response.message);
+  async ({ id, data }: { id: number; data: Partial<ProductParameter> }, { rejectWithValue }) => {
+    try {
+      const response = await api.banking.productParameters.update(id.toString(), data);
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to update product parameter'));
     }
-    return response.data;
   }
 );
 
 export const deleteProductParameter = createAsyncThunk(
   'parameters/deleteProduct',
-  async (id: number) => {
-    const response = await api.banking.productParameters.delete(id.toString());
-    if (!response.success) {
-      throw new Error(response.message);
+  async (id: number, { rejectWithValue }) => {
+    try {
+      const response = await api.banking.productParameters.delete(id.toString());
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return id;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to delete product parameter'));
     }
-    return id;
   }
 );
 
 // Async thunks for journals
 export const fetchJournalParameters = createAsyncThunk(
   'parameters/fetchJournals',
-  async (params?: any) => {
-    const response = await api.banking.journalParameters.getAll();
-    if (!response.success) {
-      throw new Error(response.message);
+  async (params: any = undefined, { rejectWithValue }) => {
+    try {
+      const response = await api.banking.journalParameters.getAll();
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch journal parameters'));
     }
-    return response.data;
   }
 );
 
 export const createJournalParameter = createAsyncThunk(
   'parameters/createJournal',
-  async (data: Partial<JournalParameter>) => {
-    const response = await api.banking.journalParameters.create(data);
-    if (!response.success) {
-      throw new Error(response.message);
+  async (data: Partial<JournalParameter>, { rejectWithValue }) => {
+    try {
+      const response = await api.banking.journalParameters.create(data);
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to create journal parameter'));
     }
-    return response.data;
   }
 );
 
 export const updateJournalParameter = createAsyncThunk(
   'parameters/updateJournal',
-  async ({ id, data }: { id: number; data: Partial<JournalParameter> }) => {
-    const response = await api.banking.journalParameters.update(id, data);
-    if (!response.success) {
-      throw new Error(response.message);
+  async ({ id, data }: { id: number; data: Partial<JournalParameter> }, { rejectWithValue }) => {
+    try {
+      const response = await api.banking.journalParameters.update(id, data);
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to update journal parameter'));
     }
-    return response.data;
   }
 );
 
 export const deleteJournalParameter = createAsyncThunk(
   'parameters/deleteJournal',
-  async (id: number) => {
-    const response = await api.banking.journalParameters.delete(id);
-    if (!response.success) {
-      throw new Error(response.message);
+  async (id: number, { rejectWithValue }) => {
+    try {
+      const response = await api.banking.journalParameters.delete(id);
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return id;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to delete journal parameter'));
     }
-    return id;
   }
 );
 
@@ -192,7 +225,7 @@ const parametersSlice = createSlice({
       })
       .addCase(fetchProductParameters.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to fetch product parameters';
+        state.error = (action.payload as string) || action.error.message || 'Failed to fetch product parameters';
       })
 
       .addCase(createProductParameter.pending, (state) => {
@@ -206,7 +239,7 @@ const parametersSlice = createSlice({
       })
       .addCase(createProductParameter.rejected, (state, action) => {
         state.saving = false;
-        state.error = action.error.message || 'Failed to create product parameter';
+        state.error = (action.payload as string) || action.error.message || 'Failed to create product parameter';
       })
 
       .addCase(deleteProductParameter.fulfilled, (state, action) => {
@@ -226,7 +259,7 @@ const parametersSlice = createSlice({
       })
       .addCase(fetchJournalParameters.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to fetch journal parameters';
+        state.error = (action.payload as string) || action.error.message || 'Failed to fetch journal parameters';
       })
 
       .addCase(createJournalParameter.pending, (state) => {
@@ -240,7 +273,7 @@ const parametersSlice = createSlice({
       })
       .addCase(createJournalParameter.rejected, (state, action) => {
         state.saving = false;
-        state.error = action.error.message || 'Failed to create journal parameter';
+        state.error = (action.payload as string) || action.error.message || 'Failed to create journal parameter';
       })
 
       .addCase(deleteJournalParameter.fulfilled, (state, action) => {

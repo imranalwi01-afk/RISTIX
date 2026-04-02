@@ -11,6 +11,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { getAuthToken } from '../../utils/auth-token';
 import { frontendEnvironmentLoader } from '../../config/environment-loader-frontend';
+import { getErrorMessage } from '@/utils/error-message';
 
 // ✅ User Profile Interface
 export interface UserProfile {
@@ -184,6 +185,27 @@ const getHeaders = () => ({
   'Authorization': `Bearer ${getAuthToken() || ''}`
 });
 
+const buildFetchError = async (response: Response, fallbackMessage: string) => {
+  let data: unknown = null;
+  try {
+    data = await response.clone().json();
+  } catch {
+    try {
+      data = await response.clone().text();
+    } catch {
+      data = null;
+    }
+  }
+
+  return {
+    message: fallbackMessage,
+    response: {
+      status: response.status,
+      data,
+    },
+  };
+};
+
 // ✅ Async Thunks
 
 // Fetch User Profile
@@ -196,13 +218,13 @@ export const fetchUserProfile = createAsyncThunk(
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch user profile');
+        throw await buildFetchError(response, 'Failed to fetch user profile');
       }
 
       const data = await response.json();
       return data.data;
     } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch profile');
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch profile'));
     }
   }
 );
@@ -219,13 +241,13 @@ export const updateUserProfile = createAsyncThunk(
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update user profile');
+        throw await buildFetchError(response, 'Failed to update user profile');
       }
 
       const data = await response.json();
       return data.data;
     } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Failed to update profile');
+      return rejectWithValue(getErrorMessage(error, 'Failed to update profile'));
     }
   }
 );
@@ -247,13 +269,13 @@ export const uploadUserAvatar = createAsyncThunk(
       });
 
       if (!response.ok) {
-        throw new Error('Failed to upload avatar');
+        throw await buildFetchError(response, 'Failed to upload avatar');
       }
 
       const data = await response.json();
       return data.data.avatar;
     } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Failed to upload avatar');
+      return rejectWithValue(getErrorMessage(error, 'Failed to upload avatar'));
     }
   }
 );
@@ -268,13 +290,13 @@ export const fetchThemeSettings = createAsyncThunk(
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch theme settings');
+        throw await buildFetchError(response, 'Failed to fetch theme settings');
       }
 
       const data = await response.json();
       return data.data;
     } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch theme settings');
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch theme settings'));
     }
   }
 );
@@ -291,13 +313,13 @@ export const updateThemeSettings = createAsyncThunk(
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update theme settings');
+        throw await buildFetchError(response, 'Failed to update theme settings');
       }
 
       const data = await response.json();
       return data.data;
     } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Failed to update theme settings');
+      return rejectWithValue(getErrorMessage(error, 'Failed to update theme settings'));
     }
   }
 );
@@ -312,13 +334,13 @@ export const fetchUserPreferences = createAsyncThunk(
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch user preferences');
+        throw await buildFetchError(response, 'Failed to fetch user preferences');
       }
 
       const data = await response.json();
       return data.data;
     } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch preferences');
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch preferences'));
     }
   }
 );
@@ -335,13 +357,13 @@ export const updateUserPreferences = createAsyncThunk(
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update user preferences');
+        throw await buildFetchError(response, 'Failed to update user preferences');
       }
 
       const data = await response.json();
       return data.data;
     } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Failed to update preferences');
+      return rejectWithValue(getErrorMessage(error, 'Failed to update preferences'));
     }
   }
 );

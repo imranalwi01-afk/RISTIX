@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback, useState } from 'react'
 import io, { Socket } from 'socket.io-client'
 import { notificationAPI } from '@/services/api/notification.api'
 import { getNotificationCategory } from '@/utils/notification-utils'
+import { getErrorMessage } from '@/utils/error-message'
 
 export interface NotificationPayload {
     id: string
@@ -102,7 +103,7 @@ export function useNotificationSocket() {
             setUnreadCount(Number.isFinite(unread) ? unread : mapped.filter((item) => !item.readAt).length)
         } catch (error) {
             console.warn('Failed to load persisted notifications:', error)
-            setLoadError(error instanceof Error ? error.message : 'Failed to load notifications')
+            setLoadError(getErrorMessage(error, 'Failed to load notifications'))
         } finally {
             setIsLoading(false)
         }

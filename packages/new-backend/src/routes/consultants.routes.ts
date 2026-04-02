@@ -6,8 +6,9 @@ import { runEffect } from '../lib/effect'
 import { sendListResponse, parsePaginationParams, parseFilterParams } from '../lib/react-admin'
 import * as consultantsService from '../services/consultants.service'
 import { DatabaseError, NotFoundError } from '@lib/errors'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-export const consultantsRoutes = new OpenAPIHono<AppContext>()
+export const consultantsRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 // Apply auth middleware
 consultantsRoutes.use('*', authMiddleware)
@@ -262,4 +263,3 @@ consultantsRoutes.openapi(
         return runEffect(c, effect) as any
     }
 )
-

@@ -1,12 +1,13 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import type { AppContext } from '../app'
 import { buildErrorResponse } from '../lib/http/error-response'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
 /**
  * R Analytics Routes (STUB)
  * TODO: Implement R bridge integration
  */
-export const rAnalyticsRoutes = new OpenAPIHono<AppContext>()
+export const rAnalyticsRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 // ============================================================================
 // SCHEMAS
