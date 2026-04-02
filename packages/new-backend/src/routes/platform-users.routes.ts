@@ -10,8 +10,9 @@ import { parsePaginationParams, parseFilterParams } from '../lib/react-admin'
 import { DatabaseError } from '../lib/errors'
 import * as tenantsService from '../services/tenants.service'
 import { buildErrorResponse } from '../lib/http/error-response'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-export const platformUsersRoutes: any = new OpenAPIHono<AppContext>()
+export const platformUsersRoutes: any = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 platformUsersRoutes.use('*', authMiddleware)
 platformUsersRoutes.use('*', async (c: any, next: any) => {

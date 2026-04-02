@@ -1,11 +1,12 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import type { AppContext } from '../app'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
 /**
  * Admin Dashboard Routes (STUB)
  * TODO: Implement dashboard data aggregation
  */
-export const adminDashboardRoutes = new OpenAPIHono<AppContext>()
+export const adminDashboardRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 // ============================================================================
 // SCHEMAS

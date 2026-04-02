@@ -69,6 +69,7 @@ import {
 } from '@/components/approval';
 import { bankingAPI } from '@/services/api';
 import { usePermission } from '@/hooks/usePermission';
+import { getErrorMessage } from '@/utils/error-message';
 
 
 // ============================================================================
@@ -458,7 +459,7 @@ export default function BucketParameterPage() {
       }
     } catch (error) {
       console.error('Error loading bucket headers:', error);
-      setError(error.message || 'Failed to connect to database');
+      setError(getErrorMessage(error, 'Failed to connect to database'));
       setBucketHeaders([]);
     } finally {
       setLoading(false);
@@ -534,7 +535,7 @@ export default function BucketParameterPage() {
       loadPendingApprovals();
     } catch (error) {
       if (!showApprovalConflict(error, 'Deletion request submitted for approval')) {
-        setSnackbar({ open: true, message: error.message || 'Error deleting bucket parameter', type: 'error' });
+        setSnackbar({ open: true, message: getErrorMessage(error, 'Error deleting bucket parameter'), type: 'error' });
       }
     }
   };
@@ -580,7 +581,7 @@ export default function BucketParameterPage() {
       loadPendingApprovals();
     } catch (error) {
       if (!showApprovalConflict(error, 'Deletion request submitted for approval')) {
-        setSnackbar({ open: true, message: error.message || 'Error deleting detail', type: 'error' });
+        setSnackbar({ open: true, message: getErrorMessage(error, 'Error deleting detail'), type: 'error' });
       }
     }
   };
@@ -616,7 +617,7 @@ export default function BucketParameterPage() {
       loadPendingApprovals();
     } catch (error) {
       if (!showApprovalConflict(error, 'Request submitted for approval')) {
-        setSnackbar({ open: true, message: error.message || 'Error saving bucket parameter', type: 'error' });
+        setSnackbar({ open: true, message: getErrorMessage(error, 'Error saving bucket parameter'), type: 'error' });
       }
     }
   };
@@ -653,7 +654,7 @@ export default function BucketParameterPage() {
       loadPendingApprovals();
     } catch (error) {
       if (!showApprovalConflict(error, 'Request submitted for approval')) {
-        setSnackbar({ open: true, message: error.message || 'Error saving bucket detail', type: 'error' });
+        setSnackbar({ open: true, message: getErrorMessage(error, 'Error saving bucket detail'), type: 'error' });
       }
     }
   };

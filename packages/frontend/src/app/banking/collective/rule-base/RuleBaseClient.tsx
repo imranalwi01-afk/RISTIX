@@ -73,6 +73,7 @@ import {
 } from '@/components/approval';
 import { useCallback } from 'react';
 import { usePermission } from '@/hooks/usePermission';
+import { getErrorMessage } from '@/utils/error-message';
 
 
 // =====================================================
@@ -624,7 +625,7 @@ export default function RuleBaseSettingPage() {
 
     } catch (error) {
       console.error('❌ Failed to load rule base settings:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorMessage = getErrorMessage(error, 'Unknown error occurred');
       setError(`Failed to load rule base settings: ${errorMessage}`);
       setHeaders([]);
       setFilteredHeaders([]);
@@ -851,7 +852,7 @@ export default function RuleBaseSettingPage() {
     } catch (error) {
       console.error('❌ Failed to delete rule header:', error);
       if (!showApprovalConflict(error, 'Deletion request submitted for approval')) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        const errorMessage = getErrorMessage(error, 'Unknown error occurred');
         setError(`Failed to delete rule header: ${errorMessage}`);
       }
     } finally {
@@ -902,7 +903,7 @@ export default function RuleBaseSettingPage() {
     } catch (error) {
       console.error('❌ Failed to save rule header:', error);
       if (!showApprovalConflict(error, 'Request submitted for approval')) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        const errorMessage = getErrorMessage(error, 'Unknown error occurred');
         setError(`Failed to save rule header: ${errorMessage}`);
       }
     } finally {
@@ -1004,7 +1005,7 @@ export default function RuleBaseSettingPage() {
     } catch (error) {
       console.error('❌ Failed to delete rule detail:', error);
       if (!showApprovalConflict(error, 'Deletion request submitted for approval')) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        const errorMessage = getErrorMessage(error, 'Unknown error occurred');
         setError(`Failed to delete rule detail: ${errorMessage}`);
       }
     } finally {
@@ -1065,7 +1066,7 @@ export default function RuleBaseSettingPage() {
     } catch (error) {
       console.error('❌ Failed to save rule detail:', error);
       if (!showApprovalConflict(error, 'Request submitted for approval')) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        const errorMessage = getErrorMessage(error, 'Unknown error occurred');
         setError(`Failed to save rule detail: ${errorMessage}`);
       }
     } finally {

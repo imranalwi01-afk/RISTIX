@@ -1,11 +1,12 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import type { AppContext } from '../app'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
 /**
  * User Registration Routes (STUB)
  * TODO: Implement user registration flow
  */
-export const userRegistrationRoutes = new OpenAPIHono<AppContext>()
+export const userRegistrationRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 // ============================================================================
 // SCHEMAS

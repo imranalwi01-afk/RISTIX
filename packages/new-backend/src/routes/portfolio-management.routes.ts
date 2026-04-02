@@ -1,11 +1,12 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import type { AppContext } from '../app'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
 /**
  * Portfolio Management Routes (STUB)
  * TODO: Implement real database queries
  */
-export const portfolioRoutes = new OpenAPIHono<AppContext>()
+export const portfolioRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 // ============================================================================
 // SCHEMAS

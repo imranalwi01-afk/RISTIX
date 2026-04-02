@@ -9,8 +9,9 @@ import {
 } from '../db/schema'
 import { desc, eq, getTableColumns } from 'drizzle-orm'
 import { buildErrorResponse } from '../lib/http/error-response'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-export const amortizationRoutes = new OpenAPIHono()
+export const amortizationRoutes = new OpenAPIHono({ defaultHook: openApiValidationHook })
 
 // =============================================================================
 // SCHEMA DEFINITIONS

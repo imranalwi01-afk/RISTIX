@@ -341,6 +341,35 @@ describe('approval routes response contracts', () => {
     }))
   })
 
+  test('POST /api/v1/approvals/requests returns detailed 400 validation payload for invalid body', async () => {
+    const app = new OpenAPIHono()
+    app.route('/api/v1/approvals', approvalRoutes)
+
+    const response = await app.request('/api/v1/approvals/requests', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        entityType: '',
+        title: '',
+      }),
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(body).toMatchObject({
+      success: false,
+      code: 'VALIDATION_ERROR',
+      error: 'Validation failed',
+      message: 'Validation failed',
+    })
+    expect(body.details).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: 'entityType' }),
+        expect.objectContaining({ path: 'title' }),
+      ])
+    )
+  })
+
   test('GET /api/v1/approvals/requests/{id} returns request detail envelope', async () => {
     const app = new OpenAPIHono()
     app.route('/api/v1/approvals', approvalRoutes)

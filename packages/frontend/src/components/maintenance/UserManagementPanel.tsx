@@ -191,7 +191,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       setTotalUsers(total);
     } catch (error: any) {
       console.error('Error loading users:', error);
-      setSnackbar({ open: true, message: error.message || 'Failed to load users', severity: 'error' });
+      setSnackbar({ open: true, message: getErrorMessage(error, 'Failed to load users'), severity: 'error' });
     } finally {
       setLoading(false);
     }
@@ -249,7 +249,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       }
     } catch (error: any) {
       console.error('Error updating user:', error);
-      setSnackbar({ open: true, message: error.message || 'Failed to update user', severity: 'error' });
+      setSnackbar({ open: true, message: getErrorMessage(error, 'Failed to update user'), severity: 'error' });
     }
   };
 
@@ -278,7 +278,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       }
     } catch (error: any) {
       console.error('Error toggling user status:', error);
-      setSnackbar({ open: true, message: error.message || 'Failed to update user status', severity: 'error' });
+      setSnackbar({ open: true, message: getErrorMessage(error, 'Failed to update user status'), severity: 'error' });
     }
   };
 

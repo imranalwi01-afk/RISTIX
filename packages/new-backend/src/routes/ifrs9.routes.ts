@@ -3,12 +3,13 @@ import { Context } from 'hono'
 import type { AppContext } from '../app'
 import { ifrs9CalculationsController } from '../controllers/ifrs9-calculations.controller'
 import { ifrs9ReportsController } from '../controllers/ifrs9-reports.controller'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
 /**
  * IFRS9 Main Routes (STUB)
  * TODO: Implement IFRS9 calculations
  */
-export const ifrs9Routes: any = new OpenAPIHono<AppContext>()
+export const ifrs9Routes: any = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 // ============================================================================
 // SCHEMAS

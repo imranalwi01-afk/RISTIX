@@ -4,8 +4,9 @@ import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { runEffect } from '../lib/effect'
 import * as platformAdminService from '../services/platform-admin.service'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-export const platformAdminRoutes = new OpenAPIHono<AppContext>()
+export const platformAdminRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 // Apply auth middleware
 platformAdminRoutes.use('*', authMiddleware)

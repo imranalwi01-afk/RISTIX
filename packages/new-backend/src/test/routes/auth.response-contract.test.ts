@@ -247,6 +247,33 @@ describe('auth routes response contracts', () => {
     expect(loginFailedAuditMock).toHaveBeenCalledTimes(0)
   })
 
+  test('POST /api/v1/auth/login returns detailed 400 validation payload for invalid body', async () => {
+    const app = new OpenAPIHono()
+    app.route('/api/v1/auth', authRoutes)
+
+    const response = await app.request('/api/v1/auth/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        password: '',
+      }),
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(body).toMatchObject({
+      success: false,
+      code: 'VALIDATION_ERROR',
+      error: 'Validation failed',
+      message: 'Validation failed',
+    })
+    expect(body.details).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: 'email' }),
+      ])
+    )
+  })
+
   test('POST /api/v1/auth/login returns 401 envelope on invalid credentials', async () => {
     loginMode = 'failure'
     const app = new OpenAPIHono()

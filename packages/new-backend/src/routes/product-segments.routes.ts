@@ -5,8 +5,9 @@ import { eq, desc } from 'drizzle-orm'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { buildErrorResponse } from '../lib/http/error-response'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-export const productSegmentsRoutes = new OpenAPIHono<AppContext>()
+export const productSegmentsRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 // Apply auth middleware
 productSegmentsRoutes.use('*', authMiddleware)

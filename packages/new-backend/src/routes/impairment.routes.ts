@@ -10,8 +10,9 @@ import {
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { buildErrorResponse } from '../lib/http/error-response'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-export const impairmentRoutes: any = new OpenAPIHono<AppContext>()
+export const impairmentRoutes: any = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 impairmentRoutes.use('*', authMiddleware)
 

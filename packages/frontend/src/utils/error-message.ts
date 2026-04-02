@@ -21,6 +21,8 @@ export const getErrorMessage = (
     if (!trimmed) return fallbackMessage;
 
     switch (status) {
+      case 400:
+        return `Invalid request: ${trimmed}`;
       case 403:
         return `Access denied: ${trimmed}`;
       case 409:
@@ -42,10 +44,48 @@ export const getErrorMessage = (
     const body = responseData as Record<string, unknown>;
     const candidates = [body.error, body.message, body.detail, body.title];
     const rootRequestId = typeof body.requestId === 'string' ? body.requestId : null;
+    const formatValidationDetails = (details: unknown): string | null => {
+      if (Array.isArray(details)) {
+        const parts = details
+          .map((entry) => {
+            if (!entry || typeof entry !== 'object') return null;
+            const item = entry as Record<string, unknown>;
+            const path = typeof item.path === 'string' ? item.path : null;
+            const message = typeof item.message === 'string' ? item.message : null;
+            if (!message) return null;
+            return path ? `${path}: ${message}` : message;
+          })
+          .filter((value): value is string => Boolean(value));
+        return parts.length > 0 ? parts.join('. ') : null;
+      }
+
+      if (details && typeof details === 'object') {
+        const parts = Object.entries(details as Record<string, unknown>)
+          .flatMap(([field, value]) => {
+            if (typeof value === 'string') return [`${field}: ${value}`];
+            if (Array.isArray(value)) {
+              return value
+                .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+                .map((item) => `${field}: ${item}`);
+            }
+            return [];
+          });
+        return parts.length > 0 ? parts.join('. ') : null;
+      }
+
+      return null;
+    };
 
     for (const candidate of candidates) {
       if (typeof candidate === 'string' && candidate.trim().length > 0) {
         let message = candidate.trim();
+
+        if (status === 400) {
+          const validationDetails = formatValidationDetails(body.details);
+          if (validationDetails) {
+            message = `${message}. ${validationDetails}`;
+          }
+        }
 
         if (status === 409 && body.details && typeof body.details === 'object') {
           const details = body.details as Record<string, unknown>;
@@ -93,6 +133,8 @@ export const getErrorMessage = (
   if (typeof err?.message === 'string' && err.message.trim().length > 0) {
     if (/Request failed with status code \d+/i.test(err.message) && status) {
       switch (status) {
+        case 400:
+          return 'Invalid request: Please review the submitted fields and try again.';
         case 403:
           return 'Access denied: You are not allowed to perform this action at the current approval level.';
         case 409:

@@ -1,11 +1,12 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import type { AppContext } from '../app'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
 /**
  * Security Routes (STUB)
  * TODO: Implement security management
  */
-export const securityRoutes = new OpenAPIHono<AppContext>()
+export const securityRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 // ============================================================================
 // SCHEMAS

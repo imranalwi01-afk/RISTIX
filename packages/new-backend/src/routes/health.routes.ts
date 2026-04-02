@@ -4,9 +4,10 @@ import { db } from '@/config'
 import { sql } from 'drizzle-orm'
 import { dbOperation, runEffect } from '@/lib/effect'
 import { buildErrorResponse } from '@/lib/http/error-response'
+import { openApiValidationHook } from '@/lib/http/openapi-validation-hook'
 
 // Health check routes
-export const healthRoutes = new OpenAPIHono()
+export const healthRoutes = new OpenAPIHono({ defaultHook: openApiValidationHook })
 
 const healthCheckRoute = createRoute({
     method: 'get',

@@ -46,6 +46,7 @@ import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeD
 import { useRouter } from 'next/navigation';
 import { api, handleAPIError, bankingAPI } from '../../../../services/api';
 import { exportToXLSX, exportToCSV, exportToPDF } from '@/utils/exportUtils';
+import { getErrorMessage } from '@/utils/error-message';
 
 // Shared components
 import PageHeader from '@/components/banking/shared/PageHeader';
@@ -505,7 +506,7 @@ export default function JournalParametersPage() {
       }
     } catch (error: any) {
       console.error('Export error:', error);
-      setError(`Export failed: ${error.message}`);
+      setError(`Export failed: ${getErrorMessage(error, 'Export failed')}`);
     }
   };
 

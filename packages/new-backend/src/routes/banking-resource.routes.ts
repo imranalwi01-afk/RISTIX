@@ -1,11 +1,12 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import type { AppContext } from '../app'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
 /**
  * Banking Resource Routes (STUB)
  * TODO: Implement banking resource management
  */
-export const bankingResourceRoutes = new OpenAPIHono<AppContext>()
+export const bankingResourceRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 // ============================================================================
 // SCHEMAS

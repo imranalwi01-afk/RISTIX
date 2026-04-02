@@ -8,6 +8,7 @@ import { parsePaginationParams, parseFilterParams } from '../lib/react-admin'
 import * as tenantsService from '../services/tenants.service'
 import { buildErrorResponse } from '../lib/http/error-response'
 import { forbidden, badRequest, notFound } from '../lib/http/route-errors'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
 /**
  * Tenants Routes
@@ -15,7 +16,7 @@ import { forbidden, badRequest, notFound } from '../lib/http/route-errors'
  * 
  * Base Path: /tenants
  */
-export const tenantsRoutes: any = new OpenAPIHono<AppContext>()
+export const tenantsRoutes: any = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 // Apply auth middleware
 tenantsRoutes.use('*', authMiddleware)

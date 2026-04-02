@@ -8,6 +8,7 @@ import { authMiddleware } from '../middleware'
 import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
 import { runEffect } from '../lib/effect/runtime'
 import { buildErrorResponse } from '../lib/http/error-response'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
 /**
  * FL Scalar Routes
@@ -15,7 +16,7 @@ import { buildErrorResponse } from '../lib/http/error-response'
  * 
  * Base Path: /api/v1/banking/collective/fl-scalar
  */
-export const flScalarRoutes = new OpenAPIHono<AppContext>()
+export const flScalarRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 flScalarRoutes.use('*', authMiddleware)
 

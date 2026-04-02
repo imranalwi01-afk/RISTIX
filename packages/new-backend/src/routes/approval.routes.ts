@@ -5,8 +5,9 @@ import { authMiddleware, tenantMiddleware } from '../middleware'
 import { runEffect } from '../lib/effect'
 import * as approvalService from '../services/approval.service'
 import * as auditService from '../services/audit.service'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-export const approvalRoutes = new OpenAPIHono<AppContext>()
+export const approvalRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 // Apply auth and tenant middleware
 approvalRoutes.use('*', authMiddleware)
