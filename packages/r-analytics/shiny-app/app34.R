@@ -3449,7 +3449,7 @@ server <- function(input, output, session) {
 
   output$intuisitable_pdafl <- DT::renderDataTable({
     req(intuisiData_pdafl$data)
-    DT::datatable(intuisiData_pdafl$data, editable = TRUE, options = list(dom = "t"))
+    DT::datatable(intuisiData_pdafl$data, editable = TRUE, options = list(scrollX = TRUE))
   })
 
   # PERBAIKI ID DI SINI
