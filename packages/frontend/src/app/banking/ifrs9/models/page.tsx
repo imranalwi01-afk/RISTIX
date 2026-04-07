@@ -5,59 +5,35 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Box,
   Typography,
   Container,
   Paper,
-  Grid,
-  Card,
-  CardContent,
   Button,
   CircularProgress,
   Alert,
   Breadcrumbs,
   Link,
-  Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
   Tabs,
   Tab,
-  TextField,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
-  IconButton,
-  Tooltip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Skeleton,
-  FormControlLabel,
-  Checkbox
+  Typography as MuiTypography,
 } from '@mui/material';
 import {
   ModelTraining as PageIcon,
   Home as HomeIcon,
-  ArrowBack as BackIcon,
-  Download as DownloadIcon,
   Refresh as RefreshIcon,
   Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Visibility as ViewIcon
 } from '@mui/icons-material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import {
+  ModelDetailsDialog,
+  ModelFormDialog,
+  ModelManagementTable,
+  type ModelRecord,
+} from './components';
 
 // Real API implementation with demo token for development
 const modelsApi = {
@@ -275,28 +251,6 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`models-tabpanel-${index}`}
-      aria-labelledby={`models-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
-    </div>
-  );
-}
-
 export default function IFRS9ModelsPage() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
@@ -316,7 +270,7 @@ export default function IFRS9ModelsPage() {
   const [rowsPerPage, setRowsPerPage] = useState(25);
 
   // Load models data
-  const loadModelsData = async () => {
+  const loadModelsData = useCallback(async () => {
     setLoading(true);
     setError(null);
     
@@ -337,24 +291,24 @@ export default function IFRS9ModelsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadModelsData();
   }, []);
 
   // CRUD Handler Functions
-  const handleCreate = () => {
+  const handleCreate = useCallback(() => {
     setEditingModel(null);
     setCreateDialogOpen(true);
-  };
+  }, []);
 
-  const handleEdit = (model: any) => {
+  const handleEdit = useCallback((model: ModelRecord) => {
     setEditingModel(model);
     setEditDialogOpen(true);
-  };
+  }, []);
 
-  const handleDelete = async (model: any) => {
+  const handleDelete = useCallback(async (model: ModelRecord) => {
     if (!window.confirm(`Are you sure you want to delete ${model.model_name || model.name}?`)) {
       return;
     }
@@ -391,9 +345,9 @@ export default function IFRS9ModelsPage() {
     } catch (error: any) {
       alert('Error deleting model: ' + error.message);
     }
-  };
+  }, [activeTab, loadModelsData]);
 
-  const handleSave = async (data: any) => {
+  const handleSave = useCallback(async (data: Record<string, FormDataEntryValue>) => {
     try {
       let response;
       
@@ -451,12 +405,12 @@ export default function IFRS9ModelsPage() {
     } catch (error: any) {
       alert('Error saving model: ' + error.message);
     }
-  };
+  }, [activeTab, editingModel, loadModelsData]);
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = useCallback((event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
     setPage(0); // Reset pagination when switching tabs
-  };
+  }, []);
 
   const getCurrentData = () => {
     switch (activeTab) {
@@ -488,27 +442,19 @@ export default function IFRS9ModelsPage() {
     return data.slice(start, end);
   }, [data, page, rowsPerPage]);
 
-  const handleChangePage = (event: unknown, newPage: number) => {
+  const handleChangePage = useCallback((event: unknown, newPage: number) => {
     setPage(newPage);
-  };
+  }, []);
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChangeRowsPerPage = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
-  };
+  }, []);
 
-  const handleViewModel = (model: any) => {
+  const handleViewModel = useCallback((model: ModelRecord) => {
     setSelectedModel(model);
     setDialogOpen(true);
-  };
-
-  const getStatusColor = (status: boolean) => {
-    return status ? '#4caf50' : '#f44336';
-  };
-
-  const getStatusLabel = (status: boolean) => {
-    return status ? 'Active' : 'Inactive';
-  };
+  }, []);
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -528,10 +474,10 @@ export default function IFRS9ModelsPage() {
             <HomeIcon sx={{ mr: 0.5, fontSize: 16 }} />
             Dashboard
           </Link>
-          <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
+          <MuiTypography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
             <PageIcon sx={{ mr: 0.5, fontSize: 16 }} />
             IFRS 9 Models
-          </Typography>
+          </MuiTypography>
         </Breadcrumbs>
 
         {/* Page Header */}
@@ -591,449 +537,50 @@ export default function IFRS9ModelsPage() {
         )}
 
         {/* Models Data Table */}
-        <Paper>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Model Name</TableCell>
-                  <TableCell>Segment</TableCell>
-                  <TableCell>Method</TableCell>
-                  <TableCell align="center">Status</TableCell>
-                  <TableCell>Effective Date</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {loading ? (
-                  Array.from({ length: rowsPerPage }).map((_, index) => (
-                    <TableRow key={index}>
-                      <TableCell><Skeleton variant="text" /></TableCell>
-                      <TableCell><Skeleton variant="text" /></TableCell>
-                      <TableCell><Skeleton variant="text" /></TableCell>
-                      <TableCell align="center"><Skeleton variant="text" /></TableCell>
-                      <TableCell><Skeleton variant="text" /></TableCell>
-                      <TableCell align="right"><Skeleton variant="text" /></TableCell>
-                    </TableRow>
-                  ))
-                ) : paginatedData.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center">
-                      <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
-                        No {modelType} models found
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  paginatedData.map((model, index) => (
-                    <TableRow key={index} hover>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                          {model.model_name || model.name || `Model ${index + 1}`}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip 
-                          label={model.segment_id ? `Segment ${model.segment_id}` : 'All Segments'} 
-                          size="small" 
-                          variant="outlined" 
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {model.selected_method || model.lgd_method || model.ead_method || 'N/A'}
-                      </TableCell>
-                      <TableCell align="center">
-                        <Chip
-                          label={getStatusLabel(model.active_flag || model.isActive)}
-                          size="small"
-                          sx={{
-                            backgroundColor: getStatusColor(model.active_flag || model.isActive),
-                            color: 'white',
-                            fontWeight: 'bold'
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {model.effective_date || new Date().toLocaleDateString()}
-                      </TableCell>
-                      <TableCell align="right">
-                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                          <Tooltip title="View Details">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleViewModel(model)}
-                            >
-                              <ViewIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Edit Model">
-                            <IconButton 
-                              size="small"
-                              onClick={() => handleEdit(model)}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete Model">
-                            <IconButton 
-                              size="small" 
-                              color="error"
-                              onClick={() => handleDelete(model)}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          <TablePagination
-            rowsPerPageOptions={[10, 25, 50, 100]}
-            component="div"
-            count={data.length}
-            rowsPerPage={rowsPerPage}
-            page={page}
-            onPageChange={handleChangePage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-          />
-        </Paper>
+        <ModelManagementTable
+          loading={loading}
+          rowsPerPage={rowsPerPage}
+          paginatedData={paginatedData}
+          modelType={modelType}
+          totalCount={data.length}
+          page={page}
+          onChangePage={handleChangePage}
+          onChangeRowsPerPage={handleChangeRowsPerPage}
+          onViewModel={handleViewModel}
+          onEditModel={handleEdit}
+          onDeleteModel={handleDelete}
+        />
 
-        {/* Model Details Dialog */}
-        <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
-          <DialogTitle>
-            {modelType} Model Details
-          </DialogTitle>
-          <DialogContent>
-            {selectedModel && (
-              <Grid container spacing={2} sx={{ mt: 1 }}>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    fullWidth
-                    label="Model Name"
-                    value={selectedModel.model_name || selectedModel.name || ''}
-                    disabled
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    fullWidth
-                    label="Segment ID"
-                    value={selectedModel.segment_id || 'All'}
-                    disabled
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    fullWidth
-                    label="Method"
-                    value={selectedModel.selected_method || selectedModel.lgd_method || selectedModel.ead_method || 'N/A'}
-                    disabled
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    fullWidth
-                    label="Status"
-                    value={getStatusLabel(selectedModel.active_flag || selectedModel.isActive)}
-                    disabled
-                  />
-                </Grid>
-                <Grid size={{ xs: 12 }}>
-                  <TextField
-                    fullWidth
-                    label="Effective Date"
-                    value={selectedModel.effective_date || new Date().toLocaleDateString()}
-                    disabled
-                  />
-                </Grid>
-              </Grid>
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDialogOpen(false)}>Close</Button>
-            <Button variant="contained">Edit Model</Button>
-          </DialogActions>
-        </Dialog>
+        <ModelDetailsDialog
+          open={dialogOpen}
+          modelType={modelType}
+          selectedModel={selectedModel}
+          onClose={() => setDialogOpen(false)}
+          onEdit={(model) => {
+            setDialogOpen(false);
+            handleEdit(model);
+          }}
+        />
 
-        {/* Create Model Dialog */}
-        <Dialog open={createDialogOpen} onClose={() => setCreateDialogOpen(false)} maxWidth="md" fullWidth>
-          <DialogTitle>Create New {getCurrentModelType()} Model</DialogTitle>
-          <DialogContent>
-            <form id="create-model-form" onSubmit={(e) => {
-              e.preventDefault();
-              const formData = new FormData(e.currentTarget);
-              const data = Object.fromEntries(formData.entries());
-              handleSave(data);
-            }}>
-              <Grid container spacing={2} sx={{ mt: 1 }}>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    fullWidth
-                    label="Model Name"
-                    name="model_name"
-                    defaultValue=""
-                    required
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    fullWidth
-                    label="Segment ID"
-                    name="segment_id"
-                    type="number"
-                    defaultValue="1"
-                  />
-                </Grid>
-                {activeTab === 0 && ( // PD Models specific fields
-                  <>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        label="Selected Method"
-                        name="selected_method"
-                        type="number"
-                        defaultValue="1"
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        label="Migration Interval"
-                        name="migration_interval"
-                        type="number"
-                        defaultValue="12"
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        label="Population Type"
-                        name="population_type"
-                        type="number"
-                        defaultValue="2"
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        label="Historical Months"
-                        name="historical_month"
-                        type="number"
-                        defaultValue="24"
-                      />
-                    </Grid>
-                  </>
-                )}
-                {activeTab === 1 && ( // LGD Models specific fields
-                  <>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        label="LGD Method"
-                        name="lgd_method"
-                        type="number"
-                        defaultValue="1"
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        label="Population Type"
-                        name="population_type"
-                        defaultValue="2"
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        label="Observation Period"
-                        name="observation_period"
-                        defaultValue="120"
-                      />
-                    </Grid>
-                  </>
-                )}
-                {activeTab === 2 && ( // EAD Models specific fields
-                  <>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        label="EAD Method"
-                        name="ead_method"
-                        defaultValue="2"
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        label="Calc Method"
-                        name="calc_method"
-                        defaultValue="1"
-                      />
-                    </Grid>
-                  </>
-                )}
-                {activeTab === 3 && ( // ECL Models specific fields
-                  <>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        label="Module"
-                        name="module"
-                        type="number"
-                        defaultValue="1"
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        label="Effective Date"
-                        name="effective_date"
-                        type="date"
-                        defaultValue={new Date().toISOString().split('T')[0]}
-                      />
-                    </Grid>
-                  </>
-                )}
-                <Grid size={{ xs: 12 }}>
-                  <FormControlLabel
-                    control={<Checkbox defaultChecked name="is_active" />}
-                    label="Active"
-                  />
-                </Grid>
-              </Grid>
-            </form>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
-            <Button 
-              variant="contained" 
-              type="submit"
-              form="create-model-form"
-            >
-              Create Model
-            </Button>
-          </DialogActions>
-        </Dialog>
+        <ModelFormDialog
+          open={createDialogOpen}
+          mode="create"
+          modelType={modelType}
+          activeTab={activeTab}
+          model={null}
+          onClose={() => setCreateDialogOpen(false)}
+          onSave={handleSave}
+        />
 
-        {/* Edit Model Dialog */}
-        <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
-          <DialogTitle>Edit {getCurrentModelType()} Model</DialogTitle>
-          <DialogContent>
-            {editingModel && (
-              <form id="edit-model-form" onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                const data = Object.fromEntries(formData.entries());
-                handleSave(data);
-              }}>
-                <Grid container spacing={2} sx={{ mt: 1 }}>
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <TextField
-                      fullWidth
-                      label="Model Name"
-                      name="model_name"
-                      defaultValue={editingModel.model_name || ''}
-                      required
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <TextField
-                      fullWidth
-                      label="Segment ID"
-                      name="segment_id"
-                      type="number"
-                      defaultValue={editingModel.segment_id || editingModel.segmentId || '1'}
-                    />
-                  </Grid>
-                  {activeTab === 0 && ( // PD Models specific fields
-                    <>
-                      <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField
-                          fullWidth
-                          label="Selected Method"
-                          name="selected_method"
-                          type="number"
-                          defaultValue={editingModel.selected_method || '1'}
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField
-                          fullWidth
-                          label="Migration Interval"
-                          name="migration_interval"
-                          type="number"
-                          defaultValue={editingModel.migration_interval || '12'}
-                        />
-                      </Grid>
-                    </>
-                  )}
-                  {activeTab === 1 && ( // LGD Models specific fields
-                    <>
-                      <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField
-                          fullWidth
-                          label="LGD Method"
-                          name="lgd_method"
-                          type="number"
-                          defaultValue={editingModel.lgd_method || '1'}
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField
-                          fullWidth
-                          label="Population Type"
-                          name="population_type"
-                          defaultValue={editingModel.population_type || '2'}
-                        />
-                      </Grid>
-                    </>
-                  )}
-                  {activeTab === 2 && ( // EAD Models specific fields
-                    <>
-                      <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField
-                          fullWidth
-                          label="EAD Method"
-                          name="ead_method"
-                          defaultValue={editingModel.ead_method || '2'}
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField
-                          fullWidth
-                          label="Calc Method"
-                          name="calc_method"
-                          defaultValue={editingModel.calc_method || '1'}
-                        />
-                      </Grid>
-                    </>
-                  )}
-                  <Grid size={{ xs: 12 }}>
-                    <FormControlLabel
-                      control={<Checkbox defaultChecked={editingModel.is_active || editingModel.isActive} name="is_active" />}
-                      label="Active"
-                    />
-                  </Grid>
-                </Grid>
-              </form>
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-            <Button 
-              variant="contained" 
-              type="submit"
-              form="edit-model-form"
-            >
-              Update Model
-            </Button>
-          </DialogActions>
-        </Dialog>
+        <ModelFormDialog
+          open={editDialogOpen}
+          mode="edit"
+          modelType={modelType}
+          activeTab={activeTab}
+          model={editingModel}
+          onClose={() => setEditDialogOpen(false)}
+          onSave={handleSave}
+        />
       </Container>
     </LocalizationProvider>
   );

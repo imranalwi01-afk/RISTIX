@@ -13,36 +13,18 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Container,
-  Card,
-  CardContent,
   Button,
   CircularProgress,
   Alert,
-  Chip,
   Snackbar,
-  InputAdornment,
-  Select,
-  FormControl,
-  InputLabel,
-  TextField,
-  MenuItem,
   Menu,
-  TablePagination
+  MenuItem,
 } from '@mui/material';
 import {
   Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
   Error as ErrorIcon,
-  Search as SearchIcon,
-  FilterList as FilterIcon,
-  Clear as ClearIcon,
   Download as DownloadIcon
 } from '@mui/icons-material';
-import { GridColDef, GridRowParams } from '@mui/x-data-grid';
-
-// Safe DataGrid wrapper to prevent bundling issues
-import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { useRouter } from 'next/navigation';
 import { api, handleAPIError, bankingAPI } from '../../../../services/api';
 import { exportToXLSX, exportToCSV, exportToPDF } from '@/utils/exportUtils';
@@ -66,6 +48,8 @@ import { usePermission } from '@/hooks/usePermission';
 // Extracted memoized dialog component
 import {
   JournalFormDialog,
+  JournalFiltersCard,
+  JournalParametersGrid,
   type JournalParameter,
   type JournalFormData,
   type JournalDropdownOption
@@ -120,116 +104,7 @@ export default function JournalParametersPage() {
   const [filterCurrency, setFilterCurrency] = useState('');
   const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('all');
 
-  // ============================================================================
-  // DATAGRID COLUMNS CONFIGURATION
-  // ============================================================================
-  const columns: GridColDef[] = [
-    {
-      field: 'glCode',
-      headerName: 'GL Code',
-      width: 120,
-      renderCell: (params) => (
-        <Chip label={params.value || '-'} color="primary" variant="outlined" size="small" />
-      )
-    },
-    {
-      field: 'glDesc',
-      headerName: 'Description',
-      width: 250,
-      flex: 1
-    },
-    {
-      field: 'glGroup',
-      headerName: 'GL Group',
-      width: 120
-    },
-    {
-      field: 'glType',
-      headerName: 'GL Type',
-      width: 150
-    },
-    {
-      field: 'currency',
-      headerName: 'Currency',
-      width: 80,
-      renderCell: (params) => (
-        <Chip label={params.value || '-'} size="small" />
-      )
-    },
-    {
-      field: 'glNumber',
-      headerName: 'GL Number',
-      width: 120
-    },
-    {
-      field: 'dbcr',
-      headerName: 'DB/CR',
-      width: 80,
-      renderCell: (params) => (
-        <Chip
-          label={params.value || '-'}
-          color={params.value === 'D' ? 'error' : params.value === 'C' ? 'success' : 'default'}
-          size="small"
-        />
-      )
-    },
-    {
-      field: 'activeFlag',
-      headerName: 'Active',
-      width: 80,
-      renderCell: (params) => (
-        <Chip
-          label={params.value ? 'Active' : 'Inactive'}
-          color={params.value ? 'success' : 'default'}
-          size="small"
-        />
-      )
-    },
-    {
-      field: 'status',
-      headerName: 'Status',
-      width: 150,
-      renderCell: (params) => (
-        <Box
-          onClick={(e) => {
-            if ((params.row as any).approvalStatus === 'pending') {
-              e.stopPropagation();
-              setSelectedPendingRequest((params.row as any).pendingRequest);
-              setCurrentRecordForPending(params.row);
-              setPendingChangesDialogOpen(true);
-            }
-          }}
-          sx={{ cursor: (params.row as any).approvalStatus === 'pending' ? 'pointer' : 'default' }}
-        >
-          <ApprovalStatusBadge status={params.row.approvalStatus || 'active'} size="small" />
-        </Box>
-      )
-    },
-    {
-      field: 'actions',
-      type: 'actions',
-      headerName: 'Actions',
-      width: 120,
-      getActions: (params: GridRowParams) => canManageJournal ? [
-        <SafeGridActionsCellItem
-          icon={<EditIcon color="primary" />}
-          label="Edit"
-          onClick={() => params?.row && handleEdit(params.row)}
-          data-testid="btn-edit-journal"
-          key="edit"
-        />,
-        <SafeGridActionsCellItem
-          icon={<DeleteIcon color="error" />}
-          label="Delete"
-          onClick={() => params?.row && handleDelete(params.row)}
-          data-testid="btn-delete-journal"
-          key="delete"
-        />
-      ] : []
-    }
-  ];
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -279,18 +154,18 @@ export default function JournalParametersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchTerm, filterGlGroup, filterCurrency, filterActive]);
 
   // Filtering logic moved to useMemo below
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSearchTerm('');
     setFilterGlGroup('');
     setFilterCurrency('');
     setFilterActive('all');
-  };
+  }, []);
 
-  const loadDropdownOptions = async () => {
+  const loadDropdownOptions = useCallback(async () => {
     setOptionsLoading(true);
     try {
       console.log('🔄 Loading dropdown options from FRS9PRO database...');
@@ -322,7 +197,7 @@ export default function JournalParametersPage() {
     } finally {
       setOptionsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -365,19 +240,19 @@ export default function JournalParametersPage() {
     return filtered;
   }, [data, searchTerm, filterGlGroup, filterCurrency, filterActive]);
 
-  const handleCreate = () => {
+  const handleCreate = useCallback(() => {
     if (!canManageJournal) return;
     setSelectedJournal(null);
     setDialogOpen(true);
-  };
+  }, [canManageJournal]);
 
-  const handleEdit = (journal: JournalParameter) => {
+  const handleEdit = useCallback((journal: JournalParameter) => {
     if (!canManageJournal) return;
     setSelectedJournal(journal);
     setDialogOpen(true);
-  };
+  }, [canManageJournal]);
 
-  const handleDelete = async (journal: JournalParameter) => {
+  const handleDelete = useCallback(async (journal: JournalParameter) => {
     if (!canManageJournal) return;
     if (!confirm(`Are you sure you want to delete journal entry "${journal.glCode}"?`)) {
       return;
@@ -404,7 +279,7 @@ export default function JournalParametersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [canManageJournal, showApprovalConflict, loadData]);
 
   // Memoized callback to prevent dialog re-renders
   const handleSave = useCallback(async (formData: JournalFormData) => {
@@ -455,6 +330,12 @@ export default function JournalParametersPage() {
   // Memoized close handler
   const handleCloseDialog = useCallback(() => {
     setDialogOpen(false);
+  }, []);
+
+  const handleOpenPending = useCallback((row: JournalParameter) => {
+    setSelectedPendingRequest((row as any).pendingRequest);
+    setCurrentRecordForPending(row);
+    setPendingChangesDialogOpen(true);
   }, []);
 
   // Export handler (Client-side export matching Product Parameters)
@@ -588,138 +469,41 @@ export default function JournalParametersPage() {
       </Menu>
 
 
-      <Card sx={{ mb: 2 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-            <TextField
-              placeholder="Search by GL Code, Description, or GL Number"
-              variant="outlined"
-              size="small"
-              sx={{ flex: '1 1 300px', minWidth: 200 }}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              inputProps={{ 'data-testid': 'input-search-journal' }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
+      <JournalFiltersCard
+        searchTerm={searchTerm}
+        filterGlGroup={filterGlGroup}
+        filterCurrency={filterCurrency}
+        filterActive={filterActive}
+        totalRows={data.length}
+        filteredRows={filteredData.length}
+        glGroupOptions={glGroupOptions}
+        currencyOptions={currencyOptions}
+        onSearchChange={setSearchTerm}
+        onGlGroupChange={setFilterGlGroup}
+        onCurrencyChange={setFilterCurrency}
+        onActiveChange={setFilterActive}
+        onApply={loadData}
+        onClear={clearFilters}
+      />
 
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel>GL Group</InputLabel>
-              <Select
-                value={filterGlGroup}
-                onChange={(e) => setFilterGlGroup(e.target.value)}
-                label="GL Group"
-              >
-                <MenuItem value="">All</MenuItem>
-                {Array.isArray(glGroupOptions) && glGroupOptions.map((option, idx) => (
-                  <MenuItem key={`${option.id}-${idx}`} value={option.id}>{option.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>Currency</InputLabel>
-              <Select
-                value={filterCurrency}
-                onChange={(e) => setFilterCurrency(e.target.value)}
-                label="Currency"
-              >
-                <MenuItem value="">All</MenuItem>
-                {Array.isArray(currencyOptions) && currencyOptions.map((option, idx) => (
-                  <MenuItem key={`${option.id}-${idx}`} value={option.id}>{option.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={filterActive}
-                onChange={(e) => setFilterActive(e.target.value as 'all' | 'active' | 'inactive')}
-                label="Status"
-              >
-                <MenuItem value="all">All</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
-            </FormControl>
-
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button variant="contained" size="small" onClick={loadData} startIcon={<FilterIcon />}>Apply</Button>
-              <Button variant="outlined" size="small" onClick={clearFilters} startIcon={<ClearIcon />} data-testid="btn-reset-journal-filters">Clear</Button>
-            </Box>
-          </Box>
-
-          {filteredData.length !== data.length && (
-            <Box sx={{ mt: 2 }}>
-              <Chip label={`Showing ${filteredData.length} of ${data.length} records`} color="primary" variant="outlined" size="small" />
-            </Box>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card sx={{ display: 'flex', flexDirection: 'column' }}>
-        <CardContent sx={{ flex: 1, p: 0, '&:last-child': { pb: 0 }, display: 'flex', flexDirection: 'column' }}>
-          <Box sx={{ flex: 1, width: '100%', minHeight: 500, display: 'flex', flexDirection: 'column' }}>
-            <Box sx={{ flex: 1, overflow: 'hidden' }}>
-              <SafeDataGrid
-                rows={filteredData.slice(paginationModel.page * paginationModel.pageSize, (paginationModel.page + 1) * paginationModel.pageSize)}
-                columns={columns}
-                getRowId={(row) => row?.pkid || row?.glCode || `row_${Math.random()}`}
-                hideFooterPagination
-                hideFooter
-                disableRowSelectionOnClick
-                loading={loading}
-                slotProps={{
-                  loadingOverlay: {
-                    variant: 'linear-progress' as const,
-                    noRowsVariant: 'skeleton' as const,
-                  },
-                  noRowsOverlay: {
-                    children: (
-                      <EmptyState
-                        title="No Journal Parameters Found"
-                        description={error ? 'Failed to load data from database.' : 'No parameters configured yet.'}
-                        onRetry={error ? loadData : handleCreate}
-                        retryText={error ? 'Retry' : 'Add Journal Entry'}
-                        icon={<ErrorIcon />}
-                      />
-                    )
-                  }
-                }}
-              />
-            </Box>
-            <TablePagination
-              rowsPerPageOptions={[10, 25, 50, 100]}
-              component="div"
-              count={rowCount}
-              rowsPerPage={paginationModel.pageSize}
-              page={paginationModel.page}
-              onPageChange={(event, newPage) => {
-                setPaginationModel({ ...paginationModel, page: newPage });
-              }}
-              onRowsPerPageChange={(event) => {
-                setPaginationModel({
-                  page: 0,
-                  pageSize: parseInt(event.target.value, 10)
-                });
-              }}
-              labelDisplayedRows={({ from, to, count }) =>
-                `Showing ${from}–${to} of ${count} • Page ${paginationModel.page + 1}`
-              }
-              sx={{
-                borderTop: '2px solid #e0e0e0',
-                bgcolor: '#fafafa',
-              }}
-            />
-          </Box>
-        </CardContent>
-      </Card>
+      <JournalParametersGrid
+        rows={filteredData}
+        loading={loading}
+        error={error}
+        canManage={canManageJournal}
+        page={paginationModel.page}
+        pageSize={paginationModel.pageSize}
+        rowCount={rowCount}
+        success={success}
+        onSuccessClose={() => setSuccess(null)}
+        onPageChange={(page) => setPaginationModel({ ...paginationModel, page })}
+        onPageSizeChange={(pageSize) => setPaginationModel({ page: 0, pageSize })}
+        onRetry={loadData}
+        onCreate={handleCreate}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onOpenPending={handleOpenPending}
+      />
 
 
       <JournalFormDialog
@@ -744,9 +528,6 @@ export default function JournalParametersPage() {
         title={`Pending Changes for Journal: ${currentRecordForPending?.glCode}`}
       />
 
-      <Snackbar open={!!success} autoHideDuration={4000} onClose={() => setSuccess(null)}>
-        <Alert severity="success">{success}</Alert>
-      </Snackbar>
       <ApprovalNotification
         open={approvalNotification.open}
         message={approvalNotification.message}

@@ -1,39 +1,17 @@
 // packages/frontend/src/app/banking/ifrs9/impairment/page.tsx
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Box,
   Card,
   CardContent,
   Typography,
-  Grid,
   Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Tabs,
   Tab,
   Alert,
   CircularProgress,
-  Tooltip,
-  TableSortLabel,
-  InputAdornment,
   Menu,
   MenuList,
   MenuItem as MenuItemComponent,
@@ -43,34 +21,28 @@ import {
 } from '@mui/material';
 import {
   Calculate as CalculateIcon,
-  Visibility as VisibilityIcon,
-  Edit as EditIcon,
   Refresh as RefreshIcon,
   Assessment as AssessmentIcon,
   TrendingUp as TrendingUpIcon,
   Warning as WarningIcon,
-  Search as SearchIcon,
-  Clear as ClearIcon,
   FilterList as FilterListIcon,
   GetApp as ExportIcon,
   FileDownload as DownloadIcon
 } from '@mui/icons-material';
 import { useAuth } from '@/providers/AuthProvider';
 import { individualImpairmentAPI, type IndividualImpairmentWatchlistItem } from '@/services/api.individual-impairment';
+import {
+  ImpairmentCalculationDialog,
+  ImpairmentDetailsDialog,
+  ImpairmentOverviewPanel,
+  type ImpairmentAnalytics,
+  type SortConfig,
+  type SortField,
+} from './components';
 
 // ============================================================================
 // TYPESCRIPT INTERFACES FOR IFRS9 IMPAIRMENT DATA
 // ============================================================================
-
-interface ImpairmentAnalytics {
-  totalAccounts: number;
-  totalExposure: number;
-  impairedAccounts: number;
-  impairedExposure: number;
-  stageDistribution: Record<number, number>;
-  averageECLRatio: number;
-  totalProvision: number;
-}
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -92,18 +64,6 @@ function TabPanel(props: TabPanelProps) {
       {value === index && <Box sx={{ p: 3 }}>{children as any}</Box>}
     </div>
   );
-}
-
-// ============================================================================
-// SORT CONFIGURATION
-// ============================================================================
-
-type SortField = 'account_number' | 'cif_name' | 'outstanding_balance' | 'ecl_amount' | 'stage' | 'dpd' | 'rating_code';
-type SortOrder = 'asc' | 'desc';
-
-interface SortConfig {
-  field: SortField;
-  order: SortOrder;
 }
 
 export default function ImpairmentPage() {
@@ -156,7 +116,7 @@ export default function ImpairmentPage() {
   // DATA LOADING WITH REAL API INTEGRATION
   // ============================================================================
 
-  const loadData = async (page = 1, reset = false) => {
+  const loadData = useCallback(async (page = 1, reset = false) => {
     setLoading(true);
     setError(null);
 
@@ -231,7 +191,7 @@ export default function ImpairmentPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.limit, searchTerm, stageFilter, impairedFilter, statusFilter, columnFilters, sortConfig]);
 
   // ============================================================================
   // EVENT HANDLERS
@@ -250,25 +210,25 @@ export default function ImpairmentPage() {
     }
   }, [searchTerm, stageFilter, impairedFilter, statusFilter, sortConfig, columnFilters]);
 
-  const handleViewDetails = (record: IndividualImpairmentWatchlistItem) => {
+  const handleViewDetails = useCallback((record: IndividualImpairmentWatchlistItem) => {
     setSelectedRecord(record);
     setDetailsDialogOpen(true);
-  };
+  }, []);
 
-  const handleRunCalculation = () => {
+  const handleRunCalculation = useCallback(() => {
     setCalculationDialogOpen(true);
-  };
+  }, []);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     loadData(pagination.page, true);
-  };
+  }, [loadData, pagination.page]);
 
-  const handleSort = (field: SortField) => {
+  const handleSort = useCallback((field: SortField) => {
     setSortConfig(prev => ({
       field,
       order: prev.field === field && prev.order === 'asc' ? 'desc' : 'asc'
     }));
-  };
+  }, []);
 
   const handleExport = async (format: 'xlsx' | 'csv') => {
     setExportLoading(true);
@@ -308,7 +268,7 @@ export default function ImpairmentPage() {
     }
   };
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSearchTerm('');
     setStageFilter('all');
     setImpairedFilter('all');
@@ -320,9 +280,9 @@ export default function ImpairmentPage() {
       currency: ''
     });
     setColumnFiltersEnabled(false);
-  };
+  }, []);
 
-  const toggleColumnFilters = () => {
+  const toggleColumnFilters = useCallback(() => {
     setColumnFiltersEnabled(!columnFiltersEnabled);
     if (columnFiltersEnabled) {
       // Clear column filters when disabling
@@ -333,7 +293,7 @@ export default function ImpairmentPage() {
         currency: ''
       });
     }
-  };
+  }, [columnFiltersEnabled]);
 
   // ============================================================================
   // HELPER FUNCTIONS
@@ -487,312 +447,32 @@ export default function ImpairmentPage() {
 
       {/* Tab 1: Impairment Overview */}
       <TabPanel value={selectedTab} index={0}>
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Impairment Portfolio Overview
-            </Typography>
-
-            {/* Filters */}
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid size={{ xs: 12, md: 3 }}>
-                <TextField
-                  fullWidth
-                  label="Search Account/Customer"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 2 }}>
-                <FormControl fullWidth>
-                  <InputLabel>Stage Filter</InputLabel>
-                  <Select
-                    value={stageFilter}
-                    label="Stage Filter"
-                    onChange={(e) => setStageFilter(e.target.value as number | 'all')}
-                  >
-                    <MenuItem value="all">All Stages</MenuItem>
-                    <MenuItem value="1">Stage 1</MenuItem>
-                    <MenuItem value="2">Stage 2</MenuItem>
-                    <MenuItem value="3">Stage 3</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid size={{ xs: 12, md: 2 }}>
-                <FormControl fullWidth>
-                  <InputLabel>Impaired Flag</InputLabel>
-                  <Select
-                    value={impairedFilter}
-                    label="Impaired Flag"
-                    onChange={(e) => setImpairedFilter(e.target.value as 'all' | 'I' | 'N')}
-                  >
-                    <MenuItem value="all">All</MenuItem>
-                    <MenuItem value="I">Impaired</MenuItem>
-                    <MenuItem value="N">Not Impaired</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid size={{ xs: 12, md: 2 }}>
-                <FormControl fullWidth>
-                  <InputLabel>Assessment Status</InputLabel>
-                  <Select
-                    value={statusFilter}
-                    label="Assessment Status"
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                  >
-                    <MenuItem value="all">All Status</MenuItem>
-                    <MenuItem value="PENDING">Pending</MenuItem>
-                    <MenuItem value="IN_PROGRESS">In Progress</MenuItem>
-                    <MenuItem value="COMPLETED">Completed</MenuItem>
-                    <MenuItem value="REVIEWED">Reviewed</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid size={{ xs: 12, md: 3 }}>
-                <Button
-                  variant="outlined"
-                  onClick={clearFilters}
-                  startIcon={<ClearIcon />}
-                  sx={{ height: '56px' }}
-                >
-                  Clear Filters
-                </Button>
-              </Grid>
-            </Grid>
-
-            {/* Column-wise Filters (matching legacy DataTables) */}
-            {columnFiltersEnabled && (
-              <Grid container spacing={2} sx={{ mb: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                <Typography variant="subtitle2" sx={{ width: '100%', mb: 1 }}>
-                  Column-wise Filters
-                </Typography>
-                <Grid size={{ xs: 12, md: 3 }}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    label="Account Number"
-                    value={columnFilters.account_number}
-                    onChange={(e) => setColumnFilters(prev => ({ ...prev, account_number: e.target.value }))}
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, md: 3 }}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    label="Customer Name"
-                    value={columnFilters.cif_name}
-                    onChange={(e) => setColumnFilters(prev => ({ ...prev, cif_name: e.target.value }))}
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, md: 3 }}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    label="Rating Code"
-                    value={columnFilters.rating_code}
-                    onChange={(e) => setColumnFilters(prev => ({ ...prev, rating_code: e.target.value }))}
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, md: 3 }}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    label="Currency"
-                    value={columnFilters.currency}
-                    onChange={(e) => setColumnFilters(prev => ({ ...prev, currency: e.target.value }))}
-                  />
-                </Grid>
-              </Grid>
-            )}
-
-            {/* Summary Cards */}
-            {analytics && (
-              <Grid container spacing={3} sx={{ mb: 3 }}>
-                <Grid size={{ xs: 12, md: 3 }}>
-                  <Card>
-                    <CardContent>
-                      <Typography variant="h4" color="primary">
-                        {analytics.totalAccounts}
-                      </Typography>
-                      <Typography variant="body2" color="textSecondary">
-                        Total Accounts
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid size={{ xs: 12, md: 3 }}>
-                  <Card>
-                    <CardContent>
-                      <Typography variant="h4" color="success.main">
-                        {analytics.stageDistribution[1] || 0}
-                      </Typography>
-                      <Typography variant="body2" color="textSecondary">
-                        Stage 1 Accounts
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid size={{ xs: 12, md: 3 }}>
-                  <Card>
-                    <CardContent>
-                      <Typography variant="h4" color="warning.main">
-                        {analytics.stageDistribution[2] || 0}
-                      </Typography>
-                      <Typography variant="body2" color="textSecondary">
-                        Stage 2 Accounts
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid size={{ xs: 12, md: 3 }}>
-                  <Card>
-                    <CardContent>
-                      <Typography variant="h4" color="error.main">
-                        {analytics.stageDistribution[3] || 0}
-                      </Typography>
-                      <Typography variant="body2" color="textSecondary">
-                        Stage 3 Accounts
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
-            )}
-
-            {/* Data Table */}
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>
-                      <TableSortLabel
-                        active={sortConfig.field === 'account_number'}
-                        direction={sortConfig.order}
-                        onClick={() => handleSort('account_number')}
-                      >
-                        Account Number
-                      </TableSortLabel>
-                    </TableCell>
-                    <TableCell>
-                      <TableSortLabel
-                        active={sortConfig.field === 'cif_name'}
-                        direction={sortConfig.order}
-                        onClick={() => handleSort('cif_name')}
-                      >
-                        Customer Name
-                      </TableSortLabel>
-                    </TableCell>
-                    <TableCell>CIF Number</TableCell>
-                    <TableCell>
-                      <TableSortLabel
-                        active={sortConfig.field === 'outstanding_balance'}
-                        direction={sortConfig.order}
-                        onClick={() => handleSort('outstanding_balance')}
-                      >
-                        Outstanding Balance
-                      </TableSortLabel>
-                    </TableCell>
-                    <TableCell>
-                      <TableSortLabel
-                        active={sortConfig.field === 'stage'}
-                        direction={sortConfig.order}
-                        onClick={() => handleSort('stage')}
-                      >
-                        Stage
-                      </TableSortLabel>
-                    </TableCell>
-                    <TableCell>
-                      <TableSortLabel
-                        active={sortConfig.field === 'ecl_amount'}
-                        direction={sortConfig.order}
-                        onClick={() => handleSort('ecl_amount')}
-                      >
-                        ECL Amount
-                      </TableSortLabel>
-                    </TableCell>
-                    <TableCell>Impaired Flag</TableCell>
-                    <TableCell>Rating</TableCell>
-                    <TableCell>Assessment Status</TableCell>
-                    <TableCell>Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {data.map((row, index) => (
-                    <TableRow key={`${row.pkid}-${index}`}>
-                      <TableCell>{row.account_number}</TableCell>
-                      <TableCell>{row.cif_name}</TableCell>
-                      <TableCell>{row.cif_number}</TableCell>
-                      <TableCell>{formatCurrency(row.outstanding_balance, row.currency)}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={`Stage ${row.stage}`}
-                          color={getStageColor(row.stage) as any}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{formatCurrency(row.ecl_amount, row.currency)}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={row.impaired_flag === 'I' ? 'Impaired' : 'Not Impaired'}
-                          color={getImpairedColor(row.impaired_flag) as any}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{row.rating_code}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={row.assessment_status}
-                          color={getStatusColor(row.assessment_status) as any}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Tooltip title="View Details">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleViewDetails(row)}
-                          >
-                            <VisibilityIcon />
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-
-            {/* Pagination */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
-              <Typography variant="body2" color="textSecondary">
-                Showing {data.length} of {pagination.total} records
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
-                  variant="outlined"
-                  disabled={pagination.page <= 1}
-                  onClick={() => loadData(pagination.page - 1)}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outlined"
-                  disabled={pagination.page >= pagination.totalPages}
-                  onClick={() => loadData(pagination.page + 1)}
-                >
-                  Next
-                </Button>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
+        <ImpairmentOverviewPanel
+          analytics={analytics}
+          data={data}
+          pagination={pagination}
+          searchTerm={searchTerm}
+          stageFilter={stageFilter}
+          impairedFilter={impairedFilter}
+          statusFilter={statusFilter}
+          columnFilters={columnFilters}
+          columnFiltersEnabled={columnFiltersEnabled}
+          sortConfig={sortConfig}
+          onSearchTermChange={setSearchTerm}
+          onStageFilterChange={setStageFilter}
+          onImpairedFilterChange={setImpairedFilter}
+          onStatusFilterChange={setStatusFilter}
+          onColumnFilterChange={(key, value) => setColumnFilters((prev) => ({ ...prev, [key]: value }))}
+          onClearFilters={clearFilters}
+          onSort={handleSort}
+          onViewDetails={handleViewDetails}
+          onPreviousPage={() => loadData(pagination.page - 1)}
+          onNextPage={() => loadData(pagination.page + 1)}
+          formatCurrency={formatCurrency}
+          getStageColor={getStageColor}
+          getImpairedColor={getImpairedColor}
+          getStatusColor={getStatusColor}
+        />
       </TabPanel>
 
       {/* Tab 2: Stage Analysis */}
@@ -837,134 +517,17 @@ export default function ImpairmentPage() {
         </Card>
       </TabPanel>
 
-      {/* Details Dialog */}
-      <Dialog
+      <ImpairmentDetailsDialog
         open={detailsDialogOpen}
+        selectedRecord={selectedRecord}
         onClose={() => setDetailsDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Impairment Details</DialogTitle>
-        <DialogContent>
-          {selectedRecord && (
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label="Account Number"
-                  value={selectedRecord.account_number}
-                  disabled
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label="Customer Name"
-                  value={selectedRecord.cif_name}
-                  disabled
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label="CIF Number"
-                  value={selectedRecord.cif_number}
-                  disabled
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label="Currency"
-                  value={selectedRecord.currency}
-                  disabled
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label="Outstanding Balance"
-                  value={formatCurrency(selectedRecord.outstanding_balance, selectedRecord.currency)}
-                  disabled
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label="ECL Amount"
-                  value={formatCurrency(selectedRecord.ecl_amount, selectedRecord.currency)}
-                  disabled
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label="Stage"
-                  value={`Stage ${selectedRecord.stage}`}
-                  disabled
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label="Impaired Flag"
-                  value={selectedRecord.impaired_flag === 'I' ? 'Impaired' : 'Not Impaired'}
-                  disabled
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label="Rating Code"
-                  value={selectedRecord.rating_code}
-                  disabled
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label="Assessment Status"
-                  value={selectedRecord.assessment_status}
-                  disabled
-                />
-              </Grid>
-            </Grid>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDetailsDialogOpen(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
+        formatCurrency={formatCurrency}
+      />
 
-      {/* Calculation Dialog */}
-      <Dialog
+      <ImpairmentCalculationDialog
         open={calculationDialogOpen}
         onClose={() => setCalculationDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Run Impairment Calculation</DialogTitle>
-        <DialogContent>
-          <Alert severity="info" sx={{ mt: 2 }}>
-            This will run the IFRS 9 impairment calculation engine for all accounts.
-          </Alert>
-          <Typography variant="body2" sx={{ mt: 2 }}>
-            Calculation parameters:
-          </Typography>
-          <Box component="ul" sx={{ mt: 1 }}>
-            <li>ECL Method: PD x LGD x EAD</li>
-            <li>Staging: 12-month vs Lifetime ECL</li>
-            <li>Discount Rate: Risk-free rate + credit spread</li>
-            <li>Forward-looking: Economic scenarios applied</li>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCalculationDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={() => setCalculationDialogOpen(false)}>
-            Run Calculation
-          </Button>
-        </DialogActions>
-      </Dialog>
+      />
     </Box>
   );
 }
