@@ -28,12 +28,7 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Collapse,
   IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Alert,
   Breadcrumbs,
   Link,
@@ -46,8 +41,6 @@ import {
   Pagination
 } from '@mui/material';
 import {
-  KeyboardArrowDown,
-  KeyboardArrowRight,
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
@@ -62,29 +55,18 @@ import { FullstackIndicator } from '@/components/common/feedback/FullstackIndica
 import {
   ApprovalNotification,
   ApprovalStatusBadge,
+  buildApprovalConflictNotification,
   buildApprovalNotification,
   createClosedApprovalNotification,
   type ApprovalNotificationState,
 } from '@/components/approval';
 import { bankingAPI } from '@/services/api';
 import { usePermission } from '@/hooks/usePermission';
+import { getErrorMessage } from '@/utils/error-message';
+import { BucketHeaderRow } from './components/BucketHeaderRow';
+import { BucketHeaderDialog } from './components/BucketHeaderDialog';
+import { BucketDetailDialog } from './components/BucketDetailDialog';
 
-
-// ============================================================================
-// EXPANDABLE ROW COMPONENT
-// ============================================================================
-
-interface BucketHeaderRowProps {
-  header: BucketParameterHeader;
-  basisOptions: { value1: string, paramdesc: string }[];
-  canManage: boolean;
-  onEdit: (header: BucketParameterHeader) => void;
-  onDelete: (header: BucketParameterHeader) => void;
-  onAddDetail: (header: BucketParameterHeader) => void;
-  onEditDetail: (detail: BucketParameterDetail) => void;
-  onDeleteDetail: (detail: BucketParameterDetail) => void;
-  pendingRequests?: any[];
-}
 
 const getBucketHeaderValidationMessage = (header: Partial<BucketParameterHeader>): string | null => {
   if (!String(header.bucket_group || '').trim() || !String(header.basis || '').trim()) {
@@ -112,245 +94,6 @@ const getBucketDetailValidationMessage = (detail: Partial<BucketParameterDetail>
   }
 
   return null;
-};
-
-const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
-  header,
-  basisOptions,
-  canManage,
-  onEdit,
-  onDelete,
-  onAddDetail,
-  onEditDetail,
-  onDeleteDetail,
-  pendingRequests = []
-}) => {
-  const [open, setOpen] = useState(false);
-  const [details, setDetails] = useState<BucketParameterDetail[]>([]);
-  const [detailsLoading, setDetailsLoading] = useState(false);
-
-  const loadDetails = async () => {
-    if (!header.id) {
-      setDetailsLoading(false);
-      return;
-    }
-    try {
-      const response = await bucketParameterAPI.getDetails(header.id);
-      if (response.success) {
-        setDetails(response.data || []);
-      } else {
-        setDetails([]);
-      }
-    } catch (error) {
-      console.error('Error loading details:', error);
-      setDetails([]);
-    } finally {
-      setDetailsLoading(false);
-    }
-  };
-
-  const handleToggle = () => {
-    setOpen(!open);
-  };
-
-  // Load details when row expands
-  React.useEffect(() => {
-    if (open && details.length === 0) {
-      loadDetails();
-    }
-  }, [open]);
-
-  const getBasisDescription = (basisCode: string): string => {
-    const basis = basisOptions.find(b => b.value1 === basisCode);
-    return basis?.paramdesc || basisCode;
-  };
-
-  const formatRange = (start: number, end?: number | null): string => {
-    if (end === null || end === undefined) return `${start.toLocaleString()} - ∞`;
-    if (end === 9999) return `${start.toLocaleString()} - ∞`;
-    return `${start.toLocaleString()} - ${end.toLocaleString()}`;
-  };
-
-  return (
-    <>
-      <TableRow hover>
-        <TableCell>
-          <IconButton size="small" onClick={handleToggle} data-testid="expand-row-btn">
-            {open ? <KeyboardArrowDown /> : <KeyboardArrowRight />}
-          </IconButton>
-        </TableCell>
-        <TableCell>
-          <Typography variant="body2" fontWeight="medium">
-            {header.bucket_group}
-          </Typography>
-        </TableCell>
-        <TableCell>
-          <Typography variant="body2">
-            {header.bucket_group_desc || header.bucket_desc || '-'}
-          </Typography>
-        </TableCell>
-        <TableCell>
-          <Chip
-            label={getBasisDescription(header.basis || '')}
-            size="small"
-            color={header.basis === 'D' ? 'primary' : 'info'}
-            variant="outlined"
-            data-testid="basis-chip"
-          />
-        </TableCell>
-        <TableCell align="center">
-          <Chip
-            label={header.include_close ? 'Yes' : 'No'}
-            size="small"
-            color={header.include_close ? 'success' : 'default'}
-            variant="outlined"
-            data-testid="include-close-chip"
-          />
-        </TableCell>
-        <TableCell align="center">
-          <Chip
-            label={header.include_wo ? 'Yes' : 'No'}
-            size="small"
-            color={header.include_wo ? 'warning' : 'default'}
-            variant="outlined"
-            data-testid="include-wo-chip"
-          />
-        </TableCell>
-        <TableCell align="center">
-          {pendingRequests.some(r => r.entityId === header.id?.toString()) ? (
-            <ApprovalStatusBadge status="pending" />
-          ) : (
-            <Chip
-              label={header.active_flag ? 'Active' : 'Inactive'}
-              size="small"
-              color={header.active_flag ? 'success' : 'default'}
-              variant="outlined"
-              data-testid="header-status-chip"
-            />
-          )}
-        </TableCell>
-        <TableCell>
-          {canManage && (
-            <Box sx={{ display: 'flex', gap: 0.5 }}>
-              <Tooltip title="Edit Bucket Group">
-                <IconButton size="small" onClick={() => onEdit(header)} color="primary" data-testid="edit-header-btn">
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Delete Bucket Group">
-                <IconButton size="small" onClick={() => onDelete(header)} color="error" data-testid="delete-header-btn">
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          )}
-        </TableCell>
-      </TableRow>
-
-      {/* Expandable Details Row */}
-      <TableRow>
-        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={8}>
-          <Collapse in={open} timeout="auto" unmountOnExit>
-            <Box sx={{ margin: 2, p: 2, backgroundColor: '#f8f9fa', borderRadius: 1 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6" gutterBottom component="div" color="primary">
-                  Bucket Details
-                </Typography>
-                {canManage && (
-                  <Button
-                    size="small"
-                    startIcon={<AddIcon />}
-                    onClick={() => onAddDetail(header)}
-                    variant="contained"
-                    color="primary"
-                    data-testid="add-detail-btn"
-                  >
-                    Add Detail
-                  </Button>
-                )}
-              </Box>
-
-              {detailsLoading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                  <CircularProgress size={24} />
-                </Box>
-              ) : details.length > 0 ? (
-                <TableContainer component={Paper} variant="outlined">
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow sx={{ backgroundColor: '#e3f2fd' }}>
-                        <TableCell><strong>Name</strong></TableCell>
-                        <TableCell><strong>Range Start</strong></TableCell>
-                        <TableCell><strong>Range End</strong></TableCell>
-                        <TableCell><strong>Display</strong></TableCell>
-                        <TableCell align="center"><strong>Status</strong></TableCell>
-                        <TableCell align="center"><strong>Actions</strong></TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {details.map((detail) => (
-                        <TableRow key={detail.id || `detail-${detail.seq}`} hover>
-                          <TableCell>
-                            <Typography variant="body2" fontWeight="medium">
-                              {detail.bucket_name}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">
-                              {detail.range_start}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">
-                              {detail.range_end ?? '∞'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" color="primary" fontWeight="medium">
-                              {formatRange(detail.range_start || 0, detail.range_end)}
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="center">
-                            <Chip
-                              label={detail.active_flag ? 'Active' : 'Inactive'}
-                              size="small"
-                              color={detail.active_flag ? 'success' : 'default'}
-                              variant="outlined"
-                              data-testid="detail-status-chip"
-                            />
-                          </TableCell>
-                          <TableCell align="center">
-                            {canManage && (
-                              <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
-                                <Tooltip title="Edit Detail">
-                                  <IconButton size="small" onClick={() => onEditDetail(detail)} color="primary" data-testid="edit-detail-btn">
-                                    <EditIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                                <Tooltip title="Delete Detail">
-                                  <IconButton size="small" onClick={() => onDeleteDetail(detail)} color="error" data-testid="delete-detail-btn">
-                                    <DeleteIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                              </Box>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              ) : (
-                <Alert severity="info" sx={{ mt: 1 }}>
-                  No bucket details found. Click Add Detail to create one.
-                </Alert>
-              )}
-            </Box>
-          </Collapse>
-        </TableCell>
-      </TableRow>
-    </>
-  );
 };
 
 // ============================================================================
@@ -394,6 +137,12 @@ export default function BucketParameterPage() {
 
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
+  const showApprovalConflict = useCallback((error: unknown, fallbackMessage: string) => {
+    const notification = buildApprovalConflictNotification(error, fallbackMessage);
+    if (!notification) return false;
+    setApprovalNotification(notification);
+    return true;
+  }, []);
   const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'error' }>({ open: false, message: '', type: 'success' });
 
   // Error State
@@ -451,7 +200,7 @@ export default function BucketParameterPage() {
       }
     } catch (error) {
       console.error('Error loading bucket headers:', error);
-      setError(error.message || 'Failed to connect to database');
+      setError(getErrorMessage(error, 'Failed to connect to database'));
       setBucketHeaders([]);
     } finally {
       setLoading(false);
@@ -472,19 +221,19 @@ export default function BucketParameterPage() {
   // EVENT HANDLERS
   // ============================================================================
 
-  const handleSearch = () => {
+  const handleSearch = useCallback(() => {
     setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page when searching
     loadBucketHeaders();
-  };
+  }, [loadBucketHeaders]);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     setSearchTerm('');
     setFilterBasis('');
     setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page when refreshing
     loadBucketHeaders();
-  };
+  }, [loadBucketHeaders]);
 
-  const handleAddHeader = () => {
+  const handleAddHeader = useCallback(() => {
     if (!canManageBucket) return;
     setHeaderFormData({
       bucket_group: '',
@@ -497,17 +246,17 @@ export default function BucketParameterPage() {
     setSelectedHeader(null);
     setEditMode(false);
     setHeaderDialogOpen(true);
-  };
+  }, [canManageBucket]);
 
-  const handleEditHeader = (header: BucketParameterHeader) => {
+  const handleEditHeader = useCallback((header: BucketParameterHeader) => {
     if (!canManageBucket) return;
     setHeaderFormData({ ...header });
     setSelectedHeader(header);
     setEditMode(true);
     setHeaderDialogOpen(true);
-  };
+  }, [canManageBucket]);
 
-  const handleDeleteHeader = async (header: BucketParameterHeader) => {
+  const handleDeleteHeader = useCallback(async (header: BucketParameterHeader) => {
     if (!canManageBucket) return;
     if (!confirm(`Delete bucket group "${header.bucket_group}"? This will delete all details.`)) {
       return;
@@ -526,11 +275,13 @@ export default function BucketParameterPage() {
       loadBucketHeaders();
       loadPendingApprovals();
     } catch (error) {
-      setSnackbar({ open: true, message: error.message || 'Error deleting bucket parameter', type: 'error' });
+      if (!showApprovalConflict(error, 'Deletion request submitted for approval')) {
+        setSnackbar({ open: true, message: getErrorMessage(error, 'Error deleting bucket parameter'), type: 'error' });
+      }
     }
-  };
+  }, [canManageBucket, loadBucketHeaders, loadPendingApprovals, showApprovalConflict]);
 
-  const handleAddDetail = (header: BucketParameterHeader) => {
+  const handleAddDetail = useCallback((header: BucketParameterHeader) => {
     if (!canManageBucket) return;
     setDetailFormData({
       bucket_id: header.id,
@@ -542,16 +293,16 @@ export default function BucketParameterPage() {
     setSelectedHeader(header);
     setEditMode(false);
     setDetailDialogOpen(true);
-  };
+  }, [canManageBucket]);
 
-  const handleEditDetail = (detail: BucketParameterDetail) => {
+  const handleEditDetail = useCallback((detail: BucketParameterDetail) => {
     if (!canManageBucket) return;
     setDetailFormData({ ...detail });
     setEditMode(true);
     setDetailDialogOpen(true);
-  };
+  }, [canManageBucket]);
 
-  const handleDeleteDetail = async (detail: BucketParameterDetail) => {
+  const handleDeleteDetail = useCallback(async (detail: BucketParameterDetail) => {
     if (!canManageBucket) return;
     if (!confirm(`Delete bucket detail "${detail.bucket_name}"?`)) {
       return;
@@ -570,11 +321,13 @@ export default function BucketParameterPage() {
       loadBucketHeaders();
       loadPendingApprovals();
     } catch (error) {
-      setSnackbar({ open: true, message: error.message || 'Error deleting detail', type: 'error' });
+      if (!showApprovalConflict(error, 'Deletion request submitted for approval')) {
+        setSnackbar({ open: true, message: getErrorMessage(error, 'Error deleting detail'), type: 'error' });
+      }
     }
-  };
+  }, [canManageBucket, loadBucketHeaders, loadPendingApprovals, showApprovalConflict]);
 
-  const handleSaveHeader = async () => {
+  const handleSaveHeader = useCallback(async () => {
     if (!canManageBucket) return;
     const validationMessage = getBucketHeaderValidationMessage(headerFormData);
     if (validationMessage) {
@@ -604,11 +357,13 @@ export default function BucketParameterPage() {
       loadBucketHeaders();
       loadPendingApprovals();
     } catch (error) {
-      setSnackbar({ open: true, message: error.message || 'Error saving bucket parameter', type: 'error' });
+      if (!showApprovalConflict(error, 'Request submitted for approval')) {
+        setSnackbar({ open: true, message: getErrorMessage(error, 'Error saving bucket parameter'), type: 'error' });
+      }
     }
-  };
+  }, [canManageBucket, editMode, headerFormData, loadBucketHeaders, loadPendingApprovals, selectedHeader, showApprovalConflict]);
 
-  const handleSaveDetail = async () => {
+  const handleSaveDetail = useCallback(async () => {
     if (!canManageBucket) return;
     const validationMessage = getBucketDetailValidationMessage(detailFormData);
     if (validationMessage) {
@@ -639,9 +394,11 @@ export default function BucketParameterPage() {
       loadBucketHeaders();
       loadPendingApprovals();
     } catch (error) {
-      setSnackbar({ open: true, message: error.message || 'Error saving bucket detail', type: 'error' });
+      if (!showApprovalConflict(error, 'Request submitted for approval')) {
+        setSnackbar({ open: true, message: getErrorMessage(error, 'Error saving bucket detail'), type: 'error' });
+      }
     }
-  };
+  }, [canManageBucket, detailFormData, editMode, loadBucketHeaders, loadPendingApprovals, selectedHeader, showApprovalConflict]);
 
   const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
     setPagination(prev => ({ ...prev, page: value }));
@@ -841,184 +598,27 @@ export default function BucketParameterPage() {
         </CardContent>
       </Card>
 
-      {/* Header Dialog */}
-      <Dialog open={headerDialogOpen} onClose={() => setHeaderDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {editMode ? 'Edit Bucket Parameter Group' : 'Add Bucket Parameter Group'}
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2 }}>
-            {headerValidationMessage ? (
-              <Alert severity="warning" sx={{ mb: 2 }}>
-                {headerValidationMessage}
-              </Alert>
-            ) : null}
-            <Box sx={{ pt: 2, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 3 }}>
-              <Box>
-                <TextField
-                  fullWidth
-                  label="Bucket Group ID"
-                  value={headerFormData.bucket_group || ''}
-                  onChange={(e) => setHeaderFormData(prev => ({ ...prev, bucket_group: e.target.value }))}
-                  required
-                  data-testid="bucket-group-field"
-                />
-              </Box>
-              <Box>
-                <FormControl fullWidth required>
-                  <InputLabel>Basis</InputLabel>
-                  <Select
-                    value={headerFormData.basis || ''}
-                    label="Basis"
-                    onChange={(e) => setHeaderFormData(prev => ({ ...prev, basis: e.target.value }))}
-                    data-testid="bucket-basis-field"
-                  >
-                    {basisOptions.map((option, idx) => (
-                      <MenuItem key={`${option.value1}-${idx}`} value={option.value1}>
-                        {option.paramdesc}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Box>
-              <Box sx={{ gridColumn: 'span 2' }}>
-                <TextField
-                  fullWidth
-                  label="Description"
-                  value={headerFormData.bucket_group_desc || ''}
-                  onChange={(e) => setHeaderFormData(prev => ({ ...prev, bucket_group_desc: e.target.value }))}
-                  data-testid="bucket-desc-field"
-                />
-              </Box>
-              <Box sx={{ display: 'grid', gridColumn: 'span 2', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
-                <Box>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={headerFormData.include_close || false}
-                        onChange={(e) => setHeaderFormData(prev => ({ ...prev, include_close: e.target.checked }))}
-                        data-testid="include-close-switch"
-                      />
-                    }
-                    label="Include Closed"
-                  />
-                </Box>
-                <Box>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={headerFormData.include_wo || false}
-                        onChange={(e) => setHeaderFormData(prev => ({ ...prev, include_wo: e.target.checked }))}
-                        data-testid="include-wo-switch"
-                      />
-                    }
-                    label="Include WO"
-                  />
-                </Box>
-                <Box>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={headerFormData.active_flag !== false}
-                        onChange={(e) => setHeaderFormData(prev => ({ ...prev, active_flag: e.target.checked }))}
-                        data-testid="active-flag-switch"
-                      />
-                    }
-                    label="Active"
-                  />
-                </Box>
-              </Box>
-            </Box>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setHeaderDialogOpen(false)}>Cancel</Button>
-          {canManageBucket && (
-            <Button
-              variant="contained"
-              onClick={handleSaveHeader}
-              data-testid="save-header-btn"
-              disabled={Boolean(headerValidationMessage)}
-            >
-              Save
-            </Button>
-          )}
-        </DialogActions>
-      </Dialog>
-
-      {/* Detail Dialog */}
-      <Dialog open={detailDialogOpen} onClose={() => setDetailDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {editMode ? 'Edit Bucket Detail' : 'Add Bucket Detail'}
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2 }}>
-            {detailValidationMessage ? (
-              <Alert severity="warning" sx={{ mb: 2 }}>
-                {detailValidationMessage}
-              </Alert>
-            ) : null}
-            <Box sx={{ pt: 2, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 3 }}>
-              <Box sx={{ gridColumn: 'span 2' }}>
-                <TextField
-                  fullWidth
-                  label="Bucket Name"
-                  value={detailFormData.bucket_name || ''}
-                  onChange={(e) => setDetailFormData(prev => ({ ...prev, bucket_name: e.target.value }))}
-                  required
-                  data-testid="bucket-name-field"
-                />
-              </Box>
-              <Box>
-                <TextField
-                  fullWidth
-                  type="number"
-                  label="Range Start"
-                  value={detailFormData.range_start || 0}
-                  onChange={(e) => setDetailFormData(prev => ({ ...prev, range_start: Number(e.target.value) }))}
-                  required
-                  data-testid="range-start-field"
-                />
-              </Box>
-              <Box>
-                <TextField
-                  fullWidth
-                  type="number"
-                  label="Range End (Leave empty for infinity)"
-                  value={detailFormData.range_end || ''}
-                  onChange={(e) => setDetailFormData(prev => ({ ...prev, range_end: e.target.value ? Number(e.target.value) : undefined }))}
-                  data-testid="range-end-field"
-                />
-              </Box>
-              <Box sx={{ gridColumn: 'span 2' }}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={detailFormData.active_flag !== false}
-                      onChange={(e) => setDetailFormData(prev => ({ ...prev, active_flag: e.target.checked }))}
-                      data-testid="active-detail-switch"
-                    />
-                  }
-                  label="Active"
-                />
-              </Box>
-            </Box>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDetailDialogOpen(false)}>Cancel</Button>
-          {canManageBucket && (
-            <Button
-              variant="contained"
-              onClick={handleSaveDetail}
-              data-testid="save-detail-btn"
-              disabled={Boolean(detailValidationMessage)}
-            >
-              Save
-            </Button>
-          )}
-        </DialogActions>
-      </Dialog>
+      <BucketHeaderDialog
+        open={headerDialogOpen}
+        editMode={editMode}
+        canManageBucket={canManageBucket}
+        basisOptions={basisOptions}
+        headerFormData={headerFormData}
+        headerValidationMessage={headerValidationMessage}
+        onClose={() => setHeaderDialogOpen(false)}
+        onSave={handleSaveHeader}
+        onChange={setHeaderFormData}
+      />
+      <BucketDetailDialog
+        open={detailDialogOpen}
+        editMode={editMode}
+        canManageBucket={canManageBucket}
+        detailFormData={detailFormData}
+        detailValidationMessage={detailValidationMessage}
+        onClose={() => setDetailDialogOpen(false)}
+        onSave={handleSaveDetail}
+        onChange={setDetailFormData}
+      />
       <ApprovalNotification
         open={approvalNotification.open}
         message={approvalNotification.message}

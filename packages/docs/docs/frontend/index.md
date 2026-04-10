@@ -24,6 +24,7 @@ We use **Material UI (MUI)** v5/v6 with a custom theme.
 
 ## 5. Documentation Standards
 - [Frontend JSDoc Guidelines](./jsdoc-guidelines)
+- [Frontend API Reference Guide](./api-reference-guide)
 
 ## 6. Access Governance
 - [Sitemap and Permission Map](./sitemap-permission-map)

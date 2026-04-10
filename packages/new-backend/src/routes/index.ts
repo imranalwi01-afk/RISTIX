@@ -1,6 +1,7 @@
 
 import { OpenAPIHono } from '@hono/zod-openapi'
 import type { AppContext } from '../app'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 import { healthRoutes } from './health.routes'
 import { rbacRoutes } from './rbac.routes'
 import { auditRoutes } from './audit.routes'
@@ -53,14 +54,14 @@ import { bankingResourceRoutes } from './banking-resource.routes'
 import { monitoringRoutes } from './monitoring.routes'
 
 // DEBUG ROUTE
-const debugRoutes = new OpenAPIHono<AppContext>()
+const debugRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 debugRoutes.get('/check', (c) => c.json({ success: true, message: 'Routes are loaded correctly', timestamp: new Date().toISOString() }))
 
 /**
  * Main API router
  * All routes are mounted under /api/v1
  */
-export const routes = new OpenAPIHono<AppContext>()
+export const routes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 // Core routes
 routes.route('/health', healthRoutes)

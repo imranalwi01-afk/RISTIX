@@ -110,7 +110,7 @@ jobs:
   # ==============================================================================
   deploy:
     name: Deploy to Production Server
-    runs-on: [self-hosted, linux, vpn]
+    runs-on: [self-hosted, X64, Linux, prod, iaf-prod]
     needs: [frontend, backend]
 
     permissions:
@@ -128,4 +128,3 @@ jobs:
           cd /opt/ifrspro
           docker compose --profile app pull
           docker compose --profile app up -d
-

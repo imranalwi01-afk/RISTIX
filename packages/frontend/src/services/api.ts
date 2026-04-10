@@ -1716,11 +1716,16 @@ export const api = {
 // ============================================================================
 export const handleAPIError = (error: any) => {
   if (error.response) {
+    const requestId =
+      error.response.data && typeof error.response.data === 'object' && typeof error.response.data.requestId === 'string'
+        ? error.response.data.requestId
+        : undefined;
     return {
       type: 'server_error',
       status: error.response.status,
       message: getErrorMessage(error, 'Server error occurred'),
-      details: error.response.data
+      details: error.response.data,
+      requestId,
     };
   } else if (error.request) {
     return {

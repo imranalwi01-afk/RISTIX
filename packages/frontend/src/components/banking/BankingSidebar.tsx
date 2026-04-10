@@ -517,7 +517,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
         });
         return mapToHierarchical(item, item.parent_id ? 2 : 1);
       });
-    } else if (typeof window !== 'undefined') {
+    } else if (!shouldSkip && typeof window !== 'undefined') {
       const cached = localStorage.getItem('cached_menu_structure');
       if (cached) try { rawItems = JSON.parse(cached); } catch (e) { }
     }

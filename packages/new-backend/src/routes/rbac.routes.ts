@@ -7,8 +7,9 @@ import * as rbacService from '../services/rbac.service'
 import * as auditService from '../services/audit.service'
 import { createApprovalRequest } from '../services/approval.service'
 import { buildDefaultFourEyesRouting } from '../lib/approval-helpers'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-export const rbacRoutes: any = new OpenAPIHono<AppContext>()
+export const rbacRoutes: any = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 // Apply auth and tenant middleware to all routes
 rbacRoutes.use('*', authMiddleware)

@@ -7,6 +7,8 @@ import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
 import { runEffect } from '../lib/effect/runtime'
+import { buildErrorResponse } from '../lib/http/error-response'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
 /**
  * FL Scalar Routes
@@ -14,7 +16,7 @@ import { runEffect } from '../lib/effect/runtime'
  * 
  * Base Path: /api/v1/banking/collective/fl-scalar
  */
-export const flScalarRoutes = new OpenAPIHono<AppContext>()
+export const flScalarRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 flScalarRoutes.use('*', authMiddleware)
 
@@ -154,11 +156,12 @@ flScalarRoutes.openapi(
             } as any)
         } catch (error: any) {
             console.error('Error fetching FL scalars:', error)
-            return c.json({
-                success: false,
+            return c.json(buildErrorResponse(c, {
+                error: `Failed to load FL Scalars: ${error.message}`,
                 message: `Failed to load FL Scalars: ${error.message}`,
+                code: 'FL_SCALAR_ERROR',
                 details: error.stack
-            } as any, 500)
+            }) as any, 500)
         }
     }
 )
@@ -183,7 +186,7 @@ flScalarRoutes.openapi(
     async (c) => {
         try {
             const { id } = c.req.valid('param')
-            if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
+            if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400);
 
             const [header] = await db
                 .select()
@@ -191,7 +194,7 @@ flScalarRoutes.openapi(
                 .where(eq(frs9ImpCaFlScalarh.pkid, id))
 
             if (!header) {
-                return c.json({ success: false, message: 'FL Scalar not found' }, 404)
+                return c.json(buildErrorResponse(c, { error: 'FL Scalar not found', message: 'FL Scalar not found', code: 'NOT_FOUND' }), 404)
             }
 
             const details = await db
@@ -201,7 +204,7 @@ flScalarRoutes.openapi(
 
             return c.json({ success: true, data: transformHeader(header, details) } as any)
         } catch (error) {
-            return c.json({ success: false, message: 'Failed to fetch FL scalar' }, 500)
+            return c.json(buildErrorResponse(c, { error: 'Failed to fetch FL scalar', message: 'Failed to fetch FL scalar', code: 'FL_SCALAR_ERROR' }), 500)
         }
     }
 )
@@ -305,7 +308,7 @@ flScalarRoutes.openapi(
     }),
     async (c) => {
         const { id } = c.req.valid('param')
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
+        if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400);
         const userId = c.get('userId') as string || 'SYSTEM'
         const tenantId = c.get('tenantId') as string
         const userPermissions = c.get('permissions') || []
@@ -394,7 +397,7 @@ flScalarRoutes.openapi(
     }),
     async (c) => {
         const { id } = c.req.valid('param')
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
+        if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400);
 
         const userId = c.get('userId') as string || 'SYSTEM'
         const tenantId = c.get('tenantId') as string

@@ -12,6 +12,7 @@ import { frontendEnvironmentLoader } from '../config/environment-loader-frontend
 import { apiClient } from './api-client';
 import { sessionControlService } from './session-control.service';
 import { getAuthToken } from '../utils/auth-token';
+import { getErrorMessage } from '@/utils/error-message';
 
 // Re-export apiClient for convenience
 export { apiClient };
@@ -186,6 +187,15 @@ apiClient.interceptors.response.use(
     (response: AxiosResponse) => response,
     async (error: AxiosError) => {
         const originalRequest = error.config as any;
+
+        try {
+            const friendlyMessage = getErrorMessage(error, error.message || 'Request failed');
+            if (friendlyMessage && friendlyMessage !== error.message) {
+                error.message = friendlyMessage;
+            }
+        } catch {
+            // Keep original axios message if formatting fails.
+        }
 
         // 1. Rate Limit Retry (429)
         if (error.response?.status === 429) {

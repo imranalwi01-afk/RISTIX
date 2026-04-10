@@ -1,9 +1,0 @@
-[**Backend API Reference v1.0.0**](../../../README.md)
-
-***
-
-# Variable: ProductParamSchema
-
-> `const` **ProductParamSchema**: `ZodObject`\<\{ `activeFlag`: `ZodDefault`\<`ZodBoolean`\>; `alFlag`: `ZodOptional`\<`ZodString`\>; `amortizationType`: `ZodOptional`\<`ZodString`\>; `bmFlag`: `ZodOptional`\<`ZodBoolean`\>; `borrowingRate`: `ZodOptional`\<`ZodNumber`\>; `createdby`: `ZodDefault`\<`ZodString`\>; `currency`: `ZodString`; `dataSource`: `ZodString`; `expectedLife`: `ZodOptional`\<`ZodNumber`\>; `impairedFlag`: `ZodOptional`\<`ZodBoolean`\>; `marketRate`: `ZodOptional`\<`ZodNumber`\>; `mode`: `ZodOptional`\<`ZodEnum`\<\[`"conventional"`, `"sharia"`\]\>\>; `prdCode`: `ZodString`; `prdDesc`: `ZodString`; `prdGroup`: `ZodString`; `prdType`: `ZodString`; \}, `"strip"`, `ZodTypeAny`, \{ `activeFlag`: `boolean`; `alFlag?`: `string`; `amortizationType?`: `string`; `bmFlag?`: `boolean`; `borrowingRate?`: `number`; `createdby`: `string`; `currency`: `string`; `dataSource`: `string`; `expectedLife?`: `number`; `impairedFlag?`: `boolean`; `marketRate?`: `number`; `mode?`: `"conventional"` \| `"sharia"`; `prdCode`: `string`; `prdDesc`: `string`; `prdGroup`: `string`; `prdType`: `string`; \}, \{ `activeFlag?`: `boolean`; `alFlag?`: `string`; `amortizationType?`: `string`; `bmFlag?`: `boolean`; `borrowingRate?`: `number`; `createdby?`: `string`; `currency`: `string`; `dataSource`: `string`; `expectedLife?`: `number`; `impairedFlag?`: `boolean`; `marketRate?`: `number`; `mode?`: `"conventional"` \| `"sharia"`; `prdCode`: `string`; `prdDesc`: `string`; `prdGroup`: `string`; `prdType`: `string`; \}\>
-
-Defined in: [src/routes/product-parameters.routes.ts:20](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/routes/product-parameters.routes.ts#L20)

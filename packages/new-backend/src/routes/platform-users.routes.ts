@@ -9,8 +9,10 @@ import { runEffect } from '../lib/effect'
 import { parsePaginationParams, parseFilterParams } from '../lib/react-admin'
 import { DatabaseError } from '../lib/errors'
 import * as tenantsService from '../services/tenants.service'
+import { buildErrorResponse } from '../lib/http/error-response'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-export const platformUsersRoutes: any = new OpenAPIHono<AppContext>()
+export const platformUsersRoutes: any = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 platformUsersRoutes.use('*', authMiddleware)
 platformUsersRoutes.use('*', async (c: any, next: any) => {
@@ -18,7 +20,6 @@ platformUsersRoutes.use('*', async (c: any, next: any) => {
     const canManagePlatformUsers =
         Boolean(c.get('isSystemUser')) ||
         permissions.includes('admin.super_admin') ||
-        permissions.includes('SUPER_ADMIN') ||
         permissions.includes('PLATFORM_ADMIN') ||
         permissions.includes('admin.system.manage')
 
@@ -339,7 +340,7 @@ platformUsersRoutes.openapi(
 
         const result = await Effect.runPromise(effect)
         if (!result) {
-            return c.json({ success: false, error: 'Platform user not found', code: 'NOT_FOUND' }, 404)
+            return c.json(buildErrorResponse(c, { error: 'Platform user not found', message: 'Platform user not found', code: 'NOT_FOUND' }), 404)
         }
 
         return c.json(result)

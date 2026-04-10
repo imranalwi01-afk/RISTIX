@@ -1,11 +1,12 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import type { AppContext } from '../app'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
 /**
  * Tenant Registry Routes (STUB)
  * TODO: Implement tenant management
  */
-export const tenantRegistryRoutes: any = new OpenAPIHono<AppContext>()
+export const tenantRegistryRoutes: any = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 // ============================================================================
 // SCHEMAS

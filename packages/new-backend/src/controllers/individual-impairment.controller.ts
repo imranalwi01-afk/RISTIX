@@ -2,6 +2,7 @@ import { individualImpairmentService } from '@/services/individual-impairment.se
 import { Context } from 'hono';
 import path from 'path'
 import { promises as fs } from 'fs'
+import { buildErrorResponse } from '@/lib/http/error-response';
 
 export class IndividualImpairmentController {
     private individualImpairmentService: any;
@@ -10,11 +11,23 @@ export class IndividualImpairmentController {
         this.individualImpairmentService = individualImpairmentService;
     }
 
+    private unauthorized(c: Context) {
+        return c.json(buildErrorResponse(c, { error: 'Unauthorized', message: 'Unauthorized', code: 'UNAUTHORIZED' }), 401);
+    }
+
+    private badRequest(c: Context, message: string) {
+        return c.json(buildErrorResponse(c, { error: message, message, code: 'BAD_REQUEST' }), 400);
+    }
+
+    private notFound(c: Context, message: string) {
+        return c.json(buildErrorResponse(c, { error: message, message, code: 'NOT_FOUND' }), 404);
+    }
+
     // ================= WATCHLIST =================
     async getWatchlist(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!user?.tenantId) return this.unauthorized(c);
 
             // 1. Extract Pagination Parameters
             const page = Number(c.req.query('page')) || 1;
@@ -72,7 +85,7 @@ export class IndividualImpairmentController {
     async getCustomerList(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!user?.tenantId) return this.unauthorized(c);
 
             const page = Number(c.req.query('page')) || 1;
             const limit = Number(c.req.query('limit')) || 25;
@@ -116,7 +129,7 @@ export class IndividualImpairmentController {
     async addToWatchlist(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!user?.tenantId) return this.unauthorized(c);
 
             const body = await c.req.json();
             const data = await individualImpairmentService.addToWatchlist({
@@ -134,10 +147,10 @@ export class IndividualImpairmentController {
         try {
             const user = c.get('user');
             const tenantId = user?.tenantId;
-            if (!tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!tenantId) return this.unauthorized(c);
 
             const id = c.req.param('id');
-            if (!id) return c.json({ success: false, message: 'ID required' }, 400);
+            if (!id) return this.badRequest(c, 'ID required');
             await individualImpairmentService.removeFromWatchlist(id, tenantId);
             return c.json({ success: true, message: 'Removed from watchlist' });
         } catch (error: any) {
@@ -149,13 +162,13 @@ export class IndividualImpairmentController {
     async getAssessment(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!user?.tenantId) return this.unauthorized(c);
 
             const accountId = Number(c.req.param('accountId'));
-            if (!accountId) return c.json({ success: false, message: 'Account ID required' }, 400);
+            if (!accountId) return this.badRequest(c, 'Account ID required');
 
             const data = await individualImpairmentService.getAssessment(user.tenantId, accountId);
-            if (!data) return c.json({ success: false, message: 'Assessment not found' }, 404);
+            if (!data) return this.notFound(c, 'Assessment not found');
 
             return c.json({ success: true, data });
         } catch (error: any) {
@@ -166,7 +179,7 @@ export class IndividualImpairmentController {
     async submitAssessment(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!user?.tenantId) return this.unauthorized(c);
 
             const id = Number(c.req.param('id'));
             const { comments } = await c.req.json();
@@ -181,7 +194,7 @@ export class IndividualImpairmentController {
     async approveAssessment(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!user?.tenantId) return this.unauthorized(c);
 
             const id = Number(c.req.param('id'));
             const { comments } = await c.req.json();
@@ -196,7 +209,7 @@ export class IndividualImpairmentController {
     async rejectAssessment(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!user?.tenantId) return this.unauthorized(c);
 
             const id = Number(c.req.param('id'));
             const { reason } = await c.req.json();
@@ -211,7 +224,7 @@ export class IndividualImpairmentController {
     async createAssessment(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!user?.tenantId) return this.unauthorized(c);
 
             const body = await c.req.json();
             const data = await individualImpairmentService.createAssessment({
@@ -229,7 +242,7 @@ export class IndividualImpairmentController {
     async getOverrides(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!user?.tenantId) return this.unauthorized(c);
 
             const status = c.req.query('status');
             const limit = Number(c.req.query('limit')) || 50;
@@ -245,7 +258,7 @@ export class IndividualImpairmentController {
     async createOverride(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!user?.tenantId) return this.unauthorized(c);
 
             const body = await c.req.json();
 
@@ -331,7 +344,7 @@ export class IndividualImpairmentController {
     async getHistory(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!user?.tenantId) return this.unauthorized(c);
 
             const entityType = c.req.query('entityType');
             const limit = Number(c.req.query('limit')) || 50;
@@ -348,10 +361,10 @@ export class IndividualImpairmentController {
     async getAssessmentHistory(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!user?.tenantId) return this.unauthorized(c);
 
             const accountId = Number(c.req.param('accountId'));
-            if (!accountId) return c.json({ success: false, message: 'Account ID required' }, 400);
+            if (!accountId) return this.badRequest(c, 'Account ID required');
 
             const data = await individualImpairmentService.getAssessmentHistory(user.tenantId, accountId);
             return c.json({ success: true, data });
@@ -364,7 +377,7 @@ export class IndividualImpairmentController {
     async getReports(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!user?.tenantId) return this.unauthorized(c);
 
             const reportPeriod = c.req.query('reportPeriod');
             const limit = Number(c.req.query('limit')) || 50;
@@ -380,7 +393,7 @@ export class IndividualImpairmentController {
     async createReport(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!user?.tenantId) return this.unauthorized(c);
 
             const body = await c.req.json();
             const data = await individualImpairmentService.createReport({
@@ -398,7 +411,7 @@ export class IndividualImpairmentController {
     async getScenarios(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!user?.tenantId) return this.unauthorized(c);
 
             const status = c.req.query('status');
             const accountId = Number(c.req.query('accountId'));
@@ -413,7 +426,7 @@ export class IndividualImpairmentController {
     async createScenario(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!user?.tenantId) return this.unauthorized(c);
 
             const body = await c.req.json();
             const data = await individualImpairmentService.createScenario({
@@ -432,12 +445,12 @@ export class IndividualImpairmentController {
             const user = c.get('user');
             const tenantId = user?.tenantId;
             const userId = user?.id;
-            if (!tenantId || !userId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!tenantId || !userId) return this.unauthorized(c);
 
             const id = c.req.param('id');
             const { status } = await c.req.json(); // { status: "APPROVED" }
-            if (!id) return c.json({ success: false, message: 'ID required' }, 400);
-            if (!status) return c.json({ success: false, message: 'Status required' }, 400);
+            if (!id) return this.badRequest(c, 'ID required');
+            if (!status) return this.badRequest(c, 'Status required');
 
             const data = await individualImpairmentService.updateScenarioStatus(id, tenantId, status, userId);
             return c.json({ success: true, data: data[0] });
@@ -450,7 +463,7 @@ export class IndividualImpairmentController {
     async getDcfUploads(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!user?.tenantId) return this.unauthorized(c);
 
             const data = await individualImpairmentService.getDcfUploads(user.tenantId);
             return c.json({ success: true, data });
@@ -463,10 +476,10 @@ export class IndividualImpairmentController {
         try {
             const user = c.get('user');
             const tenantId = user?.tenantId;
-            if (!tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!tenantId) return this.unauthorized(c);
 
             const uploadId = c.req.param('uploadId');
-            if (!uploadId) return c.json({ success: false, message: 'Upload ID required' }, 400);
+            if (!uploadId) return this.badRequest(c, 'Upload ID required');
             const data = await individualImpairmentService.getDcfCashflows(tenantId, uploadId);
             return c.json({ success: true, data });
         } catch (error: any) {
@@ -476,7 +489,7 @@ export class IndividualImpairmentController {
     async getDcfCalculations(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!user?.tenantId) return this.unauthorized(c);
 
             const data = await individualImpairmentService.getDcfCalculations(user.tenantId);
             return c.json({ success: true, data });
@@ -488,7 +501,7 @@ export class IndividualImpairmentController {
     async getIaResultDetail(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!user?.tenantId) return this.unauthorized(c);
 
             const accountIdRaw = c.req.query('accountId');
             const accountNumber = c.req.query('accountNumber');
@@ -508,7 +521,7 @@ export class IndividualImpairmentController {
     async calculateDcf(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!user?.tenantId) return this.unauthorized(c);
             const body = await c.req.json();
 
             // Panggil Service untuk hitung matematika
@@ -516,22 +529,21 @@ export class IndividualImpairmentController {
 
             return c.json({ success: true, data });
         } catch (error: any) {
-            // Error Handling standar
-            return c.json({ success: false, message: error.message }, 500);
+            return this.handleError(c, error);
         }
     }
 
     async createBatchUpload(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!user?.tenantId) return this.unauthorized(c);
 
             const body = await c.req.json();
             const { fileName, batchId, cashflows } = body;
 
             // Basic validation
             if (!fileName || !cashflows || !Array.isArray(cashflows)) {
-                return c.json({ success: false, message: 'Invalid payload' }, 400);
+                return this.badRequest(c, 'Invalid payload');
             }
 
             // Create Upload Header
@@ -566,28 +578,28 @@ export class IndividualImpairmentController {
 
         // 1. Validation / Business Logic Errors (User can fix these)
         if (msg.includes('not found') || msg.includes('validation') || msg.includes('Master Data') || msg.includes('Invalid payload') || msg.includes('not found in Master Data')) {
-            return c.json({ success: false, message: msg }, 400);
+            return c.json(buildErrorResponse(c, { error: msg, message: msg, code: 'BAD_REQUEST' }), 400);
         }
 
         // 2. Conflict Errors
         if (msg.includes('duplicate') || msg.includes('unique constraint') || msg.includes('already exists')) {
-            return c.json({ success: false, message: 'Data conflict: Record already exists or violates unique constraint.' }, 409);
+            return c.json(buildErrorResponse(c, { error: 'Data conflict: Record already exists or violates unique constraint.', message: 'Data conflict: Record already exists or violates unique constraint.', code: 'CONFLICT' }), 409);
         }
 
         // 3. Unauthorized (handled usually by middleware, but just in case)
         if (msg.includes('Unauthorized')) {
-            return c.json({ success: false, message: 'Unauthorized Access' }, 401);
+            return this.unauthorized(c);
         }
 
         // 4. Default System Error
-        return c.json({ success: false, message: 'System Error: ' + msg }, 500);
+        return c.json(buildErrorResponse(c, { error: 'System Error: ' + msg, message: 'System Error: ' + msg, code: 'INDIVIDUAL_IMPAIRMENT_ERROR' }), 500);
     }
 
     // Get Watchlist Summary
     async getWatchlistSummary(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!user?.tenantId) return this.unauthorized(c);
             
             const date = c.req.query('date'); // Extract date from query params
             const summary = await individualImpairmentService.getWatchlistSummary(user.tenantId, date);
@@ -604,7 +616,7 @@ export class IndividualImpairmentController {
             const tenantId = user?.tenantId || c.get('tenantId');
             
             if (!tenantId) {
-                return c.json({ success: false, message: 'Tenant ID required' }, 400);
+                return this.badRequest(c, 'Tenant ID required');
             }
 
             // Get staging summary from calculation results
@@ -620,7 +632,7 @@ export class IndividualImpairmentController {
     async getStagingAnalysis(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!user?.tenantId) return this.unauthorized(c);
 
             // Extract filter parameters
             const stage = c.req.query('stage');

@@ -9,74 +9,47 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import dynamic from 'next/dynamic';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Typography,
-  Container,
-  Paper,
   Card,
   CardContent,
   Button,
   CircularProgress,
   Alert,
-  Breadcrumbs,
-  Link,
   TextField,
   MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  IconButton,
   Chip,
   FormControl,
   InputLabel,
   Select,
-  FormControlLabel,
-  Checkbox,
-  Divider,
-  Tabs,
-  Tab,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Snackbar,
-  FormHelperText
 } from '@mui/material';
 import {
   Calculate as EclIcon,
-  Home as HomeIcon,
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Refresh as RefreshIcon,
   Search as SearchIcon,
   Download as ExportIcon,
-  ExpandMore as ExpandMoreIcon,
   PlayArrow as RunIcon,
   Schedule as ScheduleIcon,
-  Event as EventIcon,
-  Visibility as VisibilityIcon
+  Visibility as VisibilityIcon,
+  TableChart as PreviewResultIcon
 } from '@mui/icons-material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
 import { useSearchParams } from 'next/navigation';
 
-import { GridColDef, GridRowId, GridToolbar } from '@mui/x-data-grid';
+import { GridColDef } from '@mui/x-data-grid';
 
 // Safe DataGrid wrapper to prevent bundling issues
-import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
+import { SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import {
   ApprovalNotification,
   ApprovalStatusBadge,
+  buildApprovalConflictNotification,
   buildApprovalNotification,
   createClosedApprovalNotification,
   type ApprovalNotificationState,
@@ -86,45 +59,9 @@ import { usePermission } from '@/hooks/usePermission';
 // Premium Layout Components
 import ReportPageLayout from '@/components/ifrs9/ReportPageLayout';
 import ReportDataGrid from '@/components/ifrs9/ReportDataGrid';
-
-// Types based on live database structure: frs9_imp_ca_ecl_configh + frs9_imp_ca_ecl_configd
-interface ECLConfigHeader {
-  pkid: number;
-  ecl_model_name: string;
-  module: string;
-  module_name?: string;
-  effective_date: string;
-  active_flag: boolean;
-  last_run_period?: string;
-  last_run_status?: string;
-  last_run_date?: string;
-  createdby?: string;
-  createddate?: string;
-  updatedby?: string;
-  updateddate?: string;
-  details: ECLConfigDetail[];
-}
-
-interface ECLConfigDetail {
-  pkid: number;
-  ecl_model_id: number;
-  pf_segment_id: number;
-  pf_segment_name?: string;
-  stage_rule_id: number;
-  stage_rule_name?: string;
-  pd_model_id: number;
-  pd_model_name?: string;
-  lgd_model_id: number;
-  lgd_model_name?: string;
-  ead_model_id: number;
-  ead_model_name?: string;
-  overlay_rate: number;
-  period_type: number;
-  period_type_name?: string;
-  period_date?: string;
-  createdby?: string;
-  createddate?: string;
-}
+import { ECLConfigDialog } from './components/ECLConfigDialog';
+import { ECLPreviewResultsDialog } from './components/ECLPreviewResultsDialog';
+import type { ECLConfigDetail, ECLConfigHeader, ECLPreviewDetail, ECLPreviewHeader, LookupOption } from './types';
 
 // API service for ECL Configuration - Use centralized api service
 import { api } from '../../../../services/api';
@@ -135,12 +72,8 @@ import {
   eclDetailConfigurationSchema,
   validateWithSchema,
 } from '@/lib/validation/collective-config.validation';
+import { getErrorMessage } from '@/utils/error-message';
 
-interface LookupOption {
-  value: string;
-  label: string;
-  segmentId?: string;
-}
 
 const ECL_PORTFOLIO_SEGMENT_TYPE = 'PF';
 const ECL_STAGE_RULE_TYPE = 'STAGE';
@@ -246,14 +179,6 @@ const filterRowsByBankingMode = <T extends Record<string, any>>(rows: T[], banki
   });
 
   return filtered.length > 0 ? filtered : rows;
-};
-
-const getModelOptionsForSegment = (options: LookupOption[], selectedSegmentId?: string | number): LookupOption[] => {
-  const segmentId = String(selectedSegmentId ?? '').trim();
-  if (!segmentId) return options;
-
-  const matching = options.filter((option) => !option.segmentId || option.segmentId === segmentId);
-  return matching.length > 0 ? matching : options;
 };
 
 const formatShortDate = (value?: string | null): string => {
@@ -458,7 +383,10 @@ export default function ECLConfigurationPage() {
   const [filteredConfigs, setFilteredConfigs] = useState<ECLConfigHeader[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [selectedEclConfig, setSelectedEclConfig] = useState<ECLConfigHeader | null>(null);
+  const [selectedPreviewConfig, setSelectedPreviewConfig] = useState<ECLConfigHeader | null>(null);
+  const [selectedPreviewResult, setSelectedPreviewResult] = useState<ECLPreviewHeader | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterModule, setFilterModule] = useState<string>('');
@@ -467,7 +395,17 @@ export default function ECLConfigurationPage() {
   const [runStatus, setRunStatus] = useState<{ severity: 'success' | 'error' | 'info'; message: string } | null>(null);
   const [runningConfigId, setRunningConfigId] = useState<number | null>(null);
   const [runningAll, setRunningAll] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewDetailLoading, setPreviewDetailLoading] = useState(false);
+  const [previewResults, setPreviewResults] = useState<ECLPreviewHeader[]>([]);
+  const [previewDetailResults, setPreviewDetailResults] = useState<ECLPreviewDetail[]>([]);
   const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
+  const showApprovalConflict = useCallback((error: unknown, fallbackMessage: string) => {
+    const notification = buildApprovalConflictNotification(error, fallbackMessage);
+    if (!notification) return false;
+    setApprovalNotification(notification);
+    return true;
+  }, []);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; type: 'success' | 'error' }>({
     open: false,
     message: '',
@@ -760,7 +698,7 @@ export default function ECLConfigurationPage() {
   };
 
   // CRUD operations
-  const handleAdd = () => {
+  const handleAdd = useCallback(() => {
     setSelectedEclConfig(null);
     setHeaderFormData(createEmptyHeaderFormData());
     setDetailFormData(createEmptyDetailFormData());
@@ -769,9 +707,9 @@ export default function ECLConfigurationPage() {
     setIsViewOnly(false);
     setCurrentTab(0);
     setIsDialogOpen(true);
-  };
+  }, []);
 
-  const handleEdit = async (eclConfig: ECLConfigHeader) => {
+  const handleEdit = useCallback(async (eclConfig: ECLConfigHeader) => {
     const detailConfig = await loadConfigDetail(eclConfig.pkid);
     if (!detailConfig) return;
 
@@ -789,9 +727,9 @@ export default function ECLConfigurationPage() {
     setIsViewOnly(false);
     setCurrentTab(0);
     setIsDialogOpen(true);
-  };
+  }, [loadConfigDetail]);
 
-  const handleView = async (eclConfig: ECLConfigHeader) => {
+  const handleView = useCallback(async (eclConfig: ECLConfigHeader) => {
     const detailConfig = await loadConfigDetail(eclConfig.pkid);
     if (!detailConfig) return;
 
@@ -809,7 +747,7 @@ export default function ECLConfigurationPage() {
     setIsViewOnly(true);
     setCurrentTab(0);
     setIsDialogOpen(true);
-  };
+  }, [loadConfigDetail]);
 
   const handleSave = async () => {
     const isHeaderOnlyUpdate = isEditing && currentTab === 0;
@@ -864,13 +802,15 @@ export default function ECLConfigurationPage() {
 
     } catch (error) {
       console.error('❌ [ECL-CONFIG] Error saving configuration:', error);
-      setError(isEditing ? 'Failed to update ECL configuration.' : 'Failed to create ECL configuration.');
+      if (!showApprovalConflict(error, 'Request submitted for approval')) {
+        setError(isEditing ? 'Failed to update ECL configuration.' : 'Failed to create ECL configuration.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (eclConfig: ECLConfigHeader) => {
+  const handleDelete = useCallback(async (eclConfig: ECLConfigHeader) => {
     if (!confirm(`Are you sure you want to delete ECL configuration "${eclConfig.ecl_model_name}"?`)) {
       return;
     }
@@ -895,13 +835,15 @@ export default function ECLConfigurationPage() {
       await loadPendingApprovals();
     } catch (error) {
       console.error('❌ [ECL-CONFIG] Error deleting configuration:', error);
-      setError('Failed to delete ECL configuration.');
+      if (!showApprovalConflict(error, 'Deletion request submitted for approval')) {
+        setError('Failed to delete ECL configuration.');
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [loadEclConfigurations, loadPendingApprovals, showApprovalConflict]);
 
-  const buildEclRunPayload = async (eclConfig?: ECLConfigHeader) => {
+  const buildEclRunPayload = useCallback(async (eclConfig?: ECLConfigHeader) => {
     const processDate = new Date().toISOString().split('T')[0];
     let configHeader = eclConfig?.ecl_model_name?.trim() || '';
     let segmentIds: number[] = [];
@@ -933,9 +875,9 @@ export default function ECLConfigurationPage() {
       segmentIds,
       ...(configHeader ? { configHeader, eclModelName: configHeader } : {})
     };
-  };
+  }, []);
 
-  const handleRunEcl = async (eclConfig: ECLConfigHeader) => {
+  const handleRunEcl = useCallback(async (eclConfig: ECLConfigHeader) => {
     setRunStatus(null);
     setError(null);
     setRunningConfigId(eclConfig.pkid);
@@ -960,9 +902,9 @@ export default function ECLConfigurationPage() {
     } finally {
       setRunningConfigId(null);
     }
-  };
+  }, [buildEclRunPayload]);
 
-  const handleRunAllEcl = async () => {
+  const handleRunAllEcl = useCallback(async () => {
     setRunStatus(null);
     setError(null);
     setRunningAll(true);
@@ -987,10 +929,85 @@ export default function ECLConfigurationPage() {
     } finally {
       setRunningAll(false);
     }
-  };
+  }, [buildEclRunPayload]);
+
+  const handleLoadPreviewDetail = useCallback(
+    async (configId: number, result: ECLPreviewHeader) => {
+      const accountId = Number(result.account_id);
+      if (!Number.isFinite(accountId)) {
+        setPreviewDetailResults([]);
+        setSelectedPreviewResult(result);
+        return;
+      }
+
+      setPreviewDetailLoading(true);
+      try {
+        const response = await api.banking.eclConfigurations.getPreviewResultDetail(configId, accountId);
+        const rows = Array.isArray(response)
+          ? response
+          : Array.isArray((response as any)?.data)
+            ? (response as any).data
+            : [];
+        setSelectedPreviewResult(result);
+        setPreviewDetailResults(rows as ECLPreviewDetail[]);
+      } catch (previewError) {
+        setPreviewDetailResults([]);
+        setError(getErrorMessage(previewError, 'Failed to load ECL preview detail'));
+      } finally {
+        setPreviewDetailLoading(false);
+      }
+    },
+    []
+  );
+
+  const handleOpenPreviewResults = useCallback(async (eclConfig: ECLConfigHeader) => {
+    setSelectedPreviewConfig(eclConfig);
+    setSelectedPreviewResult(null);
+    setPreviewResults([]);
+    setPreviewDetailResults([]);
+    setPreviewLoading(true);
+    setPreviewDetailLoading(false);
+    setIsPreviewDialogOpen(true);
+    setError(null);
+
+    try {
+      const response = await api.banking.eclConfigurations.getPreviewResults(eclConfig.pkid);
+      const rows = Array.isArray(response)
+        ? response
+        : Array.isArray((response as any)?.data)
+          ? (response as any).data
+          : [];
+
+      setPreviewResults(rows as ECLPreviewHeader[]);
+
+      if (rows.length > 0) {
+        await handleLoadPreviewDetail(eclConfig.pkid, rows[0] as ECLPreviewHeader);
+      }
+    } catch (previewError) {
+      setError(getErrorMessage(previewError, 'Failed to load ECL preview results'));
+    } finally {
+      setPreviewLoading(false);
+    }
+  }, [handleLoadPreviewDetail]);
+
+  const handleClosePreviewDialog = useCallback(() => {
+    setIsPreviewDialogOpen(false);
+    setSelectedPreviewConfig(null);
+    setSelectedPreviewResult(null);
+    setPreviewResults([]);
+    setPreviewDetailResults([]);
+    setPreviewLoading(false);
+    setPreviewDetailLoading(false);
+  }, []);
+
+  const handleCloseConfigDialog = useCallback(() => {
+    setIsDialogOpen(false);
+    setFormErrors({});
+    setIsViewOnly(false);
+  }, []);
 
   // DataGrid columns
-  const columns: GridColDef[] = [
+  const columns: GridColDef[] = useMemo(() => [
     {
       field: 'ecl_model_name',
       headerName: 'ECL Model Name',
@@ -1100,7 +1117,7 @@ export default function ECLConfigurationPage() {
       field: 'actions',
       type: 'actions',
       headerName: 'Actions',
-      width: 150,
+      width: 190,
       getActions: (params) => [
         <SafeGridActionsCellItem
           key="run"
@@ -1111,9 +1128,17 @@ export default function ECLConfigurationPage() {
           color="primary"
         />,
         <SafeGridActionsCellItem
+          key="preview-results"
+          icon={<PreviewResultIcon color="secondary" />}
+          label="Preview Result"
+          data-testid="view-ecl-preview-btn"
+          onClick={() => handleOpenPreviewResults(params.row)}
+          color="inherit"
+        />,
+        <SafeGridActionsCellItem
           key="view"
           icon={<VisibilityIcon color="info" />}
-          label="Detail"
+          label="View Config"
           data-testid="view-ecl-config-btn"
           onClick={() => handleView(params.row)}
           color="inherit"
@@ -1136,7 +1161,16 @@ export default function ECLConfigurationPage() {
         />
       ]
     }
-  ];
+  ], [
+    handleDelete,
+    handleEdit,
+    handleOpenPreviewResults,
+    handleRunEcl,
+    handleView,
+    pendingRequests,
+    runningAll,
+    runningConfigId,
+  ]);
 
   return (
     <ReportPageLayout
@@ -1325,399 +1359,44 @@ export default function ECLConfigurationPage() {
         </CardContent>
       </Card>
 
-      {/* Add/Edit Dialog */}
-      <Dialog
+      <ECLConfigDialog
         open={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
-        maxWidth="lg"
-        fullWidth
-      >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <EclIcon />
-          {isViewOnly ? 'View ECL Configuration' : isEditing ? 'Edit ECL Configuration' : 'Add ECL Configuration'}
-        </DialogTitle>
-        <DialogContent dividers>
-          <Tabs value={currentTab} onChange={(_, newValue) => setCurrentTab(newValue)}>
-            <Tab label="Header Information" data-testid="ecl-header-tab" />
-            <Tab label="Segment Configuration" data-testid="ecl-segment-tab" />
-          </Tabs>
-
-          {currentTab === 0 && (
-            <Box sx={{ mt: 3 }}>
-              <Typography variant="h6" color="primary" gutterBottom>
-                ECL Model Information
-              </Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 3 }}>
-                <Box sx={{ gridColumn: 'span 2' }}>
-                  <TextField
-                    fullWidth
-                    label="ECL Model Name"
-                    value={headerFormData.ecl_model_name || ''}
-                    onChange={(e) => handleHeaderFieldChange('ecl_model_name', e.target.value)}
-                    disabled={isViewOnly}
-                    error={!!formErrors.ecl_model_name}
-                    helperText={formErrors.ecl_model_name}
-                    required
-                    data-testid="ecl-model-name-input"
-                  />
-                </Box>
-
-                <Box>
-                  <FormControl fullWidth error={!!formErrors.module} required>
-                    <InputLabel>Module</InputLabel>
-                    <Select
-                      value={headerFormData.module || ''}
-                      label="Module"
-                      disabled={isViewOnly}
-                      onChange={(e) => handleHeaderFieldChange('module', e.target.value)}
-                      data-testid="ecl-module-select"
-                    >
-                      {moduleOptions.map((module, idx) => (
-                        <MenuItem key={`${module.value}-${idx}`} value={module.value}>
-                          {module.label}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {formErrors.module && (
-                      <Typography variant="caption" color="error" sx={{ ml: 1.5, mt: 0.5 }}>
-                        {formErrors.module}
-                      </Typography>
-                    )}
-                  </FormControl>
-                </Box>
-
-                <Box>
-                  <DatePicker
-                    label="Effective Date"
-                    value={headerFormData.effective_date ? new Date(headerFormData.effective_date as string) : null}
-                    onChange={(newValue) => {
-                      if (isViewOnly) return;
-                      if (newValue) {
-                        const dateStr = newValue instanceof Date
-                          ? newValue.toISOString().split('T')[0]
-                          : (newValue as any).toISOString().split('T')[0];
-                        handleHeaderFieldChange('effective_date', dateStr);
-                      } else {
-                        handleHeaderFieldChange('effective_date', '');
-                      }
-                    }}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        disabled: isViewOnly,
-                        error: !!formErrors.effective_date,
-                        helperText: formErrors.effective_date,
-                        required: true,
-                        InputLabelProps: { shrink: true },
-                        'data-testid': 'ecl-effective-date-input'
-                      } as any
-                    }}
-                  />
-                </Box>
-
-                <Box sx={{ gridColumn: 'span 2' }}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={headerFormData.active_flag || false}
-                        disabled={isViewOnly}
-                        onChange={(e) => handleHeaderFieldChange('active_flag', e.target.checked)}
-                        data-testid="ecl-active-flag-checkbox"
-                      />
-                    }
-                    label="Active Configuration"
-                  />
-                </Box>
-              </Box>
-            </Box>
-          )}
-
-          {currentTab === 1 && (
-            <Box sx={{ mt: 3 }}>
-              <Typography variant="h6" color="primary" gutterBottom>
-                Add Segment Configuration
-              </Typography>
-
-              {(() => {
-                const requiresPeriodDate = Number(detailFormData.period_type) === 5;
-                return (
-                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3, mb: 3 }}>
-                    <Box>
-                      <FormControl fullWidth required>
-                        <InputLabel>Segment</InputLabel>
-                        <Select
-                          value={detailFormData.pf_segment_id || ''}
-                          label="Segment"
-                          disabled={isViewOnly}
-                          error={!!formErrors.pf_segment_id}
-                          onChange={(e) => handleDetailFieldChange('pf_segment_id', Number(e.target.value))}
-                          data-testid="ecl-segment-select"
-                        >
-                          {segmentOptions.map((segment, idx) => (
-                            <MenuItem key={`${segment.value}-${idx}`} value={segment.value}>
-                              {segment.label}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                        <FormHelperText error={!!formErrors.pf_segment_id}>
-                          {formErrors.pf_segment_id || 'Source: Portfolio segment master (PF)'}
-                        </FormHelperText>
-                      </FormControl>
-                    </Box>
-
-                    <Box>
-                      <FormControl fullWidth error={!!formErrors.stage_rule_id}>
-                        <InputLabel>Stage Rule</InputLabel>
-                        <Select
-                          value={detailFormData.stage_rule_id || ''}
-                          label="Stage Rule"
-                          disabled={isViewOnly}
-                          onChange={(e) => handleDetailFieldChange('stage_rule_id', Number(e.target.value))}
-                          data-testid="ecl-stage-rule-select"
-                        >
-                          {stageRuleOptions.map((rule, idx) => (
-                            <MenuItem key={`${rule.value}-${idx}`} value={rule.value}>
-                              {rule.label}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                        <FormHelperText error={!!formErrors.stage_rule_id}>
-                          {formErrors.stage_rule_id || 'Source: Rule base header (STAGE)'}
-                        </FormHelperText>
-                      </FormControl>
-                    </Box>
-
-                    <Box>
-                      <FormControl fullWidth required error={!!formErrors.pd_model_id}>
-                        <InputLabel>PD Model</InputLabel>
-                        <Select
-                          value={detailFormData.pd_model_id || ''}
-                          label="PD Model"
-                          disabled={isViewOnly}
-                          onChange={(e) => handleDetailFieldChange('pd_model_id', Number(e.target.value))}
-                          data-testid="ecl-pd-model-select"
-                        >
-                          {getModelOptionsForSegment(pdModelOptions, detailFormData.pf_segment_id)
-                            .map((model, idx) => (
-                              <MenuItem key={`${model.value}-${idx}`} value={model.value}>
-                                {model.label}
-                              </MenuItem>
-                            ))}
-                        </Select>
-                        <FormHelperText error={!!formErrors.pd_model_id}>
-                          {formErrors.pd_model_id || 'Source: PD Config'}
-                        </FormHelperText>
-                      </FormControl>
-                    </Box>
-
-                    <Box>
-                      <FormControl fullWidth required error={!!formErrors.lgd_model_id}>
-                        <InputLabel>LGD Model</InputLabel>
-                        <Select
-                          value={detailFormData.lgd_model_id || ''}
-                          label="LGD Model"
-                          disabled={isViewOnly}
-                          onChange={(e) => handleDetailFieldChange('lgd_model_id', Number(e.target.value))}
-                          data-testid="ecl-lgd-model-select"
-                        >
-                          {getModelOptionsForSegment(lgdModelOptions, detailFormData.pf_segment_id)
-                            .map((model, idx) => (
-                              <MenuItem key={`${model.value}-${idx}`} value={model.value}>
-                                {model.label}
-                              </MenuItem>
-                            ))}
-                        </Select>
-                        <FormHelperText error={!!formErrors.lgd_model_id}>
-                          {formErrors.lgd_model_id || 'Source: LGD Config'}
-                        </FormHelperText>
-                      </FormControl>
-                    </Box>
-
-                    <Box>
-                      <FormControl fullWidth required error={!!formErrors.ead_model_id}>
-                        <InputLabel>EAD Model</InputLabel>
-                        <Select
-                          value={detailFormData.ead_model_id || ''}
-                          label="EAD Model"
-                          disabled={isViewOnly}
-                          onChange={(e) => handleDetailFieldChange('ead_model_id', Number(e.target.value))}
-                          data-testid="ecl-ead-model-select"
-                        >
-                          {getModelOptionsForSegment(eadModelOptions, detailFormData.pf_segment_id)
-                            .map((model, idx) => (
-                              <MenuItem key={`${model.value}-${idx}`} value={model.value}>
-                                {model.label}
-                              </MenuItem>
-                            ))}
-                        </Select>
-                        <FormHelperText error={!!formErrors.ead_model_id}>
-                          {formErrors.ead_model_id || 'Source: EAD Config'}
-                        </FormHelperText>
-                      </FormControl>
-                    </Box>
-
-                    <Box>
-                      <TextField
-                        fullWidth
-                        label="Overlay Rate (%)"
-                        type="number"
-                        value={detailFormData.overlay_rate || ''}
-                        disabled={isViewOnly}
-                        onChange={(e) => handleDetailFieldChange('overlay_rate', Number(e.target.value))}
-                        inputProps={{ min: 0, max: 500, step: 1 }}
-                        data-testid="ecl-overlay-rate-input"
-                      />
-                    </Box>
-
-                    <Box>
-                      <FormControl fullWidth required error={!!formErrors.period_type}>
-                        <InputLabel>Period Type</InputLabel>
-                        <Select
-                          value={detailFormData.period_type || ''}
-                          label="Period Type"
-                          disabled={isViewOnly}
-                          onChange={(e) => {
-                            const nextValue = Number(e.target.value);
-                            handleDetailFieldChange('period_type', nextValue);
-                            if (nextValue !== 5) {
-                              handleDetailFieldChange('period_date', '');
-                            }
-                          }}
-                          data-testid="ecl-period-type-select"
-                        >
-                          {periodTypeOptions.map((periodType, idx) => (
-                            <MenuItem key={`${periodType.value}-${idx}`} value={periodType.value}>
-                              {periodType.label}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                        <FormHelperText error={!!formErrors.period_type}>
-                          {formErrors.period_type || 'Source: Business Setting B0025'}
-                        </FormHelperText>
-                      </FormControl>
-                    </Box>
-
-                    <Box>
-                      <DatePicker
-                        label="Period Date"
-                        value={detailFormData.period_date ? new Date(detailFormData.period_date as string) : null}
-                        onChange={(newValue) => {
-                          if (isViewOnly || !requiresPeriodDate) return;
-                          if (newValue) {
-                            const dateStr = newValue instanceof Date
-                              ? newValue.toISOString().split('T')[0]
-                              : (newValue as any).toISOString().split('T')[0];
-                            handleDetailFieldChange('period_date', dateStr);
-                          } else {
-                            handleDetailFieldChange('period_date', '');
-                          }
-                        }}
-                        slotProps={{
-                          textField: {
-                            fullWidth: true,
-                            disabled: isViewOnly || !requiresPeriodDate,
-                            error: !!formErrors.period_date,
-                            helperText: formErrors.period_date || (requiresPeriodDate ? 'Required when Period Type = 5' : 'Enabled when Period Type = 5'),
-                            InputLabelProps: { shrink: true },
-                            'data-testid': 'ecl-period-date-input'
-                          } as any
-                        }}
-                      />
-                    </Box>
-
-                    <Box sx={{ gridColumn: 'span 2' }}>
-                      {!isViewOnly && (
-                        <Button
-                          variant="contained"
-                          startIcon={<AddIcon />}
-                          onClick={handleAddDetail}
-                          data-testid="add-ecl-segment-config-btn"
-                        >
-                          Add Segment Configuration
-                        </Button>
-                      )}
-                    </Box>
-                  </Box>
-                );
-              })()}
-
-              <Divider sx={{ my: 2 }} />
-
-              <Typography variant="h6" gutterBottom>
-                Current Segment Configurations ({(headerFormData.details || []).length})
-              </Typography>
-
-              {formErrors.details && (
-                <Alert severity="error" sx={{ mb: 2 }}>
-                  {formErrors.details}
-                </Alert>
-              )}
-
-              {(headerFormData.details || []).map((detail, index) => (
-                <Accordion key={detail.pkid}>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Chip label={index + 1} size="small" />
-                      {detail.pf_segment_name} - PD: {detail.pd_model_name}
-                    </Typography>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant="body2"><strong>Segment:</strong> {detail.pf_segment_name}</Typography>
-                        <Typography variant="body2"><strong>Stage Rule:</strong> {detail.stage_rule_name || 'Default'}</Typography>
-                        <Typography variant="body2"><strong>PD Model:</strong> {detail.pd_model_name}</Typography>
-                      </Box>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant="body2"><strong>LGD Model:</strong> {detail.lgd_model_name}</Typography>
-                        <Typography variant="body2"><strong>EAD Model:</strong> {detail.ead_model_name}</Typography>
-                        <Typography variant="body2"><strong>Overlay Rate:</strong> {detail.overlay_rate}%</Typography>
-                        <Typography variant="body2"><strong>Period Type:</strong> {detail.period_type_name || detail.period_type || '-'}</Typography>
-                        <Typography variant="body2"><strong>Period Date:</strong> {detail.period_date || '-'}</Typography>
-                      </Box>
-                    </Box>
-                    {!isViewOnly && (
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-                        <Button
-                          color="error"
-                          startIcon={<DeleteIcon />}
-                          onClick={() => handleRemoveDetail(detail.pkid)}
-                        >
-                          Remove Segment
-                        </Button>
-                      </Box>
-                    )}
-                  </AccordionDetails>
-                </Accordion>
-              ))}
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => {
-            setIsDialogOpen(false);
-            setFormErrors({});
-            setIsViewOnly(false);
-          }} data-testid="cancel-ecl-config-btn">
-            {isViewOnly ? 'Close' : 'Cancel'}
-          </Button>
-          {!isViewOnly && (
-            <Button
-              variant="contained"
-              onClick={handleSave}
-              disabled={loading}
-              data-testid="save-ecl-config-btn"
-              startIcon={loading ? <CircularProgress size={16} /> : null}
-            >
-              {isEditing
-                ? currentTab === 0
-                  ? 'Update Header'
-                  : 'Update Segment Configuration'
-                : 'Create Configuration'}
-            </Button>
-          )}
-        </DialogActions>
-      </Dialog>
+        loading={loading}
+        isViewOnly={isViewOnly}
+        isEditing={isEditing}
+        currentTab={currentTab}
+        headerFormData={headerFormData}
+        detailFormData={detailFormData}
+        formErrors={formErrors}
+        moduleOptions={moduleOptions}
+        segmentOptions={segmentOptions}
+        stageRuleOptions={stageRuleOptions}
+        pdModelOptions={pdModelOptions}
+        lgdModelOptions={lgdModelOptions}
+        eadModelOptions={eadModelOptions}
+        periodTypeOptions={periodTypeOptions}
+        onClose={handleCloseConfigDialog}
+        onSave={handleSave}
+        onTabChange={setCurrentTab}
+        onHeaderFieldChange={handleHeaderFieldChange}
+        onDetailFieldChange={handleDetailFieldChange}
+        onAddDetail={handleAddDetail}
+        onRemoveDetail={handleRemoveDetail}
+      />
+      <ECLPreviewResultsDialog
+        open={isPreviewDialogOpen}
+        previewLoading={previewLoading}
+        previewDetailLoading={previewDetailLoading}
+        previewResults={previewResults}
+        previewDetailResults={previewDetailResults}
+        selectedPreviewConfig={selectedPreviewConfig}
+        selectedPreviewResult={selectedPreviewResult}
+        onClose={handleClosePreviewDialog}
+        onDrillDown={(row) => {
+          if (!selectedPreviewConfig) return;
+          handleLoadPreviewDetail(selectedPreviewConfig.pkid, row);
+        }}
+      />
       <ApprovalNotification
         open={approvalNotification.open}
         message={approvalNotification.message}

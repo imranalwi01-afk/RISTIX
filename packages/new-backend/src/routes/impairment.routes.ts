@@ -9,8 +9,10 @@ import {
 } from '../db/schema'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
+import { buildErrorResponse } from '../lib/http/error-response'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-export const impairmentRoutes: any = new OpenAPIHono<AppContext>()
+export const impairmentRoutes: any = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 impairmentRoutes.use('*', authMiddleware)
 
@@ -122,7 +124,11 @@ const ListResponse = (schema: z.ZodTypeAny) => z.object({
 const ErrorResponse = z.object({
     success: z.boolean(),
     message: z.string(),
-    error: z.string().optional()
+    error: z.string().optional(),
+    code: z.string().optional(),
+    requestId: z.string().nullable().optional(),
+    timestamp: z.string().optional(),
+    details: z.unknown().optional(),
 }).openapi('ErrorResponse')
 
 // ============================================================================
@@ -147,7 +153,7 @@ impairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c: any) => {
+    async (c: any): Promise<any> => {
         try {
             const page = Number(c.req.query('page') || '1')
             const limit = Number(c.req.query('limit') || '10')
@@ -174,7 +180,12 @@ impairmentRoutes.openapi(
             } as any)
         } catch (error) {
             console.error('Error fetching impairment results:', error)
-            return c.json({ success: false, message: 'Failed to fetch results', error: String(error) }, 500)
+            return c.json(buildErrorResponse(c, {
+                error: 'Failed to fetch results',
+                message: 'Failed to fetch results',
+                code: 'IMPAIRMENT_ERROR',
+                details: String(error),
+            }), 500)
         }
     }
 )
@@ -191,7 +202,7 @@ impairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c: any) => {
+    async (c: any): Promise<any> => {
         try {
             const results = await db
                 .select({
@@ -243,7 +254,12 @@ impairmentRoutes.openapi(
             } as any)
         } catch (error) {
             console.error('Error fetching impairment calculations:', error)
-            return c.json({ success: false, message: 'Failed to fetch calculations', error: String(error) }, 500)
+            return c.json(buildErrorResponse(c, {
+                error: 'Failed to fetch calculations',
+                message: 'Failed to fetch calculations',
+                code: 'IMPAIRMENT_ERROR',
+                details: String(error),
+            }), 500)
         }
     }
 )
@@ -260,7 +276,7 @@ impairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c: any) => {
+    async (c: any): Promise<any> => {
         try {
             const configs = await db
                 .select()
@@ -282,7 +298,12 @@ impairmentRoutes.openapi(
             return c.json({ success: true, data: formattedConfigs } as any)
         } catch (error) {
             console.error('Error fetching configurations:', error)
-            return c.json({ success: false, message: 'Failed to fetch configurations', error: String(error) }, 500)
+            return c.json(buildErrorResponse(c, {
+                error: 'Failed to fetch configurations',
+                message: 'Failed to fetch configurations',
+                code: 'IMPAIRMENT_ERROR',
+                details: String(error),
+            }), 500)
         }
     }
 )
@@ -302,13 +323,18 @@ impairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c: any) => {
+    async (c: any): Promise<any> => {
         try {
             const payload = c.req.valid('json');
             console.log('Starting calculation for:', payload.calculationName);
             return c.json({ success: true, message: 'Calculation job submitted successfully', jobId: 'JOB-' + Date.now() })
         } catch (error) {
-            return c.json({ success: false, message: 'Failed to submit calculation', error: String(error) }, 500)
+            return c.json(buildErrorResponse(c, {
+                error: 'Failed to submit calculation',
+                message: 'Failed to submit calculation',
+                code: 'IMPAIRMENT_ERROR',
+                details: String(error),
+            }), 500)
         }
     }
 )
@@ -332,7 +358,7 @@ impairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c: any) => {
+    async (c: any): Promise<any> => {
         try {
             const page = Number(c.req.query('page') || '1')
             const limit = Number(c.req.query('limit') || '20')
@@ -357,7 +383,12 @@ impairmentRoutes.openapi(
             } as any)
         } catch (error) {
             console.error('Error fetching ECL details:', error)
-            return c.json({ success: false, message: 'Failed to fetch ECL details', error: String(error) }, 500)
+            return c.json(buildErrorResponse(c, {
+                error: 'Failed to fetch ECL details',
+                message: 'Failed to fetch ECL details',
+                code: 'IMPAIRMENT_ERROR',
+                details: String(error),
+            }), 500)
         }
     }
 )
@@ -377,7 +408,7 @@ impairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c: any) => {
+    async (c: any): Promise<any> => {
         try {
             const prcDate = c.req.query('prcDate')
 
@@ -402,7 +433,12 @@ impairmentRoutes.openapi(
             return c.json({ success: true, data: results })
         } catch (error) {
             console.error('Error fetching provision summary:', error)
-            return c.json({ success: false, message: 'Failed to fetch provision summary', error: String(error) }, 500)
+            return c.json(buildErrorResponse(c, {
+                error: 'Failed to fetch provision summary',
+                message: 'Failed to fetch provision summary',
+                code: 'IMPAIRMENT_ERROR',
+                details: String(error),
+            }), 500)
         }
     }
 )

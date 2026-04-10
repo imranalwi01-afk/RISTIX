@@ -1,3 +1,7 @@
+/**
+ * Central BullMQ queue registry for approval notifications, ECL jobs, and compliance checks.
+ * Generated docs should treat this module as the queue integration surface for the backend.
+ */
 import { Queue } from 'bullmq'
 import { logger } from '../lib/logger'
 import { getRedisConnectionOptions } from '../config/redis' // ✅ Centralized config

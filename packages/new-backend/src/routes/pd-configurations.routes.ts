@@ -6,8 +6,10 @@ import { PdConfigurationsService } from '../services/pd-configurations.service'
 import { runEffect } from '../lib/effect/runtime'
 import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
 import type { ApprovalResponse } from '../lib/approval-helpers'
+import { buildErrorResponse } from '../lib/http/error-response'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-const app = new OpenAPIHono<AppContext>()
+const app = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 app.use('*', authMiddleware)
 
@@ -157,7 +159,7 @@ app.openapi(
     }),
     async (c) => {
         const { id } = c.req.valid('param')
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400)
         return runEffect(c, PdConfigurationsService.get(id) as any) as any
     }
 )
@@ -233,7 +235,7 @@ app.openapi(
         const tenantId = c.get('tenantId') as string
         const userPermissions = c.get('permissions') || []
 
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400)
 
         const effect = pipe(
             PdConfigurationsService.get(id) as Effect.Effect<any, any>,
@@ -284,7 +286,7 @@ app.openapi(
         const tenantId = c.get('tenantId') as string
         const userPermissions = c.get('permissions') || []
 
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400)
 
         const effect = pipe(
             PdConfigurationsService.get(id) as Effect.Effect<any, any>,

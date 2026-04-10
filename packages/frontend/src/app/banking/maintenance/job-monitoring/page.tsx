@@ -4,202 +4,54 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   Box,
-  Card,
-  CardContent,
-  CardHeader,
   Typography,
   Grid,
-  Chip,
   IconButton,
   Tabs,
   Tab,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  TextField,
   Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Alert,
   Tooltip,
-  Avatar,
   Paper,
-  Stack,
-  Badge,
-  LinearProgress,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
   Switch,
   FormControlLabel
 } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { GridColDef, GridRowParams, GridRenderCellParams } from '@mui/x-data-grid';
-import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import {
-  Visibility as VisibilityIcon,
-  Download as DownloadIcon,
   Refresh as RefreshIcon,
-  PlayArrow as PlayArrowIcon,
-  Pause as PauseIcon,
-  Stop as StopIcon,
-  RestartAlt as RestartAltIcon,
-  Schedule as ScheduleIcon,
   Assignment as AssignmentIcon,
   CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Warning as WarningIcon,
-  HourglassEmpty as HourglassEmptyIcon,
-  Computer as ComputerIcon,
-  Memory as MemoryIcon,
-  Storage as StorageIcon,
-  TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon,
   Analytics as AnalyticsIcon,
+  Storage as StorageIcon,
   Settings as SettingsIcon,
-  Info as InfoIcon,
   Timeline as TimelineIcon,
   Speed as SpeedIcon,
-  CloudDownload as CloudDownloadIcon,
-  Search as SearchIcon,
-  Clear as ClearIcon,
-  FilterList as FilterListIcon,
   Add as AddIcon,
-  PlayCircleFilled as RunIcon,
   Description as ScriptIcon,
+  CloudDownload as CloudDownloadIcon,
   Code as CodeIcon,
-  Terminal as TerminalIcon
+  Terminal as TerminalIcon,
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
-import { format, parseISO, subDays, addMinutes, differenceInMinutes } from 'date-fns';
+import { format, parseISO, subDays } from 'date-fns';
 import { bankingAPI } from '@/services/api';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/utils/error-message';
-
-type SupportedJobType = 'SQL_SP' | 'INTERNAL_SCRIPT' | 'SHELL_COMMAND';
-
-interface JobRuntimeSummary {
-  available: boolean;
-  pid?: number;
-  state?: string;
-  runtimeSeconds?: number;
-  waitEventType?: string | null;
-  waitEvent?: string | null;
-  blockedByPids?: number[];
-  dbSessionStart?: string | null;
-  queryStart?: string | null;
-  reason?: string;
-}
-
-// Types and Interfaces
-interface JobExecution {
-  id: string;
-  jobId: string;
-  jobName: string;
-  jobType: SupportedJobType | string;
-  status: 'RUNNING' | 'COMPLETED' | 'FAILED' | 'PENDING' | 'PAUSED' | 'CANCELLED' | string;
-  priority: 'LOW' | 'NORMAL' | 'HIGH' | 'CRITICAL';
-  startTime: string;
-  endTime?: string;
-  duration?: number;
-  progress: number;
-  userId?: string;
-  userName?: string;
-  tenantId?: string;
-  tenantName?: string;
-  parameters?: any;
-  resultData?: any;
-  resultSummary?: any;
-  errorMessage?: string;
-  triggeredBy?: string;
-  errorDetails?: string;
-  resourceUsage?: {
-    cpuUsage: number;
-    memoryUsage: number;
-    diskUsage: number;
-  };
-  performanceMetrics?: {
-    recordsProcessed: number;
-    throughput: number;
-    averageResponseTime: number;
-  };
-  nextRunTime?: string;
-  isScheduled?: boolean;
-  scheduleExpression?: string;
-  retryCount?: number;
-  maxRetries?: number;
-  tags?: string[];
-  runtime?: JobRuntimeSummary;
-}
-
-interface JobDefinition {
-  id: string;
-  name: string;
-  description: string;
-  type: string;
-  isEnabled: boolean;
-  scheduleExpression: string;
-  parameters: any;
-  maxRetries: number;
-  timeout: number;
-  priority: string;
-  createdBy: string;
-  lastModified: string;
-  nextRunTime?: string;
-  lastRunStatus?: string;
-  lastRunTime?: string;
-}
-
-interface SystemMetrics {
-  cpuUsage: number;
-  memoryUsage: number;
-  diskUsage: number;
-  activeJobs: number;
-  queuedJobs: number;
-  completedJobsToday: number;
-  failedJobsToday: number;
-  averageExecutionTime: number;
-  throughputPerHour: number;
-}
-
-interface JobFilters {
-  status?: string;
-  type?: string;
-  priority?: string;
-  userId?: string;
-  tenantId?: string;
-  dateFrom?: Date | null;
-  dateTo?: Date | null;
-  searchTerm?: string;
-}
-
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-interface CreateJobForm {
-  name: string;
-  description?: string;
-  type: SupportedJobType;
-  parameters: Record<string, unknown>;
-  priority: string;
-  maxRetries: number;
-  timeout: number;
-  isEnabled: boolean;
-  scheduleExpression: string;
-  targetDatabase?: 'TENANT' | 'LEGACY';
-  schemaName?: string;
-  procedureName?: string;
-  handlerName?: string;
-  command?: string;
-}
+import { ActiveJobsPanel } from './components/ActiveJobsPanel';
+import { JobSystemMetricsPanel } from './components/JobSystemMetricsPanel';
+import { JobDefinitionsPanel } from './components/JobDefinitionsPanel';
+import { JobExecutionDetailsDialog } from './components/JobExecutionDetailsDialog';
+import { JobControlConfirmDialog } from './components/JobControlConfirmDialog';
+import { CreateJobDefinitionDialog } from './components/CreateJobDefinitionDialog';
+import {
+  CreateJobForm,
+  JobDefinition,
+  JobExecution,
+  JobFilters,
+  JobRuntimeSummary,
+  SupportedJobType,
+  SystemMetrics,
+  TabPanelProps,
+} from './types';
 
 const SUPPORTED_JOB_TYPE_OPTIONS: Array<{ value: SupportedJobType; label: string }> = [
   { value: 'SQL_SP', label: 'Stored Procedure' },
@@ -921,215 +773,8 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
   const statusCounts = getStatusCounts();
   const filteredJobs = getFilteredJobsByStatus();
 
-  const executionColumns: GridColDef[] = [
-    {
-      field: 'jobName',
-      headerName: 'Job Name',
-      flex: 2,
-      minWidth: 250,
-      renderCell: (params: GridRenderCellParams) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {getJobTypeIcon(params.row.jobType)}
-          <Box>
-            <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-              {params.row.jobName}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {params.row.jobType.replace('_', ' ')}
-            </Typography>
-          </Box>
-        </Box>
-      ),
-    },
-    {
-      field: 'status',
-      headerName: 'Status',
-      width: 130,
-      renderCell: (params: GridRenderCellParams) => (
-        <Chip
-          label={params.row.status}
-          size="small"
-          color={getStatusColor(params.row.status) as any}
-          variant="filled"
-        />
-      ),
-    },
-    {
-      field: 'progress',
-      headerName: 'Progress',
-      width: 120,
-      renderCell: (params: GridRenderCellParams) => (
-        <Box sx={{ width: '100%' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <LinearProgress
-              variant="determinate"
-              value={params.row.progress}
-              sx={{ flexGrow: 1, height: 6 }}
-              color={params.row.status === 'FAILED' ? 'error' : 'primary'}
-            />
-            <Typography variant="caption" sx={{ minWidth: 35 }}>
-              {params.row.progress}%
-            </Typography>
-          </Box>
-        </Box>
-      ),
-    },
-    {
-      field: 'priority',
-      headerName: 'Priority',
-      width: 110,
-      renderCell: (params: GridRenderCellParams) => (
-        <Chip
-          label={params.row.priority}
-          size="small"
-          color={getPriorityColor(params.row.priority) as any}
-          variant="outlined"
-        />
-      ),
-    },
-    {
-      field: 'startTime',
-      headerName: 'Start Time',
-      width: 160,
-      renderCell: (params: GridRenderCellParams) => (
-        <Box>
-          <Typography variant="body2">
-            {format(parseISO(params.row.startTime), 'MMM dd, HH:mm')}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {format(parseISO(params.row.startTime), 'yyyy')}
-          </Typography>
-        </Box>
-      ),
-    },
-    {
-      field: 'duration',
-      headerName: 'Duration',
-      width: 100,
-      renderCell: (params: GridRenderCellParams) => (
-        <Typography variant="body2">
-          {params.row.status === 'RUNNING'
-            ? formatDuration(Date.now() - new Date(params.row.startTime).getTime())
-            : formatDuration(params.row.duration)
-          }
-        </Typography>
-      ),
-    },
-    {
-      field: 'userName',
-      headerName: 'User',
-      width: 150,
-      renderCell: (params: GridRenderCellParams) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem' }}>
-            {params.row.userName.split(' ').map((n: string) => n[0]).join('')}
-          </Avatar>
-          <Typography variant="body2">
-            {params.row.userName}
-          </Typography>
-        </Box>
-      ),
-    },
-    {
-      field: 'actions',
-      headerName: 'Actions',
-      width: 120,
-      sortable: false,
-      renderCell: (params: GridRenderCellParams) => (
-        <Box>
-          <Tooltip title="View Details">
-            <IconButton
-              size="small"
-              onClick={() => handleViewJobDetails(params.row)}
-            >
-              <VisibilityIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          {canControlJobs && params.row.status === 'RUNNING' && (
-            <Tooltip title="Pause Job">
-              <IconButton
-                size="small"
-                onClick={() => handleJobControl(params.row, 'pause')}
-              >
-                <PauseIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
-          {canControlJobs && params.row.status === 'PAUSED' && (
-            <Tooltip title="Resume Job">
-              <IconButton
-                size="small"
-                onClick={() => handleJobControl(params.row, 'start')}
-              >
-                <PlayArrowIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
-          {canControlJobs && (params.row.status === 'RUNNING' || params.row.status === 'PAUSED') && (
-            <Tooltip title="Stop Job">
-              <IconButton
-                size="small"
-                onClick={() => handleJobControl(params.row, 'stop')}
-                color="error"
-              >
-                <StopIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
-        </Box>
-      ),
-    },
-  ];
-
-  const StatCard: React.FC<{
-    title: string;
-    value: string | number;
-    icon: React.ReactNode;
-    color: string;
-    trend?: { value: number; direction: 'up' | 'down' };
-    subtitle?: string;
-  }> = ({ title, value, icon, color, trend, subtitle }) => (
-    <Card>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box>
-            <Typography color="text.secondary" gutterBottom variant="body2">
-              {title}
-            </Typography>
-            <Typography variant="h4" component="div" sx={{ color }}>
-              {value}
-            </Typography>
-            {subtitle && (
-              <Typography variant="caption" color="text.secondary">
-                {subtitle}
-              </Typography>
-            )}
-          </Box>
-          <Box sx={{ color, opacity: 0.7 }}>
-            {icon as any}
-          </Box>
-        </Box>
-        {trend && (
-          <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-            {trend.direction === 'up' ? (
-              <TrendingUpIcon color="success" fontSize="small" />
-            ) : (
-              <TrendingDownIcon color="error" fontSize="small" />
-            )}
-            <Typography
-              variant="caption"
-              sx={{
-                color: trend.direction === 'up' ? 'success.main' : 'error.main',
-                ml: 0.5
-              }}
-            >
-              {trend.value}%
-            </Typography>
-          </Box>
-        )}
-      </CardContent>
-    </Card>
-  );
+  const formatDateTime = (value: string) => format(parseISO(value), 'MMM dd, yyyy HH:mm:ss');
+  const formatNextRun = (value?: string) => (value ? format(parseISO(value), 'MMM dd, yyyy HH:mm') : 'Not scheduled');
 
   return (
     <Box sx={{ flexGrow: 1, p: 3 }}>
@@ -1204,48 +849,18 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
       )}
 
       {/* System Metrics */}
-      {systemMetrics && (
-        <Grid container spacing={3} sx={{ mb: 3 }}>
-          <Grid size={{ xs: 12, md: 3 }}>
-            <StatCard
-              title="Active Jobs"
-              value={systemMetrics.activeJobs}
-              icon={<PlayArrowIcon fontSize="large" />}
-              color={theme.palette.info.main}
-              subtitle="Currently running"
-            />
-          </Grid>
-          <Grid size={{ xs: 12, md: 3 }}>
-            <StatCard
-              title="Queued Jobs"
-              value={systemMetrics.queuedJobs}
-              icon={<HourglassEmptyIcon fontSize="large" />}
-              color={theme.palette.warning.main}
-              subtitle="Waiting to start"
-            />
-          </Grid>
-          <Grid size={{ xs: 12, md: 3 }}>
-            <StatCard
-              title="Completed Today"
-              value={systemMetrics.completedJobsToday}
-              icon={<CheckCircleIcon fontSize="large" />}
-              color={theme.palette.success.main}
-              trend={{ value: 12, direction: 'up' }}
-              subtitle="Successful jobs"
-            />
-          </Grid>
-          <Grid size={{ xs: 12, md: 3 }}>
-            <StatCard
-              title="Failed Today"
-              value={systemMetrics.failedJobsToday}
-              icon={<ErrorIcon fontSize="large" />}
-              color={theme.palette.error.main}
-              trend={{ value: 5, direction: 'down' }}
-              subtitle="Failed jobs"
-            />
-          </Grid>
-        </Grid>
-      )}
+      <JobSystemMetricsPanel
+        metrics={systemMetrics}
+        mode="summary"
+        formatDuration={formatDuration}
+        themePalette={{
+          info: theme.palette.info.main,
+          warning: theme.palette.warning.main,
+          success: theme.palette.success.main,
+          error: theme.palette.error.main,
+          primary: theme.palette.primary.main,
+        }}
+      />
 
       {/* Tabs */}
       <Paper sx={{ mb: 3 }}>
@@ -1281,212 +896,26 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
 
       {/* Active Jobs Tab */}
       <TabPanel value={currentTab} index={0}>
-        {/* Status Tabs */}
-        <Paper sx={{ mb: 3 }}>
-          <Tabs
-            value={statusTab}
-            onChange={handleStatusTabChange}
-            indicatorColor="primary"
-            textColor="primary"
-            variant="fullWidth"
-            sx={{
-              borderBottom: 1,
-              borderColor: 'divider',
-              '& .MuiTab-root': {
-                minHeight: 64,
-              },
-            }}
-          >
-            <Tab
-              label={
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                    All Jobs
-                  </Typography>
-                  <Chip
-                    label={statusCounts.all}
-                    size="small"
-                    color="default"
-                    sx={{ mt: 0.5, minWidth: 40 }}
-                  />
-                </Box>
-              }
-            />
-            <Tab
-              icon={<HourglassEmptyIcon />}
-              iconPosition="start"
-              label={
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                    Ongoing
-                  </Typography>
-                  <Chip
-                    label={statusCounts.ongoing}
-                    size="small"
-                    color="warning"
-                    sx={{ mt: 0.5, minWidth: 40 }}
-                  />
-                </Box>
-              }
-            />
-            <Tab
-              icon={<PlayArrowIcon />}
-              iconPosition="start"
-              label={
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                    Running
-                  </Typography>
-                  <Chip
-                    label={statusCounts.running}
-                    size="small"
-                    color="info"
-                    sx={{ mt: 0.5, minWidth: 40 }}
-                  />
-                </Box>
-              }
-            />
-            <Tab
-              icon={<CheckCircleIcon />}
-              iconPosition="start"
-              label={
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                    Completed
-                  </Typography>
-                  <Chip
-                    label={statusCounts.completed}
-                    size="small"
-                    color="success"
-                    sx={{ mt: 0.5, minWidth: 40 }}
-                  />
-                </Box>
-              }
-            />
-            <Tab
-              icon={<ErrorIcon />}
-              iconPosition="start"
-              label={
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                    Failed
-                  </Typography>
-                  <Chip
-                    label={statusCounts.failed}
-                    size="small"
-                    color="error"
-                    sx={{ mt: 0.5, minWidth: 40 }}
-                  />
-                </Box>
-              }
-            />
-          </Tabs>
-        </Paper>
-
-        {/* Filters */}
-        <Card sx={{ mb: 3 }}>
-          <CardHeader
-            title="Filters"
-            action={
-              <Button
-                variant="outlined"
-                startIcon={<ClearIcon />}
-                onClick={handleClearFilters}
-                size="small"
-              >
-                Clear Filters
-              </Button>
-            }
-          />
-          <CardContent>
-            <Grid container spacing={2}>
-              <Grid size={{ xs: 12, md: 2 }}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    value={filters.status || ''}
-                    onChange={(e) => handleFilterChange('status', e.target.value)}
-                    label="Status"
-                  >
-                    <MenuItem value="">All</MenuItem>
-                    <MenuItem value="RUNNING">Running</MenuItem>
-                    <MenuItem value="PENDING">Pending</MenuItem>
-                    <MenuItem value="PAUSED">Paused</MenuItem>
-                    <MenuItem value="COMPLETED">Completed</MenuItem>
-                    <MenuItem value="FAILED">Failed</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid size={{ xs: 12, md: 2 }}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Type</InputLabel>
-                  <Select
-                    value={filters.type || ''}
-                    onChange={(e) => handleFilterChange('type', e.target.value)}
-                    label="Type"
-                  >
-                    <MenuItem value="">All</MenuItem>
-                    {SUPPORTED_JOB_TYPE_OPTIONS.map((option, idx) => (
-                      <MenuItem key={`${option.value}-${idx}`} value={option.value}>{option.label}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid size={{ xs: 12, md: 2 }}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Priority</InputLabel>
-                  <Select
-                    value={filters.priority || ''}
-                    onChange={(e) => handleFilterChange('priority', e.target.value)}
-                    label="Priority"
-                  >
-                    <MenuItem value="">All</MenuItem>
-                    <MenuItem value="CRITICAL">Critical</MenuItem>
-                    <MenuItem value="HIGH">High</MenuItem>
-                    <MenuItem value="NORMAL">Normal</MenuItem>
-                    <MenuItem value="LOW">Low</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Search"
-                  placeholder="Search by job name, user, or tenant..."
-                  value={filters.searchTerm || ''}
-                  onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
-                  InputProps={{
-                    startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
-                  }}
-                />
-              </Grid>
-            </Grid>
-          </CardContent>
-        </Card>
-
-        {/* Active Jobs DataGrid */}
-        <Card>
-          <CardHeader
-            title={`Job Executions (${filteredJobs.length}${filteredJobs.length !== jobExecutions.length ? ` of ${jobExecutions.length}` : ''})`}
-            subheader={`Last updated: ${format(new Date(), 'MMM dd, yyyy HH:mm')}`}
-          />
-          <CardContent>
-            <SafeDataGrid
-              rows={filteredJobs}
-              columns={executionColumns}
-              loading={loading}
-              pageSizeOptions={[10, 25, 50]}
-              initialState={{
-                pagination: {
-                  paginationModel: { pageSize: 25 },
-                },
-              }}
-              checkboxSelection
-              sx={{ height: 600 }}
-            />
-          </CardContent>
-        </Card>
+        <ActiveJobsPanel
+          loading={loading}
+          filters={filters}
+          filteredJobs={filteredJobs}
+          totalJobs={jobExecutions.length}
+          statusTab={statusTab}
+          statusCounts={statusCounts}
+          canControlJobs={canControlJobs}
+          onStatusTabChange={handleStatusTabChange}
+          onFilterChange={handleFilterChange}
+          onClearFilters={handleClearFilters}
+          onViewDetails={handleViewJobDetails}
+          onJobControl={handleJobControl}
+          getStatusColor={getStatusColor}
+          getPriorityColor={getPriorityColor}
+          getJobTypeIcon={getJobTypeIcon}
+          formatDuration={formatDuration}
+          supportedJobTypeOptions={SUPPORTED_JOB_TYPE_OPTIONS}
+          lastUpdatedLabel={format(new Date(), 'MMM dd, yyyy HH:mm')}
+        />
       </TabPanel>
 
       {/* Job History Tab */}
@@ -1504,568 +933,62 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
 
       {/* Job Definitions Tab */}
       <TabPanel value={currentTab} index={2}>
-        <Grid container spacing={3}>
-          {jobDefinitions.map((job) => (
-            <Grid size={{ xs: 12, md: 6, lg: 4 }} key={job.id}>
-              <Card>
-                <CardHeader
-                  title={job.name}
-                  subheader={job.description}
-                  action={
-                    <Switch
-                      checked={job.isEnabled}
-                      onChange={(e) => toggleJobDefinition(job.id, e.target.checked)}
-                      disabled={!canControlJobs}
-                      size="small"
-                    />
-                  }
-                />
-                <CardContent>
-                  <Stack spacing={2}>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">
-                        Schedule
-                      </Typography>
-                      <Typography variant="body2">
-                        {job.scheduleExpression}
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">
-                        Next Run
-                      </Typography>
-                      <Typography variant="body2">
-                        {job.nextRunTime ? format(parseISO(job.nextRunTime), 'MMM dd, yyyy HH:mm') : 'Not scheduled'}
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">
-                        Last Status
-                      </Typography>
-                      <Chip
-                        label={job.lastRunStatus || 'Never run'}
-                        size="small"
-                        color={job.lastRunStatus ? getStatusColor(job.lastRunStatus) as any : 'default'}
-                        variant="outlined"
-                      />
-                    </Box>
-                    <Divider />
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="caption" color="text.secondary">
-                        Priority: {job.priority}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Type: {job.type}
-                      </Typography>
-                    </Box>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      startIcon={<RunIcon />}
-                      onClick={() => handleJobAction(job.id, 'start')}
-                      disabled={!canRunJobs || !job.isEnabled || loading}
-                      fullWidth
-                    >
-                      Run Now
-                    </Button>
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+        <JobDefinitionsPanel
+          jobs={jobDefinitions}
+          loading={loading}
+          canControlJobs={canControlJobs}
+          canRunJobs={canRunJobs}
+          onToggle={toggleJobDefinition}
+          onRunNow={(jobId) => handleJobAction(jobId, 'start')}
+          getStatusColor={getStatusColor}
+          formatNextRun={formatNextRun}
+        />
       </TabPanel>
 
       {/* System Performance Tab */}
       <TabPanel value={currentTab} index={3}>
-        {systemMetrics && (
-          <Grid container spacing={3}>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <StatCard
-                title="CPU Usage"
-                value={`${systemMetrics.cpuUsage}%`}
-                icon={<ComputerIcon fontSize="large" />}
-                color={systemMetrics.cpuUsage > 80 ? theme.palette.error.main : theme.palette.success.main}
-                subtitle="System CPU utilization"
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <StatCard
-                title="Memory Usage"
-                value={`${systemMetrics.memoryUsage}%`}
-                icon={<MemoryIcon fontSize="large" />}
-                color={systemMetrics.memoryUsage > 80 ? theme.palette.error.main : theme.palette.info.main}
-                subtitle="System memory utilization"
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <StatCard
-                title="Disk Usage"
-                value={`${systemMetrics.diskUsage}%`}
-                icon={<StorageIcon fontSize="large" />}
-                color={systemMetrics.diskUsage > 80 ? theme.palette.error.main : theme.palette.primary.main}
-                subtitle="System disk utilization"
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <StatCard
-                title="Avg Execution Time"
-                value={formatDuration(systemMetrics.averageExecutionTime)}
-                icon={<ScheduleIcon fontSize="large" />}
-                color={theme.palette.warning.main}
-                subtitle="Average job completion time"
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <StatCard
-                title="Throughput"
-                value={`${systemMetrics.throughputPerHour.toLocaleString()}/hr`}
-                icon={<SpeedIcon fontSize="large" />}
-                color={theme.palette.success.main}
-                subtitle="Records processed per hour"
-              />
-            </Grid>
-          </Grid>
-        )}
+        <JobSystemMetricsPanel
+          metrics={systemMetrics}
+          mode="performance"
+          formatDuration={formatDuration}
+          themePalette={{
+            info: theme.palette.info.main,
+            warning: theme.palette.warning.main,
+            success: theme.palette.success.main,
+            error: theme.palette.error.main,
+            primary: theme.palette.primary.main,
+          }}
+        />
       </TabPanel>
-
-      {/* Create Job Dialog */}
-      <Dialog
+      <CreateJobDefinitionDialog
         open={createJobDialogOpen}
+        loading={loading}
+        jobData={newJobData}
+        supportedJobTypeOptions={SUPPORTED_JOB_TYPE_OPTIONS}
+        disabled={isCreateJobDisabled}
         onClose={() => setCreateJobDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Create New Job Definition</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                fullWidth
-                label="Job Name"
-                value={newJobData.name}
-                onChange={(e) => setNewJobData({ ...newJobData, name: e.target.value })}
-                required
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <FormControl fullWidth>
-                <InputLabel>Job Type</InputLabel>
-                <Select
-                  value={newJobData.type}
-                  label="Job Type"
-                  onChange={(e) =>
-                    setNewJobData((prev) => ({
-                      ...prev,
-                      type: e.target.value as SupportedJobType,
-                      // Reset type-specific fields when switching job type
-                      procedureName: '',
-                      schemaName: '',
-                      handlerName: '',
-                      command: '',
-                    }))
-                  }
-                >
-                  {SUPPORTED_JOB_TYPE_OPTIONS.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
+        onCreate={handleCreateJob}
+        onChange={setNewJobData}
+      />
 
-            {/* Dynamic Fields based on Job Type */}
-            {newJobData.type === 'SQL_SP' && (
-              <>
-                <Grid size={{ xs: 12 }}>
-                  <FormControl fullWidth>
-                    <InputLabel>Target Database</InputLabel>
-                    <Select
-                      value={newJobData.targetDatabase || 'TENANT'}
-                      label="Target Database"
-                      onChange={(e) => setNewJobData({ ...newJobData, targetDatabase: e.target.value as 'TENANT' | 'LEGACY' })}
-                    >
-                      <MenuItem value="TENANT">Tenant DB (Default)</MenuItem>
-                      <MenuItem value="LEGACY">Legacy DB (IFRS9 Engine)</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    fullWidth
-                    label="Schema Name"
-                    placeholder="e.g. core, risk, public"
-                    value={newJobData.schemaName || ''}
-                    onChange={(e) => setNewJobData({ ...newJobData, schemaName: e.target.value })}
-                    helperText="Database schema (optional, defaults to public/core)"
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    fullWidth
-                    label="Stored Procedure Name"
-                    placeholder="e.g. sp_frs9_imp_sequence or FRS9PRO.public.sp_frs9_imp_sequence"
-                    value={newJobData.procedureName || ''}
-                    onChange={(e) => setNewJobData({ ...newJobData, procedureName: e.target.value })}
-                    helperText="Required. Supports schema/db qualified format."
-                    required
-                  />
-                </Grid>
-              </>
-            )}
-
-            {newJobData.type === 'INTERNAL_SCRIPT' && (
-              <Grid size={{ xs: 12 }}>
-                <TextField
-                  fullWidth
-                  label="Handler Name"
-                  placeholder="e.g. test_handler"
-                  value={newJobData.handlerName || ''}
-                  onChange={(e) => setNewJobData({ ...newJobData, handlerName: e.target.value })}
-                  helperText="Registered internal handler name"
-                  required
-                />
-              </Grid>
-            )}
-
-            {newJobData.type === 'SHELL_COMMAND' && (
-              <Grid size={{ xs: 12 }}>
-                <TextField
-                  fullWidth
-                  label="Shell Command"
-                  placeholder="e.g. ls -la"
-                  value={newJobData.command || ''}
-                  onChange={(e) => setNewJobData({ ...newJobData, command: e.target.value })}
-                  helperText="System command to execute (use with caution)"
-                  required
-                />
-              </Grid>
-            )}
-
-            <Grid size={{ xs: 12, md: 6 }}>
-              <FormControl fullWidth>
-                <InputLabel>Priority</InputLabel>
-                <Select
-                  value={newJobData.priority}
-                  label="Priority"
-                  onChange={(e) => setNewJobData({ ...newJobData, priority: e.target.value })}
-                >
-                  <MenuItem value="LOW">Low</MenuItem>
-                  <MenuItem value="NORMAL">Normal</MenuItem>
-                  <MenuItem value="HIGH">High</MenuItem>
-                  <MenuItem value="CRITICAL">Critical</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
-                fullWidth
-                label="Schedule Expression (Cron)"
-                placeholder="0 0 * * *"
-                value={newJobData.scheduleExpression}
-                onChange={(e) => setNewJobData({ ...newJobData, scheduleExpression: e.target.value })}
-                helperText="Leave empty for on-demand only"
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 3 }}>
-              <TextField
-                fullWidth
-                label="Max Retries"
-                type="number"
-                value={newJobData.maxRetries}
-                onChange={(e) => setNewJobData({ ...newJobData, maxRetries: parseInt(e.target.value) || 0 })}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 3 }}>
-              <TextField
-                fullWidth
-                label="Timeout (seconds)"
-                type="number"
-                value={newJobData.timeout}
-                onChange={(e) => setNewJobData({ ...newJobData, timeout: parseInt(e.target.value) || 0 })}
-              />
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={newJobData.isEnabled}
-                    onChange={(e) => setNewJobData({ ...newJobData, isEnabled: e.target.checked })}
-                  />
-                }
-                label="Enabled"
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCreateJobDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleCreateJob} variant="contained" disabled={isCreateJobDisabled}>
-            Create
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Job Details Dialog */}
-      <Dialog
+      <JobExecutionDetailsDialog
         open={jobDetailsDialog.open}
+        job={jobDetailsDialog.job}
+        canViewRuntime={canViewRuntime}
         onClose={() => setJobDetailsDialog({ open: false, job: null })}
-        maxWidth="lg"
-        fullWidth
-      >
-        <DialogTitle>
-          Job Execution Details
-        </DialogTitle>
-        <DialogContent>
-          {jobDetailsDialog.job && (
-            <Grid container spacing={3}>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="h6" gutterBottom>
-                  Job Information
-                </Typography>
-                <Stack spacing={1}>
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">Name</Typography>
-                    <Typography variant="body2">{jobDetailsDialog.job.jobName}</Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">Type</Typography>
-                    <Typography variant="body2">{jobDetailsDialog.job.jobType}</Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">Status</Typography>
-                    <Chip
-                      label={jobDetailsDialog.job.status}
-                      size="small"
-                      color={getStatusColor(jobDetailsDialog.job.status) as any}
-                    />
-                  </Box>
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">Priority</Typography>
-                    <Chip
-                      label={jobDetailsDialog.job.priority}
-                      size="small"
-                      color={getPriorityColor(jobDetailsDialog.job.priority) as any}
-                      variant="outlined"
-                    />
-                  </Box>
-                </Stack>
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="h6" gutterBottom>
-                  Execution Details
-                </Typography>
-                <Stack spacing={1}>
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">Start Time</Typography>
-                    <Typography variant="body2">
-                      {format(parseISO(jobDetailsDialog.job.startTime), 'MMM dd, yyyy HH:mm:ss')}
-                    </Typography>
-                  </Box>
-                  {jobDetailsDialog.job.endTime && (
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">End Time</Typography>
-                      <Typography variant="body2">
-                        {format(parseISO(jobDetailsDialog.job.endTime), 'MMM dd, yyyy HH:mm:ss')}
-                      </Typography>
-                    </Box>
-                  )}
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">Duration</Typography>
-                    <Typography variant="body2">
-                      {jobDetailsDialog.job.status === 'RUNNING'
-                        ? formatDuration(Date.now() - new Date(jobDetailsDialog.job.startTime).getTime())
-                        : formatDuration(jobDetailsDialog.job.duration)
-                      }
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">Progress</Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                      <LinearProgress
-                        variant="determinate"
-                        value={jobDetailsDialog.job.progress}
-                        sx={{ flexGrow: 1 }}
-                      />
-                      <Typography variant="body2">
-                        {jobDetailsDialog.job.progress}%
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Stack>
-              </Grid>
-              {canViewRuntime && jobDetailsDialog.job.runtime?.available && (
-                <Grid size={{ xs: 12 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Runtime Diagnostics
-                  </Typography>
-                  <Paper variant="outlined" sx={{ p: 2 }}>
-                    <Grid container spacing={2}>
-                      <Grid size={{ xs: 12, md: 4 }}>
-                        <Typography variant="body2" color="text.secondary">Backend PID</Typography>
-                        <Typography variant="body2">{jobDetailsDialog.job.runtime.pid ?? '-'}</Typography>
-                      </Grid>
-                      <Grid size={{ xs: 12, md: 4 }}>
-                        <Typography variant="body2" color="text.secondary">DB State</Typography>
-                        <Typography variant="body2">{jobDetailsDialog.job.runtime.state || '-'}</Typography>
-                      </Grid>
-                      <Grid size={{ xs: 12, md: 4 }}>
-                        <Typography variant="body2" color="text.secondary">Runtime</Typography>
-                        <Typography variant="body2">
-                          {typeof jobDetailsDialog.job.runtime.runtimeSeconds === 'number'
-                            ? `${Math.floor(jobDetailsDialog.job.runtime.runtimeSeconds / 60)}m ${jobDetailsDialog.job.runtime.runtimeSeconds % 60}s`
-                            : '-'}
-                        </Typography>
-                      </Grid>
-                      <Grid size={{ xs: 12, md: 4 }}>
-                        <Typography variant="body2" color="text.secondary">Wait Event Type</Typography>
-                        <Typography variant="body2">{jobDetailsDialog.job.runtime.waitEventType || '-'}</Typography>
-                      </Grid>
-                      <Grid size={{ xs: 12, md: 4 }}>
-                        <Typography variant="body2" color="text.secondary">Wait Event</Typography>
-                        <Typography variant="body2">{jobDetailsDialog.job.runtime.waitEvent || '-'}</Typography>
-                      </Grid>
-                      <Grid size={{ xs: 12, md: 4 }}>
-                        <Typography variant="body2" color="text.secondary">Blocking PIDs</Typography>
-                        <Typography variant="body2">
-                          {jobDetailsDialog.job.runtime.blockedByPids?.length
-                            ? jobDetailsDialog.job.runtime.blockedByPids.join(', ')
-                            : '-'}
-                        </Typography>
-                      </Grid>
-                    </Grid>
-                  </Paper>
-                </Grid>
-              )}
-              {jobDetailsDialog.job.resourceUsage && (
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Resource Usage
-                  </Typography>
-                  <Stack spacing={1}>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">CPU Usage</Typography>
-                      <Typography variant="body2">{jobDetailsDialog.job.resourceUsage.cpuUsage}%</Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">Memory Usage</Typography>
-                      <Typography variant="body2">{jobDetailsDialog.job.resourceUsage.memoryUsage} MB</Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">Disk Usage</Typography>
-                      <Typography variant="body2">{jobDetailsDialog.job.resourceUsage.diskUsage}%</Typography>
-                    </Box>
-                  </Stack>
-                </Grid>
-              )}
-              {jobDetailsDialog.job.performanceMetrics && (
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Performance Metrics
-                  </Typography>
-                  <Stack spacing={1}>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">Records Processed</Typography>
-                      <Typography variant="body2">
-                        {jobDetailsDialog.job.performanceMetrics.recordsProcessed.toLocaleString()}
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">Throughput</Typography>
-                      <Typography variant="body2">
-                        {jobDetailsDialog.job.performanceMetrics.throughput.toLocaleString()} records/min
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">Avg Response Time</Typography>
-                      <Typography variant="body2">
-                        {jobDetailsDialog.job.performanceMetrics.averageResponseTime}ms
-                      </Typography>
-                    </Box>
-                  </Stack>
-                </Grid>
-              )}
-              {jobDetailsDialog.job.errorMessage && (
-                <Grid size={{ xs: 12 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Error Information
-                  </Typography>
-                  <Alert severity="error">
-                    <Typography
-                      variant="body2"
-                      sx={{ fontWeight: 'medium', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
-                    >
-                      {jobDetailsDialog.job.errorMessage}
-                    </Typography>
-                    {jobDetailsDialog.job.errorDetails && (
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          mt: 1,
-                          whiteSpace: 'pre-wrap',
-                          wordBreak: 'break-word',
-                          fontFamily: 'monospace',
-                          fontSize: '0.8rem',
-                        }}
-                      >
-                        {jobDetailsDialog.job.errorDetails}
-                      </Typography>
-                    )}
-                  </Alert>
-                </Grid>
-              )}
-            </Grid>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setJobDetailsDialog({ open: false, job: null })}>
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
+        getStatusColor={getStatusColor}
+        getPriorityColor={getPriorityColor}
+        formatDateTime={formatDateTime}
+        formatDuration={formatDuration}
+      />
 
-      {/* Job Control Dialog */}
-      <Dialog
+      <JobControlConfirmDialog
         open={jobControlDialog.open}
+        job={jobControlDialog.job}
+        action={jobControlDialog.action}
         onClose={() => setJobControlDialog({ open: false, job: null, action: null })}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          Confirm Job {jobControlDialog.action?.toUpperCase()}
-        </DialogTitle>
-        <DialogContent>
-          {jobControlDialog.job && (
-            <Box>
-              <Typography variant="body1" gutterBottom>
-                Are you sure you want to {jobControlDialog.action} the following job?
-              </Typography>
-              <Paper sx={{ p: 2, mt: 2, bgcolor: 'grey.50' }}>
-                <Typography variant="h6">
-                  {jobControlDialog.job.jobName}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Current Status: {jobControlDialog.job.status}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Progress: {jobControlDialog.job.progress}%
-                </Typography>
-              </Paper>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setJobControlDialog({ open: false, job: null, action: null })}>
-            Cancel
-          </Button>
-          <Button
-            onClick={executeJobControl}
-            variant="contained"
-            color={jobControlDialog.action === 'stop' ? 'error' : 'primary'}
-          >
-            {jobControlDialog.action?.toUpperCase()}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onConfirm={executeJobControl}
+      />
     </Box>
   );
 };

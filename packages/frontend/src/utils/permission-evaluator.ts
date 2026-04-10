@@ -19,15 +19,12 @@ const LEGACY_PERMISSION_ALIASES: Record<string, string> = {
   manage_roles: 'admin.roles.manage',
   view_dashboard: 'banking.dashboard.view',
   view_analytics: 'banking.analytics.view',
-  view_loans: 'banking.portfolio.loans.view',
-  manage_loans: 'banking.portfolio.loans.manage',
   view_ifrs9_reports: 'banking.reports.ifrs9.view',
   manage_ifrs9_config: 'banking.configuration.ifrs9.manage',
   view_collective_impairment: 'banking.collective.view',
   view_individual_impairment: 'banking.individual.view',
   view_ifrs9_processing: 'banking.processing.view',
   view_r_analytics: 'banking.analytics.r.view',
-  super_admin: 'admin.super_admin',
   approve_requests: 'approval.requests.approve',
 };
 
@@ -69,7 +66,6 @@ export const buildPermissionContext = (permissions: string[]): PermissionContext
   const isSuperAdmin =
     normalizedPermissionSet.has('*') ||
     normalizedPermissionSet.has('admin.super_admin') ||
-    normalizedPermissionSet.has('super_admin') ||
     normalizedPermissionSet.has('platform_admin');
 
   return { rawPermissions, normalizedPermissionSet, isSuperAdmin };

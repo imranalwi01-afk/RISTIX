@@ -12,8 +12,9 @@ import { desc, eq, getTableColumns, and } from 'drizzle-orm'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { ifrs9ReportsController } from '../controllers/ifrs9-reports.controller'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-export const reportsRoutes: any = new OpenAPIHono<AppContext>()
+export const reportsRoutes: any = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 reportsRoutes.use('*', authMiddleware)
 

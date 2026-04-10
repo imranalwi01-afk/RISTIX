@@ -52,6 +52,7 @@ export class AuthorizationError extends Data.TaggedError('AuthorizationError')<{
     readonly message: string
     readonly requiredPermission: string
     readonly userId?: string
+    readonly details?: Record<string, unknown>
 }> { }
 
 /**
@@ -79,6 +80,7 @@ export class ConflictError extends Data.TaggedError('ConflictError')<{
     readonly resource: string
     readonly field?: string
     readonly value?: unknown
+    readonly details?: Record<string, unknown>
 }> { }
 
 /**

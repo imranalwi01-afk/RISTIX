@@ -16,21 +16,10 @@ import {
   Box,
   Typography,
   Paper,
-  Grid,
-  Card,
-  CardContent,
   Button,
   CircularProgress,
   Alert,
   Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
   Tab,
   Tabs,
   LinearProgress,
@@ -52,55 +41,23 @@ import {
   Info as InfoIcon
 } from '@mui/icons-material';
 import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import api, { handleAPIError } from '../../../../services/api';
 import ReportPageLayout from '@/components/ifrs9/ReportPageLayout';
 import ReportSummaryGrid, { KPIItem } from '@/components/ifrs9/ReportSummaryGrid';
 import ReportDataGrid from '@/components/ifrs9/ReportDataGrid';
-
-// TypeScript interfaces based on actual database structure
-interface ProcessDate {
-  pkid: number;
-  currdate: string;
-  prevdate: string | null;
-  batch_status: string;
-  remark: string | null;
-  last_process_date: string | null;
-  sessionid: string | null;
-  createdby: string;
-  createddate: string;
-}
-
-interface CalculationResult {
-  prc_date: string;
-  account_id: number;
-  facility_number: string;
-  cif_number: string;
-  segment_id: number;
-  stage: number;
-  currency: string;
-  outstanding: number;
-  ecl_amount: number;
-  overlay_amount: number;
-  ecl_final: number;
-  bucket_group: string;
-  bucket_id: number;
-  internal_rating_code: string;
-  ext_rating_code: string;
-}
-
-interface CalculationSummary {
-  total_accounts: number;
-  total_outstanding: number;
-  total_ecl: number;
-  stage1_count: number;
-  stage2_count: number;
-  stage3_count: number;
-  stage1_ecl: number;
-  stage2_ecl: number;
-  stage3_ecl: number;
-}
+import {
+  CalculationActionBar,
+  CalculationAnalyticsPanel,
+  CalculationConfigurationPanel,
+  CalculationResultDetailsDialog,
+  RunCalculationDialog,
+  type CalculationResult,
+  type CalculationSummary,
+  type EclTrendItem,
+  type ProcessDate,
+  type RunConfig,
+  type StageDistributionItem,
+} from './components';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -167,8 +124,8 @@ export default function IFRS9CalculationDashboard() {
   // Load real data from API instead of mock data
 
   // Chart data - will be populated from API response
-  const [stageDistributionData, setStageDistributionData] = useState<any[]>([]);
-  const [eclTrendData, setEclTrendData] = useState<any[]>([]);
+  const [stageDistributionData, setStageDistributionData] = useState<StageDistributionItem[]>([]);
+  const [eclTrendData, setEclTrendData] = useState<EclTrendItem[]>([]);
 
   // Update chart data when calculation summary changes
   useEffect(() => {
@@ -595,59 +552,17 @@ export default function IFRS9CalculationDashboard() {
       description="Expected Credit Loss calculation monitoring and execution"
       icon={<CalculateIcon />}
     >
-      {/* Action buttons row */}
-      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 3 }}>
-        <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel id="process-date-select-label">View Date</InputLabel>
-          <Select
-            labelId="process-date-select-label"
-            id="process-date-select"
-            value={selectedProcessDate || ''}
-            label="View Date"
-            onChange={(e) => {
-              const date = e.target.value;
-              setSelectedProcessDate(date);
-              loadData(date);
-            }}
-          >
-            <MenuItem value="">
-              <em>Latest</em>
-            </MenuItem>
-            {availableDates.map((date, idx) => (
-              <MenuItem key={`${date}-${idx}`} value={date}>
-                {date}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        <Button
-          variant="contained"
-          startIcon={<RunIcon />}
-          onClick={handleRunCalculation}
-          disabled={processStatus === 'running'}
-          color="primary"
-        >
-          Run ECL Calculation
-        </Button>
-        <Button
-          variant="outlined"
-          startIcon={<RefreshIcon />}
-          onClick={handleRefreshData}
-          disabled={processStatus === 'running'}
-        >
-          Refresh
-        </Button>
-      </Box>
-
-      {/* Date sync indicator */}
-      {selectedProcessDate && (
-        <Alert severity="info" sx={{ mb: 2 }}>
-          <Typography variant="body2">
-            ECL calculation will use date: <strong>{selectedProcessDate}</strong> 
-            (from View Date dropdown)
-          </Typography>
-        </Alert>
-      )}
+      <CalculationActionBar
+        availableDates={availableDates}
+        selectedProcessDate={selectedProcessDate}
+        processStatus={processStatus}
+        onDateChange={(date) => {
+          setSelectedProcessDate(date || null);
+          loadData(date || undefined);
+        }}
+        onRun={handleRunCalculation}
+        onRefresh={handleRefreshData}
+      />
 
       {/* Error Alert */}
       {error && (
@@ -723,212 +638,37 @@ export default function IFRS9CalculationDashboard() {
 
         {/* Analytics Tab */}
         <TabPanel value={tabValue} index={2}>
-          <Grid container spacing={3}>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>Stage Distribution</Typography>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={stageDistributionData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={true}
-                        label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                        outerRadius={70}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {stageDistributionData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <RechartsTooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>ECL Trend by Stage</Typography>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={eclTrendData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis tickFormatter={(value) => new Intl.NumberFormat('id-ID', { notation: "compact" }).format(value)} />
-                      <RechartsTooltip formatter={(value: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value)} />
-                      <Legend />
-                      <Line type="monotone" dataKey="stage1" stroke="#4CAF50" name="Stage 1" strokeWidth={2} />
-                      <Line type="monotone" dataKey="stage2" stroke="#FF9800" name="Stage 2" strokeWidth={2} />
-                      <Line type="monotone" dataKey="stage3" stroke="#F44336" name="Stage 3" strokeWidth={2} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
+          <CalculationAnalyticsPanel
+            stageDistributionData={stageDistributionData}
+            eclTrendData={eclTrendData}
+          />
         </TabPanel>
 
         {/* Configuration Tab */}
         <TabPanel value={tabValue} index={3}>
-          <Grid container spacing={3}>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>Calculation Settings</Typography>
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      <strong>Process Date:</strong> {selectedProcessDate || 'Not selected'}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      <strong>Calculation Type:</strong> ECL (Expected Credit Loss)
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      <strong>Currency:</strong> IDR
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      <strong>Total Accounts:</strong> {calculationSummary?.total_accounts?.toLocaleString('id-ID') || 0}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      <strong>Total ECL:</strong> {calculationSummary ? formatCurrency(calculationSummary.total_ecl) : 'Rp 0'}
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>Model Parameters</Typography>
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      <strong>Stage Distribution:</strong>
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
-                      • Stage 1: {calculationSummary?.stage1_count?.toLocaleString('id-ID') || 0} accounts
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
-                      • Stage 2: {calculationSummary?.stage2_count?.toLocaleString('id-ID') || 0} accounts
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
-                      • Stage 3: {calculationSummary?.stage3_count?.toLocaleString('id-ID') || 0} accounts
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                      <strong>Coverage Ratio:</strong> {
-                        calculationSummary && calculationSummary.total_outstanding > 0
-                          ? ((calculationSummary.total_ecl / calculationSummary.total_outstanding) * 100).toFixed(2)
-                          : '0.00'
-                      }%
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
+          <CalculationConfigurationPanel
+            selectedProcessDate={selectedProcessDate}
+            calculationSummary={calculationSummary}
+            formatCurrency={formatCurrency}
+          />
         </TabPanel>
       </Paper>
 
-      {/* Run Configuration Dialog */}
-      <Dialog open={runConfigOpen} onClose={() => setRunConfigOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Run ECL Calculation</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={3} sx={{ mt: 1 }}>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <DatePicker
-                label="Process Date"
-                value={runConfig.process_date ? new Date(runConfig.process_date) : null}
-                onChange={(newValue) => {
-                  if (newValue) {
-                    const dateStr = newValue instanceof Date
-                      ? newValue.toISOString().split('T')[0]
-                      : (newValue as any).toISOString().split('T')[0];
-                    setRunConfig(prev => ({ ...prev, process_date: dateStr }));
-                  }
-                }}
-                slotProps={{
-                textField: {
-                  fullWidth: true,
-                  InputLabelProps: { shrink: true },
-                  helperText: selectedProcessDate ? `Selected from View Date: ${selectedProcessDate}` : 'Default: Today'
-                }
-              }}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <FormControl fullWidth>
-                <InputLabel>Calculation Type</InputLabel>
-                <Select
-                  value={runConfig.calculation_type}
-                  label="Calculation Type"
-                  onChange={(e) => setRunConfig(prev => ({ ...prev, calculation_type: e.target.value }))}
-                >
-                  <MenuItem value="full">Full Calculation</MenuItem>
-                  <MenuItem value="incremental">Incremental Update</MenuItem>
-                  <MenuItem value="validation">Validation Only</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <Alert severity="warning">
-                This will execute IFRS9 ECL calculations for all configured segments and models.
-                The process may take several minutes to complete.
-              </Alert>
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setRunConfigOpen(false)}>Cancel</Button>
-          <Button onClick={handleConfirmRun} variant="contained">
-            Start Calculation
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <RunCalculationDialog
+        open={runConfigOpen}
+        runConfig={runConfig}
+        selectedProcessDate={selectedProcessDate}
+        onClose={() => setRunConfigOpen(false)}
+        onChange={setRunConfig}
+        onConfirm={handleConfirmRun}
+      />
 
-      {/* Result Details Dialog */}
-      <Dialog open={resultDetailsOpen} onClose={() => setResultDetailsOpen(false)} maxWidth="lg" fullWidth>
-        <DialogTitle>Account Calculation Details</DialogTitle>
-        <DialogContent>
-          {selectedResult && (
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="subtitle2">Facility Number:</Typography>
-                <Typography variant="body1">{selectedResult?.facility_number}</Typography>
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="subtitle2">CIF Number:</Typography>
-                <Typography variant="body1">{selectedResult?.cif_number}</Typography>
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="subtitle2">Current Stage:</Typography>
-                <Chip
-                  label={`Stage ${selectedResult?.stage}`}
-                  color={selectedResult?.stage === 1 ? 'success' : selectedResult?.stage === 2 ? 'warning' : 'error'}
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="subtitle2">Outstanding Amount:</Typography>
-                <Typography variant="body1">{formatCurrency(selectedResult?.outstanding || 0)}</Typography>
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="subtitle2">ECL Amount:</Typography>
-                <Typography variant="body1">{formatCurrency(selectedResult?.ecl_amount || 0)}</Typography>
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="subtitle2">Final ECL:</Typography>
-                <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                  {formatCurrency(selectedResult?.ecl_final || 0)}
-                </Typography>
-              </Grid>
-            </Grid>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setResultDetailsOpen(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
+      <CalculationResultDetailsDialog
+        open={resultDetailsOpen}
+        selectedResult={selectedResult}
+        onClose={() => setResultDetailsOpen(false)}
+        formatCurrency={formatCurrency}
+      />
     </ReportPageLayout>
   );
 }

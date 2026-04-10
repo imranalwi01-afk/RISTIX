@@ -10,7 +10,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -22,10 +22,6 @@ import {
   Alert,
   Breadcrumbs,
   Link,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
   IconButton,
   Tooltip,
@@ -38,12 +34,10 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Collapse,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Divider
 } from '@mui/material';
 import {
   Rule as PageIcon,
@@ -52,10 +46,6 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Refresh as RefreshIcon,
-  KeyboardArrowDown as ArrowDownIcon,
-  KeyboardArrowUp as ArrowUpIcon,
-  Visibility as ViewIcon,
-  CheckCircle as SuccessIcon,
   Search as SearchIcon,
   FilterAlt as FilterIcon,
   Clear as ClearIcon
@@ -66,54 +56,18 @@ import { FullstackIndicator } from '@/components/common/feedback/FullstackIndica
 import {
   ApprovalNotification,
   ApprovalStatusBadge,
+  buildApprovalConflictNotification,
   buildApprovalNotification,
   createClosedApprovalNotification,
   type ApprovalNotificationState,
 } from '@/components/approval';
-import { useCallback } from 'react';
 import { usePermission } from '@/hooks/usePermission';
+import { getErrorMessage } from '@/utils/error-message';
+import type { RuleBaseDetail, RuleBaseHeader } from './types';
+import { RuleBaseExpandableRow } from './components/RuleBaseExpandableRow';
+import { RuleBaseHeaderDialog } from './components/RuleBaseHeaderDialog';
+import { RuleBaseDetailDialog } from './components/RuleBaseDetailDialog';
 
-
-// =====================================================
-// INTERFACES MATCHING DS2 FRS9PRO DATABASE SCHEMA
-// =====================================================
-
-interface RuleBaseHeader {
-  id: number;
-  rule_name: string;
-  rule_type: string;
-  rule_type_desc?: string;
-  updated_table: string;
-  updated_table_desc?: string;
-  updated_column: string;
-  updated_column_desc?: string;
-  value: string;
-  seq: number;
-  active_flag: boolean;
-  details_count?: number;
-  createdby?: string;
-  createddate?: string;
-  details?: RuleBaseDetail[];
-}
-
-interface RuleBaseDetail {
-  id: number;
-  rule_id: number;
-  query_group: number;
-  seq: number;
-  table_name: string;
-  column_name: string;
-  data_type: string;
-  operator: string;
-  value1?: string;
-  value2?: string;
-  condition: 'AND' | 'OR';
-  detail_type?: string;
-  stage_from?: string;
-  stage_to?: string;
-  createdby?: string;
-  createddate?: string;
-}
 
 const normalizeListPayload = (payload: unknown): string[] => {
   const source =
@@ -181,314 +135,6 @@ const getRuleBaseDetailValidationMessage = (detail: Partial<RuleBaseDetail>): st
 };
 
 // =====================================================
-// EXPANDABLE ROW COMPONENT - MASTER-DETAIL PATTERN
-// =====================================================
-
-interface ExpandableRowProps {
-  header: RuleBaseHeader;
-  canManage: boolean;
-  onEditHeader: (header: RuleBaseHeader) => void;
-  onDeleteHeader: (header: RuleBaseHeader) => void;
-  onCreateDetail: (headerId: number) => void;
-  onEditDetail: (detail: RuleBaseDetail) => void;
-  onDeleteDetail: (detail: RuleBaseDetail) => void;
-  loading: boolean;
-  refreshTrigger?: number;
-  pendingRequests?: any[];
-}
-
-function ExpandableRow({
-  header,
-  canManage,
-  onEditHeader,
-  onDeleteHeader,
-  onCreateDetail,
-  onEditDetail,
-  onDeleteDetail,
-  loading,
-  refreshTrigger,
-  pendingRequests = []
-}: ExpandableRowProps) {
-  const [open, setOpen] = useState(false);
-  const [details, setDetails] = useState<RuleBaseDetail[]>([]);
-  const [loadingDetails, setLoadingDetails] = useState(false);
-
-  const handleToggle = async () => {
-    if (!open && details.length === 0) {
-      await loadDetails();
-    }
-    setOpen(!open);
-  };
-
-  useEffect(() => {
-    if (refreshTrigger) {
-      loadDetails();
-    }
-  }, [refreshTrigger]);
-
-  const loadDetails = async () => {
-    setLoadingDetails(true);
-    try {
-      console.log(`🔍 Loading Rule Base Setting details for rule ${header.id}`);
-
-      const response = await bankingAPI.ruleBaseSetting.getDetails(header.id);
-      if (response.success) {
-        setDetails(response.data);
-        console.log(`✅ Loaded ${response.data.length} rule details from DS2 database`);
-      } else {
-        throw new Error(response.error || 'Failed to load rule details');
-      }
-    } catch (error) {
-      console.error('❌ Error loading rule details:', error);
-      setDetails([]);
-    } finally {
-      setLoadingDetails(false);
-    }
-  };
-
-  return (
-    <>
-      <TableRow hover sx={{ '& > *': { borderBottom: 'unset' } }}>
-        <TableCell>
-          <IconButton
-            aria-label="expand row"
-            size="small"
-            onClick={handleToggle}
-            disabled={loading}
-          >
-            {open ? <ArrowUpIcon /> : <ArrowDownIcon />}
-          </IconButton>
-        </TableCell>
-        <TableCell>
-          <Typography variant="body2" sx={{ fontWeight: 'bold', fontFamily: 'monospace' }} data-testid="rule-id-cell">
-            {header.id}
-          </Typography>
-        </TableCell>
-        <TableCell>
-          <Typography variant="body2" sx={{ fontWeight: 'bold' }} data-testid="rule-name-cell">
-            {header.rule_name}
-          </Typography>
-        </TableCell>
-        <TableCell>
-          <Chip
-            label={header.rule_type}
-            size="small"
-            color={header.rule_type === 'STAGE' ? 'primary' : header.rule_type === 'DEFAULT' ? 'warning' : 'info'}
-          />
-        </TableCell>
-        <TableCell>
-          <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-            {header.updated_table}
-          </Typography>
-        </TableCell>
-        <TableCell>
-          <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-            {header.updated_column}
-          </Typography>
-        </TableCell>
-        <TableCell>
-          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-            {header.value}
-          </Typography>
-        </TableCell>
-        <TableCell align="center">
-          <Chip
-            label={header.seq}
-            size="small"
-            variant="outlined"
-          />
-        </TableCell>
-        <TableCell>
-          {pendingRequests.some(r => r.entityId === header.id.toString()) ? (
-            <ApprovalStatusBadge status="pending" />
-          ) : (
-            <Chip
-              label={header.active_flag ? 'Active' : 'Inactive'}
-              size="small"
-              color={header.active_flag ? 'success' : 'default'}
-            />
-          )}
-        </TableCell>
-        <TableCell>
-          <Chip
-            label={details.length || 0}
-            size="small"
-            color="info"
-          />
-        </TableCell>
-        <TableCell>
-          {canManage && (
-            <>
-              <Tooltip title="Edit Rule Header">
-                <IconButton
-                  size="small"
-                  color="primary"
-                  onClick={() => onEditHeader(header)}
-                  disabled={loading}
-                  data-testid="edit-header-btn"
-                >
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Delete Rule Header">
-                <IconButton
-                  size="small"
-                  color="error"
-                  onClick={() => onDeleteHeader(header)}
-                  disabled={loading}
-                  data-testid="delete-header-btn"
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </>
-          )}
-        </TableCell>
-      </TableRow>
-
-      {/* Expandable Details Section */}
-      <TableRow>
-        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={11}>
-          <Collapse in={open} timeout="auto" unmountOnExit>
-            <Box sx={{ margin: 2 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6" gutterBottom component="div" sx={{ fontWeight: 'bold' }}>
-                  Rule Details for: {header.rule_name}
-                </Typography>
-                {canManage && (
-                  <Button
-                    size="small"
-                    startIcon={<AddIcon />}
-                    onClick={() => onCreateDetail(header.id)}
-                    disabled={loading}
-                    variant="outlined"
-                    data-testid="add-detail-btn"
-                  >
-                    Add Detail
-                  </Button>
-                )}
-              </Box>
-
-              {loadingDetails ? (
-                <Box display="flex" justifyContent="center" py={3}>
-                  <CircularProgress size={24} />
-                </Box>
-              ) : details.length === 0 ? (
-                <Alert severity="info">
-                  No rule details found for this header.
-                </Alert>
-              ) : (
-                <TableContainer component={Paper} variant="outlined">
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell><strong>Group</strong></TableCell>
-                        <TableCell><strong>Seq</strong></TableCell>
-                        <TableCell><strong>Table</strong></TableCell>
-                        <TableCell><strong>Column</strong></TableCell>
-                        <TableCell><strong>Data Type</strong></TableCell>
-                        <TableCell><strong>Operator</strong></TableCell>
-                        <TableCell><strong>Value 1</strong></TableCell>
-                        <TableCell><strong>Value 2</strong></TableCell>
-                        <TableCell><strong>Condition</strong></TableCell>
-                        <TableCell><strong>Type</strong></TableCell>
-                        <TableCell><strong>Actions</strong></TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {details.map((detail, index) => (
-                        <TableRow key={detail.id ? `detail-${detail.id}` : `detail-idx-${index}`} hover>
-                          <TableCell>
-                            <Chip label={detail.query_group} size="small" color="info" />
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                              {detail.seq}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                              {detail.table_name}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                              {detail.column_name}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Chip label={detail.data_type} size="small" variant="outlined" />
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                              {detail.operator}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                              {detail.value1 || '-'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                              {detail.value2 || '-'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={detail.condition}
-                              size="small"
-                              color={detail.condition === 'AND' ? 'primary' : 'secondary'}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">
-                              {detail.detail_type || '-'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            {canManage && (
-                              <>
-                                <Tooltip title="Edit Detail">
-                                  <IconButton
-                                    size="small"
-                                    color="primary"
-                                    onClick={() => onEditDetail(detail)}
-                                    disabled={loading}
-                                    data-testid="edit-detail-btn"
-                                  >
-                                    <EditIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                                <Tooltip title="Delete Detail">
-                                  <IconButton
-                                    size="small"
-                                    color="error"
-                                    onClick={() => onDeleteDetail(detail)}
-                                    disabled={loading}
-                                    data-testid="delete-detail-btn"
-                                  >
-                                    <DeleteIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                              </>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              )}
-            </Box>
-          </Collapse>
-        </TableCell>
-      </TableRow>
-    </>
-  );
-}
-
-// =====================================================
 // MAIN COMPONENT
 // =====================================================
 
@@ -527,11 +173,17 @@ export default function RuleBaseSettingPage() {
 
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
+  const showApprovalConflict = useCallback((error: unknown, fallbackMessage: string) => {
+    const notification = buildApprovalConflictNotification(error, fallbackMessage);
+    if (!notification) return false;
+    setApprovalNotification(notification);
+    return true;
+  }, []);
   const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'error' }>({ open: false, message: '', type: 'success' });
 
-  const triggerRefresh = (headerId: number) => {
+  const triggerRefresh = useCallback((headerId: number) => {
     setRefreshTriggers(prev => ({ ...prev, [headerId]: Date.now() }));
-  };
+  }, []);
 
   // Dropdown Options - Live Database Metadata
   const [ruleTypes, setRuleTypes] = useState<{ label: string, value: string }[]>([]);
@@ -552,7 +204,7 @@ export default function RuleBaseSettingPage() {
   const detailValidationMessage = getRuleBaseDetailValidationMessage(detailFormData);
 
   // Filter functions
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = headers;
 
     if (searchTerm) {
@@ -580,21 +232,21 @@ export default function RuleBaseSettingPage() {
     }
 
     setFilteredHeaders(filtered);
-  };
+  }, [filterCreatedBy, filterRuleType, filterStatus, headers, searchTerm]);
 
   // Get unique values for filters
-  const getUniqueRuleTypes = () => {
+  const getUniqueRuleTypes = useCallback(() => {
     const types = headers.map(h => h.rule_type).filter(Boolean);
     return [...new Set(types)].sort();
-  };
+  }, [headers]);
 
-  const getUniqueCreatedBy = () => {
+  const getUniqueCreatedBy = useCallback(() => {
     const creators = headers.map(h => h.createdby).filter(Boolean);
     return [...new Set(creators)].sort();
-  };
+  }, [headers]);
 
   // Load rule base setting headers
-  const loadHeaders = async () => {
+  const loadHeaders = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -617,14 +269,14 @@ export default function RuleBaseSettingPage() {
 
     } catch (error) {
       console.error('❌ Failed to load rule base settings:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorMessage = getErrorMessage(error, 'Unknown error occurred');
       setError(`Failed to load rule base settings: ${errorMessage}`);
       setHeaders([]);
       setFilteredHeaders([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const loadPendingApprovals = useCallback(async () => {
     try {
@@ -715,7 +367,7 @@ export default function RuleBaseSettingPage() {
   }, []);
 
   // Load dropdown metadata from DS2 database
-  const loadMetadata = async () => {
+  const loadMetadata = useCallback(async () => {
     try {
       console.log('🔄 Loading Rule Base Setting metadata from DS2 database...');
 
@@ -743,7 +395,7 @@ export default function RuleBaseSettingPage() {
     } catch (error) {
       console.error('❌ Error loading metadata:', error);
     }
-  };
+  }, []);
 
   // Component lifecycle
   useEffect(() => {
@@ -777,7 +429,7 @@ export default function RuleBaseSettingPage() {
   }, [detailDialogOpen, detailFormData.table_name, detailFormData.column_name, loadDetailDataTypeAndOperators]);
 
   // Header CRUD operations
-  const handleCreateHeader = () => {
+  const handleCreateHeader = useCallback(() => {
     if (!canManageRuleBase) return;
     setSelectedHeader(null);
     setHeaderFormData({
@@ -790,9 +442,9 @@ export default function RuleBaseSettingPage() {
       active_flag: true
     });
     setHeaderDialogOpen(true);
-  };
+  }, [canManageRuleBase]);
 
-  const handleEditHeader = (header: RuleBaseHeader) => {
+  const handleEditHeader = useCallback((header: RuleBaseHeader) => {
     if (!canManageRuleBase) return;
     setSelectedHeader(header);
     setHeaderFormData({
@@ -805,9 +457,9 @@ export default function RuleBaseSettingPage() {
       active_flag: header.active_flag
     });
     setHeaderDialogOpen(true);
-  };
+  }, [canManageRuleBase]);
 
-  const handleHeaderTableChange = (tableName: string) => {
+  const handleHeaderTableChange = useCallback((tableName: string) => {
     setHeaderFormData(prev => ({
       ...prev,
       updated_table: tableName,
@@ -817,9 +469,9 @@ export default function RuleBaseSettingPage() {
     if (tableName) {
       loadHeaderColumns(tableName);
     }
-  };
+  }, [loadHeaderColumns]);
 
-  const handleDeleteHeader = async (header: RuleBaseHeader) => {
+  const handleDeleteHeader = useCallback(async (header: RuleBaseHeader) => {
     if (!canManageRuleBase) return;
     if (!confirm(`Are you sure you want to delete rule "${header.rule_name}"? This will also delete all associated details.`)) {
       return;
@@ -843,14 +495,16 @@ export default function RuleBaseSettingPage() {
 
     } catch (error) {
       console.error('❌ Failed to delete rule header:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      setError(`Failed to delete rule header: ${errorMessage}`);
+      if (!showApprovalConflict(error, 'Deletion request submitted for approval')) {
+        const errorMessage = getErrorMessage(error, 'Unknown error occurred');
+        setError(`Failed to delete rule header: ${errorMessage}`);
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [canManageRuleBase, loadHeaders, loadPendingApprovals, showApprovalConflict]);
 
-  const handleSaveHeader = async () => {
+  const handleSaveHeader = useCallback(async () => {
     if (!canManageRuleBase) return;
     if (headerValidationMessage) {
       setError(headerValidationMessage);
@@ -892,15 +546,17 @@ export default function RuleBaseSettingPage() {
 
     } catch (error) {
       console.error('❌ Failed to save rule header:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      setError(`Failed to save rule header: ${errorMessage}`);
+      if (!showApprovalConflict(error, 'Request submitted for approval')) {
+        const errorMessage = getErrorMessage(error, 'Unknown error occurred');
+        setError(`Failed to save rule header: ${errorMessage}`);
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [canManageRuleBase, headerFormData, headerValidationMessage, loadHeaders, loadPendingApprovals, selectedHeader, showApprovalConflict]);
 
   // Detail CRUD operations
-  const handleCreateDetail = (headerId: number) => {
+  const handleCreateDetail = useCallback((headerId: number) => {
     if (!canManageRuleBase) return;
     setSelectedDetail(null);
     setSelectedHeaderId(headerId);
@@ -916,17 +572,17 @@ export default function RuleBaseSettingPage() {
       condition: 'AND'
     });
     setDetailDialogOpen(true);
-  };
+  }, [canManageRuleBase]);
 
-  const handleEditDetail = (detail: RuleBaseDetail) => {
+  const handleEditDetail = useCallback((detail: RuleBaseDetail) => {
     if (!canManageRuleBase) return;
     setSelectedDetail(detail);
     setSelectedHeaderId(detail.rule_id);
     setDetailFormData(detail);
     setDetailDialogOpen(true);
-  };
+  }, [canManageRuleBase]);
 
-  const handleDetailTableChange = (tableName: string) => {
+  const handleDetailTableChange = useCallback((tableName: string) => {
     setDetailFormData(prev => ({
       ...prev,
       table_name: tableName,
@@ -941,9 +597,9 @@ export default function RuleBaseSettingPage() {
     if (tableName) {
       loadDetailColumns(tableName);
     }
-  };
+  }, [loadDetailColumns]);
 
-  const handleDetailColumnChange = (columnName: string) => {
+  const handleDetailColumnChange = useCallback((columnName: string) => {
     setDetailFormData(prev => ({
       ...prev,
       column_name: columnName,
@@ -956,18 +612,18 @@ export default function RuleBaseSettingPage() {
     if (columnName && detailFormData.table_name) {
       loadDetailDataTypeAndOperators(detailFormData.table_name, columnName);
     }
-  };
+  }, [detailFormData.table_name, loadDetailDataTypeAndOperators]);
 
-  const handleDetailOperatorChange = (operator: string) => {
+  const handleDetailOperatorChange = useCallback((operator: string) => {
     setDetailFormData(prev => ({
       ...prev,
       operator,
       value1: '',
       value2: ''
     }));
-  };
+  }, []);
 
-  const handleDeleteDetail = async (detail: RuleBaseDetail) => {
+  const handleDeleteDetail = useCallback(async (detail: RuleBaseDetail) => {
     if (!canManageRuleBase) return;
     if (!confirm(`Are you sure you want to delete this rule detail?`)) {
       return;
@@ -992,14 +648,16 @@ export default function RuleBaseSettingPage() {
 
     } catch (error) {
       console.error('❌ Failed to delete rule detail:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      setError(`Failed to delete rule detail: ${errorMessage}`);
+      if (!showApprovalConflict(error, 'Deletion request submitted for approval')) {
+        const errorMessage = getErrorMessage(error, 'Unknown error occurred');
+        setError(`Failed to delete rule detail: ${errorMessage}`);
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [canManageRuleBase, loadHeaders, loadPendingApprovals, showApprovalConflict, triggerRefresh]);
 
-  const handleSaveDetail = async () => {
+  const handleSaveDetail = useCallback(async () => {
     if (!canManageRuleBase) return;
     if (detailValidationMessage) {
       setError(detailValidationMessage);
@@ -1051,20 +709,22 @@ export default function RuleBaseSettingPage() {
 
     } catch (error) {
       console.error('❌ Failed to save rule detail:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      setError(`Failed to save rule detail: ${errorMessage}`);
+      if (!showApprovalConflict(error, 'Request submitted for approval')) {
+        const errorMessage = getErrorMessage(error, 'Unknown error occurred');
+        setError(`Failed to save rule detail: ${errorMessage}`);
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [canManageRuleBase, detailFormData, detailValidationMessage, loadHeaders, loadPendingApprovals, selectedDetail, selectedHeaderId, showApprovalConflict, triggerRefresh]);
 
   // Clear all filters
-  const handleClearFilters = () => {
+  const handleClearFilters = useCallback(() => {
     setSearchTerm('');
     setFilterRuleType('');
     setFilterStatus('');
     setFilterCreatedBy('');
-  };
+  }, []);
 
   // Loading state
   if (loading && headers.length === 0) {
@@ -1327,7 +987,7 @@ export default function RuleBaseSettingPage() {
                 </TableHead>
                 <TableBody>
                   {filteredHeaders.map((header, index) => (
-                    <ExpandableRow
+                    <RuleBaseExpandableRow
                       key={header.id ? `row-${header.id}` : `row-idx-${index}`}
                       header={header}
                       canManage={canManageRuleBase}
@@ -1348,342 +1008,50 @@ export default function RuleBaseSettingPage() {
         </CardContent>
       </Card>
 
-      {/* Header Create/Edit Dialog */}
-      <Dialog open={headerDialogOpen} onClose={() => setHeaderDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {selectedHeader ? 'Edit Rule Header' : 'Create Rule Header'}
-        </DialogTitle>
-        <DialogContent sx={{ mt: 2 }}>
-          <Alert severity="info" sx={{ mb: 2 }}>
-            <strong>Rule Configuration:</strong><br />
-            Configure the main rule parameters that will be used for IFRS 9 collective impairment calculations.
-          </Alert>
-          {headerValidationMessage ? (
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              {headerValidationMessage}
-            </Alert>
-          ) : null}
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2 }}>
-            <TextField
-              label="Rule Name"
-              value={headerFormData.rule_name || ''}
-              onChange={(e) => setHeaderFormData(prev => ({ ...prev, rule_name: e.target.value }))}
-              fullWidth
-              required
-              placeholder="e.g., Stage Classification Rule"
-              data-testid="rule-name-field"
-            />
-            <FormControl fullWidth required>
-              <InputLabel>Rule Type</InputLabel>
-              <Select
-                value={headerFormData.rule_type || ''}
-                onChange={(e) => setHeaderFormData(prev => ({ ...prev, rule_type: e.target.value }))}
-                label="Rule Type"
-                data-testid="rule-type-field"
-              >
-                {ruleTypes.length > 0 ? (
-                  ruleTypes.map((type, idx) => (
-                    <MenuItem key={`${type.value}-${idx}`} value={type.value}>{type.label}</MenuItem>
-                  ))
-                ) : (
-                  // Fallback if metadata fails
-                  [
-                    <MenuItem key="STAGE-0" value="STAGE">STAGE</MenuItem>,
-                    <MenuItem key="DEFAULT-1" value="DEFAULT">DEFAULT</MenuItem>,
-                    <MenuItem key="GL-2" value="GL">GL</MenuItem>,
-                    <MenuItem key="CUSTOM-3" value="CUSTOM">CUSTOM</MenuItem>
-                  ]
-                )}
-              </Select>
-            </FormControl>
-            <FormControl fullWidth required>
-              <InputLabel>Updated Table</InputLabel>
-              <Select
-                value={headerFormData.updated_table || ''}
-                onChange={(e) => handleHeaderTableChange(e.target.value)}
-                label="Updated Table"
-                data-testid="updated-table-field"
-              >
-                {metadataLoading.tables ? <MenuItem disabled>Loading...</MenuItem> : null}
-                {!metadataLoading.tables && tableOptions.length === 0 ? (
-                  <MenuItem disabled value="">
-                    No options from Business Settings B0012
-                  </MenuItem>
-                ) : null}
-                {tableOptions.map((tableName) => (
-                  <MenuItem key={tableName} value={tableName}>{tableName}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl fullWidth required disabled={!headerFormData.updated_table}>
-              <InputLabel>Updated Column</InputLabel>
-              <Select
-                value={headerFormData.updated_column || ''}
-                onChange={(e) => setHeaderFormData(prev => ({ ...prev, updated_column: e.target.value }))}
-                label="Updated Column"
-                data-testid="updated-column-field"
-              >
-                {metadataLoading.headerColumns ? <MenuItem disabled>Loading...</MenuItem> : null}
-                {!metadataLoading.headerColumns && headerColumnOptions.length === 0 ? (
-                  <MenuItem disabled value="">
-                    No options from Business Settings B0013
-                  </MenuItem>
-                ) : null}
-                {headerColumnOptions.map((columnName) => (
-                  <MenuItem key={columnName} value={columnName}>{columnName}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <TextField
-              label="Value"
-              value={headerFormData.value || ''}
-              onChange={(e) => setHeaderFormData(prev => ({ ...prev, value: e.target.value }))}
-              fullWidth
-              required
-              placeholder="Target value to set"
-              data-testid="rule-value-field"
-            />
-            <TextField
-              label="Sequence"
-              type="number"
-              value={headerFormData.seq || 1}
-              onChange={(e) => setHeaderFormData(prev => ({ ...prev, seq: parseInt(e.target.value) || 1 }))}
-              fullWidth
-              required
-              inputProps={{ min: 1 }}
-              data-testid="rule-seq-field"
-            />
-          </Box>
-          <Box sx={{ mt: 2 }}>
-            <FormControl component="fieldset">
-              <Typography component="legend">Status</Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <input
-                  type="checkbox"
-                  checked={headerFormData.active_flag !== false}
-                  onChange={(e) => setHeaderFormData(prev => ({ ...prev, active_flag: e.target.checked }))}
-                  data-testid="rule-active-checkbox"
-                />
-                <Typography sx={{ ml: 1 }}>Active</Typography>
-              </Box>
-            </FormControl>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setHeaderDialogOpen(false)} disabled={loading}>
-            Cancel
-          </Button>
-          {canManageRuleBase && (
-            <Button
-              onClick={handleSaveHeader}
-              variant="contained"
-              disabled={loading || Boolean(headerValidationMessage)}
-              data-testid="save-rule-header-btn"
-            >
-              {loading ? <CircularProgress size={20} /> : (selectedHeader ? 'Update' : 'Create')}
-            </Button>
-          )}
-        </DialogActions>
-      </Dialog>
-
-      {/* Detail Create/Edit Dialog */}
-      <Dialog open={detailDialogOpen} onClose={() => setDetailDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {selectedDetail ? 'Edit Rule Detail' : 'Create Rule Detail'}
-        </DialogTitle>
-        <DialogContent sx={{ mt: 2 }}>
-          <Alert severity="info" sx={{ mb: 2 }}>
-            <strong>Detail Configuration:</strong><br />
-            Configure the specific conditions and logic for this rule detail.
-          </Alert>
-          {detailValidationMessage ? (
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              {detailValidationMessage}
-            </Alert>
-          ) : null}
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2 }}>
-            <TextField
-              label="Query Group"
-              type="number"
-              value={detailFormData.query_group || 1}
-              onChange={(e) => setDetailFormData(prev => ({ ...prev, query_group: parseInt(e.target.value) || 1 }))}
-              fullWidth
-              required
-              inputProps={{ min: 1 }}
-              data-testid="group-field"
-            />
-            <TextField
-              label="Sequence"
-              type="number"
-              value={detailFormData.seq || 1}
-              onChange={(e) => setDetailFormData(prev => ({ ...prev, seq: parseInt(e.target.value) || 1 }))}
-              fullWidth
-              required
-              inputProps={{ min: 1 }}
-              data-testid="detail-seq-field"
-            />
-            <FormControl fullWidth required>
-              <InputLabel>Table Name</InputLabel>
-              <Select
-                value={detailFormData.table_name || ''}
-                onChange={(e) => handleDetailTableChange(e.target.value)}
-                label="Table Name"
-                data-testid="table-field"
-              >
-                {metadataLoading.tables ? <MenuItem disabled>Loading...</MenuItem> : null}
-                {!metadataLoading.tables && tableOptions.length === 0 ? (
-                  <MenuItem disabled value="">
-                    No options from Business Settings B0012
-                  </MenuItem>
-                ) : null}
-                {tableOptions.map((tableName) => (
-                  <MenuItem key={tableName} value={tableName}>{tableName}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl fullWidth required disabled={!detailFormData.table_name}>
-              <InputLabel>Column Name</InputLabel>
-              <Select
-                value={detailFormData.column_name || ''}
-                onChange={(e) => handleDetailColumnChange(e.target.value)}
-                label="Column Name"
-                data-testid="column-field"
-              >
-                {metadataLoading.detailColumns ? <MenuItem disabled>Loading...</MenuItem> : null}
-                {!metadataLoading.detailColumns && detailColumnOptions.length === 0 ? (
-                  <MenuItem disabled value="">
-                    No options from Business Settings B0013
-                  </MenuItem>
-                ) : null}
-                {detailColumnOptions.map((columnName) => (
-                  <MenuItem key={columnName} value={columnName}>{columnName}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <TextField
-              label="Data Type"
-              value={detailFormData.data_type || ''}
-              fullWidth
-              required
-              disabled
-              placeholder="Auto-detected from Business Settings"
-              data-testid="datatype-field"
-              InputProps={{
-                startAdornment: metadataLoading.detailDataType ? <CircularProgress size={16} sx={{ mr: 1 }} /> : undefined
-              }}
-            />
-            <FormControl fullWidth required>
-              <InputLabel>Operator</InputLabel>
-              <Select
-                value={detailFormData.operator || ''}
-                onChange={(e) => handleDetailOperatorChange(e.target.value)}
-                label="Operator"
-                disabled={!detailFormData.data_type}
-                data-testid="operator-select"
-              >
-                {metadataLoading.detailOperators ? <MenuItem disabled>Loading...</MenuItem> : null}
-                {!metadataLoading.detailOperators && detailOperatorOptions.length === 0 ? (
-                  <MenuItem disabled value="">
-                    No options from Business Settings B0014
-                  </MenuItem>
-                ) : null}
-                {detailOperatorOptions.map((operator) => (
-                  <MenuItem key={operator} value={operator}>{operator}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <TextField
-              label="Value 1"
-              value={detailFormData.value1 || ''}
-              onChange={(e) => setDetailFormData(prev => ({ ...prev, value1: e.target.value }))}
-              fullWidth
-              disabled={['IS NULL', 'IS NOT NULL'].includes(String(detailFormData.operator || '').toUpperCase())}
-              placeholder="Primary comparison value"
-              data-testid="val1-field"
-            />
-            <TextField
-              label="Value 2"
-              value={detailFormData.value2 || ''}
-              onChange={(e) => setDetailFormData(prev => ({ ...prev, value2: e.target.value }))}
-              fullWidth
-              disabled={String(detailFormData.operator || '').toUpperCase() !== 'BETWEEN'}
-              placeholder="Secondary value (for BETWEEN, etc.)"
-              data-testid="val2-field"
-            />
-            <FormControl fullWidth required>
-              <InputLabel>Condition</InputLabel>
-              <Select
-                value={detailFormData.condition || 'AND'}
-                onChange={(e) => setDetailFormData(prev => ({ ...prev, condition: e.target.value as 'AND' | 'OR' }))}
-                label="Condition"
-                data-testid="condition-select"
-              >
-                {conditions.length > 0 ? (
-                  conditions.map((cond, idx) => (
-                    <MenuItem key={`${cond.value}-${idx}`} value={cond.value}>{cond.label}</MenuItem>
-                  ))
-                ) : (
-                  [
-                    <MenuItem key="AND-0" value="AND">AND</MenuItem>,
-                    <MenuItem key="OR-1" value="OR">OR</MenuItem>
-                  ]
-                )}
-              </Select>
-            </FormControl>
-            <TextField
-              label="Detail Type"
-              value={detailFormData.detail_type || ''}
-              onChange={(e) => setDetailFormData(prev => ({ ...prev, detail_type: e.target.value }))}
-              fullWidth
-              placeholder="e.g., SICR, DEFAULT, 1, 2, 3"
-              data-testid="detail-type-field"
-            />
-            <FormControl fullWidth>
-              <InputLabel>Stage From</InputLabel>
-              <Select
-                value={String(detailFormData.stage_from || '')}
-                onChange={(e) => setDetailFormData(prev => ({ ...prev, stage_from: e.target.value }))}
-                label="Stage From"
-                data-testid="stage-from-field"
-              >
-                <MenuItem value="">None</MenuItem>
-                {stages.map((stage) => (
-                  <MenuItem key={`from-${stage.value}`} value={stage.value}>{stage.label}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl fullWidth>
-              <InputLabel>Stage To</InputLabel>
-              <Select
-                value={String(detailFormData.stage_to || '')}
-                onChange={(e) => setDetailFormData(prev => ({ ...prev, stage_to: e.target.value }))}
-                label="Stage To"
-                data-testid="stage-to-field"
-              >
-                <MenuItem value="">None</MenuItem>
-                {stages.map((stage) => (
-                  <MenuItem key={`to-${stage.value}`} value={stage.value}>{stage.label}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDetailDialogOpen(false)} disabled={loading}>
-            Cancel
-          </Button>
-          {canManageRuleBase && (
-            <Button
-              onClick={handleSaveDetail}
-              variant="contained"
-              disabled={loading || Boolean(detailValidationMessage)}
-              data-testid="save-rule-detail-btn"
-            >
-              {loading ? <CircularProgress size={20} /> : (selectedDetail ? 'Update' : 'Create')}
-            </Button>
-          )}
-        </DialogActions>
-      </Dialog>
+      <RuleBaseHeaderDialog
+        open={headerDialogOpen}
+        loading={loading}
+        selectedHeader={selectedHeader}
+        headerFormData={headerFormData}
+        headerValidationMessage={headerValidationMessage}
+        ruleTypes={ruleTypes}
+        tableOptions={tableOptions}
+        headerColumnOptions={headerColumnOptions}
+        metadataLoading={{
+          tables: metadataLoading.tables,
+          headerColumns: metadataLoading.headerColumns,
+        }}
+        canManageRuleBase={canManageRuleBase}
+        onClose={() => setHeaderDialogOpen(false)}
+        onSave={handleSaveHeader}
+        onHeaderTableChange={handleHeaderTableChange}
+        onHeaderFormChange={setHeaderFormData}
+      />
+      <RuleBaseDetailDialog
+        open={detailDialogOpen}
+        loading={loading}
+        selectedDetail={selectedDetail}
+        detailFormData={detailFormData}
+        detailValidationMessage={detailValidationMessage}
+        canManageRuleBase={canManageRuleBase}
+        conditions={conditions}
+        stages={stages}
+        tableOptions={tableOptions}
+        detailColumnOptions={detailColumnOptions}
+        detailOperatorOptions={detailOperatorOptions}
+        metadataLoading={{
+          tables: metadataLoading.tables,
+          detailColumns: metadataLoading.detailColumns,
+          detailDataType: metadataLoading.detailDataType,
+          detailOperators: metadataLoading.detailOperators,
+        }}
+        onClose={() => setDetailDialogOpen(false)}
+        onSave={handleSaveDetail}
+        onDetailFormChange={setDetailFormData}
+        onDetailTableChange={handleDetailTableChange}
+        onDetailColumnChange={handleDetailColumnChange}
+        onDetailOperatorChange={handleDetailOperatorChange}
+      />
       <ApprovalNotification
         open={approvalNotification.open}
         message={approvalNotification.message}

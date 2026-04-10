@@ -7,8 +7,10 @@ import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
 import { runEffect } from '../lib/effect/runtime'
+import { buildErrorResponse } from '../lib/http/error-response'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-export const eadConfigurationsRoutes = new OpenAPIHono<AppContext>()
+export const eadConfigurationsRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 eadConfigurationsRoutes.use('*', authMiddleware)
 
@@ -162,7 +164,7 @@ eadConfigurationsRoutes.openapi(
             } as any)
         } catch (error) {
             console.error('Error fetching EAD configurations:', error)
-            return c.json({ success: false, message: 'Failed to fetch EAD configurations', error: String(error) }, 500)
+            return c.json(buildErrorResponse(c, { error: 'Failed to fetch EAD configurations', message: 'Failed to fetch EAD configurations', code: 'EAD_CONFIGURATION_ERROR', details: String(error) }), 500)
         }
     }
 )
@@ -187,7 +189,7 @@ eadConfigurationsRoutes.openapi(
     async (c) => {
         try {
             const { id } = c.req.valid('param')
-            if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400) as any;
+            if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400) as any;
 
             const [config] = await db
                 .select()
@@ -195,12 +197,12 @@ eadConfigurationsRoutes.openapi(
                 .where(eq(frs9ImpCaEadConfig.pkid, id))
 
             if (!config) {
-                return c.json({ success: false, message: 'EAD configuration not found' }, 404) as any
+                return c.json(buildErrorResponse(c, { error: 'EAD configuration not found', message: 'EAD configuration not found', code: 'NOT_FOUND' }), 404) as any
             }
 
             return c.json({ success: true, data: transformEadConfig(config) } as any)
         } catch (error) {
-            return c.json({ success: false, message: 'Failed to fetch EAD configuration', error: String(error) }, 500)
+            return c.json(buildErrorResponse(c, { error: 'Failed to fetch EAD configuration', message: 'Failed to fetch EAD configuration', code: 'EAD_CONFIGURATION_ERROR', details: String(error) }), 500)
         }
     }
 )
@@ -282,7 +284,7 @@ eadConfigurationsRoutes.openapi(
     }),
     async (c) => {
         const { id } = c.req.valid('param')
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400) as any;
+        if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400) as any;
         const userId = c.get('userId') as string
         const tenantId = c.get('tenantId') as string
         const userPermissions = c.get('permissions') || []
@@ -351,7 +353,7 @@ eadConfigurationsRoutes.openapi(
     }),
     async (c) => {
         const { id } = c.req.valid('param')
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
+        if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400);
 
         const userId = c.get('userId') as string
         const tenantId = c.get('tenantId') as string

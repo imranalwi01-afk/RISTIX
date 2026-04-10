@@ -3070,26 +3070,70 @@ preflight_scenario_inputs <- function(base_df, intuition_df, sd_vec) {
 
 make_scenario <- function(base_df, intuition_df, sd_vec) {
   
-  preflight <- preflight_scenario_inputs(base_df, intuition_df, sd_vec)
-
-  if (length(preflight$missing_intuition) > 0) {
+  stopifnot(is.data.frame(base_df))
+  stopifnot(is.data.frame(intuition_df))
+  
+  # =========================
+  # Normalisasi nama variabel base
+  # =========================
+  base_names <- colnames(base_df)
+  core_names <- unique(sapply(strsplit(base_names, "_"), `[`, 1))
+  
+  #core_names <- gsub("_LG\\d+$", "", core_names, ignore.case = TRUE)
+  #core_names <- gsub("_LAG\\d+$", "", core_names, ignore.case = TRUE)
+  #core_names <- gsub("_Ln$", "", core_names, ignore.case = TRUE)
+  #core_names <- gsub("_Y(_.*)?$", "", core_names, ignore.case = TRUE)
+  
+  
+  
+  
+  # =========================
+  # Mapping INTUITION (by core name)
+  # =========================
+  intuition_map <- setNames(
+    intuition_df$sign,
+    intuition_df$var
+  )
+  
+  matched_intuition <- intuition_map[core_names]
+  
+  if (any(is.na(matched_intuition))) {
     stop(
       "Intuisi tidak ditemukan untuk variabel: ",
-      paste(preflight$missing_intuition, collapse = ", ")
+      paste(base_names[is.na(matched_intuition)], collapse = ", ")
     )
   }
-
-  if (length(preflight$missing_sd) > 0) {
+  
+  # =========================
+  # NORMALISASI SD_VEC
+  # =========================
+  
+  # kalau 1-row data.frame (hasil_boxplot$diff.base[3,])
+  if (is.data.frame(sd_vec)) {
+    
+    if (nrow(sd_vec) != 1) {
+      stop("sd_vec data.frame harus 1 baris (row stdev)")
+    }
+    
+    sd_raw <- as.numeric(sd_vec[1, ])
+    names(sd_raw) <- (colnames(sd_vec))
+    
+  } else {
+    # numeric vector
+    sd_raw <- as.numeric(sd_vec)
+    names(sd_raw) <- (names(sd_vec))
+  }
+  
+  # mapping SD ke core name model
+  matched_sd <- sd_raw[core_names]
+  
+  if (any(is.na(matched_sd))) {
     stop(
       "SD tidak ditemukan untuk variabel: ",
-      paste(preflight$missing_sd, collapse = ", ")
+      paste(base_names[is.na(matched_sd)], collapse = ", ")
     )
   }
-
-  base_names <- preflight$base_names
-  matched_intuition <- preflight$matched_intuition
-  matched_sd <- preflight$matched_sd
-
+  
   # rename SD sesuai kolom model
   names(matched_sd) <- base_names
   

@@ -2,8 +2,9 @@ import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import type { AppContext } from '../app';
 import { authMiddleware } from '../middleware';
 import { forecastController } from '../controllers/forecast.controller';
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook';
 
-export const forecastRoutes: any = new OpenAPIHono<AppContext>();
+export const forecastRoutes: any = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook });
 
 forecastRoutes.use('*', authMiddleware);
 

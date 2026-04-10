@@ -1,8 +1,9 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import type { AppContext } from '../app'
 import { sendDiscordAlert } from '../services/discord-alert.service'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-export const monitoringRoutes = new OpenAPIHono<AppContext>()
+export const monitoringRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 const FrontendLogLevelSchema = z.enum(['debug', 'info', 'warn', 'error', 'critical'])
 

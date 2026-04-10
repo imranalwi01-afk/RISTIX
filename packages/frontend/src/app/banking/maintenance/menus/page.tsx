@@ -9,7 +9,7 @@
 
 'use client';
 
-import React, { useState, useEffect, type JSX } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -80,6 +80,18 @@ import {
   Build,
   AdminPanelSettings
 } from '@mui/icons-material';
+import {
+  MenuAnalyticsPanel,
+  MenuDeleteDialog,
+  MenuEditDialog,
+  MenuManagementHeader,
+  MenuPermissionsDialog,
+  MenuTreePanel,
+  type MenuIconOption,
+  type MenuItem as ManagedMenuItem,
+  type Role,
+  type User,
+} from './components';
 
 // Import our database-driven menu service
 import { useRouter } from 'next/navigation';
@@ -91,52 +103,6 @@ const menuService = menuApi;
 
 // Import API service for base URL configuration
 import { api } from '@/services/api';
-
-// Types for local state management
-interface MenuItem {
-  id: string;
-  label: string;
-  href?: string;
-  icon?: string;
-  description?: string;
-  parentId?: string;
-  order: number;
-  isActive: boolean;
-  roles: string[];
-  bankingModes: ('conventional' | 'syariah' | 'dual')[];
-  permissions: string[];
-  createdAt: string;
-  updatedAt: string;
-  children?: MenuItem[];
-  // Database-specific fields
-  code?: string;
-  status?: 'active' | 'warning' | 'error' | 'disabled';
-  is_new?: boolean;
-  requires_setup?: boolean;
-  badge?: {
-    content?: string | number;
-    color?: 'primary' | 'secondary' | 'error' | 'warning' | 'info' | 'success';
-  };
-  target?: '_self' | '_blank';
-  external_url?: string;
-  sort_order?: number;
-}
-
-interface Role {
-  id: string;
-  name: string;
-  description: string;
-  permissions: string[];
-  isActive: boolean;
-}
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  roles: string[];
-  isActive: boolean;
-}
 
 // Database menu item type (from API response)
 interface DatabaseMenuItem {
@@ -208,7 +174,7 @@ interface CreateMenuItemRequest {
 export default function MenuManagement({ params }: { params: Promise<{}> }) {
   void params; // required by typed routes signature, unused in this page
   const theme = useTheme();
-  const [menus, setMenus] = useState<MenuItem[]>([]);
+  const [menus, setMenus] = useState<ManagedMenuItem[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
@@ -238,21 +204,7 @@ export default function MenuManagement({ params }: { params: Promise<{}> }) {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [permissionDialogOpen, setPermissionDialogOpen] = useState(false);
-  const [selectedMenu, setSelectedMenu] = useState<MenuItem | null>(null);
-
-  // Form states
-  const [formData, setFormData] = useState<Partial<MenuItem>>({
-    label: '',
-    href: '',
-    icon: '',
-    description: '',
-    parentId: '',
-    order: 0,
-    isActive: true,
-    roles: [],
-    bankingModes: ['conventional'],
-    permissions: []
-  });
+  const [selectedMenu, setSelectedMenu] = useState<ManagedMenuItem | null>(null);
 
   // Notification state
   const [notification, setNotification] = useState({
@@ -262,7 +214,7 @@ export default function MenuManagement({ params }: { params: Promise<{}> }) {
   });
 
   // Icon options
-  const iconOptions = [
+  const iconOptions: MenuIconOption[] = [
     { value: 'Dashboard', label: 'Dashboard' },
     { value: 'Settings', label: 'Settings' },
     { value: 'Category', label: 'Category' },
@@ -324,14 +276,14 @@ export default function MenuManagement({ params }: { params: Promise<{}> }) {
           hasChildren: hasHierarchicalStructure
         });
 
-        let uiMenus: MenuItem[] = [];
+        let uiMenus: ManagedMenuItem[] = [];
 
         if (hasHierarchicalStructure) {
           // 🌳 Process hierarchical data (backend returns nested structure)
-          const flattenHierarchical = (items: any[], level = 0): MenuItem[] => {
-            const result: MenuItem[] = [];
+          const flattenHierarchical = (items: any[], level = 0): ManagedMenuItem[] => {
+            const result: ManagedMenuItem[] = [];
             items.forEach(item => {
-              const menuItem: MenuItem = {
+              const menuItem: ManagedMenuItem = {
                 id: item.id,
                 label: item.label || item.title,
                 href: item.href || item.url,
@@ -424,7 +376,7 @@ export default function MenuManagement({ params }: { params: Promise<{}> }) {
   };
 
   // Helper function to calculate hierarchy depth
-  const calculateHierarchyLevels = (menuItems: MenuItem[]): number => {
+  const calculateHierarchyLevels = (menuItems: ManagedMenuItem[]): number => {
     const getDepth = (itemId: string, visited = new Set()): number => {
       if (visited.has(itemId)) return 0; // Prevent infinite loops
       visited.add(itemId);
@@ -441,7 +393,7 @@ export default function MenuManagement({ params }: { params: Promise<{}> }) {
 
   const loadFallbackMenuData = () => {
     // Fallback to hardcoded menu structure if database fails
-    const realMenus: MenuItem[] = [
+    const realMenus: ManagedMenuItem[] = [
       // Dashboard
       {
         id: 'dashboard',
@@ -693,34 +645,22 @@ export default function MenuManagement({ params }: { params: Promise<{}> }) {
     );
   };
 
-  const handleEdit = (menu: MenuItem) => {
+  const handleEdit = (menu: ManagedMenuItem) => {
     setSelectedMenu(menu);
-    setFormData({
-      label: menu.label,
-      href: menu.href || '',
-      icon: menu.icon || '',
-      description: menu.description || '',
-      parentId: menu.parentId || '',
-      order: menu.order,
-      isActive: menu.isActive,
-      roles: menu.roles,
-      bankingModes: menu.bankingModes,
-      permissions: menu.permissions
-    });
     setEditDialogOpen(true);
   };
 
-  const handleDelete = (menu: MenuItem) => {
+  const handleDelete = (menu: ManagedMenuItem) => {
     setSelectedMenu(menu);
     setDeleteDialogOpen(true);
   };
 
-  const handlePermissions = (menu: MenuItem) => {
+  const handlePermissions = (menu: ManagedMenuItem) => {
     setSelectedMenu(menu);
     setPermissionDialogOpen(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (formData: Partial<ManagedMenuItem>) => {
     try {
       if (selectedMenu) {
         // Update existing menu item
@@ -748,7 +688,7 @@ export default function MenuManagement({ params }: { params: Promise<{}> }) {
             ...selectedMenu,
             ...formData,
             updatedAt: new Date().toISOString()
-          } as MenuItem;
+          } as ManagedMenuItem;
 
           setMenus(prev => prev.map(menu =>
             menu.id === selectedMenu.id ? updatedMenu : menu
@@ -756,7 +696,6 @@ export default function MenuManagement({ params }: { params: Promise<{}> }) {
 
           setEditDialogOpen(false);
           setSelectedMenu(null);
-          setFormData({});
           showNotification('Menu updated successfully', 'success');
         } else {
           showNotification('Failed to update menu', 'error');
@@ -805,13 +744,12 @@ export default function MenuManagement({ params }: { params: Promise<{}> }) {
             target: response.data.target,
             external_url: response.data.external_url,
             sort_order: response.data.sort_order
-          } as MenuItem;
+          } as ManagedMenuItem;
 
           setMenus(prev => [...prev, newMenu]);
 
           setEditDialogOpen(false);
           setSelectedMenu(null);
-          setFormData({});
           showNotification('Menu created successfully', 'success');
         } else {
           showNotification('Failed to create menu', 'error');
@@ -842,7 +780,7 @@ export default function MenuManagement({ params }: { params: Promise<{}> }) {
     }
   };
 
-  const handleToggleActive = async (menu: MenuItem) => {
+  const handleToggleActive = async (menu: ManagedMenuItem) => {
     try {
       const updateData: UpdateMenuItemRequest = {
         is_active: !menu.isActive
@@ -886,104 +824,6 @@ export default function MenuManagement({ params }: { params: Promise<{}> }) {
 
   const showNotification = (message: string, severity: 'success' | 'error' | 'warning' | 'info') => {
     setNotification({ open: true, message, severity });
-  };
-
-  const renderMenuItem = (menu: MenuItem, level: number = 0): JSX.Element => {
-    const hasChildren = menus.filter(m => m.parentId === menu.id).length > 0;
-    const isExpanded = expandedMenus.includes(menu.id);
-
-    return (
-      <Box key={menu.id} sx={{ ml: level * 2 }}>
-        <Card sx={{ mb: 1, bgcolor: menu.isActive ? 'background.paper' : alpha(theme.palette.action.disabled, 0.1) }}>
-          <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                {hasChildren && (
-                  <IconButton size="small" onClick={() => handleToggleExpand(menu.id)}>
-                    {isExpanded ? <ExpandLess /> : <ExpandMore />}
-                  </IconButton>
-                )}
-                <Box>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    {menu.label}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {menu.description}
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box sx={{ display: 'flex', gap: 0.5 }}>
-                  {menu.roles.map(roleId => {
-                    const role = roles.find(r => r.id === roleId);
-                    return role ? (
-                      <Chip
-                        key={roleId}
-                        label={role.name}
-                        size="small"
-                        color="primary"
-                        variant="outlined"
-                      />
-                    ) : null;
-                  })}
-                </Box>
-
-                <Box sx={{ display: 'flex', gap: 0.5 }}>
-                  {menu.bankingModes.map(mode => (
-                    <Chip
-                      key={mode}
-                      label={mode}
-                      size="small"
-                      color={mode === 'syariah' ? 'success' : mode === 'dual' ? 'warning' : 'primary'}
-                      variant="filled"
-                    />
-                  ))}
-                </Box>
-
-                <Tooltip title="Edit Menu">
-                  <IconButton size="small" onClick={() => handleEdit(menu)}>
-                    <Edit fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-
-                <Tooltip title="Manage Permissions">
-                  <IconButton size="small" onClick={() => handlePermissions(menu)}>
-                    <Security fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-
-                <Tooltip title={menu.isActive ? 'Deactivate' : 'Activate'}>
-                  <IconButton size="small" onClick={() => handleToggleActive(menu)}>
-                    {menu.isActive ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                  </IconButton>
-                </Tooltip>
-
-                <Tooltip title="Delete Menu">
-                  <IconButton size="small" onClick={() => handleDelete(menu)} color="error">
-                    <Delete fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
-
-        {hasChildren && isExpanded && (
-          <Box sx={{
-            mt: 1,
-            ml: 3,
-            pl: 2,
-            borderLeft: `2px solid ${alpha(theme.palette.primary.main, 0.2)}`
-          }}>
-            {menus
-              .filter(m => m.parentId === menu.id)
-              .sort((a, b) => a.order - b.order)
-              .map(child => renderMenuItem(child, level + 1))}
-          </Box>
-        )}
-      </Box>
-    );
   };
 
   const filteredMenus = menus.filter(menu =>
@@ -1094,561 +934,82 @@ export default function MenuManagement({ params }: { params: Promise<{}> }) {
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <MenuIcon color="primary" />
-          Menu Management
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button
-            variant="outlined"
-            startIcon={loading ? <Refresh /> : <Refresh />}
-            onClick={() => {
-              loadRealMenuData();
-              loadLiveUserData();
-              loadLiveRoleData();
-            }}
-            disabled={loading}
-          >
-            {loading ? 'Loading...' : 'Refresh'}
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<Settings />}
-            onClick={handleInitializeMenuStructure}
-            disabled={loading}
-          >
-            Initialize Default Structure
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => {
-              setSelectedMenu(null);
-              setFormData({
-                label: '',
-                href: '',
-                icon: '',
-                description: '',
-                parentId: '',
-                order: menus.length + 1,
-                isActive: true,
-                roles: [],
-                bankingModes: ['conventional'],
-                permissions: ['menu.view'],
-                code: '',
-                status: 'active',
-                is_new: false,
-                requires_setup: false,
-                sort_order: menus.length + 1
-              });
-              setEditDialogOpen(true);
-            }}
-          >
-            Add Menu
-          </Button>
-        </Box>
-      </Box>
+      <MenuManagementHeader
+        loading={loading}
+        onRefresh={() => {
+          loadRealMenuData();
+          loadLiveUserData();
+          loadLiveRoleData();
+        }}
+        onInitialize={handleInitializeMenuStructure}
+        onAdd={() => {
+          setSelectedMenu(null);
+          setEditDialogOpen(true);
+        }}
+      />
 
-      {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Box sx={{ p: 1, bgcolor: 'primary.main', borderRadius: 1 }}>
-                  <MenuIcon sx={{ color: 'white' }} />
-                </Box>
-                <Box>
-                  <Typography variant="h4">{menus.length}</Typography>
-                  <Typography variant="caption" color="text.secondary">Total Menus</Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Box sx={{ p: 1, bgcolor: 'success.main', borderRadius: 1 }}>
-                  <Visibility sx={{ color: 'white' }} />
-                </Box>
-                <Box>
-                  <Typography variant="h4">{menus.filter(m => m.isActive).length}</Typography>
-                  <Typography variant="caption" color="text.secondary">Active Menus</Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box sx={{ p: 1, bgcolor: 'warning.main', borderRadius: 1 }}>
-                  <People sx={{ color: 'white' }} />
-                </Box>
-                <Box>
-                  <Typography variant="h4">{roles.length}</Typography>
-                  <Typography variant="caption" color="text.secondary">Roles</Typography>
-                  {dataStatus.roles === 'live' && (
-                    <Chip
-                      label="LIVE DB"
-                      size="small"
-                      color="success"
-                      sx={{ ml: 1 }}
-                    />
-                  )}
-                  {dataStatus.roles === 'fallback' && (
-                    <Chip
-                      label="FALLBACK"
-                      size="small"
-                      color="warning"
-                      sx={{ ml: 1 }}
-                    />
-                  )}
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Box sx={{ p: 1, bgcolor: 'info.main', borderRadius: 1 }}>
-                  <Security sx={{ color: 'white' }} />
-                </Box>
-                <Box>
-                  <Typography variant="h4">{users.length}</Typography>
-                  <Typography variant="caption" color="text.secondary">Users</Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+      <MenuAnalyticsPanel
+        menus={menus}
+        roles={roles}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        onRefresh={loadRealMenuData}
+        onShowFilterInfo={() => showNotification('Advanced filters coming soon', 'info')}
+        onAddRoot={() => {
+          setSelectedMenu(null);
+          setEditDialogOpen(true);
+        }}
+        onToggleExpandAll={() => {
+          setExpandedMenus(
+            expandedMenus.length === menus.filter(m => !m.parentId).length
+              ? []
+              : menus.filter(m => !m.parentId).map(m => m.id)
+          );
+        }}
+        onInitializeDefault={initializeMenuStructure}
+        onTestConfiguration={() => {
+          const testResults = testMenuConfiguration();
+          showNotification(`Menu configuration test: ${testResults.passed ? 'PASSED' : 'FAILED'}`, testResults.passed ? 'success' : 'warning');
+        }}
+        expandModeActive={expandedMenus.length > 0}
+      />
 
-      {/* Search and Filter */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-            <TextField
-              fullWidth
-              placeholder="Search menus..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />
-              }}
-            />
-            <Button
-              variant="outlined"
-              startIcon={<FilterList />}
-              onClick={() => showNotification('Advanced filters coming soon', 'info')}
-            >
-              Filter
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
+      <MenuTreePanel
+        menus={filteredMenus}
+        roles={roles}
+        expandedMenus={expandedMenus}
+        onToggleExpand={handleToggleExpand}
+        onEdit={handleEdit}
+        onPermissions={handlePermissions}
+        onToggleActive={handleToggleActive}
+        onDelete={handleDelete}
+      />
 
-      {/* Menu Statistics Dashboard */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Menu Statistics & Analytics
-            </Typography>
-            <Button
-              startIcon={<Refresh />}
-              onClick={loadRealMenuData}
-              size="small"
-              variant="outlined"
-            >
-              Refresh
-            </Button>
-          </Box>
+      <MenuEditDialog
+        open={editDialogOpen}
+        selectedMenu={selectedMenu}
+        menus={menus}
+        roles={roles}
+        iconOptions={iconOptions}
+        availablePermissions={availablePermissions}
+        onClose={() => setEditDialogOpen(false)}
+        onSave={handleSave}
+      />
 
-          <Grid container spacing={3}>
-            {/* Total Menu Items */}
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <Box sx={{
-                p: 2,
-                border: `1px solid ${theme.palette.divider}`,
-                borderRadius: 2,
-                backgroundColor: alpha(theme.palette.primary.main, 0.05)
-              }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <MenuIcon sx={{ mr: 1, color: 'primary.main' }} />
-                  <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                    {menus.length}
-                  </Typography>
-                </Box>
-                <Typography variant="body2" color="text.secondary">
-                  Total Menu Items
-                </Typography>
-              </Box>
-            </Grid>
+      <MenuDeleteDialog
+        open={deleteDialogOpen}
+        selectedMenu={selectedMenu}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={handleDeleteConfirm}
+      />
 
-            {/* Active Items */}
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <Box sx={{
-                p: 2,
-                border: `1px solid ${theme.palette.divider}`,
-                borderRadius: 2,
-                backgroundColor: alpha(theme.palette.success.main, 0.05)
-              }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <Visibility sx={{ mr: 1, color: 'success.main' }} />
-                  <Typography variant="h4" sx={{ fontWeight: 700, color: 'success.main' }}>
-                    {menus.filter(m => m.isActive).length}
-                  </Typography>
-                </Box>
-                <Typography variant="body2" color="text.secondary">
-                  Active Items
-                </Typography>
-              </Box>
-            </Grid>
-
-            {/* Items by Banking Mode */}
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <Box sx={{
-                p: 2,
-                border: `1px solid ${theme.palette.divider}`,
-                borderRadius: 2,
-                backgroundColor: alpha(theme.palette.warning.main, 0.05)
-              }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  Banking Mode Distribution
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                  <Chip label={`Conventional: ${menus.filter(m => m.bankingModes?.includes('conventional')).length}`} size="small" />
-                  <Chip label={`Syariah: ${menus.filter(m => m.bankingModes?.includes('syariah')).length}`} size="small" />
-                  <Chip label={`Dual: ${menus.filter(m => m.bankingModes?.includes('dual')).length}`} size="small" />
-                </Box>
-              </Box>
-            </Grid>
-
-            {/* Role Coverage */}
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <Box sx={{
-                p: 2,
-                border: `1px solid ${theme.palette.divider}`,
-                borderRadius: 2,
-                backgroundColor: alpha(theme.palette.info.main, 0.05)
-              }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  Role Coverage
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {Array.from(new Set(menus.flatMap(m => m.roles || []))).length} unique roles
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Across all menu items
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
-
-          {/* Quick Actions */}
-          <Box sx={{ mt: 3, p: 2, backgroundColor: alpha(theme.palette.background.paper, 0.5), borderRadius: 2 }}>
-            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-              Quick Actions
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-              <Button
-                startIcon={<Add />}
-                onClick={() => {
-                  setSelectedMenu(null);
-                  setFormData({
-                    label: '',
-                    href: '',
-                    icon: '',
-                    description: '',
-                    parentId: '',
-                    order: menus.length + 1,
-                    isActive: true,
-                    roles: [],
-                    bankingModes: ['conventional'],
-                    permissions: []
-                  });
-                  setEditDialogOpen(true);
-                }}
-                variant="contained"
-                size="small"
-              >
-                Add Root Menu
-              </Button>
-
-              <Button
-                startIcon={<AccountTree />}
-                onClick={() => {
-                  setExpandedMenus(
-                    expandedMenus.length === menus.filter(m => !m.parentId).length
-                      ? []
-                      : menus.filter(m => !m.parentId).map(m => m.id)
-                  );
-                }}
-                variant="outlined"
-                size="small"
-              >
-                {expandedMenus.length > 0 ? 'Collapse All' : 'Expand All'}
-              </Button>
-
-              <Button
-                startIcon={<Settings />}
-                onClick={initializeMenuStructure}
-                variant="outlined"
-                size="small"
-                color="secondary"
-              >
-                Initialize Default Menu
-              </Button>
-
-              <Button
-                startIcon={<Security />}
-                onClick={() => {
-                  const testResults = testMenuConfiguration();
-                  showNotification(`Menu configuration test: ${testResults.passed ? 'PASSED' : 'FAILED'}`, testResults.passed ? 'success' : 'warning');
-                }}
-                variant="outlined"
-                size="small"
-                color="info"
-              >
-                Test Configuration
-              </Button>
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Menu Tree */}
-      <Card>
-        <CardContent>
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-            Menu Structure
-          </Typography>
-          <Box>
-            {filteredMenus
-              .filter(menu => !menu.parentId)
-              .sort((a, b) => a.order - b.order)
-              .map(menu => renderMenuItem(menu))}
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Edit Dialog */}
-      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {selectedMenu ? 'Edit Menu' : 'Add New Menu'}
-        </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 2 }}>
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                fullWidth
-                label="Menu Label"
-                value={formData.label}
-                onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-              />
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                fullWidth
-                label="Menu URL (optional)"
-                value={formData.href}
-                onChange={(e) => setFormData({ ...formData, href: e.target.value })}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <Autocomplete
-                fullWidth
-                options={iconOptions}
-                value={iconOptions.find(opt => opt.value === formData.icon)}
-                onChange={(event, value) => setFormData({ ...formData, icon: value?.value || '' })}
-                renderInput={(params) => <TextField {...params as any} label="Icon" />}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                label="Order"
-                type="number"
-                value={formData.order}
-                onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) })}
-              />
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                fullWidth
-                label="Description"
-                multiline
-                rows={2}
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <FormControl fullWidth>
-                <InputLabel>Parent Menu</InputLabel>
-                <Select
-                  value={formData.parentId}
-                  onChange={(e) => setFormData({ ...formData, parentId: e.target.value })}
-                  label="Parent Menu"
-                >
-                  <MenuItem value="">None (Root Menu)</MenuItem>
-                  {menus
-                    .filter(menu => !menu.parentId)
-                    .map((menu, idx) => (
-                      <MenuItem key={`${menu.id}-${idx}`} value={menu.id}>
-                        {menu.label}
-                      </MenuItem>
-                    ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <FormControl fullWidth>
-                <InputLabel>Roles</InputLabel>
-                <Select
-                  multiple
-                  value={formData.roles}
-                  onChange={(e) => setFormData({ ...formData, roles: e.target.value as string[] })}
-                  label="Roles"
-                >
-                  {roles.map((role, idx) => (
-                    <MenuItem key={`${role.id}-${idx}`} value={role.id}>
-                      {role.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <FormControl fullWidth>
-                <InputLabel>Banking Modes</InputLabel>
-                <Select
-                  multiple
-                  value={formData.bankingModes}
-                  onChange={(e) => setFormData({ ...formData, bankingModes: e.target.value as ('conventional' | 'syariah' | 'dual')[] })}
-                  label="Banking Modes"
-                >
-                  <MenuItem value="conventional">Conventional</MenuItem>
-                  <MenuItem value="syariah">Syariah</MenuItem>
-                  <MenuItem value="dual">Dual</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <FormControl fullWidth>
-                <InputLabel>Permissions</InputLabel>
-                <Select
-                  multiple
-                  value={formData.permissions}
-                  onChange={(e) => setFormData({ ...formData, permissions: e.target.value as string[] })}
-                  label="Permissions"
-                >
-                  {availablePermissions.map((permission, idx) => (
-                    <MenuItem key={`${permission}-${idx}`} value={permission}>
-                      {permission}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formData.isActive}
-                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                  />
-                }
-                label="Active"
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleSave} variant="contained">Save</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>Delete Menu</DialogTitle>
-        <DialogContent>
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            Are you sure you want to delete "{selectedMenu?.label}"? This action cannot be undone.
-          </Alert>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Permissions Dialog */}
-      <Dialog open={permissionDialogOpen} onClose={() => setPermissionDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Manage Permissions - {selectedMenu?.label}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="subtitle2" sx={{ mb: 2 }}>
-              Menu Permissions
-            </Typography>
-            <TableContainer component={Paper} variant="outlined">
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>User</TableCell>
-                    <TableCell>Roles</TableCell>
-                    <TableCell>Access</TableCell>
-                    <TableCell>Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {users.map(user => (
-                    <TableRow key={user.id}>
-                      <TableCell>{user.name}</TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', gap: 0.5 }}>
-                          {user.roles.map(roleId => {
-                            const role = roles.find(r => r.id === roleId);
-                            return role ? (
-                              <Chip key={roleId} label={role.name} size="small" />
-                            ) : null;
-                          })}
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={selectedMenu?.roles.some(roleId => user.roles.includes(roleId)) ? 'Has Access' : 'No Access'}
-                          color={selectedMenu?.roles.some(roleId => user.roles.includes(roleId)) ? 'success' : 'default'}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Button size="small" variant="outlined">
-                          Manage
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setPermissionDialogOpen(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
+      <MenuPermissionsDialog
+        open={permissionDialogOpen}
+        selectedMenu={selectedMenu}
+        users={users}
+        roles={roles}
+        onClose={() => setPermissionDialogOpen(false)}
+      />
 
       {/* Notification */}
       <Snackbar

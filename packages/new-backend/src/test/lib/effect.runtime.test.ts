@@ -19,6 +19,11 @@ import {
 
 const createMockContext = () =>
   ({
+    req: {
+      path: '/api/v1/approvals/requests/test-id/approve',
+      method: 'POST',
+    },
+    get: (key: string) => (key === 'requestId' ? 'req-test-123' : undefined),
     json: (payload: unknown, status?: number) =>
       new Response(JSON.stringify(payload), {
         status: status ?? 200,
@@ -86,6 +91,7 @@ describe('effect runtime helpers', () => {
     expect(payload).toMatchObject({
       success: false,
       code: 'VALIDATION_ERROR',
+      requestId: 'req-test-123',
       message: 'Invalid input',
       details: {
         field: 'email',
@@ -102,7 +108,7 @@ describe('effect runtime helpers', () => {
     )
     const notFoundPayload = await readJson(notFound)
     expect(notFound.status).toBe(404)
-    expect(notFoundPayload).toMatchObject({ success: false, code: 'NOT_FOUND' })
+    expect(notFoundPayload).toMatchObject({ success: false, code: 'NOT_FOUND', requestId: 'req-test-123' })
 
     const unauthenticated = handleEffectError(
       c,
@@ -113,7 +119,7 @@ describe('effect runtime helpers', () => {
     )
     const unauthPayload = await readJson(unauthenticated)
     expect(unauthenticated.status).toBe(401)
-    expect(unauthPayload).toMatchObject({ success: false, code: 'UNAUTHENTICATED' })
+    expect(unauthPayload).toMatchObject({ success: false, code: 'UNAUTHENTICATED', requestId: 'req-test-123' })
 
     const unauthorized = handleEffectError(
       c,
@@ -128,7 +134,7 @@ describe('effect runtime helpers', () => {
     )
     const unauthzPayload = await readJson(unauthorized)
     expect(unauthorized.status).toBe(403)
-    expect(unauthzPayload).toMatchObject({ success: false, code: 'UNAUTHORIZED' })
+    expect(unauthzPayload).toMatchObject({ success: false, code: 'UNAUTHORIZED', requestId: 'req-test-123' })
   })
 
   test('handleEffectError maps BusinessError conflict and non-conflict statuses', async () => {
@@ -146,7 +152,7 @@ describe('effect runtime helpers', () => {
     )
     const conflictPayload = await readJson(conflict)
     expect(conflict.status).toBe(409)
-    expect(conflictPayload).toMatchObject({ success: false, code: 'APPROVER_ALREADY_ACTED' })
+    expect(conflictPayload).toMatchObject({ success: false, code: 'APPROVER_ALREADY_ACTED', requestId: 'req-test-123' })
 
     const unprocessable = handleEffectError(
       c,
@@ -215,7 +221,41 @@ describe('effect runtime helpers', () => {
     const unknown = handleEffectError(c, 'unknown-cause')
     const unknownPayload = await readJson(unknown)
     expect(unknown.status).toBe(500)
-    expect(unknownPayload).toEqual({ success: false, error: 'Internal server error' })
+    expect(unknownPayload).toMatchObject({
+      success: false,
+      error: 'Internal server error',
+      message: 'Internal server error',
+      requestId: 'req-test-123',
+    })
+  })
+
+  test('handleEffectError unwraps FiberFailure authorization errors', async () => {
+    const c = createMockContext()
+
+    let thrown: unknown
+    try {
+      await Effect.runPromise(
+        Effect.fail(
+          new AuthorizationError({
+            message: 'You are not eligible to approve level 1',
+            requiredPermission: 'approval.level.1',
+            userId: 'u-1',
+          })
+        )
+      )
+    } catch (error) {
+      thrown = error
+    }
+
+    const response = handleEffectError(c, thrown)
+    const payload = await readJson(response)
+
+    expect(response.status).toBe(403)
+    expect(payload).toMatchObject({
+      success: false,
+      code: 'UNAUTHORIZED',
+      error: 'You are not eligible to approve level 1',
+    })
   })
 
   test('dbOperation returns success and wraps thrown errors', async () => {

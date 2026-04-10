@@ -262,6 +262,16 @@ test.describe('Approval export and RBAC deep-link', () => {
     await expect(page.getByText(/Approval matrices exported\./i)).toBeVisible();
   });
 
+  test('exports approval history from the approval page', async ({ page }) => {
+    await stubApprovalPageApis(page);
+
+    await page.goto('/banking/maintenance/approval');
+    await page.getByTestId('approval-tab-history').click();
+
+    await page.getByTestId('approval-export-button').click();
+    await expect(page.getByText(/Approval history exported\./i)).toBeVisible();
+  });
+
   test('opens RBAC context from a role-permission approval request', async ({ page }) => {
     await stubApprovalPageApis(page);
     await stubPlatformRbacApis(page);

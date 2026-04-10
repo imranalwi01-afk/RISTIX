@@ -7,6 +7,7 @@
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import api from '../../services/api';
+import { getErrorMessage } from '@/utils/error-message';
 
 // Types
 export interface SetupParameter {
@@ -54,89 +55,121 @@ const initialState: SetupState = {
 // Async thunks
 export const fetchApplicationParameters = createAsyncThunk(
   'setup/fetchApplicationParameters',
-  async () => {
-    const response = await api.banking.applicationSetup.getAll();
-    if (!response.success) {
-      throw new Error(response.message);
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.banking.applicationSetup.getAll();
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch application parameters'));
     }
-    return response.data;
   }
 );
 
 export const fetchBusinessParameters = createAsyncThunk(
   'setup/fetchBusinessParameters',
-  async () => {
-    const response = await api.banking.businessSetup.getAll();
-    if (!response.success) {
-      throw new Error(response.message);
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.banking.businessSetup.getAll();
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch business parameters'));
     }
-    return response.data;
   }
 );
 
 export const createApplicationParameter = createAsyncThunk(
   'setup/createApplicationParameter',
-  async (data: Partial<SetupParameter>) => {
-    const response = await api.banking.applicationSetup.create(data);
-    if (!response.success) {
-      throw new Error(response.message);
+  async (data: Partial<SetupParameter>, { rejectWithValue }) => {
+    try {
+      const response = await api.banking.applicationSetup.create(data);
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to create application parameter'));
     }
-    return response.data;
   }
 );
 
 export const createBusinessParameter = createAsyncThunk(
   'setup/createBusinessParameter',
-  async (data: Partial<SetupParameter>) => {
-    const response = await api.banking.businessSetup.create(data);
-    if (!response.success) {
-      throw new Error(response.message);
+  async (data: Partial<SetupParameter>, { rejectWithValue }) => {
+    try {
+      const response = await api.banking.businessSetup.create(data);
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to create business parameter'));
     }
-    return response.data;
   }
 );
 
 export const updateApplicationParameter = createAsyncThunk(
   'setup/updateApplicationParameter',
-  async ({ paramCode, data }: { paramCode: string; data: Partial<SetupParameter> }) => {
-    const response = await api.banking.applicationSetup.update(paramCode, data);
-    if (!response.success) {
-      throw new Error(response.message);
+  async ({ paramCode, data }: { paramCode: string; data: Partial<SetupParameter> }, { rejectWithValue }) => {
+    try {
+      const response = await api.banking.applicationSetup.update(paramCode, data);
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to update application parameter'));
     }
-    return response.data;
   }
 );
 
 export const updateBusinessParameter = createAsyncThunk(
   'setup/updateBusinessParameter',
-  async ({ paramCode, data }: { paramCode: string; data: Partial<SetupParameter> }) => {
-    const response = await api.banking.businessSetup.update(paramCode, data);
-    if (!response.success) {
-      throw new Error(response.message);
+  async ({ paramCode, data }: { paramCode: string; data: Partial<SetupParameter> }, { rejectWithValue }) => {
+    try {
+      const response = await api.banking.businessSetup.update(paramCode, data);
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to update business parameter'));
     }
-    return response.data;
   }
 );
 
 export const deleteApplicationParameter = createAsyncThunk(
   'setup/deleteApplicationParameter',
-  async (paramCode: string) => {
-    const response = await api.banking.applicationSetup.delete(paramCode);
-    if (!response.success) {
-      throw new Error(response.message);
+  async (paramCode: string, { rejectWithValue }) => {
+    try {
+      const response = await api.banking.applicationSetup.delete(paramCode);
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return paramCode;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to delete application parameter'));
     }
-    return paramCode;
   }
 );
 
 export const deleteBusinessParameter = createAsyncThunk(
   'setup/deleteBusinessParameter',
-  async (paramCode: string) => {
-    const response = await api.banking.businessSetup.delete(paramCode);
-    if (!response.success) {
-      throw new Error(response.message);
+  async (paramCode: string, { rejectWithValue }) => {
+    try {
+      const response = await api.banking.businessSetup.delete(paramCode);
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return paramCode;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to delete business parameter'));
     }
-    return paramCode;
   }
 );
 
@@ -166,7 +199,7 @@ const setupSlice = createSlice({
       })
       .addCase(fetchApplicationParameters.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to fetch application parameters';
+        state.error = (action.payload as string) || action.error.message || 'Failed to fetch application parameters';
       })
       
       // Fetch business parameters
@@ -181,7 +214,7 @@ const setupSlice = createSlice({
       })
       .addCase(fetchBusinessParameters.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to fetch business parameters';
+        state.error = (action.payload as string) || action.error.message || 'Failed to fetch business parameters';
       })
       
       // Create/Update/Delete - Application
@@ -196,7 +229,7 @@ const setupSlice = createSlice({
       })
       .addCase(createApplicationParameter.rejected, (state, action) => {
         state.saving = false;
-        state.error = action.error.message || 'Failed to create application parameter';
+        state.error = (action.payload as string) || action.error.message || 'Failed to create application parameter';
       })
       
       .addCase(deleteApplicationParameter.fulfilled, (state, action) => {

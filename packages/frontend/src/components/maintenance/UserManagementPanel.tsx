@@ -7,98 +7,32 @@ import {
   Box,
   Typography,
   Container,
-  Paper,
-  Grid,
-  Card,
-  CardContent,
   Button,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormControlLabel,
-  Switch,
-  Chip,
   Alert,
   Snackbar,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  Tooltip,
-  CircularProgress,
   Breadcrumbs,
   Link,
-  InputAdornment,
   Fab
 } from '@mui/material';
 import {
   Add as AddIcon,
-  Edit as EditIcon,
-  Search as SearchIcon,
-  Refresh as RefreshIcon,
   Visibility as ViewIcon,
-  VisibilityOff as HideIcon,
   People as PeopleIcon,
   Home as HomeIcon,
-  Download as ExportIcon,
-  PersonAdd as PersonAddIcon,
-  Security as SecurityIcon,
-  AccountBalance as BankingIcon,
-  CheckCircle as ActiveIcon,
-  Cancel as InactiveIcon
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
 import { getErrorMessage } from '@/utils/error-message';
-
-// ✅ User Interface
-interface User {
-  id: string;
-  email: string;
-  username: string;
-  fullName: string;
-  employeeId?: string;
-  department?: string;
-  position?: string;
-  bankingAccess: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
-  syariahCertified: boolean;
-  isActive: boolean;
-  mfaEnabled: boolean;
-  lastLoginAt?: string;
-  createdAt: string;
-  updatedAt?: string;
-}
-
-interface UserRoleSummary {
-  id: string;
-  roleId: string;
-  roleName: string;
-  assignedAt?: string;
-  isActive: boolean;
-}
-
-// ✅ Form Data Interface
-interface UserFormData {
-  email: string;
-  username: string;
-  fullName: string;
-  password?: string;
-  employeeId: string;
-  department: string;
-  position: string;
-  bankingAccess: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
-  syariahCertified: boolean;
-}
+import {
+  UserFormDialog,
+  UserManagementFilters,
+  UserManagementHeader,
+  UserManagementTable,
+  UserViewDialog,
+  type User,
+  type UserFormData,
+  type UserRoleSummary,
+} from './user-management';
 
 interface UserManagementPanelProps {
   embedded?: boolean;
@@ -191,7 +125,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       setTotalUsers(total);
     } catch (error: any) {
       console.error('Error loading users:', error);
-      setSnackbar({ open: true, message: error.message || 'Failed to load users', severity: 'error' });
+      setSnackbar({ open: true, message: getErrorMessage(error, 'Failed to load users'), severity: 'error' });
     } finally {
       setLoading(false);
     }
@@ -249,7 +183,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       }
     } catch (error: any) {
       console.error('Error updating user:', error);
-      setSnackbar({ open: true, message: error.message || 'Failed to update user', severity: 'error' });
+      setSnackbar({ open: true, message: getErrorMessage(error, 'Failed to update user'), severity: 'error' });
     }
   };
 
@@ -278,7 +212,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       }
     } catch (error: any) {
       console.error('Error toggling user status:', error);
-      setSnackbar({ open: true, message: error.message || 'Failed to update user status', severity: 'error' });
+      setSnackbar({ open: true, message: getErrorMessage(error, 'Failed to update user status'), severity: 'error' });
     }
   };
 
@@ -366,7 +300,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
   };
 
   // ✅ Get departments for filter
-  const departments = [...new Set(users.map(user => user.department).filter(Boolean))];
+  const departments = [...new Set(users.map((user) => user.department).filter((value): value is string => Boolean(value)))];
 
   if (!isAuthenticated) {
     if (embedded) {
@@ -410,617 +344,86 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
         </Breadcrumbs>
       )}
 
-      {/* Page Header */}
-      <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <PeopleIcon sx={{ mr: 2, fontSize: 32, color: 'primary.main' }} />
-            <Box>
-              <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
-                User Management
-              </Typography>
-              <Typography variant="subtitle1" color="text.secondary">
-                Manage platform and banking users
-              </Typography>
-            </Box>
-          </Box>
-          <Button
-            variant="contained"
-            startIcon={<PersonAddIcon />}
-            onClick={() => setOpenCreateDialog(true)}
-            size="large"
-          >
-            Add User
-          </Button>
-        </Box>
+      <UserManagementHeader
+        totalUsers={totalUsers}
+        activeUsers={users.filter((u) => u.isActive).length}
+        syariahUsers={users.filter((u) => u.bankingAccess === 'SYARIAH' || u.bankingAccess === 'BOTH').length}
+        mfaEnabledUsers={users.filter((u) => u.mfaEnabled).length}
+        onAddUser={() => setOpenCreateDialog(true)}
+      />
 
-        {/* Stats Cards */}
-        <Grid container spacing={3} sx={{ mb: 3 }}>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Card>
-              <CardContent>
-                <Typography color="textSecondary" gutterBottom>
-                  Total Users
-                </Typography>
-                <Typography variant="h4">
-                  {totalUsers}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Card>
-              <CardContent>
-                <Typography color="textSecondary" gutterBottom>
-                  Active Users
-                </Typography>
-                <Typography variant="h4">
-                  {users.filter(u => u.isActive).length}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Card>
-              <CardContent>
-                <Typography color="textSecondary" gutterBottom>
-                  Syariah Users
-                </Typography>
-                <Typography variant="h4">
-                  {users.filter(u => u.bankingAccess === 'SYARIAH' || u.bankingAccess === 'BOTH').length}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Card>
-              <CardContent>
-                <Typography color="textSecondary" gutterBottom>
-                  MFA Enabled
-                </Typography>
-                <Typography variant="h4">
-                  {users.filter(u => u.mfaEnabled).length}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      </Box>
+      <UserManagementFilters
+        searchTerm={searchTerm}
+        filterDepartment={filterDepartment}
+        filterBankingAccess={filterBankingAccess}
+        filterActive={filterActive}
+        departments={departments}
+        loading={loading}
+        onSearchChange={setSearchTerm}
+        onDepartmentChange={setFilterDepartment}
+        onBankingAccessChange={setFilterBankingAccess}
+        onActiveChange={setFilterActive}
+        onRefresh={loadUsers}
+        onExport={() => setSnackbar({ open: true, message: 'Export feature coming soon', severity: 'info' })}
+      />
 
-      {/* Filters and Search */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <TextField
-              fullWidth
-              placeholder="Search users..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-            <FormControl fullWidth>
-              <InputLabel>Department</InputLabel>
-              <Select
-                value={filterDepartment}
-                onChange={(e) => setFilterDepartment(e.target.value)}
-                label="Department"
-              >
-                <MenuItem value="">All</MenuItem>
-                {departments.map(dept => (
-                  <MenuItem key={dept} value={dept}>{dept}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-            <FormControl fullWidth>
-              <InputLabel>Banking Access</InputLabel>
-              <Select
-                value={filterBankingAccess}
-                onChange={(e) => setFilterBankingAccess(e.target.value)}
-                label="Banking Access"
-              >
-                <MenuItem value="">All</MenuItem>
-                <MenuItem value="CONVENTIONAL">Conventional</MenuItem>
-                <MenuItem value="SYARIAH">Syariah</MenuItem>
-                <MenuItem value="BOTH">Both</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-            <FormControl fullWidth>
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={filterActive === null ? '' : filterActive.toString()}
-                onChange={(e) => setFilterActive(e.target.value === '' ? null : e.target.value === 'true')}
-                label="Status"
-              >
-                <MenuItem value="">All</MenuItem>
-                <MenuItem value="true">Active</MenuItem>
-                <MenuItem value="false">Inactive</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button
-                variant="outlined"
-                startIcon={<RefreshIcon />}
-                onClick={loadUsers}
-                disabled={loading}
-              >
-                Refresh
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<ExportIcon />}
-                onClick={() => setSnackbar({ open: true, message: 'Export feature coming soon', severity: 'info' })}
-              >
-                Export
-              </Button>
-            </Box>
-          </Grid>
-        </Grid>
-      </Paper>
+      <UserManagementTable
+        users={users}
+        loading={loading}
+        totalUsers={totalUsers}
+        page={page}
+        rowsPerPage={rowsPerPage}
+        onPageChange={setPage}
+        onRowsPerPageChange={(nextRowsPerPage) => {
+          setRowsPerPage(nextRowsPerPage);
+          setPage(0);
+        }}
+        onView={handleView}
+        onEdit={handleEdit}
+        onToggleStatus={toggleUserStatus}
+      />
 
-      {/* Users Table */}
-      <Paper>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>User</TableCell>
-                <TableCell>Department</TableCell>
-                <TableCell>Banking Access</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Last Login</TableCell>
-                <TableCell align="center">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    <CircularProgress />
-                  </TableCell>
-                </TableRow>
-              ) : users.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    <Typography>No users found</Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                users.map((user) => (
-                  <TableRow key={user.id} hover>
-                    <TableCell>
-                      <Box>
-                        <Typography variant="subtitle2">{user.fullName}</Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {user.email}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {user.position}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>{user.department || '-'}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={user.bankingAccess}
-                        color={user.bankingAccess === 'SYARIAH' ? 'success' : 'primary'}
-                        size="small"
-                        icon={user.syariahCertified ? <SecurityIcon /> : <BankingIcon />}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        icon={user.isActive ? <ActiveIcon /> : <InactiveIcon />}
-                        label={user.isActive ? 'Active' : 'Inactive'}
-                        color={user.isActive ? 'success' : 'default'}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'}
-                    </TableCell>
-                    <TableCell align="center">
-                      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5 }}>
-                        <Tooltip title="View Details">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleView(user)}
-                          >
-                            <ViewIcon />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Edit User">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleEdit(user)}
-                          >
-                            <EditIcon />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title={user.isActive ? 'Disable User' : 'Enable User'}>
-                          <IconButton
-                            size="small"
-                            onClick={() => toggleUserStatus(user.id, user.isActive)}
-                            color={user.isActive ? 'error' : 'success'}
-                          >
-                            {user.isActive ? <InactiveIcon /> : <ActiveIcon />}
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50]}
-          component="div"
-          count={totalUsers}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
-      </Paper>
+      <UserFormDialog
+        open={openCreateDialog}
+        mode="create"
+        formData={formData}
+        showPassword={showPassword}
+        onClose={() => setOpenCreateDialog(false)}
+        onChange={setFormData}
+        onTogglePassword={() => setShowPassword(!showPassword)}
+        onSubmit={createUser}
+      />
 
-      {/* Create User Dialog */}
-      <Dialog open={openCreateDialog} onClose={() => setOpenCreateDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <PersonAddIcon />
-            Create New User
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                label="Full Name"
-                value={formData.fullName}
-                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                required
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                label="Email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                label="Username"
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                required
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                label="Password"
-                type={showPassword ? 'text' : 'password'}
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                required
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton onClick={() => setShowPassword(!showPassword)}>
-                        {showPassword ? <HideIcon /> : <ViewIcon />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                label="Employee ID"
-                value={formData.employeeId}
-                onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                label="Department"
-                value={formData.department}
-                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                label="Position"
-                value={formData.position}
-                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <FormControl fullWidth>
-                <InputLabel>Banking Access</InputLabel>
-                <Select
-                  value={formData.bankingAccess}
-                  onChange={(e) => setFormData({ ...formData, bankingAccess: e.target.value as UserFormData['bankingAccess'] })}
-                  label="Banking Access"
-                >
-                  <MenuItem value="CONVENTIONAL">Conventional</MenuItem>
-                  <MenuItem value="SYARIAH">Syariah</MenuItem>
-                  <MenuItem value="BOTH">Both</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formData.syariahCertified}
-                    onChange={(e) => setFormData({ ...formData, syariahCertified: e.target.checked })}
-                  />
-                }
-                label="Syariah Certified"
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenCreateDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={createUser}>
-            Create User
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <UserFormDialog
+        open={openEditDialog}
+        mode="edit"
+        formData={formData}
+        showPassword={showPassword}
+        onClose={() => setOpenEditDialog(false)}
+        onChange={setFormData}
+        onTogglePassword={() => setShowPassword(!showPassword)}
+        onSubmit={updateUser}
+      />
 
-      {/* Edit User Dialog */}
-      <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <EditIcon />
-            Edit User
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                label="Full Name"
-                value={formData.fullName}
-                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                required
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                label="Email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                label="Username"
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                required
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                label="Employee ID"
-                value={formData.employeeId}
-                onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                label="Department"
-                value={formData.department}
-                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                label="Position"
-                value={formData.position}
-                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <FormControl fullWidth>
-                <InputLabel>Banking Access</InputLabel>
-                <Select
-                  value={formData.bankingAccess}
-                  onChange={(e) => setFormData({ ...formData, bankingAccess: e.target.value as UserFormData['bankingAccess'] })}
-                  label="Banking Access"
-                >
-                  <MenuItem value="CONVENTIONAL">Conventional</MenuItem>
-                  <MenuItem value="SYARIAH">Syariah</MenuItem>
-                  <MenuItem value="BOTH">Both</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formData.syariahCertified}
-                    onChange={(e) => setFormData({ ...formData, syariahCertified: e.target.checked })}
-                  />
-                }
-                label="Syariah Certified"
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenEditDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={updateUser}>
-            Update User
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* View User Dialog */}
-      <Dialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <ViewIcon />
-            User Details
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          {selectedUser && (
-            <Box sx={{ mt: 1 }}>
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 6 }}>
-                  <Typography variant="subtitle2" color="text.secondary">Full Name</Typography>
-                  <Typography>{selectedUser.fullName}</Typography>
-                </Grid>
-                <Grid size={{ xs: 6 }}>
-                  <Typography variant="subtitle2" color="text.secondary">Email</Typography>
-                  <Typography>{selectedUser.email}</Typography>
-                </Grid>
-                <Grid size={{ xs: 6 }}>
-                  <Typography variant="subtitle2" color="text.secondary">Username</Typography>
-                  <Typography>{selectedUser.username}</Typography>
-                </Grid>
-                <Grid size={{ xs: 6 }}>
-                  <Typography variant="subtitle2" color="text.secondary">Employee ID</Typography>
-                  <Typography>{selectedUser.employeeId || 'N/A'}</Typography>
-                </Grid>
-                <Grid size={{ xs: 6 }}>
-                  <Typography variant="subtitle2" color="text.secondary">Department</Typography>
-                  <Typography>{selectedUser.department || 'N/A'}</Typography>
-                </Grid>
-                <Grid size={{ xs: 6 }}>
-                  <Typography variant="subtitle2" color="text.secondary">Position</Typography>
-                  <Typography>{selectedUser.position || 'N/A'}</Typography>
-                </Grid>
-                <Grid size={{ xs: 6 }}>
-                  <Typography variant="subtitle2" color="text.secondary">Banking Access</Typography>
-                  <Chip label={selectedUser.bankingAccess} size="small" />
-                </Grid>
-                <Grid size={{ xs: 6 }}>
-                  <Typography variant="subtitle2" color="text.secondary">Status</Typography>
-                  <Chip
-                    label={selectedUser.isActive ? 'Active' : 'Inactive'}
-                    color={selectedUser.isActive ? 'success' : 'default'}
-                    size="small"
-                  />
-                </Grid>
-                <Grid size={{ xs: 12 }}>
-                  <Typography variant="subtitle2" color="text.secondary">Assigned Roles</Typography>
-                  {loadingUserRoles ? (
-                    <Box sx={{ py: 1 }}>
-                      <CircularProgress size={16} />
-                    </Box>
-                  ) : selectedUserRoles.length > 0 ? (
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', pt: 0.5 }}>
-                      {selectedUserRoles
-                        .filter((role) => role.isActive)
-                        .map((role) => (
-                          <Chip
-                            key={`selected-role-${role.id}`}
-                            label={role.roleName}
-                            variant="outlined"
-                            size="small"
-                          />
-                        ))}
-                    </Box>
-                  ) : (
-                    <Typography>N/A</Typography>
-                  )}
-                </Grid>
-                <Grid size={{ xs: 6 }}>
-                  <Typography variant="subtitle2" color="text.secondary">Syariah Certified</Typography>
-                  <Chip
-                    label={selectedUser.syariahCertified ? 'Yes' : 'No'}
-                    color={selectedUser.syariahCertified ? 'success' : 'default'}
-                    size="small"
-                  />
-                </Grid>
-                <Grid size={{ xs: 6 }}>
-                  <Typography variant="subtitle2" color="text.secondary">MFA Enabled</Typography>
-                  <Chip
-                    label={selectedUser.mfaEnabled ? 'Yes' : 'No'}
-                    color={selectedUser.mfaEnabled ? 'success' : 'default'}
-                    size="small"
-                  />
-                </Grid>
-                <Grid size={{ xs: 6 }}>
-                  <Typography variant="subtitle2" color="text.secondary">Last Login</Typography>
-                  <Typography>
-                    {selectedUser.lastLoginAt ? new Date(selectedUser.lastLoginAt).toLocaleString() : 'Never'}
-                  </Typography>
-                </Grid>
-                <Grid size={{ xs: 6 }}>
-                  <Typography variant="subtitle2" color="text.secondary">Created</Typography>
-                  <Typography>{new Date(selectedUser.createdAt).toLocaleString()}</Typography>
-                </Grid>
-              </Grid>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => {
-            setOpenViewDialog(false);
-            setSelectedUserRoles([]);
-          }}>
-            Close
-          </Button>
-          {selectedUser && (
-            <Button
-              variant="contained"
-              onClick={() => {
-                setOpenViewDialog(false);
-                const query = new URLSearchParams({
-                  assignmentAction: 'manageUserRoles',
-                  assignmentUserId: selectedUser.id
-                });
-                router.push(`/banking/maintenance/access-management/assignments?${query.toString()}`);
-              }}
-            >
-              Assign Roles
-            </Button>
-          )}
-          {selectedUser && (
-            <Button variant="outlined" onClick={() => handleEdit(selectedUser)}>
-              Edit User
-            </Button>
-          )}
-        </DialogActions>
-      </Dialog>
+      <UserViewDialog
+        open={openViewDialog}
+        selectedUser={selectedUser}
+        selectedUserRoles={selectedUserRoles}
+        loadingUserRoles={loadingUserRoles}
+        onClose={() => {
+          setOpenViewDialog(false);
+          setSelectedUserRoles([]);
+        }}
+        onAssignRoles={(user) => {
+          setOpenViewDialog(false);
+          const query = new URLSearchParams({
+            assignmentAction: 'manageUserRoles',
+            assignmentUserId: user.id
+          });
+          router.push(`/banking/maintenance/access-management/assignments?${query.toString()}`);
+        }}
+        onEdit={handleEdit}
+      />
 
       {/* Snackbar */}
       <Snackbar

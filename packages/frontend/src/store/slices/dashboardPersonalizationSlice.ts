@@ -11,6 +11,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import { apiClient } from '../../services/api-client'
 import '../../services/api' // Ensure interceptors are registered
+import { getErrorMessage } from '@/utils/error-message'
 
 // Widget configuration interfaces
 interface WidgetPosition {
@@ -173,7 +174,7 @@ export const saveDashboardPersonalization = createAsyncThunk(
       */ // END DISABLED BLOCK
     } catch (error: any) {
       console.error('❌ DashboardPersonalization: Save error:', error)
-      return rejectWithValue(error.message || 'Failed to save dashboard personalization')
+      return rejectWithValue(getErrorMessage(error, 'Failed to save dashboard personalization'))
     }
   }
 )
@@ -205,7 +206,7 @@ export const createDashboardLayout = createAsyncThunk(
       return data
       */ // END DISABLED BLOCK
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to create dashboard layout')
+      return rejectWithValue(getErrorMessage(error, 'Failed to create dashboard layout'))
     }
   }
 )
@@ -234,7 +235,7 @@ export const deleteDashboardLayout = createAsyncThunk(
       return layoutId
       */ // END DISABLED BLOCK
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to delete dashboard layout')
+      return rejectWithValue(getErrorMessage(error, 'Failed to delete dashboard layout'))
     }
   }
 )

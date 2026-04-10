@@ -8,8 +8,10 @@ import { authMiddleware } from '../middleware'
 import * as auditService from '../services/audit.service'
 import * as rbacService from '../services/rbac.service'
 import { env } from '../config/env'
+import { buildErrorResponse } from '../lib/http/error-response'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-export const authRoutes = new OpenAPIHono<AppContext>()
+export const authRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 const splitName = (fullName?: string | null) => {
     const normalized = (fullName ?? '').trim()
@@ -400,7 +402,7 @@ authRoutes.openapi(
         const tokenPermissions = c.get('permissions') || []
 
         if (!userId) {
-            return c.json({ success: false, error: 'Unauthorized', code: 'UNAUTHORIZED' } as any, 401)
+            return c.json(buildErrorResponse(c, { error: 'Unauthorized', message: 'Unauthorized', code: 'UNAUTHORIZED' }) as any, 401)
         }
 
         // Platform sessions (no tenant context) must not query tenant RBAC tables.
@@ -464,7 +466,7 @@ authRoutes.openapi(
         const tokenPermissions = c.get('permissions') || []
 
         if (!userId) {
-            return c.json({ success: false, error: 'Unauthorized', code: 'UNAUTHORIZED' } as any, 401)
+            return c.json(buildErrorResponse(c, { error: 'Unauthorized', message: 'Unauthorized', code: 'UNAUTHORIZED' }) as any, 401)
         }
 
         // Platform sessions (no tenant context) use permissions embedded in token/session.
@@ -547,7 +549,7 @@ authRoutes.post('/hash-password', async (c) => {
     const { password } = body;
 
     if (!password) {
-        return c.json({ error: 'Password required' }, 400);
+        return c.json(buildErrorResponse(c, { error: 'Password required', message: 'Password required', code: 'BAD_REQUEST' }), 400);
     }
 
     const hash = await authService.hashPassword(password);
