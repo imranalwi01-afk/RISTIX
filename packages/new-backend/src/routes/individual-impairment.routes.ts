@@ -127,11 +127,19 @@ const OverrideListResponse = z.object({
 }).openapi('OverrideListResponse')
 
 const AddOverrideSchema = z.object({
-    accountId: z.number().int(),
-    originalStage: z.number().int(),
-    proposedStage: z.number().int(),
+    accountId: z.number().int().optional(),
+    accountNumber: z.string().optional(),
+    customerName: z.string().optional(),
+    cifNumber: z.string().optional(),
+    overrideStage: z.union([z.number().int(), z.string()]),
     justification: z.string(),
+    supportingDocumentName: z.string().optional(),
+    supportingDocumentContent: z.string().optional(),
 }).openapi('AddOverrideInput')
+
+const OverrideDocumentParamSchema = z.object({
+    fileName: z.string()
+})
 
 // --- History ---
 const AuditTrailSchema = z.object({
@@ -603,6 +611,25 @@ individualImpairmentRoutes.openapi(
         }
     }),
     (c: any) => individualImpairmentController.createOverride(c)
+)
+
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/overrides/documents/{fileName}',
+        tags: ['Individual Impairment'],
+        summary: 'Download override supporting document',
+        request: {
+            params: OverrideDocumentParamSchema
+        },
+        responses: {
+            200: { description: 'File' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad request' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c: any) => individualImpairmentController.downloadOverrideDocument(c)
 )
 
 // --- HISTORY ---

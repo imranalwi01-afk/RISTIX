@@ -980,6 +980,7 @@ export class IndividualImpairmentService {
                 .set({
                     impairedFlag: data.overrideStage === '3' ? 'T' : 'F',
                     triggerRemarks: data.justification,
+                    triggerFilename: data.supportingDocument || data.triggerFilename,
                     status: statusInt,
                     updatedby: (data.createdBy || 'SYSTEM').slice(0, 36),
                     updateddate: new Date().toISOString(),
@@ -1006,6 +1007,7 @@ export class IndividualImpairmentService {
                 interestRate: 0,
                 impairedFlag: data.overrideStage === '3' ? 'T' : 'F',
                 triggerRemarks: data.justification,
+                triggerFilename: data.supportingDocument || data.triggerFilename,
                 status: statusInt,
                 createdby: (data.createdBy || 'SYSTEM').slice(0, 36),
                 createddate: new Date().toISOString(), // TIMESTAMP column accepts ISO

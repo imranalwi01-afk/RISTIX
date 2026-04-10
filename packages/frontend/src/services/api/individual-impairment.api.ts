@@ -55,7 +55,7 @@ export const individualImpairmentAPI = {
 
   // ASSESSMENT
   getAssessment: async (accountId: string) => {
-    const response = await apiClient.get(`/banking/individual/impairment/assessment/${accountId}`);
+    const response = await apiClient.get(`/banking/individual/impairment/${accountId}`);
     return response.data;
   },
   createAssessment: async (data: any) => {

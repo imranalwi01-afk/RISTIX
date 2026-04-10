@@ -431,8 +431,24 @@ export const login = (
         // 5. Load user roles (from the same DB)
         Effect.flatMap(({ user, resolvedTenantId, db }) =>
             pipe(
-                // Use user.tenantId as stored in the user_roles table (could be slug or UUID)
-                userRolesRepository.findByUser(db, user.id, resolvedTenantId ?? user.tenantId ?? undefined),
+                Effect.succeed({
+                    primaryTenantId: resolvedTenantId ?? user.tenantId ?? undefined,
+                    fallbackTenantId:
+                        resolvedTenantId && user.tenantId && resolvedTenantId !== user.tenantId
+                            ? user.tenantId
+                            : undefined,
+                }),
+                Effect.flatMap(({ primaryTenantId, fallbackTenantId }) =>
+                    pipe(
+                        userRolesRepository.findByUser(db, user.id, primaryTenantId),
+                        Effect.flatMap((userRolesList) => {
+                            if (userRolesList.length > 0 || !fallbackTenantId) {
+                                return Effect.succeed(userRolesList)
+                            }
+                            return userRolesRepository.findByUser(db, user.id, fallbackTenantId)
+                        })
+                    )
+                ),
                 Effect.map((userRolesList) => {
                     console.log(`[AuthDebug] userRolesList lookup for userId=${user.id} tenantId=${resolvedTenantId ?? user.tenantId} count=${userRolesList.length}`);
                     console.log(`[AuthDebug] userRolesList raw data:`, JSON.stringify(userRolesList.map(ur => ({
@@ -456,6 +472,14 @@ export const login = (
                         }
                     })
                     console.log('🔍 DEBUG: extracted permissions:', Array.from(permissionSet))
+
+                    if (
+                        permissionSet.size === 0 &&
+                        env.NODE_ENV === 'development' &&
+                        roles.some((role) => String(role).toUpperCase().includes('SUPERADMIN'))
+                    ) {
+                        permissionSet.add('*')
+                    }
 
                     return { user, resolvedTenantId, roles, permissions: Array.from(permissionSet), db }
                 }),

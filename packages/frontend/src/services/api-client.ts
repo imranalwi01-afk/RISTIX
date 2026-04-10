@@ -27,7 +27,7 @@ export const apiClient: AxiosInstance = axios.create({
   responseType: 'json',
   maxRedirects: 5,
   paramsSerializer: {
-    indexes: false // Serialize arrays as key=value&key=value (compatible with Hono c.req.queries)
+    indexes: null
   }
 });
 

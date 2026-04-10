@@ -5,7 +5,11 @@ export const reportsAPI = {
         get: async (params?: any) => {
             const response = await apiClient.get('/ifrs9/reports/nominative-report', { params });
             return response.data;
-        }
+        },
+        getAvailableDates: async (params?: { download_start_date?: string; download_end_date?: string; limit?: number }) => {
+            const response = await apiClient.get('/ifrs9/reports/nominative-report/available-dates', { params });
+            return response.data;
+        },
     },
 
     lifetimePD: {

@@ -106,7 +106,8 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
       chipLabel: 'GCA TRACKER'
     },
     {
-      title: 'Net Movement',
+      title: 'Net GCA Movement',
+      titleTransform: 'none',
       value: stats.netGCAMovement,
       format: 'currency',
       icon: <GrowthIcon sx={{ fontSize: 32 }} />,

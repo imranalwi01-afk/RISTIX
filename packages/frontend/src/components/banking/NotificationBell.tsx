@@ -49,6 +49,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ colorMode = 
     const {
         notifications,
         unreadCount,
+        totalCount,
         isConnected,
         isLoading,
         loadError,
@@ -180,7 +181,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ colorMode = 
                     elevation: 3,
                     sx: {
                         width: 420,
-                        maxHeight: 560,
+                            maxHeight: 'min(560px, calc(100vh - 32px))',
                         mt: 1.5,
                         overflow: 'visible',
                         filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.12))',
@@ -232,14 +233,14 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ colorMode = 
                     onChange={(_event, value) => setActiveTab(value)}
                     sx={{ px: 1 }}
                 >
-                    <Tab value="all" label={`All (${notifications.length})`} />
+                    <Tab value="all" label={`All (${totalCount})`} />
                     <Tab value="unread" label={`Unread (${unreadCount})`} />
                 </Tabs>
 
                 <Box sx={{ px: 1.5, pb: 1, display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
                     <Chip
                         size="small"
-                        label={`All (${notifications.length})`}
+                        label={`All (${totalCount})`}
                         color={activeCategory === 'all' ? 'primary' : 'default'}
                         variant={activeCategory === 'all' ? 'filled' : 'outlined'}
                         onClick={() => setActiveCategory('all')}
@@ -316,6 +317,8 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ colorMode = 
                                         {getNotificationIcon(notification.type)}
                                     </ListItemIcon>
                                     <ListItemText
+                                        primaryTypographyProps={{ component: 'div' }}
+                                        secondaryTypographyProps={{ component: 'div' }}
                                         primary={(
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                                                 <Typography variant="body2" fontWeight={isUnread ? 700 : 500} sx={{ flex: 1 }}>

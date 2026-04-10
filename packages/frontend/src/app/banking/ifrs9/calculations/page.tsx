@@ -306,6 +306,13 @@ export default function IFRS9CalculationDashboard() {
         // Refresh data so queued execution is visible in process history.
         loadData(runConfig.process_date);
         setSelectedProcessDate(runConfig.process_date);
+      } else if (String(response.status || '').toUpperCase() === 'CONFLICT') {
+        setProcessStatus('queued');
+        setCalculationProgress(0);
+        const executionId = response.activeExecutionId || response.executionId || response.jobId || '-';
+        setSuccess(`ECL calculation sudah berjalan/queued (Execution ID: ${executionId}). Monitoring dimulai.`);
+        loadData(runConfig.process_date);
+        setSelectedProcessDate(runConfig.process_date);
       } else {
         throw new Error(response.message || 'Failed to start ECL calculation');
       }

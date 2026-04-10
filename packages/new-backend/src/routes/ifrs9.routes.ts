@@ -94,10 +94,23 @@ ifrs9Routes.openapi(
         tags: ['IFRS9'],
         summary: 'Get Available Process Dates',
         request: {
-            query: z.object({ mode: z.string().optional() })
+            query: z.object({
+                mode: z.string().optional(),
+                groupBy: z.enum(['year']).optional(),
+            })
         },
         responses: {
-            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: z.array(z.string()) }) } }, description: 'Available Dates' }
+            200: {
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            data: z.union([z.array(z.string()), z.record(z.array(z.string()))]),
+                        }),
+                    },
+                },
+                description: 'Available Dates',
+            },
         }
     }),
     (c: any) => ifrs9CalculationsController.getAvailableDates(c)

@@ -345,17 +345,6 @@ const StageBreakdownCard: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
 };
 
 const ECLCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
-  const { bankingMode } = useBankingTheme();
-  
-  const getColors = () => {
-    if (bankingMode === 'syariah') {
-      return ['#00695c', '#00796b', '#00897b', '#26a69a', '#4db6ac'];
-    }
-    return ['#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6'];
-  };
-
-  const colors = getColors();
-
   return (
     <Grid container spacing={4} sx={{ mb: 5 }}>
       {/* Stage Distribution Pie Chart */}
@@ -416,9 +405,9 @@ const ECLCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
                   <Legend 
                     verticalAlign="bottom" 
                     height={36}
-                    content={({ payload }) => (
+                    content={({ payload }: { payload?: Array<{ value?: string; color?: string }> }) => (
                       <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3, mt: 2 }}>
-                        {payload?.map((entry: any, index: number) => (
+                        {payload?.map((entry, index) => (
                           <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: entry.color }} />
                             <Typography variant="caption" fontWeight={700} color="text.secondary">
@@ -526,8 +515,11 @@ const ECLCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
                     <LabelList 
                       dataKey="ecl" 
                       position="top" 
-                      content={(props: any) => {
-                        const { x, y, width, value } = props;
+                      content={(props: { x?: number; y?: number; width?: number; value?: number }) => {
+                        const x = props.x ?? 0;
+                        const y = props.y ?? 0;
+                        const width = props.width ?? 0;
+                        const value = props.value ?? 0;
                         return (
                           <text x={x + width / 2} y={y - 10} fill={alpha('#000', 0.6)} textAnchor="middle" fontSize={9} fontWeight={800}>
                             {new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(value)}
@@ -588,14 +580,42 @@ const ECLResultReport: React.FC = () => {
       return;
     }
 
-    const toNumber = (value: unknown) => {
-      const parsed = Number(value);
-      return Number.isFinite(parsed) ? parsed : 0;
+    const getMetric = (row: Record<string, unknown>, keys: readonly string[]) => {
+      for (const key of keys) {
+        const value = row[key as keyof typeof row];
+        const parsed = Number(value);
+        if (Number.isFinite(parsed) && parsed !== 0) return parsed;
+      }
+      for (const key of keys) {
+        const value = row[key as keyof typeof row];
+        const parsed = Number(value);
+        if (Number.isFinite(parsed)) return parsed;
+      }
+      return 0;
     };
 
     const aggregatedStats = data.reduce((acc: Partial<SummaryStats>, row: Record<string, unknown>) => {
-      const eclAmount = toNumber(row.ecl_final) || toNumber(row.ecl_amount) || toNumber(row.total_ecl);
-      const outstanding = toNumber(row.outstanding) || toNumber(row.total_outstanding);
+      const eclAmount = getMetric(row, [
+        'ecl_final',
+        'eclFinal',
+        'ecl_final_amt',
+        'eclFinalAmt',
+        'eclFinalAmount',
+        'ecl_ca_onbs',
+        'eclCaOnbs',
+        'ecl_ca_onbs_amt',
+        'eclAmount',
+        'ecl_amount',
+        'total_ecl',
+      ]);
+      const outstanding = getMetric(row, [
+        'outstanding',
+        'total_outstanding',
+        'totalOutstanding',
+        'outstanding_amt',
+        'principal',
+        'principal_amount',
+      ]);
       const stage = Number.parseInt(String(row.stage ?? '1'), 10);
 
       return {
@@ -604,8 +624,23 @@ const ECLResultReport: React.FC = () => {
         stage1ECL: (acc.stage1ECL || 0) + (stage === 1 ? eclAmount : 0),
         stage2ECL: (acc.stage2ECL || 0) + (stage === 2 ? eclAmount : 0),
         stage3ECL: (acc.stage3ECL || 0) + (stage === 3 ? eclAmount : 0),
-        totalOverlay: (acc.totalOverlay || 0) + toNumber(row.ecl_overlay),
-        totalImpaired: (acc.totalImpaired || 0) + toNumber(row.ecl_ia),
+        totalOverlay: (acc.totalOverlay || 0) + getMetric(row, [
+          'ecl_overlay',
+          'eclOverlay',
+          'ecl_overlay_amt',
+          'eclOverlayAmt',
+          'overlay',
+          'overlay_amount',
+        ]),
+        totalImpaired: (acc.totalImpaired || 0) + getMetric(row, [
+          'ecl_ia',
+          'eclIa',
+          'ecl_ia_amt',
+          'eclIaAmt',
+          'ecl_ia_onbs',
+          'eclIaOnbs',
+          'impaired_ecl',
+        ]),
         eclRatio: 0,
         segmentBreakdown: [],
         stageDistribution: []
@@ -641,8 +676,24 @@ const ECLResultReport: React.FC = () => {
       }
 
       const segmentData = segmentMap.get(segmentLabel)!;
-      segmentData.ecl += toNumber(row.ecl_final) || toNumber(row.ecl_amount);
-      segmentData.outstanding += toNumber(row.outstanding);
+      segmentData.ecl += getMetric(row, [
+        'ecl_final',
+        'eclFinal',
+        'ecl_final_amt',
+        'eclFinalAmt',
+        'eclFinalAmount',
+        'eclAmount',
+        'ecl_amount',
+        'total_ecl',
+      ]);
+      segmentData.outstanding += getMetric(row, [
+        'outstanding',
+        'total_outstanding',
+        'totalOutstanding',
+        'outstanding_amt',
+        'principal',
+        'principal_amount',
+      ]);
       segmentData.accounts += 1;
     });
 

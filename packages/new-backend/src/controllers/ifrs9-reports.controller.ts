@@ -132,7 +132,7 @@ export const ifrs9ReportsController = {
 
             // Extract filter parameters
             const prc_date = c.req.query('prc_date') || '2023-12-31';
-            const lgd_config_id = c.req.query('lgd_config_id') ? Number(c.req.query('lgd_config_id')) : 1;
+            const lgd_config_id = c.req.query('lgd_config_id') ? Number(c.req.query('lgd_config_id')) : undefined;
             const lgd_method = c.req.query('lgd_method') ? Number(c.req.query('lgd_method')) : undefined;
             const model_id = c.req.query('model_id') ? Number(c.req.query('model_id')) : undefined;
             const segment_id = c.req.query('segment_id') ? Number(c.req.query('segment_id')) : undefined;
@@ -144,6 +144,30 @@ export const ifrs9ReportsController = {
                 limit,
                 { prc_date, lgd_config_id, lgd_method, model_id, segment_id, fl_flag }
             );
+
+            if (result.total === 0) {
+                const summary = await ifrs9ReportsService.getLifetimeLGDSummary(
+                    tenantId,
+                    1,
+                    200,
+                    { prc_date, lgd_config_id, lgd_method, model_id }
+                );
+
+                if (summary.total > 0) {
+                    return c.json({
+                        success: true,
+                        data: summary.data,
+                        pagination: {
+                            page: summary.page,
+                            limit: summary.data.length,
+                            total: summary.total,
+                            totalPages: summary.totalPages
+                        },
+                        effectivePrcDate: summary.effectivePrcDate,
+                        message: "Lifetime LGD detail is not available; showing summary rows instead"
+                    });
+                }
+            }
 
             return c.json({
                 success: true,
@@ -190,6 +214,7 @@ export const ifrs9ReportsController = {
                     total: result.total,
                     totalPages: result.totalPages
                 },
+                effectivePrcDate: (result as any).effectivePrcDate ?? null,
                 message: result.total === 0 ? "No EAD Model Data available" : undefined
             });
         } catch (error: any) {
@@ -215,6 +240,7 @@ export const ifrs9ReportsController = {
             return c.json({
                 success: true,
                 data: result.data,
+                effectivePrcDate: (result as any).effectivePrcDate ?? null,
                 message: (!result.data || result.data.length === 0) ? "No EAD Model Summary Data available" : undefined
             });
         } catch (error: any) {
@@ -273,6 +299,7 @@ export const ifrs9ReportsController = {
             return c.json({
                 success: true,
                 data: result.data,
+                effectivePrcDate: (result as any).effectivePrcDate,
                 message: result.data.length === 0 ? "No ECL Movement Data available" : undefined
             });
         } catch (error: any) {
@@ -295,6 +322,7 @@ export const ifrs9ReportsController = {
             return c.json({
                 success: true,
                 data: result.data,
+                effectivePrcDate: (result as any).effectivePrcDate,
                 message: result.data.length === 0 ? "No GCA Movement Data available" : undefined
             });
         } catch (error: any) {
@@ -312,10 +340,22 @@ export const ifrs9ReportsController = {
             const prc_date = c.req.query('prc_date') || '2023-12-31';
             const download_start_date = c.req.query('download_start_date') || undefined;
             const download_end_date = c.req.query('download_end_date') || undefined;
-            const group_segment = c.req.queries('group_segment') || (c.req.query('group_segment') ? [c.req.query('group_segment')!] : undefined);
-            const segment = c.req.queries('segment') || (c.req.query('segment') ? [c.req.query('segment')!] : undefined);
-            const stage = c.req.queries('stage') || (c.req.query('stage') ? [c.req.query('stage')!] : undefined);
-            const branch_code = c.req.queries('branch_code') || (c.req.query('branch_code') ? [c.req.query('branch_code')!] : undefined);
+            const group_segment = c.req.queries('group_segment')
+                || c.req.queries('group_segment[]')
+                || (c.req.query('group_segment[]') ? [c.req.query('group_segment[]')!] : undefined)
+                || (c.req.query('group_segment') ? [c.req.query('group_segment')!] : undefined);
+            const segment = c.req.queries('segment')
+                || c.req.queries('segment[]')
+                || (c.req.query('segment[]') ? [c.req.query('segment[]')!] : undefined)
+                || (c.req.query('segment') ? [c.req.query('segment')!] : undefined);
+            const stage = c.req.queries('stage')
+                || c.req.queries('stage[]')
+                || (c.req.query('stage[]') ? [c.req.query('stage[]')!] : undefined)
+                || (c.req.query('stage') ? [c.req.query('stage')!] : undefined);
+            const branch_code = c.req.queries('branch_code')
+                || c.req.queries('branch_code[]')
+                || (c.req.query('branch_code[]') ? [c.req.query('branch_code[]')!] : undefined)
+                || (c.req.query('branch_code') ? [c.req.query('branch_code')!] : undefined);
             const result = await ifrs9ReportsService.getNominativeReport(
                 tenantId,
                 page,
@@ -337,6 +377,28 @@ export const ifrs9ReportsController = {
             });
         } catch (error: any) {
             console.error('❌ [IFRS9] Error in getNominativeReport:', error);
+            return c.json({ success: false, message: error.message }, 500);
+        }
+    },
+
+    getNominativeAvailableDates: async (c: Context) => {
+        try {
+            const tenantId = (c as any).get('tenantId');
+            const download_start_date = c.req.query('download_start_date') || undefined;
+            const download_end_date = c.req.query('download_end_date') || undefined;
+            const limit = c.req.query('limit') ? Number(c.req.query('limit')) : undefined;
+
+            const result = await ifrs9ReportsService.getNominativeAvailableDates(
+                tenantId,
+                { download_start_date, download_end_date, limit }
+            );
+
+            return c.json({
+                success: true,
+                data: result.data
+            });
+        } catch (error: any) {
+            console.error('❌ [IFRS9] Error in getNominativeAvailableDates:', error);
             return c.json({ success: false, message: error.message }, 500);
         }
     },

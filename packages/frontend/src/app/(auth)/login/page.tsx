@@ -58,21 +58,7 @@ interface LoginPageProps {
   initialRole?: 'platform_admin' | 'user';
 }
 
-const toApiV1BaseUrl = (raw: string): string => {
-  let normalized = (raw || '').trim().replace(/\/+$/, '');
-  while (/\/api(?:\/v1)?$/i.test(normalized)) {
-    normalized = normalized.replace(/\/api(?:\/v1)?$/i, '');
-  }
-  return normalized ? `${normalized}/api/v1` : '/api/v1';
-};
-
-const resolveBackendBaseUrl = (): string => {
-  return (
-    process.env.NEXT_PUBLIC_BACKEND_URL ||
-    process.env.NEXT_PUBLIC_API_BASE_URL ||
-    ''
-  );
-};
+const API_BASE_V1 = '/api/v1';
 
 export default function LoginPage({ initialRole }: LoginPageProps) {
   // const router = useRouter(); // Unused
@@ -120,16 +106,21 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
       }
 
       try {
-        const baseUrl = toApiV1BaseUrl(resolveBackendBaseUrl());
-        const authPath = '/auth';
-        const queryParams = '';
-
-        const response = await fetch(`${baseUrl}${authPath}/login-data${queryParams}`, {
+        const response = await fetch(`${API_BASE_V1}/auth/login-data`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
         });
 
-        if (!response.ok) throw new Error(`Failed to fetch tenant data: ${response.status}`);
+        if (!response.ok) {
+          const text = await response.text().catch(() => '');
+          throw new Error(`Failed to fetch tenant data: ${response.status} ${text}`.trim());
+        }
+
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          const text = await response.text().catch(() => '');
+          throw new Error(`Tenant response is not JSON: ${text}`.trim());
+        }
 
         const result = await response.json();
 

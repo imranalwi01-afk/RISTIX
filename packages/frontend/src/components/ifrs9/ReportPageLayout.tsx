@@ -11,7 +11,7 @@ import {
   Button as MuiButton
 } from '@mui/material';
 import { Home as HomeIcon } from '@mui/icons-material';
-import { useRouter } from 'next/navigation';
+import NextLink from 'next/link';
 
 export interface ReportPageLayoutProps {
   /** Page title displayed in header and breadcrumb */
@@ -48,8 +48,6 @@ const ReportPageLayout: React.FC<ReportPageLayoutProps> = ({
   actionButtons,
   children
 }) => {
-  const router = useRouter();
-
   return (
     <Container maxWidth="xl">
       {/* Breadcrumb Navigation */}
@@ -58,10 +56,8 @@ const ReportPageLayout: React.FC<ReportPageLayoutProps> = ({
           underline="hover"
           color="inherit"
           href="/banking/dashboard"
-          onClick={(e) => {
-            e.preventDefault();
-            router.push('/banking/dashboard');
-          }}
+          component={NextLink}
+          prefetch
           sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
         >
           <HomeIcon sx={{ mr: 0.5, fontSize: 16 }} />

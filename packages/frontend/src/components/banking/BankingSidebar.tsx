@@ -126,6 +126,7 @@ const SidebarItem = React.memo(({
   selectedItemId,
   onExpandToggle,
   onNavigate,
+  onPrefetch,
   onFlyoutOpen,
   onMenuClick
 }: {
@@ -137,6 +138,7 @@ const SidebarItem = React.memo(({
   selectedItemId: string | null;
   onExpandToggle: (id: string) => void;
   onNavigate: (item: HierarchicalMenuItem) => void;
+  onPrefetch: (rawUrl?: string | null) => void;
   onFlyoutOpen: (e: React.MouseEvent<HTMLElement>, item: HierarchicalMenuItem) => void;
   onMenuClick?: (id: string, url?: string) => void;
 }) => {
@@ -174,6 +176,7 @@ const SidebarItem = React.memo(({
   const isExpanded = expandedItems.has(item.id);
   const isActiveParent = activeItems.has(item.id);
   const isSelected = selectedItemId === item.id;
+  const isLeafLink = Boolean(item.url && !hasChildren);
 
   // Recursive render for children
   const childElements = hasChildren && !collapsed && isExpanded ? (
@@ -190,6 +193,7 @@ const SidebarItem = React.memo(({
             selectedItemId={selectedItemId}
             onExpandToggle={onExpandToggle}
             onNavigate={onNavigate}
+            onPrefetch={onPrefetch}
             onFlyoutOpen={onFlyoutOpen}
             onMenuClick={onMenuClick}
           />
@@ -208,11 +212,18 @@ const SidebarItem = React.memo(({
                 onFlyoutOpen(e, { ...item, children: visibleChildren });
               } else if (hasChildren) {
                 onExpandToggle(item.id);
+                visibleChildren.forEach((child) => onPrefetch(child.url));
               } else if (item.url) {
-                onNavigate(item);
                 onMenuClick?.(item.id, item.url);
               }
             }}
+            onMouseEnter={() => {
+              if (isLeafLink) onPrefetch(item.url);
+            }}
+            component={isLeafLink ? (Link as any) : undefined}
+            href={isLeafLink ? item.url : undefined}
+            prefetch={isLeafLink ? true : undefined}
+            scroll={isLeafLink ? false : undefined}
             sx={{
               minHeight: collapsed ? 48 : (level === 0 ? 44 : 36), // Slightly taller for comfort
               borderRadius: '12px', // Modern Rounded Corners
@@ -380,6 +391,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   const theme = useTheme();
   const pathname = usePathname();
   const router = useRouter();
+  const prefetchedUrlsRef = useRef<Set<string>>(new Set());
 
   // ✅ REAL-TIME DB SYNC: Monitor backend health
   const { isOnline, latency, isChecking, checkNow } = useBackendHealth(15000); // Check every 15s
@@ -391,17 +403,56 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   const handleFlyoutOpen = useCallback((event: React.MouseEvent<HTMLElement>, item: HierarchicalMenuItem) => {
     setFlyoutAnchorEl(event.currentTarget);
     setFlyoutItem(item);
-  }, []);
+
+    const children = item.children || [];
+    children.forEach((child) => {
+      if (child.url) {
+        const nextUrl = buildNavigationUrl(child.url);
+        if (!prefetchedUrlsRef.current.has(nextUrl)) {
+          prefetchedUrlsRef.current.add(nextUrl);
+          router.prefetch(nextUrl);
+        }
+      }
+    });
+  }, [buildNavigationUrl, router]);
 
   const handleFlyoutClose = useCallback(() => {
     setFlyoutAnchorEl(null);
     setFlyoutItem(null);
   }, []);
 
+  const buildNavigationUrl = useCallback((rawUrl: string) => {
+    if (!rawUrl) return rawUrl;
+    if (/^https?:\/\//i.test(rawUrl)) return rawUrl;
+
+    const parsed = new URL(rawUrl, 'http://local');
+
+    if (parsed.pathname === '/banking/individual/impairment') {
+      parsed.pathname = '/banking/individual/assessment';
+    } else if (parsed.pathname.startsWith('/banking/individual/impairment/')) {
+      parsed.pathname = parsed.pathname.replace('/banking/individual/impairment/', '/banking/individual/');
+    }
+
+    if (
+      (
+        parsed.pathname.startsWith('/banking/individual/') ||
+        parsed.pathname.startsWith('/banking/collective/') ||
+        parsed.pathname.startsWith('/banking/ifrs9/')
+      ) &&
+      !parsed.searchParams.has('mode')
+    ) {
+      parsed.searchParams.set('mode', bankingMode);
+    }
+
+    const query = parsed.searchParams.toString();
+    return `${parsed.pathname}${query ? `?${query}` : ''}${parsed.hash || ''}`;
+  }, [bankingMode]);
+
   const handleFlyoutItemClick = (child: HierarchicalMenuItem) => {
     if (child.url) {
-      router.push(child.url);
-      onMenuClick?.(child.id, child.url);
+      const nextUrl = buildNavigationUrl(child.url);
+      router.push(nextUrl);
+      onMenuClick?.(child.id, nextUrl);
     }
     handleFlyoutClose();
   };
@@ -417,6 +468,27 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   // ✅ MEMOIZED MENU PROCESSING
   const hierarchicalMenu = React.useMemo(() => {
     let rawItems: HierarchicalMenuItem[] = [];
+    const idsToRemove = new Set([
+      'assessment-workspace-old',
+      'assessment-workspace-old-imran'
+    ]);
+
+    const normalizeLegacyUrls = (items: HierarchicalMenuItem[]): HierarchicalMenuItem[] => {
+      return items.map((item) => ({
+        ...item,
+        url: item.url ? buildNavigationUrl(item.url) : item.url,
+        children: item.children ? normalizeLegacyUrls(item.children) : item.children
+      }));
+    };
+
+    const stripMenuItems = (items: HierarchicalMenuItem[]): HierarchicalMenuItem[] => {
+      return items
+        .filter((item) => !idsToRemove.has(item.id))
+        .map((item) => ({
+          ...item,
+          children: item.children ? stripMenuItems(item.children) : item.children
+        }));
+    };
 
     // Determine source: RTK Query data or Cache
     if (menuData && Array.isArray(menuData) && menuData.length > 0) {
@@ -450,6 +522,11 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
       if (cached) try { rawItems = JSON.parse(cached); } catch (e) { }
     }
 
+    if (rawItems.length > 0) {
+      rawItems = normalizeLegacyUrls(rawItems);
+      rawItems = stripMenuItems(rawItems);
+    }
+
     if (rawItems.length === 0 && !isMenuLoading) {
       const fallbackMenu = getStaticFallbackMenu();
       rawItems = transformFlatToHierarchical(fallbackMenu);
@@ -457,10 +534,68 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
 
     // Filter by role/permissions/banking mode (IAF logic moved to utility)
     return filterHierarchicalMenu(rawItems, bankingMode, userPermissions);
-  }, [menuData, isMenuLoading, bankingMode, userPermissions]);
+  }, [menuData, isMenuLoading, bankingMode, userPermissions, buildNavigationUrl]);
 
   // Use hierarchical menu state management
   const menuState = useMenuState(hierarchicalMenu);
+
+  const handleNavigate = useCallback((item: HierarchicalMenuItem) => {
+    if (!item.url) return;
+    const nextUrl = buildNavigationUrl(item.url);
+    router.push(nextUrl);
+  }, [buildNavigationUrl, router]);
+
+  const handlePrefetch = useCallback((rawUrl?: string | null) => {
+    if (!rawUrl) return;
+    const nextUrl = buildNavigationUrl(rawUrl);
+    if (prefetchedUrlsRef.current.has(nextUrl)) return;
+    prefetchedUrlsRef.current.add(nextUrl);
+    router.prefetch(nextUrl);
+  }, [buildNavigationUrl, router]);
+
+  const collectLeafUrls = useCallback((items: HierarchicalMenuItem[], limit: number) => {
+    const urls: string[] = [];
+    const walk = (nodes: HierarchicalMenuItem[]) => {
+      for (const node of nodes) {
+        if (urls.length >= limit) return;
+        const children = node.children || [];
+        if (node.url && children.length === 0) {
+          urls.push(node.url);
+          continue;
+        }
+        if (children.length > 0) walk(children);
+      }
+    };
+    walk(items);
+    return urls;
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (hierarchicalMenu.length === 0) return;
+
+    const seedUrls = collectLeafUrls(hierarchicalMenu, 18);
+    const anyWindow = window as any;
+    const schedule = (cb: () => void) => {
+      if (typeof anyWindow.requestIdleCallback === 'function') {
+        return anyWindow.requestIdleCallback(cb, { timeout: 800 });
+      }
+      return window.setTimeout(cb, 150);
+    };
+    const cancel = (id: any) => {
+      if (typeof anyWindow.cancelIdleCallback === 'function') {
+        anyWindow.cancelIdleCallback(id);
+      } else {
+        clearTimeout(id);
+      }
+    };
+
+    const id = schedule(() => {
+      seedUrls.forEach((url) => handlePrefetch(url));
+    });
+
+    return () => cancel(id);
+  }, [hierarchicalMenu, collectLeafUrls, handlePrefetch]);
 
   // Auto-expand first section for better UX
   useEffect(() => {
@@ -481,12 +616,13 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
         activeItems={menuState.activeItems}
         selectedItemId={menuState.selectedItem}
         onExpandToggle={menuState.toggleExpansion}
-        onNavigate={menuState.navigateToMenu}
+        onNavigate={handleNavigate}
+        onPrefetch={handlePrefetch}
         onFlyoutOpen={handleFlyoutOpen}
         onMenuClick={onMenuClick}
       />
     ));
-  }, [hierarchicalMenu, collapsed, menuState.expandedItems, menuState.activeItems, menuState.selectedItem, handleFlyoutOpen, onMenuClick, menuState.toggleExpansion, menuState.navigateToMenu]);
+  }, [hierarchicalMenu, collapsed, menuState.expandedItems, menuState.activeItems, menuState.selectedItem, handleNavigate, handleFlyoutOpen, onMenuClick, menuState.toggleExpansion, handlePrefetch]);
 
   // Get top level page URL for logo link
   const getTopLevelRoute = () => {

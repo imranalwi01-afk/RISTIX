@@ -1,5 +1,7 @@
 import { individualImpairmentService } from '@/services/individual-impairment.service';
 import { Context } from 'hono';
+import path from 'path'
+import { promises as fs } from 'fs'
 
 export class IndividualImpairmentController {
     private individualImpairmentService: any;
@@ -246,12 +248,76 @@ export class IndividualImpairmentController {
             if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
 
             const body = await c.req.json();
+
+            const supportingDocumentName = body?.supportingDocumentName
+            const supportingDocumentContent = body?.supportingDocumentContent
+
+            if (supportingDocumentName && supportingDocumentContent) {
+                const base64 = String(supportingDocumentContent)
+                const buffer = Buffer.from(base64, 'base64')
+                if (buffer.byteLength > 5 * 1024 * 1024) {
+                    return c.json({ success: false, message: 'Supporting document too large (max 5MB)' }, 413);
+                }
+
+                const ext = path.extname(String(supportingDocumentName)).toLowerCase()
+                const safeBase = String(supportingDocumentName)
+                    .replace(/[^a-zA-Z0-9._-]+/g, '_')
+                    .slice(0, 60) || 'document'
+                const suffix = crypto.randomUUID().slice(0, 8)
+                const storedName = `${Date.now()}_${suffix}_${safeBase}`.slice(0, 96) + ext
+
+                const storageDir = path.resolve(process.cwd(), 'storage', 'individual-impairment', 'overrides')
+                await fs.mkdir(storageDir, { recursive: true })
+                const filePath = path.join(storageDir, storedName)
+                await fs.writeFile(filePath, buffer)
+
+                body.supportingDocument = storedName
+            }
+
             const data = await individualImpairmentService.createOverride({
                 ...body,
                 tenantId: user.tenantId,
                 requestedBy: user.id
             });
             return c.json({ success: true, data: data[0] });
+        } catch (error: any) {
+            return this.handleError(c, error);
+        }
+    }
+
+    async downloadOverrideDocument(c: Context) {
+        try {
+            const user = c.get('user');
+            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+
+            const fileName = c.req.param('fileName');
+            const safeName = String(fileName || '').replace(/[^a-zA-Z0-9._-]+/g, '')
+            if (!safeName || safeName !== fileName) {
+                return c.json({ success: false, message: 'Invalid file name' }, 400);
+            }
+
+            const storageDir = path.resolve(process.cwd(), 'storage', 'individual-impairment', 'overrides')
+            const filePath = path.join(storageDir, safeName)
+
+            try {
+                await fs.access(filePath)
+            } catch {
+                return c.json({ success: false, message: 'File not found' }, 404);
+            }
+
+            const file = Bun.file(filePath)
+            const ext = path.extname(safeName).toLowerCase()
+            const contentType =
+                ext === '.pdf' ? 'application/pdf' :
+                ext === '.png' ? 'image/png' :
+                ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' :
+                ext === '.xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' :
+                ext === '.csv' ? 'text/csv' :
+                'application/octet-stream'
+
+            c.header('Content-Type', contentType)
+            c.header('Content-Disposition', `attachment; filename="${safeName}"`)
+            return c.body(file.stream() as any)
         } catch (error: any) {
             return this.handleError(c, error);
         }

@@ -264,7 +264,8 @@ export default function DashboardClient() {
     const [activities, setActivities] = useState<DashboardActivity[]>([])
     const [error, setError] = useState<any>(null)
     const [availableDates, setAvailableDates] = useState<string[]>([])
-    const [selectedDate, setSelectedDate] = useState<string>('all')
+    const [availableDateGroups, setAvailableDateGroups] = useState<Record<string, string[]> | null>(null)
+    const [selectedDate, setSelectedDate] = useState<string>('')
     const [isLoadingDates, setIsLoadingDates] = useState<boolean>(true)
 
 
@@ -380,12 +381,50 @@ export default function DashboardClient() {
     const loadAvailableDates = useCallback(async () => {
         setIsLoadingDates(true);
         try {
-            const datesResponse = await api.ifrs9.getAvailableDates();
-            const dates = datesResponse?.success ? datesResponse.data : datesResponse;
-            setAvailableDates(dates || []);
+            const isStringArray = (value: unknown): value is string[] => {
+                return Array.isArray(value) && value.every((item) => typeof item === 'string')
+            }
+
+            const isGroupedDates = (value: unknown): value is Record<string, string[]> => {
+                if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+                const record = value as Record<string, unknown>
+                return Object.values(record).every(isStringArray)
+            }
+
+            const unwrapResponseData = (value: unknown): unknown => {
+                if (!value || typeof value !== 'object') return value
+                if (!('success' in value)) return value
+                const record = value as Record<string, unknown>
+                if (record.success === true) return record.data
+                return value
+            }
+
+            let datesResponse: unknown
+            try {
+                datesResponse = await api.ifrs9.getAvailableDates(undefined, { groupBy: 'year' })
+            } catch {
+                datesResponse = await api.ifrs9.getAvailableDates()
+            }
+
+            const datesData = unwrapResponseData(datesResponse);
+
+            if (isGroupedDates(datesData)) {
+                const years = Object.keys(datesData).sort((a, b) => Number(b) - Number(a))
+                const flattened = years.flatMap((year) => datesData[year] || [])
+                setAvailableDateGroups(datesData)
+                setAvailableDates(flattened)
+            } else {
+                setAvailableDateGroups(null)
+                setAvailableDates(datesData || []);
+            }
             // Only set default if we aren't already in 'all' mode or have a specific date
-            if (dates && dates.length > 0 && selectedDate === '') {
-                setSelectedDate(dates[0]); // Fallback for unexpected empty state
+            if (selectedDate === '') {
+                const firstDate = isStringArray(datesData)
+                    ? datesData[0]
+                    : (isGroupedDates(datesData)
+                        ? Object.keys(datesData).sort((a, b) => Number(b) - Number(a)).flatMap((year) => datesData[year] || [])[0]
+                        : undefined)
+                setSelectedDate(firstDate || 'all')
             }
         } catch (err) {
             console.error('Failed to load available dates:', err);
@@ -411,16 +450,14 @@ export default function DashboardClient() {
     }, [isAuthenticated, user, loadAvailableDates, dispatch, router])
 
     useEffect(() => {
-        if (isAuthenticated) {
-            loadAvailableDates();
-        }
-    }, [isAuthenticated, loadAvailableDates]);
+        if (!isAuthenticated || isLoadingDates) return
 
-    useEffect(() => {
-        if (isAuthenticated && selectedDate && selectedDate !== 'all') {
+        if (selectedDate && selectedDate !== 'all') {
             loadDashboardData(selectedDate);
-        } else if (isAuthenticated && (selectedDate === 'all' || !selectedDate) && !isLoadingDates) {
-            // Load all-time/grand total
+            return
+        }
+
+        if (selectedDate === 'all') {
             loadDashboardData('all');
         }
     }, [isAuthenticated, selectedDate, isLoadingDates]);
@@ -623,7 +660,22 @@ export default function DashboardClient() {
 
                                     {availableDates.length > 0 ? (
                                         (() => {
-                                            // Group dates by year for a premium UX
+                                            if (availableDateGroups) {
+                                                const years = Object.keys(availableDateGroups).sort((a, b) => Number(b) - Number(a))
+                                                return years.flatMap((year) => [
+                                                    <ListSubheader key={`year-${year}`}>{year}</ListSubheader>,
+                                                    ...(availableDateGroups[year] || []).map((date) => (
+                                                        <MenuItem key={date} value={date} sx={{ pl: 4 }}>
+                                                            {new Intl.DateTimeFormat('id-ID', {
+                                                                day: '2-digit',
+                                                                month: 'short',
+                                                                year: 'numeric'
+                                                            }).format(new Date(date))}
+                                                        </MenuItem>
+                                                    ))
+                                                ])
+                                            }
+
                                             const groups: Record<number, string[]> = {};
                                             availableDates.forEach(date => {
                                                 const year = new Date(date).getFullYear();
@@ -631,7 +683,6 @@ export default function DashboardClient() {
                                                 groups[year].push(date);
                                             });
 
-                                            // Sort years descending
                                             const years = Object.keys(groups).map(Number).sort((a, b) => b - a);
 
                                             return years.flatMap(year => [
@@ -868,7 +919,7 @@ export default function DashboardClient() {
                                         fontWeight: 'bold'
                                     }}
                                     startIcon={<Calculate />}
-                                    onClick={() => router.push('/banking/ifrs9/calculations')}
+                                    onClick={() => router.push(`/banking/ifrs9/calculations?mode=${encodeURIComponent(bankingContext.type)}`)}
                                 >
                                     Run ECL Calculation
                                 </Button>

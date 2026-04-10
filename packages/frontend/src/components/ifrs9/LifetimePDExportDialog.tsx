@@ -7,15 +7,15 @@ import {
   Button,
   FormControl,
   FormLabel,
-  RadioGroup,
   FormControlLabel,
-  Radio,
   Checkbox,
   FormGroup,
   Typography,
   Box,
   Divider,
-  Stack
+  Stack,
+  ToggleButton,
+  ToggleButtonGroup
 } from '@mui/material';
 
 interface LifetimePDExportDialogProps {
@@ -57,15 +57,23 @@ export default function LifetimePDExportDialog({ open, onClose, onExport }: Life
           <FormLabel component="legend" sx={{ fontWeight: 600, mb: 1, fontSize: '0.875rem' }}>
             FILE FORMAT
           </FormLabel>
-          <RadioGroup 
-            row 
-            value={format} 
-            onChange={(e) => setFormat(e.target.value)}
+          <ToggleButtonGroup
+            value={format}
+            exclusive
+            onChange={(_, next) => next && setFormat(next)}
+            size="small"
+            sx={{ mt: 0.5 }}
           >
-            <FormControlLabel value="xlsx" control={<Radio size="small" />} label="XLSX" />
-            <FormControlLabel value="csv" control={<Radio size="small" />} label="CSV" />
-            <FormControlLabel value="pdf" control={<Radio size="small" />} label="PDF" />
-          </RadioGroup>
+            <ToggleButton value="xlsx" sx={{ fontWeight: 700, textTransform: 'none' }}>
+              XLSX
+            </ToggleButton>
+            <ToggleButton value="csv" sx={{ fontWeight: 700, textTransform: 'none' }}>
+              CSV
+            </ToggleButton>
+            <ToggleButton value="pdf" sx={{ fontWeight: 700, textTransform: 'none' }}>
+              PDF
+            </ToggleButton>
+          </ToggleButtonGroup>
         </FormControl>
 
         <Divider sx={{ my: 2 }} />
@@ -76,19 +84,19 @@ export default function LifetimePDExportDialog({ open, onClose, onExport }: Life
           </FormLabel>
           <FormGroup>
             <FormControlLabel
-              control={<Checkbox size="small" checked={scope.summary} onChange={handleScopeChange} name="summary" />}
+              control={<Checkbox checked={scope.summary} onChange={handleScopeChange} name="summary" />}
               label="Executive Summary (KPIs)"
             />
             <FormControlLabel
-              control={<Checkbox size="small" checked={scope.bySegment} onChange={handleScopeChange} name="bySegment" />}
+              control={<Checkbox checked={scope.bySegment} onChange={handleScopeChange} name="bySegment" />}
               label="Segment Breakdown"
             />
             <FormControlLabel
-              control={<Checkbox size="small" checked={scope.fullAccount} onChange={handleScopeChange} name="fullAccount" />}
+              control={<Checkbox checked={scope.fullAccount} onChange={handleScopeChange} name="fullAccount" />}
               label="Full Account Details (Heavy)"
             />
             <FormControlLabel
-              control={<Checkbox size="small" checked={scope.charts} onChange={handleScopeChange} name="charts" />}
+              control={<Checkbox checked={scope.charts} onChange={handleScopeChange} name="charts" />}
               label="Include Visualization Charts"
             />
           </FormGroup>

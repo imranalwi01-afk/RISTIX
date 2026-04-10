@@ -1430,7 +1430,7 @@ export const bankingAPI = {
       get: async (params: {
         prc_date: string;
         segment_id?: number;
-        stage?: string;
+        stage?: string | string[];
         sub_segment?: string;
       }) => {
         console.log('📊 Getting ECL Result data from DS2 database');
@@ -1444,7 +1444,7 @@ export const bankingAPI = {
       get: async (params: {
         prc_date: string;
         segment_id?: number;
-        stage?: string;
+        stage?: string | string[];
         group_segment?: string;
       }) => {
         console.log('📊 Getting ECL Movement data from DS2 database');
@@ -1458,7 +1458,7 @@ export const bankingAPI = {
       get: async (params: {
         prc_date: string;
         segment_id?: number;
-        stage?: string;
+        stage?: string | string[];
         group_segment?: string;
       }) => {
         console.log('📊 Getting GCA Movement data from DS2 database');
@@ -1472,7 +1472,7 @@ export const bankingAPI = {
       get: async (params: {
         prc_date: string;
         segment_id?: number;
-        stage?: string;
+        stage?: string | string[];
         branch_code?: string;
         page?: number;
         limit?: number;

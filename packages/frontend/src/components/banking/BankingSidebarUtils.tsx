@@ -84,7 +84,7 @@ import {
     Description,
 } from '@mui/icons-material';
 
-import { MenuItem, DatabaseMenuItem, BankingMode } from './types';
+import { MenuItem, DatabaseMenuItem } from './types';
 import { getMenuIcon } from '@/config/menu-config';
 
 // IAF-SPECIFIC SITEMAP STRUCTURE - Based on IAF Navigation Requirements
@@ -126,9 +126,6 @@ const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'menu-management': 'admin.system.manage',
     'job-monitoring': ['jobs.view', 'jobs.manage', 'admin.system.manage'],
     'assessment-workspace': 'banking.individual.view',
-    'assessment-workspace-old': 'banking.individual.view',
-    'assessment-workspace-old-imran': 'banking.individual.view',
-    'customer-list': 'banking.individual.view',
     'workflow-management': 'approval.requests.approve',
     'approval-system': 'approval.requests.approve',
     'workflow-notifications': ['notifications.view', 'notifications.manage', 'approval.requests.approve'],
@@ -386,27 +383,6 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 icon: <Assessment />,
                 description: 'End-to-end impairment assessment',
                 isNew: true
-            },
-            {
-                id: 'assessment-workspace-old',
-                label: '(Old) Assessment Workspace',
-                href: '/banking/individual/assessment-old',
-                icon: <HistoryToggleOff />,
-                description: 'Legacy workspace snapshot'
-            },
-            {
-                id: 'assessment-workspace-old-imran',
-                label: '(Old - Imran) Assessment Workspace',
-                href: '/banking/individual/assessment-old-imran',
-                icon: <HistoryToggleOff />,
-                description: 'Legacy workspace snapshot from Imran'
-            },
-            {
-                id: 'customer-list',
-                label: 'Customer List',
-                href: '/banking/individual/customer-list',
-                icon: <People />,
-                description: 'Distinct customer/account list'
             }
         ]
     },
@@ -742,7 +718,7 @@ const applyRequiredPermissions = (items: MenuItem[]) => {
 applyRequiredPermissions(BANKING_MENU_STRUCTURE);
 
 // Convert icon string to React element helper
-export const convertIconStringToElement = (iconString: string): React.ReactElement<any> => {
+export const convertIconStringToElement = (iconString: string): React.ReactElement => {
     // Handle undefined/null iconString - return fallback menu icon
     if (!iconString || typeof iconString !== 'string') {
         return <Menu />;
@@ -818,7 +794,7 @@ export const convertIconStringToElement = (iconString: string): React.ReactEleme
 };
 
 // Enhanced icon conversion function - CENTRALIZED CONFIGURATION
-export const getIconFromDatabaseString = (iconString: string, bankingMode?: string): React.ReactElement<any> => {
+export const getIconFromDatabaseString = (iconString: string, bankingMode?: string): React.ReactElement => {
     // Handle undefined/null iconString - return fallback menu icon
     if (!iconString || typeof iconString !== 'string') {
         return <Menu />;
@@ -832,7 +808,7 @@ export const getIconFromDatabaseString = (iconString: string, bankingMode?: stri
     }
 
     // Fallback to local icon mapping for comprehensive coverage
-    const fallbackIconMap: Record<string, React.ReactElement<any>> = {
+    const fallbackIconMap: Record<string, React.ReactElement> = {
         // Core Navigation
         'dashboard': <Dashboard />,
         'settings': <Settings />,
@@ -920,9 +896,9 @@ export const getIconFromDatabaseString = (iconString: string, bankingMode?: stri
 };
 
 // Get appropriate icon for menu item based on code and level
-export const getIconForMenuItem = (code: string, level: number): React.ReactElement<any> => {
+export const getIconForMenuItem = (code: string, level: number): React.ReactElement => {
     // Map common menu codes to icons
-    const iconMap: Record<string, React.ReactElement<any>> = {
+    const iconMap: Record<string, React.ReactElement> = {
         'dashboard': <Dashboard />,
         'application-setting': <Settings />,
         'business-setting': <Business />,
@@ -940,9 +916,6 @@ export const getIconForMenuItem = (code: string, level: number): React.ReactElem
         'ead-setup-management': <AccountBalance />,
         'ecl-configuration': <Calculate />,
         'assessment-override': <Assessment />,
-        'assessment-workspace-old': <HistoryToggleOff />,
-        'assessment-workspace-old-imran': <HistoryToggleOff />,
-        'customer-list': <People />,
         'impairment-module': <Warning />,
         'ecl-calculations': <Calculate />,
         'ifrs9-staging': <Layers />,
@@ -1000,9 +973,6 @@ const MENU_ICON_MAP: Record<string, string> = {
     'ecl-configuration': 'calculate',
     'individual-impairment': 'person',
     'assessment-override': 'assessment',
-    'assessment-workspace-old': 'history_toggle_off',
-    'assessment-workspace-old-imran': 'history_toggle_off',
-    'customer-list': 'people',
     'list-individual-report': 'table_chart',
     'review-scenario': 'approval',
     'review-dcf-upload': 'cloud_upload',
@@ -1112,6 +1082,19 @@ export const convertStaticToDatabaseFormat = (staticMenu: MenuItem[]): DatabaseM
     return items;
 };
 
+type BadgeColor = NonNullable<MenuItem['badge']>['color'];
+
+const isBadgeColor = (value: unknown): value is BadgeColor => {
+    return (
+        value === 'primary' ||
+        value === 'secondary' ||
+        value === 'error' ||
+        value === 'warning' ||
+        value === 'info' ||
+        value === 'success'
+    );
+};
+
 // Convert database menu items to MenuItem format - PRESERVE HIERARCHY
 export const convertDatabaseMenuToMenuItem = (dbMenuItems: DatabaseMenuItem[], bankingMode: string): MenuItem[] => {
     return dbMenuItems.map(item => {
@@ -1160,7 +1143,7 @@ export const convertDatabaseMenuToMenuItem = (dbMenuItems: DatabaseMenuItem[], b
         if (item.badge_info) {
             menuItem.badge = {
                 content: item.badge_info.content || '',
-                color: (item.badge_info.color as any) || 'primary'
+                color: isBadgeColor(item.badge_info.color) ? item.badge_info.color : 'primary'
             };
         }
 

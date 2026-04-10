@@ -56,6 +56,7 @@ import {
   FileDownload as DownloadIcon
 } from '@mui/icons-material';
 import { useAuth } from '@/providers/AuthProvider';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { individualImpairmentAPI, type IndividualImpairmentWatchlistItem } from '@/services/api.individual-impairment';
 
 // ============================================================================
@@ -108,6 +109,9 @@ interface SortConfig {
 
 export default function ImpairmentPage() {
   const { user } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const mode = searchParams.get('mode') || 'conventional';
 
   // Data loading states
   const [loading, setLoading] = useState(true);
@@ -250,9 +254,30 @@ export default function ImpairmentPage() {
     }
   }, [searchTerm, stageFilter, impairedFilter, statusFilter, sortConfig, columnFilters]);
 
+  const buildAssessmentUrl = (next: { accountId?: number | string; tab?: string; accountNumber?: string }) => {
+    const params = new URLSearchParams();
+    params.set('mode', mode);
+    if (next.accountId !== undefined && next.accountId !== null && String(next.accountId).trim()) {
+      params.set('accountId', String(next.accountId));
+    }
+    if (next.accountNumber && next.accountNumber.trim()) {
+      params.set('accountNumber', next.accountNumber);
+    }
+    if (next.tab) params.set('tab', next.tab);
+    return `/banking/individual/assessment?${params.toString()}`;
+  };
+
   const handleViewDetails = (record: IndividualImpairmentWatchlistItem) => {
-    setSelectedRecord(record);
-    setDetailsDialogOpen(true);
+    const params = new URLSearchParams();
+    params.set('mode', mode);
+    params.set('accountId', String(record.account_id));
+    if (record.account_number) params.set('accountNumber', record.account_number);
+    params.set('tab', 'assessment-details');
+    router.push(`/banking/individual/assessment?${params.toString()}`);
+  };
+
+  const handleEditAssessment = (record: IndividualImpairmentWatchlistItem) => {
+    router.push(buildAssessmentUrl({ accountId: record.account_id, tab: 'assessment-details', accountNumber: record.account_number }));
   };
 
   const handleRunCalculation = () => {
@@ -760,6 +785,14 @@ export default function ImpairmentPage() {
                             onClick={() => handleViewDetails(row)}
                           >
                             <VisibilityIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Edit Assessment">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleEditAssessment(row)}
+                          >
+                            <EditIcon />
                           </IconButton>
                         </Tooltip>
                       </TableCell>
