@@ -186,7 +186,15 @@ export async function ensureApprovalLevelRequirementsCompatibility(): Promise<vo
 }
 
 export async function ensureJobsTablesCompatibility(): Promise<void> {
-    await platformConnection.unsafe(`CREATE EXTENSION IF NOT EXISTS pgcrypto;`)
+    try {
+        await platformConnection.unsafe(`CREATE EXTENSION IF NOT EXISTS pgcrypto;`)
+    } catch (err: any) {
+        // Insufficient privilege is non-fatal: pgcrypto may already exist or be managed externally
+        if (!String(err?.message || err).toLowerCase().includes('permission') && !String(err?.message || err).toLowerCase().includes('privilege')) {
+            throw err;
+        }
+        console.warn('[ensureJobsTablesCompatibility] Could not create pgcrypto extension (insufficient privilege). Continuing...');
+    }
     await platformConnection.unsafe(`CREATE SCHEMA IF NOT EXISTS core;`)
 
     await platformConnection.unsafe(`

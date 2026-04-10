@@ -260,7 +260,8 @@ export class IndividualImpairmentController {
                 }
 
                 const ext = path.extname(String(supportingDocumentName)).toLowerCase()
-                const safeBase = String(supportingDocumentName)
+                const baseName = path.basename(String(supportingDocumentName), ext)
+                const safeBase = baseName
                     .replace(/[^a-zA-Z0-9._-]+/g, '_')
                     .slice(0, 60) || 'document'
                 const suffix = crypto.randomUUID().slice(0, 8)
@@ -292,12 +293,15 @@ export class IndividualImpairmentController {
 
             const fileName = c.req.param('fileName');
             const safeName = String(fileName || '').replace(/[^a-zA-Z0-9._-]+/g, '')
-            if (!safeName || safeName !== fileName) {
+            if (!safeName || safeName !== fileName || safeName === '.' || safeName === '..') {
                 return c.json({ success: false, message: 'Invalid file name' }, 400);
             }
 
             const storageDir = path.resolve(process.cwd(), 'storage', 'individual-impairment', 'overrides')
-            const filePath = path.join(storageDir, safeName)
+            const filePath = path.resolve(storageDir, safeName)
+            if (!filePath.startsWith(storageDir + path.sep)) {
+                return c.json({ success: false, message: 'Invalid file name' }, 400);
+            }
 
             try {
                 await fs.access(filePath)

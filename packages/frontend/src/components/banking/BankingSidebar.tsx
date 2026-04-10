@@ -400,27 +400,6 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   const [flyoutAnchorEl, setFlyoutAnchorEl] = useState<null | HTMLElement>(null);
   const [flyoutItem, setFlyoutItem] = useState<HierarchicalMenuItem | null>(null);
 
-  const handleFlyoutOpen = useCallback((event: React.MouseEvent<HTMLElement>, item: HierarchicalMenuItem) => {
-    setFlyoutAnchorEl(event.currentTarget);
-    setFlyoutItem(item);
-
-    const children = item.children || [];
-    children.forEach((child) => {
-      if (child.url) {
-        const nextUrl = buildNavigationUrl(child.url);
-        if (!prefetchedUrlsRef.current.has(nextUrl)) {
-          prefetchedUrlsRef.current.add(nextUrl);
-          router.prefetch(nextUrl);
-        }
-      }
-    });
-  }, [buildNavigationUrl, router]);
-
-  const handleFlyoutClose = useCallback(() => {
-    setFlyoutAnchorEl(null);
-    setFlyoutItem(null);
-  }, []);
-
   const buildNavigationUrl = useCallback((rawUrl: string) => {
     if (!rawUrl) return rawUrl;
     if (/^https?:\/\//i.test(rawUrl)) return rawUrl;
@@ -447,6 +426,27 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
     const query = parsed.searchParams.toString();
     return `${parsed.pathname}${query ? `?${query}` : ''}${parsed.hash || ''}`;
   }, [bankingMode]);
+
+  const handleFlyoutOpen = useCallback((event: React.MouseEvent<HTMLElement>, item: HierarchicalMenuItem) => {
+    setFlyoutAnchorEl(event.currentTarget);
+    setFlyoutItem(item);
+
+    const children = item.children || [];
+    children.forEach((child) => {
+      if (child.url) {
+        const nextUrl = buildNavigationUrl(child.url);
+        if (!prefetchedUrlsRef.current.has(nextUrl)) {
+          prefetchedUrlsRef.current.add(nextUrl);
+          router.prefetch(nextUrl);
+        }
+      }
+    });
+  }, [buildNavigationUrl, router]);
+
+  const handleFlyoutClose = useCallback(() => {
+    setFlyoutAnchorEl(null);
+    setFlyoutItem(null);
+  }, []);
 
   const handleFlyoutItemClick = (child: HierarchicalMenuItem) => {
     if (child.url) {
