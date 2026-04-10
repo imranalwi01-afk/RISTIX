@@ -185,12 +185,20 @@ export const AssessmentOverride = () => {
     reader.onload = () => {
       const dataUrl = reader.result as string
       // dataUrl is "data:<mime>;base64,<base64>" – extract only the base64 part
-      const base64 = dataUrl.split(',')[1] ?? ''
+      const commaIndex = dataUrl.indexOf(',')
+      if (commaIndex === -1 || !dataUrl.startsWith('data:')) {
+        setError('Failed to read file. Please try again.')
+        return
+      }
+      const base64 = dataUrl.slice(commaIndex + 1)
       setFormData((prev) => ({
         ...prev,
         supportingDocumentName: file.name,
         supportingDocumentContent: base64
       }))
+    }
+    reader.onerror = () => {
+      setError('Failed to read file. Please try again.')
     }
     reader.readAsDataURL(file)
   }
