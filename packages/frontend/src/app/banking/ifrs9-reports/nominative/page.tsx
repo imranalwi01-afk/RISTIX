@@ -2,11 +2,20 @@
 'use client';
 
 import React from 'react';
-import { Alert, Container } from '@mui/material';
+import dynamic from 'next/dynamic';
+import { Alert, Box, CircularProgress, Container } from '@mui/material';
 import { Assessment as PageIcon } from '@mui/icons-material';
-import NominativeReport from '@/components/ifrs9/NominativeReport';
 import ReportPageLayout from '@/components/ifrs9/ReportPageLayout';
 import { Can } from '@/components/rbac/Can';
+
+const NominativeReport = dynamic(() => import('@/components/ifrs9/NominativeReport'), {
+  ssr: false,
+  loading: () => (
+    <Box sx={{ py: 6, display: 'flex', justifyContent: 'center' }}>
+      <CircularProgress />
+    </Box>
+  ),
+});
 
 export default function NominativeReportsPage() {
   return (

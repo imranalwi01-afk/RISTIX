@@ -112,7 +112,8 @@ export class Ifrs9CalculationsController {
             const rawTenantId = c.get('tenantId');
             const tenantId = await this.resolveTenantId(rawTenantId);
             const mode = c.req.query('mode');
-            const dates = await ifrs9CalculationsService.getAvailableDates(tenantId, mode);
+            const groupBy = c.req.query('groupBy');
+            const dates = await ifrs9CalculationsService.getAvailableDates(tenantId, mode, groupBy);
             return c.json({ success: true, data: dates });
         } catch (error: any) {
             return this.handleError(c, error);

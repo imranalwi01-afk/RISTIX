@@ -20,6 +20,7 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: ifrs9-postgres-dev
+    restart: ${IFRS9_RESTART_POLICY:-no}
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
@@ -37,11 +38,191 @@ services:
       retries: 5
     profiles:
       - db
+      - bootstrap
       - full
       - dev
       - app
       - backend
       - backend-only
+      - backend-legacy-vpn
+
+  # ============================================================================
+  # 🧰 POSTGRES INIT (Create required databases)
+  # ============================================================================
+  db-init:
+    image: postgres:16-alpine
+    container_name: ifrs9-db-init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${DB_PASSWORD:-postgres}
+    command: >
+      sh -c "
+        createdb -h postgres -p 5432 -U ${DB_USER:-postgres} ifrspro_tenant_iaf 2>/dev/null || true;
+        createdb -h postgres -p 5432 -U ${DB_USER:-postgres} FRS9PRO 2>/dev/null || true;
+        createdb -h postgres -p 5432 -U ${DB_USER:-postgres} ifrspro_shared_services 2>/dev/null || true;
+      "
+    networks:
+      - ifrs9-dev
+    profiles:
+      - bootstrap
+      - full
+      - dev
+      - app
+      - backend
+      - backend-only
+      - backend-legacy-vpn
+
+  # ============================================================================
+  # 🧩 PLATFORM INIT (Create platform_admin schema + minimal tables)
+  # ============================================================================
+  platform-init:
+    image: postgres:16-alpine
+    container_name: ifrs9-platform-init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${DB_PASSWORD:-postgres}
+    command: >
+      sh -c "
+        psql -h postgres -p 5432 -U ${DB_USER:-postgres} -d ${PLATFORM_DB_NAME:-ifrspro_platform_admin} -v ON_ERROR_STOP=1 -c \"
+          CREATE EXTENSION IF NOT EXISTS pgcrypto;
+          CREATE SCHEMA IF NOT EXISTS platform_admin;
+
+          CREATE TABLE IF NOT EXISTS platform_admin.tenants (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            code varchar(50) NOT NULL,
+            name varchar(255) NOT NULL,
+            slug varchar(100),
+            description text,
+            type varchar(50) DEFAULT 'banking',
+            banking_mode varchar(20) DEFAULT 'conventional',
+            settings text DEFAULT '{}'::text,
+            is_active boolean NOT NULL DEFAULT true,
+            created_at timestamptz NOT NULL DEFAULT now(),
+            updated_at timestamptz NOT NULL DEFAULT now()
+          );
+
+          CREATE UNIQUE INDEX IF NOT EXISTS platform_tenants_code_idx ON platform_admin.tenants (code);
+          CREATE INDEX IF NOT EXISTS platform_tenants_slug_idx ON platform_admin.tenants (slug);
+          CREATE INDEX IF NOT EXISTS platform_tenants_active_idx ON platform_admin.tenants (is_active);
+
+          CREATE TABLE IF NOT EXISTS platform_admin.settings (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            key varchar(100) NOT NULL UNIQUE,
+            value jsonb NOT NULL DEFAULT '{}'::jsonb,
+            description text,
+            updated_at timestamptz NOT NULL DEFAULT now()
+          );
+
+          CREATE UNIQUE INDEX IF NOT EXISTS platform_settings_key_idx ON platform_admin.settings (key);
+
+          CREATE TABLE IF NOT EXISTS platform_admin.users (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            username varchar(100) NOT NULL,
+            email varchar(255) NOT NULL,
+            password_hash varchar(255) NOT NULL,
+            full_name varchar(200) NOT NULL,
+            employee_id varchar(50),
+            role varchar(100) NOT NULL,
+            is_active boolean DEFAULT true,
+            last_login_at timestamptz,
+            failed_login_attempts integer DEFAULT 0,
+            created_at timestamptz DEFAULT now(),
+            updated_at timestamptz DEFAULT now(),
+            user_role varchar(100),
+            tenant_id uuid,
+            tenant_name varchar(255)
+          );
+
+          CREATE INDEX IF NOT EXISTS idx_users_role ON platform_admin.users (role);
+          CREATE INDEX IF NOT EXISTS idx_users_last_login ON platform_admin.users (last_login_at);
+          CREATE INDEX IF NOT EXISTS idx_users_is_active ON platform_admin.users (is_active);
+
+          INSERT INTO platform_admin.tenants (id, code, name, slug, description, banking_mode, is_active)
+          VALUES (
+            'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'::uuid,
+            'IAF',
+            'Indonesia Airawata Finance',
+            'iaf',
+            'Implementation Tenant for IAF',
+            'dual',
+            true
+          )
+          ON CONFLICT (id) DO NOTHING;
+        \";
+      "
+    networks:
+      - ifrs9-dev
+    profiles:
+      - bootstrap
+      - full
+      - dev
+      - app
+      - backend
+      - backend-only
+      - backend-legacy-vpn
+
+  # ============================================================================
+  # 🧩 TENANT MIGRATE (Apply Drizzle migrations to tenant DB)
+  # ============================================================================
+  tenant-migrate:
+    build:
+      context: ../../packages/new-backend
+      dockerfile: Dockerfile
+      target: builder
+    container_name: ifrs9-tenant-migrate
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${TENANT_DB_NAME:-ifrspro_tenant_iaf}
+    command: sh -c "bun run db:migrate"
+    networks:
+      - ifrs9-dev
+    profiles:
+      - bootstrap
+      - full
+      - dev
+      - app
+      - backend
+      - backend-only
+      - backend-legacy-vpn
+
+  # ============================================================================
+  # 🧩 TENANT SEED (Create default tenant roles/users for login)
+  # ============================================================================
+  tenant-seed:
+    image: postgres:16-alpine
+    container_name: ifrs9-tenant-seed
+    depends_on:
+      tenant-migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - ../../packages/new-backend/src/db/seeds:/seeds:ro
+    command: >
+      sh -c "
+        psql -h postgres -p 5432 -U ${DB_USER:-postgres} -d ${TENANT_DB_NAME:-ifrspro_tenant_iaf} -v ON_ERROR_STOP=1 -f /seeds/001_seed_roles.sql;
+        psql -h postgres -p 5432 -U ${DB_USER:-postgres} -d ${TENANT_DB_NAME:-ifrspro_tenant_iaf} -v ON_ERROR_STOP=1 -f /seeds/003_seed_users.sql;
+      "
+    networks:
+      - ifrs9-dev
+    profiles:
+      - bootstrap
+      - full
+      - dev
+      - app
+      - backend
+      - backend-only
+      - backend-legacy-vpn
 
   # ============================================================================
   # 📊 REDIS (Development)
@@ -49,6 +230,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: ifrs9-redis-dev
+    restart: ${IFRS9_RESTART_POLICY:-no}
     command: redis-server --appendonly yes
     ports:
       - "6379:6379"
@@ -63,11 +245,14 @@ services:
       retries: 5
     profiles:
       - db
+      - bootstrap
       - full
       - dev
       - app
       - backend
       - backend-only
+      - backend-legacy-vpn
+      - backend-vpn
 
   # ============================================================================
   # 🚀 NEW BACKEND SERVICE (Hono + Drizzle + Bun)
@@ -97,11 +282,17 @@ services:
     networks:
       - ifrs9-dev
     depends_on:
+      db-init:
+        condition: service_completed_successfully
+      platform-init:
+        condition: service_completed_successfully
+      tenant-seed:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    restart: unless-stopped
+    restart: ${IFRS9_RESTART_POLICY:-no}
     volumes:
       - ../../packages/new-backend/src:/app/src:ro
       - ../../packages/new-backend/package.json:/app/package.json
@@ -109,7 +300,7 @@ services:
       - new-backend-node-modules:/app/node_modules
 
     healthcheck:
-      test: [ "CMD", "bun", "-e", "fetch('http://localhost:4232/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" ]
+      test: [ "CMD", "bun", "-e", "fetch('http://localhost:4232/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -122,6 +313,138 @@ services:
       - dev
       - backend
       - backend-only
+
+  new-backend-legacy-vpn:
+    build:
+      context: ../../packages/new-backend
+      dockerfile: Dockerfile
+      target: builder
+    container_name: ifrs9-new-backend-legacy-vpn
+    env_file:
+      - backend.env.example
+    environment:
+      NODE_ENV: development
+      PORT: 4232
+      HOST: 0.0.0.0
+      LOG_LEVEL: debug
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_URL: redis://redis:6379
+      R_SERVICE_URL: http://r-analytics:4241
+
+      LEGACY_DB_HOST: ${LEGACY_DB_HOST:-10.8.0.2}
+      LEGACY_DB_PORT: ${LEGACY_DB_PORT:-5433}
+      LEGACY_DB_USER: ${LEGACY_DB_USER:-postgres}
+      LEGACY_DB_PASSWORD: ${LEGACY_DB_PASSWORD:-postgres}
+      LEGACY_DB_NAME: ${LEGACY_DB_NAME:-FRS9PRO}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "4232:4232"
+    networks:
+      - ifrs9-dev
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      platform-init:
+        condition: service_completed_successfully
+      tenant-seed:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: ${IFRS9_RESTART_POLICY:-no}
+    volumes:
+      - ../../packages/new-backend/src:/app/src:ro
+      - ../../packages/new-backend/package.json:/app/package.json
+      - ../../packages/new-backend/bunfig.toml:/app/bunfig.toml
+      - new-backend-node-modules:/app/node_modules
+    healthcheck:
+      test: [ "CMD", "bun", "-e", "fetch('http://localhost:4232/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    command: sh -c "bun install && bun run src/index.ts"
+    profiles:
+      - backend-legacy-vpn
+
+  # ============================================================================
+  # 🔐 NEW BACKEND (VPN / External DB)
+  # - Use when DB is not the local postgres container, but an external DB over VPN.
+  # - Does not depend on postgres/db-init.
+  # ============================================================================
+  new-backend-vpn:
+    build:
+      context: ../../packages/new-backend
+      dockerfile: Dockerfile
+      target: builder
+    container_name: ifrs9-new-backend-vpn
+    environment:
+      NODE_ENV: development
+      PORT: 4232
+      HOST: 0.0.0.0
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:4231,http://127.0.0.1:4231,https://app.ifrs9pro.id}
+
+      JWT_SECRET: ${JWT_SECRET:-dev-local-jwt-secret-please-change-000000}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev-local-jwt-refresh-secret-please-change-000000}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
+
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      PLATFORM_DB_HOST: ${PLATFORM_DB_HOST:-${DB_HOST}}
+      PLATFORM_DB_PORT: ${PLATFORM_DB_PORT:-${DB_PORT:-5432}}
+      PLATFORM_DB_USER: ${PLATFORM_DB_USER:-${DB_USER}}
+      PLATFORM_DB_PASSWORD: ${PLATFORM_DB_PASSWORD:-${DB_PASSWORD}}
+      PLATFORM_DB_NAME: ${PLATFORM_DB_NAME:-ifrspro_platform_admin}
+      PLATFORM_DB_SSL: ${PLATFORM_DB_SSL:-false}
+
+      TENANT_DB_HOST: ${TENANT_DB_HOST:-${DB_HOST}}
+      TENANT_DB_PORT: ${TENANT_DB_PORT:-${DB_PORT:-5432}}
+      TENANT_DB_USER: ${TENANT_DB_USER:-${DB_USER}}
+      TENANT_DB_PASSWORD: ${TENANT_DB_PASSWORD:-${DB_PASSWORD}}
+      TENANT_DB_NAME: ${TENANT_DB_NAME:-ifrspro_tenant_iaf}
+      TENANT_DB_SSL: ${TENANT_DB_SSL:-false}
+
+      LEGACY_DB_HOST: ${LEGACY_DB_HOST:-${DB_HOST}}
+      LEGACY_DB_PORT: ${LEGACY_DB_PORT:-${DB_PORT:-5432}}
+      LEGACY_DB_USER: ${LEGACY_DB_USER:-${DB_USER}}
+      LEGACY_DB_PASSWORD: ${LEGACY_DB_PASSWORD:-${DB_PASSWORD}}
+      LEGACY_DB_NAME: ${LEGACY_DB_NAME:-FRS9PRO}
+      LEGACY_DB_SSL: ${LEGACY_DB_SSL:-false}
+
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+
+      R_SERVICE_URL: ${R_SERVICE_URL:-http://r-analytics:4241}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "4232:4232"
+    networks:
+      - ifrs9-dev
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: ${IFRS9_RESTART_POLICY:-no}
+    volumes:
+      - ../../packages/new-backend/src:/app/src:ro
+      - ../../packages/new-backend/package.json:/app/package.json
+      - ../../packages/new-backend/bunfig.toml:/app/bunfig.toml
+      - new-backend-node-modules:/app/node_modules
+    healthcheck:
+      test: [ "CMD", "bun", "-e", "fetch('http://localhost:4232/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    command: sh -c "bun install && bun run src/index.ts"
+    profiles:
+      - backend-vpn
 
   # ============================================================================
   # 🌐 FRONTEND SERVICE (Static Build - Optional)
@@ -136,7 +459,9 @@ services:
     environment:
       NODE_ENV: development
       HOSTNAME: "0.0.0.0"
-      BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://new-backend:4232}
+      BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://host.docker.internal:4232}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "4231:4231"
     networks:
@@ -154,11 +479,11 @@ services:
     container_name: ifrs9-frontend-dev-hot
     working_dir: /app
     env_file:
-      - frontend.env
+      - frontend.env.example
     environment:
       - NODE_ENV=development
       - PORT=4231
-      - BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL:-http://new-backend:4232}
+      - BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL:-http://host.docker.internal:4232}
       # Server-side env vars (for Next.js server)
       # Client-side uses .env file which has localhost URLs
       - NEXT_TELEMETRY_DISABLED=1
@@ -172,6 +497,8 @@ services:
       - /app/.next
     ports:
       - "4231:4231"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command: sh -c "npm install -g pnpm && pnpm install --no-frozen-lockfile && pnpm dev"
     networks:
       - ifrs9-dev
@@ -181,6 +508,37 @@ services:
       - full
       - frontend-only
       - frontend
+
+  # ============================================================================
+  # 🌍 PUBLIC LINK (Quick Tunnel)
+  # - Exposes the local frontend to the internet via an ephemeral HTTPS URL.
+  # - Requires no inbound ports / router config.
+  # - Link changes on every restart.
+  # ============================================================================
+  cloudflared-frontend:
+    image: cloudflare/cloudflared:latest
+    container_name: ifrs9-cloudflared-frontend
+    command: tunnel --no-autoupdate --protocol http2 --url http://frontend-dev:4231
+    networks:
+      - ifrs9-dev
+    profiles:
+      - public-link
+
+  # ============================================================================
+  # 🌐 PUBLIC DOMAIN (Named Cloudflare Tunnel)
+  # - Permanent hostname (e.g. https://ifrs9pro.<your-domain>)
+  # - Requires Cloudflare Zero Trust tunnel token (DO NOT COMMIT it).
+  # ============================================================================
+  cloudflared-frontend-named:
+    image: cloudflare/cloudflared:latest
+    container_name: ifrs9-cloudflared-frontend-named
+    environment:
+      CLOUDFLARED_TUNNEL_TOKEN: ${CLOUDFLARED_TUNNEL_TOKEN}
+    command: tunnel --no-autoupdate --protocol http2 run --token ${CLOUDFLARED_TUNNEL_TOKEN}
+    networks:
+      - ifrs9-dev
+    profiles:
+      - public-domain
 
   # ============================================================================
   # 📈 R ANALYTICS (Shiny)

@@ -30,6 +30,7 @@ import {
   FileDownload as DownloadIcon
 } from '@mui/icons-material';
 import { useAuth } from '@/providers/AuthProvider';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { individualImpairmentAPI, type IndividualImpairmentWatchlistItem } from '@/services/api.individual-impairment';
 import {
   ImpairmentCalculationDialog,
@@ -68,6 +69,9 @@ function TabPanel(props: TabPanelProps) {
 
 export default function ImpairmentPage() {
   const { user } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const mode = searchParams.get('mode') || 'conventional';
 
   // Data loading states
   const [loading, setLoading] = useState(true);
@@ -210,10 +214,31 @@ export default function ImpairmentPage() {
     }
   }, [searchTerm, stageFilter, impairedFilter, statusFilter, sortConfig, columnFilters]);
 
-  const handleViewDetails = useCallback((record: IndividualImpairmentWatchlistItem) => {
-    setSelectedRecord(record);
-    setDetailsDialogOpen(true);
-  }, []);
+  const buildAssessmentUrl = (next: { accountId?: number | string; tab?: string; accountNumber?: string }) => {
+    const params = new URLSearchParams();
+    params.set('mode', mode);
+    if (next.accountId !== undefined && next.accountId !== null && String(next.accountId).trim()) {
+      params.set('accountId', String(next.accountId));
+    }
+    if (next.accountNumber && next.accountNumber.trim()) {
+      params.set('accountNumber', next.accountNumber);
+    }
+    if (next.tab) params.set('tab', next.tab);
+    return `/banking/individual/assessment?${params.toString()}`;
+  };
+
+  const handleViewDetails = (record: IndividualImpairmentWatchlistItem) => {
+    const params = new URLSearchParams();
+    params.set('mode', mode);
+    params.set('accountId', String(record.account_id));
+    if (record.account_number) params.set('accountNumber', record.account_number);
+    params.set('tab', 'assessment-details');
+    router.push(`/banking/individual/assessment?${params.toString()}`);
+  };
+
+  const handleEditAssessment = (record: IndividualImpairmentWatchlistItem) => {
+    router.push(buildAssessmentUrl({ accountId: record.account_id, tab: 'assessment-details', accountNumber: record.account_number }));
+  };
 
   const handleRunCalculation = useCallback(() => {
     setCalculationDialogOpen(true);
@@ -447,32 +472,320 @@ export default function ImpairmentPage() {
 
       {/* Tab 1: Impairment Overview */}
       <TabPanel value={selectedTab} index={0}>
-        <ImpairmentOverviewPanel
-          analytics={analytics}
-          data={data}
-          pagination={pagination}
-          searchTerm={searchTerm}
-          stageFilter={stageFilter}
-          impairedFilter={impairedFilter}
-          statusFilter={statusFilter}
-          columnFilters={columnFilters}
-          columnFiltersEnabled={columnFiltersEnabled}
-          sortConfig={sortConfig}
-          onSearchTermChange={setSearchTerm}
-          onStageFilterChange={setStageFilter}
-          onImpairedFilterChange={setImpairedFilter}
-          onStatusFilterChange={setStatusFilter}
-          onColumnFilterChange={(key, value) => setColumnFilters((prev) => ({ ...prev, [key]: value }))}
-          onClearFilters={clearFilters}
-          onSort={handleSort}
-          onViewDetails={handleViewDetails}
-          onPreviousPage={() => loadData(pagination.page - 1)}
-          onNextPage={() => loadData(pagination.page + 1)}
-          formatCurrency={formatCurrency}
-          getStageColor={getStageColor}
-          getImpairedColor={getImpairedColor}
-          getStatusColor={getStatusColor}
-        />
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Impairment Portfolio Overview
+            </Typography>
+
+            {/* Filters */}
+            <Grid container spacing={2} sx={{ mb: 3 }}>
+              <Grid size={{ xs: 12, md: 3 }}>
+                <TextField
+                  fullWidth
+                  label="Search Account/Customer"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 2 }}>
+                <FormControl fullWidth>
+                  <InputLabel>Stage Filter</InputLabel>
+                  <Select
+                    value={stageFilter}
+                    label="Stage Filter"
+                    onChange={(e) => setStageFilter(e.target.value as number | 'all')}
+                  >
+                    <MenuItem value="all">All Stages</MenuItem>
+                    <MenuItem value="1">Stage 1</MenuItem>
+                    <MenuItem value="2">Stage 2</MenuItem>
+                    <MenuItem value="3">Stage 3</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid size={{ xs: 12, md: 2 }}>
+                <FormControl fullWidth>
+                  <InputLabel>Impaired Flag</InputLabel>
+                  <Select
+                    value={impairedFilter}
+                    label="Impaired Flag"
+                    onChange={(e) => setImpairedFilter(e.target.value as 'all' | 'I' | 'N')}
+                  >
+                    <MenuItem value="all">All</MenuItem>
+                    <MenuItem value="I">Impaired</MenuItem>
+                    <MenuItem value="N">Not Impaired</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid size={{ xs: 12, md: 2 }}>
+                <FormControl fullWidth>
+                  <InputLabel>Assessment Status</InputLabel>
+                  <Select
+                    value={statusFilter}
+                    label="Assessment Status"
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
+                    <MenuItem value="all">All Status</MenuItem>
+                    <MenuItem value="PENDING">Pending</MenuItem>
+                    <MenuItem value="IN_PROGRESS">In Progress</MenuItem>
+                    <MenuItem value="COMPLETED">Completed</MenuItem>
+                    <MenuItem value="REVIEWED">Reviewed</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid size={{ xs: 12, md: 3 }}>
+                <Button
+                  variant="outlined"
+                  onClick={clearFilters}
+                  startIcon={<ClearIcon />}
+                  sx={{ height: '56px' }}
+                >
+                  Clear Filters
+                </Button>
+              </Grid>
+            </Grid>
+
+            {/* Column-wise Filters (matching legacy DataTables) */}
+            {columnFiltersEnabled && (
+              <Grid container spacing={2} sx={{ mb: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                <Typography variant="subtitle2" sx={{ width: '100%', mb: 1 }}>
+                  Column-wise Filters
+                </Typography>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Account Number"
+                    value={columnFilters.account_number}
+                    onChange={(e) => setColumnFilters(prev => ({ ...prev, account_number: e.target.value }))}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Customer Name"
+                    value={columnFilters.cif_name}
+                    onChange={(e) => setColumnFilters(prev => ({ ...prev, cif_name: e.target.value }))}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Rating Code"
+                    value={columnFilters.rating_code}
+                    onChange={(e) => setColumnFilters(prev => ({ ...prev, rating_code: e.target.value }))}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Currency"
+                    value={columnFilters.currency}
+                    onChange={(e) => setColumnFilters(prev => ({ ...prev, currency: e.target.value }))}
+                  />
+                </Grid>
+              </Grid>
+            )}
+
+            {/* Summary Cards */}
+            {analytics && (
+              <Grid container spacing={3} sx={{ mb: 3 }}>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h4" color="primary">
+                        {analytics.totalAccounts}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        Total Accounts
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h4" color="success.main">
+                        {analytics.stageDistribution[1] || 0}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        Stage 1 Accounts
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h4" color="warning.main">
+                        {analytics.stageDistribution[2] || 0}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        Stage 2 Accounts
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h4" color="error.main">
+                        {analytics.stageDistribution[3] || 0}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        Stage 3 Accounts
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+            )}
+
+            {/* Data Table */}
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>
+                      <TableSortLabel
+                        active={sortConfig.field === 'account_number'}
+                        direction={sortConfig.order}
+                        onClick={() => handleSort('account_number')}
+                      >
+                        Account Number
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={sortConfig.field === 'cif_name'}
+                        direction={sortConfig.order}
+                        onClick={() => handleSort('cif_name')}
+                      >
+                        Customer Name
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>CIF Number</TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={sortConfig.field === 'outstanding_balance'}
+                        direction={sortConfig.order}
+                        onClick={() => handleSort('outstanding_balance')}
+                      >
+                        Outstanding Balance
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={sortConfig.field === 'stage'}
+                        direction={sortConfig.order}
+                        onClick={() => handleSort('stage')}
+                      >
+                        Stage
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={sortConfig.field === 'ecl_amount'}
+                        direction={sortConfig.order}
+                        onClick={() => handleSort('ecl_amount')}
+                      >
+                        ECL Amount
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>Impaired Flag</TableCell>
+                    <TableCell>Rating</TableCell>
+                    <TableCell>Assessment Status</TableCell>
+                    <TableCell>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {data.map((row, index) => (
+                    <TableRow key={`${row.pkid}-${index}`}>
+                      <TableCell>{row.account_number}</TableCell>
+                      <TableCell>{row.cif_name}</TableCell>
+                      <TableCell>{row.cif_number}</TableCell>
+                      <TableCell>{formatCurrency(row.outstanding_balance, row.currency)}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={`Stage ${row.stage}`}
+                          color={getStageColor(row.stage) as any}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>{formatCurrency(row.ecl_amount, row.currency)}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={row.impaired_flag === 'I' ? 'Impaired' : 'Not Impaired'}
+                          color={getImpairedColor(row.impaired_flag) as any}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>{row.rating_code}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={row.assessment_status}
+                          color={getStatusColor(row.assessment_status) as any}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Tooltip title="View Details">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleViewDetails(row)}
+                          >
+                            <VisibilityIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Edit Assessment">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleEditAssessment(row)}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+
+            {/* Pagination */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+              <Typography variant="body2" color="textSecondary">
+                Showing {data.length} of {pagination.total} records
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant="outlined"
+                  disabled={pagination.page <= 1}
+                  onClick={() => loadData(pagination.page - 1)}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outlined"
+                  disabled={pagination.page >= pagination.totalPages}
+                  onClick={() => loadData(pagination.page + 1)}
+                >
+                  Next
+                </Button>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
       </TabPanel>
 
       {/* Tab 2: Stage Analysis */}

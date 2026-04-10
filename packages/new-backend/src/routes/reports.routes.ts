@@ -35,9 +35,18 @@ const PDReportQuerySchema = PaginationSchema.extend({
 
 const NominativeReportQuerySchema = PaginationSchema.extend({
     prc_date: z.string().optional(),
+    download_start_date: z.string().optional(),
+    download_end_date: z.string().optional(),
+    group_segment: z.union([z.string(), z.array(z.string())]).optional(),
     segment: z.union([z.string(), z.array(z.string())]).optional(),
-    stage: z.string().optional(),
+    stage: z.union([z.string(), z.array(z.string())]).optional(),
     branch_code: z.union([z.string(), z.array(z.string())]).optional(),
+})
+
+const NominativeAvailableDatesQuerySchema = z.object({
+    download_start_date: z.string().optional(),
+    download_end_date: z.string().optional(),
+    limit: z.string().optional(),
 })
 
 const GenericListResponse = (schema: z.ZodTypeAny) => z.object({
@@ -61,6 +70,13 @@ const ErrorResponse = z.object({
 // Schemas for report data (Generic for now as they are direct table dumps)
 // In a real scenario, these should be explicitly typed based on table schemas.
 const ReportDataSchema = z.record(z.any()).openapi('ReportData')
+
+const NominativeAvailableDateSchema = z.object({
+    prc_date: z.string(),
+    total_accounts: z.number(),
+    total_outstanding: z.number(),
+    total_ecl: z.number(),
+}).openapi('NominativeAvailableDate')
 
 // ============================================================================
 // HELPERS
@@ -255,6 +271,24 @@ reportsRoutes.openapi(
         }
     }),
     (c: any) => ifrs9ReportsController.getNominativeReport(c)
+)
+
+// GET /nominative-report/available-dates
+reportsRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/nominative-report/available-dates',
+        tags: ['Reports'],
+        summary: 'Get available prc_date snapshots for Nominative Report',
+        request: {
+            query: NominativeAvailableDatesQuerySchema
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: z.array(NominativeAvailableDateSchema) }) } }, description: 'Available dates' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c: any) => ifrs9ReportsController.getNominativeAvailableDates(c)
 )
 
 // POST /export

@@ -51,6 +51,7 @@ const envSchema = z.object({
     LEGACY_DB_PASSWORD: z.string().optional(),
     LEGACY_DB_NAME: z.string().default('FRS9PRO'),
     LEGACY_DB_SSL: z.string().transform(val => val === 'true').default('false'),
+    LEGACY_DB_SEARCH_PATH: z.string().default('public,ifrs9'),
 
     // Backward compatibility - Database URLs
     DATABASE_URL: z.string().url().optional(),
@@ -241,7 +242,15 @@ export function getLegacyDatabaseUrl(): string {
     const database = env.LEGACY_DB_NAME
     const ssl = env.LEGACY_DB_SSL
 
-    return constructDatabaseUrl(host, port, user, password, database, ssl)
+    const baseUrl = constructDatabaseUrl(host, port, user, password, database, ssl)
+    const searchPath = String(env.LEGACY_DB_SEARCH_PATH || '').trim()
+    if (!searchPath) return baseUrl
+
+    const url = new URL(baseUrl)
+    if (!url.searchParams.get('options')) {
+        url.searchParams.set('options', `-c search_path=${searchPath}`)
+    }
+    return url.toString()
 }
 
 /**

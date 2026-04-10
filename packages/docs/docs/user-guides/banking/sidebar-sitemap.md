@@ -29,9 +29,6 @@ This sitemap is derived from the current banking sidebar source in `packages/fro
   - ECL Configuration: `/banking/collective/ecl-config`
 - Individual Impairment
   - Assessment Workspace: `/banking/individual/assessment`
-  - (Old) Assessment Workspace: `/banking/individual/assessment-old`
-  - (Old - Imran) Assessment Workspace: `/banking/individual/assessment-old-imran`
-  - Customer List: `/banking/individual/customer-list`
 - IFRS 9
   - ECL Calculations: `/banking/ifrs9/calculations`
   - IFRS9 Staging: `/banking/ifrs9/staging`
@@ -89,9 +86,6 @@ This sitemap is derived from the current banking sidebar source in `packages/fro
 | EAD Setup Management | `/banking/collective/ead-setup` | Yes |
 | ECL Configuration | `/banking/collective/ecl-config` | Yes |
 | Assessment Workspace | `/banking/individual/assessment` | Yes |
-| (Old) Assessment Workspace | `/banking/individual/assessment-old` | Yes |
-| (Old - Imran) Assessment Workspace | `/banking/individual/assessment-old-imran` | Yes |
-| Customer List | `/banking/individual/customer-list` | Yes |
 | ECL Calculations | `/banking/ifrs9/calculations` | Yes |
 | IFRS9 Staging | `/banking/ifrs9/staging` | Yes |
 | Model Management | `/banking/ifrs9/models` | Yes |

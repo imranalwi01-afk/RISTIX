@@ -38,11 +38,21 @@ platformSettingsRoutes.get('/public', async (c) => {
             data: brandingSetting.value,
         })
     } catch (error) {
+        const errorCode = (error as any)?.code
+        const errorMessage = String((error as any)?.message || '')
+
+        if (errorCode === '42P01' || errorMessage.includes('does not exist')) {
+            return c.json({
+                success: true,
+                data: {
+                    logoUrl: null,
+                    platformName: null,
+                },
+            })
+        }
+
         console.error('Failed to fetch public platform settings:', error)
-        return c.json(
-            { success: false, error: 'Failed to fetch public settings' },
-            500
-        )
+        return c.json({ success: false, error: 'Failed to fetch public settings' }, 500)
     }
 })
 

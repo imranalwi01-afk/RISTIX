@@ -43,6 +43,7 @@ out/
 # Ops runtime env files (keep local, never commit secrets)
 ops/local/backend.env
 ops/local/frontend.env
+ops/local/cloudflared.env
 ops/**/backend.env
 ops/**/frontend.env
 

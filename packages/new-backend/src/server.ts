@@ -8,7 +8,7 @@ import { Server as Engine } from '@socket.io/bun-engine'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { app } from './app'
 import { env, db, closeDatabase } from './config'
-import { ensureApprovalLevelRequirementsCompatibility } from './config/database'
+import { ensureApprovalLevelRequirementsCompatibility, ensureJobsTablesCompatibility } from './config/database'
 import { logger } from './lib/logger'
 import { initializeNotificationSocket } from './socket/notification.socket'
 import { setupQueues, closeQueues } from './queue/bull-setup'
@@ -65,6 +65,33 @@ function registerProcessErrorHooks() {
  * Start the server with all integrations
  */
 export async function startServer() {
+    const retry = async <T>(
+        label: string,
+        fn: () => Promise<T>,
+        options?: { retries?: number; baseDelayMs?: number; maxDelayMs?: number }
+    ): Promise<T> => {
+        const retries = options?.retries ?? 20
+        const baseDelayMs = options?.baseDelayMs ?? 500
+        const maxDelayMs = options?.maxDelayMs ?? 5000
+
+        let lastError: unknown
+        for (let attempt = 1; attempt <= retries; attempt++) {
+            try {
+                if (attempt > 1) {
+                    logger.warn({ attempt, retries }, `${label} retrying...`)
+                }
+                return await fn()
+            } catch (err) {
+                lastError = err
+                const delayMs = Math.min(maxDelayMs, baseDelayMs * attempt)
+                logger.warn({ attempt, retries, delayMs, err }, `${label} failed`)
+                await new Promise((resolve) => setTimeout(resolve, delayMs))
+            }
+        }
+
+        logger.error({ err: lastError }, `${label} exhausted retries`)
+        throw lastError instanceof Error ? lastError : new Error(`${label} failed`)
+    }
     logger.info('Starting IFRS9 Backend Server...')
     registerProcessErrorHooks()
 
@@ -74,6 +101,8 @@ export async function startServer() {
     logger.info('Database connection ready')
     await ensureApprovalLevelRequirementsCompatibility()
     logger.info('Approval schema compatibility check passed')
+    await ensureJobsTablesCompatibility()
+    logger.info('Jobs schema compatibility check passed')
     // db is imported from config/database.ts
 
     // ============================================================================
@@ -130,15 +159,35 @@ export async function startServer() {
     // ============================================================================
     logger.info('Connecting to Redis...')
     const { redis: sessionRedis } = await import('./config/redis')
-    await sessionRedis.connect()
+    let redisConnected = false
+    try {
+        await retry('Redis connect', () => sessionRedis.connect(), { retries: 30, baseDelayMs: 500, maxDelayMs: 5000 })
+        redisConnected = true
+    } catch (err) {
+        logger.error({ err }, 'Redis unavailable - continuing without Redis-backed features (sessions, queues)')
+    }
     
     // ============================================================================
     // 5. SETUP BULL QUEUES & WORKERS
     // ============================================================================
-    logger.info('Setting up Bull queues...')
-    await setupQueues()
-    const { approvalWorker, eclWorker } = await setupAllWorkers(db)
-    logger.info('Bull queues and workers ready')
+    if (redisConnected) {
+        logger.info('Setting up Bull queues...')
+        try {
+            await retry('Bull queues setup', () => setupQueues(), { retries: 10, baseDelayMs: 500, maxDelayMs: 5000 })
+            await retry(
+                'Bull workers setup',
+                async () => {
+                    await setupAllWorkers(db)
+                },
+                { retries: 10, baseDelayMs: 500, maxDelayMs: 5000 }
+            )
+            logger.info('Bull queues and workers ready')
+        } catch (err) {
+            logger.error({ err }, 'Bull queues/workers failed to initialize - continuing without background jobs')
+        }
+    } else {
+        logger.warn('Skipping Bull queues/workers because Redis is not connected')
+    }
 
     // ============================================================================
     // 6. INITIALIZE WORKFLOW REPOSITORIES
@@ -159,7 +208,7 @@ export async function startServer() {
         socket: `ws://localhost:${port}/socket.io`,
         reference: `http://localhost:${port}/reference`,
         openapi: `http://localhost:${port}/doc`,
-        health: `http://localhost:${port}/health`,
+        health: `http://localhost:${port}/api/v1/health`,
         runtime: `Bun ${Bun.version}`,
         environment: env.NODE_ENV,
         tenantMode: 'Multi-tenant',

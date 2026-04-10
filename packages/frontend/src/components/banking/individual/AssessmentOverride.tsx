@@ -24,7 +24,8 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Grid
+  Grid,
+  Stack
 } from '@mui/material';
 import {
   GridColDef,
@@ -38,7 +39,10 @@ import {
   List as ListIcon,
   Warning as WarningIcon,
   CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon
+  Cancel as CancelIcon,
+  UploadFile as UploadIcon,
+  Download as DownloadIcon,
+  Clear as ClearIcon
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { individualImpairmentAPI } from '../../../services/api/individual-impairment.api';
@@ -52,6 +56,8 @@ export const AssessmentOverride = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const accountId = searchParams.get('accountId');
+  const accountNumber = searchParams.get('accountNumber');
+  const mode = searchParams.get('mode') || 'conventional';
 
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any[]>([]);
@@ -63,10 +69,13 @@ export const AssessmentOverride = () => {
   const [formData, setFormData] = useState({
     customerName: '',
     accountNumber: '',
-    originalStage: 'Stage 1',
-    overrideStage: 'Stage 2',
-    justification: ''
+    currentStage: 1,
+    overrideStage: 2,
+    justification: '',
+    supportingDocumentName: '',
+    supportingDocumentContent: ''
   });
+  const [existingDocumentName, setExistingDocumentName] = useState<string>('');
 
   const loadData = async () => {
     setLoading(true);
@@ -88,17 +97,31 @@ export const AssessmentOverride = () => {
       const response = await individualImpairmentAPI.getAssessment(accId);
       if (response.success && response.data) {
         const assessment = response.data;
+        const currentStage = Number(assessment.stage ?? assessment.current_stage ?? assessment.previous_stage ?? 1)
+        const existingDoc = Array.isArray(assessment.supporting_documents) ? assessment.supporting_documents[0] : (assessment.supportingDocument || assessment.triggerFilename || '')
         setFormData({
           customerName: assessment.cif_name || assessment.cifName || '',
           accountNumber: assessment.account_number || assessment.accountNumber || '',
-          originalStage: `Stage ${assessment.previous_stage || 1}`,
-          overrideStage: `Stage ${assessment.stage || 2}`,
-          justification: assessment.impairment_reason || assessment.triggerRemarks || ''
+          currentStage: Number.isFinite(currentStage) ? currentStage : 1,
+          overrideStage: Number.isFinite(currentStage) ? currentStage : 2,
+          justification: assessment.impairment_reason || assessment.triggerRemarks || '',
+          supportingDocumentName: '',
+          supportingDocumentContent: ''
         });
+        setExistingDocumentName(String(existingDoc || ''))
         setOpenDialog(true);
+        setError(null);
+        setSuccess(null);
+        return;
       }
+      setError(response?.message || 'Failed to load assessment data');
     } catch (err: any) {
-      setError(err.message || 'Failed to load assessment data');
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        (typeof err === 'string' ? err : null) ||
+        'Failed to load assessment data';
+      setError(String(message));
     } finally {
       setLoading(false);
     }
@@ -113,27 +136,77 @@ export const AssessmentOverride = () => {
   }, [accountId]);
 
   const handleCreate = async () => {
-    if (!formData.customerName || !formData.accountNumber || !formData.justification) return;
+    const hasExistingDoc = Boolean(existingDocumentName)
+    const hasNewDoc = Boolean(formData.supportingDocumentName && formData.supportingDocumentContent)
+    if (!formData.customerName || !formData.accountNumber || !formData.justification || (!hasExistingDoc && !hasNewDoc)) return;
 
     try {
       setLoading(true);
-      await individualImpairmentAPI.createOverride(formData);
+      await individualImpairmentAPI.createOverride({
+        customerName: formData.customerName,
+        accountNumber: formData.accountNumber,
+        overrideStage: String(formData.overrideStage),
+        justification: formData.justification,
+        supportingDocumentName: formData.supportingDocumentName || undefined,
+        supportingDocumentContent: formData.supportingDocumentContent || undefined,
+      });
       setSuccess('Override request submitted successfully');
       setOpenDialog(false);
       setFormData({
         customerName: '',
         accountNumber: '',
-        originalStage: 'Stage 1',
-        overrideStage: 'Stage 2',
-        justification: ''
+        currentStage: 1,
+        overrideStage: 2,
+        justification: '',
+        supportingDocumentName: '',
+        supportingDocumentContent: ''
       });
+      setExistingDocumentName('')
       loadData();
     } catch (err: any) {
-      setError(err.message || 'Failed to submit override');
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        (typeof err === 'string' ? err : null) ||
+        'Failed to submit override';
+      setError(String(message));
     } finally {
       setLoading(false);
     }
   };
+
+  const handleFileSelect = (file: File | null) => {
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Supporting document too large (max 5MB)')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = reader.result as string
+      // dataUrl is "data:<mime>;base64,<base64>" – extract only the base64 part
+      const commaIndex = dataUrl.indexOf(',')
+      if (commaIndex === -1 || !dataUrl.startsWith('data:')) {
+        setError('Failed to read file. Please try again.')
+        return
+      }
+      const base64 = dataUrl.slice(commaIndex + 1)
+      setFormData((prev) => ({
+        ...prev,
+        supportingDocumentName: file.name,
+        supportingDocumentContent: base64
+      }))
+    }
+    reader.onerror = () => {
+      setError('Failed to read file. Please try again.')
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleDownloadExisting = () => {
+    if (!existingDocumentName) return
+    window.open(`/api/v1/banking/individual/impairment/overrides/documents/${encodeURIComponent(existingDocumentName)}`, '_blank', 'noopener,noreferrer')
+  }
 
   const columns: GridColDef[] = [
     { field: 'customerName', headerName: 'Customer Name', flex: 1, minWidth: 200 },
@@ -213,13 +286,22 @@ export const AssessmentOverride = () => {
         <Typography variant={embedded ? 'h6' : 'h4'} component="h1">
           Impairment Override Trigger
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setOpenDialog(true)}
-        >
-          New Override Request
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+          {embedded ? (
+            <Chip
+              label={accountNumber ? `Account ${accountNumber}` : (accountId ? `Account ID ${accountId}` : `Mode: ${mode}`)}
+              size="small"
+              variant="outlined"
+            />
+          ) : null}
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setOpenDialog(true)}
+          >
+            New Override Request
+          </Button>
+        </Box>
       </Box>
 
       {/* 📊 Summary Cards */}
@@ -286,6 +368,7 @@ export const AssessmentOverride = () => {
               margin="normal"
               value={formData.customerName}
               onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+              disabled={Boolean(accountId)}
             />
             <TextField
               fullWidth
@@ -293,32 +376,26 @@ export const AssessmentOverride = () => {
               margin="normal"
               value={formData.accountNumber}
               onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
+              disabled={Boolean(accountId)}
             />
 
             <Box display="flex" gap={2} mt={2}>
-              <FormControl fullWidth>
-                <InputLabel>Original Stage</InputLabel>
-                <Select
-                  value={formData.originalStage}
-                  label="Original Stage"
-                  onChange={(e) => setFormData({ ...formData, originalStage: e.target.value })}
-                >
-                  <MenuItem value="Stage 1">Stage 1</MenuItem>
-                  <MenuItem value="Stage 2">Stage 2</MenuItem>
-                  <MenuItem value="Stage 3">Stage 3</MenuItem>
-                </Select>
-              </FormControl>
-
+              <TextField
+                fullWidth
+                label="Current Stage"
+                value={`Stage ${formData.currentStage}`}
+                disabled
+              />
               <FormControl fullWidth>
                 <InputLabel>Override Stage</InputLabel>
                 <Select
                   value={formData.overrideStage}
                   label="Override Stage"
-                  onChange={(e) => setFormData({ ...formData, overrideStage: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, overrideStage: Number(e.target.value) })}
                 >
-                  <MenuItem value="Stage 1">Stage 1</MenuItem>
-                  <MenuItem value="Stage 2">Stage 2</MenuItem>
-                  <MenuItem value="Stage 3">Stage 3</MenuItem>
+                  <MenuItem value={1}>Stage 1</MenuItem>
+                  <MenuItem value={2}>Stage 2</MenuItem>
+                  <MenuItem value={3}>Stage 3</MenuItem>
                 </Select>
               </FormControl>
             </Box>
@@ -333,11 +410,62 @@ export const AssessmentOverride = () => {
               onChange={(e) => setFormData({ ...formData, justification: e.target.value })}
               helperText="Please provide a detailed reason for this override request."
             />
+
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Supporting Document
+              </Typography>
+              <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', alignItems: 'center' }}>
+                <Button variant="outlined" component="label" startIcon={<UploadIcon />}>
+                  Upload File
+                  <input
+                    type="file"
+                    hidden
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null
+                      void handleFileSelect(file)
+                    }}
+                  />
+                </Button>
+                {existingDocumentName ? (
+                  <Button
+                    variant="outlined"
+                    startIcon={<DownloadIcon />}
+                    onClick={handleDownloadExisting}
+                  >
+                    Download Existing
+                  </Button>
+                ) : null}
+                {formData.supportingDocumentName ? (
+                  <Chip
+                    label={formData.supportingDocumentName}
+                    onDelete={() => setFormData((prev) => ({ ...prev, supportingDocumentName: '', supportingDocumentContent: '' }))}
+                    deleteIcon={<ClearIcon />}
+                    variant="outlined"
+                  />
+                ) : null}
+              </Stack>
+              {!(existingDocumentName || (formData.supportingDocumentName && formData.supportingDocumentContent)) ? (
+                <Typography variant="caption" color="error" sx={{ display: 'block', mt: 0.75 }}>
+                  File wajib diupload sebagai pendukung justification.
+                </Typography>
+              ) : null}
+            </Box>
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-          <Button onClick={handleCreate} variant="contained" disabled={loading}>
+          <Button
+            onClick={handleCreate}
+            variant="contained"
+            disabled={
+              loading
+              || !formData.customerName
+              || !formData.accountNumber
+              || !formData.justification
+              || (!(existingDocumentName || (formData.supportingDocumentName && formData.supportingDocumentContent)))
+            }
+          >
             Submit Request
           </Button>
         </DialogActions>
