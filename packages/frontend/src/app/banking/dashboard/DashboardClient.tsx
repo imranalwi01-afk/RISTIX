@@ -415,7 +415,7 @@ export default function DashboardClient() {
                 setAvailableDates(flattened)
             } else {
                 setAvailableDateGroups(null)
-                setAvailableDates(datesData || []);
+                setAvailableDates(isStringArray(datesData) ? datesData : []);
             }
             // Only set default if we aren't already in 'all' mode or have a specific date
             if (selectedDate === '') {
