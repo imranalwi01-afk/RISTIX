@@ -14,10 +14,27 @@ import {
   CircularProgress,
   Menu,
   MenuList,
-  MenuItem as MenuItemComponent,
+  MenuItem,
   ListItemIcon,
   ListItemText,
-  Divider
+  Divider,
+  Grid,
+  TextField,
+  InputAdornment,
+  FormControl,
+  InputLabel,
+  Select,
+  TableContainer,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  TableSortLabel,
+  IconButton,
+  Tooltip,
+  Paper,
+  Chip
 } from '@mui/material';
 import {
   Calculate as CalculateIcon,
@@ -27,7 +44,11 @@ import {
   Warning as WarningIcon,
   FilterList as FilterListIcon,
   GetApp as ExportIcon,
-  FileDownload as DownloadIcon
+  FileDownload as DownloadIcon,
+  Search as SearchIcon,
+  Clear as ClearIcon,
+  Visibility as VisibilityIcon,
+  Edit as EditIcon
 } from '@mui/icons-material';
 import { useAuth } from '@/providers/AuthProvider';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -433,18 +454,18 @@ export default function ImpairmentPage() {
         onClose={() => setExportMenuAnchor(null)}
       >
         <MenuList>
-          <MenuItemComponent onClick={() => handleExport('xlsx')} disabled={exportLoading}>
+          <MenuItem onClick={() => handleExport('xlsx')} disabled={exportLoading}>
             <ListItemIcon>
               <DownloadIcon />
             </ListItemIcon>
             <ListItemText>Export as Excel (.xlsx)</ListItemText>
-          </MenuItemComponent>
-          <MenuItemComponent onClick={() => handleExport('csv')} disabled={exportLoading}>
+          </MenuItem>
+          <MenuItem onClick={() => handleExport('csv')} disabled={exportLoading}>
             <ListItemIcon>
               <DownloadIcon />
             </ListItemIcon>
             <ListItemText>Export as CSV (.csv)</ListItemText>
-          </MenuItemComponent>
+          </MenuItem>
         </MenuList>
       </Menu>
 

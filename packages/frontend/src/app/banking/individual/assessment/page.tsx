@@ -45,6 +45,14 @@ interface SectionDef {
   render: () => React.ReactNode;
 }
 
+interface KPISummary {
+  totalAccounts: number;
+  impairedAccounts: number;
+  pendingAssessments: number;
+  totalProvisions: number;
+  dataDate?: string;
+}
+
 export default function IndividualAssessmentWizardPage() {
   const [activeTab, setActiveTab] = useState(0);
   const searchParams = useSearchParams();
@@ -116,7 +124,7 @@ export default function IndividualAssessmentWizardPage() {
   // Dashboard State
   const [loading, setLoading] = useState(false);
   const [watchlist, setWatchlist] = useState<IndividualImpairmentWatchlistItem[]>([]);
-  const [summary, setSummary] = useState<Record<string, unknown> | null>(null);
+  const [summary, setSummary] = useState<KPISummary | undefined>(undefined);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [pagination, setPagination] = useState({
     page: 0,
@@ -199,7 +207,7 @@ export default function IndividualAssessmentWizardPage() {
       }
 
       if (summaryRes.success) {
-        setSummary((summaryRes.data ?? null) as Record<string, unknown> | null);
+        setSummary(summaryRes.data as KPISummary);
       }
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);

@@ -36,7 +36,8 @@ import {
   CheckCircle as CheckCircleIcon,
   AccessTime as AccessTimeIcon,
   ExpandMore as ExpandMoreIcon,
-  Tune as TuneIcon
+  Tune as TuneIcon,
+  Search as SearchIcon
 } from '@mui/icons-material';
 
 import { Grid } from '@mui/material';
@@ -779,7 +780,7 @@ const LifetimePDReport: React.FC = () => {
           <CardContent sx={{ p: 3 }}>
             <LocalizationProvider dateAdapter={AdapterDateFns}>
               <Grid container spacing={2.5}>
-                <Grid item xs={12} sm={6} md={3 as any}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <DatePicker
                     label="Processing Date"
                     value={draftFilters.procDate}
@@ -797,7 +798,7 @@ const LifetimePDReport: React.FC = () => {
                   />
                 </Grid>
 
-                <Grid item xs={12} sm={6} md={3 as any}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <FormControl fullWidth size="small">
                     <InputLabel>PD Config</InputLabel>
                     <Select
@@ -819,7 +820,7 @@ const LifetimePDReport: React.FC = () => {
                   </FormControl>
                 </Grid>
 
-                <Grid item xs={12} sm={6} md={3 as any}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <FormControl fullWidth size="small">
                     <InputLabel>PD Method</InputLabel>
                     <Select
@@ -835,7 +836,7 @@ const LifetimePDReport: React.FC = () => {
                   </FormControl>
                 </Grid>
 
-                <Grid item xs={12} sm={6} md={3 as any}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <FormControlLabel
                     control={
                       <Switch
@@ -848,7 +849,7 @@ const LifetimePDReport: React.FC = () => {
                   />
                 </Grid>
 
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Accordion
                     variant="outlined"
                     sx={{
@@ -873,7 +874,7 @@ const LifetimePDReport: React.FC = () => {
                     </AccordionSummary>
                     <AccordionDetails sx={{ px: 2, pb: 3, pt: 1 }}>
                       <Grid container spacing={2.5}>
-                        <Grid item xs={12} sm={6} md={4 as any}>
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                           <Autocomplete
                             multiple
                             size="small"
@@ -895,7 +896,7 @@ const LifetimePDReport: React.FC = () => {
                           />
                         </Grid>
 
-                        <Grid item xs={12} sm={6} md={4 as any}>
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                           <FormControl fullWidth size="small" disabled={!draftFilters.isForwardLooking}>
                             <InputLabel>Scalar</InputLabel>
                             <Select
@@ -914,7 +915,7 @@ const LifetimePDReport: React.FC = () => {
                           </FormControl>
                         </Grid>
 
-                        <Grid item xs={12} sm={6} md={4 as any}>
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                           <FormControlLabel
                             control={
                               <Switch
@@ -928,7 +929,7 @@ const LifetimePDReport: React.FC = () => {
 
                         {draftFilters.isCompareMode ? (
                           <>
-                            <Grid item xs={12} sm={6} md={4 as any}>
+                            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                               <FormControl fullWidth size="small">
                                 <InputLabel>PD Config (B)</InputLabel>
                                 <Select
@@ -946,7 +947,7 @@ const LifetimePDReport: React.FC = () => {
                               </FormControl>
                             </Grid>
 
-                            <Grid item xs={12} sm={6} md={4 as any}>
+                            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                               <FormControl fullWidth size="small">
                                 <InputLabel>PD Method (B)</InputLabel>
                                 <Select
@@ -962,7 +963,7 @@ const LifetimePDReport: React.FC = () => {
                               </FormControl>
                             </Grid>
 
-                            <Grid item xs={12} sm={6} md={4 as any}>
+                            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                               <FormControl fullWidth size="small" disabled={!draftFilters.isForwardLooking}>
                                 <InputLabel>Scalar (B)</InputLabel>
                                 <Select
@@ -998,7 +999,7 @@ const LifetimePDReport: React.FC = () => {
           sx={{ mb: 3, borderRadius: 3 }}
           action={
             <Stack direction="row" spacing={1}>
-              <Button size="small" color="inherit" onClick={() => setConfigOpen(true)}>
+              <Button size="small" color="inherit" onClick={() => setShowFilters(true)}>
                 Open Filters
               </Button>
               <Button size="small" color="inherit" onClick={() => fetchData(currentFilters)} disabled={loading}>
