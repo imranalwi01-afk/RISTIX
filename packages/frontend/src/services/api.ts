@@ -1439,6 +1439,17 @@ export const bankingAPI = {
       }
     },
 
+    debugConfig: {
+      get: async () => {
+        const response = await apiClient.get('/ifrs9/reports/debug-config');
+        return response.data;
+      },
+      update: async (enabled: boolean) => {
+        const response = await apiClient.put('/ifrs9/reports/debug-config', { enabled });
+        return response.data;
+      }
+    },
+
     // ECL Movement operations
     eclMovement: {
       get: async (params: {

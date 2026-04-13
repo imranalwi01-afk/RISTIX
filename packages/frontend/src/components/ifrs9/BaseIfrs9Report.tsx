@@ -67,6 +67,7 @@ import { useAuth } from '../../providers/AuthProvider';
 import api from '../../services/api';
 import ModernLoader from '../common/ModernLoader'; // ✅ Import ModernLoader
 import { useBankingTheme } from '../../providers/BankingThemeProvider';
+import { usePermission } from '@/hooks/usePermission';
 
 const formatLocalDate = (date: Date) => {
   const yyyy = date.getFullYear();
@@ -186,10 +187,37 @@ export interface ReportResponse {
     requestId: string;
     database: string;
     responseTime: number;
+    debugEnabled?: boolean;
+    debug?: ReportDebugMetadata;
   };
   message?: string;
   effectivePrcDate?: string | null;
   summary?: Record<string, unknown> | null;
+}
+
+export interface ReportDebugMetadata {
+  reportKey: string;
+  reportTitle: string;
+  sourceTables: string[];
+  joins?: string[];
+  filterKeys?: string[];
+  filtersApplied?: Record<string, unknown>;
+  sqlPreview?: string;
+  effectivePrcDate?: string | null;
+  rowCount?: number;
+  queryMode?: string;
+  fallbackUsed?: boolean;
+  emptyReason?: string | null;
+  variant?: string;
+}
+
+interface ReportDebugConfigResponse {
+  success: boolean;
+  data?: {
+    enabled: boolean;
+    source: 'db' | 'default';
+    paramCode: string;
+  };
 }
 
 const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
@@ -211,7 +239,9 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   externalFilters
 }) => {
   const { user } = useAuth();
+  const { hasAnyPermission } = usePermission();
   const { bankingMode } = useBankingTheme();
+  const canManageReportDebug = hasAnyPermission(['admin.system.manage', 'admin.maintenance.access', 'admin.super_admin']);
 
   // Extract tenant from user data - Memoized to prevent infinite loops
   const tenant = React.useMemo(() => {
@@ -246,6 +276,10 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   const [lgdConfigs, setLgdConfigs] = useState<LgdConfigOption[]>([]);
   const [configDrawerOpen, setConfigDrawerOpen] = useState(false);
   const [effectivePrcDate, setEffectivePrcDate] = useState<string | null>(null);
+  const [reportMeta, setReportMeta] = useState<ReportResponse['meta'] | null>(null);
+  const [reportDebugEnabled, setReportDebugEnabled] = useState(false);
+  const [reportDebugLoading, setReportDebugLoading] = useState(false);
+  const [reportDebugSaving, setReportDebugSaving] = useState(false);
 
   // Client-side search filtering
   const filteredData = React.useMemo(() => {
@@ -454,7 +488,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
       }
 
       let response: ReportResponse;
-      const params: Record<string, string | number | boolean | string[] | undefined> = {
+      const params: any = {
         prc_date: formatLocalDate(filters.prc_date),
         pd_config_id: filters.pd_config_id,
         pd_method: filters.pd_method,
@@ -556,6 +590,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
         setData(nextData);
         setEffectivePrcDate(response.effectivePrcDate ?? null);
+        setReportMeta(response.meta ?? null);
         if (nextData.length === 0) {
           setError(response.message || 'No data available for the selected processing date and filters.');
         }
@@ -623,17 +658,49 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         }
       } else {
         setEffectivePrcDate(null);
+        setReportMeta(response.meta ?? null);
         setError('Failed to fetch report data');
       }
     } catch (err: unknown) {
       console.error('Report fetch error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch report data';
+      setReportMeta(null);
       setError(errorMessage);
     } finally {
       setLoading(false);
       fetchRef.current = false;
     }
   }, [reportType, filters, tenant, requiredParams, generateDynamicColumns, onDataLoaded]);
+
+  const loadReportDebugConfig = useCallback(async () => {
+    if (!canManageReportDebug) return;
+
+    setReportDebugLoading(true);
+    try {
+      const response = await api.banking.ifrs9Reports.debugConfig.get() as ReportDebugConfigResponse;
+      setReportDebugEnabled(Boolean(response?.data?.enabled));
+    } catch (err) {
+      console.error('Failed to load IFRS9 report debug config:', err);
+    } finally {
+      setReportDebugLoading(false);
+    }
+  }, [canManageReportDebug]);
+
+  const handleToggleReportDebug = useCallback(async (_event: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
+    if (!canManageReportDebug) return;
+
+    setReportDebugSaving(true);
+    try {
+      const response = await api.banking.ifrs9Reports.debugConfig.update(checked) as ReportDebugConfigResponse;
+      setReportDebugEnabled(Boolean(response?.data?.enabled ?? checked));
+      await fetchData();
+    } catch (err) {
+      console.error('Failed to update IFRS9 report debug config:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update report debug configuration.');
+    } finally {
+      setReportDebugSaving(false);
+    }
+  }, [canManageReportDebug, fetchData]);
 
   const handleRun = useCallback(() => {
     fetchData();
@@ -951,6 +1018,10 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
       }));
     }
   }, [externalFilters]);
+
+  useEffect(() => {
+    loadReportDebugConfig();
+  }, [loadReportDebugConfig]);
 
   // Fetch lookups
   useEffect(() => {
@@ -1690,6 +1761,109 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
               ? '(latest available data on or before the selected processing date).'
               : '(nearest available data after the selected processing date).'}
           </Alert>
+        )}
+
+        {canManageReportDebug && (
+          <Card sx={{ mb: 2, borderRadius: 3, border: `1px solid ${alpha(themeStyles.primary, 0.15)}` }}>
+            <CardContent sx={{ py: 2.5 }}>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                <Box>
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    Admin Debug Options
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Global DB toggle for exposing source tables and query metadata in IFRS 9 report UI.
+                  </Typography>
+                </Box>
+                <FormControlLabel
+                  sx={{ m: 0 }}
+                  control={
+                    <Switch
+                      checked={reportDebugEnabled}
+                      onChange={handleToggleReportDebug}
+                      disabled={reportDebugLoading || reportDebugSaving}
+                      color="primary"
+                    />
+                  }
+                  label={reportDebugSaving ? 'Saving...' : reportDebugEnabled ? 'Debug ON' : 'Debug OFF'}
+                />
+              </Box>
+            </CardContent>
+          </Card>
+        )}
+
+        {reportMeta?.debug && (
+          <Accordion defaultExpanded sx={{ mb: 2, borderRadius: 3, overflow: 'hidden', '&:before': { display: 'none' } }}>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Box>
+                <Typography fontWeight={700}>Report Query Debug</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {String(reportMeta.debug.reportTitle || title)} · {String(reportMeta.debug.rowCount ?? data.length)} rows
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Typography variant="subtitle2" fontWeight={700} gutterBottom>Source Tables</Typography>
+                  <List dense disablePadding>
+                    {(reportMeta.debug.sourceTables || []).map((table) => (
+                      <ListItem key={table} disableGutters sx={{ py: 0.25 }}>
+                        <ListItemText primary={table} />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Typography variant="subtitle2" fontWeight={700} gutterBottom>Applied Filters</Typography>
+                  <List dense disablePadding>
+                    {Object.entries((reportMeta.debug.filtersApplied as Record<string, unknown>) || {}).map(([key, value]) => (
+                      <ListItem key={key} disableGutters sx={{ py: 0.25 }}>
+                        <ListItemText primary={key} secondary={Array.isArray(value) ? value.join(', ') : String(value)} />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Grid>
+                {Array.isArray(reportMeta.debug.joins) && reportMeta.debug.joins.length > 0 && (
+                  <Grid size={{ xs: 12 }}>
+                    <Typography variant="subtitle2" fontWeight={700} gutterBottom>Join Path</Typography>
+                    <List dense disablePadding>
+                      {reportMeta.debug.joins.map((joinPath) => (
+                        <ListItem key={joinPath} disableGutters sx={{ py: 0.25 }}>
+                          <ListItemText primary={joinPath} />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Grid>
+                )}
+                {reportMeta.debug.emptyReason && (
+                  <Grid size={{ xs: 12 }}>
+                    <Alert severity="warning">{String(reportMeta.debug.emptyReason)}</Alert>
+                  </Grid>
+                )}
+                {reportMeta.debug.sqlPreview && (
+                  <Grid size={{ xs: 12 }}>
+                    <Typography variant="subtitle2" fontWeight={700} gutterBottom>Query Preview</Typography>
+                    <Box
+                      component="pre"
+                      sx={{
+                        m: 0,
+                        p: 2,
+                        borderRadius: 2,
+                        bgcolor: alpha(themeStyles.primary, 0.04),
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                        fontSize: '0.8rem',
+                        overflowX: 'auto',
+                      }}
+                    >
+                      {String(reportMeta.debug.sqlPreview)}
+                    </Box>
+                  </Grid>
+                )}
+              </Grid>
+            </AccordionDetails>
+          </Accordion>
         )}
 
         {/* Custom content */}

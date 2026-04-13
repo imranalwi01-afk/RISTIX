@@ -47,6 +47,7 @@ export interface MenuTreeResponse {
     timestamp: string;
     requestId?: string;
     tenantId?: string;
+    source?: string;
   };
 }
 
@@ -58,6 +59,7 @@ export interface MenuItemResponse {
     timestamp: string;
     requestId?: string;
     tenantId?: string;
+    source?: string;
   };
 }
 
@@ -75,6 +77,7 @@ export interface MenuItemsResponse {
     timestamp: string;
     requestId?: string;
     tenantId?: string;
+    source?: string;
   };
 }
 

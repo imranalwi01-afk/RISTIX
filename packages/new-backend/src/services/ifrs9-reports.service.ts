@@ -230,17 +230,8 @@ export class Ifrs9ReportsService {
     }
 
     private async resolveEclResultPrcDate(params?: ECLResultParams): Promise<string | null> {
-        const resultTableDate = await this.resolveLatestPrcDate(
-            'public.frs9_imp_ca_result_h',
-            params?.prc_date,
-        );
-
-        if (resultTableDate) {
-            return resultTableDate;
-        }
-
         return this.resolveLatestPrcDate(
-            'public.frs9_master_account',
+            'public.frs9_imp_ca_result_h',
             params?.prc_date,
         );
     }
@@ -1080,7 +1071,14 @@ export class Ifrs9ReportsService {
                     total: 0,
                     page,
                     totalPages: 0,
-                    effectivePrcDate: null
+                    effectivePrcDate: null,
+                    debug: {
+                        sourceTables: ['public.frs9_imp_ca_result_h', 'public.frs9_master_account'],
+                        queryName: 'ifrs9_reports.ecl_result',
+                        queryMode: 'result-table-only',
+                        fallbackUsed: false,
+                        emptyReason: 'No snapshot found in public.frs9_imp_ca_result_h for the requested processing date or earlier snapshot.',
+                    },
                 };
             }
 
@@ -1095,8 +1093,7 @@ export class Ifrs9ReportsService {
                 resultWhereClause += ` AND r.stage IN (${stageList})`;
             }
 
-            // Prefer IFRS9 result table; use master account only as compatibility fallback.
-            let rawData = await legacyDb.execute(sql.raw(`
+            const rawData = await legacyDb.execute(sql.raw(`
                 SELECT 
                     r.prc_date AS period,
                     COALESCE(MAX(ma.branch_code), '-') AS branch_code,
@@ -1131,57 +1128,7 @@ export class Ifrs9ReportsService {
                 ORDER BY r.segment_id, r.stage
             `));
 
-            let rows = Array.from(rawData as any[]);
-
-            if (rows.length === 0) {
-                let masterWhereClause = `prc_date = '${this.escapeSqlLiteral(effectivePrcDate)}'`;
-                if (segmentId !== undefined && segmentId !== null) {
-                    masterWhereClause += ` AND segment_id = ${segmentId}`;
-                }
-
-                if (stageFilter) {
-                    const stageList = stageFilter.map((s) => `'${String(s)}'`).join(',');
-                    masterWhereClause += ` AND stage IN (${stageList})`;
-                }
-
-                rawData = await legacyDb.execute(sql.raw(`
-                    SELECT 
-                        prc_date AS period,
-                        branch_code,
-                        segment_id,
-                        group_segment,
-                        segment,
-                        sub_segment,
-                        currency,
-                        bucket_id,
-                        stage,
-                        COUNT(*) AS account_count,
-                        SUM(CAST(outstanding AS DECIMAL)) AS outstanding,
-                        SUM(CAST(accrued_interest AS DECIMAL)) AS accrued_interest,
-                        SUM(CAST(ecl_overlay_amt AS DECIMAL)) AS ecl_overlay,
-                        SUM(CAST(ecl_final_amt AS DECIMAL)) AS ecl_final,
-                        SUM(CAST(ecl_ca_onbs_amt AS DECIMAL) + CAST(ecl_ca_offbs_amt AS DECIMAL) + CAST(ecl_ia_onbs_amt AS DECIMAL)) AS ecl_amount,
-                        CASE
-                            WHEN SUM(CAST(outstanding AS DECIMAL)) = 0 THEN 0
-                            ELSE SUM(CAST(ecl_final_amt AS DECIMAL)) / SUM(CAST(outstanding AS DECIMAL))
-                        END AS ecl_coverage
-                    FROM public.frs9_master_account
-                    WHERE ${masterWhereClause}
-                    GROUP BY 
-                        prc_date,
-                        branch_code,
-                        segment_id,
-                        group_segment,
-                        segment,
-                        sub_segment,
-                        currency,
-                        bucket_id,
-                        stage
-                    ORDER BY segment_id, stage
-                `));
-
-                rows = Array.from(rawData as any[]);
-            }
+            const rows = Array.from(rawData as any[]);
 
             console.log(`📊 [ECL Result] Retrieved ${rows.length} aggregated records`);
 
@@ -1196,7 +1143,16 @@ export class Ifrs9ReportsService {
                 total: data.length,
                 page,
                 totalPages: Math.ceil(data.length / limit),
-                effectivePrcDate
+                effectivePrcDate,
+                debug: {
+                    sourceTables: ['public.frs9_imp_ca_result_h', 'public.frs9_master_account'],
+                    queryName: 'ifrs9_reports.ecl_result',
+                    queryMode: 'result-table-only',
+                    fallbackUsed: false,
+                    emptyReason: data.length === 0
+                        ? `No aggregated rows returned from public.frs9_imp_ca_result_h for snapshot ${effectivePrcDate}.`
+                        : null,
+                },
             };
         } catch (error) {
             console.error('❌ Error in getECLResult service:', error);
