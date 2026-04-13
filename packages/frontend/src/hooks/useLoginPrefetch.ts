@@ -16,7 +16,7 @@ import { frontendEnvironmentLoader } from '@/config/environment-loader-frontend'
 // Pages to prefetch during login
 const PREFETCH_ROUTES = [
   '/banking/dashboard',
-  '/banking/collective/bucket-parameter',
+  '/banking/collective/bucket',
   '/banking/parameters/journal',
   '/banking/collective/segmentation',
   '/banking/collective/pd-setup',

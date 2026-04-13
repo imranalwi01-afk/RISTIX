@@ -33,7 +33,6 @@ import { setBankingMode } from '../store/slices/configurationSlice'
 
 // ✅ CENTRALIZED SESSION CONTROL: Import session control service
 import { sessionControlService } from '../services/session-control.service'
-import { menuApi } from '../services/api/menu.api';
 
 // ============================================================================
 // STAKEHOLDER LANDING PAGE HELPER
@@ -594,25 +593,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         try {
           const landingUrl = getLandingPageUrl(userData)
           console.log(`🚀 Login successful - preparing redirect to: ${landingUrl}`)
-
-          // ✅ PERFORMANCE OPTIMIZATION: Pre-fetch menu data while user sees the "Login Success" state
-          // We fetch it here in parallel with 150ms timeout, effectively making it "free" time
-          // We store raw data to 'temp_raw_menu' so BankingSidebar can pick it up immediately
-          // avoiding a second network request.
-          if (landingUrl.includes('banking') && token) {
-            const detectedMode = detectedBankingMode || 'conventional';
-            // Pre-fetch menu data
-            console.log('⚡ [PERF] Pre-fetching menu data for:', detectedMode);
-            menuApi.getMenuTree({
-              bankingMode: detectedMode,
-              includeInactive: false
-            }).then(response => {
-              if (response.success && response.data) {
-                localStorage.setItem('temp_raw_menu', JSON.stringify(response.data));
-                console.log('⚡ [PERF] Menu data pre-fetched and cached to temp storage');
-              }
-            }).catch(err => console.warn('⚠️ Menu pre-fetch failed:', err));
-          }
 
           setTimeout(() => {
             try {

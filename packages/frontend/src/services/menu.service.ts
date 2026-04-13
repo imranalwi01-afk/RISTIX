@@ -8,6 +8,8 @@
  */
 import { api } from './api';
 import { menuConfig, hasMenuAccess } from '@/config/menu-config';
+import { getStaticFallbackMenu } from '@/components/banking/BankingSidebarUtils';
+import { frontendEnvironmentLoader } from '@/config/environment-loader-frontend';
 
 export interface MenuItem {
   id: string;
@@ -134,6 +136,58 @@ export interface MenuQueryParams {
   useCache?: boolean;
 }
 
+const buildStaticFallbackMenuTree = (): MenuItem[] => {
+  const flatItems = getStaticFallbackMenu();
+  const byId = new Map<string, MenuItem & { children: MenuItem[] }>();
+
+  flatItems.forEach((item: any) => {
+    byId.set(String(item.id), {
+      id: String(item.id),
+      code: String(item.key || item.id),
+      label: String(item.title || item.label || item.id || 'Unknown'),
+      href: item.url || undefined,
+      description: item.description || undefined,
+      icon: item.icon || undefined,
+      parent_id: item.parent_id ? String(item.parent_id) : undefined,
+      sort_order: Number(item.sort_order || 0),
+      level: Number(item.level || 1),
+      path: String(item.key || item.id),
+      is_active: item.is_active !== false,
+      banking_modes: item.banking_types || ['conventional', 'syariah', 'dual'],
+      roles: Array.isArray(item.user_types) ? item.user_types : [],
+      status: item.is_active === false ? 'disabled' : 'active',
+      children: [],
+    });
+  });
+
+  const roots: Array<MenuItem & { children: MenuItem[] }> = [];
+  byId.forEach((item) => {
+    if (item.parent_id && byId.has(item.parent_id)) {
+      byId.get(item.parent_id)!.children.push(item);
+    } else {
+      roots.push(item);
+    }
+  });
+
+  const sortTree = (items: Array<MenuItem & { children: MenuItem[] }>) => {
+    items.sort((a, b) => a.sort_order - b.sort_order);
+    items.forEach((item) => {
+      if (item.children?.length) sortTree(item.children as Array<MenuItem & { children: MenuItem[] }>);
+    });
+  };
+
+  sortTree(roots);
+  return roots;
+};
+
+const isDynamicMenuEnabled = (): boolean => {
+  try {
+    return frontendEnvironmentLoader.getConfiguration().features.dynamicMenu;
+  } catch {
+    return process.env.NEXT_PUBLIC_DYNAMIC_MENU_ENABLED === 'true';
+  }
+};
+
 export interface ApiResponse {
   success: boolean;
   data?: any;
@@ -156,85 +210,42 @@ export class MenuService {
    */
   async getMenuTree(params?: MenuQueryParams): Promise<MenuTreeResponse> {
     try {
-      console.log('📋 Fetching menu hierarchy from backend', params);
+      if (isDynamicMenuEnabled()) {
+        console.log('📋 Fetching menu hierarchy from backend', params);
+        const queryParams = new URLSearchParams();
+        if (params?.bankingMode) queryParams.append('bankingMode', params.bankingMode);
+        if (params?.includeInactive !== undefined) queryParams.append('includeInactive', params.includeInactive.toString());
+        if (params?.parentId) queryParams.append('parentId', params.parentId);
+        if (params?.level !== undefined) queryParams.append('level', params.level.toString());
+        if (params?.useCache !== undefined) queryParams.append('useCache', params.useCache.toString());
 
-      const queryParams = new URLSearchParams();
-      if (params?.bankingMode) {
-        queryParams.append('bankingMode', params.bankingMode);
-      }
-      if (params?.includeInactive !== undefined) {
-        queryParams.append('includeInactive', params.includeInactive.toString());
-      }
-      if (params?.parentId) {
-        queryParams.append('parentId', params.parentId);
-      }
-      if (params?.level !== undefined) {
-        queryParams.append('level', params.level.toString());
-      }
-      if (params?.useCache !== undefined) {
-        queryParams.append('useCache', params.useCache.toString());
-      }
-
-      // 🔧 FIX: Try public menu endpoint first (no auth required), fallback to authenticated endpoint
-      let response: any;
-      try {
-        // Use the api client baseURL which should be properly configured by environment loader
-        const baseURL = api.client.defaults.baseURL || 'http://localhost:4232/api';
-        console.log('🌐 Trying public menu endpoint (no authentication required)');
-        console.log('🌐 API Base URL:', api.client.defaults.baseURL);
-        console.log('🌐 Endpoint URL:', `${baseURL}/menu/sidebar?${queryParams}`);
-        response = await fetch(`${baseURL}/menu/sidebar?${queryParams}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (response.ok) {
-          console.log('✅ Public menu endpoint successful');
-          const apiResponse = await response.json();
-
-          console.log('✅ Menu hierarchy fetched successfully from public endpoint:', {
-            itemCount: Array.isArray(apiResponse.data) ? apiResponse.data.length : 0,
-            success: apiResponse.success,
-            hasMeta: !!apiResponse.meta,
-            timestamp: apiResponse.meta?.timestamp
-          });
-
+        try {
+          const response = await api.client.get<MenuTreeResponse>(`/menu/hierarchy?${queryParams.toString()}`);
+          const apiResponse = response.data;
           return {
-            success: true,
-            data: apiResponse.data || [],
-            meta: apiResponse.meta
+            success: apiResponse.success,
+            data: Array.isArray(apiResponse.data) ? apiResponse.data : [],
+            message: apiResponse.message,
+            meta: apiResponse.meta,
           };
-        } else {
-          console.warn('⚠️ Public menu endpoint failed, trying authenticated endpoint');
-          throw new Error(`Public endpoint returned ${response.status}`);
+        } catch (error: any) {
+          if (error?.response?.status !== 404) {
+            throw error;
+          }
+          console.warn('⚠️ Dynamic menu enabled but /menu/hierarchy is unavailable, falling back to static menu');
         }
-      } catch (publicError) {
-        console.log('🔄 Public menu failed, trying authenticated endpoint:', publicError instanceof Error ? publicError.message : 'Unknown error');
-
-        // Fallback to authenticated endpoint
-        response = await api.client.get<MenuTreeResponse>(`/menu/tree?${queryParams}`);
       }
 
-      // Extract data from axios response wrapper (for authenticated endpoint)
-      const apiResponse = response.data;
-
-      console.log('✅ Menu hierarchy fetched successfully:', {
-        itemCount: Array.isArray(apiResponse.data) ? apiResponse.data.length : 0,
-        success: apiResponse.success,
-        meta: apiResponse.meta
-      });
-
-      // Transform response to match expected format
-      const transformedResponse: MenuTreeResponse = {
-        success: apiResponse.success,
-        data: Array.isArray(apiResponse.data) ? apiResponse.data : [],
-        message: apiResponse.message,
-        meta: apiResponse.meta
+      console.log('📋 Backend menu endpoints are unavailable in prod, using static fallback hierarchy', params);
+      return {
+        success: true,
+        data: buildStaticFallbackMenuTree(),
+        message: 'Static fallback menu in use',
+        meta: {
+          timestamp: new Date().toISOString(),
+          source: 'static',
+        },
       };
-
-      return transformedResponse;
     } catch (error) {
       console.error('❌ Failed to fetch menu hierarchy:', error);
       throw error;

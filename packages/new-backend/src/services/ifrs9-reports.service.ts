@@ -230,6 +230,15 @@ export class Ifrs9ReportsService {
     }
 
     private async resolveEclResultPrcDate(params?: ECLResultParams): Promise<string | null> {
+        const resultTableDate = await this.resolveLatestPrcDate(
+            'public.frs9_imp_ca_result_h',
+            params?.prc_date,
+        );
+
+        if (resultTableDate) {
+            return resultTableDate;
+        }
+
         return this.resolveLatestPrcDate(
             'public.frs9_master_account',
             params?.prc_date,
@@ -1075,62 +1084,105 @@ export class Ifrs9ReportsService {
                 };
             }
 
-            // Build dynamic WHERE clause
-            let whereClause = `prc_date = '${this.escapeSqlLiteral(effectivePrcDate)}'`;
+            // Build dynamic WHERE clause for result table
+            let resultWhereClause = `r.prc_date = '${this.escapeSqlLiteral(effectivePrcDate)}'`;
             if (segmentId !== undefined && segmentId !== null) {
-                whereClause += ` AND segment_id = ${segmentId}`;
+                resultWhereClause += ` AND r.segment_id = ${segmentId}`;
             }
 
             if (stageFilter) {
                 const stageList = stageFilter.map((s) => `'${String(s)}'`).join(',');
-                whereClause += ` AND stage IN (${stageList})`;
+                resultWhereClause += ` AND r.stage IN (${stageList})`;
             }
 
-            // Execute aggregation query matching SQL script
-            const rawData = await legacyDb.execute(sql.raw(`
+            // Prefer IFRS9 result table; use master account only as compatibility fallback.
+            let rawData = await legacyDb.execute(sql.raw(`
                 SELECT 
-                    prc_date AS period,
-                    branch_code,
-                    segment_id,
-                    group_segment,
-                    segment,
-                    sub_segment,
-                    currency,
-                    impaired_flag,
-                    impaired_status,
-                    bucket_id,
-                    sicr_flag,
-                    stage,
-                    SUM(CAST(outstanding AS DECIMAL)) AS outstanding,
-                    SUM(CAST(accrued_interest AS DECIMAL)) AS accrued_interest,
-                    SUM(CAST(ecl_ca_onbs_amt AS DECIMAL)) AS ecl_ca_onbs,
-                    SUM(CAST(ecl_ca_offbs_amt AS DECIMAL)) AS ecl_ca_offbs,
-                    SUM(CAST(ecl_ia_onbs_amt AS DECIMAL)) AS ecl_ia,
-                    SUM(CAST(ecl_overlay_amt AS DECIMAL)) AS ecl_overlay,
-                    SUM(CAST(ecl_final_amt AS DECIMAL)) AS ecl_final,
-                    SUM(CASE WHEN CAST(outstanding AS DECIMAL) = 0 THEN 0 ELSE CAST(ecl_final_amt AS DECIMAL)/CAST(outstanding AS DECIMAL) END) AS ecl_coverage,
-                    SUM(CAST(unwinding_ca_amt AS DECIMAL)) AS unwinding_ca,
-                    SUM(CAST(unwinding_ia_amt AS DECIMAL)) AS unwinding_ia,
-                    SUM(CAST(unwinding_ia_sum_amt AS DECIMAL)) AS total_unwinding_ia
-                FROM public.frs9_master_account
-                WHERE ${whereClause}
+                    r.prc_date AS period,
+                    COALESCE(MAX(ma.branch_code), '-') AS branch_code,
+                    r.segment_id,
+                    COALESCE(MAX(ma.group_segment), 'Unknown') AS group_segment,
+                    COALESCE(MAX(ma.segment), 'Unknown') AS segment,
+                    COALESCE(MAX(ma.sub_segment), '-') AS sub_segment,
+                    r.currency,
+                    r.bucket_id,
+                    r.stage,
+                    COUNT(*) AS account_count,
+                    SUM(CAST(r.outstanding AS DECIMAL)) AS outstanding,
+                    SUM(CAST(r.accrued_interest AS DECIMAL)) AS accrued_interest,
+                    SUM(CAST(r.ecl_amount AS DECIMAL)) AS ecl_amount,
+                    SUM(CAST(r.overlay_amount AS DECIMAL)) AS ecl_overlay,
+                    SUM(CAST(r.ecl_final AS DECIMAL)) AS ecl_final,
+                    CASE
+                        WHEN SUM(CAST(r.outstanding AS DECIMAL)) = 0 THEN 0
+                        ELSE SUM(CAST(r.ecl_final AS DECIMAL)) / SUM(CAST(r.outstanding AS DECIMAL))
+                    END AS ecl_coverage
+                FROM public.frs9_imp_ca_result_h r
+                LEFT JOIN public.frs9_master_account ma
+                    ON ma.prc_date = r.prc_date
+                   AND ma.account_id = r.account_id
+                WHERE ${resultWhereClause}
                 GROUP BY 
-                    prc_date,
-                    branch_code,
-                    segment_id,
-                    group_segment,
-                    segment,
-                    sub_segment,
-                    currency,
-                    impaired_flag,
-                    impaired_status,
-                    bucket_id,
-                    sicr_flag,
-                    stage
-                ORDER BY segment_id, stage
+                    r.prc_date,
+                    r.segment_id,
+                    r.currency,
+                    r.bucket_id,
+                    r.stage
+                ORDER BY r.segment_id, r.stage
             `));
 
-            const rows = Array.from(rawData as any[]);
+            let rows = Array.from(rawData as any[]);
+
+            if (rows.length === 0) {
+                let masterWhereClause = `prc_date = '${this.escapeSqlLiteral(effectivePrcDate)}'`;
+                if (segmentId !== undefined && segmentId !== null) {
+                    masterWhereClause += ` AND segment_id = ${segmentId}`;
+                }
+
+                if (stageFilter) {
+                    const stageList = stageFilter.map((s) => `'${String(s)}'`).join(',');
+                    masterWhereClause += ` AND stage IN (${stageList})`;
+                }
+
+                rawData = await legacyDb.execute(sql.raw(`
+                    SELECT 
+                        prc_date AS period,
+                        branch_code,
+                        segment_id,
+                        group_segment,
+                        segment,
+                        sub_segment,
+                        currency,
+                        bucket_id,
+                        stage,
+                        COUNT(*) AS account_count,
+                        SUM(CAST(outstanding AS DECIMAL)) AS outstanding,
+                        SUM(CAST(accrued_interest AS DECIMAL)) AS accrued_interest,
+                        SUM(CAST(ecl_overlay_amt AS DECIMAL)) AS ecl_overlay,
+                        SUM(CAST(ecl_final_amt AS DECIMAL)) AS ecl_final,
+                        SUM(CAST(ecl_ca_onbs_amt AS DECIMAL) + CAST(ecl_ca_offbs_amt AS DECIMAL) + CAST(ecl_ia_onbs_amt AS DECIMAL)) AS ecl_amount,
+                        CASE
+                            WHEN SUM(CAST(outstanding AS DECIMAL)) = 0 THEN 0
+                            ELSE SUM(CAST(ecl_final_amt AS DECIMAL)) / SUM(CAST(outstanding AS DECIMAL))
+                        END AS ecl_coverage
+                    FROM public.frs9_master_account
+                    WHERE ${masterWhereClause}
+                    GROUP BY 
+                        prc_date,
+                        branch_code,
+                        segment_id,
+                        group_segment,
+                        segment,
+                        sub_segment,
+                        currency,
+                        bucket_id,
+                        stage
+                    ORDER BY segment_id, stage
+                `));
+
+                rows = Array.from(rawData as any[]);
+            }
+
             console.log(`📊 [ECL Result] Retrieved ${rows.length} aggregated records`);
 
             // Add id field for DataGrid
