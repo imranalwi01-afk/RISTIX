@@ -88,7 +88,6 @@ export function useNotificationSocket() {
     const [isConnected, setIsConnected] = useState(false)
     const [notifications, setNotifications] = useState<NotificationPayload[]>([])
     const [unreadCount, setUnreadCount] = useState(0)
-    const [totalCount, setTotalCount] = useState(0)
     const [isLoading, setIsLoading] = useState(true)
     const [loadError, setLoadError] = useState<string | null>(null)
     const persistedDisabledUntilRef = useRef(0)
@@ -109,8 +108,6 @@ export function useNotificationSocket() {
             setNotifications(mapped)
             const unread = Number(response?.meta?.unreadCount)
             setUnreadCount(Number.isFinite(unread) ? unread : mapped.filter((item) => !item.readAt).length)
-            const total = Number(response?.meta?.total)
-            setTotalCount(Number.isFinite(total) ? total : mapped.length)
         } catch (error) {
             const status = (error as any)?.response?.status
             const message = error instanceof Error ? error.message : 'Failed to load notifications'
@@ -187,7 +184,6 @@ export function useNotificationSocket() {
                 if (prev.some((item) => item.id === normalizedNotification.id)) return prev
                 return [normalizedNotification, ...prev].slice(0, 50)
             })
-            setTotalCount((prev) => Math.max(0, prev + 1))
             if (!normalizedNotification.readAt) {
                 setUnreadCount((prev) => prev + 1)
             }
@@ -257,7 +253,6 @@ export function useNotificationSocket() {
         loadError,
         notifications,
         unreadCount,
-        totalCount,
         subscribeToApproval,
         subscribeToECL,
         acknowledgeNotification,
@@ -275,7 +270,6 @@ export function useNotifications() {
     return {
         notifications: socket.notifications,
         unreadCount: socket.unreadCount,
-        totalCount: socket.totalCount,
         isConnected: socket.isConnected,
         isLoading: socket.isLoading,
         loadError: socket.loadError,

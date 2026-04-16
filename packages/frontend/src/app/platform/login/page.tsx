@@ -1,8 +1,15 @@
 
 'use client';
 
-import LoginPage from '../../(auth)/login/page';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function PlatformLoginPage() {
-    return <LoginPage initialRole="platform_admin" />;
+    const router = useRouter();
+
+    useEffect(() => {
+        router.replace('/login?role=platform_admin');
+    }, [router]);
+
+    return null;
 }

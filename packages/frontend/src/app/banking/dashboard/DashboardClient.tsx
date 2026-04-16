@@ -412,7 +412,7 @@ export default function DashboardClient() {
                 const years = Object.keys(datesData).sort((a, b) => Number(b) - Number(a))
                 const flattened = years.flatMap((year) => datesData[year] || [])
                 setAvailableDateGroups(datesData)
-                setAvailableDates(flattened)
+                setAvailableDates(Array.isArray(flattened) ? flattened.map(String) : [])
             } else {
                 setAvailableDateGroups(null)
                 setAvailableDates(isStringArray(datesData) ? datesData : []);

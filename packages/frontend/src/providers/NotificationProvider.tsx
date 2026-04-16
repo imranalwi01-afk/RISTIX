@@ -6,7 +6,6 @@ import { useNotificationSocket, NotificationPayload } from '@/hooks/useNotificat
 interface NotificationContextValue {
     notifications: NotificationPayload[]
     unreadCount: number
-    totalCount: number
     isConnected: boolean
     isLoading: boolean
     loadError: string | null
@@ -27,7 +26,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             value={{
                 notifications: socket.notifications,
                 unreadCount: socket.unreadCount,
-                totalCount: socket.totalCount,
                 isConnected: socket.isConnected,
                 isLoading: socket.isLoading,
                 loadError: socket.loadError,

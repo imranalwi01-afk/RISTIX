@@ -391,7 +391,6 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   const theme = useTheme();
   const pathname = usePathname();
   const router = useRouter();
-  const prefetchedUrlsRef = useRef<Set<string>>(new Set());
 
   // ✅ REAL-TIME DB SYNC: Monitor backend health
   const { isOnline, latency, isChecking, checkNow } = useBackendHealth(15000); // Check every 15s
@@ -399,6 +398,23 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   // 🔽 FLYOUT MENU STATE
   const [flyoutAnchorEl, setFlyoutAnchorEl] = useState<null | HTMLElement>(null);
   const [flyoutItem, setFlyoutItem] = useState<HierarchicalMenuItem | null>(null);
+
+  const handleFlyoutOpen = useCallback((event: React.MouseEvent<HTMLElement>, item: HierarchicalMenuItem) => {
+    setFlyoutAnchorEl(event.currentTarget);
+    setFlyoutItem(item);
+
+    const children = item.children || [];
+    children.forEach((child) => {
+      if (child.url) {
+        router.prefetch(child.url);
+      }
+    });
+  }, [router]);
+
+  const handleFlyoutClose = useCallback(() => {
+    setFlyoutAnchorEl(null);
+    setFlyoutItem(null);
+  }, []);
 
   const buildNavigationUrl = useCallback((rawUrl: string) => {
     if (!rawUrl) return rawUrl;
@@ -426,27 +442,6 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
     const query = parsed.searchParams.toString();
     return `${parsed.pathname}${query ? `?${query}` : ''}${parsed.hash || ''}`;
   }, [bankingMode]);
-
-  const handleFlyoutOpen = useCallback((event: React.MouseEvent<HTMLElement>, item: HierarchicalMenuItem) => {
-    setFlyoutAnchorEl(event.currentTarget);
-    setFlyoutItem(item);
-
-    const children = item.children || [];
-    children.forEach((child) => {
-      if (child.url) {
-        const nextUrl = buildNavigationUrl(child.url);
-        if (!prefetchedUrlsRef.current.has(nextUrl)) {
-          prefetchedUrlsRef.current.add(nextUrl);
-          router.prefetch(nextUrl);
-        }
-      }
-    });
-  }, [buildNavigationUrl, router]);
-
-  const handleFlyoutClose = useCallback(() => {
-    setFlyoutAnchorEl(null);
-    setFlyoutItem(null);
-  }, []);
 
   const handleFlyoutItemClick = (child: HierarchicalMenuItem) => {
     if (child.url) {
@@ -517,7 +512,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
         });
         return mapToHierarchical(item, item.parent_id ? 2 : 1);
       });
-    } else if (!shouldSkip && typeof window !== 'undefined') {
+    } else if (typeof window !== 'undefined') {
       const cached = localStorage.getItem('cached_menu_structure');
       if (cached) try { rawItems = JSON.parse(cached); } catch (e) { }
     }
@@ -548,54 +543,8 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   const handlePrefetch = useCallback((rawUrl?: string | null) => {
     if (!rawUrl) return;
     const nextUrl = buildNavigationUrl(rawUrl);
-    if (prefetchedUrlsRef.current.has(nextUrl)) return;
-    prefetchedUrlsRef.current.add(nextUrl);
     router.prefetch(nextUrl);
   }, [buildNavigationUrl, router]);
-
-  const collectLeafUrls = useCallback((items: HierarchicalMenuItem[], limit: number) => {
-    const urls: string[] = [];
-    const walk = (nodes: HierarchicalMenuItem[]) => {
-      for (const node of nodes) {
-        if (urls.length >= limit) return;
-        const children = node.children || [];
-        if (node.url && children.length === 0) {
-          urls.push(node.url);
-          continue;
-        }
-        if (children.length > 0) walk(children);
-      }
-    };
-    walk(items);
-    return urls;
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (hierarchicalMenu.length === 0) return;
-
-    const seedUrls = collectLeafUrls(hierarchicalMenu, 18);
-    const anyWindow = window as any;
-    const schedule = (cb: () => void) => {
-      if (typeof anyWindow.requestIdleCallback === 'function') {
-        return anyWindow.requestIdleCallback(cb, { timeout: 800 });
-      }
-      return window.setTimeout(cb, 150);
-    };
-    const cancel = (id: any) => {
-      if (typeof anyWindow.cancelIdleCallback === 'function') {
-        anyWindow.cancelIdleCallback(id);
-      } else {
-        clearTimeout(id);
-      }
-    };
-
-    const id = schedule(() => {
-      seedUrls.forEach((url) => handlePrefetch(url));
-    });
-
-    return () => cancel(id);
-  }, [hierarchicalMenu, collectLeafUrls, handlePrefetch]);
 
   // Auto-expand first section for better UX
   useEffect(() => {

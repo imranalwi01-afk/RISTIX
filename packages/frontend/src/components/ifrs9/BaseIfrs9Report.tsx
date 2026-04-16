@@ -82,12 +82,42 @@ const lookupCache: {
   scalars: { ts: number; value: any[] } | null;
   lgdMethods: { ts: number; value: any[] } | null;
   lgdConfigs: { ts: number; value: any[] } | null;
+  eadConfigs: { ts: number; value: any[] } | null;
 } = {
   segments: null,
   scalars: null,
   lgdMethods: null,
   lgdConfigs: null,
+  eadConfigs: null,
 };
+
+const EAD_CONFIG_ALLOWLIST_ORDER = [
+  'EAD Model',
+  'EAD All Segment',
+  'EAD Factoring',
+  'EAD Repo',
+  'EAD Treasury',
+  'EAD Model - Stable',
+  'EAD Model - Run Off',
+] as const;
+
+const GROUP_SEGMENT_ALLOWLIST_ORDER = [
+  'PF Lending All Segment',
+  'Repo',
+  'PD Lending All Segment',
+  'Treasury Moodys',
+  'LGD Lending All Segment',
+  'EAD Lending All Segment',
+  'Treasury Pefindo',
+  'Treasury Fitch',
+  'Treasury S&P',
+  'Factoring',
+  'PD Factoring',
+  'LGD Factoring',
+  'EAD Factoring',
+  'PD Repo',
+  'LGD Repo',
+] as const;
 
 export interface BaseIfrs9ReportProps {
   title: string;
@@ -105,6 +135,8 @@ export interface BaseIfrs9ReportProps {
   onDataLoaded?: (data: Record<string, unknown>[], summary?: Record<string, unknown> | null) => void;
   children?: React.ReactNode;
   hideHeader?: boolean;
+  headerAtTop?: boolean;
+  hideFilters?: boolean;
   hideDataGrid?: boolean;
   externalFilters?: Partial<ReportFilters>;
 }
@@ -146,6 +178,11 @@ interface LgdConfigOption {
 interface LgdMethodOption {
   value: number;
   label: string;
+}
+
+interface EadConfigOption {
+  id: number | string;
+  model_name: string;
 }
 
 const getDefaultFilters = (reportType: BaseIfrs9ReportProps['reportType']): ReportFilters => ({
@@ -234,7 +271,9 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   scope = 'IFRS 9 Regulatory Compliance',
   onDataLoaded,
   children,
-  hideHeader,
+  hideHeader = false,
+  headerAtTop = false,
+  hideFilters = false,
   hideDataGrid = false,
   externalFilters
 }) => {
@@ -267,13 +306,16 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   const [exportLoading, setExportLoading] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportOptions, setExportOptions] = useState({
-    scope: 'summary',
-    format: 'xlsx'
+    scope: 'all_pages',
+    format: 'xlsx',
+    fromDate: null as Date | null,
+    toDate: null as Date | null,
   });
   const [segments, setSegments] = useState<SegmentOption[]>([]);
   const [scalars, setScalars] = useState<Record<string, unknown>[]>([]);
   const [lgdMethods, setLgdMethods] = useState<LgdMethodOption[]>([]);
   const [lgdConfigs, setLgdConfigs] = useState<LgdConfigOption[]>([]);
+  const [eadConfigs, setEadConfigs] = useState<EadConfigOption[]>([]);
   const [configDrawerOpen, setConfigDrawerOpen] = useState(false);
   const [effectivePrcDate, setEffectivePrcDate] = useState<string | null>(null);
   const [reportMeta, setReportMeta] = useState<ReportResponse['meta'] | null>(null);
@@ -715,11 +757,6 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
   // Export functionality - Client-side using xlsx library with Audit Header (T1)
   const handleExportExecute = async () => {
-    if (filteredData.length === 0) {
-      console.warn('No data to export');
-      return;
-    }
-
     setExportLoading(true);
     setExportDialogOpen(false);
 
@@ -728,12 +765,83 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
       const xlsxModule = (await import('xlsx')) as XLSXNamespace & { default?: XLSXNamespace };
       const XLSX: XLSXNamespace = xlsxModule.default ?? xlsxModule;
       const format = exportOptions.format as 'xlsx' | 'csv' | 'pdf';
-      const scope = exportOptions.scope;
+      const scope = exportOptions.scope as 'visible' | 'by_date' | 'date_range' | 'all_pages';
 
-      // Inject T1 Header if it's Excel/CSV
-      const headerT1 = [
+      const fetchReportPage = async (params: any) => {
+        switch (reportType) {
+          case 'nominative-report':
+            return api.banking.ifrs9Reports.nominativeReport.get(params);
+          case 'lifetime-pd-yearly':
+            return api.banking.ifrs9Reports.lifetimePD.getYearly(params);
+          case 'lifetime-pd-monthly':
+            return api.banking.ifrs9Reports.lifetimePD.getMonthly(params);
+          case 'lifetime-pd-account-details':
+            return api.banking.ifrs9Reports.lifetimePD.getAccountDetails(params);
+          case 'lifetime-lgd':
+            return api.banking.ifrs9Reports.lifetimeLGD.get(params);
+          case 'ead-model':
+            return api.banking.ifrs9Reports.eadModel.get(params);
+          case 'ecl-result':
+            return api.banking.ifrs9Reports.eclResult.get(params);
+          case 'ecl-movement':
+            return api.banking.ifrs9Reports.eclMovement.get(params);
+          case 'gca-movement':
+            return api.banking.ifrs9Reports.gcaMovement.get(params);
+          default:
+            throw new Error(`Unsupported report type for export: ${reportType}`);
+        }
+      };
+
+      const buildBaseParams = (processingDate: Date) => {
+        const params: Record<string, any> = {
+          prc_date: formatLocalDate(processingDate),
+        };
+
+        if (filters.segment_id) params.segment_id = filters.segment_id;
+        if (filters.stage && (Array.isArray(filters.stage) ? filters.stage.length > 0 : true)) params.stage = filters.stage;
+        if (filters.branch_code) params.branch_code = filters.branch_code;
+        if (filters.group_segment) params.group_segment = filters.group_segment;
+
+        if (filters.pd_config_id) params.pd_config_id = filters.pd_config_id;
+        if (filters.pd_method) params.pd_method = filters.pd_method;
+        if (filters.scalar_id) params.scalar_id = filters.scalar_id;
+        if (typeof filters.fl_flag === 'boolean') params.fl_flag = filters.fl_flag;
+        if (filters.lgd_config_id) params.lgd_config_id = filters.lgd_config_id;
+        if (filters.lgd_method) params.lgd_method = filters.lgd_method;
+        if (filters.model_id) params.model_id = filters.model_id;
+        if (filters.ead_config_id) params.ead_config_id = filters.ead_config_id;
+
+        return params;
+      };
+
+      const fetchAllRowsForDate = async (processingDate: Date) => {
+        if (!supportsPagination) {
+          const result = await fetchReportPage(buildBaseParams(processingDate));
+          const rows = Array.isArray(result?.data) ? result.data : [];
+          return rows as Record<string, unknown>[];
+        }
+
+        const limit = 1000;
+        const first = await fetchReportPage({ ...buildBaseParams(processingDate), page: 1, limit });
+        const firstRows = Array.isArray(first?.data) ? first.data : [];
+        const totalPages = Math.max(1, Number(first?.pagination?.totalPages ?? 1));
+
+        if (totalPages === 1) return firstRows as Record<string, unknown>[];
+
+        const pages = await Promise.all(
+          Array.from({ length: totalPages - 1 }, (_, idx) => {
+            const page = idx + 2;
+            return fetchReportPage({ ...buildBaseParams(processingDate), page, limit });
+          })
+        );
+
+        const restRows = pages.flatMap((p: any) => (Array.isArray(p?.data) ? p.data : []));
+        return [...firstRows, ...restRows] as Record<string, unknown>[];
+      };
+
+      const buildHeaderT1 = (processingDate: Date | null) => [
         ['Report Name', title],
-        ['Processing Date', filters.prc_date ? formatLocalDate(filters.prc_date) : 'N/A'],
+        ['Processing Date', processingDate ? formatLocalDate(processingDate) : 'N/A'],
         ['Segments', filters.segment_id ? String(filters.segment_id) : 'All'],
         ['LGD Config / Method', `${filters.lgd_config_id || 'N/A'} / ${filters.lgd_method || 'N/A'}`],
         ['Model Version / ID', `v1.2 / ${filters.model_id || 'DEFAULT'}`],
@@ -743,236 +851,103 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         ['Generated By', user?.fullName || user?.email || 'System'],
         ['Generated At', new Date().toLocaleString()],
         ['Notes', 'Confidential – Internal Use Only'],
-        [] // Spacer
+        [],
       ];
 
-      if (format === 'pdf') {
-        const [{ jsPDF }, autoTableModule] = await Promise.all([
-          import('jspdf'),
-          import('jspdf-autotable'),
-        ])
-        const autoTable = (autoTableModule as any).default || (autoTableModule as any)
+      const addSheet = (workbook: import('xlsx').WorkBook, sheetTitle: string, processingDate: Date | null, rows: Record<string, unknown>[]) => {
+        const headerT1 = buildHeaderT1(processingDate);
+        const worksheet = XLSX.utils.aoa_to_sheet(headerT1);
+        if (rows.length > 0) {
+          XLSX.utils.sheet_add_json(worksheet, rows, { origin: 'A13' });
 
-        const rows = scope === 'summary' && supportsCharts ? filteredData.slice(0, 10) : filteredData
-        const columns = Object.keys(rows[0] || {})
-
-        const safeCell = (value: unknown) => {
-          if (value === null || value === undefined) return ''
-          if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value)
-          try {
-            return JSON.stringify(value)
-          } catch {
-            return String(value)
-          }
+          const maxWidth = 30;
+          const colWidths = Object.keys(rows[0] || {}).map((key) => ({
+            wch: Math.min(maxWidth, Math.max(key.length, ...rows.map((row) => String((row as any)[key] ?? '').length))),
+          }));
+          worksheet['!cols'] = colWidths;
         }
 
-        const capturePngFromSvg = async (svg: SVGSVGElement) => {
-          const rect = svg.getBoundingClientRect()
-          const width = Math.max(1, Math.round(rect.width))
-          const height = Math.max(1, Math.round(rect.height))
-          const cloned = svg.cloneNode(true) as SVGSVGElement
-          if (!cloned.getAttribute('xmlns')) {
-            cloned.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
-          }
-          if (!cloned.getAttribute('xmlns:xlink')) {
-            cloned.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink')
-          }
-          cloned.setAttribute('width', String(width))
-          cloned.setAttribute('height', String(height))
+        const safeName = sheetTitle.substring(0, 31).replace(/[/\\*?[\]]/g, '');
+        XLSX.utils.book_append_sheet(workbook, worksheet, safeName);
+      };
 
-          const serialized = new XMLSerializer().serializeToString(cloned)
-          const blob = new Blob([serialized], { type: 'image/svg+xml;charset=utf-8' })
-          const url = URL.createObjectURL(blob)
-
-          try {
-            const img = new Image()
-            img.decoding = 'async'
-            const loaded = new Promise<void>((resolve, reject) => {
-              img.onload = () => resolve()
-              img.onerror = () => reject(new Error('Failed to load SVG image'))
-            })
-            img.src = url
-            await loaded
-
-            const scale = 2
-            const canvas = document.createElement('canvas')
-            canvas.width = width * scale
-            canvas.height = height * scale
-            const ctx = canvas.getContext('2d')
-            if (!ctx) return null
-
-            ctx.fillStyle = '#ffffff'
-            ctx.fillRect(0, 0, canvas.width, canvas.height)
-            ctx.scale(scale, scale)
-            ctx.drawImage(img, 0, 0, width, height)
-            return { dataUrl: canvas.toDataURL('image/png'), width, height }
-          } finally {
-            URL.revokeObjectURL(url)
-          }
+      const createCombinedWorksheet = (rows: Record<string, unknown>[], processingDate: Date | null) => {
+        const headerT1 = buildHeaderT1(processingDate);
+        const worksheet = XLSX.utils.aoa_to_sheet(headerT1);
+        if (rows.length > 0) {
+          XLSX.utils.sheet_add_json(worksheet, rows, { origin: 'A13' });
         }
+        return worksheet;
+      };
 
-        const capturePdfCharts = async () => {
-          if (typeof document === 'undefined') return []
-          const chartNodes = Array.from(document.querySelectorAll(`[data-pdf-export-chart="${reportType}"]`))
-          const out: Array<{ dataUrl: string; width: number; height: number }> = []
-
-          for (const node of chartNodes.slice(0, 2)) {
-            const el = node as HTMLElement
-            const canvas = el.querySelector('canvas') as HTMLCanvasElement | null
-            if (canvas) {
-              try {
-                const rect = canvas.getBoundingClientRect()
-                const width = Math.max(1, Math.round(rect.width))
-                const height = Math.max(1, Math.round(rect.height))
-                out.push({ dataUrl: canvas.toDataURL('image/png'), width, height })
-                continue
-              } catch {
-                continue
-              }
-            }
-
-            const svg = el.querySelector('svg') as SVGSVGElement | null
-            if (!svg) continue
-            try {
-              const captured = await capturePngFromSvg(svg)
-              if (captured) out.push(captured)
-            } catch {
-              continue
-            }
-          }
-
-          return out
-        }
-
-        const orientation = columns.length > 8 ? 'landscape' : 'portrait'
-        const doc = new jsPDF({ orientation, unit: 'pt', format: 'a4' })
-        const pageWidth = doc.internal.pageSize.getWidth()
-        const pageHeight = doc.internal.pageSize.getHeight()
-
-        doc.setFontSize(14)
-        doc.setTextColor(17, 24, 39)
-        doc.text(title, 32, 32)
-
-        doc.setFontSize(9)
-        doc.setTextColor(71, 85, 105)
-        const requestedDate = filters.prc_date ? formatLocalDate(filters.prc_date) : 'N/A'
-        const effectiveDateLabel = effectivePrcDate ? ` (Effective: ${effectivePrcDate})` : ''
-        doc.text(`Processing Date: ${requestedDate}${effectiveDateLabel}`, 32, 48, { maxWidth: pageWidth - 64 })
-        doc.text(`Generated By: ${user?.fullName || user?.email || 'System'} | Generated At: ${new Date().toISOString().replace('T', ' ').slice(0, 19)}`, 32, 62, {
-          maxWidth: pageWidth - 64,
-        })
-
-        const footer = () => {
-          const pageNumber = doc.getCurrentPageInfo().pageNumber
-          const totalPages = doc.getNumberOfPages()
-          doc.setFontSize(9)
-          doc.setTextColor(100)
-          doc.text(`Page ${pageNumber} / ${totalPages}`, pageWidth - 32, pageHeight - 18, { align: 'right' })
-        }
-
-        const auditBody = headerT1
-          .filter((row) => Array.isArray(row) && row.length >= 2 && row[0])
-          .map((row) => [safeCell(row[0]), safeCell(row[1])])
-
-        autoTable(doc, {
-          head: [['Field', 'Value']],
-          body: auditBody,
-          startY: 80,
-          margin: { left: 32, right: 32, bottom: 36 },
-          styles: { fontSize: 8, cellPadding: 3, overflow: 'linebreak' },
-          headStyles: { fillColor: [25, 118, 210], textColor: 255, fontStyle: 'bold' },
-          alternateRowStyles: { fillColor: [248, 250, 252] },
-          didDrawPage: footer,
-        })
-
-        const afterAuditY = (doc as any).lastAutoTable?.finalY
-        let cursorY = (typeof afterAuditY === 'number' ? afterAuditY : 120) + 22
-
-        const charts = supportsCharts ? await capturePdfCharts() : []
-        if (charts.length > 0) {
-          doc.setFontSize(11)
-          doc.setTextColor(17, 24, 39)
-          doc.text('Chart', 32, cursorY + 14)
-          cursorY += 22
-
-          for (const chart of charts) {
-            const maxWidth = pageWidth - 64
-            const aspect = chart.height > 0 ? chart.width / chart.height : 1
-            const targetWidth = maxWidth
-            let targetHeight = aspect > 0 ? targetWidth / aspect : 240
-
-            const availableHeight = pageHeight - cursorY - 80
-            if (targetHeight > availableHeight && availableHeight > 60) {
-              targetHeight = availableHeight
-            }
-
-            if (cursorY + targetHeight > pageHeight - 60) {
-              doc.addPage()
-              doc.setFontSize(14)
-              doc.setTextColor(17, 24, 39)
-              doc.text(title, 32, 32)
-              doc.setFontSize(9)
-              doc.setTextColor(71, 85, 105)
-              const requestedDate = filters.prc_date ? formatLocalDate(filters.prc_date) : 'N/A'
-              const effectiveDateLabel = effectivePrcDate ? ` (Effective: ${effectivePrcDate})` : ''
-              doc.text(`Processing Date: ${requestedDate}${effectiveDateLabel}`, 32, 48, { maxWidth: pageWidth - 64 })
-              doc.text(`Generated By: ${user?.fullName || user?.email || 'System'} | Generated At: ${new Date().toISOString().replace('T', ' ').slice(0, 19)}`, 32, 62, {
-                maxWidth: pageWidth - 64,
-              })
-              cursorY = 80
-            }
-
-            doc.addImage(chart.dataUrl, 'PNG', 32, cursorY, targetWidth, targetHeight)
-            cursorY += targetHeight + 16
-          }
-        }
-
-        const dataStartY = cursorY + 18
-
-        doc.setFontSize(11)
-        doc.setTextColor(17, 24, 39)
-        doc.text(scope === 'summary' && supportsCharts ? 'Top Results' : 'Data', 32, dataStartY - 10)
-
-        autoTable(doc, {
-          head: [columns],
-          body: rows.map((row) => columns.map((key) => safeCell((row as any)[key]))),
-          startY: dataStartY,
-          margin: { left: 32, right: 32, bottom: 36, top: 80 },
-          styles: { fontSize: columns.length > 10 ? 6 : 7, cellPadding: 3, overflow: 'linebreak' },
-          headStyles: { fillColor: [25, 118, 210], textColor: 255, fontStyle: 'bold' },
-          alternateRowStyles: { fillColor: [248, 250, 252] },
-          didDrawPage: footer,
-        })
-
-        const dateStr = filters.prc_date ? formatLocalDate(filters.prc_date) : formatLocalDate(new Date())
-        doc.save(`${reportType}-${dateStr}.pdf`)
-        return
-      }
-
-      // Create workbook
+      // Create workbook (XLSX only; CSV/PDF can use a single worksheet)
       const workbook = XLSX.utils.book_new();
-      let worksheet: import('xlsx').WorkSheet;
+      let csvWorksheet: import('xlsx').WorkSheet | null = null;
+      let pdfPayload: { title: string; rows: Record<string, unknown>[]; processingDate: Date | null } | null = null;
 
-      if (scope === 'summary' && supportsCharts) {
-        worksheet = XLSX.utils.aoa_to_sheet(headerT1);
-        XLSX.utils.sheet_add_json(worksheet, filteredData.slice(0, 10), { origin: 'A13' });
+      if (scope === 'date_range') {
+        const from = exportOptions.fromDate;
+        const to = exportOptions.toDate;
+        if (!from || !to) {
+          throw new Error('Please select both From and To dates.');
+        }
+        if (from > to) {
+          throw new Error('From date must be earlier than To date.');
+        }
+
+        const start = new Date(from.getFullYear(), from.getMonth(), 1);
+        const end = new Date(to.getFullYear(), to.getMonth(), 1);
+        const dates: Date[] = [];
+
+        for (let d = new Date(start); d <= end; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
+          const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+          dates.push(monthEnd);
+        }
+
+        if (format === 'xlsx') {
+          for (const processingDate of dates) {
+            const rows = await fetchAllRowsForDate(processingDate);
+            addSheet(workbook, formatLocalDate(processingDate), processingDate, rows);
+          }
+        } else {
+          const combined: Record<string, unknown>[] = [];
+          for (const processingDate of dates) {
+            const rows = await fetchAllRowsForDate(processingDate);
+            for (const row of rows) {
+              combined.push({ processing_date: formatLocalDate(processingDate), ...row });
+            }
+          }
+          csvWorksheet = createCombinedWorksheet(combined, null);
+          pdfPayload = { title, rows: combined, processingDate: null };
+        }
+      } else if (scope === 'visible') {
+        if (filteredData.length === 0) {
+          throw new Error('No data to export.');
+        }
+        if (format === 'xlsx') {
+          addSheet(workbook, title, filters.prc_date, filteredData);
+        } else {
+          csvWorksheet = createCombinedWorksheet(filteredData, filters.prc_date);
+          pdfPayload = { title, rows: filteredData, processingDate: filters.prc_date };
+        }
       } else {
-        worksheet = XLSX.utils.aoa_to_sheet(headerT1);
-        XLSX.utils.sheet_add_json(worksheet, filteredData, { origin: 'A13' });
+        if (!filters.prc_date) {
+          throw new Error('Please select a processing date.');
+        }
+        const rows = await fetchAllRowsForDate(filters.prc_date);
+        if (rows.length === 0) {
+          throw new Error('No data to export for the selected date.');
+        }
+        if (format === 'xlsx') {
+          addSheet(workbook, title, filters.prc_date, rows);
+        } else {
+          csvWorksheet = createCombinedWorksheet(rows, filters.prc_date);
+          pdfPayload = { title, rows, processingDate: filters.prc_date };
+        }
       }
-
-      const sheetName = title.substring(0, 31).replace(/[/\\*?[\]]/g, '');
-      XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-
-      // Auto-size columns
-      const maxWidth = 30;
-      const colWidths = Object.keys(filteredData[0] || {}).map(key => ({
-        wch: Math.min(maxWidth, Math.max(key.length, ...filteredData.map(row => String(row[key] || '').length)))
-      }));
-      worksheet['!cols'] = colWidths;
 
       const dateStr = filters.prc_date ? formatLocalDate(filters.prc_date) : formatLocalDate(new Date());
-      const filename = `${reportType}-${dateStr}`;
+      const filename = `${reportType}-${dateStr}-export`;
 
       if (format === 'xlsx') {
         const arrayBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
@@ -988,7 +963,12 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         a.remove();
         URL.revokeObjectURL(url);
       } else if (format === 'csv') {
-        const csv = XLSX.utils.sheet_to_csv(worksheet);
+        const sheet =
+          csvWorksheet ||
+          (workbook.SheetNames.length > 0 ? workbook.Sheets[workbook.SheetNames[0]] : null);
+        if (!sheet) throw new Error('No export data available.');
+
+        const csv = XLSX.utils.sheet_to_csv(sheet);
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -998,9 +978,65 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
+      } else if (format === 'pdf') {
+        if (!pdfPayload) throw new Error('No export data available.');
+
+        const jspdfModule: any = await import('jspdf');
+        const jsPDF = jspdfModule?.jsPDF ?? jspdfModule?.default;
+        if (!jsPDF) throw new Error('PDF export library not available.');
+
+        const autoTableModule: any = await import('jspdf-autotable');
+        const autoTable = autoTableModule?.default ?? autoTableModule;
+
+        const doc = new jsPDF({
+          orientation: 'landscape',
+          unit: 'pt',
+          format: 'a4',
+        });
+
+        const headerLines = buildHeaderT1(pdfPayload.processingDate)
+          .filter((row) => Array.isArray(row) && row.length >= 2 && row[0])
+          .map((row) => `${String(row[0])}: ${String(row[1] ?? '')}`);
+
+        doc.setFontSize(16);
+        doc.text('Export Report', 40, 40);
+        doc.setFontSize(10);
+        let y = 60;
+        for (const line of headerLines) {
+          doc.text(line, 40, y);
+          y += 14;
+          if (y > 140) break;
+        }
+
+        const rows = pdfPayload.rows;
+        if (rows.length === 0) {
+          doc.text('No data available.', 40, y + 20);
+        } else {
+          const allKeys = Array.from(
+            rows.reduce((set, row) => {
+              Object.keys(row).forEach((k) => set.add(k));
+              return set;
+            }, new Set<string>())
+          );
+
+          const head = [allKeys.map((k) => k.replace(/_/g, ' ').toUpperCase())];
+          const body = rows.map((row) => allKeys.map((k) => String((row as any)[k] ?? '')));
+
+          autoTable(doc, {
+            head,
+            body,
+            startY: Math.max(120, y + 10),
+            styles: { fontSize: 8, cellPadding: 3 },
+            headStyles: { fillColor: [25, 118, 210] },
+            alternateRowStyles: { fillColor: [245, 247, 250] },
+            margin: { left: 40, right: 40 },
+          });
+        }
+
+        doc.save(`${filename}.pdf`);
       }
 
-      console.log(`✅ Exported ${filteredData.length} rows with audit header to ${filename}.${format}`);
+      console.log(`✅ Exported report with audit header to ${filename}.${format}`);
     } catch (err) {
       console.error('Export error:', err);
       setError(err instanceof Error ? err.message : 'Export failed');
@@ -1088,12 +1124,66 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
             }
           }
         }
+
+        if (reportType === 'ead-model') {
+          const eadConfigsFresh = lookupCache.eadConfigs && now - lookupCache.eadConfigs.ts < LOOKUP_CACHE_TTL_MS;
+
+          if (eadConfigsFresh) {
+            setEadConfigs(lookupCache.eadConfigs!.value);
+          } else {
+            const rawConfigs = await api.banking.eadConfigurations.getAll({ is_active: true });
+            const normalizedConfigs = Array.isArray(rawConfigs) ? rawConfigs : [];
+
+            const candidates = normalizedConfigs
+              .map((config: any) => {
+                const id = config?.id ?? config?.pkid ?? config?.ead_config_id ?? config?.eadConfigId;
+                const model_name = String(config?.model_name ?? config?.modelName ?? '').trim();
+                return { id, model_name };
+              })
+              .filter((config: any) => config.id !== undefined && config.id !== null && config.model_name);
+
+            const sortedById = candidates
+              .slice()
+              .sort((a: any, b: any) => Number(a.id) - Number(b.id));
+
+            const byModelName = new Map<string, EadConfigOption>();
+            for (const config of sortedById) {
+              const key = config.model_name.toLowerCase();
+              if (!byModelName.has(key)) byModelName.set(key, config);
+            }
+
+            const filteredOrdered = EAD_CONFIG_ALLOWLIST_ORDER
+              .map((name) => byModelName.get(name.toLowerCase()))
+              .filter(Boolean) as EadConfigOption[];
+
+            const finalConfigs =
+              filteredOrdered.length > 0
+                ? filteredOrdered
+                : Array.from(byModelName.values()).sort((a, b) => a.model_name.localeCompare(b.model_name));
+
+            lookupCache.eadConfigs = { ts: now, value: finalConfigs };
+            setEadConfigs(finalConfigs);
+          }
+        }
       } catch (err) {
         console.error('Failed to load lookups:', err);
       }
     };
     loadLookups();
   }, [reportType]);
+
+  useEffect(() => {
+    if (reportType !== 'ead-model') return;
+    if (!eadConfigs.length) return;
+
+    setFilters((prev) => {
+      if (prev.ead_config_id) return prev;
+      const preferred = eadConfigs.find((c) => c.model_name.trim().toLowerCase() === 'ead model');
+      const selected = preferred ?? eadConfigs[0];
+      const parsed = Number(selected?.id);
+      return Number.isFinite(parsed) ? { ...prev, ead_config_id: parsed } : prev;
+    });
+  }, [reportType, eadConfigs]);
 
   // Fetch data on initial load and date change
   useEffect(() => {
@@ -1151,16 +1241,186 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   }, [bankingMode]);
 
   const groupSegmentOptions = React.useMemo(
-    () =>
-      Array.from(
+    () => {
+      // Keep GCA Movement dropdown fixed to match legacy UI list/order exactly.
+      if (reportType === 'gca-movement') {
+        return [...GROUP_SEGMENT_ALLOWLIST_ORDER];
+      }
+
+      const unique = Array.from(
         new Set(
           segments
             .map((segment) => String(segment.group_segment || segment.groupSegment || '').trim())
             .filter((value) => value.length > 0)
         )
-      ).sort((a, b) => a.localeCompare(b)),
-    [segments]
+      );
+
+      const byName = new Map<string, string>();
+      for (const name of unique) {
+        const key = name.toLowerCase();
+        if (!byName.has(key)) byName.set(key, name);
+      }
+
+      return Array.from(byName.values()).sort((a, b) => a.localeCompare(b));
+    },
+    [reportType, segments]
   );
+
+  const headerNode = !hideHeader ? (
+    <Paper
+      elevation={0}
+      sx={{
+        mb: 4,
+        p: { xs: 3, md: 5 },
+        background: themeStyles.gradient,
+        color: 'white',
+        borderRadius: 4,
+        position: 'relative',
+        overflow: 'hidden',
+        boxShadow: themeStyles.shadow,
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: -100,
+          right: -100,
+          width: 300,
+          height: 300,
+          borderRadius: '50%',
+          background: 'rgba(255, 255, 255, 0.1)',
+          filter: 'blur(50px)',
+          pointerEvents: 'none'
+        },
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          bottom: -50,
+          left: -50,
+          width: 200,
+          height: 200,
+          borderRadius: '50%',
+          background: 'rgba(255, 255, 255, 0.05)',
+          filter: 'blur(40px)',
+          pointerEvents: 'none'
+        }
+      }}
+    >
+      <Box sx={{ position: 'relative', zIndex: 1 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Box
+              sx={{
+                fontSize: 48,
+                mr: 2.5,
+                p: 1.2,
+                bgcolor: 'rgba(255, 255, 255, 0.15)',
+                borderRadius: 2,
+                backdropFilter: 'blur(10px)',
+                boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'inherit'
+              }}
+            >
+              {headerIcon || <AssessmentIcon sx={{ fontSize: 32 }} />}
+            </Box>
+            <Box>
+              <Typography
+                variant="h3"
+                component="h1"
+                sx={{ fontWeight: 800, mb: 1, letterSpacing: '-0.02em', fontSize: { xs: '1.75rem', md: '2.5rem' } }}
+              >
+                {title}
+              </Typography>
+              {description && (
+                <Typography
+                  variant="body1"
+                  sx={{
+                    opacity: 0.9,
+                    maxWidth: '800px',
+                    fontWeight: 500,
+                    lineHeight: 1.6
+                  }}
+                >
+                  {description}
+                </Typography>
+              )}
+            </Box>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Chip
+              icon={<AssessmentIcon sx={{ color: 'white !important', fontSize: '1.2rem' }} />}
+              label={statusLabel}
+              sx={{
+                bgcolor: 'rgba(255, 255, 255, 0.2)',
+                color: 'white',
+                fontWeight: 600,
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                display: { xs: 'none', sm: 'flex' },
+                px: 1
+              }}
+            />
+            <Chip
+              label="Live Production Data"
+              color="success"
+              size="small"
+              sx={{
+                fontWeight: 700,
+                boxShadow: '0 2px 8px rgba(76, 175, 80, 0.4)',
+                display: { xs: 'none', md: 'flex' }
+              }}
+            />
+          </Box>
+        </Box>
+
+        <Box
+          sx={{
+            display: 'flex',
+            gap: { xs: 3, md: 5 },
+            mt: 4,
+            pt: 3,
+            borderTop: '1px solid rgba(255, 255, 255, 0.2)',
+            flexWrap: 'wrap'
+          }}
+        >
+          <Box>
+            <Typography
+              variant="caption"
+              sx={{ opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 0.5 }}
+            >
+              Report Granularity
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {granularity}
+            </Typography>
+          </Box>
+          <Box>
+            <Typography
+              variant="caption"
+              sx={{ opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 0.5 }}
+            >
+              Scope
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {scope}
+            </Typography>
+          </Box>
+          <Box>
+            <Typography
+              variant="caption"
+              sx={{ opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 0.5 }}
+            >
+              Last Calculation
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+    </Paper>
+  ) : null;
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -1172,150 +1432,22 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
           subMessage="Retrieving financial data..."
         />
 
-        {/* Enhanced Page Header with Gradient - Premium Look */}
-        {!hideHeader && (
-          <Paper
-            elevation={0}
-            sx={{
-              mb: 4,
-              p: { xs: 3, md: 5 },
-              background: themeStyles.gradient,
-              color: 'white',
-              borderRadius: 4,
-              position: 'relative',
-              overflow: 'hidden',
-              boxShadow: themeStyles.shadow,
-              '&::before': {
-                content: '""',
-                position: 'absolute',
-                top: -100,
-                right: -100,
-                width: 300,
-                height: 300,
-                borderRadius: '50%',
-                background: 'rgba(255, 255, 255, 0.1)',
-                filter: 'blur(50px)',
-                pointerEvents: 'none'
-              },
-              '&::after': {
-                content: '""',
-                position: 'absolute',
-                bottom: -50,
-                left: -50,
-                width: 200,
-                height: 200,
-                borderRadius: '50%',
-                background: 'rgba(255, 255, 255, 0.05)',
-                filter: 'blur(40px)',
-                pointerEvents: 'none'
-              }
-            }}
-          >
-            <Box sx={{ position: 'relative', zIndex: 1 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Box
-                    sx={{
-                      fontSize: 48,
-                      mr: 2.5,
-                      p: 1.2,
-                      bgcolor: 'rgba(255, 255, 255, 0.15)',
-                      borderRadius: 2,
-                      backdropFilter: 'blur(10px)',
-                      boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'inherit'
-                    }}
-                  >
-                    {headerIcon || <AssessmentIcon sx={{ fontSize: 32 }} />}
-                  </Box>
-                  <Box>
-                    <Typography variant="h3" component="h1" sx={{ fontWeight: 800, mb: 1, letterSpacing: '-0.02em', fontSize: { xs: '1.75rem', md: '2.5rem' } }}>
-                      {title}
-                    </Typography>
-                    {description && (
-                      <Typography
-                        variant="body1"
-                        sx={{
-                          opacity: 0.9,
-                          maxWidth: '800px',
-                          fontWeight: 500,
-                          lineHeight: 1.6
-                        }}
-                      >
-                        {description}
-                      </Typography>
-                    )}
-                  </Box>
-                </Box>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Chip
-                    icon={<AssessmentIcon sx={{ color: 'white !important', fontSize: '1.2rem' }} />}
-                    label={statusLabel}
-                    sx={{
-                      bgcolor: 'rgba(255, 255, 255, 0.2)',
-                      color: 'white',
-                      fontWeight: 600,
-                      backdropFilter: 'blur(10px)',
-                      border: '1px solid rgba(255, 255, 255, 0.3)',
-                      display: { xs: 'none', sm: 'flex' },
-                      px: 1
-                    }}
-                  />
-                  <Chip
-                    label="Live Production Data"
-                    color="success"
-                    size="small"
-                    sx={{
-                      fontWeight: 700,
-                      boxShadow: '0 2px 8px rgba(76, 175, 80, 0.4)',
-                      display: { xs: 'none', md: 'flex' }
-                    }}
-                  />
-                </Box>
-              </Box>
-
-              {/* Quick Stats / Info Bar */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  gap: { xs: 3, md: 5 },
-                  mt: 4,
-                  pt: 3,
-                  borderTop: '1px solid rgba(255, 255, 255, 0.2)',
-                  flexWrap: 'wrap'
-                }}
-              >
-                <Box>
-                  <Typography variant="caption" sx={{ opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 0.5 }}>
-                    Report Granularity
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{granularity}</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" sx={{ opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 0.5 }}>
-                    Scope
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{scope}</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" sx={{ opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 0.5 }}>
-                    Last Calculation
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-          </Paper>
-        )}
+        {headerAtTop ? headerNode : null}
 
         {/* Action buttons & Control Bar */}
         {!hideHeader && (
-          <Box sx={{ mb: 4, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Box sx={{
+            mb: 4,
+            display: 'flex',
+            gap: 2,
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            position: headerAtTop ? 'relative' : 'sticky',
+            top: headerAtTop ? undefined : 74,
+            zIndex: headerAtTop ? 1 : 2,
+            py: 1,
+            bgcolor: 'background.default'
+          }}>
             <TextField
               placeholder="Search data..."
               size="small"
@@ -1337,22 +1469,24 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
               }}
             />
 
-            <Button
-              variant={showFilters ? "contained" : "outlined"}
-              startIcon={<FilterIcon />}
-              onClick={() => setShowFilters(!showFilters)}
-              sx={{
-                borderRadius: 2,
-                textTransform: 'none',
-                fontWeight: 600,
-                ...(showFilters && {
-                  background: themeStyles.gradient,
-                  boxShadow: `0 4px 12px ${alpha(themeStyles.primary, 0.3)}`
-                })
-              }}
-            >
-              {showFilters ? 'Hide Filters' : 'Analysis Parameters'}
-            </Button>
+            {!hideFilters && (
+              <Button
+                variant={showFilters ? "contained" : "outlined"}
+                startIcon={<FilterIcon />}
+                onClick={() => setShowFilters(!showFilters)}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  ...(showFilters && {
+                    background: themeStyles.gradient,
+                    boxShadow: `0 4px 12px ${alpha(themeStyles.primary, 0.3)}`
+                  })
+                }}
+              >
+                {showFilters ? 'Hide Filters' : 'Analysis Parameters'}
+              </Button>
+            )}
 
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
               <Tooltip title="Refresh Data">
@@ -1403,13 +1537,15 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 transition: 'all 0.2s ease'
               }}
             >
-              {exportLoading ? 'Processing...' : 'Export to Excel'}
+              {exportLoading ? 'Processing...' : 'Export'}
             </Button>
           </Box>
         )}
 
+        {!headerAtTop ? headerNode : null}
+
         {/* Filters */}
-        {!hideHeader && showFilters && (
+        {!hideHeader && !hideFilters && showFilters && (
           <Card sx={{
             mb: 4,
             borderRadius: 3,
@@ -1512,20 +1648,22 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
                           {optionalParams.includes('group_segment') && (
                             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                              <Autocomplete
-                                size="small"
-                                options={groupSegmentOptions}
-                                value={filters.group_segment || null}
-                                onChange={(_, newValue) => handleFilterChange('group_segment', newValue || undefined)}
-                                renderInput={(params) => (
-                                  <TextField
-                                    {...params}
-                                    label="Group Segment"
-                                    placeholder="All Group Segments"
-                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                                  />
-                                )}
-                              />
+                              <FormControl fullWidth size="small">
+                                <InputLabel>Group Segment</InputLabel>
+                                <Select
+                                  value={filters.group_segment || ''}
+                                  onChange={(e) => handleFilterChange('group_segment', e.target.value ? String(e.target.value) : undefined)}
+                                  label="Group Segment"
+                                  sx={{ borderRadius: 2 }}
+                                >
+                                  <MenuItem value="">ALL</MenuItem>
+                                  {groupSegmentOptions.map((value) => (
+                                    <MenuItem key={value} value={value}>
+                                      {value}
+                                    </MenuItem>
+                                  ))}
+                                </Select>
+                              </FormControl>
                             </Grid>
                           )}
 
@@ -1563,15 +1701,27 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
                           {optionalParams.includes('ead_config_id') && (
                             <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-                              <TextField
-                                label="EAD Config ID"
-                                type="number"
-                                size="small"
-                                value={filters.ead_config_id || ''}
-                                onChange={(e) => handleFilterChange('ead_config_id', parseInt(e.target.value) || undefined)}
-                                fullWidth
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                              />
+                              <FormControl fullWidth size="small">
+                                <InputLabel>EAD Model</InputLabel>
+                                <Select
+                                  value={filters.ead_config_id || ''}
+                                  onChange={(e) => handleFilterChange('ead_config_id', e.target.value ? Number(e.target.value) : undefined)}
+                                  label="EAD Model"
+                                  sx={{ borderRadius: 2 }}
+                                >
+                                  {eadConfigs.length > 0 ? (
+                                    eadConfigs.map((config) => (
+                                      <MenuItem key={String(config.id)} value={Number(config.id)}>
+                                        {config.model_name}
+                                      </MenuItem>
+                                    ))
+                                  ) : (
+                                    <MenuItem value="" disabled>
+                                      No configurations
+                                    </MenuItem>
+                                  )}
+                                </Select>
+                              </FormControl>
                             </Grid>
                           )}
 
@@ -1938,23 +2088,24 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
           </Box>
         )}
         {/* Export Dialog */}
-        <Dialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} maxWidth="xs" fullWidth>
+        <Dialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} maxWidth="sm" fullWidth>
           <DialogTitle sx={{ fontWeight: 800, bgcolor: alpha(themeStyles.primary, 0.03) }}>
             Export Report
           </DialogTitle>
           <DialogContent sx={{ mt: 2 }}>
             <FormControl fullWidth size="small">
-              <InputLabel id="export-scope-label">Export Scope</InputLabel>
+              <InputLabel id="export-scope-label">Data</InputLabel>
               <Select
                 labelId="export-scope-label"
-                label="Export Scope"
+                label="Data"
                 value={exportOptions.scope}
                 onChange={(e) => setExportOptions(prev => ({ ...prev, scope: String(e.target.value) }))}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               >
-                <MenuItem value="summary">Summary & Top Results</MenuItem>
-                <MenuItem value="account">Account-level Details</MenuItem>
-                <MenuItem value="all" disabled>All Data (ZIP)</MenuItem>
+                <MenuItem value="visible">Visible data</MenuItem>
+                <MenuItem value="by_date">By date</MenuItem>
+                <MenuItem value="date_range">Date range</MenuItem>
+                <MenuItem value="all_pages">All (all pages for selected date)</MenuItem>
               </Select>
             </FormControl>
 
@@ -1967,11 +2118,54 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 onChange={(e) => setExportOptions(prev => ({ ...prev, format: String(e.target.value) }))}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               >
-                <MenuItem value="xlsx">Excel</MenuItem>
-                <MenuItem value="csv">CSV</MenuItem>
-                <MenuItem value="pdf">PDF</MenuItem>
+                <MenuItem value="xlsx">Excel (.xlsx)</MenuItem>
+                <MenuItem value="csv">CSV (.csv)</MenuItem>
+                <MenuItem value="pdf">PDF (.pdf)</MenuItem>
               </Select>
             </FormControl>
+
+            {exportOptions.scope === 'date_range' && (
+              <Box sx={{ mt: 3, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                <DatePicker
+                  label="From"
+                  value={exportOptions.fromDate}
+                  onChange={(date: unknown) => {
+                    const finalDate = date && (date as { toDate?: () => Date }).toDate
+                      ? (date as { toDate: () => Date }).toDate()
+                      : (date as Date | null);
+                    setExportOptions(prev => ({ ...prev, fromDate: finalDate }));
+                  }}
+                  enableAccessibleFieldDOMStructure={false}
+                  slots={{ textField: TextField }}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      size: 'small',
+                      sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } },
+                    }
+                  }}
+                />
+                <DatePicker
+                  label="To"
+                  value={exportOptions.toDate}
+                  onChange={(date: unknown) => {
+                    const finalDate = date && (date as { toDate?: () => Date }).toDate
+                      ? (date as { toDate: () => Date }).toDate()
+                      : (date as Date | null);
+                    setExportOptions(prev => ({ ...prev, toDate: finalDate }));
+                  }}
+                  enableAccessibleFieldDOMStructure={false}
+                  slots={{ textField: TextField }}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      size: 'small',
+                      sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } },
+                    }
+                  }}
+                />
+              </Box>
+            )}
 
             <Box sx={{ mt: 2, p: 2, borderRadius: 2, bgcolor: 'info.light', color: 'info.contrastText', display: 'flex', gap: 1.5 }}>
               <InfoIcon />
