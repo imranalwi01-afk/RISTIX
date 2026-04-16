@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { eq, and, desc, sql } from 'drizzle-orm'
-import { db, getDatabase, platformConnection } from '@/config/database'
+import { db, platformConnection } from '@/config/database'
 import { debugLog } from '@/lib/debug-logger'
 import {
     jobDefinitions,
@@ -12,25 +12,60 @@ import {
 } from '@/db/schema'
 
 export const JobsRepository = {
+    async resolveTenantId(tenantId: string): Promise<string> {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+        if (!tenantId) throw new Error('Missing tenantId')
+        if (uuidRegex.test(tenantId)) return tenantId
+
+        const rows = await platformConnection<{ id: string }[]>`
+            select id
+            from platform_admin.tenants
+            where code = ${tenantId} or slug = ${tenantId}
+            limit 1
+        `
+
+        const resolved = rows?.[0]?.id
+        if (!resolved) throw new Error(`Unknown tenant: ${tenantId}`)
+        return resolved
+    },
+
+    async ensureCoreTenantRow(tenantUuid: string): Promise<void> {
+        await platformConnection`
+            insert into core.tenants (id, code, name, slug, description, type, banking_mode, settings, is_active, created_at, updated_at)
+            select
+                t.id,
+                t.code,
+                t.name,
+                t.slug,
+                t.description,
+                t.type,
+                t.banking_mode,
+                coalesce(nullif(t.settings, ''), '{}')::jsonb,
+                t.is_active,
+                coalesce(t.created_at, now()),
+                coalesce(t.updated_at, now())
+            from platform_admin.tenants t
+            where t.id = ${tenantUuid}
+            on conflict (id) do nothing
+        `
+    },
     // =============================================================================
     // JOB DEFINITIONS
     // =============================================================================
 
     async findAllDefinitions(tenantId: string) {
         debugLog(`[JobsRepository] findAllDefinitions for tenant: ${tenantId}`);
-        const dbx = getDatabase(tenantId)
-        
-        return dbx
+        const resolvedTenantId = await this.resolveTenantId(tenantId)
+        return db
             .select()
             .from(jobDefinitions)
-            .where(sql`${jobDefinitions.tenantId} = ${tenantId} OR ${jobDefinitions.tenantId} IS NULL`)
+            .where(sql`${jobDefinitions.tenantId} = ${resolvedTenantId} OR ${jobDefinitions.tenantId} IS NULL`)
             .orderBy(desc(jobDefinitions.createdAt));
     },
 
     async findDefinitionById(id: string, tenantId?: string) {
         console.log(`[JobsRepository] findDefinitionById: ${id}, tenant: ${tenantId}`);
-        const dbx = getDatabase(tenantId)
-        const [result] = await dbx
+        const [result] = await db
             .select()
             .from(jobDefinitions)
             .where(eq(jobDefinitions.id, id))
@@ -40,19 +75,19 @@ export const JobsRepository = {
 
     async createDefinition(data: NewJobDefinition) {
         const tenantId = (data as any).tenantId
-        console.log(`[JobsRepository] createDefinition for tenant: ${tenantId}`);
-        const dbx = getDatabase(tenantId)
-        const [definition] = await dbx
+        const resolvedTenantId = await this.resolveTenantId(String(tenantId))
+        await this.ensureCoreTenantRow(resolvedTenantId)
+        console.log(`[JobsRepository] createDefinition for tenant: ${resolvedTenantId}`);
+        const [definition] = await db
             .insert(jobDefinitions)
-            .values(data)
+            .values({ ...(data as any), tenantId: resolvedTenantId })
             .returning()
         return definition
     },
 
     async updateDefinition(id: string, data: Partial<NewJobDefinition>, tenantId?: string) {
         console.log(`[JobsRepository] updateDefinition: ${id}, tenant: ${tenantId}`);
-        const dbx = getDatabase(tenantId)
-        const [updated] = await dbx
+        const [updated] = await db
             .update(jobDefinitions)
             .set({ ...data, updatedAt: new Date() })
             .where(eq(jobDefinitions.id, id))
@@ -113,8 +148,7 @@ export const JobsRepository = {
 
     async findExecutionById(id: string, tenantId?: string) {
         console.log(`[JobsRepository] findExecutionById: ${id}, tenant: ${tenantId}`);
-        const dbx = getDatabase(tenantId)
-        return dbx.query.jobExecutions.findFirst({
+        return db.query.jobExecutions.findFirst({
             where: eq(jobExecutions.id, id),
             with: {
                 definition: true,
@@ -124,12 +158,13 @@ export const JobsRepository = {
 
     async createExecution(data: NewJobExecution) {
         const tenantId = (data as any).tenantId
-        debugLog(`[JobsRepository] createExecution for tenant: ${tenantId}, data:`, data);
-        const dbx = getDatabase(tenantId)
+        const resolvedTenantId = await this.resolveTenantId(String(tenantId))
+        await this.ensureCoreTenantRow(resolvedTenantId)
+        debugLog(`[JobsRepository] createExecution for tenant: ${resolvedTenantId}, data:`, data);
         try {
-            const [execution] = await dbx
+            const [execution] = await db
                 .insert(jobExecutions)
-                .values(data)
+                .values({ ...(data as any), tenantId: resolvedTenantId })
                 .returning()
             debugLog(`[JobsRepository] createExecution SUCCESS:`, execution.id);
             return execution
@@ -141,8 +176,7 @@ export const JobsRepository = {
 
     async updateExecution(id: string, data: Partial<NewJobExecution>, tenantId?: string) {
         console.log(`[JobsRepository] updateExecution: ${id}, tenant: ${tenantId}`);
-        const dbx = getDatabase(tenantId)
-        const [updated] = await dbx
+        const [updated] = await db
             .update(jobExecutions)
             .set(data)
             .where(eq(jobExecutions.id, id))
@@ -152,20 +186,20 @@ export const JobsRepository = {
 
     async getStats(tenantId: string) {
         console.log(`[JobsRepository] getStats for tenant: ${tenantId}`);
-        const dbx = getDatabase(tenantId)
-        const activeJobs = await dbx
+        const resolvedTenantId = await this.resolveTenantId(tenantId)
+        const activeJobs = await db
             .select({ count: sql<number>`count(*)` })
             .from(jobExecutions)
             .where(and(
-                eq(jobExecutions.tenantId, tenantId),
+                eq(jobExecutions.tenantId, resolvedTenantId),
                 eq(jobExecutions.status, 'RUNNING')
             ))
 
-        const failedToday = await dbx
+        const failedToday = await db
             .select({ count: sql<number>`count(*)` })
             .from(jobExecutions)
             .where(and(
-                eq(jobExecutions.tenantId, tenantId),
+                eq(jobExecutions.tenantId, resolvedTenantId),
                 eq(jobExecutions.status, 'FAILED'),
                 sql`date(${jobExecutions.startTime}) = current_date`
             ))

@@ -32,9 +32,14 @@ export const ifrs9API = {
         return response.data;
     },
 
-    getAvailableDates: async (mode?: string) => {
+    getAvailableDates: async (
+        mode?: string,
+        options?: { groupBy?: 'year' }
+    ) => {
         console.log('📅 Fetching available process dates from real database');
-        const response = await apiClient.get('/ifrs9/available-dates', { params: { mode } });
+        const response = await apiClient.get('/ifrs9/available-dates', {
+            params: { mode, groupBy: options?.groupBy },
+        });
         return response.data;
     },
 

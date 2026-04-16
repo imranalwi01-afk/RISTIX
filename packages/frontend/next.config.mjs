@@ -107,6 +107,20 @@ const nextConfig = {
   // ============================================================================
   // API REWRITES
   // ============================================================================
+  async redirects() {
+    return [
+      {
+        source: '/banking/individual/impairment',
+        destination: '/banking/individual/assessment',
+        permanent: false,
+      },
+      {
+        source: '/banking/individual/impairment/:path*',
+        destination: '/banking/individual/:path*',
+        permanent: false,
+      },
+    ];
+  },
   async rewrites() {
     const explicitProxyTarget =
       process.env.BACKEND_INTERNAL_URL ||
@@ -122,14 +136,22 @@ const nextConfig = {
 
     // Default fallback if no ENV is set
     if (!proxyBase || proxyBase.length === 0) {
-      console.warn('⚠️ No backend proxy target found in environment variables. Falling back to http://backend:4232');
-      proxyBase = 'http://backend:4232';
+      console.warn('⚠️ No backend proxy target found in environment variables. Falling back to http://localhost:4232');
+      proxyBase = 'http://localhost:4232';
     }
 
     return [
       {
+        source: '/api/v1/:path*',
+        destination: `${proxyBase}/api/v1/:path*`,
+      },
+      {
         source: '/api/:path*',
         destination: `${proxyBase}/api/:path*`,
+      },
+      {
+        source: '/socket.io/:path*',
+        destination: `${proxyBase}/socket.io/:path*`,
       },
     ];
   },

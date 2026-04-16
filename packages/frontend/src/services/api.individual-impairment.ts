@@ -483,6 +483,13 @@ export const individualImpairmentAPI = {
 
         throw error;
       }
+    },
+
+    // Remove account from watchlist
+    remove: async (id: string, mode?: string) => {
+      console.log(`🗑️ Removing account ${id} from Individual Impairment watchlist`, { mode });
+      const response = await apiClient.delete(`/banking/individual/impairment/watchlist/${id}`, { params: { mode } });
+      return response.data;
     }
   },
 
@@ -624,10 +631,10 @@ export const individualImpairmentAPI = {
     const response = await apiClient.post('/banking/individual/impairment/watchlist', data);
     return response.data;
   },
-  removeFromWatchlist: async (id: string) => {
-    const response = await apiClient.delete(`/banking/individual/impairment/watchlist/${id}`);
-    return response.data;
+  removeFromWatchlist: async (id: string, mode?: string) => {
+    return individualImpairmentAPI.watchlist.remove(id, mode);
   },
+
   getOverrides: async (params?: { status?: string }) => {
     const response = await apiClient.get('/banking/individual/impairment/overrides', { params });
     return response.data;

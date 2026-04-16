@@ -1,7 +1,9 @@
 import { Effect, pipe } from 'effect'
 import { EclConfigurationsRepository } from '../repositories/ecl-configurations.repository'
-import { NotFoundError } from '../lib/errors'
-import { frs9ImpCaEclConfigh, frs9ImpCaEclConfigd } from '../db/schema'
+import { NotFoundError, DatabaseError } from '../lib/errors'
+import { frs9ImpCaEclConfigh, frs9ImpCaEclConfigd, frs9ImpCaResultHPrv, frs9ImpCaResultDPrv } from '../db/schema'
+import { legacyDb } from '../config'
+import { asc, eq } from 'drizzle-orm'
 
 export const EclConfigurationsService = {
     /**
@@ -37,6 +39,48 @@ export const EclConfigurationsService = {
                     : Effect.fail(new NotFoundError({ message: 'ECL Configuration not found', resource: 'ECL Configuration', id: String(id) })) as any
             )
         ) as any
+    },
+
+    getPreviewResults: (id: number) => {
+        return Effect.tryPromise({
+            try: async () => {
+                const rows = await legacyDb
+                    .select()
+                    .from(frs9ImpCaResultHPrv)
+                    .where(eq(frs9ImpCaResultHPrv.eclModelId, id))
+                    .orderBy(asc(frs9ImpCaResultHPrv.accountId))
+
+                return rows.map(transformPreviewHeader)
+            },
+            catch: (error) => new DatabaseError({ message: 'Failed to fetch ECL preview results', operation: 'query', cause: error })
+        }) as any
+    },
+
+    getPreviewResultDetail: (id: number, accountId: number) => {
+        return Effect.tryPromise({
+            try: async () => {
+                const rows = await legacyDb
+                    .select()
+                    .from(frs9ImpCaResultDPrv)
+                    .where(eq(frs9ImpCaResultDPrv.eclModelId, id))
+
+                return rows
+                    .filter((row) => Number(row.accountId) === accountId)
+                    .sort((a, b) => {
+                        const scenarioNoA = Number(a.scenarioNo ?? 0)
+                        const scenarioNoB = Number(b.scenarioNo ?? 0)
+                        if (scenarioNoA !== scenarioNoB) return scenarioNoA - scenarioNoB
+
+                        const flYearA = Number(a.flYear ?? 0)
+                        const flYearB = Number(b.flYear ?? 0)
+                        if (flYearA !== flYearB) return flYearA - flYearB
+
+                        return Number(a.flMotnh ?? 0) - Number(b.flMotnh ?? 0)
+                    })
+                    .map(transformPreviewDetail)
+            },
+            catch: (error) => new DatabaseError({ message: 'Failed to fetch ECL preview result detail', operation: 'query', cause: error })
+        }) as any
     },
 
     /**
@@ -187,4 +231,68 @@ const transformDetail = (detail: typeof frs9ImpCaEclConfigd.$inferSelect) => ({
     overlay_rate: detail.overlayRate,
     period_type: detail.periodType,
     period_date: detail.periodDate,
+})
+
+const transformPreviewHeader = (row: typeof frs9ImpCaResultHPrv.$inferSelect) => ({
+    prc_date: row.prcDate,
+    account_id: row.accountId,
+    facility_number: row.facilityNumber,
+    cif_number: row.cifNumber,
+    segment_id: row.segmentId,
+    remaining_tenor: row.remainingTenor,
+    stage: row.stage,
+    bucket_group: row.bucketGroup,
+    bucket_id: row.bucketId,
+    currency: row.currency,
+    dpd: row.dpd,
+    internal_rating_code: row.internalRatingCode,
+    ext_rating_code: row.extRatingCode,
+    outstanding: row.outstanding,
+    plafond: row.plafond,
+    fib_amt: row.fibAmt,
+    accrued_interest: row.accruedInterest,
+    unamort_cost_amt: row.unamortCostAmt,
+    unamort_fee_amt: row.unamortFeeAmt,
+    ecl_amount: row.eclAmount,
+    overlay_amount: row.overlayAmount,
+    ecl_final: row.eclFinal,
+    ecl_model_id: row.eclModelId,
+})
+
+const transformPreviewDetail = (row: typeof frs9ImpCaResultDPrv.$inferSelect) => ({
+    prc_date: row.prcDate,
+    account_id: row.accountId,
+    facility_number: row.facilityNumber,
+    cif_number: row.cifNumber,
+    segment_id: row.segmentId,
+    remaining_tenor: row.remainingTenor,
+    stage: row.stage,
+    scenario_no: row.scenarioNo,
+    fl_seq: row.flSeq,
+    fl_year: row.flYear,
+    fl_month: row.flMotnh,
+    bucket_group: row.bucketGroup,
+    bucket_id: row.bucketId,
+    currency: row.currency,
+    dpd: row.dpd,
+    internal_rating_code: row.internalRatingCode,
+    ext_rating_code: row.extRatingCode,
+    outstanding: row.outstanding,
+    plafond: row.plafond,
+    fib_amt: row.fibAmt,
+    accrued_interest: row.accruedInterest,
+    unamort_cost_amt: row.unamortCostAmt,
+    unamort_fee_amt: row.unamortFeeAmt,
+    ead_balance: row.eadBalance,
+    principal_amt: row.principalAmt,
+    sum_principal_amt: row.sumPrincipalAmt,
+    next_interest: row.nextInterest,
+    sum_next_interest: row.sumNextInterest,
+    ead: row.ead,
+    pd: row.pd,
+    lgd: row.lgd,
+    ecl_amount: row.eclAmount,
+    probability: row.probability,
+    ecl_weighted: row.eclWeighted,
+    ecl_model_id: row.eclModelId,
 })

@@ -1430,11 +1430,22 @@ export const bankingAPI = {
       get: async (params: {
         prc_date: string;
         segment_id?: number;
-        stage?: string;
+        stage?: string | string[];
         sub_segment?: string;
       }) => {
         console.log('📊 Getting ECL Result data from DS2 database');
         const response = await apiClient.get('/ifrs9/reports/ecl-result', { params });
+        return response.data;
+      }
+    },
+
+    debugConfig: {
+      get: async () => {
+        const response = await apiClient.get('/ifrs9/reports/debug-config');
+        return response.data;
+      },
+      update: async (enabled: boolean) => {
+        const response = await apiClient.put('/ifrs9/reports/debug-config', { enabled });
         return response.data;
       }
     },
@@ -1444,7 +1455,7 @@ export const bankingAPI = {
       get: async (params: {
         prc_date: string;
         segment_id?: number;
-        stage?: string;
+        stage?: string | string[];
         group_segment?: string;
       }) => {
         console.log('📊 Getting ECL Movement data from DS2 database');
@@ -1458,7 +1469,7 @@ export const bankingAPI = {
       get: async (params: {
         prc_date: string;
         segment_id?: number;
-        stage?: string;
+        stage?: string | string[];
         group_segment?: string;
       }) => {
         console.log('📊 Getting GCA Movement data from DS2 database');
@@ -1472,7 +1483,7 @@ export const bankingAPI = {
       get: async (params: {
         prc_date: string;
         segment_id?: number;
-        stage?: string;
+        stage?: string | string[];
         branch_code?: string;
         page?: number;
         limit?: number;

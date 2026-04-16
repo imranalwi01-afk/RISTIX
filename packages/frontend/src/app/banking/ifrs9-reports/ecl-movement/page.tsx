@@ -1,13 +1,22 @@
 'use client';
 
 import React from 'react';
-import { Alert, Container } from '@mui/material';
+import dynamic from 'next/dynamic';
+import { Alert, Box, CircularProgress, Container } from '@mui/material';
 import { SwapHoriz as PageIcon } from '@mui/icons-material';
 import { useSearchParams } from 'next/navigation';
-import ECLMovementReport from '@/components/ifrs9/ECLMovementReport';
 import ReportPageLayout from '@/components/ifrs9/ReportPageLayout';
 import { useBankingTheme, BankingMode } from '@/providers/BankingThemeProvider';
 import { Can } from '@/components/rbac/Can';
+
+const ECLMovementReport = dynamic(() => import('@/components/ifrs9/ECLMovementReport'), {
+  ssr: false,
+  loading: () => (
+    <Box sx={{ py: 6, display: 'flex', justifyContent: 'center' }}>
+      <CircularProgress />
+    </Box>
+  ),
+});
 
 export default function ECLMovementReportsPage() {
   const searchParams = useSearchParams();

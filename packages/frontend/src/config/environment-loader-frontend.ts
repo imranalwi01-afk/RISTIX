@@ -54,6 +54,9 @@ const resolveApiBase = (backendOrigin: string): string => {
 export interface FrontendEnvironmentConfig {
   nodeEnv: string;
   isProduction: boolean;
+  features: {
+    dynamicMenu: boolean;
+  };
   api: {
     backend: string;
     base: string;
@@ -100,6 +103,9 @@ class FrontendEnvironmentLoader {
     this.config = {
       nodeEnv: process.env.NODE_ENV || (isProduction ? 'production' : 'development'),
       isProduction,
+      features: {
+        dynamicMenu: process.env.NEXT_PUBLIC_DYNAMIC_MENU_ENABLED === 'true',
+      },
       api: {
         backend: backendApi,
         base: apiBase,

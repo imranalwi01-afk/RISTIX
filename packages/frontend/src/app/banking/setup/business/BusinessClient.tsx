@@ -9,31 +9,17 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-    Box, Typography, Container, Card, CardContent, Button, CircularProgress,
-    Alert, Dialog, DialogTitle, DialogContent, DialogActions, TextField,
-    IconButton, Tooltip, Chip, Snackbar, FormControl, InputLabel, Select,
-    MenuItem, Grid, FormControlLabel, Switch, Menu, ListItemIcon,
-    ListItemText, Paper, TableContainer, Table, TableHead, TableRow, TableCell, TableBody,
-    TablePagination
+    Alert, Button, Container, Snackbar
 } from '@mui/material';
 import {
-    Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon,
-    Refresh as RefreshIcon, Visibility as VisibilityIcon, Download as DownloadIcon,
-    Search as SearchIcon, FilterAlt as FilterIcon, CheckCircle as SuccessIcon,
-    Warning as WarningIcon, Description as DescriptionIcon, Clear as ClearIcon
+    Add as AddIcon
 } from '@mui/icons-material';
-import { useRouter } from 'next/navigation';
-import { getAuthToken } from '@/utils/auth-token';
 import api, { handleAPIError, bankingAPI } from '../../../../services/api';
 import PageHeader from '@/components/banking/shared/PageHeader';
-import EmptyState from '@/components/banking/shared/EmptyState';
-import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
-import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import {
     ApprovalNotification,
-    ApprovalStatusBadge,
     PendingChangesDialog,
     buildApprovalConflictNotification,
     buildApprovalNotification,
@@ -41,329 +27,15 @@ import {
     type ApprovalNotificationState,
 } from '@/components/approval';
 import { usePermission } from '@/hooks/usePermission';
-
-// =====================================================
-// INTERFACES
-// =====================================================
-
-interface BusinessParameter {
-    pkid: string;
-    param_code: string;
-    param_desc: string;
-    param_category: string;
-    param_value: string;
-    param_type: string;
-    is_editable: boolean;
-    active_flag: boolean;
-    created_by: string;
-    created_date: string;
-}
-
-interface BusinessParameterDetail {
-    pkid?: string;
-    param_code: string;
-    param_seq: number;
-    value1: string;
-    value2?: string;
-    value3?: string;
-    paramdesc: string;
-}
-
-interface BusinessParameterFormData {
-    param_code: string;
-    param_desc: string;
-    param_value: string;
-    param_category: string;
-    param_type: string;
-    is_editable: boolean;
-    active_flag: boolean;
-}
-
-interface BusinessParameterDetailFormData {
-    param_seq: number;
-    value1: string;
-    value2?: string;
-    value3?: string;
-    paramdesc: string;
-}
-
-// =====================================================
-// DETAIL PANEL
-// =====================================================
-const BusinessDetailPanel = ({ row, onEditDetail, onDeleteDetail, onAddDetail, refreshTrigger, canManage = false }: any) => {
-    const [details, setDetails] = useState<BusinessParameterDetail[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    const loadDetails = async () => {
-        try {
-            setLoading(true);
-            const response = await api.banking.businessSetup.getHeaderDetails(row.param_code);
-            if (response.success && response.data) {
-                setDetails(response.data.map((item: any) => ({
-                    pkid: item.pkid?.toString() || item.id?.toString() || '',
-                    param_code: item.paramCode || item.param_code || row.param_code,
-                    param_seq: item.paramSeq || item.param_seq || 0,
-                    value1: item.value1 || '',
-                    value2: item.value2 || '',
-                    value3: item.value3 || '',
-                    paramdesc: item.paramdesc || item.description || item.param_desc || ''
-                })));
-            } else {
-                setDetails([]);
-            }
-        } catch (error) {
-            console.error('Failed to load details:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => { loadDetails(); }, [row.param_code, refreshTrigger]);
-
-    // Calculate next sequence
-    const nextSeq = details.length > 0 ? Math.max(...details.map(d => d.param_seq)) + 1 : 1;
-
-    if (loading) return <Box sx={{ p: 2, textAlign: 'center' }}><CircularProgress size={20} /></Box>;
-
-    return (
-        <Box sx={{ p: 3, bgcolor: 'rgba(0, 0, 0, 0.02)', borderBottomLeftRadius: 8, borderBottomRightRadius: 8 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.dark', display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <DescriptionIcon fontSize="small" />
-                    Details for {row.param_code}
-                </Typography>
-                {canManage && (
-                    <Button
-                        size="small"
-                        startIcon={<AddIcon />}
-                        variant="outlined"
-                        onClick={() => onAddDetail(row.param_code, nextSeq)}
-                        sx={{ borderRadius: 2, textTransform: 'none' }}
-                    >
-                        Add Detail
-                    </Button>
-                )}
-            </Box>
-
-            {details.length === 0 ? (
-                <EmptyState
-                    title="No Details Found"
-                    description={`No parameters sequences defined for ${row.param_code}.`}
-                />
-            ) : (
-                <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
-                    <Table size="small">
-                        <TableHead sx={{ bgcolor: 'grey.100' }}>
-                            <TableRow>
-                                <TableCell sx={{ fontWeight: 600 }}>Seq</TableCell>
-                                <TableCell sx={{ fontWeight: 600 }}>Value 1</TableCell>
-                                <TableCell sx={{ fontWeight: 600 }}>Value 2</TableCell>
-                                <TableCell sx={{ fontWeight: 600 }}>Value 3</TableCell>
-                                <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 600 }}>Actions</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {details.map((detail) => (
-                                <TableRow key={detail.pkid || Math.random()} hover>
-                                    <TableCell><Chip label={detail.param_seq} size="small" variant="outlined" color="primary" sx={{ height: 20, fontSize: '0.65rem' }} /></TableCell>
-                                    <TableCell sx={{ fontSize: '0.875rem' }}>{detail.value1}</TableCell>
-                                    <TableCell sx={{ fontSize: '0.875rem' }}>{detail.value2 || '-'}</TableCell>
-                                    <TableCell sx={{ fontSize: '0.875rem' }}>{detail.value3 || '-'}</TableCell>
-                                    <TableCell sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>{detail.paramdesc}</TableCell>
-                                    <TableCell align="right">
-                                        {canManage && (
-                                            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                                <IconButton size="small" color="primary" onClick={() => onEditDetail(detail)} sx={{ p: 0.5 }} data-testid="btn-edit-detail">
-                                                    <EditIcon sx={{ fontSize: 18 }} />
-                                                </IconButton>
-                                                <IconButton size="small" color="error" onClick={() => onDeleteDetail(detail, loadDetails)} sx={{ p: 0.5 }} data-testid="btn-delete-detail">
-                                                    <DeleteIcon sx={{ fontSize: 18 }} />
-                                                </IconButton>
-                                            </Box>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            )}
-        </Box>
-    );
-};
-
-// =====================================================
-// DIALOGS
-// =====================================================
-// Keeping original dialogs but simplified logic
-const DetailDialog: React.FC<{
-    open: boolean;
-    onClose: () => void;
-    onSave: (data: BusinessParameterDetailFormData) => void;
-    detail?: BusinessParameterDetail;
-    paramCode: string;
-    defaultSeq?: number;
-}> = ({ open, onClose, onSave, detail, paramCode, defaultSeq = 1 }) => {
-    const [formData, setFormData] = useState<BusinessParameterDetailFormData>({
-        param_seq: 1,
-        value1: '',
-        value2: '',
-        value3: '',
-        paramdesc: ''
-    });
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (detail) {
-            setFormData({
-                param_seq: detail.param_seq,
-                value1: detail.value1,
-                value2: detail.value2 || '',
-                value3: detail.value3 || '',
-                paramdesc: detail.paramdesc
-            });
-        } else {
-            setFormData({
-                param_seq: defaultSeq,
-                value1: '',
-                value2: '',
-                value3: '',
-                paramdesc: ''
-            });
-        }
-    }, [detail, open, defaultSeq]);
-
-    const handleSubmit = () => {
-        if (!formData.param_seq || formData.param_seq <= 0) { setError('Sequence > 0 required'); return; }
-        if (!formData.value1?.trim()) { setError('Value 1 required'); return; }
-        if (!formData.paramdesc?.trim()) { setError('Description required'); return; }
-        setError(null);
-        onSave(formData);
-    };
-
-    return (
-        <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-            <DialogTitle>{detail ? 'Edit Detail' : 'Add Detail'}</DialogTitle>
-            <DialogContent sx={{ mt: 2 }}>
-                <Grid container spacing={2}>
-                    <Grid size={{ xs: 12 }}><Typography variant="caption">Param Code: <strong>{paramCode}</strong></Typography></Grid>
-                    <Grid size={{ xs: 12, md: 6 }}><TextField fullWidth label="Sequence" type="number" value={formData.param_seq} onChange={e => setFormData({ ...formData, param_seq: parseInt(e.target.value) || 1 })} inputProps={{ 'data-testid': 'input-detail-seq' }} /></Grid>
-                    <Grid size={{ xs: 12, md: 6 }} />
-                    <Grid size={{ xs: 12 }}><TextField fullWidth label="Value 1" value={formData.value1} onChange={e => setFormData({ ...formData, value1: e.target.value })} inputProps={{ 'data-testid': 'input-detail-value1' }} /></Grid>
-                    <Grid size={{ xs: 12, md: 6 }}><TextField fullWidth label="Value 2" value={formData.value2} onChange={e => setFormData({ ...formData, value2: e.target.value })} inputProps={{ 'data-testid': 'input-detail-value2' }} /></Grid>
-                    <Grid size={{ xs: 12, md: 6 }}><TextField fullWidth label="Value 3" value={formData.value3} onChange={e => setFormData({ ...formData, value3: e.target.value })} inputProps={{ 'data-testid': 'input-detail-value3' }} /></Grid>
-                    <Grid size={{ xs: 12 }}><TextField fullWidth multiline rows={2} label="Description" value={formData.paramdesc} onChange={e => setFormData({ ...formData, paramdesc: e.target.value })} inputProps={{ 'data-testid': 'input-detail-desc' }} /></Grid>
-                </Grid>
-                {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
-            </DialogContent>
-            <DialogActions>
-                <Button onClick={onClose}>Cancel</Button>
-                <Button onClick={handleSubmit} variant="contained" data-testid="btn-submit-detail">Save</Button>
-            </DialogActions>
-        </Dialog>
-    );
-};
-
-const BusinessParameterDialog: React.FC<{
-    open: boolean;
-    onClose: () => void;
-    onSave: (data: BusinessParameterFormData) => void;
-    parameter?: BusinessParameter;
-}> = ({ open, onClose, onSave, parameter }) => {
-    const [formData, setFormData] = useState<BusinessParameterFormData>({
-        param_code: '', param_desc: '', param_value: '', param_category: 'B', param_type: 'BUSINESS', is_editable: true, active_flag: true
-    });
-
-    useEffect(() => {
-        if (parameter) {
-            setFormData({
-                param_code: parameter.param_code,
-                param_desc: parameter.param_desc,
-                param_value: parameter.param_value,
-                param_category: parameter.param_category,
-                param_type: parameter.param_type,
-                is_editable: parameter.is_editable,
-                active_flag: parameter.active_flag
-            });
-        } else {
-            setFormData({ param_code: '', param_desc: '', param_value: '', param_category: 'B', param_type: 'BUSINESS', is_editable: true, active_flag: true });
-        }
-    }, [parameter, open]);
-
-    return (
-        <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-            <DialogTitle>{parameter ? 'Edit Parameter' : 'Create Parameter'}</DialogTitle>
-            <DialogContent sx={{ mt: 2 }}>
-                <Grid container spacing={2}>
-                    <Grid size={{ xs: 12 }}>
-                        <TextField
-                            fullWidth
-                            label="Code"
-                            value={formData.param_code}
-                            onChange={e => setFormData({ ...formData, param_code: e.target.value })}
-                            disabled={!!parameter}
-                            placeholder="e.g., B0001"
-                            required
-                            inputProps={{ 'data-testid': 'input-param-code' }}
-                        />
-                    </Grid>
-                    <Grid size={{ xs: 12 }}>
-                        <TextField
-                            fullWidth
-                            label="Description"
-                            value={formData.param_desc}
-                            onChange={e => setFormData({ ...formData, param_desc: e.target.value })}
-                            placeholder="Enter parameter description"
-                            required
-                            inputProps={{ 'data-testid': 'input-param-desc' }}
-                        />
-                    </Grid>
-                    <Grid size={{ xs: 12 }}>
-                        <TextField
-                            fullWidth
-                            label="Value"
-                            value={formData.param_value}
-                            onChange={e => setFormData({ ...formData, param_value: e.target.value })}
-                            placeholder="Enter parameter value"
-                            inputProps={{ 'data-testid': 'input-param-value' }}
-                        />
-                    </Grid>
-                    <Grid size={{ xs: 12 }}>
-                        <FormControl fullWidth>
-                            <InputLabel>Category</InputLabel>
-                            <Select
-                                value={formData.param_category}
-                                onChange={e => setFormData({ ...formData, param_category: e.target.value })}
-                                label="Category"
-                                inputProps={{ 'data-testid': 'select-param-category' }}
-                            >
-                                <MenuItem value="B">Business</MenuItem>
-                                <MenuItem value="A">Application</MenuItem>
-                                <MenuItem value="S">System</MenuItem>
-                            </Select>
-                        </FormControl>
-                    </Grid>
-                    <Grid size={{ xs: 12 }}>
-                        <FormControlLabel
-                            control={
-                                <Switch
-                                    checked={formData.active_flag}
-                                    onChange={e => setFormData({ ...formData, active_flag: e.target.checked })}
-                                />
-                            }
-                            label="Active"
-                        />
-                    </Grid>
-                </Grid>
-            </DialogContent>
-            <DialogActions>
-                <Button onClick={onClose}>Cancel</Button>
-                <Button onClick={() => onSave(formData)} variant="contained" data-testid="btn-submit-business-setting">{parameter ? 'Update' : 'Create'}</Button>
-            </DialogActions>
-        </Dialog>
-    );
-};
+import {
+    BusinessParameterDialog,
+    BusinessDetailFormDialog,
+    BusinessParametersGrid,
+    type BusinessParameter,
+    type BusinessParameterFormData,
+    type BusinessParameterDetail,
+    type BusinessParameterDetailFormData,
+} from './components';
 
 
 // =====================================================
@@ -416,7 +88,7 @@ export default function BusinessClient() {
     const [defaultDetailSeq, setDefaultDetailSeq] = useState(1);
 
     // Callbacks
-    const loadBusinessParameters = async () => {
+    const loadBusinessParameters = useCallback(async () => {
         try {
             setLoading(true);
             const response = await api.banking.businessSetup.getAll();
@@ -457,7 +129,7 @@ export default function BusinessClient() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => { loadBusinessParameters(); }, []);
 
@@ -478,7 +150,7 @@ export default function BusinessClient() {
     }, [businessParameters, searchTerm, categoryFilter]);
 
     // Handlers
-    const handleSaveParameter = async (form: BusinessParameterFormData) => {
+    const handleSaveParameter = useCallback(async (form: BusinessParameterFormData) => {
         if (!canManageBusiness) return;
         try {
             const payload = {
@@ -515,9 +187,9 @@ export default function BusinessClient() {
                 setError(handleAPIError(e).message);
             }
         }
-    };
+    }, [businessParameters, canManageBusiness, editingParameter, showApprovalConflict, loadBusinessParameters]);
 
-    const handleDeleteParameter = async (row: BusinessParameter) => {
+    const handleDeleteParameter = useCallback(async (row: BusinessParameter) => {
         if (!canManageBusiness) return;
         if (!confirm(`Delete parameter ${row.param_code}?`)) return;
         try {
@@ -533,9 +205,9 @@ export default function BusinessClient() {
                 setError(handleAPIError(e).message);
             }
         }
-    };
+    }, [canManageBusiness, showApprovalConflict, loadBusinessParameters]);
 
-    const handleSaveDetail = async (form: BusinessParameterDetailFormData) => {
+    const handleSaveDetail = useCallback(async (form: BusinessParameterDetailFormData) => {
         if (!canManageBusiness) return;
         try {
             const payload = {
@@ -574,9 +246,9 @@ export default function BusinessClient() {
                 setError(err.message);
             }
         }
-    };
+    }, [canManageBusiness, currentDetailParamCode, editingDetail, showApprovalConflict]);
 
-    const handleDeleteDetail = async (detail: BusinessParameterDetail, callback: () => void) => {
+    const handleDeleteDetail = useCallback(async (detail: BusinessParameterDetail, _callback: () => void) => {
         if (!canManageBusiness) return;
         if (!confirm('Delete detail?')) return;
         try {
@@ -592,42 +264,31 @@ export default function BusinessClient() {
                 setError(handleAPIError(e).message);
             }
         }
-    };
+    }, [canManageBusiness, showApprovalConflict]);
 
-    // Columns
-    const columns: GridColDef[] = [
-        { field: 'param_code', headerName: 'Code', width: 150, renderCell: (p) => <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>{p.value}</Typography> },
-        { field: 'param_desc', headerName: 'Description', flex: 1, minWidth: 250 },
-        { field: 'param_value', headerName: 'Value', width: 150 },
-        { field: 'param_category', headerName: 'Category', width: 120, align: 'center', headerAlign: 'center', renderCell: (p) => <Chip label={p.value} size="small" variant="outlined" color={p.value === 'B' ? 'primary' : p.value === 'A' ? 'info' : 'secondary'} sx={{ fontWeight: 500 }} /> },
-        { field: 'active_flag', headerName: 'Active', width: 100, align: 'center', headerAlign: 'center', renderCell: (p) => <Chip label={p.value ? 'Yes' : 'No'} color={p.value ? 'success' : 'default'} size="small" sx={{ minWidth: 50 }} /> },
-        {
-            field: 'status',
-            headerName: 'Status',
-            width: 140,
-            renderCell: (p) => (
-                <Box
-                    onClick={(e) => {
-                        if ((p.row as any).approvalStatus === 'pending') {
-                            e.stopPropagation();
-                            setSelectedPendingRequest((p.row as any).pendingRequest);
-                            setCurrentRecordForPending(p.row);
-                            setPendingChangesDialogOpen(true);
-                        }
-                    }}
-                    sx={{ cursor: (p.row as any).approvalStatus === 'pending' ? 'pointer' : 'default' }}
-                >
-                    <ApprovalStatusBadge status={(p.row as any).approvalStatus || 'active'} size="small" />
-                </Box>
-            )
-        },
-        {
-            field: 'actions', headerName: 'Actions', type: 'actions', width: 100, align: 'right', headerAlign: 'right', getActions: (p) => canManageBusiness ? [
-                <SafeGridActionsCellItem key="e" label="Edit" icon={<EditIcon fontSize="small" />} onClick={() => { setEditingParameter(p.row); setParamDialogOpen(true); }} data-testid="btn-edit-business-setting" />,
-                <SafeGridActionsCellItem key="d" label="Delete" icon={<DeleteIcon fontSize="small" color="error" />} onClick={() => handleDeleteParameter(p.row)} data-testid="btn-delete-business-setting" />
-            ] : []
-        }
-    ];
+    const handleOpenPendingChanges = useCallback((row: BusinessParameter) => {
+        setSelectedPendingRequest((row as any).pendingRequest);
+        setCurrentRecordForPending(row);
+        setPendingChangesDialogOpen(true);
+    }, []);
+
+    const handleEditParameter = useCallback((row: BusinessParameter) => {
+        setEditingParameter(row);
+        setParamDialogOpen(true);
+    }, []);
+
+    const handleEditDetail = useCallback((row: BusinessParameter, detail: BusinessParameterDetail) => {
+        setCurrentDetailParamCode(row.param_code);
+        setEditingDetail(detail);
+        setDetailDialogOpen(true);
+    }, []);
+
+    const handleAddDetail = useCallback((paramCode: string, nextSeq: number) => {
+        setCurrentDetailParamCode(paramCode);
+        setDefaultDetailSeq(nextSeq);
+        setEditingDetail(null);
+        setDetailDialogOpen(true);
+    }, []);
 
     return (
         <Container maxWidth="xl">
@@ -644,83 +305,49 @@ export default function BusinessClient() {
                 extraActions={canManageBusiness ? <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditingParameter(null); setParamDialogOpen(true); }} data-testid="btn-create-business-setting">Create</Button> : undefined}
             />
 
-            <Card sx={{ mt: 2, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-                <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
-                    <Box sx={{ p: 2, display: 'flex', gap: 2, alignItems: 'center', bgcolor: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(8px)', borderBottom: '1px solid', borderColor: 'divider' }}>
-                        <TextField
-                            size="small"
-                            placeholder="Search parameters..."
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                            inputProps={{ 'data-testid': 'input-search' }}
-                            InputProps={{
-                                startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1, fontSize: 20 }} />,
-                                sx: { borderRadius: 2, bgcolor: 'background.paper' }
-                            }}
-                            sx={{ flexGrow: 1, maxWidth: 400 }}
-                        />
-                        <FormControl size="small" sx={{ minWidth: 160 }}>
-                            <InputLabel>Category</InputLabel>
-                            <Select
-                                value={categoryFilter}
-                                onChange={e => setCategoryFilter(e.target.value)}
-                                label="Category"
-                                sx={{ borderRadius: 2, bgcolor: 'background.paper' }}
-                            >
-                                <MenuItem key="ALL-0" value="ALL">All</MenuItem>
-                                <MenuItem key="B-1" value="B">Business</MenuItem>
-                                <MenuItem key="A-2" value="A">Application</MenuItem>
-                                <MenuItem key="S-3" value="S">System</MenuItem>
-                            </Select>
-                        </FormControl>
-                        <Button onClick={() => { setSearchTerm(''); setCategoryFilter('ALL'); }}><ClearIcon /></Button>
-                    </Box>
+            <BusinessParametersGrid
+                rows={filteredData}
+                loading={loading}
+                searchTerm={searchTerm}
+                categoryFilter={categoryFilter}
+                page={page}
+                rowsPerPage={rowsPerPage}
+                totalCount={totalCount}
+                detailRefreshTrigger={detailRefreshTrigger}
+                canManage={canManageBusiness}
+                onSearchChange={setSearchTerm}
+                onCategoryChange={setCategoryFilter}
+                onResetFilters={() => {
+                    setSearchTerm('');
+                    setCategoryFilter('ALL');
+                }}
+                onPageChange={setPage}
+                onRowsPerPageChange={(value) => {
+                    setRowsPerPage(value);
+                    setPage(0);
+                }}
+                onOpenPendingChanges={handleOpenPendingChanges}
+                onEditParameter={handleEditParameter}
+                onDeleteParameter={handleDeleteParameter}
+                onEditDetail={handleEditDetail}
+                onAddDetail={handleAddDetail}
+                onDeleteDetail={handleDeleteDetail}
+            />
 
-                    <Box sx={{ height: 600, width: '100%' }}>
-                        <SafeDataGrid
-                            rows={filteredData.slice(page * rowsPerPage, (page + 1) * rowsPerPage)}
-                            columns={columns}
-                            getRowId={(row) => row.pkid && row.pkid !== '0' ? row.pkid : row.param_code}
-                            loading={loading}
-                            rowCount={totalCount}
-                            hideFooterPagination
-                            hideFooter
-                            disableRowSelectionOnClick
-                            getDetailPanelContent={(params) => (
-                                <BusinessDetailPanel
-                                    row={params.row}
-                                    onEditDetail={(d: any) => { setCurrentDetailParamCode(params.row.param_code); setEditingDetail(d); setDetailDialogOpen(true); }}
-                                    onAddDetail={(code: string, nextSeq: number) => { setCurrentDetailParamCode(code); setDefaultDetailSeq(nextSeq); setEditingDetail(null); setDetailDialogOpen(true); }}
-                                    onDeleteDetail={handleDeleteDetail}
-                                    canManage={canManageBusiness}
-                                    refreshTrigger={detailRefreshTrigger}
-                                />
-                            )}
-                            getDetailPanelHeight={() => 'auto'}
-                            sx={{
-                                '& .MuiDataGrid-main': { minHeight: 400 },
-                            }}
-                        />
-                    </Box>
-                    <TablePagination
-                        rowsPerPageOptions={[10, 25, 50, 100]}
-                        component="div"
-                        count={totalCount}
-                        rowsPerPage={rowsPerPage}
-                        page={page}
-                        onPageChange={(e, p) => setPage(p)}
-                        onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-                        labelDisplayedRows={({ from, to, count }) => `Showing ${from}–${to} of ${count} • Page ${page + 1}`}
-                        sx={{
-                            borderTop: '2px solid #e0e0e0',
-                            bgcolor: '#fafafa',
-                        }}
-                    />
-                </CardContent>
-            </Card>
-
-            <BusinessParameterDialog open={paramDialogOpen} onClose={() => setParamDialogOpen(false)} onSave={handleSaveParameter} parameter={editingParameter || undefined} />
-            <DetailDialog open={detailDialogOpen} onClose={() => setDetailDialogOpen(false)} onSave={handleSaveDetail} detail={editingDetail || undefined} paramCode={currentDetailParamCode} defaultSeq={defaultDetailSeq} />
+            <BusinessParameterDialog
+                open={paramDialogOpen}
+                onClose={() => setParamDialogOpen(false)}
+                onSave={handleSaveParameter}
+                parameter={editingParameter || undefined}
+            />
+            <BusinessDetailFormDialog
+                open={detailDialogOpen}
+                onClose={() => setDetailDialogOpen(false)}
+                onSave={handleSaveDetail}
+                detail={editingDetail || undefined}
+                paramCode={currentDetailParamCode}
+                defaultSeq={defaultDetailSeq}
+            />
 
             <PendingChangesDialog
                 open={pendingChangesDialogOpen}

@@ -44,6 +44,8 @@ export default function LifetimePDConfigPanel({ open, onClose, onRun }: Lifetime
   // Local state for form fields
   const [procDate, setProcDate] = useState<Date | null>(new Date('2022-10-31'));
   const [selectedSegments, setSelectedSegments] = useState<ProductSegment[]>([]);
+  const [segmentTypeFilter, setSegmentTypeFilter] = useState<string>(''); // empty = all
+  const [showInactiveSegments, setShowInactiveSegments] = useState(true);
   const [pdConfigId, setPdConfigId] = useState('');
   const [pdMethod, setPdMethod] = useState('TTC');
   const [isForwardLooking, setIsForwardLooking] = useState(false);
@@ -70,7 +72,9 @@ export default function LifetimePDConfigPanel({ open, onClose, onRun }: Lifetime
           pdConfigurationsApi.getAll({ is_active: true }),
           flScalarAPI.getAll()
         ]);
-        setSegments(segData);
+        const normalizedSegments = Array.isArray(segData) ? segData : [];
+        normalizedSegments.sort((a, b) => (Number(a.displayOrder || 0) - Number(b.displayOrder || 0)) || String(a.id).localeCompare(String(b.id)));
+        setSegments(normalizedSegments);
         setPdConfigs(pdData);
         setScalars(scData);
       } catch (err) {
@@ -90,6 +94,12 @@ export default function LifetimePDConfigPanel({ open, onClose, onRun }: Lifetime
       setPdConfigId(pdConfigs[0].id.toString());
     }
   }, [pdConfigs, pdConfigId]);
+
+  const filteredSegments = segments.filter((segment) => {
+    if (!showInactiveSegments && segment.isActive === false) return false;
+    if (!segmentTypeFilter) return true;
+    return String(segment.segmentType || '').toLowerCase() === String(segmentTypeFilter).toLowerCase();
+  });
 
   const handleRun = () => {
     onRun({
@@ -144,20 +154,69 @@ export default function LifetimePDConfigPanel({ open, onClose, onRun }: Lifetime
           />
         </LocalizationProvider>
 
+        <FormControl fullWidth size="small">
+          <InputLabel>Segment Type</InputLabel>
+          <Select
+            value={segmentTypeFilter}
+            label="Segment Type"
+            onChange={(e: any) => setSegmentTypeFilter(String(e.target.value || ''))}
+            disabled={loadingMetadata}
+          >
+            <MenuItem value="">All Segment Types</MenuItem>
+            <MenuItem value="PD Segment">PD Segment</MenuItem>
+            <MenuItem value="LGD Segment">LGD Segment</MenuItem>
+            <MenuItem value="EAD Segment">EAD Segment</MenuItem>
+            <MenuItem value="Portfolio Segment">Portfolio Segment</MenuItem>
+          </Select>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+            Jika dropdown Segment ID hanya terlihat “PD”, ubah Segment Type ke All.
+          </Typography>
+        </FormControl>
+
+        <FormControlLabel
+          control={
+            <Switch
+              checked={showInactiveSegments}
+              onChange={(e) => setShowInactiveSegments(e.target.checked)}
+            />
+          }
+          label={<Typography variant="body2" fontWeight={600}>Show inactive segments</Typography>}
+        />
+
         {/* Segment ID */}
         <Autocomplete
           multiple
-          options={segments}
+          options={filteredSegments}
           loading={loadingMetadata}
-          getOptionLabel={(option) => `${getSegmentLabel(option)} (ID: ${option.id})`}
+          getOptionLabel={(option) => `${getSegmentLabel(option)}${option.segmentType ? ` — ${option.segmentType}` : ''} (ID: ${option.id})`}
           isOptionEqualToValue={(option, value) => String(option.id) === String(value.id)}
           value={selectedSegments}
           onChange={(_: any, newValue: ProductSegment[]) => setSelectedSegments(newValue)}
+          renderOption={(props, option) => (
+            <li {...props} key={String(option.id)}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, width: '100%' }}>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
+                    {getSegmentLabel(option)}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" noWrap>
+                    ID: {option.id}{option.groupSegment ? ` • ${option.groupSegment}` : ''}{option.subSegment ? ` • ${option.subSegment}` : ''}
+                  </Typography>
+                </Box>
+                {option.segmentType ? (
+                  <Chip size="small" label={option.segmentType} variant="outlined" />
+                ) : null}
+                {option.isActive === false ? (
+                  <Chip size="small" label="Inactive" color="warning" variant="outlined" />
+                ) : null}
+              </Box>
+            </li>
+          )}
           renderInput={(params) => (
             <TextField
               {...params}
               label="Segment ID"
-              placeholder="Select segments"
+              placeholder="Select segments (optional)"
               helperText="Kosong = semua segmen"
               InputProps={{
                 ...params.InputProps,

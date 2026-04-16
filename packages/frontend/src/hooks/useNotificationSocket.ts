@@ -88,10 +88,18 @@ export function useNotificationSocket() {
     const [isConnected, setIsConnected] = useState(false)
     const [notifications, setNotifications] = useState<NotificationPayload[]>([])
     const [unreadCount, setUnreadCount] = useState(0)
+    const [totalCount, setTotalCount] = useState(0)
     const [isLoading, setIsLoading] = useState(true)
     const [loadError, setLoadError] = useState<string | null>(null)
+    const persistedDisabledUntilRef = useRef(0)
+    const lastPersistedErrorAtRef = useRef(0)
 
-    const loadPersistedNotifications = useCallback(async () => {
+    const loadPersistedNotifications = useCallback(async (force?: boolean) => {
+        const now = Date.now()
+        if (!force && persistedDisabledUntilRef.current > now) {
+            setIsLoading(false)
+            return
+        }
         setIsLoading(true)
         setLoadError(null)
         try {
@@ -101,9 +109,22 @@ export function useNotificationSocket() {
             setNotifications(mapped)
             const unread = Number(response?.meta?.unreadCount)
             setUnreadCount(Number.isFinite(unread) ? unread : mapped.filter((item) => !item.readAt).length)
+            const total = Number(response?.meta?.total)
+            setTotalCount(Number.isFinite(total) ? total : mapped.length)
         } catch (error) {
-            console.warn('Failed to load persisted notifications:', error)
-            setLoadError(getErrorMessage(error, 'Failed to load notifications'))
+            const status = (error as any)?.response?.status
+            const message = error instanceof Error ? error.message : 'Failed to load notifications'
+            setLoadError(message)
+
+            if (typeof status === 'number' && status >= 500) {
+                lastPersistedErrorAtRef.current = now
+                persistedDisabledUntilRef.current = now + 60_000
+                return
+            }
+
+            if (now - lastPersistedErrorAtRef.current > 10_000) {
+                lastPersistedErrorAtRef.current = now
+            }
         } finally {
             setIsLoading(false)
         }
@@ -166,6 +187,7 @@ export function useNotificationSocket() {
                 if (prev.some((item) => item.id === normalizedNotification.id)) return prev
                 return [normalizedNotification, ...prev].slice(0, 50)
             })
+            setTotalCount((prev) => Math.max(0, prev + 1))
             if (!normalizedNotification.readAt) {
                 setUnreadCount((prev) => prev + 1)
             }
@@ -235,11 +257,12 @@ export function useNotificationSocket() {
         loadError,
         notifications,
         unreadCount,
+        totalCount,
         subscribeToApproval,
         subscribeToECL,
         acknowledgeNotification,
         clearNotifications,
-        refreshNotifications: loadPersistedNotifications,
+        refreshNotifications: () => loadPersistedNotifications(true),
     }
 }
 
@@ -252,6 +275,7 @@ export function useNotifications() {
     return {
         notifications: socket.notifications,
         unreadCount: socket.unreadCount,
+        totalCount: socket.totalCount,
         isConnected: socket.isConnected,
         isLoading: socket.isLoading,
         loadError: socket.loadError,

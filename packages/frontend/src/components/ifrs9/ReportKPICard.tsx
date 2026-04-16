@@ -14,6 +14,8 @@ import { formatTerbilang } from '../../utils/banking';
 export interface ReportKPICardProps {
   /** Card title label (shown uppercase) */
   title: string;
+  /** How to transform the title text. Defaults to 'uppercase'. */
+  titleTransform?: 'uppercase' | 'none';
   /** Numeric value or pre-formatted string  */
   value: number | string;
   /**
@@ -82,6 +84,7 @@ const formatValue = (
  */
 const ReportKPICard: React.FC<ReportKPICardProps> = ({
   title,
+  titleTransform = 'uppercase',
   value,
   format = 'raw',
   icon,
@@ -117,7 +120,7 @@ const ReportKPICard: React.FC<ReportKPICardProps> = ({
           variant="caption"
           sx={{
             fontWeight: 800,
-            textTransform: 'uppercase',
+            textTransform: titleTransform === 'uppercase' ? 'uppercase' : 'none',
             letterSpacing: 1.5,
             color: 'text.secondary',
             opacity: 0.8

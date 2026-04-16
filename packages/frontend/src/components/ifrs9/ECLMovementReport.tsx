@@ -245,85 +245,87 @@ const MovementWaterfallChart: React.FC<{ stats: SummaryStats }> = ({ stats }) =>
       </Box>
     </Box>
     <CardContent sx={{ p: 5 }}>
-      <ResponsiveContainer width="100%" height={450}>
-        <BarChart 
-          data={stats.movementBreakdown}
-          margin={{ top: 20, right: 30, left: 40, bottom: 80 }}
-        >
-          <defs>
-            {stats.movementBreakdown.map((entry, index) => (
-              <linearGradient id={`gradient-${index}`} x1="0" y1="0" x2="0" y2="1" key={index}>
-                <stop offset="0%" stopColor={entry.color} stopOpacity={1}/>
-                <stop offset="100%" stopColor={alpha(entry.color, 0.6)} stopOpacity={0.8}/>
-              </linearGradient>
-            ))}
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={alpha('#000', 0.05)} />
-          <XAxis 
-            dataKey="category" 
-            angle={-20} 
-            textAnchor="end" 
-            height={80}
-            axisLine={false}
-            tickLine={false}
-            tick={{ fontSize: 12, fontWeight: 700, fill: '#64748b' }}
-          />
-          <YAxis
-            axisLine={false}
-            tickLine={false}
-            tick={{ fontWeight: 700, fontSize: 12, fill: '#64748b' }}
-            tickFormatter={(value) => new Intl.NumberFormat('id-ID', {
-              style: 'currency',
-              currency: 'IDR',
-              notation: 'compact'
-            }).format(value)}
-          />
-          <Tooltip 
-            cursor={{ fill: alpha('#6366f1', 0.05), radius: 10 }}
-            contentStyle={{ 
-              borderRadius: '16px', 
-              border: 'none', 
-              boxShadow: '0 20px 40px rgba(0,0,0,0.12)',
-              padding: '16px',
-              background: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(10px)'
-            }}
-            itemStyle={{ fontWeight: 800, fontSize: '14px' }}
-            formatter={(value: number) => [
-              new Intl.NumberFormat('id-ID', {
+      <Box data-pdf-export-chart="ecl-movement">
+        <ResponsiveContainer width="100%" height={450}>
+          <BarChart 
+            data={stats.movementBreakdown}
+            margin={{ top: 20, right: 30, left: 40, bottom: 80 }}
+          >
+            <defs>
+              {stats.movementBreakdown.map((entry, index) => (
+                <linearGradient id={`gradient-${index}`} x1="0" y1="0" x2="0" y2="1" key={index}>
+                  <stop offset="0%" stopColor={entry.color} stopOpacity={1}/>
+                  <stop offset="100%" stopColor={alpha(entry.color, 0.6)} stopOpacity={0.8}/>
+                </linearGradient>
+              ))}
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={alpha('#000', 0.05)} />
+            <XAxis 
+              dataKey="category" 
+              angle={-20} 
+              textAnchor="end" 
+              height={80}
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 12, fontWeight: 700, fill: '#64748b' }}
+            />
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontWeight: 700, fontSize: 12, fill: '#64748b' }}
+              tickFormatter={(value) => new Intl.NumberFormat('id-ID', {
                 style: 'currency',
                 currency: 'IDR',
-                maximumFractionDigits: 0
-              }).format(Math.abs(value)),
-              'ECL Impact'
-            ]}
-          />
-          <Bar 
-            dataKey="amount" 
-            radius={[12, 12, 0, 0]}
-            barSize={50}
-            animationDuration={1500}
-            animationEasing="ease-in-out"
-          >
-            {stats.movementBreakdown.map((entry, index) => (
-              <Cell 
-                key={`cell-${index}`} 
-                fill={`url(#gradient-${index})`}
-              />
-            ))}
-            <LabelList 
-              dataKey="amount" 
-              position="top" 
-              offset={15}
-              formatter={(value) => new Intl.NumberFormat('id-ID', {
-                notation: 'compact',
-                maximumFractionDigits: 1
-              }).format(Math.abs(value))}
-              style={{ fontWeight: 800, fontSize: 13, fill: '#1e293b' }}
+                notation: 'compact'
+              }).format(value)}
             />
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+            <Tooltip 
+              cursor={{ fill: alpha('#6366f1', 0.05), radius: 10 }}
+              contentStyle={{ 
+                borderRadius: '16px', 
+                border: 'none', 
+                boxShadow: '0 20px 40px rgba(0,0,0,0.12)',
+                padding: '16px',
+                background: 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(10px)'
+              }}
+              itemStyle={{ fontWeight: 800, fontSize: '14px' }}
+              formatter={(value: number) => [
+                new Intl.NumberFormat('id-ID', {
+                  style: 'currency',
+                  currency: 'IDR',
+                  maximumFractionDigits: 0
+                }).format(Math.abs(value)),
+                'ECL Impact'
+              ]}
+            />
+            <Bar 
+              dataKey="amount" 
+              radius={[12, 12, 0, 0]}
+              barSize={50}
+              animationDuration={1500}
+              animationEasing="ease-in-out"
+            >
+              {stats.movementBreakdown.map((entry, index) => (
+                <Cell 
+                  key={`cell-${index}`} 
+                  fill={`url(#gradient-${index})`}
+                />
+              ))}
+              <LabelList 
+                dataKey="amount" 
+                position="top" 
+                offset={15}
+                formatter={(value) => new Intl.NumberFormat('id-ID', {
+                  notation: 'compact',
+                  maximumFractionDigits: 1
+                }).format(Math.abs(value))}
+                style={{ fontWeight: 800, fontSize: 13, fill: '#1e293b' }}
+              />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </Box>
     </CardContent>
   </Card>
 );

@@ -1,11 +1,20 @@
 'use client';
 
 import React from 'react';
-import { Alert, Container } from '@mui/material';
+import dynamic from 'next/dynamic';
+import { Alert, Box, CircularProgress, Container } from '@mui/material';
 import { AccountBalance as PageIcon } from '@mui/icons-material';
-import EADModelReport from '@/components/ifrs9/EADModelReport';
 import ReportPageLayout from '@/components/ifrs9/ReportPageLayout';
 import { Can } from '@/components/rbac/Can';
+
+const EADModelReport = dynamic(() => import('@/components/ifrs9/EADModelReport'), {
+  ssr: false,
+  loading: () => (
+    <Box sx={{ py: 6, display: 'flex', justifyContent: 'center' }}>
+      <CircularProgress />
+    </Box>
+  ),
+});
 
 export default function EADModelReportsPage() {
   return (

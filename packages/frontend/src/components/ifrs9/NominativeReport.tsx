@@ -1,7 +1,7 @@
 // packages/frontend/src/components/ifrs9/NominativeReport.tsx
 'use client';
 
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -23,9 +23,9 @@ import {
   MenuItem,
   InputAdornment,
   alpha,
-  Checkbox,
-  ListItemText
+  Checkbox
 } from '@mui/material';
+import type { AutocompleteRenderInputParams } from '@mui/material/Autocomplete';
 import {
   AccountBalance as AccountIcon,
   TrendingUp as TrendingUpIcon,
@@ -33,7 +33,8 @@ import {
   CheckCircle as CheckIcon,
   Search as SearchIcon,
   Clear as ClearIcon,
-  FileDownload as ExportIcon
+  FileDownload as ExportIcon,
+  PictureAsPdf as PdfIcon
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { ReportDataGrid } from './index';
@@ -73,6 +74,22 @@ interface NominativeReportRow {
   [key: string]: string | number | boolean | null | undefined;
 }
 
+interface NominativeAvailableDateRow {
+  prc_date: string
+  total_accounts: number
+  total_outstanding: number
+  total_ecl: number
+}
+
+const getDefaultFilters = (): FilterState => ({
+  asOfDate: new Date().toISOString().split('T')[0],
+  downloadDateStart: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+  downloadDateEnd: new Date().toISOString().split('T')[0],
+  profitCenters: [],
+  branches: [],
+  stages: [1, 2, 3]
+});
+
 const NominativeReport: React.FC = () => {
   // Summary statistics state
   const [summaryStats, setSummaryStats] = useState({
@@ -85,14 +102,8 @@ const NominativeReport: React.FC = () => {
   });
 
   // Filter state
-  const [filters, setFilters] = useState<FilterState>(() => ({
-    asOfDate: new Date().toISOString().split('T')[0],
-    downloadDateStart: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    downloadDateEnd: new Date().toISOString().split('T')[0],
-    profitCenters: [],
-    branches: [],
-    stages: [1, 2, 3]
-  }));
+  const [filters, setFilters] = useState<FilterState>(() => getDefaultFilters());
+  const [appliedFilters, setAppliedFilters] = useState<FilterState>(() => getDefaultFilters());
 
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<NominativeReportRow[]>([]);
@@ -105,6 +116,61 @@ const NominativeReport: React.FC = () => {
   // UI State
   const [quickSearch, setQuickSearch] = useState('');
   const [effectivePrcDate, setEffectivePrcDate] = useState<string | null>(null);
+  const [availableDates, setAvailableDates] = useState<NominativeAvailableDateRow[]>([])
+  const [availableDatesLoading, setAvailableDatesLoading] = useState(false)
+  const [autoSnapshot, setAutoSnapshot] = useState<{ from: string; to: string; direction: 'before_or_equal' | 'after' | 'unknown' } | null>(null)
+  const [autoDownloadRange, setAutoDownloadRange] = useState<{ fromStart: string; fromEnd: string; toStart: string; toEnd: string } | null>(null)
+  const latestFetchRef = useRef(0)
+  const skipNextAutoFetchRef = useRef(false)
+
+  const monthLabels = useMemo(
+    () => ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+    [],
+  )
+
+  const availableYearMonthSummary = useMemo(() => {
+    if (!availableDates.length) return []
+
+    const yearMap = new Map<number, number[]>()
+    for (const row of availableDates) {
+      const dateStr = String(row?.prc_date || '').slice(0, 10)
+      const [yStr, mStr] = dateStr.split('-')
+      const y = Number(yStr)
+      const m = Number(mStr)
+      if (!Number.isFinite(y) || !Number.isFinite(m) || m < 1 || m > 12) continue
+
+      const months = yearMap.get(y) || []
+      if (!months.includes(m)) months.push(m)
+      yearMap.set(y, months)
+    }
+
+    const compressMonths = (months: number[]) => {
+      const sorted = [...months].sort((a, b) => a - b)
+      const parts: string[] = []
+      let start = sorted[0]
+      let prev = sorted[0]
+      for (let i = 1; i < sorted.length; i += 1) {
+        const cur = sorted[i]
+        if (cur === prev + 1) {
+          prev = cur
+          continue
+        }
+        parts.push(start === prev ? monthLabels[start - 1] : `${monthLabels[start - 1]}–${monthLabels[prev - 1]}`)
+        start = cur
+        prev = cur
+      }
+      parts.push(start === prev ? monthLabels[start - 1] : `${monthLabels[start - 1]}–${monthLabels[prev - 1]}`)
+      return parts.join(', ')
+    }
+
+    return Array.from(yearMap.entries())
+      .map(([year, months]) => ({
+        year,
+        monthsText: compressMonths(months),
+        monthCount: months.length,
+      }))
+      .sort((a, b) => b.year - a.year)
+  }, [availableDates, monthLabels])
 
   // Column Definitions
   const columns = [
@@ -146,30 +212,33 @@ const NominativeReport: React.FC = () => {
   );
 
   // Handle Search / Fetch Data
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (nextFilters: FilterState, nextPaginationModel: GridPaginationModel) => {
+    const fetchId = ++latestFetchRef.current
     setLoading(true);
     try {
       // 1. Fetch Nominative Report Data (Paginated)
       const tableParams: Record<string, string | number | string[] | undefined> = {
-        prc_date: filters.asOfDate,
-        download_start_date: filters.downloadDateStart,
-        download_end_date: filters.downloadDateEnd,
-        page: paginationModel.page + 1,
-        limit: paginationModel.pageSize,
-        group_segment: filters.profitCenters.length > 0 ? filters.profitCenters : undefined,
-        branch_code: filters.branches.length > 0 ? filters.branches : undefined
+        prc_date: nextFilters.asOfDate,
+        download_start_date: nextFilters.downloadDateStart,
+        download_end_date: nextFilters.downloadDateEnd,
+        page: nextPaginationModel.page + 1,
+        limit: nextPaginationModel.pageSize,
+        group_segment: nextFilters.profitCenters.length > 0 ? nextFilters.profitCenters : undefined,
+        branch_code: nextFilters.branches.length > 0 ? nextFilters.branches : undefined
       };
       
       // Add stage filter if specific stages are selected (API supports single stage value usually, or we filter client side if multiple?)
       // The backend controller supports `stage` param.
       // If multiple stages are selected in UI, and backend only supports one, we might need to adjust.
       // For now, let's send the first one if only one is selected, or don't send if all are selected.
-      if (filters.stages.length > 0) {
-        tableParams.stage = filters.stages.map((stage) => String(stage));
+      if (nextFilters.stages.length > 0 && nextFilters.stages.length < 3) {
+        tableParams.stage = nextFilters.stages.map((stage) => String(stage));
       }
 
       const tableResponse = await reportsAPI.nominativeReport.get(tableParams);
       
+      if (fetchId !== latestFetchRef.current) return
+
       if (tableResponse.success) {
         setData(tableResponse.data);
         const total = tableResponse.pagination ? tableResponse.pagination.total : tableResponse.data.length;
@@ -186,93 +255,418 @@ const NominativeReport: React.FC = () => {
                 totalECL: tableResponse.summary.totalECL,
                 totalOutstanding: tableResponse.summary.totalOutstanding
             });
+        } else {
+            setSummaryStats({
+                totalAccounts: total,
+                stage1Count: 0,
+                stage2Count: 0,
+                stage3Count: 0,
+                totalECL: 0,
+                totalOutstanding: 0
+            });
         }
       } else {
         setData([]);
         setTotalRows(0);
+        setSummaryStats({
+          totalAccounts: 0,
+          stage1Count: 0,
+          stage2Count: 0,
+          stage3Count: 0,
+          totalECL: 0,
+          totalOutstanding: 0
+        })
       }
     } catch (error) {
       console.error('Error fetching data:', error);
       // Optional: Show notification to user
+      if (fetchId !== latestFetchRef.current) return
+      setData([]);
+      setTotalRows(0);
+      setSummaryStats({
+        totalAccounts: 0,
+        stage1Count: 0,
+        stage2Count: 0,
+        stage3Count: 0,
+        totalECL: 0,
+        totalOutstanding: 0
+      })
     } finally {
-      setLoading(false);
+      if (fetchId === latestFetchRef.current) setLoading(false);
     }
-  }, [filters, paginationModel]);
+  }, []);
 
-  // Initial load
+  const fetchAvailableDates = useCallback(async () => {
+    setAvailableDatesLoading(true)
+    try {
+      const response = await reportsAPI.nominativeReport.getAvailableDates({ limit: 120 })
+
+      const rows: NominativeAvailableDateRow[] = Array.isArray(response?.data) ? response.data : []
+      setAvailableDates(rows)
+    } catch (error) {
+      console.error('Error fetching available dates:', error)
+      setAvailableDates([])
+    } finally {
+      setAvailableDatesLoading(false)
+    }
+  }, [])
+
+  const resolveNearestSnapshotDate = useCallback((requested: string, rows: NominativeAvailableDateRow[]) => {
+    if (!rows.length) return null
+    const normalized = String(requested || '').slice(0, 10)
+    const sortedDesc = [...rows].sort((a, b) => String(b.prc_date).localeCompare(String(a.prc_date)))
+    const direct = sortedDesc.find((r) => String(r.prc_date).slice(0, 10) === normalized)
+    if (direct) return direct.prc_date
+
+    const requestedTs = Date.parse(normalized)
+    if (!Number.isFinite(requestedTs)) return sortedDesc[0]?.prc_date ?? null
+
+    let best = sortedDesc[0]
+    let bestDiff = Infinity
+    let bestIsBefore = false
+
+    for (const candidate of sortedDesc) {
+      const candDate = String(candidate.prc_date).slice(0, 10)
+      const candTs = Date.parse(candDate)
+      if (!Number.isFinite(candTs)) continue
+
+      const diff = Math.abs(candTs - requestedTs)
+      const isBeforeOrEqual = candTs <= requestedTs
+      const isBetter =
+        diff < bestDiff ||
+        (diff === bestDiff && isBeforeOrEqual && !bestIsBefore)
+
+      if (isBetter) {
+        best = candidate
+        bestDiff = diff
+        bestIsBefore = isBeforeOrEqual
+      }
+    }
+
+    return best?.prc_date ?? null
+  }, [])
+
   useEffect(() => {
-     fetchData();
-  }, [fetchData]);
+    if (!availableDates.length) return
+    const normalized = String(filters.asOfDate || '').slice(0, 10)
+    const hasExact = availableDates.some((d) => String(d.prc_date).slice(0, 10) === normalized)
+
+    if (hasExact) {
+      setAutoSnapshot((prev) => (prev && prev.to === normalized ? prev : null))
+      return
+    }
+
+    const resolved = resolveNearestSnapshotDate(normalized, availableDates)
+    if (!resolved || String(resolved).slice(0, 10) === normalized) return
+
+    const resolvedNorm = String(resolved).slice(0, 10)
+    const direction = resolvedNorm <= normalized ? 'before_or_equal' : 'after'
+    setAutoSnapshot({ from: normalized, to: resolvedNorm, direction })
+  }, [availableDates, filters.asOfDate, resolveNearestSnapshotDate])
+
+  useEffect(() => {
+    if (!availableDates.length) return
+
+    const rangeStart = String(filters.downloadDateStart || '').slice(0, 10)
+    const rangeEnd = String(filters.downloadDateEnd || '').slice(0, 10)
+    if (!rangeStart || !rangeEnd) return
+
+    const hasSnapshotInRange = availableDates.some((row) => {
+      const d = String(row.prc_date || '').slice(0, 10)
+      return d >= rangeStart && d <= rangeEnd
+    })
+
+    if (hasSnapshotInRange) {
+      setAutoDownloadRange(null)
+      return
+    }
+
+    const nearest = resolveNearestSnapshotDate(filters.asOfDate, availableDates)
+    if (!nearest) return
+    const nearestNorm = String(nearest).slice(0, 10)
+
+    if (rangeStart === nearestNorm && rangeEnd === nearestNorm) {
+      setAutoDownloadRange(null)
+      return
+    }
+
+    setAutoDownloadRange({ fromStart: rangeStart, fromEnd: rangeEnd, toStart: nearestNorm, toEnd: nearestNorm })
+  }, [availableDates, filters.asOfDate, filters.downloadDateEnd, filters.downloadDateStart, resolveNearestSnapshotDate])
+
+  const handleSearch = useCallback(() => {
+    setPaginationModel((prev) => ({ ...prev, page: 0 }));
+    setAppliedFilters(filters);
+  }, [filters]);
+
+  const filterSignature = useMemo(() => {
+    return [
+      filters.asOfDate,
+      filters.downloadDateStart,
+      filters.downloadDateEnd,
+      filters.profitCenters.join('|'),
+      filters.branches.join('|'),
+      filters.stages.join('|'),
+    ].join('::')
+  }, [filters])
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setPaginationModel((prev) => (prev.page === 0 ? prev : { ...prev, page: 0 }))
+      setAppliedFilters(filters)
+    }, 600)
+
+    return () => window.clearTimeout(timeout)
+  }, [filterSignature, filters])
+
+  useEffect(() => {
+    if (skipNextAutoFetchRef.current) {
+      skipNextAutoFetchRef.current = false
+      return
+    }
+    fetchData(appliedFilters, paginationModel);
+  }, [fetchData, appliedFilters, paginationModel.page, paginationModel.pageSize]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      void fetchAvailableDates()
+    }, 600)
+
+    return () => window.clearTimeout(timeout)
+  }, [fetchAvailableDates])
 
   // Handle Clear
   const handleClear = useCallback(() => {
-    setFilters({
-      asOfDate: new Date().toISOString().split('T')[0],
-      downloadDateStart: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      downloadDateEnd: new Date().toISOString().split('T')[0],
-      profitCenters: [],
-      branches: [],
-      stages: [1, 2, 3]
-    });
+    const nextFilters = getDefaultFilters();
+    const nextPagination = { pageSize: 20, page: 0 };
+    setFilters(nextFilters);
+    setAppliedFilters(nextFilters);
     setEffectivePrcDate(null);
-    setPaginationModel({ pageSize: 20, page: 0 });
+    setQuickSearch('');
+    setPaginationModel(nextPagination);
   }, []);
 
   // Handle Export to Excel
-  const handleExport = useCallback(async () => {
+  const handleExportExcel = useCallback(async () => {
+    const exportClientSide = () => {
+      const exportData = data.map(row => ({
+        'Download Date': row.download_date,
+        'Contract No': row.facility_number,
+        'Customer': row.cif_name,
+        'Account No': row.account_number,
+        'Loan Start Date': row.loan_start_date,
+        'Loan Maturity Date': row.loan_maturity_date,
+        'Currency': row.currency,
+        'Interest Rate': row.interest_rate,
+        'Outstanding (IDR)': row.outstanding,
+        'ECL Amount (IDR)': row.ecl_final_amt,
+        'ECL Coverage': row.ecl_coverage,
+        'Stage': row.stage,
+        'Group Segment': row.group_segment,
+        'Segment': row.segment,
+        'Sub Segment': row.sub_segment,
+        'Rating Bucket': row.rating_bucket,
+        'Watchlist': row.watchlist,
+        'Branch': row.branch_code
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Nominative Report');
+      XLSX.writeFile(wb, `Nominative_Report_Page_${effectivePrcDate ?? appliedFilters.asOfDate}.xlsx`);
+    };
+
     try {
         setLoading(true);
         const params = {
-          prc_date: effectivePrcDate ?? filters.asOfDate,
-          branch_code: filters.branches.length > 0 ? filters.branches[0] : undefined,
-          format: 'xlsx'
+          prc_date: effectivePrcDate ?? appliedFilters.asOfDate,
+          download_start_date: appliedFilters.downloadDateStart,
+          download_end_date: appliedFilters.downloadDateEnd,
+          group_segment: appliedFilters.profitCenters.length > 0 ? appliedFilters.profitCenters : undefined,
+          branch_code: appliedFilters.branches.length > 0 ? appliedFilters.branches : undefined,
+          stage: appliedFilters.stages.length > 0 ? appliedFilters.stages.map((s) => String(s)) : undefined,
+          format: 'xlsx',
         };
 
         const response = await reportsAPI.export('nominative-report', params);
-        
-        if (response.status === 200 && response.data) {
-             const url = window.URL.createObjectURL(new Blob([response.data]));
-             const link = document.createElement('a');
-             link.href = url;
-             link.setAttribute('download', `Nominative_Report_${effectivePrcDate ?? filters.asOfDate}.xlsx`);
-             document.body.appendChild(link);
-             link.click();
-             link.parentNode?.removeChild(link);
+
+        const contentType = String(response.headers?.['content-type'] ?? '').toLowerCase();
+        const isExcelPayload =
+          contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') ||
+          contentType.includes('application/octet-stream');
+
+        if (response.status === 200 && response.data && isExcelPayload) {
+          const url = window.URL.createObjectURL(new Blob([response.data]));
+          const link = document.createElement('a');
+          link.href = url;
+          link.setAttribute('download', `Nominative_Report_${effectivePrcDate ?? appliedFilters.asOfDate}.xlsx`);
+          document.body.appendChild(link);
+          link.click();
+          link.parentNode?.removeChild(link);
         } else {
-             // Fallback: Client side export of current data (better than nothing)
-              const exportData = data.map(row => ({
-                'Download Date': row.download_date,
-                'Contract No': row.facility_number,
-                'Customer': row.cif_name,
-                'Account No': row.account_number,
-                'Loan Start Date': row.loan_start_date,
-                'Loan Maturity Date': row.loan_maturity_date,
-                'Currency': row.currency,
-                'Interest Rate': row.interest_rate,
-                'Outstanding (IDR)': row.outstanding,
-                'ECL Amount (IDR)': row.ecl_final_amt,
-                'ECL Coverage': row.ecl_coverage,
-                'Stage': row.stage,
-                'Group Segment': row.group_segment,
-                'Segment': row.segment,
-                'Sub Segment': row.sub_segment,
-                'Rating Bucket': row.rating_bucket,
-                'Watchlist': row.watchlist,
-                'Branch': row.branch_code
-              }));
-              
-              const ws = XLSX.utils.json_to_sheet(exportData);
-              const wb = XLSX.utils.book_new();
-              XLSX.utils.book_append_sheet(wb, ws, "Nominative Report");
-              XLSX.writeFile(wb, `Nominative_Report_Page_${effectivePrcDate ?? filters.asOfDate}.xlsx`);
+          exportClientSide();
         }
     } catch (error) {
       console.error('❌ Export failed:', error);
-      alert('Export failed. Please try again.');
+      exportClientSide();
     } finally {
         setLoading(false);
     }
-  }, [data, effectivePrcDate, filters.asOfDate, filters.branches]);
+  }, [data, effectivePrcDate, appliedFilters]);
+
+  const formatCurrency = useCallback((value: unknown) => {
+    const numeric = typeof value === 'number' ? value : Number(String(value ?? '').replace(/,/g, ''))
+    if (!Number.isFinite(numeric)) return String(value ?? '')
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(numeric)
+  }, [])
+
+  const handleExportPdf = useCallback(async () => {
+    try {
+      setLoading(true)
+
+      const maxRows = 1500
+      const pageSize = Math.min(Math.max(totalRows || 0, 1), maxRows)
+
+      const params: Record<string, string | number | string[] | undefined> = {
+        prc_date: effectivePrcDate ?? appliedFilters.asOfDate,
+        download_start_date: appliedFilters.downloadDateStart,
+        download_end_date: appliedFilters.downloadDateEnd,
+        page: 1,
+        limit: pageSize,
+        group_segment: appliedFilters.profitCenters.length > 0 ? appliedFilters.profitCenters : undefined,
+        branch_code: appliedFilters.branches.length > 0 ? appliedFilters.branches : undefined,
+        stage: appliedFilters.stages.length > 0 ? appliedFilters.stages.map((s) => String(s)) : undefined,
+      }
+
+      const tableResponse = await reportsAPI.nominativeReport.get(params)
+      const rows: NominativeReportRow[] = Array.isArray(tableResponse?.data) ? tableResponse.data : []
+
+      const [{ jsPDF }, autoTableModule] = await Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable'),
+      ])
+
+      const autoTable = (autoTableModule as any).default || (autoTableModule as any)
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
+
+      const reportDate = effectivePrcDate ?? appliedFilters.asOfDate
+      const generatedAt = new Date().toISOString().replace('T', ' ').slice(0, 19)
+
+      const filterParts = [
+        `As of: ${reportDate}`,
+        `Download: ${appliedFilters.downloadDateStart} to ${appliedFilters.downloadDateEnd}`,
+        appliedFilters.stages?.length ? `Stages: ${appliedFilters.stages.join(', ')}` : undefined,
+        appliedFilters.profitCenters?.length ? `Profit Center: ${appliedFilters.profitCenters.join(', ')}` : undefined,
+        appliedFilters.branches?.length ? `Branch: ${appliedFilters.branches.join(', ')}` : undefined,
+      ].filter(Boolean)
+
+      const metaLeft = [
+        'IFRS 9 Nominative Report',
+        filterParts.join(' | '),
+        `Generated: ${generatedAt}`,
+      ]
+
+      const metaRight = [
+        `Total Accounts: ${Number(summaryStats.totalAccounts || 0).toLocaleString('id-ID')}`,
+        `Outstanding: ${formatCurrency(summaryStats.totalOutstanding)}`,
+        `Total ECL: ${formatCurrency(summaryStats.totalECL)}`,
+        totalRows > maxRows ? `Rows: first ${maxRows.toLocaleString('id-ID')} of ${Number(totalRows).toLocaleString('id-ID')}` : `Rows: ${rows.length.toLocaleString('id-ID')}`,
+      ]
+
+      const head = [[
+        'Download Date',
+        'Contract No',
+        'Customer',
+        'Account No',
+        'Start Date',
+        'Maturity Date',
+        'CCY',
+        'Interest',
+        'Outstanding',
+        'ECL Amount',
+        'ECL Coverage',
+        'Stage',
+        'Group Segment',
+        'Segment',
+        'Sub Segment',
+        'Rating',
+        'Watchlist',
+        'Branch',
+      ]]
+
+      const body = rows.map((row) => ([
+        row.download_date ?? '',
+        row.facility_number ?? '',
+        row.cif_name ?? '',
+        row.account_number ?? '',
+        row.loan_start_date ?? '',
+        row.loan_maturity_date ?? '',
+        row.currency ?? '',
+        row.interest_rate ?? '',
+        row.outstanding ?? '',
+        row.ecl_final_amt ?? '',
+        row.ecl_coverage ?? '',
+        row.stage ?? '',
+        row.group_segment ?? '',
+        row.segment ?? '',
+        row.sub_segment ?? '',
+        row.rating_bucket ?? '',
+        row.watchlist ?? '',
+        row.branch_code ?? '',
+      ]))
+
+      autoTable(doc, {
+        head,
+        body,
+        startY: 84,
+        margin: { top: 72, left: 32, right: 32, bottom: 36 },
+        styles: { fontSize: 7, cellPadding: 3, overflow: 'linebreak' },
+        headStyles: { fillColor: [25, 118, 210], textColor: 255, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        columnStyles: {
+          7: { halign: 'right' },
+          8: { halign: 'right' },
+          9: { halign: 'right' },
+          10: { halign: 'right' },
+          11: { halign: 'center' },
+          15: { halign: 'center' },
+          16: { halign: 'center' },
+        },
+        didDrawPage: (dataArg: any) => {
+          const pageWidth = doc.internal.pageSize.getWidth()
+
+          doc.setFontSize(14)
+          doc.setTextColor(17, 24, 39)
+          doc.text(metaLeft[0], 32, 32)
+
+          doc.setFontSize(9)
+          doc.setTextColor(71, 85, 105)
+          doc.text(metaLeft[1], 32, 48, { maxWidth: pageWidth - 64 })
+          doc.text(metaLeft[2], 32, 62)
+
+          doc.setFontSize(9)
+          doc.setTextColor(17, 24, 39)
+          const rightX = pageWidth - 32
+          doc.text(metaRight[0], rightX, 32, { align: 'right' })
+          doc.text(metaRight[1], rightX, 46, { align: 'right' })
+          doc.text(metaRight[2], rightX, 60, { align: 'right' })
+          doc.setTextColor(71, 85, 105)
+          doc.text(metaRight[3], rightX, 74, { align: 'right' })
+
+          const pageNumber = doc.getCurrentPageInfo().pageNumber
+          const totalPages = doc.getNumberOfPages()
+          doc.setFontSize(9)
+          doc.setTextColor(100)
+          doc.text(`Page ${pageNumber} / ${totalPages}`, rightX, doc.internal.pageSize.getHeight() - 18, { align: 'right' })
+        },
+      })
+
+      doc.save(`Nominative_Report_${reportDate}.pdf`)
+    } catch (error) {
+      console.error('❌ PDF export failed:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [appliedFilters, effectivePrcDate, formatCurrency, summaryStats, totalRows])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -285,7 +679,7 @@ const NominativeReport: React.FC = () => {
       // Ctrl/Cmd + E for export
       if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
         e.preventDefault();
-        handleExport();
+        handleExportExcel();
       }
       // Ctrl/Cmd + F for search focus
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
@@ -297,7 +691,7 @@ const NominativeReport: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleClear, handleExport]);
+  }, [handleClear, handleExportExcel]);
 
   // Filter data based on quick search (Client-side usage on top of current page)
   const filteredData = useMemo(() => {
@@ -318,12 +712,46 @@ const NominativeReport: React.FC = () => {
     );
   }, [data, quickSearch]);
 
+  const kpiStats = useMemo(() => {
+    const hasQuickSearch = Boolean(quickSearch.trim())
+    if (!hasQuickSearch) return summaryStats
+
+    const toNumber = (value: unknown) => {
+      const numeric = typeof value === 'number' ? value : Number(String(value ?? '').replace(/,/g, ''))
+      return Number.isFinite(numeric) ? numeric : 0
+    }
+
+    const totalOutstanding = filteredData.reduce((sum, row) => sum + toNumber(row.outstanding), 0)
+    const totalECL = filteredData.reduce((sum, row) => sum + toNumber(row.ecl_final_amt), 0)
+
+    return {
+      ...summaryStats,
+      totalAccounts: filteredData.length,
+      totalOutstanding,
+      totalECL,
+    }
+  }, [filteredData, quickSearch, summaryStats])
+
   const mapEclRatio = () => {
-      if (summaryStats.totalOutstanding > 0) {
-          return (summaryStats.totalECL / summaryStats.totalOutstanding) * 100;
+      if (kpiStats.totalOutstanding > 0) {
+          return (kpiStats.totalECL / kpiStats.totalOutstanding) * 100;
       }
       return 0;
   }
+
+  const iconOnlyButtonSx = {
+    width: 46,
+    height: 46,
+    minWidth: 46,
+    borderRadius: 3,
+    padding: 0,
+    '& .MuiButton-startIcon': {
+      margin: 0,
+    },
+    '& .MuiButton-startIcon > *:nth-of-type(1)': {
+      fontSize: 22,
+    },
+  } as const
 
   return (
     <Box>
@@ -331,8 +759,8 @@ const NominativeReport: React.FC = () => {
       <Grid container spacing={2.5} sx={{ mb: 4 }}>
         {[
           {
-            title: 'Total Accounts',
-            value: summaryStats.totalAccounts,
+            title: quickSearch.trim() ? 'Displayed Accounts' : 'Total Accounts',
+            value: kpiStats.totalAccounts,
             icon: <AccountIcon sx={{ fontSize: 28 }} />,
             color: 'primary',
             mainColor: '#2563eb',
@@ -342,7 +770,7 @@ const NominativeReport: React.FC = () => {
           },
           {
             title: 'Outstanding Exposure',
-            value: summaryStats.totalOutstanding,
+            value: kpiStats.totalOutstanding,
             icon: <TrendingUpIcon sx={{ fontSize: 28 }} />,
             color: 'success',
             mainColor: '#059669',
@@ -357,7 +785,7 @@ const NominativeReport: React.FC = () => {
           },
           {
             title: 'Total ECL Amount',
-            value: summaryStats.totalECL,
+            value: kpiStats.totalECL,
             icon: <WarningIcon sx={{ fontSize: 28 }} />,
             color: 'error',
             mainColor: '#dc2626',
@@ -497,6 +925,7 @@ const NominativeReport: React.FC = () => {
                 value={new Date(filters.asOfDate)}
                 onChange={(newValue) => {
                   if (newValue) {
+                    setAutoSnapshot(null)
                     setFilters(prev => ({ ...prev, asOfDate: newValue.toISOString().split('T')[0] }));
                   }
                 }}
@@ -507,6 +936,52 @@ const NominativeReport: React.FC = () => {
                   }
                 }}
               />
+              <Autocomplete
+                options={availableDates}
+                loading={availableDatesLoading}
+                size="small"
+                sx={{ mt: 1 }}
+                getOptionLabel={(option) => {
+                  const total = Number(option.total_accounts || 0).toLocaleString('id-ID')
+                  return `${option.prc_date} (${total} rows)`
+                }}
+                onChange={(_, option) => {
+                  if (option?.prc_date) {
+                    setAutoSnapshot(null)
+                    setFilters(prev => ({ ...prev, asOfDate: option.prc_date }))
+                  }
+                }}
+                renderInput={(params: AutocompleteRenderInputParams) => (
+                  <TextField
+                    {...params}
+                    label="Available Snapshots"
+                    placeholder="Pick a date with data"
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {availableDatesLoading ? <Skeleton variant="circular" width={16} height={16} /> : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
+              />
+              {availableYearMonthSummary.length > 0 ? (
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: 'block' }}>
+                  Data tersedia: {availableYearMonthSummary.map((y) => `${y.year} (${y.monthsText})`).join(' • ')}
+                </Typography>
+              ) : null}
+              {autoSnapshot ? (
+                <Alert
+                  severity="info"
+                  variant="outlined"
+                  sx={{ mt: 1, py: 0.5, '& .MuiAlert-message': { fontSize: 12 } }}
+                >
+                  As-of Date {autoSnapshot.from} tidak memiliki snapshot. Snapshot terdekat {autoSnapshot.direction === 'before_or_equal' ? 'sebelum/di tanggal' : 'setelah tanggal'}: {autoSnapshot.to}.
+                </Alert>
+              ) : null}
             </Grid>
 
             <Grid size={{ xs: 12, md: 5 }}>
@@ -515,39 +990,74 @@ const NominativeReport: React.FC = () => {
                 <Select
                   multiple
                   value={filters.stages}
-                  onChange={(e) => setFilters(prev => ({ ...prev, stages: e.target.value as number[] }))}
+                  onChange={(e) => {
+                    const raw = (e.target as any).value
+                    const values = Array.isArray(raw) ? raw : String(raw ?? '').split(',')
+                    const parsed = values
+                      .map((v: any) => Number(String(v).trim()))
+                      .filter((n: number) => Number.isInteger(n) && n >= 1 && n <= 3)
+                    const nextStages = parsed.length > 0 ? parsed : [1, 2, 3]
+                    const nextFilters = { ...filters, stages: nextStages }
+                    setPaginationModel((prev) => ({ ...prev, page: 0 }))
+                    setFilters(nextFilters)
+                    setAppliedFilters(nextFilters)
+                    skipNextAutoFetchRef.current = true
+                    void fetchData(nextFilters, { page: 0, pageSize: paginationModel.pageSize })
+                  }}
                   label="Stage"
                   renderValue={(selected) => (
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                      {(selected as number[]).map((value) => (
-                        <Chip
-                          key={value}
-                          label={`Stage ${value}`}
-                          size="small"
-                          color={value === 1 ? 'success' : value === 2 ? 'warning' : 'error'}
-                          sx={{ height: 24 }}
-                        />
-                      ))}
+                      {((selected as number[])?.length ?? 0) >= 3 ? (
+                        <Chip label="All Stages" size="small" sx={{ height: 24 }} />
+                      ) : (
+                        (selected as number[]).map((value) => (
+                          <Chip
+                            key={value}
+                            label={`Stage ${value}`}
+                            size="small"
+                            color={value === 1 ? 'success' : value === 2 ? 'warning' : 'error'}
+                            sx={{ height: 24 }}
+                          />
+                        ))
+                      )}
                     </Box>
                   )}
                 >
-                  <MenuItem value={1}>Stage 1</MenuItem>
-                  <MenuItem value={2}>Stage 2</MenuItem>
-                  <MenuItem value={3}>Stage 3</MenuItem>
+                  <MenuItem value={1}>
+                    <Checkbox checked={filters.stages.includes(1)} />
+                    Stage 1
+                  </MenuItem>
+                  <MenuItem value={2}>
+                    <Checkbox checked={filters.stages.includes(2)} />
+                    Stage 2
+                  </MenuItem>
+                  <MenuItem value={3}>
+                    <Checkbox checked={filters.stages.includes(3)} />
+                    Stage 3
+                  </MenuItem>
                 </Select>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                  Jika semua stage tercentang berarti tidak memfilter (All Stages). Untuk memfilter, sisakan stage yang diinginkan saja.
+                </Typography>
               </FormControl>
             </Grid>
 
             <Grid size={{ xs: 12, md: 4 }}>
-               <Stack direction="row" spacing={1} justifyContent="flex-end">
+               <Stack
+                 direction="row"
+                 sx={{
+                   flexWrap: 'wrap',
+                   justifyContent: { xs: 'flex-start', md: 'flex-end' },
+                   gap: 1,
+                 }}
+               >
                   <Button 
                     variant="contained" 
                     startIcon={<SearchIcon />} 
-                    onClick={fetchData} 
+                    onClick={handleSearch}
                     disabled={loading}
                     sx={{ 
-                      px: 3,
-                      py: 1,
+                      ...iconOnlyButtonSx,
                       background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
                       boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)',
                       fontWeight: 600,
@@ -558,15 +1068,17 @@ const NominativeReport: React.FC = () => {
                       },
                       transition: 'all 0.3s ease'
                     }}
+                    aria-label="Search"
+                    title="Search"
                   >
-                    Search
                   </Button>
                   <Button
                     variant="outlined"
                     startIcon={<ExportIcon />}
-                    onClick={handleExport}
+                    onClick={handleExportExcel}
                     disabled={loading}
                     sx={{
+                      ...iconOnlyButtonSx,
                       borderWidth: 1.5,
                       fontWeight: 600,
                       borderColor: '#1976d2',
@@ -579,25 +1091,55 @@ const NominativeReport: React.FC = () => {
                       },
                       transition: 'all 0.3s ease'
                     }}
+                    aria-label="Export Excel"
+                    title="Export Excel"
                   >
-                    Export
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<PdfIcon />}
+                    onClick={handleExportPdf}
+                    disabled={loading}
+                    sx={{
+                      ...iconOnlyButtonSx,
+                      borderWidth: 1.5,
+                      fontWeight: 600,
+                      borderColor: '#ef4444',
+                      color: '#ef4444',
+                      '&:hover': {
+                        borderWidth: 1.5,
+                        borderColor: '#dc2626',
+                        bgcolor: alpha('#ef4444', 0.04),
+                        transform: 'translateY(-2px)',
+                      },
+                      transition: 'all 0.3s ease'
+                    }}
+                    aria-label="Export PDF"
+                    title="Export PDF"
+                  >
                   </Button>
                   <Button 
                     variant="outlined" 
                     onClick={handleClear}
                     startIcon={<ClearIcon />}
                     sx={{
-                      borderWidth: 2,
+                      ...iconOnlyButtonSx,
+                      borderWidth: 1.5,
                       fontWeight: 600,
+                      borderColor: 'rgba(2, 6, 23, 0.25)',
+                      color: '#0f172a',
                       '&:hover': {
-                        borderWidth: 2,
+                        borderWidth: 1.5,
+                        borderColor: 'rgba(2, 6, 23, 0.4)',
+                        bgcolor: alpha('#0f172a', 0.04),
                         transform: 'translateY(-2px)',
                         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
                       },
                       transition: 'all 0.3s ease'
                     }}
+                    aria-label="Clear"
+                    title="Clear"
                   >
-                    Clear
                   </Button>
                </Stack>
             </Grid>
@@ -609,6 +1151,7 @@ const NominativeReport: React.FC = () => {
                     value={new Date(filters.downloadDateStart)}
                     onChange={(newValue) => {
                       if (newValue) {
+                        setAutoDownloadRange(null)
                         setFilters(prev => ({ ...prev, downloadDateStart: newValue.toISOString().split('T')[0] }));
                       }
                     }}
@@ -627,6 +1170,7 @@ const NominativeReport: React.FC = () => {
                     value={new Date(filters.downloadDateEnd)}
                     onChange={(newValue) => {
                       if (newValue) {
+                        setAutoDownloadRange(null)
                         setFilters(prev => ({ ...prev, downloadDateEnd: newValue.toISOString().split('T')[0] }));
                       }
                     }}
@@ -639,26 +1183,63 @@ const NominativeReport: React.FC = () => {
                   />
                 </Grid>
 
+                {autoDownloadRange ? (
+                  <Grid size={{ xs: 12 }}>
+                    <Alert
+                      severity="info"
+                      variant="outlined"
+                      sx={{ py: 0.5, '& .MuiAlert-message': { fontSize: 12 } }}
+                    >
+                      Rentang Download Date {autoDownloadRange.fromStart}–{autoDownloadRange.fromEnd} tidak memiliki snapshot. Rekomendasi snapshot/range: {autoDownloadRange.toStart}–{autoDownloadRange.toEnd}.
+                    </Alert>
+                  </Grid>
+                ) : null}
+
                 <Grid size={{ xs: 12, md: 6 }} />
 
                 <Grid size={{ xs: 12, md: 6 }}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Group Segment</InputLabel>
-                    <Select
+                  <Autocomplete
                       multiple
+                      freeSolo
+                      disableCloseOnSelect
+                      size="small"
+                      options={profitCenterOptions}
                       value={filters.profitCenters}
-                      onChange={(e) => setFilters(prev => ({ 
-                        ...prev, 
-                        profitCenters: typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value as string[] 
-                      }))}
-                      label="Group Segment"
-                      renderValue={(selected) => (
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                          {selected.map((value) => (
-                            <Chip 
-                              key={value} 
-                              label={value} 
+                      onChange={(_, newValue) => {
+                        const nextValue = newValue
+                          .map((v) => String(v).trim())
+                          .filter((v) => v.length > 0);
+                        setFilters(prev => ({ ...prev, profitCenters: nextValue }));
+                      }}
+                      renderInput={(params: AutocompleteRenderInputParams) => (
+                        <TextField
+                          {...params}
+                          label="Group Segment"
+                          placeholder={filters.profitCenters.length === 0 ? 'Select or type...' : ''}
+                        />
+                      )}
+                      renderOption={(props, option, { selected }) => {
+                        const { key, ...otherProps } = props;
+                        return (
+                          <li key={key} {...otherProps}>
+                            <Checkbox
                               size="small"
+                              style={{ marginRight: 8 }}
+                              checked={selected}
+                            />
+                            {option}
+                          </li>
+                        );
+                      }}
+                      renderTags={(value, getTagProps) =>
+                        value.map((option, index) => {
+                          const { key, ...tagProps } = getTagProps({ index });
+                          return (
+                            <Chip
+                              label={option}
+                              size="small"
+                              {...tagProps}
+                              key={key}
                               sx={{
                                 bgcolor: alpha('#2563eb', 0.1),
                                 color: '#2563eb',
@@ -667,31 +1248,29 @@ const NominativeReport: React.FC = () => {
                                 borderColor: alpha('#2563eb', 0.2)
                               }}
                             />
-                          ))}
-                        </Box>
-                      )}
-                    >
-                      {profitCenterOptions.map((option) => (
-                        <MenuItem key={option} value={option}>
-                          <Checkbox checked={filters.profitCenters.indexOf(option) > -1} size="small" />
-                          <ListItemText primary={option} />
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                          );
+                        })
+                      }
+                    />
                 </Grid>
 
                 <Grid size={{ xs: 12, md: 6 }}>
                   <Autocomplete
                     multiple
+                    freeSolo
                     disableCloseOnSelect
                     size="small"
                     options={branchOptions}
                     value={filters.branches}
-                    onChange={(_, newValue) => setFilters(prev => ({ ...prev, branches: newValue }))}
-                    renderInput={(params) => (
+                    onChange={(_, newValue) => {
+                      const nextValue = newValue
+                        .map((v) => String(v).trim())
+                        .filter((v) => v.length > 0);
+                      setFilters(prev => ({ ...prev, branches: nextValue }));
+                    }}
+                    renderInput={(params: AutocompleteRenderInputParams) => (
                       <TextField 
-                        {...(params as any)} 
+                        {...params} 
                         label="Branch Code" 
                         placeholder={filters.branches.length === 0 ? "Select branches..." : ""}
                       />
@@ -735,7 +1314,7 @@ const NominativeReport: React.FC = () => {
             {effectivePrcDate && effectivePrcDate !== filters.asOfDate && (
               <Grid size={{ xs: 12 }}>
                 <Typography variant="body2" color="text.secondary">
-                  Snapshot used: <strong>{effectivePrcDate}</strong> (latest available data on or before selected As-of Date)
+                  Snapshot used: <strong>{effectivePrcDate}</strong> (snapshot yang tersedia paling dekat dengan As-of Date yang dipilih)
                 </Typography>
               </Grid>
             )}
@@ -882,7 +1461,7 @@ const NominativeReport: React.FC = () => {
         <Box sx={{ width: '100%' }}>
           <ReportDataGrid
             rows={filteredData}
-            getRowId={(row) => row.account_number || Math.random()}
+            getRowId={(row) => row.account_number}
             columns={columns
               .map(col => {
                 const baseCol: GridColDef = {
@@ -891,7 +1470,7 @@ const NominativeReport: React.FC = () => {
                   width: col.width || 150,
                   sortable: true,
                   align: col.align || 'left',
-                  headerAlign: col.headerAlign || 'left' as any
+                  headerAlign: (col.headerAlign ?? 'left') as 'left' | 'center' | 'right'
                 };
 
                 if (col.type === 'currency') {

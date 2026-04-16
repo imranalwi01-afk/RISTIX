@@ -33,7 +33,6 @@ import { setBankingMode } from '../store/slices/configurationSlice'
 
 // ✅ CENTRALIZED SESSION CONTROL: Import session control service
 import { sessionControlService } from '../services/session-control.service'
-import { menuApi } from '../services/api/menu.api';
 
 // ============================================================================
 // STAKEHOLDER LANDING PAGE HELPER
@@ -481,65 +480,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log(`✅ Including tenantId: ${credentials.tenantId}`)
       }
 
-      // ✅ FIXED: Use domain-based API URL mapping with environment fallback
-      const getApiBaseUrl = () => {
-        // ✅ FIXED: Use centralized configuration for dual-mode auto-detection
-        console.log('🏭 Using centralized configuration for dual-mode auto-detection');
-
-        // ✅ FIXED: Use centralized configuration instead of hardcoded URLs
-        if (process.env.NEXT_PUBLIC_BACKEND_URL) {
-          console.log('✅ Using centralized NEXT_PUBLIC_BACKEND_URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
-          return process.env.NEXT_PUBLIC_BACKEND_URL;
-        }
-
-        // Fallback to environment-based detection
-        // Use centralized environment loader for dual environment support
-        try {
-          const { frontendEnvironmentLoader } = require('../config/environment-loader-frontend');
-          try {
-            // Force load if not loaded
-            frontendEnvironmentLoader.loadConfiguration();
-          } catch (e) {
-            // Ignore if already loaded
-          }
-          const config = frontendEnvironmentLoader.getConfiguration();
-          console.log('🎯 Using centralized environment loader:', config.urls.backend);
-          return config.urls.backend;
-        } catch (error) {
-          console.warn('⚠️ Failed to load environment configuration, using fallback:', error);
-
-          // Fallback to environment variable
-          if (process.env.NEXT_PUBLIC_BACKEND_URL) {
-            console.log('🔧 Using NEXT_PUBLIC_BACKEND_URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
-            return process.env.NEXT_PUBLIC_BACKEND_URL;
-          }
-        }
-
-        // Priority 2: Environment variable (only if domain detection fails)
-        if (process.env.NEXT_PUBLIC_BACKEND_URL) {
-          console.log('⚠️ Domain detection failed, using NEXT_PUBLIC_BACKEND_URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
-          console.log('🔧 Available BACKEND_HOST:', process.env.NEXT_PUBLIC_BACKEND_HOST);
-          console.log('🔧 Available BACKEND_PORT:', process.env.NEXT_PUBLIC_BACKEND_PORT);
-          return process.env.NEXT_PUBLIC_BACKEND_URL;
-        }
-
-        if (process.env.NEXT_PUBLIC_BACKEND_API_URL) {
-          console.log('⚠️ Using NEXT_PUBLIC_BACKEND_API_URL:', process.env.NEXT_PUBLIC_BACKEND_API_URL);
-          // Strip /api/v1 if present to avoid duplication
-          return process.env.NEXT_PUBLIC_BACKEND_API_URL.replace(/\/api\/v1\/?$/, '');
-        }
-
-        // Priority 3: Final fallback - MUST USE PRODUCTION DOMAIN
-        // NOTE: We return the BASE URL (without /api/v1/auth/login) because the caller adds the path
-        const fallbackUrl = `https://iaf-ifrs-be.ifrspro.id`;
-        console.log('🚨 Using final fallback URL:', fallbackUrl);
-        return fallbackUrl;
-      };
-      const rawApiBaseUrl = getApiBaseUrl();
-      // Ensure no trailing slash and no /api/v1 suffix
-      const apiBaseUrl = rawApiBaseUrl.replace(/\/?$/, '').replace(/\/api\/v1\/?$/, '');
-
-      const response = await fetch(`${apiBaseUrl}/api/v1/auth/login`, {
+      const response = await fetch(`/api/v1/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -548,12 +489,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        let errorMessage = errorData.message || 'Login failed'
+        const contentType = response.headers.get('content-type') || ''
+        const errorPayload: unknown = contentType.includes('application/json')
+          ? await response.json().catch(() => null)
+          : await response.text().catch(() => null)
+
+        const errorData = (errorPayload && typeof errorPayload === 'object') ? (errorPayload as Record<string, unknown>) : {}
+        let errorMessage =
+          (typeof errorData.message === 'string' && errorData.message) ||
+          (typeof errorPayload === 'string' && errorPayload) ||
+          'Login failed'
 
         // 🔧 FIXED: Enhanced error detection for rate limiting
         if (errorData.error === 'RATE_LIMIT_EXCEEDED' || errorData.code === 'RATE_LIMIT_EXCEEDED') {
-          errorMessage = `Too many login attempts. Please wait ${errorData.retryAfter || 15} minutes before trying again.`
+          const retryAfter = typeof errorData.retryAfter === 'number' ? errorData.retryAfter : 15
+          errorMessage = `Too many login attempts. Please wait ${retryAfter} minutes before trying again.`
           console.warn('🚫 Rate limit exceeded for login:', errorData)
         } else if (errorData.error === 'INVALID_CREDENTIALS' || errorData.code === 'INVALID_CREDENTIALS') {
           errorMessage = 'Invalid email or password. Please check your credentials and try again.'
@@ -644,25 +594,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const landingUrl = getLandingPageUrl(userData)
           console.log(`🚀 Login successful - preparing redirect to: ${landingUrl}`)
 
-          // ✅ PERFORMANCE OPTIMIZATION: Pre-fetch menu data while user sees the "Login Success" state
-          // We fetch it here in parallel with 150ms timeout, effectively making it "free" time
-          // We store raw data to 'temp_raw_menu' so BankingSidebar can pick it up immediately
-          // avoiding a second network request.
-          if (landingUrl.includes('banking') && token) {
-            const detectedMode = detectedBankingMode || 'conventional';
-            // Pre-fetch menu data
-            console.log('⚡ [PERF] Pre-fetching menu data for:', detectedMode);
-            menuApi.getMenuTree({
-              bankingMode: detectedMode,
-              includeInactive: false
-            }).then(response => {
-              if (response.success && response.data) {
-                localStorage.setItem('temp_raw_menu', JSON.stringify(response.data));
-                console.log('⚡ [PERF] Menu data pre-fetched and cached to temp storage');
-              }
-            }).catch(err => console.warn('⚠️ Menu pre-fetch failed:', err));
-          }
-
           setTimeout(() => {
             try {
               console.log(`🚀 Executing navigation to: ${landingUrl}`);
@@ -695,7 +626,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     } catch (error: any) {
       console.error('❌ Login error:', error)
-      const errorMessage = error.message || 'Login failed'
+      const rawMessage = error?.message || 'Login failed'
+      const errorMessage =
+        typeof rawMessage === 'string' && rawMessage.toLowerCase().includes('failed to fetch')
+          ? 'Tidak bisa terhubung ke server (Failed to fetch). Pastikan API/proxy backend sedang berjalan dan bisa diakses.'
+          : rawMessage
       dispatch(loginFailure(errorMessage))
       return false
     }

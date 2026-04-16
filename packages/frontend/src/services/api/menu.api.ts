@@ -11,6 +11,8 @@
 import { AxiosResponse } from 'axios';
 import { apiClient, apiClient as menuApiClient } from '../api-client';
 import '../api-setup'; // Ensure interceptors are registered
+import { getStaticFallbackMenu } from '@/components/banking/BankingSidebarUtils';
+import { frontendEnvironmentLoader } from '@/config/environment-loader-frontend';
 
 // NOTE: We use the shared apiClient which is already configured with:
 // 1. Correct Base URL (auto-detected via environment-loader -> api.ts)
@@ -128,6 +130,56 @@ export interface MenuAnalyticsResponse {
   };
 }
 
+const buildStaticMenuTreeFallback = (): MenuItem[] => {
+  const toMenuItem = (item: any): MenuItem => ({
+    id: String(item.id),
+    key: String(item.key || item.id),
+    title: String(item.title || item.label || item.id || 'Unknown'),
+    description: item.description || undefined,
+    icon: item.icon || undefined,
+    url: item.url || undefined,
+    type: item.type === 'divider' ? 'divider' : (item.children && item.children.length > 0 ? 'group' : 'item'),
+    permissions: Array.isArray(item.user_types) ? item.user_types : [],
+    requiredPermissions: Array.isArray(item.requiredPermissions) ? item.requiredPermissions : [],
+    sort_order: Number(item.sort_order || 0),
+    children: Array.isArray(item.children) ? item.children.map(toMenuItem) : [],
+  });
+
+  const flatItems = getStaticFallbackMenu();
+  const byId = new Map<string, any>();
+
+  flatItems.forEach((item) => {
+    byId.set(String(item.id), { ...item, children: [] as any[] });
+  });
+
+  const roots: any[] = [];
+  byId.forEach((item) => {
+    const parentId = item.parent_id ? String(item.parent_id) : null;
+    if (parentId && byId.has(parentId)) {
+      byId.get(parentId).children.push(item);
+    } else {
+      roots.push(item);
+    }
+  });
+
+  roots.sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0));
+  roots.forEach((item) => {
+    if (Array.isArray(item.children)) {
+      item.children.sort((a: any, b: any) => Number(a.sort_order || 0) - Number(b.sort_order || 0));
+    }
+  });
+
+  return roots.map(toMenuItem);
+};
+
+const isDynamicMenuEnabled = (): boolean => {
+  try {
+    return frontendEnvironmentLoader.getConfiguration().features.dynamicMenu;
+  } catch {
+    return process.env.NEXT_PUBLIC_DYNAMIC_MENU_ENABLED === 'true';
+  }
+};
+
 // Menu API Service Class
 export class MenuApiService {
   /**
@@ -194,9 +246,42 @@ export class MenuApiService {
     includeInactive?: boolean;
   }): Promise<MenuApiResponse<MenuItem[]>> {
     console.log('🚀 [MENU API] Fetching menu tree...', params);
-    const response = await menuApiClient.get('/menu/hierarchy', { params });
-    console.log('✅ [MENU API] Menu tree response:', response.status, response.data?.success);
-    return response.data;
+    if (!isDynamicMenuEnabled()) {
+      console.warn('⚠️ [MENU API] Dynamic menu disabled by configuration, using static fallback menu');
+      return {
+        success: true,
+        data: buildStaticMenuTreeFallback(),
+        message: 'Static fallback menu in use',
+        meta: {
+          timestamp: new Date().toISOString(),
+          fallback: true,
+          source: 'static',
+        },
+      };
+    }
+
+    try {
+      const response = await menuApiClient.get('/menu/hierarchy', { params });
+      console.log('✅ [MENU API] Menu tree response:', response.status, response.data?.success);
+      return response.data;
+    } catch (error: any) {
+      const status = error?.response?.status;
+      if (status === 404) {
+        console.warn('⚠️ [MENU API] /menu/hierarchy not available, using static fallback menu');
+        return {
+          success: true,
+          data: buildStaticMenuTreeFallback(),
+          message: 'Static fallback menu in use',
+          meta: {
+            timestamp: new Date().toISOString(),
+            fallback: true,
+            source: 'static',
+          },
+        };
+      }
+
+      throw error;
+    }
   }
 
   /**

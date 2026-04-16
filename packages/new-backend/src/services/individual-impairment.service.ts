@@ -853,7 +853,7 @@ export class IndividualImpairmentService {
             const [updated] = await legacyDb.update(frs9ImpIaHeader)
                 .set({
                     // Update relevant fields
-                    impairedFlag: data.overrideStage === '3' ? 'T' : 'F',
+                    impairedFlag: Number(data.overrideStage) === 3 ? 'T' : 'F',
                     triggerRemarks: remarks,
                     status: statusInt,
                     updatedby: userId,
@@ -891,7 +891,7 @@ export class IndividualImpairmentService {
                 currency: ma.currency || 'IDR',
                 effInterestRate: Number(ma.effInterestRate || 0),
                 interestRate: Number(ma.interestRate || 0),
-                impairedFlag: data.overrideStage === '3' ? 'T' : 'F',
+                impairedFlag: Number(data.overrideStage) === 3 ? 'T' : 'F',
                 triggerRemarks: remarks,
                 status: statusInt,
                 createdby: userId,
@@ -978,8 +978,9 @@ export class IndividualImpairmentService {
             // UPSERT: Update existing record
             const updated = await legacyDb.update(frs9ImpIaHeader)
                 .set({
-                    impairedFlag: data.overrideStage === '3' ? 'T' : 'F',
+                    impairedFlag: Number(data.overrideStage) === 3 ? 'T' : 'F',
                     triggerRemarks: data.justification,
+                    triggerFilename: data.supportingDocument || data.triggerFilename,
                     status: statusInt,
                     updatedby: (data.createdBy || 'SYSTEM').slice(0, 36),
                     updateddate: new Date().toISOString(),
@@ -1004,8 +1005,9 @@ export class IndividualImpairmentService {
                 currency: 'IDR',
                 effInterestRate: 0,
                 interestRate: 0,
-                impairedFlag: data.overrideStage === '3' ? 'T' : 'F',
+                impairedFlag: Number(data.overrideStage) === 3 ? 'T' : 'F',
                 triggerRemarks: data.justification,
+                triggerFilename: data.supportingDocument || data.triggerFilename,
                 status: statusInt,
                 createdby: (data.createdBy || 'SYSTEM').slice(0, 36),
                 createddate: new Date().toISOString(), // TIMESTAMP column accepts ISO
