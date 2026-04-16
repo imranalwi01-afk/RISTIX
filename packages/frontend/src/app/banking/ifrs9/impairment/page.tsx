@@ -1,77 +1,70 @@
 // packages/frontend/src/app/banking/ifrs9/impairment/page.tsx
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Box,
   Card,
   CardContent,
   Typography,
-  Grid,
   Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Tabs,
   Tab,
   Alert,
   CircularProgress,
-  Tooltip,
-  TableSortLabel,
-  InputAdornment,
   Menu,
   MenuList,
-  MenuItem as MenuItemComponent,
+  MenuItem,
   ListItemIcon,
   ListItemText,
-  Divider
+  Divider,
+  Grid,
+  TextField,
+  InputAdornment,
+  FormControl,
+  InputLabel,
+  Select,
+  TableContainer,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  TableSortLabel,
+  IconButton,
+  Tooltip,
+  Paper,
+  Chip
 } from '@mui/material';
 import {
   Calculate as CalculateIcon,
-  Visibility as VisibilityIcon,
-  Edit as EditIcon,
   Refresh as RefreshIcon,
   Assessment as AssessmentIcon,
   TrendingUp as TrendingUpIcon,
   Warning as WarningIcon,
-  Search as SearchIcon,
-  Clear as ClearIcon,
   FilterList as FilterListIcon,
   GetApp as ExportIcon,
-  FileDownload as DownloadIcon
+  FileDownload as DownloadIcon,
+  Search as SearchIcon,
+  Clear as ClearIcon,
+  Visibility as VisibilityIcon,
+  Edit as EditIcon
 } from '@mui/icons-material';
 import { useAuth } from '@/providers/AuthProvider';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { individualImpairmentAPI, type IndividualImpairmentWatchlistItem } from '@/services/api.individual-impairment';
+import {
+  ImpairmentCalculationDialog,
+  ImpairmentDetailsDialog,
+  ImpairmentOverviewPanel,
+  type ImpairmentAnalytics,
+  type SortConfig,
+  type SortField,
+} from './components';
 
 // ============================================================================
 // TYPESCRIPT INTERFACES FOR IFRS9 IMPAIRMENT DATA
 // ============================================================================
-
-interface ImpairmentAnalytics {
-  totalAccounts: number;
-  totalExposure: number;
-  impairedAccounts: number;
-  impairedExposure: number;
-  stageDistribution: Record<number, number>;
-  averageECLRatio: number;
-  totalProvision: number;
-}
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -93,18 +86,6 @@ function TabPanel(props: TabPanelProps) {
       {value === index && <Box sx={{ p: 3 }}>{children as any}</Box>}
     </div>
   );
-}
-
-// ============================================================================
-// SORT CONFIGURATION
-// ============================================================================
-
-type SortField = 'account_number' | 'cif_name' | 'outstanding_balance' | 'ecl_amount' | 'stage' | 'dpd' | 'rating_code';
-type SortOrder = 'asc' | 'desc';
-
-interface SortConfig {
-  field: SortField;
-  order: SortOrder;
 }
 
 export default function ImpairmentPage() {
@@ -160,7 +141,7 @@ export default function ImpairmentPage() {
   // DATA LOADING WITH REAL API INTEGRATION
   // ============================================================================
 
-  const loadData = async (page = 1, reset = false) => {
+  const loadData = useCallback(async (page = 1, reset = false) => {
     setLoading(true);
     setError(null);
 
@@ -235,7 +216,7 @@ export default function ImpairmentPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.limit, searchTerm, stageFilter, impairedFilter, statusFilter, columnFilters, sortConfig]);
 
   // ============================================================================
   // EVENT HANDLERS
@@ -280,20 +261,20 @@ export default function ImpairmentPage() {
     router.push(buildAssessmentUrl({ accountId: record.account_id, tab: 'assessment-details', accountNumber: record.account_number }));
   };
 
-  const handleRunCalculation = () => {
+  const handleRunCalculation = useCallback(() => {
     setCalculationDialogOpen(true);
-  };
+  }, []);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     loadData(pagination.page, true);
-  };
+  }, [loadData, pagination.page]);
 
-  const handleSort = (field: SortField) => {
+  const handleSort = useCallback((field: SortField) => {
     setSortConfig(prev => ({
       field,
       order: prev.field === field && prev.order === 'asc' ? 'desc' : 'asc'
     }));
-  };
+  }, []);
 
   const handleExport = async (format: 'xlsx' | 'csv') => {
     setExportLoading(true);
@@ -333,7 +314,7 @@ export default function ImpairmentPage() {
     }
   };
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSearchTerm('');
     setStageFilter('all');
     setImpairedFilter('all');
@@ -345,9 +326,9 @@ export default function ImpairmentPage() {
       currency: ''
     });
     setColumnFiltersEnabled(false);
-  };
+  }, []);
 
-  const toggleColumnFilters = () => {
+  const toggleColumnFilters = useCallback(() => {
     setColumnFiltersEnabled(!columnFiltersEnabled);
     if (columnFiltersEnabled) {
       // Clear column filters when disabling
@@ -358,7 +339,7 @@ export default function ImpairmentPage() {
         currency: ''
       });
     }
-  };
+  }, [columnFiltersEnabled]);
 
   // ============================================================================
   // HELPER FUNCTIONS
@@ -473,18 +454,18 @@ export default function ImpairmentPage() {
         onClose={() => setExportMenuAnchor(null)}
       >
         <MenuList>
-          <MenuItemComponent onClick={() => handleExport('xlsx')} disabled={exportLoading}>
+          <MenuItem onClick={() => handleExport('xlsx')} disabled={exportLoading}>
             <ListItemIcon>
               <DownloadIcon />
             </ListItemIcon>
             <ListItemText>Export as Excel (.xlsx)</ListItemText>
-          </MenuItemComponent>
-          <MenuItemComponent onClick={() => handleExport('csv')} disabled={exportLoading}>
+          </MenuItem>
+          <MenuItem onClick={() => handleExport('csv')} disabled={exportLoading}>
             <ListItemIcon>
               <DownloadIcon />
             </ListItemIcon>
             <ListItemText>Export as CSV (.csv)</ListItemText>
-          </MenuItemComponent>
+          </MenuItem>
         </MenuList>
       </Menu>
 
@@ -870,134 +851,17 @@ export default function ImpairmentPage() {
         </Card>
       </TabPanel>
 
-      {/* Details Dialog */}
-      <Dialog
+      <ImpairmentDetailsDialog
         open={detailsDialogOpen}
+        selectedRecord={selectedRecord}
         onClose={() => setDetailsDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Impairment Details</DialogTitle>
-        <DialogContent>
-          {selectedRecord && (
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label="Account Number"
-                  value={selectedRecord.account_number}
-                  disabled
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label="Customer Name"
-                  value={selectedRecord.cif_name}
-                  disabled
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label="CIF Number"
-                  value={selectedRecord.cif_number}
-                  disabled
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label="Currency"
-                  value={selectedRecord.currency}
-                  disabled
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label="Outstanding Balance"
-                  value={formatCurrency(selectedRecord.outstanding_balance, selectedRecord.currency)}
-                  disabled
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label="ECL Amount"
-                  value={formatCurrency(selectedRecord.ecl_amount, selectedRecord.currency)}
-                  disabled
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label="Stage"
-                  value={`Stage ${selectedRecord.stage}`}
-                  disabled
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label="Impaired Flag"
-                  value={selectedRecord.impaired_flag === 'I' ? 'Impaired' : 'Not Impaired'}
-                  disabled
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label="Rating Code"
-                  value={selectedRecord.rating_code}
-                  disabled
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label="Assessment Status"
-                  value={selectedRecord.assessment_status}
-                  disabled
-                />
-              </Grid>
-            </Grid>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDetailsDialogOpen(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
+        formatCurrency={formatCurrency}
+      />
 
-      {/* Calculation Dialog */}
-      <Dialog
+      <ImpairmentCalculationDialog
         open={calculationDialogOpen}
         onClose={() => setCalculationDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Run Impairment Calculation</DialogTitle>
-        <DialogContent>
-          <Alert severity="info" sx={{ mt: 2 }}>
-            This will run the IFRS 9 impairment calculation engine for all accounts.
-          </Alert>
-          <Typography variant="body2" sx={{ mt: 2 }}>
-            Calculation parameters:
-          </Typography>
-          <Box component="ul" sx={{ mt: 1 }}>
-            <li>ECL Method: PD x LGD x EAD</li>
-            <li>Staging: 12-month vs Lifetime ECL</li>
-            <li>Discount Rate: Risk-free rate + credit spread</li>
-            <li>Forward-looking: Economic scenarios applied</li>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCalculationDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={() => setCalculationDialogOpen(false)}>
-            Run Calculation
-          </Button>
-        </DialogActions>
-      </Dialog>
+      />
     </Box>
   );
 }

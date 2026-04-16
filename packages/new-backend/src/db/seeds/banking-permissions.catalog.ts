@@ -838,8 +838,28 @@ const ADMIN_APPROVAL_CODES = [
     'approval.user.delete',
 ]
 
+const RBAC_APPROVAL_CODES = [
+    'approval.user_status.create',
+    'approval.user_status.update',
+    'approval.user_status.delete',
+    'approval.role.create',
+    'approval.role.update',
+    'approval.role.delete',
+    'approval.role_permission.create',
+    'approval.role_permission.update',
+    'approval.role_permission.delete',
+    'approval.role_assignment.create',
+    'approval.role_assignment.update',
+    'approval.role_assignment.delete',
+]
+
 export const DEFAULT_ROLE_PERMISSION_MAP: Record<string, string[]> = {
-    IAF_TENANT_SUPERADMIN: dedupe(BANKING_PERMISSION_CODES, ['SUPER_ADMIN']),
+    IAF_TENANT_SUPERADMIN: dedupe(
+        BANKING_PERMISSION_CODES,
+        ADMIN_APPROVAL_CODES,
+        RBAC_APPROVAL_CODES,
+        ['SUPER_ADMIN']
+    ),
     IAF_TENANT_ADMIN: dedupe(
         DASHBOARD_AND_ANALYTICS_VIEW,
         PROCESSING_MANAGE,

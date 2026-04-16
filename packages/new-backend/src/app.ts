@@ -30,6 +30,7 @@ import { platformTenants } from './db/schema/platform.schema'
 import { eq } from 'drizzle-orm'
 
 import type { User } from './db/schema'
+import { buildErrorResponse } from './lib/http/error-response'
 
 /**
  * Application context type
@@ -226,12 +227,12 @@ export function createApp() {
     // 404 handler
     app.notFound((c) =>
         c.json(
-            {
-                success: false,
+            buildErrorResponse(c, {
                 error: 'Not Found',
+                message: 'Not Found',
                 code: 'NOT_FOUND',
                 path: c.req.path,
-            },
+            }),
             404
         )
     )

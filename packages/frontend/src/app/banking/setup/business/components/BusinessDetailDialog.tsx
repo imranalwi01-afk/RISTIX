@@ -31,6 +31,7 @@ import {
 import { bankingAPI, handleAPIError } from '../../../../../services/api';
 import {
     ApprovalNotification,
+    buildApprovalConflictNotification,
     buildApprovalNotification,
     createClosedApprovalNotification,
     type ApprovalNotificationState,
@@ -78,6 +79,12 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
+    const showApprovalConflict = (error: unknown, fallbackMessage: string) => {
+        const notification = buildApprovalConflictNotification(error, fallbackMessage);
+        if (!notification) return false;
+        setApprovalNotification(notification);
+        return true;
+    };
 
     // Form State
     const [isEditing, setIsEditing] = useState(false);
@@ -163,7 +170,9 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
             }
             await loadDetails();
         } catch (err) {
-            setError(`Failed to delete detail: ${handleAPIError(err).message}`);
+            if (!showApprovalConflict(err, 'Detail deletion submitted for approval')) {
+                setError(`Failed to delete detail: ${handleAPIError(err).message}`);
+            }
         } finally {
             setLoading(false);
         }
@@ -220,7 +229,9 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
 
         } catch (err) {
             console.error('Save failed:', err);
-            setError(`Failed to save: ${handleAPIError(err).message}`);
+            if (!showApprovalConflict(err, editingDetail ? 'Detail update submitted for approval' : 'Detail creation submitted for approval')) {
+                setError(`Failed to save: ${handleAPIError(err).message}`);
+            }
         } finally {
             setLoading(false);
         }

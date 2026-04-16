@@ -24,6 +24,7 @@ import ModernLoader from '@/components/common/ModernLoader';
 import {
   ApprovalNotification,
   PendingChangesDialog,
+  buildApprovalConflictNotification,
   buildApprovalNotification,
   createClosedApprovalNotification,
   type ApprovalNotificationState,
@@ -111,6 +112,12 @@ export default function ProductParametersPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
+  const showApprovalConflict = (error: unknown, fallbackMessage: string) => {
+    const notification = buildApprovalConflictNotification(error, fallbackMessage);
+    if (!notification) return false;
+    setApprovalNotification(notification);
+    return true;
+  };
   const [exportMenuAnchor, setExportMenuAnchor] = useState<null | HTMLElement>(null);
 
   // Approval Modal State
@@ -177,7 +184,9 @@ export default function ProductParametersPage() {
         setError(result?.message || 'Failed to load products');
       }
     } catch (err) {
-      setError(handleAPIError(err).message);
+      if (!showApprovalConflict(err, selectedProduct && !selectedProduct?._clone ? 'Update submitted for approval' : 'Creation submitted for approval')) {
+        setError(handleAPIError(err).message);
+      }
     } finally {
       setLoading(false);
     }
@@ -291,7 +300,9 @@ export default function ProductParametersPage() {
         setError(res.message || 'Save failed');
       }
     } catch (err) {
-      setError(handleAPIError(err).message);
+      if (!showApprovalConflict(err, `${selectedProduct && !selectedProduct?._clone ? 'Update' : 'Creation'} submitted for approval`)) {
+        setError(handleAPIError(err).message);
+      }
     } finally {
       setLoading(false);
     }

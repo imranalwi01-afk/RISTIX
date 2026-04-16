@@ -2,8 +2,9 @@ import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { individualImpairmentController } from '../controllers/individual-impairment.controller'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-export const individualImpairmentRoutes: any = new OpenAPIHono<AppContext>()
+export const individualImpairmentRoutes: any = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 individualImpairmentRoutes.use('*', authMiddleware)
 

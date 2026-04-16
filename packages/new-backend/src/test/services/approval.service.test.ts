@@ -65,6 +65,40 @@ const state = {
     update: [] as any[],
     delete: [] as any[],
   },
+  configurationServiceCalls: {
+    pdCreate: [] as any[],
+    pdUpdate: [] as any[],
+    pdDelete: [] as any[],
+    lgdCreate: [] as any[],
+    lgdUpdate: [] as any[],
+    lgdDelete: [] as any[],
+    eclCreate: [] as any[],
+    eclUpdate: [] as any[],
+    eclDelete: [] as any[],
+  },
+  bucketServiceCalls: {
+    createHeader: [] as any[],
+    updateHeader: [] as any[],
+    deleteHeader: [] as any[],
+  },
+  ruleBaseServiceCalls: {
+    createHeader: [] as any[],
+    updateHeader: [] as any[],
+    deleteHeader: [] as any[],
+    createDetail: [] as any[],
+    updateDetail: [] as any[],
+    deleteDetail: [] as any[],
+  },
+  productServiceCalls: {
+    create: [] as any[],
+    update: [] as any[],
+    delete: [] as any[],
+  },
+  journalServiceCalls: {
+    create: [] as any[],
+    update: [] as any[],
+    delete: [] as any[],
+  },
   availablePermissions: [
     { id: 'perm-approval', code: 'approval.requests.approve' },
     { id: 'perm-users-create', code: 'users.create' },
@@ -264,6 +298,137 @@ mock.module('@/services/parameters.service', () => ({
   },
 }))
 
+mock.module('@/services/pd-configurations.service', () => ({
+  PdConfigurationsService: {
+    create: (payload: any, userId: string) => {
+      state.configurationServiceCalls.pdCreate.push({ payload, userId })
+      return Effect.succeed({ id: 1 })
+    },
+    update: (id: number, payload: any, userId: string) => {
+      state.configurationServiceCalls.pdUpdate.push({ id, payload, userId })
+      return Effect.succeed({ id })
+    },
+    delete: (id: number) => {
+      state.configurationServiceCalls.pdDelete.push({ id })
+      return Effect.succeed(undefined)
+    },
+  },
+}))
+
+mock.module('@/services/lgd-configurations.service', () => ({
+  LgdConfigurationsService: {
+    create: (payload: any, userId: string) => {
+      state.configurationServiceCalls.lgdCreate.push({ payload, userId })
+      return Effect.succeed({ id: 1 })
+    },
+    update: (id: number, payload: any, userId: string) => {
+      state.configurationServiceCalls.lgdUpdate.push({ id, payload, userId })
+      return Effect.succeed({ id })
+    },
+    delete: (id: number) => {
+      state.configurationServiceCalls.lgdDelete.push({ id })
+      return Effect.succeed(undefined)
+    },
+  },
+}))
+
+mock.module('@/services/ecl-configurations.service', () => ({
+  EclConfigurationsService: {
+    create: (payload: any, userId: string) => {
+      state.configurationServiceCalls.eclCreate.push({ payload, userId })
+      return Effect.succeed({ id: 1 })
+    },
+    update: (id: number, payload: any, userId: string) => {
+      state.configurationServiceCalls.eclUpdate.push({ id, payload, userId })
+      return Effect.succeed({ id })
+    },
+    delete: (id: number) => {
+      state.configurationServiceCalls.eclDelete.push({ id })
+      return Effect.succeed(undefined)
+    },
+  },
+}))
+
+mock.module('@/services/bucket-parameters.service', () => ({
+  BucketParametersService: {
+    createHeader: (payload: any, userId: string) => {
+      state.bucketServiceCalls.createHeader.push({ payload, userId })
+      return Effect.succeed({ id: 1 })
+    },
+    updateHeader: (id: number, payload: any, userId: string) => {
+      state.bucketServiceCalls.updateHeader.push({ id, payload, userId })
+      return Effect.succeed({ id })
+    },
+    deleteHeader: (id: number) => {
+      state.bucketServiceCalls.deleteHeader.push({ id })
+      return Effect.succeed(undefined)
+    },
+  },
+}))
+
+mock.module('@/services/rule-base-settings.service', () => ({
+  RuleBaseSettingsService: {
+    createHeader: (payload: any, userId: string) => {
+      state.ruleBaseServiceCalls.createHeader.push({ payload, userId })
+      return Effect.succeed({ id: 1 })
+    },
+    updateHeader: (id: number, payload: any, userId: string) => {
+      state.ruleBaseServiceCalls.updateHeader.push({ id, payload, userId })
+      return Effect.succeed({ id })
+    },
+    deleteHeader: (id: number) => {
+      state.ruleBaseServiceCalls.deleteHeader.push({ id })
+      return Effect.succeed(undefined)
+    },
+    createDetail: (ruleId: number, payload: any, userId: string) => {
+      state.ruleBaseServiceCalls.createDetail.push({ ruleId, payload, userId })
+      return Effect.succeed({ id: 1 })
+    },
+    updateDetail: (id: number, payload: any, userId: string) => {
+      state.ruleBaseServiceCalls.updateDetail.push({ id, payload, userId })
+      return Effect.succeed({ id })
+    },
+    deleteDetail: (id: number) => {
+      state.ruleBaseServiceCalls.deleteDetail.push({ id })
+      return Effect.succeed(undefined)
+    },
+  },
+}))
+
+mock.module('@/services/product-parameters.service', () => ({
+  ProductParametersService: {
+    create: (payload: any, userId: string) => {
+      state.productServiceCalls.create.push({ payload, userId })
+      return Effect.succeed({ id: 1 })
+    },
+    update: (id: number, payload: any, userId: string) => {
+      state.productServiceCalls.update.push({ id, payload, userId })
+      return Effect.succeed({ id })
+    },
+    delete: (id: number) => {
+      state.productServiceCalls.delete.push({ id })
+      return Effect.succeed(undefined)
+    },
+  },
+}))
+
+mock.module('@/services/journal-parameters.service', () => ({
+  JournalParametersService: {
+    create: (payload: any, userId: string) => {
+      state.journalServiceCalls.create.push({ payload, userId })
+      return Effect.succeed({ id: 1 })
+    },
+    update: (id: number, payload: any, userId: string) => {
+      state.journalServiceCalls.update.push({ id, payload, userId })
+      return Effect.succeed({ id })
+    },
+    delete: (id: number) => {
+      state.journalServiceCalls.delete.push({ id })
+      return Effect.succeed(undefined)
+    },
+  },
+}))
+
 const approvalService = await import('@/services/approval.service')
 
 describe('approval.service behavior', () => {
@@ -331,6 +496,40 @@ describe('approval.service behavior', () => {
       updateRolePermissions: [],
     }
     state.parametersServiceCalls = {
+      create: [],
+      update: [],
+      delete: [],
+    }
+    state.configurationServiceCalls = {
+      pdCreate: [],
+      pdUpdate: [],
+      pdDelete: [],
+      lgdCreate: [],
+      lgdUpdate: [],
+      lgdDelete: [],
+      eclCreate: [],
+      eclUpdate: [],
+      eclDelete: [],
+    }
+    state.bucketServiceCalls = {
+      createHeader: [],
+      updateHeader: [],
+      deleteHeader: [],
+    }
+    state.ruleBaseServiceCalls = {
+      createHeader: [],
+      updateHeader: [],
+      deleteHeader: [],
+      createDetail: [],
+      updateDetail: [],
+      deleteDetail: [],
+    }
+    state.productServiceCalls = {
+      create: [],
+      update: [],
+      delete: [],
+    }
+    state.journalServiceCalls = {
       create: [],
       update: [],
       delete: [],
@@ -2141,6 +2340,150 @@ describe('approval.service behavior', () => {
     expect(state.rbacServiceCalls.updateRolePermissions[0].permissionIds).toEqual(['perm-approval', 'perm-users-create'])
     expect(state.rbacServiceCalls.updateRolePermissions[1].roleId).toBe('role-perm-2')
     expect(state.rbacServiceCalls.updateRolePermissions[2].roleId).toBe('role-perm-3')
+  })
+
+  test('processApprovalAction executes configuration, bucket, rule base, product, and journal branches', async () => {
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-pd-create',
+      requestData: {
+        operation: 'create',
+        entityType: 'pd_configuration',
+        data: { model_name: 'PD Model A', pd_method: '1' },
+      },
+    })
+    await Effect.runPromise(approvalService.processApprovalAction({
+      requestId: 'approval-pd-create',
+      approverId: 'checker-1',
+      action: 'approve',
+    }))
+
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-lgd-update',
+      entityId: '22',
+      requestData: {
+        operation: 'update',
+        entityType: 'lgd_configuration',
+        data: { model_name: 'LGD Model B', lgd_method: 2 },
+      },
+    })
+    await Effect.runPromise(approvalService.processApprovalAction({
+      requestId: 'approval-lgd-update',
+      approverId: 'checker-1',
+      action: 'approve',
+    }))
+
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-ecl-delete',
+      entityId: '33',
+      requestData: {
+        operation: 'delete',
+        entityType: 'ecl_configuration',
+        data: {},
+      },
+    })
+    await Effect.runPromise(approvalService.processApprovalAction({
+      requestId: 'approval-ecl-delete',
+      approverId: 'checker-1',
+      action: 'approve',
+    }))
+
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-bucket-create',
+      requestData: {
+        operation: 'create',
+        entityType: 'bucket_parameter',
+        data: { bucket_group: 'MAX_DPD', basis: 'Day Past Due' },
+      },
+    })
+    await Effect.runPromise(approvalService.processApprovalAction({
+      requestId: 'approval-bucket-create',
+      approverId: 'checker-1',
+      action: 'approve',
+    }))
+
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-rule-header-update',
+      entityId: '44',
+      requestData: {
+        operation: 'update',
+        entityType: 'rule_base_setting',
+        data: { rule_name: 'Stage Rule', rule_type: 'DEFAULT' },
+      },
+    })
+    await Effect.runPromise(approvalService.processApprovalAction({
+      requestId: 'approval-rule-header-update',
+      approverId: 'checker-1',
+      action: 'approve',
+    }))
+
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-rule-detail-create',
+      entityId: 'detail:55',
+      requestData: {
+        operation: 'create',
+        entityType: 'rule_base_setting',
+        data: {
+          scope: 'detail',
+          ruleId: 44,
+          query_group: 1,
+          seq: 1,
+          table_name: 'FRS9_MASTER_ACCOUNT',
+          column_name: 'DPD',
+          operator: '>=',
+          value1: '90',
+        },
+      },
+    })
+    await Effect.runPromise(approvalService.processApprovalAction({
+      requestId: 'approval-rule-detail-create',
+      approverId: 'checker-1',
+      action: 'approve',
+    }))
+
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-product-update',
+      entityId: '66',
+      requestData: {
+        operation: 'update',
+        entityType: 'product_parameter',
+        data: { prdCode: 'PRD001', prdDesc: 'Updated Product' },
+      },
+    })
+    await Effect.runPromise(approvalService.processApprovalAction({
+      requestId: 'approval-product-update',
+      approverId: 'checker-1',
+      action: 'approve',
+    }))
+
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-journal-delete',
+      entityId: '77',
+      requestData: {
+        operation: 'delete',
+        entityType: 'journal_parameter',
+        data: {},
+      },
+    })
+    await Effect.runPromise(approvalService.processApprovalAction({
+      requestId: 'approval-journal-delete',
+      approverId: 'checker-1',
+      action: 'approve',
+    }))
+
+    expect(state.configurationServiceCalls.pdCreate).toHaveLength(1)
+    expect(state.configurationServiceCalls.lgdUpdate).toHaveLength(1)
+    expect(state.configurationServiceCalls.lgdUpdate[0].id).toBe(22)
+    expect(state.configurationServiceCalls.eclDelete).toHaveLength(1)
+    expect(state.configurationServiceCalls.eclDelete[0].id).toBe(33)
+    expect(state.bucketServiceCalls.createHeader).toHaveLength(1)
+    expect(state.ruleBaseServiceCalls.updateHeader).toHaveLength(1)
+    expect(state.ruleBaseServiceCalls.updateHeader[0].id).toBe(44)
+    expect(state.ruleBaseServiceCalls.createDetail).toHaveLength(1)
+    expect(state.ruleBaseServiceCalls.createDetail[0].ruleId).toBe(44)
+    expect(state.productServiceCalls.update).toHaveLength(1)
+    expect(state.productServiceCalls.update[0].id).toBe(66)
+    expect(state.journalServiceCalls.delete).toHaveLength(1)
+    expect(state.journalServiceCalls.delete[0].id).toBe(77)
   })
 
   test('processApprovalAction maps role-permission payload validation errors', async () => {

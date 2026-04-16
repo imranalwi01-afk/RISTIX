@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { Effect } from 'effect'
+import { AuthorizationError, BusinessError, ConflictError, DatabaseError } from '@/lib/errors'
 
 const baseRequest = {
   id: 'approval-request-1',
@@ -54,13 +55,53 @@ const getApprovalRequestMock = mock(() =>
   })
 )
 
-const processApprovalActionMock = mock((input: any) =>
-  Effect.succeed({
-    requestId: input.requestId,
-    action: input.action,
-    ok: true,
-  })
-)
+let processActionMode: 'success' | 'authorization_error' | 'conflict_error' | 'business_error' | 'database_error' = 'success'
+
+const processApprovalActionMock = mock((input: any) => {
+  switch (processActionMode) {
+    case 'authorization_error':
+      return Effect.fail(
+        new AuthorizationError({
+          message: 'You are not eligible to approve level 1',
+          requiredPermission: 'approval.requests.approve',
+          details: {
+            requiredRoleCodes: ['CHECKER', 'IAF_IFRS_MANAGER'],
+            currentLevel: 1,
+          },
+        })
+      )
+    case 'conflict_error':
+      return Effect.fail(
+        new ConflictError({
+          message: 'A similar approval request is already pending.',
+          resource: 'approval_request',
+        })
+      )
+    case 'business_error':
+      return Effect.fail(
+        new BusinessError({
+          message: 'Approval rule violation',
+          code: 'RULE_VIOLATION',
+          details: {
+            field: 'riskScore',
+          },
+        })
+      )
+    case 'database_error':
+      return Effect.fail(
+        new DatabaseError({
+          message: 'Approval storage unavailable',
+          operation: 'query',
+        })
+      )
+    default:
+      return Effect.succeed({
+        requestId: input.requestId,
+        action: input.action,
+        ok: true,
+      })
+  }
+})
 
 const getApprovalRoutingOverviewMock = mock(() =>
   Effect.succeed([
@@ -107,6 +148,14 @@ const updateApprovalMatrixMock = mock(() =>
   })
 )
 
+const logApprovalRequestedMock = mock(async () => undefined)
+const logApprovalApprovedMock = mock(async () => undefined)
+const logApprovalRejectedMock = mock(async () => undefined)
+const logApprovalCancelledMock = mock(async () => undefined)
+const logApprovalDelegatedMock = mock(async () => undefined)
+const logDataChangeCreateMock = mock(async () => undefined)
+const logDataChangeUpdateMock = mock(async () => undefined)
+
 const passthroughMiddleware = async (c: any, next: any) => {
   c.set('tenantId', 'tenant-approval-1')
   c.set('userId', 'user-approval-1')
@@ -140,6 +189,34 @@ mock.module('../../services/approval.service', () => ({
   updateApprovalMatrix: updateApprovalMatrixMock,
 }))
 
+mock.module('@/services/audit.service', () => ({
+  logApproval: {
+    requested: logApprovalRequestedMock,
+    approved: logApprovalApprovedMock,
+    rejected: logApprovalRejectedMock,
+    cancelled: logApprovalCancelledMock,
+    delegated: logApprovalDelegatedMock,
+  },
+  logDataChange: {
+    create: logDataChangeCreateMock,
+    update: logDataChangeUpdateMock,
+  },
+}))
+
+mock.module('../../services/audit.service', () => ({
+  logApproval: {
+    requested: logApprovalRequestedMock,
+    approved: logApprovalApprovedMock,
+    rejected: logApprovalRejectedMock,
+    cancelled: logApprovalCancelledMock,
+    delegated: logApprovalDelegatedMock,
+  },
+  logDataChange: {
+    create: logDataChangeCreateMock,
+    update: logDataChangeUpdateMock,
+  },
+}))
+
 mock.module('@/middleware', () => ({
   authMiddleware: passthroughMiddleware,
   tenantMiddleware: passthroughMiddleware,
@@ -160,6 +237,7 @@ const { approvalRoutes } = await import('@/routes/approval.routes')
 
 describe('approval routes response contracts', () => {
   beforeEach(() => {
+    processActionMode = 'success'
     getPendingApprovalsForUserMock.mockClear()
     cancelApprovalRequestMock.mockClear()
     getApprovalHistoryMock.mockClear()
@@ -170,6 +248,13 @@ describe('approval routes response contracts', () => {
     getApprovalMatricesMock.mockClear()
     createApprovalMatrixMock.mockClear()
     updateApprovalMatrixMock.mockClear()
+    logApprovalRequestedMock.mockClear()
+    logApprovalApprovedMock.mockClear()
+    logApprovalRejectedMock.mockClear()
+    logApprovalCancelledMock.mockClear()
+    logApprovalDelegatedMock.mockClear()
+    logDataChangeCreateMock.mockClear()
+    logDataChangeUpdateMock.mockClear()
   })
 
   test('GET /api/v1/approvals/pending returns pending approval list envelope', async () => {
@@ -256,6 +341,35 @@ describe('approval routes response contracts', () => {
     }))
   })
 
+  test('POST /api/v1/approvals/requests returns detailed 400 validation payload for invalid body', async () => {
+    const app = new OpenAPIHono()
+    app.route('/api/v1/approvals', approvalRoutes)
+
+    const response = await app.request('/api/v1/approvals/requests', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        entityType: '',
+        title: '',
+      }),
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(body).toMatchObject({
+      success: false,
+      code: 'VALIDATION_ERROR',
+      error: 'Validation failed',
+      message: 'Validation failed',
+    })
+    expect(body.details).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: 'entityType' }),
+        expect.objectContaining({ path: 'title' }),
+      ])
+    )
+  })
+
   test('GET /api/v1/approvals/requests/{id} returns request detail envelope', async () => {
     const app = new OpenAPIHono()
     app.route('/api/v1/approvals', approvalRoutes)
@@ -296,6 +410,108 @@ describe('approval routes response contracts', () => {
       conditions: 'Monitor for 30 days',
       riskScore: 4,
     })
+  })
+
+  test('POST /api/v1/approvals/requests/{id}/approve returns 403 envelope on eligibility failure', async () => {
+    processActionMode = 'authorization_error'
+    const app = new OpenAPIHono()
+    app.route('/api/v1/approvals', approvalRoutes)
+
+    const response = await app.request('/api/v1/approvals/requests/approval-request-1/approve', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ comment: 'Approve' }),
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(403)
+    expect(body).toMatchObject({
+      success: false,
+      code: 'UNAUTHORIZED',
+      error: 'You are not eligible to approve level 1',
+      message: 'You are not eligible to approve level 1',
+      details: {
+        requiredRoleCodes: ['CHECKER', 'IAF_IFRS_MANAGER'],
+        currentLevel: 1,
+      },
+    })
+    expect(body).toHaveProperty('requestId')
+    expect(typeof body.timestamp).toBe('string')
+  })
+
+  test('POST /api/v1/approvals/requests/{id}/approve returns 409 envelope on duplicate conflict', async () => {
+    processActionMode = 'conflict_error'
+    const app = new OpenAPIHono()
+    app.route('/api/v1/approvals', approvalRoutes)
+
+    const response = await app.request('/api/v1/approvals/requests/approval-request-1/approve', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ comment: 'Approve' }),
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(409)
+    expect(body).toMatchObject({
+      success: false,
+      code: 'CONFLICT',
+      error: 'A similar approval request is already pending.',
+      message: 'A similar approval request is already pending.',
+    })
+    expect(body).toHaveProperty('requestId')
+    expect(typeof body.timestamp).toBe('string')
+  })
+
+  test('POST /api/v1/approvals/requests/{id}/approve returns 422 envelope on business rule error', async () => {
+    processActionMode = 'business_error'
+    const app = new OpenAPIHono()
+    app.route('/api/v1/approvals', approvalRoutes)
+
+    const response = await app.request('/api/v1/approvals/requests/approval-request-1/approve', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ comment: 'Approve' }),
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(422)
+    expect(body).toMatchObject({
+      success: false,
+      code: 'RULE_VIOLATION',
+      error: 'Approval rule violation',
+      message: 'Approval rule violation',
+      details: {
+        field: 'riskScore',
+      },
+    })
+    expect(body).toHaveProperty('requestId')
+    expect(typeof body.timestamp).toBe('string')
+  })
+
+  test('POST /api/v1/approvals/requests/{id}/approve returns 500 envelope on database error', async () => {
+    processActionMode = 'database_error'
+    const app = new OpenAPIHono()
+    app.route('/api/v1/approvals', approvalRoutes)
+
+    const response = await app.request('/api/v1/approvals/requests/approval-request-1/approve', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ comment: 'Approve' }),
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(500)
+    expect(body).toMatchObject({
+      success: false,
+      code: 'DB_ERROR',
+      error: 'Approval storage unavailable',
+      message: 'Approval storage unavailable',
+      details: {
+        operation: 'query',
+      },
+    })
+    expect(body).toHaveProperty('requestId')
+    expect(typeof body.timestamp).toBe('string')
   })
 
   test('POST /api/v1/approvals/requests/{id}/reject sends reject action payload', async () => {

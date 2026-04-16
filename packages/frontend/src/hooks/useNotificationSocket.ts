@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback, useState } from 'react'
 import io, { Socket } from 'socket.io-client'
 import { notificationAPI } from '@/services/api/notification.api'
 import { getNotificationCategory } from '@/utils/notification-utils'
+import { getErrorMessage } from '@/utils/error-message'
 
 export interface NotificationPayload {
     id: string

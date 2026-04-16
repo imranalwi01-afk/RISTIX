@@ -4,8 +4,9 @@ import type { AppContext } from '../app'
 import { authMiddleware, tenantMiddleware } from '../middleware'
 import { runEffect } from '../lib/effect'
 import * as notificationsService from '../services/notifications.service'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-export const notificationsRoutes = new OpenAPIHono<AppContext>()
+export const notificationsRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 notificationsRoutes.use('*', authMiddleware)
 notificationsRoutes.use('*', tenantMiddleware)

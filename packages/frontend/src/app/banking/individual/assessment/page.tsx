@@ -45,6 +45,14 @@ interface SectionDef {
   render: () => React.ReactNode;
 }
 
+interface KPISummary {
+  totalAccounts: number;
+  impairedAccounts: number;
+  pendingAssessments: number;
+  totalProvisions: number;
+  dataDate?: string;
+}
+
 export default function IndividualAssessmentWizardPage() {
   const [activeTab, setActiveTab] = useState(0);
   const searchParams = useSearchParams();

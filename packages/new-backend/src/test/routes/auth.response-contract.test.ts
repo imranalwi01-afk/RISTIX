@@ -12,6 +12,7 @@ let tenantLookupMode: TenantLookupMode = 'success'
 const loginAuditMock = mock(() => Effect.succeed(void 0))
 const loginFailedAuditMock = mock(() => Effect.succeed(void 0))
 const logoutAuditMock = mock(() => Effect.succeed(void 0))
+const noopAuditLogMock = mock(async () => undefined)
 
 const makeMockAccessToken = (tenantId: string): string => {
   const payload = Buffer.from(JSON.stringify({ tenantId })).toString('base64')
@@ -156,6 +157,17 @@ mock.module('@/services/audit.service', () => ({
     loginFailed: loginFailedAuditMock,
     logout: logoutAuditMock,
   },
+  logApproval: {
+    requested: noopAuditLogMock,
+    approved: noopAuditLogMock,
+    rejected: noopAuditLogMock,
+    cancelled: noopAuditLogMock,
+    delegated: noopAuditLogMock,
+  },
+  logDataChange: {
+    create: noopAuditLogMock,
+    update: noopAuditLogMock,
+  },
 }))
 
 mock.module('../../services/audit.service', () => ({
@@ -163,6 +175,17 @@ mock.module('../../services/audit.service', () => ({
     login: loginAuditMock,
     loginFailed: loginFailedAuditMock,
     logout: logoutAuditMock,
+  },
+  logApproval: {
+    requested: noopAuditLogMock,
+    approved: noopAuditLogMock,
+    rejected: noopAuditLogMock,
+    cancelled: noopAuditLogMock,
+    delegated: noopAuditLogMock,
+  },
+  logDataChange: {
+    create: noopAuditLogMock,
+    update: noopAuditLogMock,
   },
 }))
 
@@ -198,6 +221,7 @@ describe('auth routes response contracts', () => {
     loginAuditMock.mockClear()
     loginFailedAuditMock.mockClear()
     logoutAuditMock.mockClear()
+    noopAuditLogMock.mockClear()
   })
 
   test('POST /api/v1/auth/login returns success envelope with user and tokens', async () => {
@@ -221,6 +245,33 @@ describe('auth routes response contracts', () => {
     expect(body.data?.tokens?.accessToken).toBeTruthy()
     expect(loginAuditMock).toHaveBeenCalledTimes(1)
     expect(loginFailedAuditMock).toHaveBeenCalledTimes(0)
+  })
+
+  test('POST /api/v1/auth/login returns detailed 400 validation payload for invalid body', async () => {
+    const app = new OpenAPIHono()
+    app.route('/api/v1/auth', authRoutes)
+
+    const response = await app.request('/api/v1/auth/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        password: '',
+      }),
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(body).toMatchObject({
+      success: false,
+      code: 'VALIDATION_ERROR',
+      error: 'Validation failed',
+      message: 'Validation failed',
+    })
+    expect(body.details).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: 'email' }),
+      ])
+    )
   })
 
   test('POST /api/v1/auth/login returns 401 envelope on invalid credentials', async () => {

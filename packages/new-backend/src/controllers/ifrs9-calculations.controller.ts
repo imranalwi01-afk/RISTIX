@@ -2,8 +2,14 @@ import { Context } from 'hono';
 import { ifrs9CalculationsService } from '../services/ifrs9-calculations.service';
 import { tenantsRepository } from '../repositories/tenants.repository';
 import { Effect } from 'effect';
+import { internalError, badRequest } from '../lib/http/route-errors';
 
 export class Ifrs9CalculationsController {
+    private handleError(c: Context, error: unknown): Response {
+        const message = error instanceof Error ? error.message : 'IFRS 9 calculation request failed';
+        return internalError(c, message, 'IFRS9_CALCULATION_ERROR');
+    }
+
     private async resolveTenantId(tenantId: string | null): Promise<string> {
         if (!tenantId) {
             console.warn('⚠️ No tenantId provided in context, falling back to default "iaf"');
@@ -43,7 +49,7 @@ export class Ifrs9CalculationsController {
             return c.json({ success: true, data: summary });
         } catch (error: any) {
             console.error('❌ Controller error fetching calculation summary:', error);
-            return c.json({ success: false, message: error.message }, 500);
+            return this.handleError(c, error);
         }
     }
 
@@ -56,7 +62,7 @@ export class Ifrs9CalculationsController {
             return c.json({ success: true, data });
         } catch (error: any) {
             console.error('Error fetching calculation batches:', error);
-            return c.json({ success: false, message: error.message }, 500);
+            return this.handleError(c, error);
         }
     }
 
@@ -70,7 +76,7 @@ export class Ifrs9CalculationsController {
             return c.json(result);
         } catch (error: any) {
             console.error('Error running calculation:', error);
-            return c.json({ success: false, message: error.message }, 500);
+            return this.handleError(c, error);
         }
     }
 
@@ -84,7 +90,7 @@ export class Ifrs9CalculationsController {
             return c.json(result);
         } catch (error: any) {
             console.error('Error running preview calculation:', error);
-            return c.json({ success: false, message: error.message }, 500);
+            return this.handleError(c, error);
         }
     }
 
@@ -97,7 +103,7 @@ export class Ifrs9CalculationsController {
             const trend = await ifrs9CalculationsService.getPortfolioTrend(tenantId, date, mode);
             return c.json({ success: true, data: trend || [] });
         } catch (error: any) {
-            return c.json({ success: false, message: error.message }, 500);
+            return this.handleError(c, error);
         }
     }
 
@@ -110,7 +116,7 @@ export class Ifrs9CalculationsController {
             const dates = await ifrs9CalculationsService.getAvailableDates(tenantId, mode, groupBy);
             return c.json({ success: true, data: dates });
         } catch (error: any) {
-            return c.json({ success: false, message: error.message }, 500);
+            return this.handleError(c, error);
         }
     }
 
@@ -122,10 +128,7 @@ export class Ifrs9CalculationsController {
             const mode = c.req.query("mode");
 
             if (!processDate)
-                return c.json(
-                    { success: false, message: "Process date required" },
-                    400,
-                );
+                return badRequest(c, 'Process date required');
 
             const result = await ifrs9CalculationsService.getBatchResults(
                 tenantId,
@@ -135,7 +138,7 @@ export class Ifrs9CalculationsController {
             return c.json({ success: true, data: { items: result.data } });
         } catch (error: any) {
             console.error("Error fetching batch results:", error);
-            return c.json({ success: false, message: error.message }, 500);
+            return this.handleError(c, error);
         }
     }
 

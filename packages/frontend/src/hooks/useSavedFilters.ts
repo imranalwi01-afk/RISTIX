@@ -1,6 +1,10 @@
 // packages/frontend/src/hooks/useSavedFilters.ts
 'use client';
 
+/**
+ * Persists report and table filter presets in browser storage.
+ * This hook is documented because it is reused across multiple user-facing pages.
+ */
 import { useState, useEffect, useCallback } from 'react';
 
 export interface SavedFilter {
@@ -11,7 +15,7 @@ export interface SavedFilter {
   updatedAt: string;
 }
 
-interface UseSavedFiltersOptions {
+export interface UseSavedFiltersOptions {
   storageKey: string;
   maxSavedFilters?: number;
 }

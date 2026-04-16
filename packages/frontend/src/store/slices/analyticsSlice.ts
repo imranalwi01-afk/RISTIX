@@ -9,6 +9,7 @@
 // ============================================================================
 
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
+import { getErrorMessage } from '@/utils/error-message';
 
 // ✅ Analytics data types following your established patterns
 export interface KPIMetrics {
@@ -190,8 +191,8 @@ export const fetchKPIMetrics = createAsyncThunk(
       };
       
       return mockMetrics;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to fetch KPI metrics');
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch KPI metrics'));
     }
   }
 );
@@ -223,8 +224,8 @@ export const fetchRModels = createAsyncThunk(
       ];
       
       return mockModels;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to fetch R models');
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch R models'));
     }
   }
 );
@@ -243,8 +244,8 @@ export const executeRModel = createAsyncThunk(
       };
       
       return executionJob;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to execute R model');
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to execute R model'));
     }
   }
 );
@@ -263,8 +264,8 @@ export const generateReport = createAsyncThunk(
       };
       
       return reportJob;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to generate report');
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to generate report'));
     }
   }
 );
@@ -283,8 +284,8 @@ export const createExportJob = createAsyncThunk(
       };
       
       return exportJob;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to create export job');
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to create export job'));
     }
   }
 );

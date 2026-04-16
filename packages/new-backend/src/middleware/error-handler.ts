@@ -3,11 +3,15 @@ import type { StatusCode } from 'hono/utils/http-status'
 import { ZodError } from 'zod'
 import { logger as baseLogger, withRequestIds } from '../lib/logger'
 import { sendDiscordAlert } from '../services/discord-alert.service'
+import { buildErrorResponse } from '../lib/http/error-response'
 
 interface ErrorResponse {
     success: false
     error: string
+    message?: string
     code: string
+    requestId?: string | null
+    timestamp?: string
     details?: unknown
     stack?: string
 }
@@ -28,15 +32,16 @@ export function errorHandler(err: Error, c: Context): Response {
     // Handle Zod validation errors
     if (err instanceof ZodError) {
         return c.json<ErrorResponse>(
-            {
+            buildErrorResponse(c, {
                 success: false,
                 error: 'Validation failed',
+                message: 'Validation failed',
                 code: 'VALIDATION_ERROR',
                 details: err.errors.map((e) => ({
                     path: e.path.join('.'),
                     message: e.message,
                 })),
-            },
+            }) as unknown as ErrorResponse,
             400
         )
     }
@@ -57,11 +62,11 @@ export function errorHandler(err: Error, c: Context): Response {
     })
 
     // Default error response
-    const response: ErrorResponse = {
-        success: false,
+    const response: ErrorResponse = buildErrorResponse(c, {
         error: isDev ? err.message : 'Internal server error',
+        message: isDev ? err.message : 'Internal server error',
         code: 'INTERNAL_ERROR',
-    }
+    }) as unknown as ErrorResponse
 
     if (isDev && err.stack) {
         response.stack = err.stack

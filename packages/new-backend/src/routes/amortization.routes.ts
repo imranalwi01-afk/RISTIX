@@ -8,8 +8,10 @@ import {
     frs9AmortJournalData
 } from '../db/schema'
 import { desc, eq, getTableColumns } from 'drizzle-orm'
+import { buildErrorResponse } from '../lib/http/error-response'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-export const amortizationRoutes = new OpenAPIHono()
+export const amortizationRoutes = new OpenAPIHono({ defaultHook: openApiValidationHook })
 
 // =============================================================================
 // SCHEMA DEFINITIONS
@@ -253,7 +255,7 @@ amortizationRoutes.openapi(
                 pagination: { page, limit, total: 1000, totalPages: 100 }
             } as any)
         } catch (e) {
-            return c.json({ success: false, message: 'Error', error: String(e) }, 500)
+            return c.json(buildErrorResponse(c, { error: 'Error', message: 'Error', code: 'AMORTIZATION_ERROR', details: String(e) }), 500)
         }
     }
 )
@@ -631,4 +633,3 @@ amortizationRoutes.openapi(
         }
     }
 )
-

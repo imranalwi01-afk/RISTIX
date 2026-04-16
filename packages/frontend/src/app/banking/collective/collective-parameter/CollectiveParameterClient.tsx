@@ -239,9 +239,9 @@ export default function CollectiveParameterPage() {
 
       // Load status for each module
       const [segmentationStatus, ruleBaseStatus, bucketStatus] = await Promise.all([
-        apiClient.apiCall('/api/v1/banking/segmentation'),
-        apiClient.apiCall('/api/v1/banking/rule-base-setting'),
-        apiClient.apiCall('/api/v1/banking/bucket-parameter')
+        apiClient.apiCall('/api/v1/banking/parameters/segmentation'),
+        apiClient.apiCall('/api/v1/banking/collective/rule-base'),
+        apiClient.apiCall('/api/v1/banking/collective/bucket')
       ]);
 
       const statuses: ModuleStatus[] = [
@@ -310,10 +310,10 @@ export default function CollectiveParameterPage() {
         window.location.href = '/banking/collective/segmentation';
         break;
       case 'Rule Base Setting':
-        window.location.href = '/banking/collective/rule-base-setting';
+        window.location.href = '/banking/collective/rule-base';
         break;
       case 'Bucket Parameter':
-        window.location.href = '/banking/collective/bucket-parameter';
+        window.location.href = '/banking/collective/bucket';
         break;
     }
   };

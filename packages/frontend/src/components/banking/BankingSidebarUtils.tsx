@@ -120,6 +120,8 @@ const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'executive-dashboard': 'banking.analytics.view',
     'advanced-export': 'banking.analytics.view',
     'maintenance': 'admin.maintenance.access',
+    approval: 'approval.requests.approve',
+    'audit-logs': 'admin.maintenance.access',
     'access-management': ['admin.users.manage', 'admin.roles.manage', 'admin.maintenance.access'],
     'user-management': 'admin.users.manage',
     'role-management': 'admin.roles.manage',

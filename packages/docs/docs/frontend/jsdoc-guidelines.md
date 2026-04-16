@@ -41,3 +41,8 @@ Use `@param`, `@returns`, and `@example` only when they add value.
   - selective for pages/components
 - Enforce via lint rule or PR checklist instead of blanket requirement.
 
+## 6. TypeDoc Output Rule
+- The generated API docs are now module-based, not symbol-per-file.
+- Write JSDoc primarily on exported hooks and shared utility modules that should appear in docs.
+- Do not try to "fix" documentation output by adding filler comments to every function.
+- Prefer one strong module summary plus targeted comments on non-obvious exports over many low-value comments.

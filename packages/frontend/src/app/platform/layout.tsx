@@ -54,7 +54,6 @@ export default function PlatformLayout({
             user?.stakeholderType === 'platform' ||
             user?.isPlatformAdmin ||
             (user?.permissions || []).includes('admin.super_admin') ||
-            (user?.permissions || []).includes('SUPER_ADMIN') ||
             (user?.permissions || []).includes('PLATFORM_ADMIN');
 
         if (!isPlatform) {

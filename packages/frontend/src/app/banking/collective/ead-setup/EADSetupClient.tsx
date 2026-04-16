@@ -33,6 +33,7 @@ import {
 import {
   ApprovalNotification,
   ApprovalStatusBadge,
+  buildApprovalConflictNotification,
   buildApprovalNotification,
   createClosedApprovalNotification,
   type ApprovalNotificationState,
@@ -100,6 +101,12 @@ export default function EADSetupPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
+  const showApprovalConflict = (error: unknown, fallbackMessage: string) => {
+    const notification = buildApprovalConflictNotification(error, fallbackMessage);
+    if (!notification) return false;
+    setApprovalNotification(notification);
+    return true;
+  };
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; type: 'success' | 'error' }>({
     open: false,
     message: '',
@@ -213,7 +220,9 @@ export default function EADSetupPage() {
       setSelectedConfig(null);
     } catch (err) {
       console.error('Save failed:', err);
-      setError(err instanceof Error ? err.message : 'Failed to save configuration.');
+      if (!showApprovalConflict(err, 'Request submitted for approval')) {
+        setError(err instanceof Error ? err.message : 'Failed to save configuration.');
+      }
     } finally {
       setLoading(false);
     }
@@ -236,7 +245,9 @@ export default function EADSetupPage() {
       await loadPendingApprovals();
     } catch (err) {
       console.error('Delete failed:', err);
-      setError(err instanceof Error ? err.message : 'Failed to delete configuration.');
+      if (!showApprovalConflict(err, 'Deletion request submitted for approval')) {
+        setError(err instanceof Error ? err.message : 'Failed to delete configuration.');
+      }
     } finally {
       setLoading(false);
     }

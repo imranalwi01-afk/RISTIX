@@ -267,18 +267,6 @@ export const interceptCreate = <T>(
     executeCreate: () => Effect.Effect<T, any>,
     impactLevel?: 'low' | 'medium' | 'high' | 'critical'
 ): Effect.Effect<ApprovalResponse, any> => {
-    // Development bypass for segmentation operations
-    if ((process.env.NODE_ENV === 'development' || userPermissions.includes('*')) && entityType === 'segmentation') {
-        console.log('🔓 Development/Admin mode: Bypassing approval for segmentation create');
-        return Effect.tryPromise({
-            try: async () => {
-                const result = await Effect.runPromise(executeCreate());
-                return formatDirectExecutionResponse(result, 'Create completed successfully (bypass mode)');
-            },
-            catch: (error) => error
-        });
-    }
-
     return withApprovalCheck(
         {
             tenantId,
@@ -307,18 +295,6 @@ export const interceptUpdate = <T>(
     impactLevel?: 'low' | 'medium' | 'high' | 'critical',
     oldValues?: Record<string, any>
 ): Effect.Effect<ApprovalResponse, any> => {
-    // Development bypass for segmentation operations
-    if ((process.env.NODE_ENV === 'development' || userPermissions.includes('*')) && entityType === 'segmentation') {
-        console.log('🔓 Development/Admin mode: Bypassing approval for segmentation update');
-        return Effect.tryPromise({
-            try: async () => {
-                const result = await Effect.runPromise(executeUpdate());
-                return formatDirectExecutionResponse(result, 'Update completed successfully (bypass mode)');
-            },
-            catch: (error) => error
-        });
-    }
-
     return withApprovalCheck(
         {
             tenantId,
@@ -348,29 +324,6 @@ export const interceptDelete = <T>(
     impactLevel?: 'low' | 'medium' | 'high' | 'critical',
     oldValues?: Record<string, any>
 ): Effect.Effect<ApprovalResponse, any> => {
-    // Debug logging
-    console.log('🔍 DELETE Debug Info:', {
-        entityType,
-        entityId,
-        userPermissions,
-        hasWildcard: userPermissions.includes('*'),
-        isDevelopment: process.env.NODE_ENV === 'development',
-        bypassCondition: (process.env.NODE_ENV === 'development' || userPermissions.includes('*')) && entityType === 'segmentation'
-    });
-
-    // Development bypass for segmentation operations
-    if ((process.env.NODE_ENV === 'development' || userPermissions.includes('*')) && entityType === 'segmentation') {
-        console.log('🔓 Development/Admin mode: Bypassing approval for segmentation delete');
-        return Effect.tryPromise({
-            try: async () => {
-                const result = await Effect.runPromise(executeDelete());
-                return formatDirectExecutionResponse(result, 'Delete completed successfully (bypass mode)');
-            },
-            catch: (error) => error
-        });
-    }
-
-    console.log('📋 Proceeding with normal approval workflow...');
     return withApprovalCheck(
         {
             tenantId,

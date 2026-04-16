@@ -6,8 +6,10 @@ import { EclConfigurationsService } from '../services/ecl-configurations.service
 import { runEffect } from '../lib/effect/runtime'
 import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
 import type { ApprovalResponse } from '../lib/approval-helpers'
+import { buildErrorResponse } from '../lib/http/error-response'
+import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-const app = new OpenAPIHono<AppContext>()
+const app = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
 app.use('*', authMiddleware)
 
@@ -52,6 +54,80 @@ const EclListResponse = z.object({
     success: z.boolean(),
     data: z.array(EclHeaderSchema)
 }).openapi('EclListResponse')
+
+const EclPreviewHeaderItemSchema = z.object({
+    prc_date: z.string().nullable().optional(),
+    account_id: z.number().nullable().optional(),
+    facility_number: z.string().nullable().optional(),
+    cif_number: z.string().nullable().optional(),
+    segment_id: z.number().nullable().optional(),
+    remaining_tenor: z.number().nullable().optional(),
+    stage: z.number().nullable().optional(),
+    bucket_group: z.string().nullable().optional(),
+    bucket_id: z.number().nullable().optional(),
+    currency: z.string().nullable().optional(),
+    dpd: z.number().nullable().optional(),
+    internal_rating_code: z.string().nullable().optional(),
+    ext_rating_code: z.string().nullable().optional(),
+    outstanding: z.string().nullable().optional(),
+    plafond: z.string().nullable().optional(),
+    fib_amt: z.string().nullable().optional(),
+    accrued_interest: z.string().nullable().optional(),
+    unamort_cost_amt: z.string().nullable().optional(),
+    unamort_fee_amt: z.string().nullable().optional(),
+    ecl_amount: z.string().nullable().optional(),
+    overlay_amount: z.string().nullable().optional(),
+    ecl_final: z.string().nullable().optional(),
+    ecl_model_id: z.number().nullable().optional(),
+}).openapi('EclPreviewHeaderItem')
+
+const EclPreviewDetailItemSchema = z.object({
+    prc_date: z.string().nullable().optional(),
+    account_id: z.number().nullable().optional(),
+    facility_number: z.string().nullable().optional(),
+    cif_number: z.string().nullable().optional(),
+    segment_id: z.number().nullable().optional(),
+    remaining_tenor: z.number().nullable().optional(),
+    stage: z.number().nullable().optional(),
+    scenario_no: z.number().nullable().optional(),
+    fl_seq: z.number().nullable().optional(),
+    fl_year: z.number().nullable().optional(),
+    fl_month: z.number().nullable().optional(),
+    bucket_group: z.string().nullable().optional(),
+    bucket_id: z.number().nullable().optional(),
+    currency: z.string().nullable().optional(),
+    dpd: z.number().nullable().optional(),
+    internal_rating_code: z.string().nullable().optional(),
+    ext_rating_code: z.string().nullable().optional(),
+    outstanding: z.string().nullable().optional(),
+    plafond: z.string().nullable().optional(),
+    fib_amt: z.string().nullable().optional(),
+    accrued_interest: z.string().nullable().optional(),
+    unamort_cost_amt: z.string().nullable().optional(),
+    unamort_fee_amt: z.string().nullable().optional(),
+    ead_balance: z.string().nullable().optional(),
+    principal_amt: z.string().nullable().optional(),
+    sum_principal_amt: z.string().nullable().optional(),
+    next_interest: z.string().nullable().optional(),
+    sum_next_interest: z.string().nullable().optional(),
+    ead: z.string().nullable().optional(),
+    pd: z.number().nullable().optional(),
+    lgd: z.number().nullable().optional(),
+    ecl_amount: z.string().nullable().optional(),
+    probability: z.number().nullable().optional(),
+    ecl_weighted: z.string().nullable().optional(),
+    ecl_model_id: z.number().nullable().optional(),
+}).openapi('EclPreviewDetailItem')
+
+const EclPreviewHeadersResponse = z.object({
+    success: z.boolean(),
+    data: z.array(EclPreviewHeaderItemSchema)
+}).openapi('EclPreviewHeadersResponse')
+
+const EclPreviewDetailResponse = z.object({
+    success: z.boolean(),
+    data: z.array(EclPreviewDetailItemSchema)
+}).openapi('EclPreviewDetailResponse')
 
 const EclDetailInputSchema = z.object({
     pkid: z.number().int().optional(),
@@ -125,8 +201,55 @@ app.openapi(
     }),
     async (c) => {
         const { id } = c.req.valid('param')
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400)
         return runEffect(c, EclConfigurationsService.get(id) as any) as any
+    }
+)
+
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/{id}/preview',
+        tags: ['ECL Configurations'],
+        summary: 'Get ECL Preview Header Results',
+        request: {
+            params: z.object({ id: z.string().transform(Number) })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: EclPreviewHeadersResponse } }, description: 'Preview header results' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad request' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { id } = c.req.valid('param')
+        if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400)
+        return runEffect(c, EclConfigurationsService.getPreviewResults(id) as any) as any
+    }
+)
+
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/{id}/preview/{accountId}',
+        tags: ['ECL Configurations'],
+        summary: 'Get ECL Preview Detail Results by Account',
+        request: {
+            params: z.object({
+                id: z.string().transform(Number),
+                accountId: z.string().transform(Number),
+            })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: EclPreviewDetailResponse } }, description: 'Preview detail results' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad request' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { id, accountId } = c.req.valid('param')
+        if (isNaN(id) || isNaN(accountId)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400)
+        return runEffect(c, EclConfigurationsService.getPreviewResultDetail(id, accountId) as any) as any
     }
 )
 
@@ -186,7 +309,7 @@ app.openapi(
         const tenantId = c.get('tenantId') as string
         const userPermissions = c.get('permissions') || []
 
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400)
 
         const effect = pipe(
             EclConfigurationsService.get(id) as Effect.Effect<any, any>,
@@ -229,7 +352,7 @@ app.openapi(
         const tenantId = c.get('tenantId') as string
         const userPermissions = c.get('permissions') || []
 
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400)
 
         const effect = pipe(
             EclConfigurationsService.get(id) as Effect.Effect<any, any>,

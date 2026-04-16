@@ -23,7 +23,11 @@ import {
   FormControlLabel,
   CircularProgress,
   useTheme,
-  alpha
+  alpha,
+  AccordionSummary,
+  Accordion,
+  AccordionDetails,
+  Autocomplete
 } from '@mui/material';
 import {
   FilterList as FilterListIcon,
@@ -31,6 +35,9 @@ import {
   ClearAll as ClearAllIcon,
   CheckCircle as CheckCircleIcon,
   AccessTime as AccessTimeIcon,
+  ExpandMore as ExpandMoreIcon,
+  Tune as TuneIcon,
+  Search as SearchIcon
 } from '@mui/icons-material';
 
 import { Grid } from '@mui/material';
@@ -701,6 +708,22 @@ const LifetimePDReport: React.FC = () => {
                 </Grid>
 
                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>PD Method</InputLabel>
+                    <Select
+                      value={draftFilters.pdMethod}
+                      label="PD Method"
+                      onChange={(e) => setDraftFilters((prev: any) => ({ ...prev, pdMethod: Number(e.target.value) }))}
+                      sx={{ borderRadius: 2 }}
+                    >
+                      <MenuItem value={1}>TTC</MenuItem>
+                      <MenuItem value={2}>PIT</MenuItem>
+                      <MenuItem value={3}>Hybrid</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <FormControlLabel
                     control={
                       <Switch
@@ -713,6 +736,144 @@ const LifetimePDReport: React.FC = () => {
                   />
                 </Grid>
 
+                <Grid size={{ xs: 12 }}>
+                  <Accordion
+                    variant="outlined"
+                    sx={{
+                      mt: 1,
+                      borderRadius: '12px !important',
+                      borderColor: alpha(theme.palette.primary.main, 0.1),
+                      '&:before': { display: 'none' },
+                      boxShadow: 'none',
+                      bgcolor: alpha(theme.palette.primary.main, 0.005)
+                    }}
+                  >
+                    <AccordionSummary
+                      expandIcon={<ExpandMoreIcon />}
+                      sx={{ px: 2, minHeight: 48, '& .MuiAccordionSummary-content': { my: 1 } }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <TuneIcon sx={{ mr: 1, fontSize: 20, color: theme.palette.primary.main }} />
+                        <Typography variant="subtitle2" fontWeight={700} color={theme.palette.primary.main}>
+                          Advanced Parameters
+                        </Typography>
+                      </Box>
+                    </AccordionSummary>
+                    <AccordionDetails sx={{ px: 2, pb: 3, pt: 1 }}>
+                      <Grid container spacing={2.5}>
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                          <Autocomplete
+                            multiple
+                            size="small"
+                            options={segments}
+                            loading={loadingLookups}
+                            getOptionLabel={(option) => option.segment || option.subSegment || option.groupSegment || String(option.id)}
+                            isOptionEqualToValue={(o, v) => String(o.id) === String(v.id)}
+                            value={draftFilters.selectedSegments}
+                            onChange={(_, newValue) => setDraftFilters((prev: any) => ({ ...prev, selectedSegments: newValue }))}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label="Segment ID (PD)"
+                                placeholder="All Segments"
+                                helperText="Opsional"
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                              />
+                            )}
+                          />
+                        </Grid>
+
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                          <FormControl fullWidth size="small" disabled={!draftFilters.isForwardLooking}>
+                            <InputLabel>Scalar</InputLabel>
+                            <Select
+                              value={draftFilters.scalarId}
+                              label="Scalar"
+                              onChange={(e) => setDraftFilters((prev: any) => ({ ...prev, scalarId: String(e.target.value) }))}
+                              sx={{ borderRadius: 2 }}
+                            >
+                              <MenuItem value="">Default</MenuItem>
+                              {scalars.map((s: any) => (
+                                <MenuItem key={String(s.id)} value={String(s.id)}>
+                                  {s.scalarName || s.scalar_name || `Scalar ${s.id}`}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </Grid>
+
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                checked={Boolean(draftFilters.isCompareMode)}
+                                onChange={(e) => setDraftFilters((prev: any) => ({ ...prev, isCompareMode: e.target.checked }))}
+                              />
+                            }
+                            label={<Typography variant="body2" fontWeight={700}>Compare Mode</Typography>}
+                          />
+                        </Grid>
+
+                        {draftFilters.isCompareMode ? (
+                          <>
+                            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                              <FormControl fullWidth size="small">
+                                <InputLabel>PD Config (B)</InputLabel>
+                                <Select
+                                  value={draftFilters.pdConfigIdB}
+                                  label="PD Config (B)"
+                                  onChange={(e) => setDraftFilters((prev: any) => ({ ...prev, pdConfigIdB: String(e.target.value) }))}
+                                  sx={{ borderRadius: 2 }}
+                                >
+                                  {pdConfigs.map((c: any) => (
+                                    <MenuItem key={String(c.id)} value={String(c.id)}>
+                                      {c.config_name || c.name || `Config ${c.id}`}
+                                    </MenuItem>
+                                  ))}
+                                </Select>
+                              </FormControl>
+                            </Grid>
+
+                            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                              <FormControl fullWidth size="small">
+                                <InputLabel>PD Method (B)</InputLabel>
+                                <Select
+                                  value={draftFilters.pdMethodB}
+                                  label="PD Method (B)"
+                                  onChange={(e) => setDraftFilters((prev: any) => ({ ...prev, pdMethodB: Number(e.target.value) }))}
+                                  sx={{ borderRadius: 2 }}
+                                >
+                                  <MenuItem value={1}>TTC</MenuItem>
+                                  <MenuItem value={2}>PIT</MenuItem>
+                                  <MenuItem value={3}>Hybrid</MenuItem>
+                                </Select>
+                              </FormControl>
+                            </Grid>
+
+                            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                              <FormControl fullWidth size="small" disabled={!draftFilters.isForwardLooking}>
+                                <InputLabel>Scalar (B)</InputLabel>
+                                <Select
+                                  value={draftFilters.scalarIdB}
+                                  label="Scalar (B)"
+                                  onChange={(e) => setDraftFilters((prev: any) => ({ ...prev, scalarIdB: String(e.target.value) }))}
+                                  sx={{ borderRadius: 2 }}
+                                >
+                                  <MenuItem value="">Default</MenuItem>
+                                  {scalars.map((s: any) => (
+                                    <MenuItem key={String(s.id)} value={String(s.id)}>
+                                      {s.scalarName || s.scalar_name || `Scalar ${s.id}`}
+                                    </MenuItem>
+                                  ))}
+                                </Select>
+                              </FormControl>
+                            </Grid>
+                          </>
+                        ) : null}
+                      </Grid>
+                    </AccordionDetails>
+                  </Accordion>
+                </Grid>
               </Grid>
             </LocalizationProvider>
           </CardContent>

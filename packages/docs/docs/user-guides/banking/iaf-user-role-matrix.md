@@ -15,6 +15,26 @@ All provisioned IAF users currently use the same initial password:
 
 This is an operational bootstrap password. Change it after first controlled login if these accounts will be used outside local/internal testing.
 
+## Demo Accounts
+
+All accounts below are demo accounts for the IAF tenant.
+
+| Email | Username | Password | Role |
+| --- | --- | --- | --- |
+| `maker@iaf.co.id` | `maker_iaf` | `1019181716` | `MAKER` |
+| `checker@iaf.co.id` | `checker_iaf` | `1019181716` | `CHECKER` |
+| `approver@iaf.co.id` | `approver_iaf` | `1019181716` | `APPROVER` |
+| `admin@iaf.co.id` | `admin_iaf` | `1019181716` | `IAF_TENANT_ADMIN` |
+| `superadmin@iaf.co.id` | `superadmin_iaf` | `1019181716` | `IAF_TENANT_SUPERADMIN` |
+| `data.admin@iaf.co.id` | `data_admin_iaf` | `1019181716` | `IAF_DATA_ADMIN` |
+| `risk.analyst@iaf.co.id` | `risk_analyst_iaf` | `1019181716` | `IAF_RISK_ANALYST` |
+| `ifrs.manager@iaf.co.id` | `ifrs_manager_iaf` | `1019181716` | `IAF_IFRS_MANAGER` |
+| `cro@iaf.co.id` | `cro_iaf` | `1019181716` | `IAF_BANK_CRO` |
+| `portfolio.manager@iaf.co.id` | `portfolio_manager_iaf` | `1019181716` | `IAF_PORTFOLIO_MANAGER` |
+| `report.analyst@iaf.co.id` | `report_analyst_iaf` | `1019181716` | `IAF_REPORT_ANALYST` |
+| `auditor@iaf.co.id` | `auditor_iaf` | `1019181716` | `IAF_AUDITOR` |
+| `viewer@iaf.co.id` | `viewer_iaf` | `1019181716` | `IAF_VIEWER` |
+
 ## Active IAF Users
 
 | Email | Username | Role | Purpose |
