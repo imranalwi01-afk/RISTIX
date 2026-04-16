@@ -51,6 +51,8 @@ import BaseIfrs9Report from './BaseIfrs9Report';
 import api from '@/services/api';
 import { format } from 'date-fns';
 import { pdConfigurationsApi } from '../../services/api/pd-configurations.api';
+import { flScalarAPI } from '../../services/api/fl-scalar.api';
+import { productSegmentsApi, type ProductSegment } from '../../services/api/product-segments.api';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -78,6 +80,13 @@ const getDefaultLifetimePdFilters = () => ({
   pdConfigId: '', // Will be set after configs are loaded
   pdMethod: 1,
   isForwardLooking: false,
+  scalarId: undefined as number | undefined,
+  selectedSegments: [] as string[],
+  selectedSegmentIds: [] as number[],
+  isCompareMode: false,
+  pdConfigIdB: '',
+  pdMethodB: 2,
+  scalarIdB: undefined as number | undefined,
 });
 
 const getDefaultLifetimePdDraft = () => ({
@@ -85,6 +94,12 @@ const getDefaultLifetimePdDraft = () => ({
   pdConfigId: '', // Will be set after configs are loaded
   pdMethod: 1,
   isForwardLooking: false,
+  selectedSegments: [] as ProductSegment[],
+  scalarId: '',
+  isCompareMode: false,
+  pdConfigIdB: '',
+  pdMethodB: 2,
+  scalarIdB: '',
 });
 
 const PD_METHOD_OPTIONS: Array<{ value: number; label: string }> = [
@@ -119,7 +134,9 @@ const LifetimePDReport: React.FC = () => {
   const [effectivePrcDate, setEffectivePrcDate] = useState<string | null>(null);
   const [currentFilters, setCurrentFilters] = useState<any>(getDefaultLifetimePdFilters);
   const [draftFilters, setDraftFilters] = useState<any>(getDefaultLifetimePdDraft);
+  const [segments, setSegments] = useState<ProductSegment[]>([]);
   const [pdConfigs, setPdConfigs] = useState<any[]>([]);
+  const [scalars, setScalars] = useState<any[]>([]);
   const [loadingLookups, setLoadingLookups] = useState(false);
   const [availablePrcDates, setAvailablePrcDates] = useState<string[]>([]);
 
@@ -254,11 +271,33 @@ const LifetimePDReport: React.FC = () => {
     const loadLookups = async () => {
       setLoadingLookups(true);
       try {
-        const pdData = await pdConfigurationsApi.getAll({ is_active: true });
+        const [segmentData, pdData, scalarData] = await Promise.all([
+          productSegmentsApi.getAll(),
+          pdConfigurationsApi.getAll({ is_active: true }),
+          flScalarAPI.getAll(),
+        ]);
         const configs = Array.isArray(pdData) ? pdData : [];
+        const rawSegments = Array.isArray(segmentData) ? segmentData : [];
+        const normalizedSegments = rawSegments.filter((segment) => {
+          const type = String((segment as any).segmentType || '').toLowerCase();
+          const group = String((segment as any).groupSegment || '').toLowerCase();
+          const name = String((segment as any).segment || '').toLowerCase();
+          const subSegment = String((segment as any).subSegment || '').toLowerCase();
+          return (
+            type.includes('pd')
+            || /\bpd\b/.test(group)
+            || group.startsWith('pd')
+            || /\bpd\b/.test(name)
+            || name.startsWith('pd')
+            || /\bpd\b/.test(subSegment)
+            || subSegment.startsWith('pd')
+          );
+        });
 
         console.log('📋 PD Configurations loaded:', configs.length, 'configs');
+        setSegments(normalizedSegments);
         setPdConfigs(configs);
+        setScalars(Array.isArray(scalarData) ? scalarData : []);
         
         // Check if no configurations available
         if (configs.length === 0) {
@@ -348,6 +387,15 @@ const LifetimePDReport: React.FC = () => {
       pdConfigId: draftFilters.pdConfigId,
       pdMethod: draftFilters.pdMethod === '' ? '' : Number(draftFilters.pdMethod),
       isForwardLooking: Boolean(draftFilters.isForwardLooking),
+      scalarId: draftFilters.isForwardLooking && draftFilters.scalarId ? Number(draftFilters.scalarId) : undefined,
+      selectedSegments: (draftFilters.selectedSegments || []).map((segment: ProductSegment) => (
+        segment.segment || segment.subSegment || segment.groupSegment || String(segment.id)
+      )),
+      selectedSegmentIds: (draftFilters.selectedSegments || []).map((segment: ProductSegment) => Number(segment.id)),
+      isCompareMode: Boolean(draftFilters.isCompareMode),
+      pdConfigIdB: draftFilters.isCompareMode ? draftFilters.pdConfigIdB : '',
+      pdMethodB: draftFilters.isCompareMode ? Number(draftFilters.pdMethodB) : 2,
+      scalarIdB: draftFilters.isCompareMode && draftFilters.scalarIdB ? Number(draftFilters.scalarIdB) : undefined,
     });
     setLastCalculation(new Date());
   }, [draftFilters]);
