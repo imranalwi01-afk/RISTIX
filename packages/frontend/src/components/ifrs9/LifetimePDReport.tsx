@@ -1,5 +1,5 @@
 // packages/frontend/src/components/ifrs9/LifetimePDReport.tsx
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -21,9 +21,6 @@ import {
   MenuItem,
   Switch,
   FormControlLabel,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   CircularProgress,
   useTheme,
   alpha
@@ -31,30 +28,22 @@ import {
 import {
   FilterList as FilterListIcon,
   Refresh as RefreshIcon,
-  Download as DownloadIcon,
   ClearAll as ClearAllIcon,
   CheckCircle as CheckCircleIcon,
   AccessTime as AccessTimeIcon,
-  ExpandMore as ExpandMoreIcon,
-  Tune as TuneIcon
 } from '@mui/icons-material';
 
 import { Grid } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import Autocomplete from '@mui/material/Autocomplete';
 import LifetimePDKPIs from './LifetimePDKPIs';
 import SurvivalChart from './LifetimePDCharts/SurvivalChart';
 import MarginalPDChart from './LifetimePDCharts/MarginalPDChart';
-import LifetimePDExportDialog from './LifetimePDExportDialog';
 import BaseIfrs9Report from './BaseIfrs9Report';
 import api from '@/services/api';
 import { format } from 'date-fns';
-import * as XLSX from 'xlsx';
-import { productSegmentsApi, type ProductSegment } from '../../services/api/product-segments.api';
 import { pdConfigurationsApi } from '../../services/api/pd-configurations.api';
-import { flScalarAPI } from '../../services/api/fl-scalar.api';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -77,146 +66,180 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-const mapPdMethodToCode = (method: string | number | undefined): number => {
-  if (typeof method === 'number') return method;
-  switch (method) {
-    case 'PIT':
-      return 2;
-    case 'Hybrid':
-      return 3;
-    case 'TTC':
-    default:
-      return 1;
-  }
-};
-
 const getDefaultLifetimePdFilters = () => ({
   prcDate: '2022-10-31',
-  selectedSegments: [],
-  selectedSegmentIds: [],
-  pdConfigId: '',
-  pdMethod: mapPdMethodToCode('TTC'),
+  pdConfigId: '', // Will be set after configs are loaded
+  pdMethod: 1,
   isForwardLooking: false,
-  scalarId: undefined,
-  isCompareMode: false,
-  pdConfigIdB: '',
-  pdMethodB: mapPdMethodToCode('PIT'),
-  scalarIdB: undefined
 });
 
 const getDefaultLifetimePdDraft = () => ({
   procDate: new Date('2022-10-31'),
-  selectedSegments: [] as ProductSegment[],
-  pdConfigId: '',
-  pdMethod: mapPdMethodToCode('TTC'),
+  pdConfigId: '', // Will be set after configs are loaded
+  pdMethod: 1,
   isForwardLooking: false,
-  scalarId: '',
-  isCompareMode: false,
-  pdConfigIdB: '',
-  pdMethodB: mapPdMethodToCode('PIT'),
-  scalarIdB: '',
 });
+
+const PD_METHOD_OPTIONS: Array<{ value: number; label: string }> = [
+  { value: 1, label: 'NOA Migration' },
+  { value: 2, label: 'OS Migration' },
+  { value: 3, label: 'Proxy PD' },
+];
+
+const PD_CONFIG_ALLOWLIST_ORDER = [
+  'PD Factoring',
+  'PD Model All Segment',
+  'PD Repo',
+  'PD Treasury Fitch',
+  'PD Treasury Moodys',
+  'PD Treasury Pefindo',
+  'PD Treasury S&P',
+];
 
 const LifetimePDReport: React.FC = () => {
   const theme = useTheme();
   const [tabValue, setTabValue] = useState(0);
   const [showFilters, setShowFilters] = useState(true);
-  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [lastCalculation, setLastCalculation] = useState<Date | null>(new Date());
+  const requestSeqRef = useRef(0);
   
   // Data states
   const [yearlyData, setYearlyData] = useState<any[]>([]);
-  const [yearlyDataB, setYearlyDataB] = useState<any[]>([]);
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
-  const [monthlyDataB, setMonthlyDataB] = useState<any[]>([]);
   const [validationMetadata, setValidationMetadata] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [effectivePrcDate, setEffectivePrcDate] = useState<string | null>(null);
   const [currentFilters, setCurrentFilters] = useState<any>(getDefaultLifetimePdFilters);
   const [draftFilters, setDraftFilters] = useState<any>(getDefaultLifetimePdDraft);
-  const [segments, setSegments] = useState<ProductSegment[]>([]);
   const [pdConfigs, setPdConfigs] = useState<any[]>([]);
-  const [scalars, setScalars] = useState<any[]>([]);
   const [loadingLookups, setLoadingLookups] = useState(false);
+  const [availablePrcDates, setAvailablePrcDates] = useState<string[]>([]);
 
   const fetchData = useCallback(async (filters: any) => {
+    const requestSeq = (requestSeqRef.current += 1);
     setLoading(true);
     setError(null);
     try {
-      const response = await api.banking.ifrs9Reports.lifetimePD.getYearly({
+      // Validate required parameters
+      if (!filters.prcDate) {
+        console.warn('⚠️ No processing date provided');
+        setError('Processing date is required');
+        setLoading(false);
+        return;
+      }
+       
+      // Validate date format
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(filters.prcDate)) {
+        console.warn('⚠️ Invalid date format:', filters.prcDate);
+        setError('Invalid processing date format. Please use YYYY-MM-DD format.');
+        setLoading(false);
+        return;
+      }
+       
+      const baseParams = {
         prc_date: filters.prcDate,
         pd_config_id: filters.pdConfigId ? Number(filters.pdConfigId) : undefined,
-        pd_method: filters.pdMethod,
-        scalar_id: filters.scalarId ? Number(filters.scalarId) : undefined,
+        pd_method: filters.pdMethod !== '' && filters.pdMethod !== null && filters.pdMethod !== undefined
+          ? Number(filters.pdMethod)
+          : undefined,
         fl_flag: filters.isForwardLooking
-      });
+      };
+       
+      console.log('🔍 Fetching Lifetime PD data with params:', baseParams);
+
+      const results = await Promise.allSettled([
+        api.banking.ifrs9Reports.lifetimePD.getYearly(baseParams),
+        api.banking.ifrs9Reports.lifetimePD.getMonthly(baseParams),
+      ]);
       
-      if (response.success) {
-        setYearlyData(response.data);
-        setEffectivePrcDate(response.effectivePrcDate ?? filters.prcDate);
-        if (response.metadata) setValidationMetadata(response.metadata);
-      } else {
-        setError(response.message || 'Failed to fetch yearly data');
-        setEffectivePrcDate(null);
-      }
+      console.log('📡 API Results:', results.map(r => ({
+        status: r.status,
+        value: r.status === 'fulfilled' ? r.value : null,
+        reason: r.status === 'rejected' ? r.reason : null
+      })));
 
-      // Fetch comparison yearly data if active (Model B)
-      if (filters.isCompareMode && filters.pdConfigIdB) {
-        const responseB = await api.banking.ifrs9Reports.lifetimePD.getYearly({
-          prc_date: filters.prcDate,
-          pd_config_id: Number(filters.pdConfigIdB),
-          pd_method: filters.pdMethodB,
-          scalar_id: filters.scalarIdB ? Number(filters.scalarIdB) : undefined,
-          fl_flag: filters.isForwardLooking
-        });
-        if (responseB.success) setYearlyDataB(responseB.data);
-      } else {
-        setYearlyDataB([]);
-      }
+      if (requestSeq !== requestSeqRef.current) return;
 
-      // Fetch monthly data
-      const monthlyResponse = await api.banking.ifrs9Reports.lifetimePD.getMonthly({
-        prc_date: filters.prcDate,
-        pd_config_id: filters.pdConfigId ? Number(filters.pdConfigId) : undefined,
-        pd_method: filters.pdMethod,
-        scalar_id: filters.scalarId ? Number(filters.scalarId) : undefined,
-        fl_flag: filters.isForwardLooking
-      });
-      if (monthlyResponse.success) {
-        setMonthlyData(monthlyResponse.data);
-        if (!response?.effectivePrcDate && monthlyResponse.effectivePrcDate) {
-          setEffectivePrcDate(monthlyResponse.effectivePrcDate);
+      const yearlyRes = results[0].status === 'fulfilled' ? results[0].value : null;
+      const monthlyRes = results[1].status === 'fulfilled' ? results[1].value : null;
+
+      console.log('📡 Yearly Response:', yearlyRes);
+      console.log('📡 Monthly Response:', monthlyRes);
+
+      const errors: string[] = [];
+      if (results[0].status === 'rejected') errors.push((results[0].reason as any)?.message || 'Failed to load yearly data');
+      if (results[1].status === 'rejected') errors.push((results[1].reason as any)?.message || 'Failed to load monthly data');
+
+      if (yearlyRes?.success) {
+        const yearlyDataArray = Array.isArray(yearlyRes.data) ? yearlyRes.data : [];
+        console.log('📊 Yearly data received:', yearlyDataArray.length, 'records');
+        console.log('📅 Effective PRC Date from API:', yearlyRes.effectivePrcDate);
+        setYearlyData(yearlyDataArray);
+        setEffectivePrcDate(yearlyRes.effectivePrcDate ?? filters.prcDate);
+        if (yearlyRes.metadata) setValidationMetadata(yearlyRes.metadata);
+        
+        // Check if data is empty and provide specific message
+        if (yearlyDataArray.length === 0) {
+          errors.push(yearlyRes.message || 'No yearly Lifetime PD data available for the selected filters. Try adjusting the processing date or configuration.');
         }
+        
+        // Check if effectivePrcDate is null
+        if (!yearlyRes.effectivePrcDate) {
+          errors.push('No data available for the selected processing date. The system could not find any Lifetime PD data on or before the selected date.');
+        }
+      } else if (yearlyRes && !yearlyRes.success) {
+        errors.push(yearlyRes.message || 'Failed to load yearly data');
+        setYearlyData([]);
       }
 
-      // Fetch comparison monthly data if active
-      if (filters.isCompareMode && filters.pdConfigIdB) {
-        const monthlyResponseB = await api.banking.ifrs9Reports.lifetimePD.getMonthly({
-          prc_date: filters.prcDate,
-          pd_config_id: Number(filters.pdConfigIdB),
-          pd_method: filters.pdMethodB,
-          scalar_id: filters.scalarIdB ? Number(filters.scalarIdB) : undefined,
-          fl_flag: filters.isForwardLooking
-        });
-        if (monthlyResponseB.success) setMonthlyDataB(monthlyResponseB.data);
-      } else {
-        setMonthlyDataB([]);
+      if (monthlyRes?.success) {
+        const monthlyDataArray = Array.isArray(monthlyRes.data) ? monthlyRes.data : [];
+        console.log('📊 Monthly data received:', monthlyDataArray.length, 'records');
+        setMonthlyData(monthlyDataArray);
+        if (!yearlyRes?.effectivePrcDate && monthlyRes.effectivePrcDate) {
+          setEffectivePrcDate(monthlyRes.effectivePrcDate);
+        }
+        
+        // Check if data is empty
+        if (monthlyDataArray.length === 0 && yearlyRes?.data?.length === 0) {
+          errors.push('No monthly Lifetime PD data available for the selected filters.');
+        }
+      } else if (monthlyRes && !monthlyRes.success) {
+        errors.push(monthlyRes.message || 'Failed to load monthly data');
+        setMonthlyData([]);
+      }
+
+      if (errors.length > 0) {
+        setError(errors[0]);
+      } else if (yearlyRes?.success && monthlyRes?.success && 
+                 yearlyRes.data?.length === 0 && monthlyRes.data?.length === 0) {
+        // Both APIs returned success but no data
+        setError('No Lifetime PD data available for the selected configuration. Please try different filter settings or check if data has been processed for the selected date.');
       }
     } catch (err) {
       console.error('Fetch error:', err);
       const message =
         (err as any)?.response?.data?.message
         || (err as any)?.message
-        || 'Backend tidak dapat diakses. Silakan refresh atau coba lagi.';
+        || 'Backend is not reachable. Please refresh and try again.';
       setError(String(message));
       setEffectivePrcDate(null);
     } finally {
-      setLoading(false);
+      if (requestSeq === requestSeqRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
+  const loadAvailablePrcDates = useCallback(async () => {
+    setAvailablePrcDates([]);
+  }, []);
+
   React.useEffect(() => {
+    if (!currentFilters?.prcDate) return;
+    console.log('🔄 Initial data fetch with filters:', currentFilters);
     fetchData(currentFilters);
   }, [fetchData, currentFilters]);
 
@@ -224,28 +247,20 @@ const LifetimePDReport: React.FC = () => {
     const loadLookups = async () => {
       setLoadingLookups(true);
       try {
-        const [segData, pdData, scData] = await Promise.all([
-          productSegmentsApi.getAll(),
-          pdConfigurationsApi.getAll({ is_active: true }),
-          flScalarAPI.getAll()
-        ]);
+        const pdData = await pdConfigurationsApi.getAll({ is_active: true });
+        const configs = Array.isArray(pdData) ? pdData : [];
 
-        const rawSegments = Array.isArray(segData) ? segData : [];
-        const isPd = (s: ProductSegment) => {
-          const t = String((s as any).segmentType || '').toLowerCase();
-          if (t) return t.includes('pd');
-          const seg = String((s as any).segment || '').toLowerCase();
-          const group = String((s as any).groupSegment || '').toLowerCase();
-          const sub = String((s as any).subSegment || '').toLowerCase();
-          return /\bpd\b/.test(seg) || seg.startsWith('pd') || /\bpd\b/.test(group) || group.startsWith('pd') || /\bpd\b/.test(sub) || sub.startsWith('pd');
-        };
-
-        const normalizedSegments = rawSegments.filter(isPd);
-        normalizedSegments.sort((a, b) => (Number((a as any).displayOrder || 0) - Number((b as any).displayOrder || 0)) || String(a.id).localeCompare(String(b.id)));
-        setSegments(normalizedSegments);
-
-        setPdConfigs(Array.isArray(pdData) ? pdData : []);
-        setScalars(Array.isArray(scData) ? scData : []);
+        console.log('📋 PD Configurations loaded:', configs.length, 'configs');
+        setPdConfigs(configs);
+        
+        // Check if no configurations available
+        if (configs.length === 0) {
+          console.warn('⚠️ No PD configurations available');
+        }
+      } catch (err: any) {
+        const message = err?.message || 'Failed to load filter metadata.'
+        console.error('❌ Error loading PD configurations:', err);
+        setError(String(message))
       } finally {
         setLoadingLookups(false);
       }
@@ -253,11 +268,68 @@ const LifetimePDReport: React.FC = () => {
     void loadLookups();
   }, []);
 
-  React.useEffect(() => {
-    if (!pdConfigs.length) return;
-    setDraftFilters((prev: any) => (prev.pdConfigId ? prev : { ...prev, pdConfigId: String(pdConfigs[0].id) }));
-    setCurrentFilters((prev: any) => (prev.pdConfigId ? prev : { ...prev, pdConfigId: String(pdConfigs[0].id) }));
+  const pdConfigOptions = useMemo(() => {
+    const byName = new Map<string, any[]>();
+    for (const c of pdConfigs) {
+      const name = String(c?.model_name || '').trim();
+      if (!name) continue;
+      const arr = byName.get(name) || [];
+      arr.push(c);
+      byName.set(name, arr);
+    }
+
+    const allowlisted = PD_CONFIG_ALLOWLIST_ORDER
+      .map((name) => {
+        const candidates = byName.get(name);
+        const c = candidates?.[0];
+        if (!c) return null;
+        const id = c?.id ?? c?.pkid ?? c?.model_id ?? c?.modelId;
+        const value = id === null || id === undefined ? '' : String(id);
+        return value ? { value, label: name } : null;
+      })
+      .filter(Boolean) as Array<{ value: string; label: string }>;
+
+    if (allowlisted.length > 0) return allowlisted;
+
+    const excluded = new Set(['PD Before FL', 'PD Testing']);
+    const fallback = pdConfigs
+      .map((c: any) => {
+        const name = String(c?.model_name || '').trim();
+        if (!name || !name.startsWith('PD ')) return null;
+        if (excluded.has(name)) return null;
+        const id = c?.id ?? c?.pkid ?? c?.model_id ?? c?.modelId;
+        const value = id === null || id === undefined ? '' : String(id);
+        return value ? { value, label: name } : null;
+      })
+      .filter(Boolean) as Array<{ value: string; label: string }>;
+
+    fallback.sort((a, b) => a.label.localeCompare(b.label));
+    return fallback;
   }, [pdConfigs]);
+
+  React.useEffect(() => {
+    if (!availablePrcDates.length) return;
+    const newest = availablePrcDates[0];
+    if (!newest) return;
+
+    const availableSet = new Set(availablePrcDates);
+
+    setCurrentFilters((prev: any) => {
+      const prevDate = prev?.prcDate;
+      if (prevDate && availableSet.has(String(prevDate))) return prev;
+      return { ...prev, prcDate: newest };
+    });
+
+    setDraftFilters((prev: any) => {
+      const prevDate = prev?.procDate ? format(prev.procDate, 'yyyy-MM-dd') : '';
+      if (prevDate && availableSet.has(prevDate)) return prev;
+      return { ...prev, procDate: new Date(newest) };
+    });
+  }, [availablePrcDates]);
+
+  React.useEffect(() => {
+    void loadAvailablePrcDates();
+  }, [loadAvailablePrcDates]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -267,17 +339,8 @@ const LifetimePDReport: React.FC = () => {
     setCurrentFilters({
       prcDate: format(draftFilters.procDate, 'yyyy-MM-dd'),
       pdConfigId: draftFilters.pdConfigId,
-      pdMethod: Number(draftFilters.pdMethod),
+      pdMethod: draftFilters.pdMethod === '' ? '' : Number(draftFilters.pdMethod),
       isForwardLooking: Boolean(draftFilters.isForwardLooking),
-      scalarId: draftFilters.isForwardLooking ? (draftFilters.scalarId ? Number(draftFilters.scalarId) : undefined) : undefined,
-      selectedSegments: (draftFilters.selectedSegments || []).map((s: ProductSegment) => (s.segment || s.subSegment || s.groupSegment || String(s.id))),
-      selectedSegmentIds: (draftFilters.selectedSegments || []).map((s: ProductSegment) => Number(s.id)),
-      isCompareMode: Boolean(draftFilters.isCompareMode),
-      pdConfigIdB: draftFilters.isCompareMode ? draftFilters.pdConfigIdB : '',
-      pdMethodB: draftFilters.isCompareMode ? Number(draftFilters.pdMethodB) : mapPdMethodToCode('PIT'),
-      scalarIdB: draftFilters.isCompareMode
-        ? (draftFilters.scalarIdB ? Number(draftFilters.scalarIdB) : undefined)
-        : undefined
     });
     setLastCalculation(new Date());
   }, [draftFilters]);
@@ -286,14 +349,16 @@ const LifetimePDReport: React.FC = () => {
     setCurrentFilters(getDefaultLifetimePdFilters());
     setDraftFilters(getDefaultLifetimePdDraft());
     setTabValue(0);
+    setAvailablePrcDates([]);
   }, []);
 
   // Transform backend data for charts
   const chartData = useMemo(() => {
+    console.log('📊 Transforming yearly data for charts:', yearlyData);
     if (!yearlyData || yearlyData.length === 0) return [];
     
     const baseBucket = yearlyData[0];
-    const baseBucketB = currentFilters.isCompareMode && yearlyDataB?.length > 0 ? yearlyDataB[0] : {};
+    console.log('📊 Base bucket data:', baseBucket);
     
     const yearKeys = Object.keys(baseBucket)
       .filter(k => k.startsWith('year_'))
@@ -303,37 +368,34 @@ const LifetimePDReport: React.FC = () => {
         return numA - numB;
       });
       
-    let survivalA = 1;
-    let survivalB = 1;
+    console.log('📊 Year keys found:', yearKeys);
     
-    return yearKeys.map((key, index) => {
+    let survivalA = 1;
+    
+    const transformedData = yearKeys.map((key, index) => {
       const yearVal = parseInt(key.replace('year_', '')) || index + 1;
       const pdA = baseBucket[key] || 0;
       survivalA = survivalA * (1 - pdA);
-      
-      const pdB = baseBucketB[key];
-      if (pdB !== undefined) {
-        survivalB = survivalB * (1 - pdB);
-      }
 
       return {
         year: `Year ${yearVal}`,
         bucketYear: yearVal,
         marginalPD: pdA,
-        marginalPDB: pdB,
         survival: survivalA,
-        survivalB: pdB !== undefined ? survivalB : undefined,
         cumulativePD: 1 - survivalA,
-        cumulativePDB: pdB !== undefined ? 1 - survivalB : undefined
       };
     });
-  }, [yearlyData, yearlyDataB, currentFilters.isCompareMode]);
+    
+    console.log('📊 Transformed chart data:', transformedData);
+    return transformedData;
+  }, [yearlyData]);
 
   const monthlyChartData = useMemo(() => {
+    console.log('📊 Transforming monthly data for charts:', monthlyData);
     if (!monthlyData || monthlyData.length === 0) return [];
     
     const baseBucket = monthlyData[0];
-    const baseBucketB = currentFilters.isCompareMode && monthlyDataB?.length > 0 ? monthlyDataB[0] : {};
+    console.log('📊 Base monthly bucket data:', baseBucket);
     
     const monthKeys = Object.keys(baseBucket)
       .filter(k => k.startsWith('month_'))
@@ -343,18 +405,21 @@ const LifetimePDReport: React.FC = () => {
         return numA - numB;
       });
 
-    return monthKeys.map((key, index) => {
+    console.log('📊 Month keys found:', monthKeys);
+    
+    const transformedData = monthKeys.map((key, index) => {
       const monthVal = parseInt(key.replace('month_', '')) || index + 1;
       const pdA = baseBucket[key] || 0;
-      const pdB = baseBucketB[key];
 
       return {
         month: `M${monthVal}`,
         marginalPD: pdA,
-        marginalPDB: pdB
       };
     });
-  }, [monthlyData, monthlyDataB, currentFilters.isCompareMode]);
+    
+    console.log('📊 Transformed monthly chart data:', transformedData);
+    return transformedData;
+  }, [monthlyData]);
 
   // Transform KPIs (expressed in percentage units 0-100)
   const kpiData = useMemo(() => {
@@ -413,7 +478,6 @@ const LifetimePDReport: React.FC = () => {
       prc_date,
       pd_config_id: currentFilters.pdConfigId ? Number(currentFilters.pdConfigId) : undefined,
       pd_method: currentFilters.pdMethod,
-      scalar_id: currentFilters.scalarId ? Number(currentFilters.scalarId) : undefined,
       fl_flag: currentFilters.isForwardLooking,
     } as const
 
@@ -439,213 +503,7 @@ const LifetimePDReport: React.FC = () => {
 
     if (out.length >= maxRows) truncated = true
     return { rows: out, truncated }
-  }, [currentFilters.isForwardLooking, currentFilters.pdConfigId, currentFilters.pdMethod, currentFilters.prcDate, currentFilters.scalarId, effectivePrcDate])
-
-  const handleExport = useCallback((options: any) => {
-    void (async () => {
-      if (!hasReportData) return
-      try {
-        setLoading(true)
-
-        const fileDate = effectivePrcDate || currentFilters.prcDate || new Date().toISOString().slice(0, 10)
-        const generatedAt = new Date().toISOString()
-        const requestedPrcDate = currentFilters.prcDate
-        const effectiveDate = effectivePrcDate || currentFilters.prcDate
-
-        const auditRows = [
-          ['Report Name', 'Lifetime PD'],
-          ['Requested Processing Date', requestedPrcDate],
-          ['Effective Processing Date', effectiveDate],
-          ['PD Config ID', currentFilters.pdConfigId || 'All'],
-          ['PD Method', String(currentFilters.pdMethod ?? '')],
-          ['Forward Looking', currentFilters.isForwardLooking ? 'Yes' : 'No'],
-          ['Segments', currentFilters.selectedSegments?.length ? currentFilters.selectedSegments.join(', ') : 'All Segments'],
-          ['Segment IDs', currentFilters.selectedSegmentIds?.length ? currentFilters.selectedSegmentIds.join(', ') : 'All Segments'],
-          ['Generated At', generatedAt],
-          []
-        ]
-
-        if (options.format === 'pdf') {
-          const [{ jsPDF }, autoTableModule] = await Promise.all([
-            import('jspdf'),
-            import('jspdf-autotable'),
-          ])
-          const autoTable = (autoTableModule as any).default || (autoTableModule as any)
-
-          const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
-
-          const pageWidth = doc.internal.pageSize.getWidth()
-          const headerLeft = [
-            'Lifetime PD Report',
-            `As of: ${effectiveDate}`,
-            `PD Config: ${currentFilters.pdConfigId || 'All'} | Method: ${String(currentFilters.pdMethod ?? '')} | FL: ${currentFilters.isForwardLooking ? 'Yes' : 'No'}`,
-            `Segments: ${currentFilters.selectedSegments?.length ? currentFilters.selectedSegments.join(', ') : 'All'}`,
-            `Generated: ${generatedAt.replace('T', ' ').slice(0, 19)}`,
-          ]
-
-          const sections: Array<{ title: string; head: any[]; body: any[] }> = []
-
-          if (options.scope?.summary) {
-            sections.push({
-              title: 'Executive Summary (KPIs)',
-              head: [['Metric', 'Value']],
-              body: [
-                ['1Y Cumulative PD', `${kpiData.y1.toFixed(2)}%`],
-                ['3Y Cumulative PD', `${kpiData.y3.toFixed(2)}%`],
-                ['5Y Cumulative PD', `${kpiData.y5.toFixed(2)}%`],
-                ['Survival Rate', `${kpiData.survival.toFixed(2)}%`],
-              ],
-            })
-          }
-
-          if (options.scope?.bySegment && yearlyData.length > 0) {
-            const t = buildTableFromObjects(yearlyData)
-            sections.push({ title: 'Yearly PD (Base)', head: t.head, body: t.body })
-          }
-          if (options.scope?.bySegment && currentFilters.isCompareMode && yearlyDataB?.length > 0) {
-            const t = buildTableFromObjects(yearlyDataB)
-            sections.push({ title: 'Yearly PD (Compare)', head: t.head, body: t.body })
-          }
-
-          if (options.scope?.charts && monthlyData.length > 0) {
-            const t = buildTableFromObjects(monthlyData)
-            sections.push({ title: 'Monthly PD (Base)', head: t.head, body: t.body })
-          }
-          if (options.scope?.charts && currentFilters.isCompareMode && monthlyDataB?.length > 0) {
-            const t = buildTableFromObjects(monthlyDataB)
-            sections.push({ title: 'Monthly PD (Compare)', head: t.head, body: t.body })
-          }
-
-          if (options.scope?.fullAccount) {
-            const { rows, truncated } = await fetchAccountDetailsForExport()
-            if (rows.length) {
-              const t = buildTableFromObjects(rows)
-              const note = truncated ? ' (First 2000 rows)' : ''
-              sections.push({ title: `Account Details${note}`, head: t.head, body: t.body })
-            } else {
-              sections.push({ title: 'Account Details', head: [['Info']], body: [['No rows returned from server']] })
-            }
-          }
-
-          let cursorY = 86
-
-          const drawHeader = () => {
-            doc.setFontSize(14)
-            doc.setTextColor(17, 24, 39)
-            doc.text(headerLeft[0], 32, 32)
-            doc.setFontSize(9)
-            doc.setTextColor(71, 85, 105)
-            doc.text(headerLeft[1], 32, 48)
-            doc.text(headerLeft[2], 32, 62, { maxWidth: pageWidth - 64 })
-            doc.text(headerLeft[3], 32, 76, { maxWidth: pageWidth - 64 })
-            doc.text(headerLeft[4], 32, 90)
-          }
-
-          drawHeader()
-          cursorY = 110
-
-          const footer = () => {
-            const rightX = pageWidth - 32
-            const pageNumber = doc.getCurrentPageInfo().pageNumber
-            const totalPages = doc.getNumberOfPages()
-            doc.setFontSize(9)
-            doc.setTextColor(100)
-            doc.text(`Page ${pageNumber} / ${totalPages}`, rightX, doc.internal.pageSize.getHeight() - 18, { align: 'right' })
-          }
-
-          for (const section of sections) {
-            autoTable(doc, {
-              head: section.head,
-              body: section.body,
-              startY: cursorY + 18,
-              margin: { top: 100, left: 32, right: 32, bottom: 36 },
-              styles: { fontSize: 7, cellPadding: 3, overflow: 'linebreak' },
-              headStyles: { fillColor: [25, 118, 210], textColor: 255, fontStyle: 'bold' },
-              alternateRowStyles: { fillColor: [248, 250, 252] },
-              didDrawPage: () => {
-                drawHeader()
-                footer()
-              },
-            })
-
-            const lastY = (doc as any).lastAutoTable?.finalY
-            cursorY = typeof lastY === 'number' ? lastY + 20 : cursorY + 40
-            if (cursorY > doc.internal.pageSize.getHeight() - 80) {
-              doc.addPage()
-              drawHeader()
-              cursorY = 110
-            }
-
-            doc.setFontSize(11)
-            doc.setTextColor(17, 24, 39)
-            doc.text(section.title, 32, cursorY - 6)
-          }
-
-          doc.save(`lifetime-pd-${fileDate}.pdf`)
-          return
-        }
-
-        const workbook = XLSX.utils.book_new()
-
-        if (options.scope?.summary) {
-          const summarySheet = XLSX.utils.aoa_to_sheet([
-            ...auditRows,
-            ['Metric', 'Value'],
-            ['1Y Cumulative PD', `${kpiData.y1.toFixed(2)}%`],
-            ['3Y Cumulative PD', `${kpiData.y3.toFixed(2)}%`],
-            ['5Y Cumulative PD', `${kpiData.y5.toFixed(2)}%`],
-            ['Survival Rate', `${kpiData.survival.toFixed(2)}%`],
-          ])
-          XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary')
-        }
-
-        if (options.scope?.bySegment && yearlyData.length > 0) {
-          const yearlySheet = XLSX.utils.json_to_sheet(yearlyData)
-          XLSX.utils.sheet_add_aoa(yearlySheet, auditRows, { origin: 'A1' })
-          XLSX.utils.book_append_sheet(workbook, yearlySheet, 'Yearly PD')
-        }
-        if (options.scope?.bySegment && currentFilters.isCompareMode && yearlyDataB?.length > 0) {
-          const yearlySheetB = XLSX.utils.json_to_sheet(yearlyDataB)
-          XLSX.utils.sheet_add_aoa(yearlySheetB, auditRows, { origin: 'A1' })
-          XLSX.utils.book_append_sheet(workbook, yearlySheetB, 'Yearly PD (B)')
-        }
-
-        if (options.scope?.charts && monthlyData.length > 0) {
-          const monthlySheet = XLSX.utils.json_to_sheet(monthlyData)
-          XLSX.utils.sheet_add_aoa(monthlySheet, auditRows, { origin: 'A1' })
-          XLSX.utils.book_append_sheet(workbook, monthlySheet, 'Monthly PD')
-        }
-        if (options.scope?.charts && currentFilters.isCompareMode && monthlyDataB?.length > 0) {
-          const monthlySheetB = XLSX.utils.json_to_sheet(monthlyDataB)
-          XLSX.utils.sheet_add_aoa(monthlySheetB, auditRows, { origin: 'A1' })
-          XLSX.utils.book_append_sheet(workbook, monthlySheetB, 'Monthly PD (B)')
-        }
-
-        if (options.scope?.fullAccount) {
-          const { rows, truncated } = await fetchAccountDetailsForExport()
-          const accountRows = truncated ? rows.map((r) => ({ ...r, export_note: 'First 2000 rows' })) : rows
-          const accountSheet = XLSX.utils.json_to_sheet(accountRows)
-          XLSX.utils.sheet_add_aoa(accountSheet, auditRows, { origin: 'A1' })
-          XLSX.utils.book_append_sheet(workbook, accountSheet, 'Account Details')
-        }
-
-        if (!workbook.SheetNames.length) return
-
-        if (options.format === 'csv') {
-          const firstName = workbook.SheetNames[0]
-          const firstSheet = workbook.Sheets[firstName]
-          XLSX.writeFile({ SheetNames: [firstName], Sheets: { [firstName]: firstSheet } } as any, `lifetime-pd-${fileDate}.csv`, { bookType: 'csv' })
-          return
-        }
-
-        XLSX.writeFile(workbook, `lifetime-pd-${fileDate}.xlsx`)
-      } catch (error) {
-        console.error('Export failed:', error)
-      } finally {
-        setLoading(false)
-      }
-    })()
-  }, [buildTableFromObjects, currentFilters, effectivePrcDate, fetchAccountDetailsForExport, hasReportData, kpiData, monthlyData, monthlyDataB, yearlyData, yearlyDataB]);
+  }, [currentFilters.isForwardLooking, currentFilters.pdConfigId, currentFilters.pdMethod, currentFilters.prcDate, effectivePrcDate])
 
   return (
     <Box sx={{ p: 0 }}>
@@ -730,11 +588,6 @@ const LifetimePDReport: React.FC = () => {
                 <ClearAllIcon />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Export Results">
-              <IconButton color="primary" onClick={() => setExportDialogOpen(true)} disabled={!hasReportData}>
-                <DownloadIcon />
-              </IconButton>
-            </Tooltip>
           </Stack>
         </Box>
       </Paper>
@@ -779,7 +632,7 @@ const LifetimePDReport: React.FC = () => {
           <CardContent sx={{ p: 3 }}>
             <LocalizationProvider dateAdapter={AdapterDateFns}>
               <Grid container spacing={2.5}>
-                <Grid item xs={12} sm={6} md={3 as any}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <DatePicker
                     label="Processing Date"
                     value={draftFilters.procDate}
@@ -797,10 +650,11 @@ const LifetimePDReport: React.FC = () => {
                   />
                 </Grid>
 
-                <Grid item xs={12} sm={6} md={3 as any}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <FormControl fullWidth size="small">
                     <InputLabel>PD Config</InputLabel>
                     <Select
+                      displayEmpty
                       value={draftFilters.pdConfigId}
                       label="PD Config"
                       onChange={(e) => setDraftFilters((prev: any) => ({ ...prev, pdConfigId: String(e.target.value) }))}
@@ -810,32 +664,43 @@ const LifetimePDReport: React.FC = () => {
                         <MenuItem value="">
                           <CircularProgress size={16} />
                         </MenuItem>
-                      ) : pdConfigs.map((c: any) => (
-                        <MenuItem key={String(c.id)} value={String(c.id)}>
-                          {c.config_name || c.name || `Config ${c.id}`}
+                      ) : (
+                        [
+                          <MenuItem key="placeholder" value="">
+                            PD Config
+                          </MenuItem>,
+                          ...pdConfigOptions.map((c) => (
+                            <MenuItem key={c.value} value={c.value}>
+                              {c.label}
+                            </MenuItem>
+                          ))
+                        ]
+                      )}
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>PD Method</InputLabel>
+                    <Select
+                      displayEmpty
+                      value={draftFilters.pdMethod}
+                      label="PD Method"
+                      onChange={(e) => setDraftFilters((prev: any) => ({ ...prev, pdMethod: String(e.target.value) === '' ? '' : Number(e.target.value) }))}
+                      sx={{ borderRadius: 2 }}
+                    >
+                      <MenuItem value="">PD Method</MenuItem>
+                      {PD_METHOD_OPTIONS.map((m) => (
+                        <MenuItem key={String(m.value)} value={m.value}>
+                          {m.label}
                         </MenuItem>
                       ))}
                     </Select>
                   </FormControl>
                 </Grid>
 
-                <Grid item xs={12} sm={6} md={3 as any}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>PD Method</InputLabel>
-                    <Select
-                      value={draftFilters.pdMethod}
-                      label="PD Method"
-                      onChange={(e) => setDraftFilters((prev: any) => ({ ...prev, pdMethod: Number(e.target.value) }))}
-                      sx={{ borderRadius: 2 }}
-                    >
-                      <MenuItem value={1}>TTC</MenuItem>
-                      <MenuItem value={2}>PIT</MenuItem>
-                      <MenuItem value={3}>Hybrid</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-
-                <Grid item xs={12} sm={6} md={3 as any}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <FormControlLabel
                     control={
                       <Switch
@@ -848,144 +713,6 @@ const LifetimePDReport: React.FC = () => {
                   />
                 </Grid>
 
-                <Grid item xs={12}>
-                  <Accordion
-                    variant="outlined"
-                    sx={{
-                      mt: 1,
-                      borderRadius: '12px !important',
-                      borderColor: alpha(theme.palette.primary.main, 0.1),
-                      '&:before': { display: 'none' },
-                      boxShadow: 'none',
-                      bgcolor: alpha(theme.palette.primary.main, 0.005)
-                    }}
-                  >
-                    <AccordionSummary
-                      expandIcon={<ExpandMoreIcon />}
-                      sx={{ px: 2, minHeight: 48, '& .MuiAccordionSummary-content': { my: 1 } }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <TuneIcon sx={{ mr: 1, fontSize: 20, color: theme.palette.primary.main }} />
-                        <Typography variant="subtitle2" fontWeight={700} color={theme.palette.primary.main}>
-                          Advanced Parameters
-                        </Typography>
-                      </Box>
-                    </AccordionSummary>
-                    <AccordionDetails sx={{ px: 2, pb: 3, pt: 1 }}>
-                      <Grid container spacing={2.5}>
-                        <Grid item xs={12} sm={6} md={4 as any}>
-                          <Autocomplete
-                            multiple
-                            size="small"
-                            options={segments}
-                            loading={loadingLookups}
-                            getOptionLabel={(option) => option.segment || option.subSegment || option.groupSegment || String(option.id)}
-                            isOptionEqualToValue={(o, v) => String(o.id) === String(v.id)}
-                            value={draftFilters.selectedSegments}
-                            onChange={(_, newValue) => setDraftFilters((prev: any) => ({ ...prev, selectedSegments: newValue }))}
-                            renderInput={(params) => (
-                              <TextField
-                                {...params}
-                                label="Segment ID (PD)"
-                                placeholder="All Segments"
-                                helperText="Opsional"
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                              />
-                            )}
-                          />
-                        </Grid>
-
-                        <Grid item xs={12} sm={6} md={4 as any}>
-                          <FormControl fullWidth size="small" disabled={!draftFilters.isForwardLooking}>
-                            <InputLabel>Scalar</InputLabel>
-                            <Select
-                              value={draftFilters.scalarId}
-                              label="Scalar"
-                              onChange={(e) => setDraftFilters((prev: any) => ({ ...prev, scalarId: String(e.target.value) }))}
-                              sx={{ borderRadius: 2 }}
-                            >
-                              <MenuItem value="">Default</MenuItem>
-                              {scalars.map((s: any) => (
-                                <MenuItem key={String(s.id)} value={String(s.id)}>
-                                  {s.scalarName || s.scalar_name || `Scalar ${s.id}`}
-                                </MenuItem>
-                              ))}
-                            </Select>
-                          </FormControl>
-                        </Grid>
-
-                        <Grid item xs={12} sm={6} md={4 as any}>
-                          <FormControlLabel
-                            control={
-                              <Switch
-                                checked={Boolean(draftFilters.isCompareMode)}
-                                onChange={(e) => setDraftFilters((prev: any) => ({ ...prev, isCompareMode: e.target.checked }))}
-                              />
-                            }
-                            label={<Typography variant="body2" fontWeight={700}>Compare Mode</Typography>}
-                          />
-                        </Grid>
-
-                        {draftFilters.isCompareMode ? (
-                          <>
-                            <Grid item xs={12} sm={6} md={4 as any}>
-                              <FormControl fullWidth size="small">
-                                <InputLabel>PD Config (B)</InputLabel>
-                                <Select
-                                  value={draftFilters.pdConfigIdB}
-                                  label="PD Config (B)"
-                                  onChange={(e) => setDraftFilters((prev: any) => ({ ...prev, pdConfigIdB: String(e.target.value) }))}
-                                  sx={{ borderRadius: 2 }}
-                                >
-                                  {pdConfigs.map((c: any) => (
-                                    <MenuItem key={String(c.id)} value={String(c.id)}>
-                                      {c.config_name || c.name || `Config ${c.id}`}
-                                    </MenuItem>
-                                  ))}
-                                </Select>
-                              </FormControl>
-                            </Grid>
-
-                            <Grid item xs={12} sm={6} md={4 as any}>
-                              <FormControl fullWidth size="small">
-                                <InputLabel>PD Method (B)</InputLabel>
-                                <Select
-                                  value={draftFilters.pdMethodB}
-                                  label="PD Method (B)"
-                                  onChange={(e) => setDraftFilters((prev: any) => ({ ...prev, pdMethodB: Number(e.target.value) }))}
-                                  sx={{ borderRadius: 2 }}
-                                >
-                                  <MenuItem value={1}>TTC</MenuItem>
-                                  <MenuItem value={2}>PIT</MenuItem>
-                                  <MenuItem value={3}>Hybrid</MenuItem>
-                                </Select>
-                              </FormControl>
-                            </Grid>
-
-                            <Grid item xs={12} sm={6} md={4 as any}>
-                              <FormControl fullWidth size="small" disabled={!draftFilters.isForwardLooking}>
-                                <InputLabel>Scalar (B)</InputLabel>
-                                <Select
-                                  value={draftFilters.scalarIdB}
-                                  label="Scalar (B)"
-                                  onChange={(e) => setDraftFilters((prev: any) => ({ ...prev, scalarIdB: String(e.target.value) }))}
-                                  sx={{ borderRadius: 2 }}
-                                >
-                                  <MenuItem value="">Default</MenuItem>
-                                  {scalars.map((s: any) => (
-                                    <MenuItem key={String(s.id)} value={String(s.id)}>
-                                      {s.scalarName || s.scalar_name || `Scalar ${s.id}`}
-                                    </MenuItem>
-                                  ))}
-                                </Select>
-                              </FormControl>
-                            </Grid>
-                          </>
-                        ) : null}
-                      </Grid>
-                    </AccordionDetails>
-                  </Accordion>
-                </Grid>
               </Grid>
             </LocalizationProvider>
           </CardContent>
@@ -998,7 +725,7 @@ const LifetimePDReport: React.FC = () => {
           sx={{ mb: 3, borderRadius: 3 }}
           action={
             <Stack direction="row" spacing={1}>
-              <Button size="small" color="inherit" onClick={() => setConfigOpen(true)}>
+              <Button size="small" color="inherit" onClick={() => setShowFilters(true)}>
                 Open Filters
               </Button>
               <Button size="small" color="inherit" onClick={() => fetchData(currentFilters)} disabled={loading}>
@@ -1018,15 +745,45 @@ const LifetimePDReport: React.FC = () => {
         </Alert>
       )}
 
-      <LifetimePDKPIs 
-        y1pd={kpiData.y1}
-        y3pd={kpiData.y3}
-        y5pd={kpiData.y5}
-        survivalRate={kpiData.survival}
-        validationMetrics={validationMetadata}
-      />
+      {/* Loading State */}
+      {loading && !error && (
+        <Alert severity="info" sx={{ mb: 3, borderRadius: 3 }} icon={<CircularProgress size={16} />}>
+          Loading Lifetime PD data...
+        </Alert>
+      )}
 
-      {/* Charts & Tabs Section */}
+      {/* No Data State */}
+      {!loading && !error && yearlyData.length === 0 && monthlyData.length === 0 && (
+        <Alert 
+          severity="warning" 
+          sx={{ mb: 3, borderRadius: 3 }}
+          action={
+            <Stack direction="row" spacing={1}>
+              <Button size="small" color="inherit" onClick={() => setShowFilters(true)}>
+                Adjust Filters
+              </Button>
+              <Button size="small" color="inherit" onClick={() => fetchData(currentFilters)}>
+                Retry
+              </Button>
+            </Stack>
+          }
+        >
+          No Lifetime PD data available for the selected filters. Try adjusting the processing date, PD configuration, or method.
+        </Alert>
+      )}
+
+      {/* Data Visualization - Only show if we have data */}
+      {!loading && (yearlyData.length > 0 || monthlyData.length > 0) && (
+        <>
+          <LifetimePDKPIs 
+            y1pd={kpiData.y1}
+            y3pd={kpiData.y3}
+            y5pd={kpiData.y5}
+            survivalRate={kpiData.survival}
+            validationMetrics={validationMetadata}
+          />
+
+          {/* Charts & Tabs Section */}
       <Box sx={{ mb: 4 }}>
         <Tabs 
           value={tabValue} 
@@ -1072,30 +829,29 @@ const LifetimePDReport: React.FC = () => {
              </Grid>
         </TabPanel>
       </Box>
-
-        {/* Detailed Data Table */}
-        {!error && hasReportData ? (
-          <BaseIfrs9Report 
-            title="Account PD Details" 
-            reportType="lifetime-pd-account-details"
-            hideHeader
-            requiredParams={['prc_date']}
-            externalFilters={{
-              prc_date: effectivePrcDate ? new Date(effectivePrcDate) : currentFilters.prcDate ? new Date(currentFilters.prcDate) : null,
-              pd_config_id: currentFilters.pdConfigId ? Number(currentFilters.pdConfigId) : undefined,
-              pd_method: currentFilters.pdMethod,
-              scalar_id: currentFilters.scalarId ? Number(currentFilters.scalarId) : undefined,
-              fl_flag: currentFilters.isForwardLooking
-            }}
-            onDataLoaded={(data) => console.log('Account Details Loaded:', data.length)}
-          />
-        ) : null}
-        
-        <LifetimePDExportDialog 
-            open={exportDialogOpen} 
-            onClose={() => setExportDialogOpen(false)}
-            onExport={handleExport}
+      
+      {/* Detailed Data Table - Always show if no error */}
+      {!error ? (
+        <BaseIfrs9Report 
+          title="Lifetime PD - Account Details" 
+          description="Account-level PD outputs used for detailed review and export"
+          reportType="lifetime-pd-account-details"
+          headerAtTop
+          hideFilters
+          requiredParams={['prc_date']}
+          optionalParams={['pd_config_id', 'pd_method', 'scalar_id', 'fl_flag']}
+          supportsPagination={true}
+          externalFilters={{
+            prc_date: effectivePrcDate ? new Date(effectivePrcDate) : currentFilters.prcDate ? new Date(currentFilters.prcDate) : null,
+            pd_config_id: currentFilters.pdConfigId ? Number(currentFilters.pdConfigId) : undefined,
+            pd_method: currentFilters.pdMethod,
+            fl_flag: currentFilters.isForwardLooking
+          }}
+          onDataLoaded={(data) => console.log('Account Details Loaded:', data.length)}
         />
+      ) : null}
+        </>
+      )}
 
     </Box>
   );

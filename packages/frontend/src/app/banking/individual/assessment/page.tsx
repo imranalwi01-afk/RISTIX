@@ -116,7 +116,13 @@ export default function IndividualAssessmentWizardPage() {
   // Dashboard State
   const [loading, setLoading] = useState(false);
   const [watchlist, setWatchlist] = useState<IndividualImpairmentWatchlistItem[]>([]);
-  const [summary, setSummary] = useState<Record<string, unknown> | null>(null);
+  const [summary, setSummary] = useState<{
+    totalAccounts: number;
+    impairedAccounts: number;
+    pendingAssessments: number;
+    totalProvisions: number;
+    dataDate?: string;
+  } | undefined>(undefined);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [pagination, setPagination] = useState({
     page: 0,
@@ -199,7 +205,14 @@ export default function IndividualAssessmentWizardPage() {
       }
 
       if (summaryRes.success) {
-        setSummary((summaryRes.data ?? null) as Record<string, unknown> | null);
+        const s: any = summaryRes.data ?? undefined;
+        setSummary(s ? {
+          totalAccounts: Number(s.totalAccounts ?? s.total_accounts ?? 0),
+          impairedAccounts: Number(s.impairedAccounts ?? s.impaired_accounts ?? 0),
+          pendingAssessments: Number(s.pendingAssessments ?? s.pending_assessments ?? 0),
+          totalProvisions: Number(s.totalProvisions ?? s.total_provisions ?? 0),
+          dataDate: s.dataDate ?? s.data_date ?? undefined,
+        } : undefined);
       }
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
@@ -332,7 +345,7 @@ export default function IndividualAssessmentWizardPage() {
 
   const handleResetAssessment = async (account: IndividualImpairmentWatchlistItem) => {
     try {
-      const response = await individualImpairmentAPI.watchlist.remove(String(account.account_id), mode);
+      const response = await (individualImpairmentAPI as any).removeFromWatchlist(String(account.account_id));
       if (response?.success) {
         await fetchDashboardData();
         if (String(accountId) === String(account.account_id)) {

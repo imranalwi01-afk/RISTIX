@@ -51,16 +51,9 @@ interface TenantOption {
 }
 
 
-// ============================================================================
-// PROPS INTERFACE
-// ============================================================================
-interface LoginPageProps {
-  initialRole?: 'platform_admin' | 'user';
-}
-
 const API_BASE_V1 = '/api/v1';
 
-export default function LoginPage({ initialRole }: LoginPageProps) {
+export default function LoginPage() {
   // const router = useRouter(); // Unused
   const searchParams = useSearchParams();
   const { login, error, clearError } = useAuth();
@@ -88,8 +81,7 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
   const errorParam = searchParams?.get('error');
   const roleParam = searchParams?.get('role');
 
-  // Priority: Prop > Query Param
-  const isPlatformAdmin = initialRole === 'platform_admin' || roleParam === 'platform_admin';
+  const isPlatformAdmin = roleParam === 'platform_admin';
 
 
   // ============================================================================
