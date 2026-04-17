@@ -392,7 +392,7 @@ const EADModelReport: React.FC = () => {
   }, []);
 
   const requiredParams = useMemo(() => ['prc_date'], []);
-  const optionalParams = useMemo(() => ['ead_config_id', 'segment_id'], []);
+  const optionalParams = useMemo(() => ['ead_config_id'], []);
 
   return (
     <BaseIfrs9Report

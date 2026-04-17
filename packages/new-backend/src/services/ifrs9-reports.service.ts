@@ -1651,10 +1651,28 @@ export class Ifrs9ReportsService {
      * PIVOT (SUM(PAYM_AVG) FOR SEQ IN (...))
      * ```
      */
+    private async resolveEadReportSegmentId(params?: EADModelParams): Promise<number | undefined> {
+        if (params?.ead_config_id !== undefined && params.ead_config_id !== null) {
+            const [config] = await legacyDb
+                .select({ segmentId: frs9ImpCaEadConfig.segmentId })
+                .from(frs9ImpCaEadConfig)
+                .where(eq(frs9ImpCaEadConfig.pkid, Number(params.ead_config_id)))
+                .limit(1);
+
+            const configSegmentId = Number((config as any)?.segmentId);
+            if (Number.isFinite(configSegmentId)) {
+                return configSegmentId;
+            }
+        }
+
+        const explicitSegmentId = Number(params?.segment_id);
+        return Number.isFinite(explicitSegmentId) ? explicitSegmentId : undefined;
+    }
+
     async getEADModel(tenantId: string, page: number, limit: number, params?: EADModelParams) {
         try {
             const requestedPrcDate = params?.prc_date || '2023-12-31';
-            const requestedSegmentId = params?.ead_config_id ?? params?.segment_id;
+            const requestedSegmentId = await this.resolveEadReportSegmentId(params);
 
             const extraWhere: string[] = [];
             if (requestedSegmentId !== undefined && requestedSegmentId !== null) {
@@ -1763,7 +1781,7 @@ export class Ifrs9ReportsService {
     async getEADModelSummary(tenantId: string, params?: { prc_date: string, ead_config_id?: number, segment_id?: number }) {
         try {
             const requestedPrcDate = params?.prc_date || '2023-12-31';
-            const requestedSegmentId = params?.segment_id ?? params?.ead_config_id;
+            const requestedSegmentId = await this.resolveEadReportSegmentId(params);
 
             const prcDate = await this.resolveLatestPrcDate(
                 'public.frs9_master_account',

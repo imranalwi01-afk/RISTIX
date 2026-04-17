@@ -183,6 +183,7 @@ interface LgdMethodOption {
 interface EadConfigOption {
   id: number | string;
   model_name: string;
+  segment_id?: number;
 }
 
 const getDefaultFilters = (reportType: BaseIfrs9ReportProps['reportType']): ReportFilters => ({
@@ -1138,7 +1139,9 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
               .map((config: any) => {
                 const id = config?.id ?? config?.pkid ?? config?.ead_config_id ?? config?.eadConfigId;
                 const model_name = String(config?.model_name ?? config?.modelName ?? '').trim();
-                return { id, model_name };
+                const rawSegmentId = config?.segment_id ?? config?.segmentId;
+                const segment_id = Number.isFinite(Number(rawSegmentId)) ? Number(rawSegmentId) : undefined;
+                return { id, model_name, segment_id };
               })
               .filter((config: any) => config.id !== undefined && config.id !== null && config.model_name);
 
@@ -1181,7 +1184,9 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
       const preferred = eadConfigs.find((c) => c.model_name.trim().toLowerCase() === 'ead model');
       const selected = preferred ?? eadConfigs[0];
       const parsed = Number(selected?.id);
-      return Number.isFinite(parsed) ? { ...prev, ead_config_id: parsed } : prev;
+      return Number.isFinite(parsed)
+        ? { ...prev, ead_config_id: parsed, segment_id: selected?.segment_id }
+        : prev;
     });
   }, [reportType, eadConfigs]);
 
@@ -1705,14 +1710,19 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                                 <InputLabel>EAD Model</InputLabel>
                                 <Select
                                   value={filters.ead_config_id || ''}
-                                  onChange={(e) => handleFilterChange('ead_config_id', e.target.value ? Number(e.target.value) : undefined)}
+                                  onChange={(e) => {
+                                    const selectedConfigId = e.target.value ? Number(e.target.value) : undefined;
+                                    const selectedConfig = eadConfigs.find((config) => Number(config.id) === selectedConfigId);
+                                    handleFilterChange('ead_config_id', selectedConfigId);
+                                    handleFilterChange('segment_id', selectedConfig?.segment_id);
+                                  }}
                                   label="EAD Model"
                                   sx={{ borderRadius: 2 }}
                                 >
                                   {eadConfigs.length > 0 ? (
                                     eadConfigs.map((config) => (
                                       <MenuItem key={String(config.id)} value={Number(config.id)}>
-                                        {config.model_name}
+                                        {config.segment_id ? `${config.model_name} (Segment ${config.segment_id})` : config.model_name}
                                       </MenuItem>
                                     ))
                                   ) : (
