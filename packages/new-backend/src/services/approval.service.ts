@@ -1104,7 +1104,33 @@ async function executeBucketParameterAction(
 ): Promise<void> {
     const { BucketParametersService } = await import('./bucket-parameters.service')
     const effectiveActorId = actorId || 'system'
-    const numericEntityId = parseNumericEntityId(entityId, data?.id)
+    const isDetailScope = data?.scope === 'detail' || Boolean(entityId && entityId.startsWith('detail:'))
+    const numericEntityId = parseNumericEntityId(entityId, data?.detailId ?? data?.id)
+
+    if (isDetailScope) {
+        const numericHeaderId = parseNumericEntityId(null, data?.headerId ?? data?.bucket_id)
+        switch (operation) {
+            case 'create':
+                if (!Number.isFinite(numericHeaderId)) {
+                    throw new Error('Missing bucket header id in bucket detail approval payload')
+                }
+                await Effect.runPromise(BucketParametersService.createDetail(numericHeaderId, data, effectiveActorId) as any)
+                return
+            case 'update':
+                if (!Number.isFinite(numericEntityId)) {
+                    throw new Error('Missing bucket detail id in approval payload')
+                }
+                await Effect.runPromise(BucketParametersService.updateDetail(numericEntityId, data, effectiveActorId) as any)
+                return
+            case 'delete':
+                if (!Number.isFinite(numericEntityId)) {
+                    throw new Error('Missing bucket detail id in approval payload')
+                }
+                await Effect.runPromise(BucketParametersService.deleteDetail(numericEntityId) as any)
+                return
+        }
+        return
+    }
 
     switch (operation) {
         case 'create':

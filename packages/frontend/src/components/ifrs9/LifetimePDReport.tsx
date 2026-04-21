@@ -756,22 +756,6 @@ const LifetimePDReport: React.FC = () => {
                 </Grid>
 
                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>PD Method</InputLabel>
-                    <Select
-                      value={draftFilters.pdMethod}
-                      label="PD Method"
-                      onChange={(e) => setDraftFilters((prev: any) => ({ ...prev, pdMethod: Number(e.target.value) }))}
-                      sx={{ borderRadius: 2 }}
-                    >
-                      <MenuItem value={1}>TTC</MenuItem>
-                      <MenuItem value={2}>PIT</MenuItem>
-                      <MenuItem value={3}>Hybrid</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <FormControlLabel
                     control={
                       <Switch

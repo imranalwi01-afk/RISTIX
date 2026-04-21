@@ -3,7 +3,6 @@ import { Effect, pipe } from 'effect'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { ParametersService } from '../services/parameters.service'
-import * as auditService from '../services/audit.service'
 import { runEffect } from '../lib/effect/runtime'
 import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
 import type { ApprovalResponse } from '../lib/approval-helpers'
@@ -270,6 +269,7 @@ app.openapi(
         },
         responses: {
             201: { content: { 'application/json': { schema: AppSettingDetailResponse } }, description: 'Created' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Pending Approval' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Parent Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
@@ -278,10 +278,31 @@ app.openapi(
         const { code } = c.req.valid('param');
         const data = c.req.valid('json');
         const userId = c.get('userId') as string || 'system';
+        const tenantId = c.get('tenantId')!
+        const userPermissions = (c.get('permissions') as string[]) || []
 
-        // Add paramCode from URL to data
-        const payload = { paramCode: code, ...data };
-        return runEffect(c, ParametersService.createAppSettingDetail(payload, userId) as any) as any
+        const payload = { paramCode: code, parentCode: code, ...data }
+        const executeCreate = () => ParametersService.createAppSettingDetail(payload, userId) as Effect.Effect<any, any, never>
+
+        const effect = pipe(
+            interceptCreate(
+                tenantId,
+                userId,
+                userPermissions,
+                'parameter',
+                { ...payload, scope: 'detail' },
+                executeCreate,
+                'medium'
+            ),
+            Effect.map((response: ApprovalResponse) => {
+                if (response.approvalRequired) {
+                    return response
+                }
+                return { success: true, approvalRequired: false, data: response.data }
+            })
+        )
+
+        return runEffect(c, effect as any, (result: any) => result.approvalRequired ? 202 : 201)
     }
 )
 
@@ -450,6 +471,7 @@ app.openapi(
         },
         responses: {
             201: { content: { 'application/json': { schema: AppSettingDetailResponse } }, description: 'Created' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Pending Approval' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Parent Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
@@ -457,27 +479,30 @@ app.openapi(
     async (c) => {
         const data = c.req.valid('json');
         const userId = c.get('userId') as string || 'system';
-        const tenantId = c.get('tenantId') as string
+        const tenantId = c.get('tenantId')!
+        const userPermissions = (c.get('permissions') as string[]) || []
+
+        const executeCreate = () => ParametersService.createAppSettingDetail(data, userId) as Effect.Effect<any, any, never>
 
         const effect = pipe(
-            ParametersService.createAppSettingDetail(data, userId) as Effect.Effect<any, any>,
-            Effect.tap((created: any) =>
-                Effect.tryPromise({
-                    try: async () => {
-                        await auditService.logDataChange.create(
-                            'parameter_detail',
-                            String(created.id),
-                            created,
-                            userId,
-                            tenantId
-                        )
-                    },
-                    catch: (error) => error
-                })
-            )
+            interceptCreate(
+                tenantId,
+                userId,
+                userPermissions,
+                'parameter',
+                { ...data, scope: 'detail' },
+                executeCreate,
+                'medium'
+            ),
+            Effect.map((response: ApprovalResponse) => {
+                if (response.approvalRequired) {
+                    return response
+                }
+                return { success: true, approvalRequired: false, data: response.data }
+            })
         )
 
-        return runEffect(c, effect as any) as any
+        return runEffect(c, effect as any, (result: any) => result.approvalRequired ? 202 : 201)
     }
 )
 
@@ -494,6 +519,7 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: AppSettingDetailResponse } }, description: 'Updated' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Pending Approval' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
@@ -502,33 +528,35 @@ app.openapi(
         const id = c.req.valid('param').id;
         const data = c.req.valid('json');
         const userId = c.get('userId') as string || 'system';
-        const tenantId = c.get('tenantId') as string
+        const tenantId = c.get('tenantId')!
+        const userPermissions = (c.get('permissions') as string[]) || []
+
+        const executeUpdate = () => ParametersService.updateAppSettingDetail(id, data, userId) as Effect.Effect<any, any, never>
 
         const effect = pipe(
             ParametersService.getAppSettingDetail(id) as Effect.Effect<any, any>,
             Effect.flatMap((oldValues) =>
-                pipe(
-                    ParametersService.updateAppSettingDetail(id, data, userId) as Effect.Effect<any, any>,
-                    Effect.tap((updated: any) =>
-                        Effect.tryPromise({
-                            try: async () => {
-                                await auditService.logDataChange.update(
-                                    'parameter_detail',
-                                    String(id),
-                                    oldValues,
-                                    updated,
-                                    userId,
-                                    tenantId
-                                )
-                            },
-                            catch: (error) => error
-                        })
-                    )
+                interceptUpdate(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'parameter',
+                    `detail:${id}`,
+                    { ...data, detailId: id, scope: 'detail' },
+                    executeUpdate,
+                    'medium',
+                    oldValues
                 )
-            )
+            ),
+            Effect.map((response: ApprovalResponse) => {
+                if (response.approvalRequired) {
+                    return response
+                }
+                return { success: true, approvalRequired: false, data: response.data }
+            })
         )
 
-        return runEffect(c, effect as any) as any
+        return runEffect(c, effect as any, (result: any) => result.approvalRequired ? 202 : 200)
     }
 )
 
@@ -544,6 +572,7 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Deleted' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Pending Approval' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
@@ -552,32 +581,33 @@ app.openapi(
         const id = c.req.valid('param').id;
         if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400);
         const userId = c.get('userId') as string || 'system'
-        const tenantId = c.get('tenantId') as string
+        const tenantId = c.get('tenantId')!
+        const userPermissions = (c.get('permissions') as string[]) || []
+        const executeDelete = () => ParametersService.deleteAppSettingDetail(id) as Effect.Effect<any, any, never>
 
         const effect = pipe(
             ParametersService.getAppSettingDetail(id) as Effect.Effect<any, any>,
             Effect.flatMap((oldValues) =>
-                pipe(
-                    ParametersService.deleteAppSettingDetail(id) as Effect.Effect<any, any>,
-                    Effect.tap(() =>
-                        Effect.tryPromise({
-                            try: async () => {
-                                await auditService.logDataChange.delete(
-                                    'parameter_detail',
-                                    String(id),
-                                    oldValues,
-                                    userId,
-                                    tenantId
-                                )
-                            },
-                            catch: (error) => error
-                        })
-                    )
+                interceptDelete(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'parameter',
+                    `detail:${id}`,
+                    executeDelete,
+                    'high',
+                    oldValues
                 )
-            )
+            ),
+            Effect.map((response: ApprovalResponse) => {
+                if (response.approvalRequired) {
+                    return response
+                }
+                return { success: true, approvalRequired: false, message: 'Application setting detail deleted successfully' }
+            })
         )
 
-        return runEffect(c, effect as any) as any
+        return runEffect(c, effect as any, (result: any) => result.approvalRequired ? 202 : 200)
     }
 )
 

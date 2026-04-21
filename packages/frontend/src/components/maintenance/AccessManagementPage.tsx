@@ -407,10 +407,10 @@ export default function AccessManagementPage() {
 
       // Build query parameters from filters
       const params: any = {};
+      params.includeInactive = true;
       if (filters.searchTerm) params.search = filters.searchTerm;
       if (filters.type && filters.type !== 'all') params.type = filters.type;
       if (filters.level && filters.level !== 'all') params.level = filters.level;
-      if (filters.isActive !== undefined) params.isActive = filters.isActive;
 
       // Fetch roles and permissions from real API
       const [rolesResponse, permissionsResponse] = await Promise.all([
@@ -622,8 +622,8 @@ export default function AccessManagementPage() {
     try {
       console.log(`🔄 ${isActive ? 'Disabling' : 'Enabling'} role in tenant database:`, roleId);
 
-      // Use real API call to toggle role status
-      const response = await api.roles.update(roleId, { isActive: !isActive });
+      // Use dedicated toggle API so disable does not go through delete/update semantics.
+      const response = await api.roles.toggle(roleId);
       setApprovalNoticeFromResponse(response, `Role ${isActive ? 'disable' : 'enable'} submitted for approval`);
 
       console.log(`✅ Role ${isActive ? 'disabled' : 'enabled'} successfully`);

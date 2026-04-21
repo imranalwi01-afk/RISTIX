@@ -8,6 +8,8 @@
 #   - backend: Run backend only
 #   - frontend / frontend-only / dev-frontend: Run frontend variants
 #   - analytics: Run R analytics service only
+#   - backend-remote-db: Run backend against external/remote databases using ops/local/backend.env
+#   - frontend-remote-db: Run frontend against backend-remote-db flow
 #   - full: Run all major services
 # ============================================================================
 
@@ -45,7 +47,6 @@ services:
       - backend
       - backend-only
       - backend-legacy-vpn
-      - backend-vpn
 
   # ============================================================================
   # 🧰 POSTGRES INIT (Create required databases)
@@ -165,7 +166,6 @@ services:
       - backend
       - backend-only
       - backend-legacy-vpn
-      - backend-vpn
 
   # ============================================================================
   # 🧩 TENANT MIGRATE (Apply Drizzle migrations to tenant DB)
@@ -194,7 +194,6 @@ services:
       - backend
       - backend-only
       - backend-legacy-vpn
-      - backend-vpn
 
   # ============================================================================
   # 🧩 TENANT SEED (Create default tenant roles/users for login)
@@ -226,7 +225,6 @@ services:
       - backend
       - backend-only
       - backend-legacy-vpn
-      - backend-vpn
 
   # ============================================================================
   # 📊 REDIS (Development)
@@ -257,6 +255,7 @@ services:
       - backend-only
       - backend-legacy-vpn
       - backend-vpn
+      - backend-remote-db
 
   # ============================================================================
   # 🚀 NEW BACKEND SERVICE (Hono + Drizzle + Bun)
@@ -374,9 +373,10 @@ services:
       - backend-legacy-vpn
 
   # ============================================================================
-  # 🔐 NEW BACKEND (VPN / External DB)
-  # - Use when DB is not the local postgres container, but an external DB over VPN.
-  # - Does not depend on postgres/db-init.
+  # 🔐 NEW BACKEND (REMOTE DB / EXTERNAL DB)
+  # - Use when platform/tenant/legacy DBs are external and must not be migrated/seeded from ops/local.
+  # - Run compose with: docker compose --env-file ops/local/backend.env -f ops/local/docker-compose.yml --profile backend-remote-db up
+  # - This service intentionally does not depend on postgres/db-init/platform-init/tenant-migrate/tenant-seed.
   # ============================================================================
   new-backend-vpn:
     build:
@@ -449,6 +449,7 @@ services:
     command: sh -c "bun install && bun run src/index.ts"
     profiles:
       - backend-vpn
+      - backend-remote-db
 
   # ============================================================================
   # 🌐 FRONTEND SERVICE (Static Build - Optional)
@@ -474,6 +475,7 @@ services:
       - app
       - with-frontend
       - frontend
+      - frontend-remote-db
 
   # ============================================================================
   # 💻 FRONTEND DEVELOPMENT (Hot Reload)
@@ -512,6 +514,7 @@ services:
       - full
       - frontend-only
       - frontend
+      - frontend-remote-db
 
   # ============================================================================
   # 🌍 PUBLIC LINK (Quick Tunnel)

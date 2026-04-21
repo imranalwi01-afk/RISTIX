@@ -135,6 +135,7 @@ export const usersAPI = {
     department?: string;
     bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
     isActive?: boolean;
+    includeInactive?: boolean;
     sort?: string;
     order?: 'asc' | 'desc' | 'ASC' | 'DESC';
   }, tenantId?: string) => {
@@ -234,6 +235,7 @@ export const rolesAPI = {
     type?: 'SYSTEM' | 'BANKING' | 'CUSTOM';
     level?: 'PLATFORM' | 'TENANT' | 'DEPARTMENT';
     isActive?: boolean;
+    includeInactive?: boolean;
   }, tenantId?: string) => {
     console.log(`🔒 Fetching roles from tenant database with real API${tenantId ? ` (tenant: ${tenantId})` : ''}`, params);
     const config: any = { params };

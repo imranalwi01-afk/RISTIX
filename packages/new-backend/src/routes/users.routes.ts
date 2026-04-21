@@ -131,7 +131,8 @@ usersRoutes.openapi(
                 page: z.string().optional().openapi({ example: '1', description: 'Page number' }),
                 limit: z.string().optional().openapi({ example: '10', description: 'Items per page' }),
                 search: z.string().optional().openapi({ example: 'john', description: 'Search term' }),
-                isActive: z.string().optional().openapi({ example: 'true', description: 'Include inactive users' }),
+                isActive: z.string().optional().openapi({ example: 'true', description: 'Filter by active status' }),
+                includeInactive: z.string().optional().openapi({ example: 'true', description: 'Include inactive users in the list result' }),
                 department: z.string().optional().openapi({ example: 'IT', description: 'Filter by department' }),
                 bankingAccess: z.string().optional().openapi({ example: 'CONVENTIONAL', description: 'Filter by banking access' }),
                 sort: z.string().optional().openapi({ example: 'createdAt', description: 'Sort field' }),
@@ -155,13 +156,19 @@ usersRoutes.openapi(
 
         const page = parseInt(query.page || '1')
         const limit = parseInt(query.limit || '10')
+        const includeInactive = query.includeInactive === 'true'
+        const parsedIsActive = query.isActive === 'true'
+            ? true
+            : query.isActive === 'false'
+                ? false
+                : undefined
 
         const effect = pipe(
             usersService.getUsers(tenantId, {
                 limit,
                 offset: (page - 1) * limit,
                 search: query.search,
-                isActive: query.isActive === 'true' ? undefined : true,
+                isActive: parsedIsActive ?? (includeInactive ? undefined : true),
                 // Add sorting if needed
                 sort: query.sort,
                 order: (query.order?.toLowerCase() as 'asc' | 'desc') || 'desc'
