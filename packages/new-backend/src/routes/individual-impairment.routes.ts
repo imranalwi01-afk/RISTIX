@@ -215,9 +215,19 @@ const ScenarioListResponse = z.object({
 }).openapi('ScenarioListResponse')
 
 const CreateScenarioSchema = z.object({
-    scenarioCode: z.string(),
+    accountId: z.number().int().optional(),
+    scenarioId: z.number().int().min(1).max(3).optional(),
+    scenarioCode: z.string().optional(),
     scenarioName: z.string(),
     description: z.string().optional(),
+    nOfScenario: z.number().int().min(1).max(3).optional(),
+    scenarioRows: z.array(z.object({
+        possibleOutcomeRate: z.number().optional(),
+        scenarioName: z.string().optional(),
+        periodStart: z.string().optional(),
+        periodEnd: z.string().optional(),
+        repaymentRate: z.number().optional()
+    })).optional(),
     configuration: z.any().optional()
 }).openapi('CreateScenarioInput')
 

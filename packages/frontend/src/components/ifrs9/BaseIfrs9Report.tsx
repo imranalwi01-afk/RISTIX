@@ -177,6 +177,7 @@ interface SegmentOption {
 interface LgdConfigOption {
   id: number | string;
   model_name?: string;
+  segment_id?: number;
 }
 
 interface LgdMethodOption {
@@ -1138,7 +1139,15 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
               setLgdMethods(normalized);
             }
             if (!configsFresh) {
-              const normalized = Array.isArray(configs) ? configs : [];
+              const normalized = (Array.isArray(configs) ? configs : [])
+                .map((config: any) => {
+                  const id = config?.id ?? config?.pkid ?? config?.lgd_config_id ?? config?.lgdConfigId;
+                  const model_name = String(config?.model_name ?? config?.modelName ?? '').trim();
+                  const rawSegmentId = config?.segment_id ?? config?.segmentId;
+                  const segment_id = Number.isFinite(Number(rawSegmentId)) ? Number(rawSegmentId) : undefined;
+                  return { ...config, id, model_name, segment_id };
+                })
+                .filter((config: any) => config.id !== undefined && config.id !== null && config.model_name);
               lookupCache.lgdConfigs = { ts: now, value: normalized };
               setLgdConfigs(normalized);
             }
@@ -1199,12 +1208,14 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
     if (!eadConfigs.length) return;
 
     setFilters((prev) => {
-      if (prev.ead_config_id) return prev;
+      if (prev.ead_config_id) {
+        return prev.segment_id === undefined ? prev : { ...prev, segment_id: undefined, segment_ids: [] };
+      }
       const preferred = eadConfigs.find((c) => c.model_name.trim().toLowerCase() === 'ead model');
       const selected = preferred ?? eadConfigs[0];
       const parsed = Number(selected?.id);
       return Number.isFinite(parsed)
-        ? { ...prev, ead_config_id: parsed, segment_id: selected?.segment_id }
+        ? { ...prev, ead_config_id: parsed, segment_id: undefined, segment_ids: [] }
         : prev;
     });
   }, [reportType, eadConfigs]);
@@ -1663,8 +1674,8 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                                 renderInput={(params) => (
                                   <TextField
                                     {...params}
-                                    label="Segment ID"
-                                    placeholder="All Segments"
+                                    label={reportType === 'lifetime-lgd' ? 'Population Segment' : 'Segment ID'}
+                                    placeholder={reportType === 'lifetime-lgd' ? 'All Population Segments' : 'All Segments'}
                                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                                   />
                                 )}
@@ -1733,9 +1744,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                                   value={filters.ead_config_id || ''}
                                   onChange={(e) => {
                                     const selectedConfigId = e.target.value ? Number(e.target.value) : undefined;
-                                    const selectedConfig = eadConfigs.find((config) => Number(config.id) === selectedConfigId);
                                     handleFilterChange('ead_config_id', selectedConfigId);
-                                    handleFilterChange('segment_id', selectedConfig?.segment_id);
                                   }}
                                   label="EAD Model"
                                   sx={{ borderRadius: 2 }}
@@ -1759,11 +1768,17 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                           {optionalParams.includes('lgd_config_id') && (
                             <Grid size={{ xs: 12, sm: 4, md: 2 }}>
                               <FormControl fullWidth size="small">
-                                <InputLabel>LGD Config</InputLabel>
+                                <InputLabel>LGD Model</InputLabel>
                                 <Select
                                   value={filters.lgd_config_id || ''}
-                                  onChange={(e) => handleFilterChange('lgd_config_id', e.target.value ? Number(e.target.value) : undefined)}
-                                  label="LGD Config"
+                                  onChange={(e) => {
+                                    const selectedConfigId = e.target.value ? Number(e.target.value) : undefined;
+                                    const selectedConfig = lgdConfigs.find((config) => Number(config.id) === selectedConfigId);
+                                    handleFilterChange('lgd_config_id', selectedConfigId);
+                                    handleFilterChange('segment_id', selectedConfig?.segment_id);
+                                    handleFilterChange('segment_ids', selectedConfig?.segment_id ? [selectedConfig.segment_id] : []);
+                                  }}
+                                  label="LGD Model"
                                   sx={{ borderRadius: 2 }}
                                   endAdornment={
                                     <InputAdornment position="end" sx={{ mr: 4 }}>
@@ -1783,10 +1798,10 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                                     </InputAdornment>
                                   }
                                 >
-                                  <MenuItem value="">All Configurations</MenuItem>
+                                  <MenuItem value="">All LGD Models</MenuItem>
                                   {lgdConfigs.map((config) => (
                                     <MenuItem key={config.id} value={config.id}>
-                                      {config.model_name || `Config ${config.id}`}
+                                      {config.segment_id ? `${config.model_name} (Segment ${config.segment_id})` : (config.model_name || `Config ${config.id}`)}
                                     </MenuItem>
                                   ))}
                                 </Select>

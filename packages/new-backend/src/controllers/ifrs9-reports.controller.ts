@@ -321,10 +321,10 @@ const REPORT_DEBUG_CATALOG: Record<ReportKey, ReportDebugCatalogEntry> = {
     },
     'nominative-report': {
         title: 'Nominative Report',
-        sourceTables: ['public.frs9_imp_nominative', 'public.frs9_master_account'],
-        joins: ['public.frs9_imp_nominative.account_number -> public.frs9_master_account.account_number'],
+        sourceTables: ['public.frs9_nominative_output', 'public.frs9_master_account'],
+        joins: ['public.frs9_nominative_output.account_id -> public.frs9_master_account.account_id'],
         filterKeys: ['prc_date', 'download_start_date', 'download_end_date', 'group_segment', 'segment', 'stage', 'branch_code', 'page', 'limit'],
-        sqlPreview: 'SELECT ... FROM public.frs9_imp_nominative n LEFT JOIN public.frs9_master_account ma ON ... WHERE n.prc_date = :effectivePrcDate',
+        sqlPreview: 'SELECT ... FROM public.frs9_nominative_output n LEFT JOIN public.frs9_master_account ma ON ... WHERE n.prc_date = :effectivePrcDate',
     },
 }
 

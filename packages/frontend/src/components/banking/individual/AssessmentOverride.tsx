@@ -8,6 +8,8 @@ import {
   Container,
   Paper,
   Button,
+  Card,
+  CardContent,
   TextField,
   Dialog,
   DialogTitle,
@@ -25,7 +27,14 @@ import {
   FormControl,
   InputLabel,
   Grid,
-  Stack
+  Stack,
+  Divider,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow
 } from '@mui/material';
 import {
   GridColDef,
@@ -42,7 +51,9 @@ import {
   Cancel as CancelIcon,
   UploadFile as UploadIcon,
   Download as DownloadIcon,
-  Clear as ClearIcon
+  Clear as ClearIcon,
+  Add as AddCircleIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { individualImpairmentAPI } from '../../../services/api/individual-impairment.api';
@@ -50,6 +61,66 @@ import { FullstackIndicator } from '@/components/common/feedback/FullstackIndica
 import ModernLoader from '@/components/common/ModernLoader';
 import { StatCard } from '@/components/common/StatCard';
 import { useAssessmentWorkspaceEmbedded } from '@/app/banking/individual/assessment/embedded-context';
+import * as XLSX from 'xlsx';
+
+interface DcfScenarioRow {
+  id: string;
+  possibleOutcomeRate: number;
+  scenarioName: string;
+  periodStart: string;
+  periodEnd: string;
+  repaymentRate: number;
+}
+
+interface ParsedDcfRow {
+  accountNumber: string;
+  periode: string;
+  principal: number;
+  interest: number;
+  collateral: number;
+}
+
+const TEMPLATE_HEADERS = ['ACCOUNT_NUMBER', 'PERIODE', 'PRINCIPAL', 'INTEREST', 'COLLATERAL'];
+
+const toIsoDate = (value?: string | Date | null) => {
+  if (!value) return '';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toISOString().slice(0, 10);
+};
+
+const formatDisplayDate = (value?: string | null) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+const formatAmount = (value?: number | string | null) => {
+  const numeric = Number(value ?? 0);
+  return Number.isFinite(numeric)
+    ? numeric.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : '0.00';
+};
+
+const buildScenarioRows = (count: number, baseDate: string, seedName?: string, baseRate = 0): DcfScenarioRow[] => {
+  const safeCount = Math.max(1, Math.min(5, count || 1));
+  const start = baseDate ? new Date(baseDate) : new Date();
+  return Array.from({ length: safeCount }, (_, index) => {
+    const periodStart = new Date(start);
+    periodStart.setMonth(start.getMonth() + index);
+    const periodEnd = new Date(start);
+    periodEnd.setMonth(start.getMonth() + index + 1);
+    return {
+      id: `scenario-${index + 1}`,
+      possibleOutcomeRate: safeCount === 1 ? 100 : index === 0 ? 60 : 20,
+      scenarioName: seedName ? `${seedName} ${index + 1}` : `Scenario ${index + 1}`,
+      periodStart: toIsoDate(periodStart),
+      periodEnd: toIsoDate(periodEnd),
+      repaymentRate: Math.max(0, Math.round(baseRate))
+    };
+  });
+};
 
 export const AssessmentOverride = () => {
   const embedded = useAssessmentWorkspaceEmbedded();
@@ -63,6 +134,15 @@ export const AssessmentOverride = () => {
   const [data, setData] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [assessmentData, setAssessmentData] = useState<any | null>(null);
+  const [remarksDraft, setRemarksDraft] = useState('');
+  const [scenarioOptions, setScenarioOptions] = useState<any[]>([]);
+  const [selectedScenario, setSelectedScenario] = useState('');
+  const [scenarioCount, setScenarioCount] = useState(2);
+  const [scenarioRows, setScenarioRows] = useState<DcfScenarioRow[]>([]);
+  const [parsedDcfRows, setParsedDcfRows] = useState<ParsedDcfRow[]>([]);
+  const [selectedDcfFile, setSelectedDcfFile] = useState<File | null>(null);
+  const [uploadingDcf, setUploadingDcf] = useState(false);
 
   // Dialog State
   const [openDialog, setOpenDialog] = useState(false);
@@ -96,9 +176,11 @@ export const AssessmentOverride = () => {
       const response = await individualImpairmentAPI.getAssessment(accId);
       if (response.success && response.data) {
         const assessment = response.data;
+        setAssessmentData(assessment);
         const currentStage = Number(assessment.stage ?? assessment.current_stage ?? assessment.previous_stage ?? 1)
         const resolvedAccountNumber = String(assessment.account_number || assessment.accountNumber || accountNumber || '').trim()
         const existingDoc = Array.isArray(assessment.supporting_documents) ? assessment.supporting_documents[0] : (assessment.supportingDocument || assessment.triggerFilename || '')
+        setRemarksDraft(String(assessment.impairment_reason || assessment.analyst_comments || assessment.triggerRemarks || ''))
         setFormData({
           customerName: assessment.cif_name || assessment.cifName || '',
           accountNumber: resolvedAccountNumber,
@@ -128,6 +210,202 @@ export const AssessmentOverride = () => {
     }
   };
 
+  const loadScenarioOptions = async (accId?: string | null) => {
+    try {
+      const response = await individualImpairmentAPI.getScenarios(accId ? { accountId: accId } : undefined);
+      const options = Array.isArray(response?.data) ? response.data : [];
+      setScenarioOptions(options);
+      if (options.length > 0) {
+        const selected =
+          options.find((item) => String(item.scenarioCode || item.scenarioName || item.name || '') === selectedScenario)
+          || options[0];
+        const selectedCode = String(selected.scenarioCode || selected.scenarioName || selected.name || 'POSSIBLE_OUTCOME_AND_REPAYMENT_RATE');
+        const scenarioName = String(selected.scenarioName || selected.name || 'Scenario');
+        const configuredRows = Array.isArray(selected?.configuration?.scenarioRows) ? selected.configuration.scenarioRows : [];
+        const baseDate = toIsoDate(assessmentData?.prc_date || assessmentData?.prcDate || new Date());
+
+        setSelectedScenario(selectedCode);
+        setScenarioRows(
+          configuredRows.length > 0
+            ? configuredRows.map((row: any, index: number) => ({
+              id: String(row.id || `scenario-${index + 1}`),
+              possibleOutcomeRate: Number(row.possibleOutcomeRate || 0),
+              scenarioName: String(row.scenarioName || `${scenarioName} ${index + 1}`),
+              periodStart: toIsoDate(row.periodStart || baseDate),
+              periodEnd: toIsoDate(row.periodEnd || baseDate),
+              repaymentRate: Number(row.repaymentRate || 0)
+            }))
+            : buildScenarioRows(
+              Number(selected?.configuration?.nScenarios || scenarioCount),
+              baseDate,
+              scenarioName,
+              Number(selected.discountRate || 0)
+            )
+        );
+        setScenarioCount(Math.max(1, Math.min(3, Number(selected?.configuration?.nScenarios || configuredRows.length || scenarioCount))));
+      }
+    } catch {
+      setScenarioOptions([]);
+    }
+  };
+
+  const updateScenarioRow = (id: string, field: keyof DcfScenarioRow, value: string | number) => {
+    setScenarioRows((prev) => prev.map((row) => (row.id === id ? { ...row, [field]: value } : row)));
+  };
+
+  const handleShowScenario = () => {
+    const selected = scenarioOptions.find((item) => String(item.scenarioCode || item.scenarioName || item.name || '') === selectedScenario);
+    const baseDate = toIsoDate(assessmentData?.prc_date || assessmentData?.prcDate || new Date());
+    const configuredRows = Array.isArray(selected?.configuration?.scenarioRows) ? selected.configuration.scenarioRows : [];
+    const selectedName = String(selected?.scenarioName || selected?.name || selectedScenario || 'Scenario');
+    setScenarioRows(configuredRows.length > 0
+      ? configuredRows.map((row: any, index: number) => ({
+        id: String(row.id || `scenario-${index + 1}`),
+        possibleOutcomeRate: Number(row.possibleOutcomeRate || 0),
+        scenarioName: String(row.scenarioName || `${selectedName} ${index + 1}`),
+        periodStart: toIsoDate(row.periodStart || baseDate),
+        periodEnd: toIsoDate(row.periodEnd || baseDate),
+        repaymentRate: Number(row.repaymentRate || 0)
+      }))
+      : buildScenarioRows(
+        Math.max(1, Math.min(3, Number(selected?.configuration?.nScenarios || scenarioCount || 1))),
+        baseDate,
+        selectedName || undefined,
+        Number(selected?.discountRate || 0)
+      ));
+  };
+
+  const handleSaveScenarioDraft = async () => {
+    if (!selectedScenario) {
+      setError('Pilih DCF scenario terlebih dahulu');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const selected = scenarioOptions.find((item) => String(item.scenarioCode || item.scenarioName || item.name || '') === selectedScenario);
+      const effectiveRows = scenarioRows.slice(0, 3);
+      await individualImpairmentAPI.createScenario({
+        scenarioId: Number(selected?.scenarioId || 1),
+        accountId: accountId ? Number(accountId) : undefined,
+        scenarioCode: String(selected?.scenarioCode || selectedScenario).toUpperCase().replace(/\s+/g, '_'),
+        scenarioName: String(selected?.scenarioName || selected?.name || selectedScenario),
+        description: remarksDraft || '',
+        nOfScenario: effectiveRows.length,
+        scenarioRows: effectiveRows,
+        configuration: {
+          scenarioId: Number(selected?.scenarioId || 1),
+          nScenarios: effectiveRows.length,
+          scenarioRows: effectiveRows
+        }
+      });
+      setSuccess('DCF scenario draft saved');
+      await loadScenarioOptions(accountId);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || err?.message || 'Failed to save DCF scenario');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    const sampleRows = [
+      TEMPLATE_HEADERS,
+      [formData.accountNumber || '000131230249', '23-Apr-2026', 15000000, 1250000, 5000000],
+      [formData.accountNumber || '000131230249', '31-May-2026', 20000000, 1500000, 4500000],
+      [formData.accountNumber || '000131230249', '30-Jun-2026', 25000000, 1750000, 4000000]
+    ];
+    const worksheet = XLSX.utils.aoa_to_sheet(sampleRows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'DCF Upload');
+    XLSX.writeFile(workbook, `DCF_UPLOAD_TEMPLATE_${formData.accountNumber || 'SAMPLE'}.xlsx`);
+  };
+
+  const handleDcfFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    if (!file) return;
+
+    setSelectedDcfFile(file);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: 'binary', cellDates: true });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '', raw: true });
+
+        const rows = jsonData.map((row) => {
+          const rawDate = row.PERIODE;
+          let isoDate = '';
+          if (rawDate instanceof Date) {
+            isoDate = toIsoDate(rawDate);
+          } else if (typeof rawDate === 'number') {
+            const parsed = XLSX.SSF.parse_date_code(rawDate);
+            if (parsed) {
+              isoDate = toIsoDate(new Date(parsed.y, parsed.m - 1, parsed.d));
+            }
+          } else if (typeof rawDate === 'string') {
+            isoDate = toIsoDate(rawDate);
+          }
+
+          return {
+            accountNumber: String(row.ACCOUNT_NUMBER || '').trim(),
+            periode: isoDate,
+            principal: Number(row.PRINCIPAL || 0),
+            interest: Number(row.INTEREST || 0),
+            collateral: Number(row.COLLATERAL || 0)
+          };
+        }).filter((row) => row.accountNumber && row.periode);
+
+        setParsedDcfRows(rows);
+      } catch (err) {
+        setParsedDcfRows([]);
+        setError('Failed to parse DCF upload file');
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const handleDcfUpload = async () => {
+    if (!assessmentData?.account_id || !selectedDcfFile || parsedDcfRows.length === 0) {
+      setError('Select a valid DCF upload file first');
+      return;
+    }
+
+    try {
+      setUploadingDcf(true);
+      await individualImpairmentAPI.createBatchUpload({
+        fileName: selectedDcfFile.name,
+        batchId: `DCF-${Date.now()}`,
+        cashflows: parsedDcfRows.map((row, index) => ({
+          accountId: Number(assessmentData.account_id),
+          accountNumber: row.accountNumber,
+          prcDate: toIsoDate(assessmentData.prc_date || assessmentData.prcDate || new Date()),
+          periodDate: row.periode,
+          periode: row.periode,
+          mob: index + 1,
+          principal: row.principal,
+          interest: row.interest,
+          collateral: row.collateral,
+          status: '0'
+        }))
+      });
+      setSuccess(`DCF upload submitted with ${parsedDcfRows.length} rows`);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || err?.message || 'Failed to upload DCF rows');
+    } finally {
+      setUploadingDcf(false);
+    }
+  };
+
+  const handleOpenOverrideDialog = () => {
+    setFormData((prev) => ({
+      ...prev,
+      justification: remarksDraft || prev.justification
+    }));
+    setOpenDialog(true);
+  };
+
   useEffect(() => {
     let cancelled = false;
 
@@ -136,8 +414,11 @@ export const AssessmentOverride = () => {
       try {
         if (accountId) {
           await loadAssessmentData(accountId);
+          await loadScenarioOptions(accountId);
         } else {
+          setAssessmentData(null);
           await loadData();
+          await loadScenarioOptions(null);
         }
       } finally {
         if (!cancelled) {
@@ -319,12 +600,297 @@ export const AssessmentOverride = () => {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => setOpenDialog(true)}
+            onClick={handleOpenOverrideDialog}
           >
             New Override Request
           </Button>
         </Box>
       </Box>
+
+      {accountId && assessmentData ? (
+        <Stack spacing={3} sx={{ mb: 4 }}>
+          <Card>
+            <CardContent>
+              <Typography variant="h5" sx={{ mb: 2 }}>
+                Impairment Assessment Trigger
+              </Typography>
+              <Divider sx={{ mb: 3 }} />
+              <Grid container spacing={3}>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Typography variant="h6" sx={{ mb: 2 }}>Customer Details</Typography>
+                  <Stack spacing={1.5}>
+                    <Stack direction="row" justifyContent="space-between" gap={2}>
+                      <Typography color="text.secondary">Download Date</Typography>
+                      <Typography fontWeight={600}>{formatDisplayDate(assessmentData.prc_date || assessmentData.prcDate)}</Typography>
+                    </Stack>
+                    <Stack direction="row" justifyContent="space-between" gap={2}>
+                      <Typography color="text.secondary">Customer Number</Typography>
+                      <Typography fontWeight={600}>{assessmentData.cif_number || assessmentData.cifNumber || '-'}</Typography>
+                    </Stack>
+                    <Stack direction="row" justifyContent="space-between" gap={2}>
+                      <Typography color="text.secondary">Customer Name</Typography>
+                      <Typography fontWeight={600}>{assessmentData.cif_name || assessmentData.cifName || '-'}</Typography>
+                    </Stack>
+                    <Stack direction="row" justifyContent="space-between" gap={2}>
+                      <Typography color="text.secondary">Account Number</Typography>
+                      <Typography fontWeight={600}>{assessmentData.account_number || assessmentData.accountNumber || '-'}</Typography>
+                    </Stack>
+                    <Stack direction="row" justifyContent="space-between" gap={2}>
+                      <Typography color="text.secondary">Currency</Typography>
+                      <Typography fontWeight={600}>{assessmentData.currency || '-'}</Typography>
+                    </Stack>
+                    <Stack direction="row" justifyContent="space-between" gap={2}>
+                      <Typography color="text.secondary">Outstanding</Typography>
+                      <Typography fontWeight={600}>{formatAmount(assessmentData.outstanding_balance || assessmentData.outstanding || 0)}</Typography>
+                    </Stack>
+                    <Stack direction="row" justifyContent="space-between" gap={2}>
+                      <Typography color="text.secondary">Day Past Due</Typography>
+                      <Typography fontWeight={600}>{assessmentData.dpd ?? '-'}</Typography>
+                    </Stack>
+                    <Stack direction="row" justifyContent="space-between" gap={2}>
+                      <Typography color="text.secondary">Collectability</Typography>
+                      <Typography fontWeight={600}>{assessmentData.collectability ?? '-'}</Typography>
+                    </Stack>
+                    <Stack direction="row" justifyContent="space-between" gap={2}>
+                      <Typography color="text.secondary">Rating</Typography>
+                      <Typography fontWeight={600}>{assessmentData.rating_code || assessmentData.ratingCode || '-'}</Typography>
+                    </Stack>
+                    <Stack direction="row" justifyContent="space-between" gap={2} alignItems="center">
+                      <Typography color="text.secondary">Impaired Flag</Typography>
+                      <Chip
+                        label={String(assessmentData.impaired_flag || 'N').toUpperCase() === 'I' ? 'Individual' : 'Non-Impaired'}
+                        color={String(assessmentData.impaired_flag || 'N').toUpperCase() === 'I' ? 'warning' : 'default'}
+                        variant="outlined"
+                      />
+                    </Stack>
+                  </Stack>
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Typography variant="h6" sx={{ mb: 2 }}>Early Warning Remarks</Typography>
+                  <TextField
+                    fullWidth
+                    multiline
+                    minRows={10}
+                    value={remarksDraft}
+                    onChange={(event) => setRemarksDraft(event.target.value)}
+                    placeholder="Input early warning remarks or use existing impairment reason"
+                  />
+                  <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: 'wrap' }}>
+                    <Button variant="outlined" component="label" startIcon={<UploadIcon />}>
+                      Reference
+                      <input
+                        type="file"
+                        hidden
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          void handleFileSelect(file);
+                        }}
+                      />
+                    </Button>
+                    {existingDocumentName ? (
+                      <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleDownloadExisting}>
+                        Download Existing
+                      </Button>
+                    ) : null}
+                    <Button variant="contained" onClick={handleOpenOverrideDialog}>
+                      Submit Override Request
+                    </Button>
+                    <Button variant="outlined" onClick={() => router.push(`/banking/individual/assessment?mode=${mode}&tab=watchlist`)}>
+                      Back
+                    </Button>
+                  </Stack>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent>
+              <Typography variant="h5" sx={{ mb: 2 }}>
+                Upload Discounted Cash Flow
+              </Typography>
+              <Divider sx={{ mb: 3 }} />
+              <Stack spacing={3}>
+                <Box>
+                  <Typography variant="h6" sx={{ mb: 2 }}>Choose DCF Scenario</Typography>
+                  <Grid container spacing={3} alignItems="center">
+                    <Grid size={{ xs: 12, md: 4 }}>
+                      <Typography color="text.secondary" sx={{ mb: 1 }}>DCF Scenario Rate</Typography>
+                      <FormControl fullWidth size="small">
+                        <Select
+                          value={selectedScenario}
+                          displayEmpty
+                          onChange={(event) => setSelectedScenario(String(event.target.value))}
+                          renderValue={(value) => {
+                            const selected = scenarioOptions.find((item) => String(item.scenarioCode || item.scenarioName || item.name || '') === String(value));
+                            return selected
+                              ? String(selected.scenarioName || selected.name || value)
+                              : 'Select DCF Scenario Method';
+                          }}
+                        >
+                          {scenarioOptions.map((option, index) => (
+                            <MenuItem key={`${option.scenarioCode || option.scenarioName || option.name || index}`} value={String(option.scenarioCode || option.scenarioName || option.name || `Scenario ${index + 1}`)}>
+                              {String(option.scenarioName || option.name || `Scenario ${index + 1}`)}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 2 }}>
+                      <Typography color="text.secondary" sx={{ mb: 1 }}>Number Of Scenario</Typography>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        type="number"
+                        value={scenarioCount}
+                        onChange={(event) => setScenarioCount(Math.max(1, Math.min(3, Number(event.target.value) || 1)))}
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 2 }}>
+                      <Button variant="contained" onClick={handleShowScenario} sx={{ mt: { xs: 1, md: 3 } }}>
+                        Show
+                      </Button>
+                    </Grid>
+                  </Grid>
+                </Box>
+
+                {scenarioRows.length > 0 ? (
+                  <Box>
+                    <Grid container spacing={2} sx={{ mb: 1 }}>
+                      <Grid size={{ xs: 12, md: 2 }}><Typography color="text.secondary">Possible Outcome Rate</Typography></Grid>
+                      <Grid size={{ xs: 12, md: 2 }}><Typography color="text.secondary">Scenario Name</Typography></Grid>
+                      <Grid size={{ xs: 12, md: 2 }}><Typography color="text.secondary">Period Start</Typography></Grid>
+                      <Grid size={{ xs: 12, md: 2 }}><Typography color="text.secondary">Period End</Typography></Grid>
+                      <Grid size={{ xs: 12, md: 2 }}><Typography color="text.secondary">Repayment Rate (%)</Typography></Grid>
+                      <Grid size={{ xs: 12, md: 2 }} />
+                    </Grid>
+                    <Stack spacing={2}>
+                      {scenarioRows.map((row) => (
+                        <Grid container spacing={2} key={row.id} alignItems="center">
+                          <Grid size={{ xs: 12, md: 2 }}>
+                            <TextField size="small" fullWidth type="number" value={row.possibleOutcomeRate} onChange={(event) => updateScenarioRow(row.id, 'possibleOutcomeRate', Number(event.target.value) || 0)} />
+                          </Grid>
+                          <Grid size={{ xs: 12, md: 2 }}>
+                            <TextField size="small" fullWidth value={row.scenarioName} onChange={(event) => updateScenarioRow(row.id, 'scenarioName', event.target.value)} />
+                          </Grid>
+                          <Grid size={{ xs: 12, md: 2 }}>
+                            <TextField size="small" fullWidth type="date" value={row.periodStart} onChange={(event) => updateScenarioRow(row.id, 'periodStart', event.target.value)} />
+                          </Grid>
+                          <Grid size={{ xs: 12, md: 2 }}>
+                            <TextField size="small" fullWidth type="date" value={row.periodEnd} onChange={(event) => updateScenarioRow(row.id, 'periodEnd', event.target.value)} />
+                          </Grid>
+                          <Grid size={{ xs: 12, md: 2 }}>
+                            <TextField size="small" fullWidth type="number" value={row.repaymentRate} onChange={(event) => updateScenarioRow(row.id, 'repaymentRate', Number(event.target.value) || 0)} />
+                          </Grid>
+                          <Grid size={{ xs: 12, md: 2 }}>
+                            <Stack direction="row" spacing={1}>
+                              <Button
+                                variant="outlined"
+                                color="error"
+                                startIcon={<DeleteIcon />}
+                                onClick={() => setScenarioRows((prev) => prev.filter((item) => item.id !== row.id))}
+                              >
+                                Delete
+                              </Button>
+                            </Stack>
+                          </Grid>
+                        </Grid>
+                      ))}
+                    </Stack>
+                    <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: 'wrap' }}>
+                      <Button
+                        variant="outlined"
+                        startIcon={<AddCircleIcon />}
+                        onClick={() => setScenarioRows((prev) => [
+                          ...prev,
+                          ...buildScenarioRows(1, toIsoDate(assessmentData.prc_date || assessmentData.prcDate || new Date()), selectedScenario || 'Scenario').map((item) => ({
+                            ...item,
+                            id: `scenario-${Date.now()}-${prev.length + 1}`
+                          }))
+                        ].slice(0, 3))}
+                      >
+                        Add Scenario Row
+                      </Button>
+                      <Button variant="contained" onClick={handleSaveScenarioDraft}>
+                        Save
+                      </Button>
+                    </Stack>
+                  </Box>
+                ) : null}
+
+                <Box>
+                  <Typography variant="h6" sx={{ mb: 2 }}>Upload DCF</Typography>
+                  <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', alignItems: 'center', mb: 2 }}>
+                    <Typography color="text.secondary">File name</Typography>
+                    <Button variant="contained" component="label" startIcon={<UploadIcon />}>
+                      Browse
+                      <input
+                        type="file"
+                        hidden
+                        accept=".xlsx,.xls"
+                        onChange={handleDcfFileChange}
+                      />
+                    </Button>
+                    <Button variant="contained" color="inherit" onClick={handleDownloadTemplate} startIcon={<DownloadIcon />}>
+                      Download Template
+                    </Button>
+                    {selectedDcfFile ? (
+                      <Chip label={`${selectedDcfFile.name} • ${parsedDcfRows.length} rows`} variant="outlined" />
+                    ) : null}
+                  </Stack>
+
+                  <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 320 }}>
+                    <Table size="small" stickyHeader>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Account Number</TableCell>
+                          <TableCell>Periode</TableCell>
+                          <TableCell align="right">Principal</TableCell>
+                          <TableCell align="right">Interest</TableCell>
+                          <TableCell align="right">Collateral</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {parsedDcfRows.length > 0 ? parsedDcfRows.map((row, index) => (
+                          <TableRow key={`${row.accountNumber}-${row.periode}-${index}`}>
+                            <TableCell>{row.accountNumber}</TableCell>
+                            <TableCell>{formatDisplayDate(row.periode)}</TableCell>
+                            <TableCell align="right">{formatAmount(row.principal)}</TableCell>
+                            <TableCell align="right">{formatAmount(row.interest)}</TableCell>
+                            <TableCell align="right">{formatAmount(row.collateral)}</TableCell>
+                          </TableRow>
+                        )) : (
+                          <TableRow>
+                            <TableCell colSpan={5} align="center">
+                              No DCF upload file selected.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+
+                  <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
+                    <Button variant="contained" onClick={handleDcfUpload} disabled={uploadingDcf || parsedDcfRows.length === 0}>
+                      {uploadingDcf ? 'Uploading...' : 'Submit'}
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      onClick={() => {
+                        setSelectedDcfFile(null);
+                        setParsedDcfRows([]);
+                      }}
+                      disabled={uploadingDcf}
+                    >
+                      Cancel
+                    </Button>
+                  </Stack>
+                </Box>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Stack>
+      ) : null}
 
       {/* 📊 Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>

@@ -595,27 +595,26 @@ export class IndividualImpairmentController {
             if (!fileName || !cashflows || !Array.isArray(cashflows)) {
                 return this.badRequest(c, 'Invalid payload');
             }
-
-            // Create Upload Header
-            const [upload] = await individualImpairmentService.createDcfUpload({
+            const normalizedBatchId = batchId || `BATCH-${Date.now()}`;
+            const createdAt = new Date().toISOString();
+            const cashflowData = cashflows.map((cf: any) => ({
+                ...cf,
                 tenantId: user.tenantId,
-                fileName,
-                batchId: batchId || `BATCH-${Date.now()}`,
-                uploadedBy: user.id,
-                recordCount: cashflows.length
+                createdBy: user.id,
+                createdHost: c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'web',
+            }));
+            const inserted = await individualImpairmentService.createDcfCashflows(cashflowData);
+
+            return c.json({
+                success: true,
+                data: {
+                    batchId: normalizedBatchId,
+                    fileName,
+                    recordCount: inserted.length,
+                    validationStatus: 'VALID',
+                    createdAt
+                }
             });
-
-            // Create Cashflows
-            if (upload && cashflows.length > 0) {
-                const cashflowData = cashflows.map((cf: any) => ({
-                    ...cf,
-                    tenantId: user.tenantId,
-                    uploadId: upload.pkid
-                }));
-                await individualImpairmentService.createDcfCashflows(cashflowData);
-            }
-
-            return c.json({ success: true, data: upload });
         } catch (error: any) {
             return this.handleError(c, error);
         }

@@ -19,6 +19,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Checkbox,
   Switch,
   FormControlLabel,
   CircularProgress,
@@ -79,10 +80,10 @@ const getDefaultLifetimePdFilters = () => ({
   prcDate: '2022-10-31',
   pdConfigId: '', // Will be set after configs are loaded
   pdMethod: 1,
-  isForwardLooking: false,
+  isForwardLooking: undefined as boolean | undefined,
   scalarId: undefined as number | undefined,
-  selectedSegments: [] as string[],
-  selectedSegmentIds: [] as number[],
+  selectedSegmentLabel: '',
+  selectedSegmentId: undefined as number | undefined,
   isCompareMode: false,
   pdConfigIdB: '',
   pdMethodB: 2,
@@ -93,8 +94,8 @@ const getDefaultLifetimePdDraft = () => ({
   procDate: new Date('2022-10-31'),
   pdConfigId: '', // Will be set after configs are loaded
   pdMethod: 1,
-  isForwardLooking: false,
-  selectedSegments: [] as ProductSegment[],
+  flFlagSelection: 'all' as 'all' | 'with' | 'without',
+  selectedSegment: null as ProductSegment | null,
   scalarId: '',
   isCompareMode: false,
   pdConfigIdB: '',
@@ -168,7 +169,9 @@ const LifetimePDReport: React.FC = () => {
         pd_method: filters.pdMethod !== '' && filters.pdMethod !== null && filters.pdMethod !== undefined
           ? Number(filters.pdMethod)
           : undefined,
-        fl_flag: filters.isForwardLooking
+        fl_flag: filters.isForwardLooking,
+        scalar_id: filters.isForwardLooking === true && filters.scalarId ? Number(filters.scalarId) : undefined,
+        segment_id: filters.selectedSegmentId ? Number(filters.selectedSegmentId) : undefined,
       };
        
       console.log('🔍 Fetching Lifetime PD data with params:', baseParams);
@@ -382,20 +385,27 @@ const LifetimePDReport: React.FC = () => {
   };
 
   const applyDraftFilters = useCallback(() => {
+    const normalizedFlFlag =
+      draftFilters.flFlagSelection === 'with'
+        ? true
+        : draftFilters.flFlagSelection === 'without'
+          ? false
+          : undefined;
+
     setCurrentFilters({
       prcDate: format(draftFilters.procDate, 'yyyy-MM-dd'),
       pdConfigId: draftFilters.pdConfigId,
       pdMethod: draftFilters.pdMethod === '' ? '' : Number(draftFilters.pdMethod),
-      isForwardLooking: Boolean(draftFilters.isForwardLooking),
-      scalarId: draftFilters.isForwardLooking && draftFilters.scalarId ? Number(draftFilters.scalarId) : undefined,
-      selectedSegments: (draftFilters.selectedSegments || []).map((segment: ProductSegment) => (
-        segment.segment || segment.subSegment || segment.groupSegment || String(segment.id)
-      )),
-      selectedSegmentIds: (draftFilters.selectedSegments || []).map((segment: ProductSegment) => Number(segment.id)),
+      isForwardLooking: normalizedFlFlag,
+      scalarId: normalizedFlFlag === true && draftFilters.scalarId ? Number(draftFilters.scalarId) : undefined,
+      selectedSegmentLabel: draftFilters.selectedSegment
+        ? (draftFilters.selectedSegment.segment || draftFilters.selectedSegment.subSegment || draftFilters.selectedSegment.groupSegment || String(draftFilters.selectedSegment.id))
+        : '',
+      selectedSegmentId: draftFilters.selectedSegment ? Number(draftFilters.selectedSegment.id) : undefined,
       isCompareMode: Boolean(draftFilters.isCompareMode),
       pdConfigIdB: draftFilters.isCompareMode ? draftFilters.pdConfigIdB : '',
       pdMethodB: draftFilters.isCompareMode ? Number(draftFilters.pdMethodB) : 2,
-      scalarIdB: draftFilters.isCompareMode && draftFilters.scalarIdB ? Number(draftFilters.scalarIdB) : undefined,
+      scalarIdB: draftFilters.isCompareMode && normalizedFlFlag === true && draftFilters.scalarIdB ? Number(draftFilters.scalarIdB) : undefined,
     });
     setLastCalculation(new Date());
   }, [draftFilters]);
@@ -534,6 +544,8 @@ const LifetimePDReport: React.FC = () => {
       pd_config_id: currentFilters.pdConfigId ? Number(currentFilters.pdConfigId) : undefined,
       pd_method: currentFilters.pdMethod,
       fl_flag: currentFilters.isForwardLooking,
+      scalar_id: currentFilters.isForwardLooking === true && currentFilters.scalarId ? Number(currentFilters.scalarId) : undefined,
+      segment_id: currentFilters.selectedSegmentId ? Number(currentFilters.selectedSegmentId) : undefined,
     } as const
 
     let page = 1
@@ -558,7 +570,7 @@ const LifetimePDReport: React.FC = () => {
 
     if (out.length >= maxRows) truncated = true
     return { rows: out, truncated }
-  }, [currentFilters.isForwardLooking, currentFilters.pdConfigId, currentFilters.pdMethod, currentFilters.prcDate, effectivePrcDate])
+  }, [currentFilters.isForwardLooking, currentFilters.pdConfigId, currentFilters.pdMethod, currentFilters.prcDate, currentFilters.scalarId, currentFilters.selectedSegmentId, effectivePrcDate])
 
   return (
     <Box sx={{ p: 0 }}>
@@ -659,7 +671,6 @@ const LifetimePDReport: React.FC = () => {
             p: 2,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
             gap: 2,
             bgcolor: alpha(theme.palette.primary.main, 0.03),
             borderBottom: '1px solid rgba(0, 0, 0, 0.05)'
@@ -670,24 +681,11 @@ const LifetimePDReport: React.FC = () => {
                 Analysis Configuration
               </Typography>
             </Box>
-            <Button
-              variant="contained"
-              onClick={applyDraftFilters}
-              disabled={loading || loadingLookups}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 700,
-                boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.35)}`,
-                '&:hover': { boxShadow: `0 6px 20px ${alpha(theme.palette.primary.main, 0.45)}` }
-              }}
-            >
-              Run Analysis
-            </Button>
           </Box>
           <CardContent sx={{ p: 3 }}>
             <LocalizationProvider dateAdapter={AdapterDateFns}>
               <Grid container spacing={2.5}>
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <DatePicker
                     label="Processing Date"
                     value={draftFilters.procDate}
@@ -705,11 +703,10 @@ const LifetimePDReport: React.FC = () => {
                   />
                 </Grid>
 
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <FormControl fullWidth size="small">
                     <InputLabel>PD Config</InputLabel>
                     <Select
-                      displayEmpty
                       value={draftFilters.pdConfigId}
                       label="PD Config"
                       onChange={(e) => setDraftFilters((prev: any) => ({ ...prev, pdConfigId: String(e.target.value) }))}
@@ -722,7 +719,7 @@ const LifetimePDReport: React.FC = () => {
                       ) : (
                         [
                           <MenuItem key="placeholder" value="">
-                            PD Config
+                            Select PD Config
                           </MenuItem>,
                           ...pdConfigOptions.map((c) => (
                             <MenuItem key={c.value} value={c.value}>
@@ -735,17 +732,65 @@ const LifetimePDReport: React.FC = () => {
                   </FormControl>
                 </Grid>
 
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={2}
+                    alignItems={{ xs: 'flex-start', sm: 'center' }}
+                    sx={{
+                      minHeight: 40,
+                      pl: { xs: 0, sm: 1 },
+                      pt: { xs: 0, sm: 1 }
+                    }}
+                  >
+                    <Typography variant="body1" fontWeight={700} sx={{ minWidth: 96 }}>
+                      FL Flag
+                    </Typography>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={draftFilters.flFlagSelection === 'with'}
+                          onChange={(_, checked) =>
+                            setDraftFilters((prev: any) => ({
+                              ...prev,
+                              flFlagSelection: checked ? 'with' : 'all',
+                              scalarId: checked ? prev.scalarId : '',
+                              scalarIdB: checked ? prev.scalarIdB : '',
+                            }))
+                          }
+                        />
+                      }
+                      label="With FL"
+                    />
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={draftFilters.flFlagSelection === 'without'}
+                          onChange={(_, checked) =>
+                            setDraftFilters((prev: any) => ({
+                              ...prev,
+                              flFlagSelection: checked ? 'without' : 'all',
+                              scalarId: checked ? '' : prev.scalarId,
+                              scalarIdB: checked ? '' : prev.scalarIdB,
+                            }))
+                          }
+                        />
+                      }
+                      label="Without FL"
+                    />
+                  </Stack>
+                </Grid>
+
+                <Grid size={{ xs: 12, md: 6 }}>
                   <FormControl fullWidth size="small">
                     <InputLabel>PD Method</InputLabel>
                     <Select
-                      displayEmpty
                       value={draftFilters.pdMethod}
                       label="PD Method"
                       onChange={(e) => setDraftFilters((prev: any) => ({ ...prev, pdMethod: String(e.target.value) === '' ? '' : Number(e.target.value) }))}
                       sx={{ borderRadius: 2 }}
                     >
-                      <MenuItem value="">PD Method</MenuItem>
+                      <MenuItem value="">Select PD Method</MenuItem>
                       {PD_METHOD_OPTIONS.map((m) => (
                         <MenuItem key={String(m.value)} value={m.value}>
                           {m.label}
@@ -753,19 +798,6 @@ const LifetimePDReport: React.FC = () => {
                       ))}
                     </Select>
                   </FormControl>
-                </Grid>
-
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={Boolean(draftFilters.isForwardLooking)}
-                        onChange={(e) => setDraftFilters((prev: any) => ({ ...prev, isForwardLooking: e.target.checked }))}
-                      />
-                    }
-                    label={<Typography variant="body2" fontWeight={700}>Forward Looking</Typography>}
-                    sx={{ height: '100%', alignItems: 'center' }}
-                  />
                 </Grid>
 
                 <Grid size={{ xs: 12 }}>
@@ -791,21 +823,20 @@ const LifetimePDReport: React.FC = () => {
                         </Typography>
                       </Box>
                     </AccordionSummary>
-                    <AccordionDetails sx={{ px: 2, pb: 3, pt: 1 }}>
-                      <Grid container spacing={2.5}>
-                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                          <Autocomplete
-                            multiple
-                            size="small"
-                            options={segments}
-                            loading={loadingLookups}
-                            getOptionLabel={(option) => option.segment || option.subSegment || option.groupSegment || String(option.id)}
-                            isOptionEqualToValue={(o, v) => String(o.id) === String(v.id)}
-                            value={draftFilters.selectedSegments}
-                            onChange={(_, newValue) => setDraftFilters((prev: any) => ({ ...prev, selectedSegments: newValue }))}
-                            renderInput={(params) => (
-                              <TextField
-                                {...params}
+                      <AccordionDetails sx={{ px: 2, pb: 3, pt: 1 }}>
+                        <Grid container spacing={2.5}>
+                          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                            <Autocomplete
+                              size="small"
+                              options={segments}
+                              loading={loadingLookups}
+                              getOptionLabel={(option) => option.segment || option.subSegment || option.groupSegment || String(option.id)}
+                              isOptionEqualToValue={(o, v) => String(o.id) === String(v.id)}
+                              value={draftFilters.selectedSegment}
+                              onChange={(_, newValue) => setDraftFilters((prev: any) => ({ ...prev, selectedSegment: newValue }))}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
                                 label="Segment ID (PD)"
                                 placeholder="All Segments"
                                 helperText="Opsional"
@@ -813,13 +844,13 @@ const LifetimePDReport: React.FC = () => {
                               />
                             )}
                           />
-                        </Grid>
+                          </Grid>
 
-                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                          <FormControl fullWidth size="small" disabled={!draftFilters.isForwardLooking}>
-                            <InputLabel>Scalar</InputLabel>
-                            <Select
-                              value={draftFilters.scalarId}
+                          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                            <FormControl fullWidth size="small" disabled={draftFilters.flFlagSelection !== 'with'}>
+                              <InputLabel>Scalar</InputLabel>
+                              <Select
+                                value={draftFilters.scalarId}
                               label="Scalar"
                               onChange={(e) => setDraftFilters((prev: any) => ({ ...prev, scalarId: String(e.target.value) }))}
                               sx={{ borderRadius: 2 }}
@@ -905,6 +936,54 @@ const LifetimePDReport: React.FC = () => {
                       </Grid>
                     </AccordionDetails>
                   </Accordion>
+                </Grid>
+
+                <Grid size={{ xs: 12 }}>
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={2}
+                    justifyContent="center"
+                    sx={{ pt: 1 }}
+                  >
+                    <Button
+                      variant="contained"
+                      startIcon={<SearchIcon />}
+                      onClick={applyDraftFilters}
+                      disabled={loading || loadingLookups}
+                      sx={{
+                        minWidth: 180,
+                        textTransform: 'none',
+                        fontWeight: 700,
+                        bgcolor: theme.palette.error.main,
+                        boxShadow: `0 4px 14px ${alpha(theme.palette.error.main, 0.35)}`,
+                        '&:hover': {
+                          bgcolor: theme.palette.error.dark,
+                          boxShadow: `0 6px 20px ${alpha(theme.palette.error.main, 0.45)}`
+                        }
+                      }}
+                    >
+                      Search
+                    </Button>
+                    <Button
+                      variant="contained"
+                      startIcon={<ClearAllIcon />}
+                      onClick={handleResetFilters}
+                      disabled={loading}
+                      sx={{
+                        minWidth: 180,
+                        textTransform: 'none',
+                        fontWeight: 700,
+                        bgcolor: theme.palette.error.main,
+                        boxShadow: `0 4px 14px ${alpha(theme.palette.error.main, 0.35)}`,
+                        '&:hover': {
+                          bgcolor: theme.palette.error.dark,
+                          boxShadow: `0 6px 20px ${alpha(theme.palette.error.main, 0.45)}`
+                        }
+                      }}
+                    >
+                      Clear
+                    </Button>
+                  </Stack>
                 </Grid>
               </Grid>
             </LocalizationProvider>
@@ -1032,13 +1111,15 @@ const LifetimePDReport: React.FC = () => {
           headerAtTop
           hideFilters
           requiredParams={['prc_date']}
-          optionalParams={['pd_config_id', 'pd_method', 'scalar_id', 'fl_flag']}
+          optionalParams={[]}
           supportsPagination={true}
           externalFilters={{
             prc_date: effectivePrcDate ? new Date(effectivePrcDate) : currentFilters.prcDate ? new Date(currentFilters.prcDate) : null,
             pd_config_id: currentFilters.pdConfigId ? Number(currentFilters.pdConfigId) : undefined,
             pd_method: currentFilters.pdMethod,
-            fl_flag: currentFilters.isForwardLooking
+            fl_flag: currentFilters.isForwardLooking,
+            scalar_id: currentFilters.isForwardLooking === true && currentFilters.scalarId ? Number(currentFilters.scalarId) : undefined,
+            segment_id: currentFilters.selectedSegmentId ? Number(currentFilters.selectedSegmentId) : undefined,
           }}
           onDataLoaded={(data) => console.log('Account Details Loaded:', data.length)}
         />

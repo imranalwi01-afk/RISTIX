@@ -25,7 +25,8 @@ export type Ifrs9ReportQueryInput = {
 };
 
 export function buildIfrs9ReportRequestParams(input: Ifrs9ReportQueryInput) {
-  const { filters, supportsPagination, queryParams, deferredSearchTerm } = input;
+  const { filters, supportsPagination, queryParams, deferredSearchTerm, reportType } = input;
+  const shouldSendSegmentId = reportType !== 'ead-model';
   const serverQueryParams = supportsPagination ? {
     ...queryParams,
     search: deferredSearchTerm.trim() || undefined,
@@ -40,7 +41,7 @@ export function buildIfrs9ReportRequestParams(input: Ifrs9ReportQueryInput) {
     lgd_method: filters.lgd_method,
     model_id: filters.model_id,
     ead_config_id: filters.ead_config_id,
-    segment_id: Number.isFinite(Number(filters.segment_id)) ? filters.segment_id : undefined,
+    segment_id: shouldSendSegmentId && Number.isFinite(Number(filters.segment_id)) ? filters.segment_id : undefined,
     scenario_id: filters.scenario_id,
     fl_flag: filters.fl_flag,
     branch_code: filters.branch_code,
