@@ -2,6 +2,14 @@ import { Context } from 'hono';
 import { ifrs9ReportsService } from '../services/ifrs9-reports.service';
 import { buildErrorResponse } from '../lib/http/error-response';
 import { reportDebugSettingsService } from '../services/report-debug-settings.service';
+import {
+    ListQueryValidationError,
+    buildCursorPagination,
+    buildListResponse,
+    buildOffsetPagination,
+    parseListQuery,
+    type ListQueryConfig,
+} from '../lib/http/list-query';
 
 type ReportKey =
     | 'lifetime-pd-yearly'
@@ -21,6 +29,231 @@ type ReportDebugCatalogEntry = {
     filterKeys: string[]
     sqlPreview: string
 }
+
+const NOMINATIVE_LIST_QUERY_CONFIG: ListQueryConfig = {
+    defaultLimit: 20,
+    maxLimit: 500,
+    defaultSort: [{ field: 'account_number', direction: 'asc' }],
+    filterDefinitions: {
+        prc_date: { field: 'prc_date', label: 'Processing Date', type: 'date', operators: ['equals', 'from', 'to'] },
+        download_date: { field: 'download_date', label: 'Download Date', type: 'date', operators: ['from', 'to'] },
+        group_segment: { field: 'group_segment', label: 'Group Segment', type: 'enum' },
+        segment: { field: 'segment', label: 'Segment', type: 'enum' },
+        stage: {
+            field: 'stage',
+            label: 'Stage',
+            type: 'enum',
+            options: [
+                { label: 'Stage 1', value: '1' },
+                { label: 'Stage 2', value: '2' },
+                { label: 'Stage 3', value: '3' },
+            ],
+        },
+        branch_code: { field: 'branch_code', label: 'Branch', type: 'enum' },
+    },
+    sortableColumns: [
+        'account_number',
+        'cif_name',
+        'branch_code',
+        'stage',
+        'outstanding',
+        'ecl_final_amt',
+        'prc_date',
+    ],
+    filterAliases: {
+        download_start_date: 'download_date.from',
+        download_end_date: 'download_date.to',
+    },
+}
+
+const LIFETIME_PD_DETAIL_QUERY_CONFIG: ListQueryConfig = {
+    defaultLimit: 100,
+    maxLimit: 500,
+    defaultSort: [{ field: 'account_number', direction: 'asc' }],
+    filterableColumns: ['prc_date', 'pd_config_id'],
+    filterDefinitions: {
+        prc_date: { field: 'prc_date', label: 'Processing Date', type: 'date', operators: ['equals', 'from', 'to'] },
+        pd_config_id: { field: 'pd_config_id', label: 'PD Config', type: 'number', operators: ['equals', 'min', 'max'] },
+    },
+    sortableColumns: ['account_number', 'segment_id', 'stage', 'outstanding', 'pd_rate', 'ecl_amount'],
+}
+
+const LIFETIME_LGD_DETAIL_QUERY_CONFIG: ListQueryConfig = {
+    defaultLimit: 100,
+    maxLimit: 500,
+    defaultSort: [{ field: 'account_number', direction: 'asc' }],
+    filterableColumns: ['prc_date', 'lgd_config_id', 'lgd_method', 'model_id', 'segment_id', 'fl_flag'],
+    filterDefinitions: {
+        prc_date: { field: 'prc_date', label: 'Processing Date', type: 'date', operators: ['equals', 'from', 'to'] },
+        lgd_config_id: { field: 'lgd_config_id', label: 'LGD Config', type: 'number', operators: ['equals', 'min', 'max'] },
+        lgd_method: { field: 'lgd_method', label: 'LGD Method', type: 'number', operators: ['equals', 'min', 'max'] },
+        model_id: { field: 'model_id', label: 'Model', type: 'number', operators: ['equals', 'min', 'max'] },
+        segment_id: { field: 'segment_id', label: 'Segment', type: 'number', operators: ['equals', 'min', 'max'] },
+        fl_flag: {
+            field: 'fl_flag',
+            label: 'FL Flag',
+            type: 'boolean',
+            options: [
+                { label: 'Yes', value: true },
+                { label: 'No', value: false },
+            ],
+        },
+        account_number: { field: 'account_number', label: 'Account Number', type: 'text', operators: ['contains', 'equals'] },
+        cif_name: { field: 'cif_name', label: 'CIF Name', type: 'text', operators: ['contains', 'equals'] },
+        first_npl_date: { field: 'first_npl_date', label: 'First NPL Date', type: 'date', operators: ['equals', 'from', 'to'] },
+        os_at_default: { field: 'os_at_default', label: 'OS At Default', type: 'number', operators: ['equals', 'min', 'max'] },
+        lgd_rate: { field: 'lgd_rate', label: 'LGD Rate', type: 'number', operators: ['equals', 'min', 'max'] },
+        recovery_rate: { field: 'recovery_rate', label: 'Recovery Rate', type: 'number', operators: ['equals', 'min', 'max'] },
+        recovery_amount_pv: { field: 'recovery_amount_pv', label: 'Recovery Amount PV', type: 'number', operators: ['equals', 'min', 'max'] },
+    },
+    sortableColumns: [
+        'account_number',
+        'cif_name',
+        'first_npl_date',
+        'os_at_default',
+        'lgd_rate',
+        'recovery_rate',
+        'recovery_amount_pv',
+    ],
+}
+
+const ECL_RESULT_QUERY_CONFIG: ListQueryConfig = {
+    defaultLimit: 100,
+    maxLimit: 500,
+    defaultSort: [{ field: 'segment_id', direction: 'asc' }, { field: 'stage', direction: 'asc' }],
+    filterableColumns: ['prc_date', 'segment_id', 'stage'],
+    filterDefinitions: {
+        prc_date: { field: 'prc_date', label: 'Processing Date', type: 'date', operators: ['equals', 'from', 'to'] },
+        segment_id: { field: 'segment_id', label: 'Segment', type: 'number', operators: ['equals', 'min', 'max'] },
+        stage: {
+            field: 'stage',
+            label: 'Stage',
+            type: 'enum',
+            options: [
+                { label: 'Stage 1', value: '1' },
+                { label: 'Stage 2', value: '2' },
+                { label: 'Stage 3', value: '3' },
+            ],
+        },
+        branch_code: { field: 'branch_code', label: 'Branch', type: 'text', operators: ['contains', 'equals'] },
+        group_segment: { field: 'group_segment', label: 'Group Segment', type: 'text', operators: ['contains', 'equals'] },
+        segment: { field: 'segment', label: 'Segment Name', type: 'text', operators: ['contains', 'equals'] },
+        sub_segment: { field: 'sub_segment', label: 'Sub Segment', type: 'text', operators: ['contains', 'equals'] },
+        currency: { field: 'currency', label: 'Currency', type: 'text', operators: ['contains', 'equals'] },
+        impaired_flag: { field: 'impaired_flag', label: 'Impaired Flag', type: 'boolean', options: [{ label: 'Yes', value: true }, { label: 'No', value: false }] },
+        sicr_flag: { field: 'sicr_flag', label: 'SICR Flag', type: 'boolean', options: [{ label: 'Yes', value: true }, { label: 'No', value: false }] },
+        account_count: { field: 'account_count', label: 'Account Count', type: 'number', operators: ['equals', 'min', 'max'] },
+        outstanding: { field: 'outstanding', label: 'Outstanding', type: 'number', operators: ['equals', 'min', 'max'] },
+        ecl_final_amt: { field: 'ecl_final_amt', label: 'Final ECL', type: 'number', operators: ['equals', 'min', 'max'] },
+        ecl_coverage: { field: 'ecl_coverage', label: 'ECL Coverage', type: 'number', operators: ['equals', 'min', 'max'] },
+    },
+    sortableColumns: [
+        'period',
+        'branch_code',
+        'segment_id',
+        'group_segment',
+        'segment',
+        'sub_segment',
+        'currency',
+        'stage',
+        'account_count',
+        'outstanding',
+        'accrued_interest',
+        'ecl_ca_onbs_amt',
+        'ecl_ca_offbs_amt',
+        'ecl_ia_onbs_amt',
+        'ecl_overlay_amt',
+        'ecl_final_amt',
+        'ecl_coverage',
+        'unwinding_ca_amt',
+        'unwinding_ia_amt',
+        'unwinding_ia_sum_amt',
+    ],
+}
+
+const EAD_MODEL_QUERY_CONFIG: ListQueryConfig = {
+    defaultLimit: 100,
+    maxLimit: 500,
+    defaultSort: [{ field: 'tenor', direction: 'asc' }],
+    filterableColumns: ['prc_date', 'ead_config_id', 'segment_id'],
+    filterDefinitions: {
+        prc_date: { field: 'prc_date', label: 'Processing Date', type: 'date', operators: ['equals', 'from', 'to'] },
+        ead_config_id: { field: 'ead_config_id', label: 'EAD Config', type: 'number', operators: ['equals', 'min', 'max'] },
+        segment_id: { field: 'segment_id', label: 'Segment', type: 'number', operators: ['equals', 'min', 'max'] },
+        tenor: { field: 'tenor', label: 'Tenor', type: 'number', operators: ['equals', 'min', 'max'] },
+        lt_month: { field: 'lt_month', label: 'LT/Month', type: 'number', operators: ['equals', 'min', 'max'] },
+    },
+    sortableColumns: ['tenor', 'lt_month'],
+}
+
+const MOVEMENT_QUERY_CONFIG: ListQueryConfig = {
+    defaultLimit: 50,
+    maxLimit: 200,
+    defaultSort: [{ field: 'movement_order', direction: 'asc' }],
+    filterableColumns: ['prc_date', 'segment_id', 'stage', 'group_segment'],
+    filterDefinitions: {
+        prc_date: { field: 'prc_date', label: 'Processing Date', type: 'date', operators: ['equals', 'from', 'to'] },
+        segment_id: { field: 'segment_id', label: 'Segment', type: 'number', operators: ['equals', 'min', 'max'] },
+        stage: {
+            field: 'stage',
+            label: 'Stage',
+            type: 'enum',
+            options: [
+                { label: 'Stage 1', value: '1' },
+                { label: 'Stage 2', value: '2' },
+                { label: 'Stage 3', value: '3' },
+            ],
+        },
+        group_segment: { field: 'group_segment', label: 'Group Segment', type: 'text', operators: ['contains', 'equals'] },
+        movement_order: { field: 'movement_order', label: 'Movement Order', type: 'number', operators: ['equals', 'min', 'max'] },
+        movement: { field: 'movement', label: 'Movement', type: 'text', operators: ['contains', 'equals'] },
+        stage_1_collective: { field: 'stage_1_collective', label: 'Stage 1 Collective', type: 'number', operators: ['equals', 'min', 'max'] },
+        stage_2_collective: { field: 'stage_2_collective', label: 'Stage 2 Collective', type: 'number', operators: ['equals', 'min', 'max'] },
+        stage_3_collective: { field: 'stage_3_collective', label: 'Stage 3 Collective', type: 'number', operators: ['equals', 'min', 'max'] },
+        stage_1_individual: { field: 'stage_1_individual', label: 'Stage 1 Individual', type: 'number', operators: ['equals', 'min', 'max'] },
+        stage_2_individual: { field: 'stage_2_individual', label: 'Stage 2 Individual', type: 'number', operators: ['equals', 'min', 'max'] },
+        stage_3_individual: { field: 'stage_3_individual', label: 'Stage 3 Individual', type: 'number', operators: ['equals', 'min', 'max'] },
+        poci: { field: 'poci', label: 'POCI', type: 'number', operators: ['equals', 'min', 'max'] },
+        total: { field: 'total', label: 'Total', type: 'number', operators: ['equals', 'min', 'max'] },
+    },
+    sortableColumns: [
+        'prc_date',
+        'movement_order',
+        'movement',
+        'stage_1_collective',
+        'stage_2_collective',
+        'stage_3_collective',
+        'stage_1_individual',
+        'stage_2_individual',
+        'stage_3_individual',
+        'poci',
+        'total',
+    ],
+}
+
+const getFilterText = (filters: Record<string, unknown>, key: string): string | undefined => {
+    const value = filters[key]
+    if (value === undefined || value === null) return undefined
+    if (Array.isArray(value)) return value[0] === undefined ? undefined : String(value[0])
+    return String(value)
+}
+
+const getFilterNumber = (filters: Record<string, unknown>, key: string): number | undefined => {
+    const value = getFilterText(filters, key)
+    if (value === undefined) return undefined
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : undefined
+}
+
+const listQueryBadRequest = (c: Context, error: ListQueryValidationError) =>
+    c.json({
+        ...buildErrorResponse(c, {
+            error: error.message,
+            message: error.message,
+            code: 'INVALID_LIST_QUERY',
+        }),
+        details: error.details,
+    }, 400)
 
 const REPORT_DEBUG_CATALOG: Record<ReportKey, ReportDebugCatalogEntry> = {
     'lifetime-pd-yearly': {
@@ -43,10 +276,23 @@ const REPORT_DEBUG_CATALOG: Record<ReportKey, ReportDebugCatalogEntry> = {
     },
     'lifetime-lgd': {
         title: 'Lifetime LGD',
-        sourceTables: ['public.frs9_imp_ca_lgd_h', 'public.frs9_imp_ca_lgd_rec_d', 'public.frs9_param_segment_h'],
-        joins: ['public.frs9_imp_ca_lgd_h -> public.frs9_imp_ca_lgd_rec_d', 'public.frs9_imp_ca_lgd_h -> public.frs9_param_segment_h'],
+        sourceTables: [
+            'public.frs9_account_id',
+            'public.frs9_imp_ca_lgd_data',
+            'public.frs9_imp_ca_lgd_rec_d',
+            'public.frs9_imp_ca_lgd_d',
+            'public.frs9_imp_ca_lgd_h',
+            'public.frs9_imp_ca_lgd_config',
+        ],
+        joins: [
+            'public.frs9_account_id.account_id -> public.frs9_imp_ca_lgd_data.account_id',
+            'public.frs9_imp_ca_lgd_data.account_id/lgd_config_id -> public.frs9_imp_ca_lgd_rec_d (recovery rows up to effective date)',
+            'public.frs9_imp_ca_lgd_data.account_id/prc_date/lgd_config_id -> public.frs9_imp_ca_lgd_d',
+            'public.frs9_imp_ca_lgd_data.prc_date/lgd_config_id/lgd_method -> public.frs9_imp_ca_lgd_h',
+            'public.frs9_imp_ca_lgd_data.lgd_config_id -> public.frs9_imp_ca_lgd_config.pkid',
+        ],
         filterKeys: ['prc_date', 'lgd_config_id', 'lgd_method', 'model_id', 'segment_id', 'fl_flag'],
-        sqlPreview: 'SELECT ... FROM public.frs9_imp_ca_lgd_h B LEFT JOIN public.frs9_imp_ca_lgd_rec_d A ON ... WHERE B.prc_date = :effectivePrcDate',
+        sqlPreview: 'SELECT ... FROM public.frs9_account_id A INNER JOIN public.frs9_imp_ca_lgd_data B ON A.account_id = B.account_id INNER JOIN public.frs9_imp_ca_lgd_rec_d C ON B.account_id = C.account_id AND B.lgd_config_id = C.lgd_config_id AND C.prc_date <= :effectivePrcDate WHERE B.prc_date <= :effectivePrcDate AND B.lgd_config_id = :lgdConfigId',
     },
     'ead-model': {
         title: 'EAD Model',
@@ -57,22 +303,21 @@ const REPORT_DEBUG_CATALOG: Record<ReportKey, ReportDebugCatalogEntry> = {
     },
     'ecl-result': {
         title: 'ECL Result',
-        sourceTables: ['public.frs9_imp_ca_result_h', 'public.frs9_master_account'],
-        joins: ['public.frs9_imp_ca_result_h.account_id -> public.frs9_master_account.account_id'],
+        sourceTables: ['public.frs9_master_account'],
         filterKeys: ['prc_date', 'segment_id', 'stage', 'page', 'limit'],
-        sqlPreview: 'SELECT ... FROM public.frs9_imp_ca_result_h r LEFT JOIN public.frs9_master_account ma ON ma.prc_date = r.prc_date AND ma.account_id = r.account_id WHERE r.prc_date = :effectivePrcDate',
+        sqlPreview: 'SELECT ... FROM public.frs9_master_account WHERE prc_date = :effectivePrcDate AND segment_id = :segmentId AND stage IN (:stageList) GROUP BY prc_date, branch_code, segment_id, group_segment, segment, sub_segment, currency, impaired_flag, impaired_status, bucket_id, sicr_flag, stage',
     },
     'ecl-movement': {
         title: 'ECL Movement',
         sourceTables: ['public.frs9_imp_movement_data'],
         filterKeys: ['prc_date', 'segment_id', 'stage', 'group_segment'],
-        sqlPreview: 'SELECT ... FROM public.frs9_imp_movement_data WHERE prc_date = :effectivePrcDate',
+        sqlPreview: 'CALL public.sp_frs9_imp_movement_data(:requestedEomDate, \'M\', 0); SELECT ... FROM public.frs9_imp_movement_data WHERE prc_date = :effectivePrcDate AND group_segment = :resolvedGroupSegment',
     },
     'gca-movement': {
         title: 'GCA Movement',
         sourceTables: ['public.frs9_imp_movement_data'],
         filterKeys: ['prc_date', 'segment_id', 'stage', 'group_segment'],
-        sqlPreview: 'SELECT ... FROM public.frs9_imp_movement_data WHERE prc_date = :effectivePrcDate',
+        sqlPreview: 'CALL public.sp_frs9_imp_movement_data(:requestedEomDate, \'M\', 0); SELECT ... FROM public.frs9_imp_movement_data WHERE prc_date = :effectivePrcDate AND group_segment = :resolvedGroupSegment',
     },
     'nominative-report': {
         title: 'Nominative Report',
@@ -241,34 +486,33 @@ export const ifrs9ReportsController = {
         try {
             const startedAt = Date.now();
             const tenantId = (c as any).get('tenantId');
-            const page = Number(c.req.query('page') || 1);
-            const limit = Number(c.req.query('limit') || 100);
-
-            // Extract filter parameters
-            const prc_date = c.req.query('prc_date') || '2022-10-31';
-            const pd_config_id = c.req.query('pd_config_id') ? Number(c.req.query('pd_config_id')) : undefined;
+            const query = parseListQuery(c, LIFETIME_PD_DETAIL_QUERY_CONFIG);
+            const prc_date = getFilterText(query.filters, 'prc_date') || c.req.query('prc_date') || '2022-10-31';
+            const pd_config_id = getFilterNumber(query.filters, 'pd_config_id')
+                ?? (c.req.query('pd_config_id') ? Number(c.req.query('pd_config_id')) : undefined);
 
             const result = await ifrs9ReportsService.getLifetimePDAccountDetails(
                 tenantId,
-                page,
-                limit,
+                query.page ?? 1,
+                query.limit,
                 { prc_date, pd_config_id }
             );
 
+            const response = buildListResponse(
+                result.data,
+                query,
+                buildOffsetPagination(query, result.total ?? 0),
+                { filterDefinitions: LIFETIME_PD_DETAIL_QUERY_CONFIG.filterDefinitions },
+            );
+
             return c.json({
-                success: true,
-                data: result.data,
-                pagination: {
-                    page: result.page,
-                    limit: limit,
-                    total: result.total,
-                    totalPages: result.totalPages
-                },
-                meta: await buildReportMeta(c, startedAt, 'lifetime-pd-account-details', { prc_date, pd_config_id, page, limit }, { effectivePrcDate: result.effectivePrcDate, rowCount: result.total }),
+                ...response,
+                meta: await buildReportMeta(c, startedAt, 'lifetime-pd-account-details', { prc_date, pd_config_id, page: query.page, limit: query.limit, sort: query.sort }, { effectivePrcDate: result.effectivePrcDate, rowCount: result.total }),
                 effectivePrcDate: result.effectivePrcDate,
                 message: result.total === 0 ? "No Lifetime PD Account Details available" : undefined
             });
         } catch (error: any) {
+            if (error instanceof ListQueryValidationError) return listQueryBadRequest(c, error)
             return ifrs9ReportsController.handleError(c, error);
         }
     },
@@ -277,22 +521,30 @@ export const ifrs9ReportsController = {
         try {
             const startedAt = Date.now();
             const tenantId = (c as any).get('tenantId');
-            const page = Number(c.req.query('page') || 1);
-            const limit = Number(c.req.query('limit') || 20);
-
-            // Extract filter parameters
-            const prc_date = c.req.query('prc_date') || '2023-12-31';
-            const lgd_config_id = c.req.query('lgd_config_id') ? Number(c.req.query('lgd_config_id')) : undefined;
-            const lgd_method = c.req.query('lgd_method') ? Number(c.req.query('lgd_method')) : undefined;
-            const model_id = c.req.query('model_id') ? Number(c.req.query('model_id')) : undefined;
-            const segment_id = c.req.query('segment_id') ? Number(c.req.query('segment_id')) : undefined;
-            const fl_flag = c.req.query('fl_flag') === 'true' ? true : c.req.query('fl_flag') === 'false' ? false : undefined;
+            const query = parseListQuery(c, LIFETIME_LGD_DETAIL_QUERY_CONFIG);
+            const prc_date = getFilterText(query.filters, 'prc_date') || '2023-12-31';
+            const lgd_config_id = getFilterNumber(query.filters, 'lgd_config_id');
+            const lgd_method = getFilterNumber(query.filters, 'lgd_method');
+            const model_id = getFilterNumber(query.filters, 'model_id');
+            const segment_id = getFilterNumber(query.filters, 'segment_id');
+            const flFlagFilter = query.filters.fl_flag;
+            const fl_flag = typeof flFlagFilter === 'boolean' ? flFlagFilter : undefined;
 
             const result = await ifrs9ReportsService.getLifetimeLGDDetail(
                 tenantId,
-                page,
-                limit,
-                { prc_date, lgd_config_id, lgd_method, model_id, segment_id, fl_flag }
+                query.page ?? 1,
+                query.limit,
+                {
+                    prc_date,
+                    lgd_config_id,
+                    lgd_method,
+                    model_id,
+                    segment_id,
+                    fl_flag,
+                    search: query.search,
+                    sort: query.sort,
+                    detailFilters: query.filters,
+                }
             );
 
             if (result.total === 0) {
@@ -304,15 +556,15 @@ export const ifrs9ReportsController = {
                 );
 
                 if (summary.total > 0) {
+                    const response = buildListResponse(
+                        summary.data,
+                        query,
+                        buildOffsetPagination(query, summary.total ?? 0),
+                        { filterDefinitions: LIFETIME_LGD_DETAIL_QUERY_CONFIG.filterDefinitions },
+                    );
+
                     return c.json({
-                        success: true,
-                        data: summary.data,
-                        pagination: {
-                            page: summary.page,
-                            limit: summary.data.length,
-                            total: summary.total,
-                            totalPages: summary.totalPages
-                        },
+                        ...response,
                         meta: await buildReportMeta(c, startedAt, 'lifetime-lgd', { prc_date, lgd_config_id, lgd_method, model_id, segment_id, fl_flag }, { effectivePrcDate: summary.effectivePrcDate, rowCount: summary.total, detailFallback: 'summary' }),
                         effectivePrcDate: summary.effectivePrcDate,
                         message: "Lifetime LGD detail is not available; showing summary rows instead"
@@ -320,20 +572,21 @@ export const ifrs9ReportsController = {
                 }
             }
 
+            const response = buildListResponse(
+                result.data,
+                query,
+                buildOffsetPagination(query, result.total ?? 0),
+                { filterDefinitions: LIFETIME_LGD_DETAIL_QUERY_CONFIG.filterDefinitions },
+            );
+
             return c.json({
-                success: true,
-                data: result.data,
-                pagination: {
-                    page: result.page,
-                    limit: limit,
-                    total: result.total,
-                    totalPages: result.totalPages
-                },
+                ...response,
                 meta: await buildReportMeta(c, startedAt, 'lifetime-lgd', { prc_date, lgd_config_id, lgd_method, model_id, segment_id, fl_flag }, { effectivePrcDate: result.effectivePrcDate, rowCount: result.total }),
                 effectivePrcDate: result.effectivePrcDate,
                 message: result.total === 0 ? "No Lifetime LGD Data available" : undefined
             });
         } catch (error: any) {
+            if (error instanceof ListQueryValidationError) return listQueryBadRequest(c, error)
             return ifrs9ReportsController.handleError(c, error);
         }
     },
@@ -342,35 +595,40 @@ export const ifrs9ReportsController = {
         try {
             const startedAt = Date.now();
             const tenantId = (c as any).get('tenantId');
-            const page = Number(c.req.query('page') || 1);
-            const limit = Number(c.req.query('limit') || 20);
-
-            // Extract filter parameters
-            const prc_date = c.req.query('prc_date') || '2020-12-31';
-            const ead_config_id = c.req.query('ead_config_id') ? Number(c.req.query('ead_config_id')) : undefined;
-            const segment_id = c.req.query('segment_id') ? Number(c.req.query('segment_id')) : undefined;
+            const query = parseListQuery(c, EAD_MODEL_QUERY_CONFIG);
+            const prc_date = getFilterText(query.filters, 'prc_date') || '2020-12-31';
+            const ead_config_id = getFilterNumber(query.filters, 'ead_config_id');
+            const segment_id = getFilterNumber(query.filters, 'segment_id');
 
             const result = await ifrs9ReportsService.getEADModel(
                 tenantId,
-                page,
-                limit,
-                { prc_date, ead_config_id, segment_id }
+                query.page ?? 1,
+                query.limit,
+                {
+                    prc_date,
+                    ead_config_id,
+                    segment_id,
+                    search: query.search,
+                    sort: query.sort,
+                    detailFilters: query.filters,
+                }
+            );
+
+            const response = buildListResponse(
+                result.data,
+                query,
+                buildOffsetPagination(query, result.total ?? 0),
+                { filterDefinitions: EAD_MODEL_QUERY_CONFIG.filterDefinitions },
             );
 
             return c.json({
-                success: true,
-                data: result.data,
-                pagination: {
-                    page: result.page,
-                    limit: limit,
-                    total: result.total,
-                    totalPages: result.totalPages
-                },
-                meta: await buildReportMeta(c, startedAt, 'ead-model', { prc_date, ead_config_id, segment_id, page, limit }, { effectivePrcDate: (result as any).effectivePrcDate ?? null, rowCount: result.total }),
+                ...response,
+                meta: await buildReportMeta(c, startedAt, 'ead-model', { prc_date, ead_config_id, segment_id, page: query.page, limit: query.limit, sort: query.sort }, { effectivePrcDate: (result as any).effectivePrcDate ?? null, rowCount: result.total }),
                 effectivePrcDate: (result as any).effectivePrcDate ?? null,
                 message: result.total === 0 ? "No EAD Model Data available" : undefined
             });
         } catch (error: any) {
+            if (error instanceof ListQueryValidationError) return listQueryBadRequest(c, error)
             return ifrs9ReportsController.handleError(c, error);
         }
     },
@@ -406,41 +664,51 @@ export const ifrs9ReportsController = {
         try {
             const startedAt = Date.now();
             const tenantId = (c as any).get('tenantId');
-            const page = Number(c.req.query('page') || 1);
-            const limit = Number(c.req.query('limit') || 20);
-
-            // Extract filter parameters matching SQL script
-            const prc_date = c.req.query('prc_date') || '2023-12-31';
-            const segment_id = c.req.query('segment_id') ? Number(c.req.query('segment_id')) : undefined;
-            const stage = c.req.queries('stage') || (c.req.query('stage') ? [c.req.query('stage')!] : undefined);
+            const query = parseListQuery(c, ECL_RESULT_QUERY_CONFIG);
+            const prc_date = getFilterText(query.filters, 'prc_date') || '2023-12-31';
+            const segment_id = getFilterNumber(query.filters, 'segment_id');
+            const stageFilter = query.filters.stage;
+            const stage = Array.isArray(stageFilter)
+                ? stageFilter.map(String)
+                : stageFilter !== undefined
+                    ? [String(stageFilter)]
+                    : undefined;
 
             const result = await ifrs9ReportsService.getECLResult(
                 tenantId,
-                page,
-                limit,
-                { prc_date, segment_id, stage }
+                query.page ?? 1,
+                query.limit,
+                {
+                    prc_date,
+                    segment_id,
+                    stage,
+                    search: query.search,
+                    sort: query.sort,
+                    detailFilters: query.filters,
+                }
+            );
+
+            const response = buildListResponse(
+                result.data,
+                query,
+                buildOffsetPagination(query, result.total ?? 0),
+                { filterDefinitions: ECL_RESULT_QUERY_CONFIG.filterDefinitions },
             );
 
             return c.json({
-                success: true,
-                data: result.data,
-                pagination: {
-                    page: result.page,
-                    limit: limit,
-                    total: result.total,
-                    totalPages: result.totalPages
-                },
-                meta: await buildReportMeta(c, startedAt, 'ecl-result', { prc_date, segment_id, stage, page, limit }, {
+                ...response,
+                meta: await buildReportMeta(c, startedAt, 'ecl-result', { prc_date, segment_id, stage, page: query.page, limit: query.limit, sort: query.sort }, {
                     effectivePrcDate: result.effectivePrcDate,
                     rowCount: result.total,
                     ...(result as any).debug,
                 }),
                 effectivePrcDate: result.effectivePrcDate,
                 message: result.total === 0
-                    ? `No ECL Result data found in public.frs9_imp_ca_result_h for snapshot ${result.effectivePrcDate ?? prc_date}.`
+                    ? `No ECL Result data found in public.frs9_master_account for snapshot ${result.effectivePrcDate ?? prc_date}.`
                     : undefined
             });
         } catch (error: any) {
+            if (error instanceof ListQueryValidationError) return listQueryBadRequest(c, error)
             return ifrs9ReportsController.handleError(c, error);
         }
     },
@@ -449,22 +717,36 @@ export const ifrs9ReportsController = {
         try {
             const startedAt = Date.now();
             const tenantId = (c as any).get('tenantId');
-            const prc_date = c.req.query('prc_date') || '2023-12-31';
-            const segment_id = c.req.query('segment_id') ? Number(c.req.query('segment_id')) : undefined;
-            const stage = c.req.queries('stage') || (c.req.query('stage') ? [c.req.query('stage')!] : undefined);
-            const group_segment = c.req.query('group_segment') || undefined;
+            const query = parseListQuery(c, MOVEMENT_QUERY_CONFIG);
+            const prc_date = getFilterText(query.filters, 'prc_date') || '2023-12-31';
+            const segment_id = getFilterNumber(query.filters, 'segment_id');
+            const stageFilter = query.filters.stage;
+            const stage = Array.isArray(stageFilter)
+                ? stageFilter.map(String)
+                : stageFilter !== undefined
+                    ? [String(stageFilter)]
+                    : undefined;
+            const group_segment = getFilterText(query.filters, 'group_segment') || undefined;
             const result = await ifrs9ReportsService.getECLMovement(
                 tenantId,
-                { prc_date, segment_id, stage, group_segment }
+                query.page ?? 1,
+                query.limit,
+                { prc_date, segment_id, stage, group_segment, search: query.search, sort: query.sort, detailFilters: query.filters }
+            );
+            const response = buildListResponse(
+                result.data,
+                query,
+                buildOffsetPagination(query, result.total ?? 0),
+                { filterDefinitions: MOVEMENT_QUERY_CONFIG.filterDefinitions },
             );
             return c.json({
-                success: true,
-                data: result.data,
-                meta: await buildReportMeta(c, startedAt, 'ecl-movement', { prc_date, segment_id, stage, group_segment }, { effectivePrcDate: (result as any).effectivePrcDate, rowCount: Array.isArray(result.data) ? result.data.length : 0 }),
+                ...response,
+                meta: await buildReportMeta(c, startedAt, 'ecl-movement', { prc_date, segment_id, stage, group_segment, page: query.page, limit: query.limit, sort: query.sort }, { effectivePrcDate: (result as any).effectivePrcDate, rowCount: result.total ?? 0 }),
                 effectivePrcDate: (result as any).effectivePrcDate,
-                message: result.data.length === 0 ? "No ECL Movement Data available" : undefined
+                message: (result.total ?? 0) === 0 ? "No ECL Movement Data available" : undefined
             });
         } catch (error: any) {
+            if (error instanceof ListQueryValidationError) return listQueryBadRequest(c, error)
             return ifrs9ReportsController.handleError(c, error);
         }
     },
@@ -473,22 +755,36 @@ export const ifrs9ReportsController = {
         try {
             const startedAt = Date.now();
             const tenantId = (c as any).get('tenantId');
-            const prc_date = c.req.query('prc_date') || '2023-12-31';
-            const segment_id = c.req.query('segment_id') ? Number(c.req.query('segment_id')) : undefined;
-            const stage = c.req.queries('stage') || (c.req.query('stage') ? [c.req.query('stage')!] : undefined);
-            const group_segment = c.req.query('group_segment') || undefined;
+            const query = parseListQuery(c, MOVEMENT_QUERY_CONFIG);
+            const prc_date = getFilterText(query.filters, 'prc_date') || '2023-12-31';
+            const segment_id = getFilterNumber(query.filters, 'segment_id');
+            const stageFilter = query.filters.stage;
+            const stage = Array.isArray(stageFilter)
+                ? stageFilter.map(String)
+                : stageFilter !== undefined
+                    ? [String(stageFilter)]
+                    : undefined;
+            const group_segment = getFilterText(query.filters, 'group_segment') || undefined;
             const result = await ifrs9ReportsService.getGCAMovement(
                 tenantId,
-                { prc_date, segment_id, stage, group_segment }
+                query.page ?? 1,
+                query.limit,
+                { prc_date, segment_id, stage, group_segment, search: query.search, sort: query.sort, detailFilters: query.filters }
+            );
+            const response = buildListResponse(
+                result.data,
+                query,
+                buildOffsetPagination(query, result.total ?? 0),
+                { filterDefinitions: MOVEMENT_QUERY_CONFIG.filterDefinitions },
             );
             return c.json({
-                success: true,
-                data: result.data,
-                meta: await buildReportMeta(c, startedAt, 'gca-movement', { prc_date, segment_id, stage, group_segment }, { effectivePrcDate: (result as any).effectivePrcDate, rowCount: Array.isArray(result.data) ? result.data.length : 0 }),
+                ...response,
+                meta: await buildReportMeta(c, startedAt, 'gca-movement', { prc_date, segment_id, stage, group_segment, page: query.page, limit: query.limit, sort: query.sort }, { effectivePrcDate: (result as any).effectivePrcDate, rowCount: result.total ?? 0 }),
                 effectivePrcDate: (result as any).effectivePrcDate,
-                message: result.data.length === 0 ? "No GCA Movement Data available" : undefined
+                message: (result.total ?? 0) === 0 ? "No GCA Movement Data available" : undefined
             });
         } catch (error: any) {
+            if (error instanceof ListQueryValidationError) return listQueryBadRequest(c, error)
             return ifrs9ReportsController.handleError(c, error);
         }
     },
@@ -497,49 +793,73 @@ export const ifrs9ReportsController = {
         try {
             const startedAt = Date.now();
             const tenantId = (c as any).get('tenantId');
-            const page = Number(c.req.query('page') || 1);
-            const limit = Number(c.req.query('limit') || 20);
+            const query = parseListQuery(c, NOMINATIVE_LIST_QUERY_CONFIG);
             // Extract filter parameters
-            const prc_date = c.req.query('prc_date') || '2023-12-31';
-            const download_start_date = c.req.query('download_start_date') || undefined;
-            const download_end_date = c.req.query('download_end_date') || undefined;
+            const prc_date = getFilterText(query.filters, 'prc_date') || c.req.query('prc_date') || '2023-12-31';
+            const download_start_date = getFilterText(query.filters, 'download_date.from') || c.req.query('download_start_date') || undefined;
+            const download_end_date = getFilterText(query.filters, 'download_date.to') || c.req.query('download_end_date') || undefined;
             const group_segment = c.req.queries('group_segment')
                 || c.req.queries('group_segment[]')
+                || (query.filters.group_segment ? [String(query.filters.group_segment)] : undefined)
                 || (c.req.query('group_segment[]') ? [c.req.query('group_segment[]')!] : undefined)
                 || (c.req.query('group_segment') ? [c.req.query('group_segment')!] : undefined);
             const segment = c.req.queries('segment')
                 || c.req.queries('segment[]')
+                || (query.filters.segment ? [String(query.filters.segment)] : undefined)
                 || (c.req.query('segment[]') ? [c.req.query('segment[]')!] : undefined)
                 || (c.req.query('segment') ? [c.req.query('segment')!] : undefined);
             const stage = c.req.queries('stage')
                 || c.req.queries('stage[]')
+                || (query.filters.stage ? [String(query.filters.stage)] : undefined)
                 || (c.req.query('stage[]') ? [c.req.query('stage[]')!] : undefined)
                 || (c.req.query('stage') ? [c.req.query('stage')!] : undefined);
             const branch_code = c.req.queries('branch_code')
                 || c.req.queries('branch_code[]')
+                || (query.filters.branch_code ? [String(query.filters.branch_code)] : undefined)
                 || (c.req.query('branch_code[]') ? [c.req.query('branch_code[]')!] : undefined)
                 || (c.req.query('branch_code') ? [c.req.query('branch_code')!] : undefined);
             const result = await ifrs9ReportsService.getNominativeReport(
                 tenantId,
-                page,
-                limit,
-                { prc_date, download_start_date, download_end_date, group_segment, segment, stage, branch_code }
+                query.page ?? 1,
+                query.limit,
+                {
+                    prc_date,
+                    download_start_date,
+                    download_end_date,
+                    group_segment,
+                    segment,
+                    stage,
+                    branch_code,
+                    cursor: query.cursor,
+                    paginationMode: query.paginationMode,
+                    sort: query.sort,
+                }
             );
-            return c.json({
-                success: true,
-                data: result.data,
-                pagination: {
-                    page: result.page,
-                    limit,
+            const pagination = query.paginationMode === 'cursor'
+                ? buildCursorPagination(query, {
+                    nextCursor: result.nextCursor,
+                    previousCursor: result.previousCursor,
+                    hasNextPage: Boolean(result.hasNextPage),
+                    hasPreviousPage: Boolean(result.hasPreviousPage),
                     total: result.total,
-                    totalPages: result.totalPages
-                },
-                meta: await buildReportMeta(c, startedAt, 'nominative-report', { prc_date, download_start_date, download_end_date, group_segment, segment, stage, branch_code, page, limit }, { effectivePrcDate: result.effectivePrcDate, rowCount: result.total }),
+                })
+                : buildOffsetPagination(query, result.total ?? 0);
+            const response = buildListResponse(
+                result.data,
+                query,
+                pagination,
+                { filterDefinitions: NOMINATIVE_LIST_QUERY_CONFIG.filterDefinitions },
+            );
+
+            return c.json({
+                ...response,
+                meta: await buildReportMeta(c, startedAt, 'nominative-report', { prc_date, download_start_date, download_end_date, group_segment, segment, stage, branch_code, page: query.page, limit: query.limit, sort: query.sort }, { effectivePrcDate: result.effectivePrcDate, rowCount: result.total }),
                 summary: result.summary,
                 effectivePrcDate: result.effectivePrcDate,
                 message: result.total === 0 ? "No Nominative Report Data available" : undefined
             });
         } catch (error: any) {
+            if (error instanceof ListQueryValidationError) return listQueryBadRequest(c, error)
             return ifrs9ReportsController.handleError(c, error);
         }
     },

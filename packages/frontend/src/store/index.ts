@@ -198,6 +198,16 @@ const errorMiddleware: Middleware = (api) => (next) => (action) => {
   if (isRejectedWithValue(action)) {
     // Check for 401 Unauthorized
     if ((action.payload as any)?.status === 401) {
+      const hasRefreshToken = typeof window !== 'undefined' && Boolean(
+        window.localStorage.getItem('refresh_token') ||
+        document.cookie.split('; ').some((row) => row.startsWith('refresh_token='))
+      );
+
+      if (hasRefreshToken) {
+        console.warn('⚠️ 401 Unauthorized detected, but refresh token exists. Preserving session for restore flow.');
+        return next(action);
+      }
+
       console.warn('⚠️ 401 Unauthorized detected. Logging out...');
 
       // Clear auth state and tokens

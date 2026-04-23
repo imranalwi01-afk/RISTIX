@@ -495,17 +495,19 @@ services:
       - NEXT_TELEMETRY_DISABLED=1
       - NODE_OPTIONS=--max-old-space-size=4096
       - WSS_PORT=4231
-      # Watchpack polling for better file change detection on some systems
-      - WATCHPACK_POLLING=true
+      # Polling is reliable on every Docker setup, but very slow on macOS bind mounts.
+      # Override with WATCHPACK_POLLING=true only if file changes are not detected.
+      - WATCHPACK_POLLING=${WATCHPACK_POLLING:-false}
+      - CHOKIDAR_USEPOLLING=${CHOKIDAR_USEPOLLING:-false}
     volumes:
       - ../../packages/frontend:/app
-      - /app/node_modules
-      - /app/.next
+      - frontend-node-modules:/app/node_modules
+      - frontend-next-cache:/app/.next
     ports:
       - "4231:4231"
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    command: sh -c "npm install -g pnpm && pnpm install --no-frozen-lockfile && pnpm dev"
+    command: sh -c "corepack enable && corepack prepare pnpm@8.15.0 --activate && pnpm install --prefer-offline --frozen-lockfile && pnpm dev:turbopack"
     networks:
       - ifrs9-dev
     profiles:
@@ -625,6 +627,10 @@ volumes:
     name: ifrs9-iaf_redis-dev-data
     driver: local
   new-backend-node-modules:
+    driver: local
+  frontend-node-modules:
+    driver: local
+  frontend-next-cache:
     driver: local
   r-analytics-logs:
     driver: local

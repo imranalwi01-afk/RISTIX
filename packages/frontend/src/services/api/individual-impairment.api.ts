@@ -76,7 +76,7 @@ export const individualImpairmentAPI = {
   },
 
   // OVERRIDES
-  getOverrides: async (params?: { status?: string }) => {
+  getOverrides: async (params?: { status?: string; accountId?: string | number; accountNumber?: string; limit?: number; offset?: number }) => {
     const response = await apiClient.get('/banking/individual/impairment/overrides', { params });
     return response.data;
   },

@@ -3,6 +3,63 @@ import { Context } from 'hono';
 import path from 'path'
 import { promises as fs } from 'fs'
 import { buildErrorResponse } from '@/lib/http/error-response';
+import {
+    ListQueryValidationError,
+    buildCursorPagination,
+    buildListResponse,
+    buildOffsetPagination,
+    parseListQuery,
+    type ListQueryConfig,
+} from '@/lib/http/list-query';
+
+const MASTER_ACCOUNT_LIST_QUERY_CONFIG: ListQueryConfig = {
+    defaultLimit: 25,
+    maxLimit: 200,
+    defaultSort: [{ field: 'prcDate', direction: 'desc' }],
+    searchableColumns: ['accountNumber', 'cifName', 'cifNumber'],
+    filterableColumns: [
+        'stage',
+        'assessment_status',
+        'impaired_flag',
+        'priority_level',
+        'rating_code',
+        'dateFrom',
+        'dateTo',
+    ],
+    sortableColumns: [
+        'pkid',
+        'prcDate',
+        'prc_date',
+        'accountNumber',
+        'account_number',
+        'cifName',
+        'cif_name',
+        'outstanding',
+        'stage',
+        'dpd',
+    ],
+    filterAliases: {
+        impairedFlag: 'impaired_flag',
+        priorityLevel: 'priority_level',
+        ratingCode: 'rating_code',
+        status: 'assessment_status',
+        'date_range.start': 'dateFrom',
+        'date_range.from': 'dateFrom',
+        'date_range.end': 'dateTo',
+        'date_range.to': 'dateTo',
+    },
+}
+
+const CUSTOMER_LIST_QUERY_CONFIG: ListQueryConfig = {
+    ...MASTER_ACCOUNT_LIST_QUERY_CONFIG,
+    filterableColumns: ['dateFrom', 'dateTo'],
+}
+
+const stringFilter = (value: unknown): string | undefined => {
+    if (value === undefined || value === null) return undefined
+    if (Array.isArray(value)) return value[0] === undefined ? undefined : String(value[0])
+    return String(value)
+}
 
 export class IndividualImpairmentController {
     private individualImpairmentService: any;
@@ -19,6 +76,17 @@ export class IndividualImpairmentController {
         return c.json(buildErrorResponse(c, { error: message, message, code: 'BAD_REQUEST' }), 400);
     }
 
+    private listQueryBadRequest(c: Context, error: ListQueryValidationError) {
+        return c.json({
+            ...buildErrorResponse(c, {
+                error: error.message,
+                message: error.message,
+                code: 'INVALID_LIST_QUERY',
+            }),
+            details: error.details,
+        }, 400);
+    }
+
     private notFound(c: Context, message: string) {
         return c.json(buildErrorResponse(c, { error: message, message, code: 'NOT_FOUND' }), 404);
     }
@@ -29,55 +97,38 @@ export class IndividualImpairmentController {
             const user = c.get('user');
             if (!user?.tenantId) return this.unauthorized(c);
 
-            // 1. Extract Pagination Parameters
-            const page = Number(c.req.query('page')) || 1;
-            const limit = Number(c.req.query('limit')) || 25;
-            const offset = (page - 1) * limit;
+            const query = parseListQuery(c, MASTER_ACCOUNT_LIST_QUERY_CONFIG);
+            const filters = query.filters;
+            const stageValue = filters.stage === undefined ? undefined : Number(stringFilter(filters.stage));
 
-            // 2. Extract Filters
-            // The frontend sends filters either as top-level params or in a 'filter' object
-            // Hono query(key) handles simple keys. 
-            const search = c.req.query('search');
-            const stage = Number(c.req.query('filter[stage]') || c.req.query('stage'));
-            const status = c.req.query('filter[assessment_status]') || c.req.query('status');
-            const impaired_flag = c.req.query('filter[impaired_flag]') || c.req.query('impairedFlag');
-            const rating_code = c.req.query('filter[rating_code]') || c.req.query('ratingCode');
-            const dateFrom =
-                c.req.query('dateFrom') ||
-                c.req.query('filter[date_range][start]') ||
-                c.req.query('filter[date_range][from]') ||
-                c.req.query('filter[dateFrom]');
-            const dateTo =
-                c.req.query('dateTo') ||
-                c.req.query('filter[date_range][end]') ||
-                c.req.query('filter[date_range][to]') ||
-                c.req.query('filter[dateTo]');
-
-            // 3. Call Service
             const result = await individualImpairmentService.getWatchlist(user.tenantId, { 
-                search,
-                stage,
-                status,
-                impaired_flag,
-                rating_code,
-                dateFrom,
-                dateTo,
-                limit, 
-                offset 
+                search: query.search,
+                stage: Number.isFinite(stageValue) ? stageValue : undefined,
+                status: stringFilter(filters.assessment_status),
+                impaired_flag: stringFilter(filters.impaired_flag),
+                priority_level: stringFilter(filters.priority_level),
+                rating_code: stringFilter(filters.rating_code),
+                dateFrom: stringFilter(filters.dateFrom),
+                dateTo: stringFilter(filters.dateTo),
+                limit: query.limit,
+                offset: query.offset,
+                cursor: query.cursor,
+                paginationMode: query.paginationMode,
+                sort: query.sort,
             });
 
-            // 4. Return Standard Pagination Response
-            return c.json({ 
-                success: true, 
-                data: result.data,
-                pagination: {
-                    page,
-                    limit,
-                    total: result.total,
-                    totalPages: Math.ceil(result.total / limit)
-                }
-            });
+            const pagination = query.paginationMode === 'cursor'
+                ? buildCursorPagination(query, {
+                    nextCursor: result.nextCursor,
+                    previousCursor: result.previousCursor,
+                    hasNextPage: result.hasNextPage,
+                    hasPreviousPage: result.hasPreviousPage,
+                })
+                : buildOffsetPagination(query, result.total ?? 0);
+
+            return c.json(buildListResponse(result.data, query, pagination));
         } catch (error: any) {
+            if (error instanceof ListQueryValidationError) return this.listQueryBadRequest(c, error);
             return this.handleError(c, error);
         }
     }
@@ -87,41 +138,32 @@ export class IndividualImpairmentController {
             const user = c.get('user');
             if (!user?.tenantId) return this.unauthorized(c);
 
-            const page = Number(c.req.query('page')) || 1;
-            const limit = Number(c.req.query('limit')) || 25;
-            const offset = (page - 1) * limit;
-
-            const search = c.req.query('search');
-            const dateFrom =
-                c.req.query('dateFrom') ||
-                c.req.query('filter[date_range][start]') ||
-                c.req.query('filter[date_range][from]') ||
-                c.req.query('filter[dateFrom]');
-            const dateTo =
-                c.req.query('dateTo') ||
-                c.req.query('filter[date_range][end]') ||
-                c.req.query('filter[date_range][to]') ||
-                c.req.query('filter[dateTo]');
+            const query = parseListQuery(c, CUSTOMER_LIST_QUERY_CONFIG);
+            const filters = query.filters;
 
             const result = await individualImpairmentService.getCustomerList(user.tenantId, {
-                search,
-                dateFrom,
-                dateTo,
-                limit,
-                offset
+                search: query.search,
+                dateFrom: stringFilter(filters.dateFrom),
+                dateTo: stringFilter(filters.dateTo),
+                limit: query.limit,
+                offset: query.offset,
+                cursor: query.cursor,
+                paginationMode: query.paginationMode,
+                sort: query.sort,
             });
 
-            return c.json({
-                success: true,
-                data: result.data,
-                pagination: {
-                    page,
-                    limit,
-                    total: result.total,
-                    totalPages: Math.ceil(result.total / limit)
-                }
-            });
+            const pagination = query.paginationMode === 'cursor'
+                ? buildCursorPagination(query, {
+                    nextCursor: result.nextCursor,
+                    previousCursor: result.previousCursor,
+                    hasNextPage: result.hasNextPage,
+                    hasPreviousPage: result.hasPreviousPage,
+                })
+                : buildOffsetPagination(query, result.total ?? 0);
+
+            return c.json(buildListResponse(result.data, query, pagination));
         } catch (error: any) {
+            if (error instanceof ListQueryValidationError) return this.listQueryBadRequest(c, error);
             return this.handleError(c, error);
         }
     }
@@ -245,10 +287,18 @@ export class IndividualImpairmentController {
             if (!user?.tenantId) return this.unauthorized(c);
 
             const status = c.req.query('status');
+            const accountId = c.req.query('accountId');
+            const accountNumber = c.req.query('accountNumber');
             const limit = Number(c.req.query('limit')) || 50;
             const offset = Number(c.req.query('offset')) || 0;
 
-            const data = await individualImpairmentService.getOverrides(user.tenantId, { status, limit, offset });
+            const data = await individualImpairmentService.getOverrides(user.tenantId, {
+                status,
+                accountId: accountId ? Number(accountId) : undefined,
+                accountNumber,
+                limit,
+                offset,
+            });
             return c.json({ success: true, data });
         } catch (error: any) {
             return this.handleError(c, error);

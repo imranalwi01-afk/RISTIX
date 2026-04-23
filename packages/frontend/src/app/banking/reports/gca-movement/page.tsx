@@ -1,3 +1,6 @@
-import GCAMovementReportPage from '../../ifrs9-reports/gca-movement/page';
+import { redirect } from 'next/navigation';
+import { canonicalRoutes } from '@/features/shared/routing/canonical-routes';
 
-export default GCAMovementReportPage;
+export default function LegacyGcaMovementReportPage() {
+  redirect(canonicalRoutes.ifrs9Reports.gcaMovement);
+}

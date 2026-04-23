@@ -1,5 +1,6 @@
 // @ts-nocheck
 
+import { Effect } from 'effect';
 import { db, legacyDb } from '../config';
 import {
     frs9ImpIaHeader,
@@ -10,6 +11,8 @@ import {
 } from '../db/schema/legacy';
 import { frs9MasterAccount, users, individualImpairmentScenarios } from '../db/schema';
 import { and, eq, desc, sql, inArray, ilike, or } from 'drizzle-orm';
+import { MasterAccountRepository } from '@/repositories/master-account.repository';
+import { decodeCursor, encodeCursor } from '@/lib/http/list-query';
 
 
 // Helper to map Legacy Status (Int) <-> Frontend Status (String)
@@ -43,7 +46,27 @@ export class IndividualImpairmentService {
                 .where(eq(frs9ImpIaHeader.accountId, Number(accountId)))
                 .limit(1);
 
-            if (!result.length) return [];
+            if (!result.length) {
+                const masterRows = await legacyDb.select()
+                    .from(frs9MasterAccount)
+                    .where(eq(frs9MasterAccount.accountId, Number(accountId)))
+                    .orderBy(desc(frs9MasterAccount.prcDate))
+                    .limit(1);
+
+                if (!masterRows.length) return [];
+
+                const master = masterRows[0];
+                return [{
+                    id: `HIST-SRC-${master.pkid}`,
+                    entityId: String(master.accountId),
+                    entityType: 'MASTER_ACCOUNT',
+                    action: 'CREATE',
+                    actor: 'SYSTEM',
+                    timestamp: master.prcDate,
+                    details: `Source account loaded from FRS9_MASTER_ACCOUNT (${master.accountNumber || accountId})`,
+                    status: master.impairedFlag ? 'IMPAIRED_SOURCE' : 'SOURCE'
+                }];
+            }
 
             const row = result[0];
             const history = [];
@@ -432,19 +455,111 @@ export class IndividualImpairmentService {
     // WATCHLIST (1.4.1) -> frs9_imp_ia_header
     // =========================================================================
 
+    private async mapWatchlistRows(results: any[]) {
+        const accountNumbers = results.map(r => r.accountNumber).filter((n): n is string => !!n);
+        const overrides = accountNumbers.length > 0
+            ? await legacyDb.select()
+                .from(frs9ImpIaHeader)
+                .where(inArray(frs9ImpIaHeader.accountNumber, accountNumbers))
+            : [];
+
+        return results.map(row => {
+            const override = overrides.find(o => o.accountNumber === row.accountNumber);
+
+            let currentStage = Number(row.stage) || 1;
+            let currentStatus = 'PENDING';
+            let currentNotes = '';
+            let currentImpaired = row.impairedFlag ? 'I' : 'N';
+
+            if (override) {
+                currentStage = override.impairedFlag === 'T' ? 3 : 1;
+                currentStatus = STATUS_MAP_TO_STRING[override.status as number] || 'IN_PROGRESS';
+                currentNotes = override.triggerRemarks || 'Manual Override';
+                currentImpaired = override.impairedFlag === 'T' ? 'I' : 'N';
+            }
+
+            return {
+                pkid: Number(row.pkid),
+                ia_id: override ? Number(override.iaId) : null,
+                prc_date: row.prcDate,
+                eff_date: row.prcDate,
+                cif_number: row.cifNumber,
+                cif_name: row.cifName,
+                account_id: Number(row.accountId),
+                account_number: row.accountNumber,
+                currency: row.currency,
+                eff_interest_rate: Number(row.effInterestRate || 0),
+                interest_rate: Number(row.interestRate || 0),
+                dpd: row.dpd || 0,
+                collectability: row.collectability || 0,
+                rating_code: row.internalRatingCode,
+                impaired_flag: currentImpaired,
+                method: 'DCF',
+                outstanding_balance: Number(row.outstanding || 0),
+                provision_amount: Number(row.eclFinalAmt || 0),
+                ecl_amount: Number(row.eclFinalAmt || 0),
+                stage: currentStage,
+                priority_level: (Number(row.outstanding) > 1000000000) ? 'HIGH' : 'MEDIUM',
+                assessment_status: currentStatus,
+                notes: currentNotes,
+                group_segment: row.groupSegment,
+                segment: row.segment,
+                sub_segment: row.subSegment,
+                createdby: 'SYSTEM',
+                createddate: row.prcDate,
+                is_override: !!override
+            };
+        });
+    }
+
     async getWatchlist(tenantId: string, filters: {
         search?: string;
         stage?: number;
         impaired_flag?: string;
         status?: string;
+        priority_level?: string;
         rating_code?: string;
         dateFrom?: string;
         dateTo?: string;
         limit?: number;
-        offset?: number
+        offset?: number;
+        cursor?: string;
+        paginationMode?: 'offset' | 'cursor';
+        sort?: Array<{ field: string; direction: 'asc' | 'desc' }>;
     }) {
         try {
-            const { limit = 50, offset = 0, search, stage, impaired_flag, status, rating_code, dateFrom, dateTo } = filters;
+            const { limit = 50, offset = 0, search, stage, impaired_flag, status, priority_level, rating_code, dateFrom, dateTo } = filters;
+
+            if (filters.paginationMode === 'cursor' || filters.cursor) {
+                const result = await Effect.runPromise(MasterAccountRepository.findAllCursor({
+                    limit,
+                    search,
+                    stage,
+                    impairedFlag: impaired_flag === 'I' || impaired_flag === 'N' ? impaired_flag : undefined,
+                    ratingCode: rating_code,
+                    dateFrom,
+                    dateTo,
+                    cursor: filters.cursor,
+                    sort: filters.sort,
+                }) as any);
+                const mergedData = await this.mapWatchlistRows(result.data);
+                let filteredResponse = mergedData;
+                if (status) {
+                    filteredResponse = filteredResponse.filter(item => item.assessment_status === status);
+                }
+                if (priority_level) {
+                    filteredResponse = filteredResponse.filter(item => item.priority_level === priority_level);
+                }
+
+                return {
+                    data: filteredResponse,
+                    total: undefined,
+                    nextCursor: result.nextCursor,
+                    previousCursor: result.previousCursor,
+                    hasNextPage: result.hasNextPage,
+                    hasPreviousPage: result.hasPreviousPage,
+                };
+            }
 
             // 1. Build Query Conditions for Master Account (Source Data)
             const conditions = [];
@@ -508,68 +623,16 @@ export class IndividualImpairmentService {
                 .limit(limit)
                 .offset(offset);
 
-            // 4. Fetch Overrides (Manual Interventions) from Header
-            const accountNumbers = results.map(r => r.accountNumber).filter((n): n is string => !!n);
-            const overrides = accountNumbers.length > 0
-                ? await legacyDb.select()
-                    .from(frs9ImpIaHeader)
-                    .where(inArray(frs9ImpIaHeader.accountNumber, accountNumbers))
-                : [];
-
-            // 5. Merge Logic: Override > Master Account
-            const mergedData = results.map(row => {
-                const override = overrides.find(o => o.accountNumber === row.accountNumber);
-
-                // Base values from Master Account
-                let currentStage = Number(row.stage) || 1;
-                let currentStatus = 'PENDING'; // Master accounts are pending assessment by default
-                let currentNotes = '';
-                let currentImpaired = row.impairedFlag ? 'I' : 'N';
-
-                if (override) {
-                    currentStage = override.impairedFlag === 'T' ? 3 : 1;
-                    currentStatus = STATUS_MAP_TO_STRING[override.status as number] || 'IN_PROGRESS';
-                    currentNotes = override.triggerRemarks || 'Manual Override';
-                    currentImpaired = override.impairedFlag === 'T' ? 'I' : 'N';
-                }
-
-                return {
-                    pkid: Number(row.pkid), // Use actual unique row ID
-                    ia_id: override ? Number(override.iaId) : null,
-                    prc_date: row.prcDate,
-                    eff_date: row.prcDate,
-                    cif_number: row.cifNumber,
-                    cif_name: row.cifName,
-                    account_id: Number(row.accountId),
-                    account_number: row.accountNumber,
-                    currency: row.currency,
-                    eff_interest_rate: Number(row.effInterestRate || 0),
-                    interest_rate: Number(row.interestRate || 0),
-                    dpd: row.dpd || 0,
-                    collectability: row.collectability || 0,
-                    rating_code: row.internalRatingCode,
-                    impaired_flag: currentImpaired,
-                    method: 'DCF',
-                    outstanding_balance: Number(row.outstanding || 0),
-                    provision_amount: Number(row.eclFinalAmt || 0),
-                    ecl_amount: Number(row.eclFinalAmt || 0),
-                    stage: currentStage,
-                    priority_level: (Number(row.outstanding) > 1000000000) ? 'HIGH' : 'MEDIUM',
-                    assessment_status: currentStatus,
-                    notes: currentNotes,
-                    group_segment: row.groupSegment,
-                    segment: row.segment,
-                    sub_segment: row.subSegment,
-                    createdby: 'SYSTEM',
-                    createddate: row.prcDate, // Use process date as creation date for list
-                    is_override: !!override
-                };
-            });
+            // 4. Merge overrides (Manual Interventions): Override > Master Account
+            const mergedData = await this.mapWatchlistRows(results);
 
             // 6. Final Filter (Status filtering applies to Overrides primarily)
             let filteredResponse = mergedData;
             if (status) {
                 filteredResponse = mergedData.filter(item => item.assessment_status === status);
+            }
+            if (priority_level) {
+                filteredResponse = filteredResponse.filter(item => item.priority_level === priority_level);
             }
 
             return {
@@ -588,6 +651,9 @@ export class IndividualImpairmentService {
         dateTo?: string;
         limit?: number;
         offset?: number;
+        cursor?: string;
+        paginationMode?: 'offset' | 'cursor';
+        sort?: Array<{ field: string; direction: 'asc' | 'desc' }>;
     }) {
         try {
             const { limit = 25, offset = 0, search, dateFrom, dateTo } = filters;
@@ -628,6 +694,134 @@ export class IndividualImpairmentService {
             const whereClause = conditions.length > 0
                 ? sql`WHERE ${conditions.reduce((acc, condition, index) => index === 0 ? condition : sql`${acc} AND ${condition}`)}`
                 : sql``;
+
+            if (filters.paginationMode === 'cursor' || filters.cursor) {
+                const sort = filters.sort?.[0] ?? { field: 'prc_date', direction: 'desc' };
+                const sortColumnMap = {
+                    pkid: sql`f.pkid`,
+                    prcDate: sql`f.prc_date`,
+                    prc_date: sql`f.prc_date`,
+                    accountNumber: sql`f.account_number`,
+                    account_number: sql`f.account_number`,
+                    cifName: sql`f.cif_name`,
+                    cif_name: sql`f.cif_name`,
+                    outstanding: sql`f.outstanding`,
+                    stage: sql`f.stage`,
+                    dpd: sql`f.dpd`,
+                };
+                const sortResultKey = {
+                    pkid: 'pkid',
+                    prcDate: 'prc_date',
+                    prc_date: 'prc_date',
+                    accountNumber: 'account_number',
+                    account_number: 'account_number',
+                    cifName: 'cif_name',
+                    cif_name: 'cif_name',
+                    outstanding: 'outstanding_balance',
+                    stage: 'stage',
+                    dpd: 'dpd',
+                }[sort.field] ?? 'prc_date';
+                const sortColumn = sortColumnMap[sort.field] ?? sql`f.prc_date`;
+                const cursorPayload = decodeCursor(filters.cursor);
+                const cursorCondition = cursorPayload?.pkid !== undefined && cursorPayload.sortValue !== undefined
+                    ? (sort.direction === 'asc'
+                        ? sql`AND (${sortColumn} > ${cursorPayload.sortValue} OR (${sortColumn} = ${cursorPayload.sortValue} AND f.pkid > ${BigInt(String(cursorPayload.pkid))}))`
+                        : sql`AND (${sortColumn} < ${cursorPayload.sortValue} OR (${sortColumn} = ${cursorPayload.sortValue} AND f.pkid < ${BigInt(String(cursorPayload.pkid))}))`)
+                    : sql``;
+                const orderBy = sort.direction === 'asc'
+                    ? sql`${sortColumn} ASC, f.pkid ASC`
+                    : sql`${sortColumn} DESC, f.pkid DESC`;
+
+                const cursorQuery = sql`
+                    WITH filtered AS (
+                        SELECT
+                            m.pkid,
+                            m.prc_date,
+                            m.account_id,
+                            m.account_number,
+                            m.cif_number,
+                            m.cif_name,
+                            m.group_segment,
+                            m.segment,
+                            m.sub_segment,
+                            m.stage,
+                            m.impaired_flag,
+                            m.outstanding,
+                            m.ecl_final_amt,
+                            m.internal_rating_code,
+                            m.dpd,
+                            ROW_NUMBER() OVER (
+                                PARTITION BY m.account_number
+                                ORDER BY m.prc_date DESC, m.pkid DESC
+                            ) as rn
+                        FROM frs9_master_account m
+                        ${whereClause}
+                    ),
+                    latest_header AS (
+                        SELECT DISTINCT ON (h.account_number)
+                            h.account_number,
+                            h.trigger_remarks,
+                            h.status
+                        FROM frs9_imp_ia_header h
+                        WHERE h.account_number IS NOT NULL
+                        ORDER BY h.account_number, h.createddate DESC NULLS LAST, h.pkid DESC
+                    )
+                    SELECT
+                        f.pkid,
+                        f.prc_date,
+                        f.account_id,
+                        f.account_number,
+                        f.cif_number,
+                        f.cif_name,
+                        f.group_segment,
+                        f.segment,
+                        f.sub_segment,
+                        COALESCE(NULLIF(REGEXP_REPLACE(CAST(f.stage AS TEXT), '[^0-9]', '', 'g'), '')::INTEGER, 1) as stage,
+                        CASE WHEN f.impaired_flag = true THEN 'I' ELSE 'N' END as impaired_flag,
+                        COALESCE(CAST(f.outstanding AS DECIMAL), 0) as outstanding_balance,
+                        COALESCE(CAST(f.ecl_final_amt AS DECIMAL), 0) as provision_amount,
+                        f.internal_rating_code as rating_code,
+                        COALESCE(f.dpd, 0) as dpd,
+                        COALESCE(
+                            CASE lh.status
+                                WHEN 0 THEN 'PENDING'
+                                WHEN 1 THEN 'APPROVED'
+                                WHEN 2 THEN 'REJECTED'
+                                ELSE NULL
+                            END,
+                            'PENDING'
+                        ) as assessment_status,
+                        NULLIF(TRIM(COALESCE(lh.trigger_remarks, '')), '') as remarks
+                    FROM filtered f
+                    LEFT JOIN latest_header lh ON lh.account_number = f.account_number
+                    WHERE f.rn = 1
+                    ${cursorCondition}
+                    ORDER BY ${orderBy}
+                    LIMIT ${limit + 1}
+                `;
+
+                const rows = await legacyDb.execute(cursorQuery);
+                const pageRows = rows.slice(0, limit);
+                const lastRow = pageRows[pageRows.length - 1];
+                const hasNextPage = rows.length > limit;
+                const nextCursor = hasNextPage && lastRow
+                    ? encodeCursor({
+                        field: sort.field,
+                        direction: sort.direction,
+                        sortValue: lastRow[sortResultKey],
+                        pkid: String(lastRow.pkid),
+                    })
+                    : null;
+
+                return {
+                    data: pageRows,
+                    total: undefined,
+                    nextCursor,
+                    previousCursor: filters.cursor ?? null,
+                    hasNextPage,
+                    hasPreviousPage: Boolean(filters.cursor),
+                };
+            }
 
             const countQuery = sql`
                 WITH filtered AS (
@@ -919,8 +1113,8 @@ export class IndividualImpairmentService {
     // OVERRIDE TRIGGER (1.4.3) -> frs9_imp_ia_header
     // =========================================================================
 
-    async getOverrides(tenantId: string, filters: { status?: string; limit?: number; offset?: number }) {
-        const { status, limit = 50, offset = 0 } = filters;
+    async getOverrides(tenantId: string, filters: { status?: string; accountId?: number; accountNumber?: string; limit?: number; offset?: number }) {
+        const { status, accountId, accountNumber, limit = 50, offset = 0 } = filters;
         const conditions = [];
 
         // Map status string to legacy int if present
@@ -929,9 +1123,17 @@ export class IndividualImpairmentService {
             conditions.push(eq(frs9ImpIaHeader.status, statusInt));
         }
 
+        if (accountId && Number.isFinite(accountId)) {
+            conditions.push(eq(frs9ImpIaHeader.accountId, accountId));
+        }
+
+        if (accountNumber && String(accountNumber).trim()) {
+            conditions.push(eq(frs9ImpIaHeader.accountNumber, String(accountNumber).trim()));
+        }
+
         const results = await legacyDb.select()
             .from(frs9ImpIaHeader)
-            .where(and(...conditions))
+            .where(conditions.length > 0 ? and(...conditions) : undefined)
             .orderBy(desc(frs9ImpIaHeader.createddate))
             .limit(limit)
             .offset(offset);

@@ -4,9 +4,16 @@ import type { AppContext } from '../app'
 import { authMiddleware, tenantMiddleware } from '../middleware'
 import { db, getDatabase } from '../config/database'
 import { auditLogs, userActivityLogs, dataAccessLogs } from '../db/schema'
-import { eq, and, desc, gte, lte, like, sql, or } from 'drizzle-orm'
+import { eq, and, asc, desc, gte, lte, like, sql, or } from 'drizzle-orm'
 import { buildErrorResponse } from '../lib/http/error-response'
 import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
+import {
+    ListQueryValidationError,
+    buildListResponse,
+    buildOffsetPagination,
+    parseListQuery,
+    type ListQueryConfig,
+} from '../lib/http/list-query'
 
 export const auditRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
@@ -30,6 +37,36 @@ const buildAuditSearchCondition = (search: string) => {
         sql`coalesce(${auditLogs.metadata}->>'request_id', '') ilike ${pattern}`
     )!
 }
+
+const AUDIT_LOG_LIST_QUERY_CONFIG: ListQueryConfig = {
+    defaultLimit: 50,
+    maxLimit: 500,
+    defaultSort: [{ field: 'createdAt', direction: 'desc' }],
+    filterDefinitions: {
+        createdAt: { field: 'createdAt', label: 'Date', type: 'date', operators: ['from', 'to'] },
+        eventType: { field: 'eventType', label: 'Event Type', type: 'enum' },
+        action: { field: 'action', label: 'Action', type: 'text', operators: ['contains', 'equals'] },
+        userId: { field: 'userId', label: 'User', type: 'text', operators: ['equals'] },
+        entityType: { field: 'entityType', label: 'Entity Type', type: 'text', operators: ['contains', 'equals'] },
+        entityId: { field: 'entityId', label: 'Entity ID', type: 'text', operators: ['equals'] },
+        requestId: { field: 'requestId', label: 'Request ID', type: 'text', operators: ['equals'] },
+    },
+    sortableColumns: ['createdAt', 'eventType', 'action', 'entityType', 'userId'],
+    filterAliases: {
+        startDate: 'createdAt.from',
+        endDate: 'createdAt.to',
+    },
+}
+
+const auditListQueryBadRequest = (c: any, error: ListQueryValidationError) =>
+    c.json({
+        ...buildErrorResponse(c, {
+            error: error.message,
+            message: error.message,
+            code: 'INVALID_LIST_QUERY',
+        }),
+        details: error.details,
+    }, 400)
 
 // Apply auth middleware
 auditRoutes.use('*', authMiddleware)
@@ -137,7 +174,13 @@ auditRoutes.openapi(
         request: {
             query: z.object({
                 page: z.string().optional().default('1').openapi({ example: '1' }),
+                offset: z.string().optional(),
                 limit: z.string().optional().default('50').openapi({ example: '50' }),
+                filters: z.string().optional(),
+                sort: z.string().optional(),
+                sortField: z.string().optional(),
+                sortOrder: z.enum(['asc', 'desc']).optional(),
+                paginationMode: z.enum(['offset']).optional(),
                 eventType: z.string().optional(),
                 action: z.string().optional(),
                 userId: z.string().optional(),
@@ -162,60 +205,27 @@ auditRoutes.openapi(
         },
     }),
     async (c) => {
-        const tenantId = c.get('tenantId')!
-        const query = c.req.valid('query')
+        try {
+            const tenantId = c.get('tenantId')!
+            const query = parseListQuery(c, AUDIT_LOG_LIST_QUERY_CONFIG)
+            const filters = query.filters
 
-        const page = parseInt(query.page)
-        const limit = parseInt(query.limit)
-        const offset = (page - 1) * limit
+            const conditions = [eq(auditLogs.tenantId, tenantId)]
 
-        // Build where conditions
-        const conditions = [eq(auditLogs.tenantId, tenantId)]
+            if (filters.eventType) { conditions.push(eq(auditLogs.eventType, String(filters.eventType))) }
+            if (filters.action) { conditions.push(eq(auditLogs.action, String(filters.action))) }
+            if (filters.userId) { conditions.push(eq(auditLogs.userId, String(filters.userId))) }
+            if (filters.entityType) { conditions.push(eq(auditLogs.entityType, String(filters.entityType))) }
+            if (filters.entityId) { conditions.push(eq(auditLogs.entityId, String(filters.entityId))) }
+            if (filters.requestId) { conditions.push(buildRequestIdCondition(String(filters.requestId))) }
 
-        if (query.eventType) { conditions.push(eq(auditLogs.eventType, query.eventType)) }
-        if (query.action) { conditions.push(eq(auditLogs.action, query.action)) }
-        if (query.userId) { conditions.push(eq(auditLogs.userId, query.userId)) }
-        if (query.entityType) { conditions.push(eq(auditLogs.entityType, query.entityType)) }
-        if (query.entityId) { conditions.push(eq(auditLogs.entityId, query.entityId)) }
-        if (query.requestId) { conditions.push(buildRequestIdCondition(query.requestId)) }
-        // auditLogs definition in schema (from file view) does not seem to have riskLevel?
-        // Checking previous view_file of audit.schema.ts... 
-        // It shows eventType, action, description, entityType...
-        // Wait, line 66 of original file had: if (query.riskLevel) conditions.push(eq(auditLogs.riskLevel, query.riskLevel))
-        // But the schema definition in step 176 DOES NOT SHOW riskLevel column in auditLogs table definition!
-        // It shows: eventType, action, description, entityType, entityId, entityName, oldValues, newValues, changedFields, metadata, ipAddress, userAgent, createdAt.
-        // It seems the original code might have been using a property that didn't exist or I missed it.
-        // Re-reading logic... Ah, step 176 lines 24-59. Indeed, riskLevel is missing.
-        // I will comment it out or omit it to be safe and type-correct based on schema file I saw.
-        // Actually, if it was compiling before, maybe I missed it or it's extended elsewhere. 
-        // But based on the file content I saw, I must assume it's NOT there.
-        // I will ignore riskLevel for now to avoid errors.
+            if (filters['createdAt.from']) {
+                conditions.push(gte(auditLogs.createdAt, new Date(String(filters['createdAt.from']))))
+            }
 
-        if (query.startDate) { conditions.push(gte(auditLogs.createdAt, new Date(query.startDate))) } // Definition says createdAt, logic says timestamp.
-        // Wait, STEP 176 Line 58: createdAt: timestamp('created_at'...).
-        // BUT STEP 172 (original file) Line 71 uses `auditLogs.timestamp`. 
-        // This suggests the schema file I viewed might be out of sync with what the code expects OR the code was broken.
-        // Let's look closer at Step 176.
-        // Line 58: createdAt
-        // No "timestamp" column in auditLogs table definition.
-        // However, Step 172 Original Code uses `auditLogs.timestamp`.
-        // This means the code I read in 172 might be using a DIFFERENT version of schema or I am misinterpreting.
-        // Wait, looking at Step 176 again.
-        // auditLogs table: created_at.
-        // userActivityLogs table: created_at.
-        // dataAccessLogs table: timestamp.
-        // calculationAuditLogs table: timestamp.
-        // So auditLogs properly uses createdAt.
-        // If the original code used `auditLogs.timestamp`, it would have failed TS check if strict. Maybe strictness wasn't on or I missed something.
-        // I will use `createdAt` for auditLogs as per the schema definition I saw.
-
-        if (query.startDate) {
-            conditions.push(gte(auditLogs.createdAt, new Date(query.startDate)))
-        }
-
-        if (query.endDate) {
-            conditions.push(lte(auditLogs.createdAt, new Date(query.endDate)))
-        }
+            if (filters['createdAt.to']) {
+                conditions.push(lte(auditLogs.createdAt, new Date(String(filters['createdAt.to']))))
+            }
 
         if (query.search) {
             conditions.push(buildAuditSearchCondition(query.search))
@@ -231,17 +241,26 @@ auditRoutes.openapi(
             .from(auditLogs)
             .where(whereClause)
 
+        const sortMap = {
+            createdAt: auditLogs.createdAt,
+            eventType: auditLogs.eventType,
+            action: auditLogs.action,
+            entityType: auditLogs.entityType,
+            userId: auditLogs.userId,
+        }
+        const sort = query.sort[0] ?? { field: 'createdAt', direction: 'desc' as const }
+        const sortColumn = sortMap[sort.field as keyof typeof sortMap] ?? auditLogs.createdAt
+
         // Get logs
         const logs = await currentDb
             .select()
             .from(auditLogs)
             .where(whereClause)
-            .orderBy(desc(auditLogs.createdAt)) // Changed from timestamp to createdAt
-            .limit(limit)
-            .offset(offset)
+            .orderBy(sort.direction === 'asc' ? asc(sortColumn) : desc(sortColumn))
+            .limit(query.limit)
+            .offset(query.offset ?? 0)
 
-        return c.json({
-            data: logs.map(l => ({
+        const data = logs.map(l => ({
                 ...l,
                 createdAt: l.createdAt.toISOString(),
                 // Fix potential nulls/types
@@ -257,14 +276,18 @@ auditRoutes.openapi(
                 userAgent: l.userAgent ?? null,
                 userId: l.userId ?? null,
                 tenantId: l.tenantId ?? null,
-            } as any)),
-            pagination: {
-                page,
-                limit,
-                total: Number(count),
-                totalPages: Math.ceil(Number(count) / limit)
-            }
-        } as any)
+            } as any))
+
+        return c.json(buildListResponse(
+            data,
+            query,
+            buildOffsetPagination(query, Number(count)),
+            { filterDefinitions: AUDIT_LOG_LIST_QUERY_CONFIG.filterDefinitions },
+        ) as any)
+        } catch (error: any) {
+            if (error instanceof ListQueryValidationError) return auditListQueryBadRequest(c, error)
+            throw error
+        }
     }
 )
 

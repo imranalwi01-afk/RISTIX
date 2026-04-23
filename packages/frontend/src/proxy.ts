@@ -302,6 +302,14 @@ function getTokenFromRequest(request: NextRequest): string | null {
   return null;
 }
 
+function hasRefreshTokenFromRequest(request: NextRequest): boolean {
+  return Boolean(
+    request.cookies.get('refresh_token')?.value ||
+    request.cookies.get('refresh-token')?.value ||
+    request.headers.get('x-refresh-token')
+  );
+}
+
 // ✅ SURGICAL ENHANCEMENT: Banking mode redirect helper
 function getBankingModeAwareRedirect(user: any, pathname: string, baseUrl: string, currentUrlString: string): string | null {
   // Detect banking mode from URL
@@ -438,6 +446,14 @@ export function proxy(request: NextRequest) {
       return response;
     }
 
+    // Allow full-page refresh to boot the client and restore the access token from refresh token.
+    // Middleware cannot call localStorage, so redirecting here creates a false logout race.
+    if (hasRefreshTokenFromRequest(request) && request.headers.get('accept')?.includes('text/html')) {
+      const response = NextResponse.next();
+      response.headers.set('x-session-restore-pending', 'true');
+      return response;
+    }
+
     // ✅ NORMAL FLOW: Redirect to login for regular unauthorized access
     if (request.headers.get('accept')?.includes('text/html') && !isGoingToLogin) {
       const loginUrl = new URL('/login', request.url);
@@ -481,6 +497,14 @@ export function proxy(request: NextRequest) {
       return response;
     }
 
+    // If the access token is expired/invalid but a refresh token exists, let the client restore.
+    if (hasRefreshTokenFromRequest(request) && request.headers.get('accept')?.includes('text/html') && !isGoingToLogin) {
+      const response = NextResponse.next();
+      response.headers.set('x-session-restore-pending', 'true');
+      response.headers.set('x-invalid-access-token', 'true');
+      return response;
+    }
+
     // ✅ NORMAL FLOW: Redirect to login for invalid token access
     if (request.headers.get('accept')?.includes('text/html') && !isGoingToLogin) {
       const loginUrl = new URL('/login', request.url);
@@ -521,13 +545,17 @@ export function proxy(request: NextRequest) {
 
       const acceptsHtml = request.headers.get('accept')?.includes('text/html');
       if (acceptsHtml) {
-        const loginUrl = new URL('/login', request.url);
-        loginUrl.searchParams.set('error', 'forbidden');
-        loginUrl.searchParams.set('from', pathname);
-        if (accessResult.requiredPermission) {
-          loginUrl.searchParams.set('requiredPermission', accessResult.requiredPermission);
-        }
-        return NextResponse.redirect(loginUrl);
+        return new NextResponse(
+          `<!doctype html><html><head><title>403 Forbidden</title></head><body><h1>403 Forbidden</h1><p>You do not have permission to access ${pathname}.</p></body></html>`,
+          {
+            status: 403,
+            headers: {
+              'content-type': 'text/html; charset=utf-8',
+              ...(accessResult.matchedRoute ? { 'x-rbac-matched-route': accessResult.matchedRoute } : {}),
+              ...(accessResult.requiredPermission ? { 'x-rbac-required-permission': accessResult.requiredPermission } : {}),
+            },
+          },
+        );
       }
 
       const includeDebug = process.env.NODE_ENV === 'development' || request.headers.get('x-rbac-debug') === 'true';

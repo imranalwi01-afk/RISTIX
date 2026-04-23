@@ -77,7 +77,6 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 // Local components and services
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
-import { api } from '@/services/api';
 import { RolePermissionsEditor } from '@/components/rbac/RolePermissionsEditor';
 import { Can } from '@/components/rbac/Can';
 import { usePermission } from '@/hooks/usePermission';
@@ -91,9 +90,15 @@ import {
   buildPermissionSelectionGroups,
   buildPermissionSelectionSections,
   getPermissionCanonicalKey,
-  normalizePermissionFromApi,
-  normalizeRoleFromApi,
 } from '@/components/maintenance/access-management.utils';
+import {
+  useAccessManagementDataQuery,
+  useCreateAccessRoleMutation,
+  useDeleteAccessRoleMutation,
+  useToggleAccessRoleMutation,
+  useUpdateAccessRoleMutation,
+  useUpdateAccessRolePermissionsMutation,
+} from '@/features/access-management/hooks/useAccessManagementQueries';
 import {
   canUserApprove,
   getUserMaxHierarchyLevel,
@@ -197,30 +202,6 @@ interface TabPanelProps {
   value: number;
 }
 
-const extractCollection = <T,>(payload: unknown, keys: string[] = []): T[] => {
-  if (Array.isArray(payload)) return payload as T[];
-  if (!payload || typeof payload !== 'object') return [];
-
-  const record = payload as Record<string, unknown>;
-
-  for (const key of keys) {
-    if (Array.isArray(record[key])) return record[key] as T[];
-  }
-
-  if (Array.isArray(record.data)) return record.data as T[];
-
-  const nestedData = record.data;
-  if (nestedData && typeof nestedData === 'object') {
-    const nestedRecord = nestedData as Record<string, unknown>;
-    for (const key of keys) {
-      if (Array.isArray(nestedRecord[key])) return nestedRecord[key] as T[];
-    }
-    if (Array.isArray(nestedRecord.data)) return nestedRecord.data as T[];
-  }
-
-  return [];
-};
-
 const TabPanel = ({ children, value, index, ...other }: TabPanelProps) => (
   <div
     role="tabpanel"
@@ -265,11 +246,8 @@ export default function AccessManagementPage() {
 
   const [currentTab, setCurrentTab] = useState(0);
   const [permissionsTab, setPermissionsTab] = useState(0);
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [permissions, setPermissions] = useState<Permission[]>([]);
-  const [permissionCategories, setPermissionCategories] = useState<PermissionCategory[]>([]);
   const [permissionGroupingMode, setPermissionGroupingMode] = useState<PermissionGroupingMode>('resource');
-  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [filters, setFilters] = useState<RoleFilters>({});
@@ -320,9 +298,23 @@ export default function AccessManagementPage() {
     isActive: true,
   });
 
-  // ✅ NO MOCK DATA - All data comes from real tenant database via API
-
-  // ✅ NO MOCK PERMISSIONS - All permissions come from real tenant database via API
+  const accessManagementQuery = useAccessManagementDataQuery(filters);
+  const createRoleMutation = useCreateAccessRoleMutation();
+  const updateRoleMutation = useUpdateAccessRoleMutation();
+  const toggleRoleMutation = useToggleAccessRoleMutation();
+  const deleteRoleMutation = useDeleteAccessRoleMutation();
+  const updateRolePermissionsMutation = useUpdateAccessRolePermissionsMutation();
+  const roles = (accessManagementQuery.data?.roles ?? []) as Role[];
+  const permissions = (accessManagementQuery.data?.permissions ?? []) as Permission[];
+  const loading =
+    busy ||
+    accessManagementQuery.isLoading ||
+    accessManagementQuery.isFetching ||
+    createRoleMutation.isPending ||
+    updateRoleMutation.isPending ||
+    toggleRoleMutation.isPending ||
+    deleteRoleMutation.isPending ||
+    updateRolePermissionsMutation.isPending;
 
   // Group permissions by category
   const groupPermissionsByCategory = (permissions: Permission[]): PermissionCategory[] => {
@@ -341,6 +333,10 @@ export default function AccessManagementPage() {
 
     return Object.values(categories);
   };
+
+  const permissionCategories = useMemo<PermissionCategory[]>(() => {
+    return groupPermissionsByCategory(permissions);
+  }, [permissions]);
 
   const permissionMatrixCategories = useMemo<PermissionMatrixCategory[]>(() => {
     const categoryMap = new Map<string, PermissionMatrixCategory>();
@@ -397,71 +393,11 @@ export default function AccessManagementPage() {
     return buildPermissionSelectionSections(groupPermissions);
   }, []);
 
-  // Fetch data using REAL API - NO MOCK DATA
-  const fetchRoles = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      console.log('🔒 Fetching roles from real tenant database...');
-
-      // Build query parameters from filters
-      const params: any = {};
-      params.includeInactive = true;
-      if (filters.searchTerm) params.search = filters.searchTerm;
-      if (filters.type && filters.type !== 'all') params.type = filters.type;
-      if (filters.level && filters.level !== 'all') params.level = filters.level;
-
-      // Fetch roles and permissions from real API
-      const [rolesResponse, permissionsResponse] = await Promise.all([
-        api.roles.getAll(params),
-        api.roles.getPermissions()
-      ]);
-
-      console.log('✅ Real API responses received:', {
-        rolesInfo: rolesResponse,
-        permissionsInfo: permissionsResponse
-      });
-
-      // API service already returns response.data; support both direct arrays and wrapped payloads.
-      const rolesData = extractCollection<Record<string, unknown>>(rolesResponse, ['roles']);
-      const permissionsDataRaw = extractCollection<Record<string, unknown>>(permissionsResponse, ['permissions']);
-
-      // Normalize permissions to match frontend interface
-      const permissionsData = permissionsDataRaw.map(normalizePermissionFromApi);
-
-      console.log('📊 Processed data:', {
-        rolesCount: rolesData.length,
-        permissionsCount: permissionsData.length,
-        permissionsRaw: permissionsResponse.data,
-        permissionsDataSample: permissionsData.slice(0, 2)
-      });
-
-      // Transform roles using the normalize function
-      const transformedRoles = rolesData.map(normalizeRoleFromApi);
-
-      // Set data from real API responses
-      setRoles(transformedRoles);
-      setPermissions(permissionsData);
-      setPermissionCategories(groupPermissionsByCategory(permissionsData));
-
-    } catch (error) {
-      console.error('❌ Error fetching roles from real database:', error);
-      setError('Failed to fetch roles from database. Please check your connection and try again.');
-
-      // NO FALLBACK TO MOCK DATA - Use empty arrays instead
-      setRoles([]);
-      setPermissions([]);
-      setPermissionCategories([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [filters]);
-
   useEffect(() => {
-    fetchRoles();
-    fetchCurrentUserRoles();
-  }, [fetchRoles]);
+    if (accessManagementQuery.error) {
+      setError('Failed to fetch roles from database. Please check your connection and try again.');
+    }
+  }, [accessManagementQuery.error]);
 
   useEffect(() => {
     const requestedTab = searchParams.get('tab');
@@ -492,6 +428,10 @@ export default function AccessManagementPage() {
     }
   }, []);
 
+  useEffect(() => {
+    fetchCurrentUserRoles();
+  }, [fetchCurrentUserRoles]);
+
   // Handlers
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     void event;
@@ -519,7 +459,7 @@ export default function AccessManagementPage() {
   };
 
   const handleRefresh = () => {
-    fetchRoles();
+    accessManagementQuery.refetch();
   };
 
   const handleCreateRole = () => {
@@ -599,17 +539,17 @@ export default function AccessManagementPage() {
 
       if (roleDialog.mode === 'create') {
         console.log('🆕 Creating new role with real API call');
-        const response = await api.roles.create(roleData);
+        const response = await createRoleMutation.mutateAsync(roleData);
         setApprovalNoticeFromResponse(response, 'Role creation submitted for approval');
       } else if (roleDialog.role) {
         console.log('✏️ Updating existing role with real API call');
-        const response = await api.roles.update(roleDialog.role.id, roleData);
+        const response = await updateRoleMutation.mutateAsync({ roleId: roleDialog.role.id, input: roleData });
         setApprovalNoticeFromResponse(response, 'Role update submitted for approval');
       }
 
       // Close dialog and refresh data from database
       setRoleDialog({ open: false, mode: 'create', role: null });
-      await fetchRoles(); // Refresh from real database
+      await accessManagementQuery.refetch();
       console.log('✅ Role saved successfully to tenant database');
     } catch (error) {
       console.error('❌ Error saving role to database:', error);
@@ -623,11 +563,11 @@ export default function AccessManagementPage() {
       console.log(`🔄 ${isActive ? 'Disabling' : 'Enabling'} role in tenant database:`, roleId);
 
       // Use dedicated toggle API so disable does not go through delete/update semantics.
-      const response = await api.roles.toggle(roleId);
+      const response = await toggleRoleMutation.mutateAsync(roleId);
       setApprovalNoticeFromResponse(response, `Role ${isActive ? 'disable' : 'enable'} submitted for approval`);
 
       console.log(`✅ Role ${isActive ? 'disabled' : 'enabled'} successfully`);
-      await fetchRoles(); // Refresh from real database
+      await accessManagementQuery.refetch();
     } catch (error) {
       console.error('❌ Error toggling role status in database:', error);
       // TODO: Add proper error handling/notification to user
@@ -640,13 +580,13 @@ export default function AccessManagementPage() {
       console.log('🗑️ Deleting role from tenant database:', roleId);
 
       // Call real API to delete role
-      const response = await api.roles.delete(roleId);
+      const response = await deleteRoleMutation.mutateAsync(roleId);
       setApprovalNoticeFromResponse(response, 'Role deletion submitted for approval');
 
       console.log('✅ Role deleted successfully');
 
       // Refresh roles list
-      fetchRoles();
+      accessManagementQuery.refetch();
     } catch (error) {
       console.error('❌ Error deleting role from database:', error);
       setError('Failed to delete role. Please try again.');
@@ -660,13 +600,13 @@ export default function AccessManagementPage() {
       console.log('🔑 Updating all permissions for role:', roleId);
 
       // Call real API to update permissions
-      const response = await api.roles.updatePermissions(roleId, permissionIds);
+      const response = await updateRolePermissionsMutation.mutateAsync({ roleId, permissions: permissionIds });
       setApprovalNoticeFromResponse(response, 'Permission update submitted for approval');
 
       console.log('✅ Role permissions updated successfully');
 
       // Refresh roles list to show updated state
-      await fetchRoles();
+      await accessManagementQuery.refetch();
     } catch (error) {
       console.error('❌ Error updating role permissions:', error);
       setError('Failed to update role permissions. Please try again.');
@@ -679,13 +619,13 @@ export default function AccessManagementPage() {
       console.log('🔑 Updating permissions for role:', roleId, permissionIds);
 
       // Call real API to update permissions
-      const response = await api.roles.updatePermissions(roleId, permissionIds);
+      const response = await updateRolePermissionsMutation.mutateAsync({ roleId, permissions: permissionIds });
       setApprovalNoticeFromResponse(response, 'Permission update submitted for approval');
 
       console.log('✅ Role permissions updated successfully');
 
       // Refresh roles list to show updated state
-      await fetchRoles();
+      await accessManagementQuery.refetch();
     } catch (error) {
       console.error('❌ Error updating role permissions:', error);
       setError('Failed to update role permissions. Please try again.');
@@ -708,23 +648,13 @@ export default function AccessManagementPage() {
         newPermissions = currentPermissions.filter(id => id !== permissionId);
       }
 
-      // Update the role locally for immediate UI feedback
-      setRoles(prevRoles =>
-        prevRoles.map(r =>
-          r.id === roleId
-            ? { ...r, permissions: permissions.filter(p => newPermissions.includes(p.id)) }
-            : r
-        )
-      );
-
       // Call API to persist changes
-      const response = await api.roles.updatePermissions(roleId, newPermissions);
+      const response = await updateRolePermissionsMutation.mutateAsync({ roleId, permissions: newPermissions });
       setApprovalNoticeFromResponse(response, 'Permission update submitted for approval');
     } catch (error) {
       console.error('❌ Error toggling permission:', error);
       setError('Failed to update permission. Please refresh and try again.');
-      // Refresh to revert local changes
-      await fetchRoles();
+      await accessManagementQuery.refetch();
     }
   };
 
@@ -743,37 +673,29 @@ export default function AccessManagementPage() {
 
       const updatedPermissionIds = Array.from(nextPermissions);
 
-      setRoles(prevRoles =>
-        prevRoles.map(r =>
-          r.id === roleId
-            ? { ...r, permissions: permissions.filter(p => updatedPermissionIds.includes(p.id)) }
-            : r
-        )
-      );
-
-      const response = await api.roles.updatePermissions(roleId, updatedPermissionIds);
+      const response = await updateRolePermissionsMutation.mutateAsync({ roleId, permissions: updatedPermissionIds });
       setApprovalNoticeFromResponse(response, 'Permission update submitted for approval');
     } catch (error) {
       console.error('❌ Error toggling permission group:', error);
       setError('Failed to update permission group. Please refresh and try again.');
-      await fetchRoles();
+      await accessManagementQuery.refetch();
     }
   };
 
   const handleBulkPermissionUpdate = async () => {
     if (!canManageRoles) return;
     try {
-      setLoading(true);
+      setBusy(true);
       console.log('🔑 Bulk updating permissions for all roles...');
 
       // This would need to be implemented in the backend
       // For now, just refresh
-      await fetchRoles();
+      await accessManagementQuery.refetch();
     } catch (error) {
       console.error('❌ Error in bulk permission update:', error);
       setError('Failed to save bulk permission changes. Please try again.');
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   };
 
@@ -782,10 +704,10 @@ export default function AccessManagementPage() {
     if (!bulkAssignmentRole || selectedBulkPermissions.length === 0) return;
 
     try {
-      setLoading(true);
+      setBusy(true);
       console.log('🔑 Assigning permissions to role:', bulkAssignmentRole, selectedBulkPermissions);
 
-      const response = await api.roles.updatePermissions(bulkAssignmentRole, selectedBulkPermissions);
+      const response = await updateRolePermissionsMutation.mutateAsync({ roleId: bulkAssignmentRole, permissions: selectedBulkPermissions });
       setApprovalNoticeFromResponse(response, 'Bulk permission update submitted for approval');
 
       // Reset form
@@ -794,12 +716,12 @@ export default function AccessManagementPage() {
       setSelectAllPermissions(false);
 
       // Refresh roles
-      await fetchRoles();
+      await accessManagementQuery.refetch();
     } catch (error) {
       console.error('❌ Error in bulk assignment:', error);
       setError('Failed to assign permissions. Please try again.');
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   };
 
@@ -808,22 +730,22 @@ export default function AccessManagementPage() {
     if (!bulkAssignmentRole) return;
 
     try {
-      setLoading(true);
+      setBusy(true);
       const categoryPermissions = permissions
         .filter(p => p.category.toLowerCase() === category)
         .map(p => p.id);
 
       console.log(`🔑 Quick assigning ${category} permissions to role:`, bulkAssignmentRole);
 
-      const response = await api.roles.updatePermissions(bulkAssignmentRole, categoryPermissions);
+      const response = await updateRolePermissionsMutation.mutateAsync({ roleId: bulkAssignmentRole, permissions: categoryPermissions });
       setApprovalNoticeFromResponse(response, 'Permission assignment submitted for approval');
 
-      await fetchRoles();
+      await accessManagementQuery.refetch();
     } catch (error) {
       console.error('❌ Error in quick assign:', error);
       setError('Failed to assign permissions. Please try again.');
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   };
 
@@ -832,18 +754,18 @@ export default function AccessManagementPage() {
     if (!bulkAssignmentRole) return;
 
     try {
-      setLoading(true);
+      setBusy(true);
       console.log('🔑 Clearing all permissions from role:', bulkAssignmentRole);
 
-      const response = await api.roles.updatePermissions(bulkAssignmentRole, []);
+      const response = await updateRolePermissionsMutation.mutateAsync({ roleId: bulkAssignmentRole, permissions: [] });
       setApprovalNoticeFromResponse(response, 'Permission clearing submitted for approval');
 
-      await fetchRoles();
+      await accessManagementQuery.refetch();
     } catch (error) {
       console.error('❌ Error clearing permissions:', error);
       setError('Failed to clear permissions. Please try again.');
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   };
 
@@ -1472,7 +1394,7 @@ export default function AccessManagementPage() {
                   <Button
                     variant="outlined"
                     startIcon={<RefreshIcon />}
-                    onClick={fetchRoles}
+                    onClick={() => accessManagementQuery.refetch()}
                     size="small"
                   >
                     Refresh
@@ -2177,7 +2099,7 @@ export default function AccessManagementPage() {
 
       {/* Assignments Tab */}
       <TabPanel value={currentTab} index={4}>
-        <UserRoleAssignment onAssignmentChange={fetchRoles} />
+        <UserRoleAssignment onAssignmentChange={() => accessManagementQuery.refetch()} />
       </TabPanel>
 
       {/* Role Dialog */}
@@ -2548,11 +2470,13 @@ export default function AccessManagementPage() {
                   console.log('🔒 Updating role permissions in tenant database:', permissionDialog.role.id);
                   console.log('🔧 Selected permissions:', permissionDialog.selectedPermissions);
 
-                  // Use real API call to update role permissions
-                  await api.roles.updatePermissions(permissionDialog.role.id, permissionDialog.selectedPermissions);
+                  await updateRolePermissionsMutation.mutateAsync({
+                    roleId: permissionDialog.role.id,
+                    permissions: permissionDialog.selectedPermissions,
+                  });
 
                   console.log('✅ Role permissions updated successfully');
-                  await fetchRoles(); // Refresh from real database
+                  await accessManagementQuery.refetch();
                 }
                 setPermissionDialog({ open: false, role: null, selectedPermissions: [] });
               } catch (error) {

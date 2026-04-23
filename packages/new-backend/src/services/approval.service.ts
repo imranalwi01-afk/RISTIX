@@ -1783,6 +1783,30 @@ export const getApprovalHistory = (
         }
     })
 
+export const getApprovalHistoryList = (
+    input: {
+        tenantId: string
+        entityType?: string
+        entityId?: string
+        status?: string
+        impactLevel?: string
+        bankingType?: string
+        currentLevel?: number
+        currentLevelMin?: number
+        currentLevelMax?: number
+        riskLevel?: string
+        requestedBy?: string
+        operation?: string
+        search?: string
+        createdAtFrom?: Date
+        createdAtTo?: Date
+        limit: number
+        offset: number
+        sort?: { field: string; direction: 'asc' | 'desc' }
+    }
+): Effect.Effect<{ data: ApprovalRequest[]; total: number }, DatabaseError> =>
+    dbOperation('query', () => ApprovalRepository.findRequestsList(input))
+
 // =============================================================================
 // HELPER FUNCTIONS
 // =============================================================================

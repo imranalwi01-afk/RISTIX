@@ -28,6 +28,10 @@ import {
 } from '@mui/icons-material';
 import { api } from '../../../../services/api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
+import { exportToCSV, exportToPDF, exportToXLSX } from '@/utils/exportUtils';
+import { useAuth } from '@/providers/AuthProvider';
+import { useEnterpriseTableQuery } from '@/hooks/useEnterpriseTableQuery';
+import { useSavedTableView } from '@/hooks/useSavedTableView';
 
 // New High-Fidelity Components
 import { SegmentationHeader } from '../../../../components/banking/collective/segmentation/SegmentationHeader';
@@ -77,7 +81,19 @@ const EMPTY_FILTERS = {
   operator: ''
 };
 
+const SEGMENTATION_EXPORT_COLUMNS = [
+  { field: 'group_segment', headerName: 'Group Segment' },
+  { field: 'segment', headerName: 'Segment' },
+  { field: 'sub_segment', headerName: 'Sub Segment' },
+  { field: 'segment_type', headerName: 'Type' },
+  { field: 'seq', headerName: 'Sequence' },
+  { field: 'active_flag', headerName: 'Active' },
+  { field: 'status', headerName: 'Status' },
+  { field: 'updated_date', headerName: 'Updated Date' },
+] as const;
+
 export default function SegmentationClient() {
+  const { user } = useAuth();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // ============================================================================
@@ -88,14 +104,41 @@ export default function SegmentationClient() {
   const [headers, setHeaders] = useState<SegmentationHeaderData[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   // Search & Filter
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const {
+    queryState,
+    setPaginationModel,
+    applySavedView,
+    toSavedViewState,
+    resetView,
+  } = useEnterpriseTableQuery({
+    pageKey: 'collective:segmentation',
+    paginationMode: 'offset',
+    initialPageSize: 10,
+    syncUrl: true,
+  });
+  const savedView = useSavedTableView({
+    userId: user?.id,
+    scope: 'collective:segmentation',
+    enabled: Boolean(user?.id),
+    onApplyView: (view) => {
+      applySavedView(view);
+      setSearchTerm(typeof view.state.search === 'string' ? view.state.search : '');
+      const savedFilters = (view.state.filters ?? {}) as Record<string, unknown>;
+      setFilters({
+        segmentType: typeof savedFilters.segmentType === 'string' ? savedFilters.segmentType : '',
+        status: typeof savedFilters.status === 'string' ? savedFilters.status : '',
+        tableName: typeof savedFilters.tableName === 'string' ? savedFilters.tableName : '',
+        columnName: typeof savedFilters.columnName === 'string' ? savedFilters.columnName : '',
+        operator: typeof savedFilters.operator === 'string' ? savedFilters.operator : '',
+      });
+    },
+  });
 
   // Detail View
   const [exportAnchorEl, setExportAnchorEl] = useState<null | HTMLElement>(null);
@@ -137,8 +180,8 @@ export default function SegmentationClient() {
     try {
       const params = {
         search: searchTerm || undefined,
-        limit: rowsPerPage,
-        page: page, // FIXED: Backend expects 'page' (0-indexed), not offset
+        limit: queryState.paginationModel.pageSize,
+        page: queryState.paginationModel.page,
         ...filters
       };
       const response = await api.banking.segmentation.getHeaders(params);
@@ -156,7 +199,7 @@ export default function SegmentationClient() {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, page, rowsPerPage, filters]);
+  }, [filters, queryState.paginationModel.page, queryState.paginationModel.pageSize, searchTerm]);
 
   const loadPendingApprovals = useCallback(async () => {
     try {
@@ -215,18 +258,23 @@ export default function SegmentationClient() {
   // ============================================================================
 
   const handleSearch = () => {
-    setPage(0);
+    setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
     loadHeaders();
   };
 
   const handleApplyFilters = (nextFilters: typeof EMPTY_FILTERS) => {
     setFilters(nextFilters);
-    setPage(0);
+    setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
   };
 
-  const handleClearFilters = () => {
+  const handleClearFilters = async () => {
     setFilters(EMPTY_FILTERS);
-    setPage(0);
+    setSearchTerm('');
+    resetView();
+    setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
+    if (savedView.hasSavedView) {
+      await savedView.clearSavedView();
+    }
   };
 
   const handleAddSegmentation = () => {
@@ -321,10 +369,70 @@ export default function SegmentationClient() {
     }
   };
 
-  const handleExport = (format: string) => {
-    setSnackbar({ open: true, message: `Exporting data as ${format.toUpperCase()}...`, type: 'info' });
-    // Actual export logic would go here
-  };
+  const fetchAllSegmentationRows = useCallback(async () => {
+    const pageSize = 200;
+    let page = 0;
+    let total = 0;
+    const rows: SegmentationHeaderData[] = [];
+
+    do {
+      const response = await api.banking.segmentation.getHeaders({
+        search: searchTerm || undefined,
+        limit: pageSize,
+        page,
+        ...filters,
+      });
+
+      const chunk = Array.isArray(response?.data) ? response.data : [];
+      rows.push(...chunk);
+      total = Number(response?.total || response?.pagination?.total || chunk.length);
+      if (chunk.length === 0) break;
+      page += 1;
+    } while (rows.length < total);
+
+    return rows;
+  }, [filters, searchTerm]);
+
+  const handleSaveView = useCallback(async () => {
+    if (!user?.id) return;
+    await savedView.saveDefaultView({
+      ...toSavedViewState(),
+      search: searchTerm,
+      filters,
+    });
+    setSnackbar({ open: true, message: 'Segmentation table view saved', type: 'success' });
+  }, [filters, savedView, searchTerm, toSavedViewState, user?.id]);
+
+  const handleExport = useCallback(async (format: 'xlsx' | 'csv' | 'pdf') => {
+    try {
+      setExportAnchorEl(null);
+      const exportRows = await fetchAllSegmentationRows();
+      const exportFilters: Record<string, string> = {};
+      if (searchTerm) exportFilters.Search = searchTerm;
+      Object.entries(filters).forEach(([field, value]) => {
+        if (String(value || '').trim()) exportFilters[field] = String(value);
+      });
+      const exportOptions = {
+        title: 'Segmentation Configuration',
+        filename: 'segmentation_configuration',
+        filters: exportFilters,
+        confidential: true,
+      };
+      const result = format === 'xlsx'
+        ? exportToXLSX(exportRows, [...SEGMENTATION_EXPORT_COLUMNS], exportOptions)
+        : format === 'csv'
+          ? exportToCSV(exportRows, [...SEGMENTATION_EXPORT_COLUMNS], exportOptions)
+          : exportToPDF(exportRows, [...SEGMENTATION_EXPORT_COLUMNS], exportOptions);
+
+      if (!result?.success) {
+        throw new Error(result?.error || `Failed to export ${format.toUpperCase()}`);
+      }
+
+      setSnackbar({ open: true, message: `Exported ${exportRows.length} segmentations to ${format.toUpperCase()}`, type: 'success' });
+    } catch (error) {
+      setSnackbar({ open: true, message: getErrorMessage(error, 'Export failed'), type: 'error' });
+    }
+  }, [fetchAllSegmentationRows, filters, searchTerm]);
 
   const handleSave = async (data: any, isDraft: boolean) => {
     setLoading(true);
@@ -407,12 +515,13 @@ export default function SegmentationClient() {
                 <>
                   <Button startIcon={<ExportIcon />} onClick={(e) => setExportAnchorEl(e.currentTarget)}>Export</Button>
                   <Menu anchorEl={exportAnchorEl} open={Boolean(exportAnchorEl)} onClose={() => setExportAnchorEl(null)}>
-                    <MenuItem onClick={() => setExportAnchorEl(null)}>Export to Excel</MenuItem>
-                    <MenuItem onClick={() => setExportAnchorEl(null)}>Export to CSV</MenuItem>
-                    <MenuItem onClick={() => setExportAnchorEl(null)}>Export to PDF</MenuItem>
+                    <MenuItem onClick={() => handleExport('xlsx')}>Export to Excel</MenuItem>
+                    <MenuItem onClick={() => handleExport('csv')}>Export to CSV</MenuItem>
+                    <MenuItem onClick={() => handleExport('pdf')}>Export to PDF</MenuItem>
                   </Menu>
                 </>
               )}
+              <Button variant="outlined" onClick={handleSaveView}>Save View</Button>
               <Button variant="outlined" startIcon={<HelpIcon />}>Help</Button>
             </Box>
           </Box>
@@ -449,8 +558,8 @@ export default function SegmentationClient() {
         data={headers}
         canManage={canManageSegmentation}
         loading={loading}
-        page={page}
-        rowsPerPage={rowsPerPage}
+        page={queryState.paginationModel.page}
+        rowsPerPage={queryState.paginationModel.pageSize}
         totalCount={totalCount}
         selectedIds={selectedIds}
         onSelect={(id) => {
@@ -461,8 +570,8 @@ export default function SegmentationClient() {
         onEdit={handleEdit}
         onDelete={handleDelete}
         onDuplicate={handleDuplicate}
-        onPageChange={setPage}
-        onRowsPerPageChange={setRowsPerPage}
+        onPageChange={(nextPage) => setPaginationModel({ page: nextPage, pageSize: queryState.paginationModel.pageSize })}
+        onRowsPerPageChange={(nextRowsPerPage) => setPaginationModel({ page: 0, pageSize: nextRowsPerPage })}
         pendingRequests={pendingRequests}
       />
 

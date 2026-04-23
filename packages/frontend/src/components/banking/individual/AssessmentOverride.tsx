@@ -77,31 +77,31 @@ export const AssessmentOverride = () => {
   });
   const [existingDocumentName, setExistingDocumentName] = useState<string>('');
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (scope?: { accountId?: string; accountNumber?: string }) => {
     try {
-      const response = await individualImpairmentAPI.getOverrides();
+      const response = await individualImpairmentAPI.getOverrides({
+        accountId: scope?.accountId,
+        accountNumber: scope?.accountNumber,
+      });
       if (response.success) {
-        setData(response.data);
+        setData(Array.isArray(response.data) ? response.data : []);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to load overrides');
-    } finally {
-      setLoading(false);
     }
   };
 
   const loadAssessmentData = async (accId: string) => {
-    setLoading(true);
     try {
       const response = await individualImpairmentAPI.getAssessment(accId);
       if (response.success && response.data) {
         const assessment = response.data;
         const currentStage = Number(assessment.stage ?? assessment.current_stage ?? assessment.previous_stage ?? 1)
+        const resolvedAccountNumber = String(assessment.account_number || assessment.accountNumber || accountNumber || '').trim()
         const existingDoc = Array.isArray(assessment.supporting_documents) ? assessment.supporting_documents[0] : (assessment.supportingDocument || assessment.triggerFilename || '')
         setFormData({
           customerName: assessment.cif_name || assessment.cifName || '',
-          accountNumber: assessment.account_number || assessment.accountNumber || '',
+          accountNumber: resolvedAccountNumber,
           currentStage: Number.isFinite(currentStage) ? currentStage : 1,
           overrideStage: Number.isFinite(currentStage) ? currentStage : 2,
           justification: assessment.impairment_reason || assessment.triggerRemarks || '',
@@ -109,7 +109,10 @@ export const AssessmentOverride = () => {
           supportingDocumentContent: ''
         });
         setExistingDocumentName(String(existingDoc || ''))
-        setOpenDialog(true);
+        await loadData({
+          accountId: accId,
+          accountNumber: resolvedAccountNumber || undefined,
+        })
         setError(null);
         setSuccess(null);
         return;
@@ -122,18 +125,33 @@ export const AssessmentOverride = () => {
         (typeof err === 'string' ? err : null) ||
         'Failed to load assessment data';
       setError(String(message));
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (accountId) {
-      loadAssessmentData(accountId);
-    } else {
-      loadData();
-    }
-  }, [accountId]);
+    let cancelled = false;
+
+    const run = async () => {
+      setLoading(true);
+      try {
+        if (accountId) {
+          await loadAssessmentData(accountId);
+        } else {
+          await loadData();
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accountId, accountNumber]);
 
   const handleCreate = async () => {
     const hasExistingDoc = Boolean(existingDocumentName)
@@ -152,17 +170,21 @@ export const AssessmentOverride = () => {
       });
       setSuccess('Override request submitted successfully');
       setOpenDialog(false);
-      setFormData({
-        customerName: '',
-        accountNumber: '',
-        currentStage: 1,
-        overrideStage: 2,
-        justification: '',
-        supportingDocumentName: '',
-        supportingDocumentContent: ''
-      });
-      setExistingDocumentName('')
-      loadData();
+      if (accountId) {
+        await loadAssessmentData(accountId);
+      } else {
+        setFormData({
+          customerName: '',
+          accountNumber: '',
+          currentStage: 1,
+          overrideStage: 2,
+          justification: '',
+          supportingDocumentName: '',
+          supportingDocumentContent: ''
+        });
+        setExistingDocumentName('')
+        await loadData();
+      }
     } catch (err: any) {
       const message =
         err?.response?.data?.message ||

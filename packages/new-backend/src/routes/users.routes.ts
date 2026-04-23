@@ -10,6 +10,7 @@ import { buildDefaultFourEyesRouting, type ApprovalResponse } from '../lib/appro
 import { createApprovalRequest } from '../services/approval.service'
 import * as auditService from '../services/audit.service'
 import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
+import { UserTableViewsRepository } from '@/repositories/user-table-views.repository'
 
 export const usersRoutes: any = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
@@ -79,6 +80,24 @@ const UserStatsResponse = z.object({
     activeUsers: z.number(),
     inactiveUsers: z.number(),
 }).openapi('UserStatsResponse')
+
+const TableViewStateSchema = z.object({
+    columns: z.any().optional(),
+    filters: z.record(z.any()).optional(),
+    sort: z.array(z.object({
+        field: z.string(),
+        direction: z.enum(['asc', 'desc']),
+    })).optional(),
+    density: z.enum(['compact', 'standard', 'comfortable', 'dense']).optional(),
+    pageSize: z.number().int().positive().optional(),
+}).passthrough().openapi('TableViewState')
+
+const UpsertTableViewSchema = z.object({
+    scope: z.string().min(1).max(160),
+    name: z.string().min(1).max(160).optional(),
+    isDefault: z.boolean().optional(),
+    state: TableViewStateSchema,
+}).openapi('UpsertTableViewInput')
 
 const isPendingApprovalRequest = (request: { status?: string } | null | undefined): boolean => {
     const normalizedStatus = String(request?.status || '').trim().toLowerCase()
@@ -568,6 +587,164 @@ usersRoutes.openapi(
 )
 
 /**
+ * List persisted table views for a user and page scope.
+ *
+ * @route GET /users/:id/table-views?scope=<pageKey>
+ */
+usersRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/{id}/table-views',
+        tags: ['Users'],
+        summary: 'List user table views',
+        security: [{ BearerAuth: [] }],
+        request: {
+            params: z.object({
+                id: z.string().uuid().openapi({ param: { name: 'id', in: 'path' } }),
+            }),
+            query: z.object({
+                scope: z.string().min(1).max(160),
+            }),
+        },
+        responses: {
+            200: {
+                description: 'User table views',
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            data: z.array(z.any()),
+                        }),
+                    },
+                },
+            },
+        },
+    }),
+    async (c: any) => {
+        const { id } = c.req.valid('param')
+        const { scope } = c.req.valid('query')
+        const currentUserId = c.get('userId') || c.get('user')?.id
+        if (currentUserId !== id) {
+            return c.json({ success: false, error: 'Forbidden', message: 'Cannot read table views for another user' }, 403)
+        }
+
+        const tenantId = c.get('tenantId') || c.get('user')?.tenantId
+        const data = await UserTableViewsRepository.list(tenantId, id, scope)
+        return c.json({ success: true, data })
+    }
+)
+
+/**
+ * Upsert a persisted table view for a user.
+ *
+ * @route PUT /users/:id/table-views/:viewKey
+ */
+usersRoutes.openapi(
+    createRoute({
+        method: 'put',
+        path: '/{id}/table-views/{viewKey}',
+        tags: ['Users'],
+        summary: 'Save user table view',
+        security: [{ BearerAuth: [] }],
+        request: {
+            params: z.object({
+                id: z.string().uuid().openapi({ param: { name: 'id', in: 'path' } }),
+                viewKey: z.string().min(1).max(160).openapi({ param: { name: 'viewKey', in: 'path' } }),
+            }),
+            body: {
+                content: {
+                    'application/json': {
+                        schema: UpsertTableViewSchema,
+                    },
+                },
+            },
+        },
+        responses: {
+            200: {
+                description: 'Table view saved',
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            data: z.any(),
+                        }),
+                    },
+                },
+            },
+        },
+    }),
+    async (c: any) => {
+        const { id, viewKey } = c.req.valid('param')
+        const body = c.req.valid('json')
+        const currentUserId = c.get('userId') || c.get('user')?.id
+        if (currentUserId !== id) {
+            return c.json({ success: false, error: 'Forbidden', message: 'Cannot write table views for another user' }, 403)
+        }
+
+        const tenantId = c.get('tenantId') || c.get('user')?.tenantId
+        const data = await UserTableViewsRepository.upsert({
+            tenantId,
+            userId: id,
+            scope: body.scope,
+            viewKey,
+            name: body.name,
+            isDefault: body.isDefault,
+            state: body.state,
+        })
+        return c.json({ success: true, data })
+    }
+)
+
+/**
+ * Delete a persisted table view for a user.
+ *
+ * @route DELETE /users/:id/table-views/:viewKey?scope=<pageKey>
+ */
+usersRoutes.openapi(
+    createRoute({
+        method: 'delete',
+        path: '/{id}/table-views/{viewKey}',
+        tags: ['Users'],
+        summary: 'Delete user table view',
+        security: [{ BearerAuth: [] }],
+        request: {
+            params: z.object({
+                id: z.string().uuid().openapi({ param: { name: 'id', in: 'path' } }),
+                viewKey: z.string().min(1).max(160).openapi({ param: { name: 'viewKey', in: 'path' } }),
+            }),
+            query: z.object({
+                scope: z.string().min(1).max(160),
+            }),
+        },
+        responses: {
+            200: {
+                description: 'Table view deleted',
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            data: z.any().nullable(),
+                        }),
+                    },
+                },
+            },
+        },
+    }),
+    async (c: any) => {
+        const { id, viewKey } = c.req.valid('param')
+        const { scope } = c.req.valid('query')
+        const currentUserId = c.get('userId') || c.get('user')?.id
+        if (currentUserId !== id) {
+            return c.json({ success: false, error: 'Forbidden', message: 'Cannot delete table views for another user' }, 403)
+        }
+
+        const tenantId = c.get('tenantId') || c.get('user')?.tenantId
+        const data = await UserTableViewsRepository.remove(tenantId, id, scope, viewKey)
+        return c.json({ success: true, data: data ?? null })
+    }
+)
+
+/**
  * Get User by ID.
  * Retrieve details of a specific user.
  * 
@@ -872,23 +1049,26 @@ usersRoutes.openapi(
                 })
             )
 
-            await auditService.logApproval.requested(
-                request.id,
-                request.title,
-                requestedBy,
-                tenantId,
-                {
-                    entityType: 'user_status',
-                    oldValues: {
-                        id: currentUser.id,
-                        isActive: currentUser.isActive ?? false,
-                    },
-                    newValues: {
-                        id,
-                        isActive: true,
-                        tenantId,
-                    },
-                }
+            auditService.runAuditSafely(
+                auditService.logApproval.requested(
+                    request.id,
+                    request.title,
+                    requestedBy,
+                    tenantId,
+                    {
+                        entityType: 'user_status',
+                        oldValues: {
+                            id: currentUser.id,
+                            isActive: currentUser.isActive ?? false,
+                        },
+                        newValues: {
+                            id,
+                            isActive: true,
+                            tenantId,
+                        },
+                    }
+                ),
+                `approval request logging for enable user ${id}`
             )
 
             return c.json(
@@ -969,23 +1149,26 @@ usersRoutes.openapi(
                 })
             )
 
-            await auditService.logApproval.requested(
-                request.id,
-                request.title,
-                requestedBy,
-                tenantId,
-                {
-                    entityType: 'user_status',
-                    oldValues: {
-                        id: currentUser.id,
-                        isActive: currentUser.isActive ?? false,
-                    },
-                    newValues: {
-                        id,
-                        isActive: false,
-                        tenantId,
-                    },
-                }
+            auditService.runAuditSafely(
+                auditService.logApproval.requested(
+                    request.id,
+                    request.title,
+                    requestedBy,
+                    tenantId,
+                    {
+                        entityType: 'user_status',
+                        oldValues: {
+                            id: currentUser.id,
+                            isActive: currentUser.isActive ?? false,
+                        },
+                        newValues: {
+                            id,
+                            isActive: false,
+                            tenantId,
+                        },
+                    }
+                ),
+                `approval request logging for disable user ${id}`
             )
 
             return c.json(

@@ -1,3 +1,6 @@
-import LifetimePDReportPage from '../../ifrs9-reports/lifetime-pd/page';
+import { redirect } from 'next/navigation';
+import { canonicalRoutes } from '@/features/shared/routing/canonical-routes';
 
-export default LifetimePDReportPage;
+export default function LegacyLifetimePdReportPage() {
+  redirect(canonicalRoutes.ifrs9Reports.lifetimePd);
+}

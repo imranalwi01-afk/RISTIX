@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Provider as ReduxProvider } from 'react-redux';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { CssBaseline, StyledEngineProvider } from '@mui/material';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v16-appRouter';
 
@@ -12,6 +13,7 @@ import { store } from '../store';
 import { ConfigurationProvider } from '../providers/ConfigurationProvider';
 import { BankingThemeProvider } from '../providers/BankingThemeProvider';
 import { AuthProvider } from '../providers/AuthProvider';
+import { getQueryClient } from '@/features/shared/query/query-client';
 
 interface AppProvidersProps {
   children: React.ReactNode;
@@ -20,18 +22,22 @@ interface AppProvidersProps {
 // ✅ FIXED: Single, clean provider wrapper
 // Removed inner ThemeProvider as BankingThemeProvider now handles it dynamically
 const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
+  const queryClient = React.useMemo(() => getQueryClient(), []);
+
   return (
     <AppRouterCacheProvider options={{ enableCssLayer: true }}>
       <StyledEngineProvider injectFirst>
         <ReduxProvider store={store}>
-          <ConfigurationProvider>
-            <AuthProvider>
-              <BankingThemeProvider>
-                <CssBaseline />
-                {children as any}
-              </BankingThemeProvider>
-            </AuthProvider>
-          </ConfigurationProvider>
+          <QueryClientProvider client={queryClient}>
+            <ConfigurationProvider>
+              <AuthProvider>
+                <BankingThemeProvider>
+                  <CssBaseline />
+                  {children as any}
+                </BankingThemeProvider>
+              </AuthProvider>
+            </ConfigurationProvider>
+          </QueryClientProvider>
         </ReduxProvider>
       </StyledEngineProvider>
     </AppRouterCacheProvider>

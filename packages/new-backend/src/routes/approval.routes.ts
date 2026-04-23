@@ -6,6 +6,13 @@ import { runEffect } from '../lib/effect'
 import * as approvalService from '../services/approval.service'
 import * as auditService from '../services/audit.service'
 import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
+import {
+    ListQueryValidationError,
+    buildListResponse,
+    buildOffsetPagination,
+    parseListQuery,
+    type ListQueryConfig,
+} from '../lib/http/list-query'
 
 export const approvalRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
@@ -37,6 +44,74 @@ const ProcessActionSchema = z.object({
 const CancelRequestSchema = z.object({
     reason: z.string().max(1000).optional(),
 }).openapi('CancelApprovalRequestInput')
+
+const APPROVAL_REQUEST_LIST_QUERY_CONFIG: ListQueryConfig = {
+    defaultLimit: 50,
+    maxLimit: 200,
+    defaultSort: [{ field: 'createdAt', direction: 'desc' }],
+    filterDefinitions: {
+        createdAt: { field: 'createdAt', label: 'Date', type: 'date', operators: ['from', 'to'] },
+        status: {
+            field: 'status',
+            label: 'Status',
+            type: 'enum',
+            options: [
+                { label: 'Pending', value: 'pending' },
+                { label: 'Approved', value: 'approved' },
+                { label: 'Rejected', value: 'rejected' },
+                { label: 'Cancelled', value: 'cancelled' },
+                { label: 'Expired', value: 'expired' },
+            ],
+        },
+        impactLevel: {
+            field: 'impactLevel',
+            label: 'Priority',
+            type: 'enum',
+            options: [
+                { label: 'Critical', value: 'critical' },
+                { label: 'High', value: 'high' },
+                { label: 'Medium', value: 'medium' },
+                { label: 'Low', value: 'low' },
+            ],
+        },
+        bankingType: {
+            field: 'bankingType',
+            label: 'Banking Type',
+            type: 'enum',
+            options: [
+                { label: 'Conventional', value: 'conventional' },
+                { label: 'Syariah', value: 'syariah' },
+                { label: 'Dual', value: 'dual' },
+            ],
+        },
+        currentLevel: { field: 'currentLevel', label: 'Current Level', type: 'number', operators: ['min', 'max'] },
+        riskLevel: {
+            field: 'riskLevel',
+            label: 'Risk Level',
+            type: 'enum',
+            options: [
+                { label: 'Critical', value: 'critical' },
+                { label: 'High', value: 'high' },
+                { label: 'Medium', value: 'medium' },
+                { label: 'Low', value: 'low' },
+            ],
+        },
+        entityType: { field: 'entityType', label: 'Entity Type', type: 'text', operators: ['contains', 'equals'] },
+        entityId: { field: 'entityId', label: 'Entity ID', type: 'text', operators: ['equals'] },
+        requestedBy: { field: 'requestedBy', label: 'Requested By', type: 'text', operators: ['equals'] },
+        operation: { field: 'operation', label: 'Operation', type: 'text', operators: ['contains', 'equals'] },
+    },
+    sortableColumns: ['createdAt', 'updatedAt', 'status', 'entityType', 'title', 'impactLevel', 'currentLevel'],
+}
+
+const approvalListQueryBadRequest = (c: any, error: ListQueryValidationError) =>
+    c.json({
+        success: false,
+        error: error.message,
+        message: error.message,
+        code: 'INVALID_LIST_QUERY',
+        details: error.details,
+    }, 400)
 
 const MatrixLevelSchema = z.object({
     level: z.number().int().min(1),
@@ -448,8 +523,23 @@ approvalRoutes.openapi(
         security: [{ BearerAuth: [] }],
         request: {
             query: z.object({
+                page: z.string().optional(),
+                offset: z.string().optional(),
+                limit: z.string().optional(),
+                filters: z.string().optional(),
+                sort: z.string().optional(),
+                sortField: z.string().optional(),
+                sortOrder: z.enum(['asc', 'desc']).optional(),
                 entityType: z.string().optional(),
                 entityId: z.string().optional(),
+                status: z.string().optional(),
+                impactLevel: z.string().optional(),
+                bankingType: z.string().optional(),
+                currentLevel: z.string().optional(),
+                riskLevel: z.string().optional(),
+                requestedBy: z.string().optional(),
+                operation: z.string().optional(),
+                search: z.string().optional(),
             }),
         },
         responses: {
@@ -464,22 +554,53 @@ approvalRoutes.openapi(
         },
     }),
     async (c) => {
-        const tenantId = c.get('tenantId')!
-        const entityType = c.req.query('entityType')
-        const entityId = c.req.query('entityId')
+        try {
+            const tenantId = c.get('tenantId')!
+            const query = parseListQuery(c, APPROVAL_REQUEST_LIST_QUERY_CONFIG)
+            const filters = query.filters
+            const result = await Effect.runPromise(approvalService.getApprovalHistoryList({
+                tenantId,
+                entityType: filters.entityType ? String(filters.entityType) : undefined,
+                entityId: filters.entityId ? String(filters.entityId) : undefined,
+                status: filters.status ? String(filters.status) : undefined,
+                impactLevel: filters.impactLevel ? String(filters.impactLevel) : undefined,
+                bankingType: filters.bankingType ? String(filters.bankingType) : undefined,
+                currentLevel: filters['currentLevel.min']
+                    ? Number(filters['currentLevel.min'])
+                    : filters.currentLevel
+                        ? Number(filters.currentLevel)
+                        : undefined,
+                currentLevelMin: filters['currentLevel.min'] ? Number(filters['currentLevel.min']) : undefined,
+                currentLevelMax: filters['currentLevel.max'] ? Number(filters['currentLevel.max']) : undefined,
+                riskLevel: filters.riskLevel ? String(filters.riskLevel) : undefined,
+                requestedBy: filters.requestedBy ? String(filters.requestedBy) : undefined,
+                operation: filters.operation ? String(filters.operation) : undefined,
+                search: query.search,
+                createdAtFrom: filters['createdAt.from'] ? new Date(String(filters['createdAt.from'])) : undefined,
+                createdAtTo: filters['createdAt.to'] ? new Date(String(filters['createdAt.to'])) : undefined,
+                limit: query.limit,
+                offset: query.offset ?? 0,
+                sort: query.sort[0],
+            }) as any) as { data: any[]; total: number }
 
-        const effect = pipe(
-            approvalService.getApprovalHistory(tenantId, entityType, entityId),
-            Effect.map((requests) => requests.map(r => ({
+            const data = result.data.map((r: any) => ({
                 ...r,
                 ...buildRequestedByMeta(r),
                 description: r.description ?? null,
                 createdAt: r.createdAt.toISOString(),
                 updatedAt: (r as any).completedAt?.toISOString() || r.createdAt.toISOString(),
-            })))
-        )
+            }))
 
-        return runEffect(c, effect)
+            return c.json(buildListResponse(
+                data,
+                query,
+                buildOffsetPagination(query, result.total),
+                { filterDefinitions: APPROVAL_REQUEST_LIST_QUERY_CONFIG.filterDefinitions },
+            ) as any)
+        } catch (error: any) {
+            if (error instanceof ListQueryValidationError) return approvalListQueryBadRequest(c, error)
+            throw error
+        }
     }
 )
 

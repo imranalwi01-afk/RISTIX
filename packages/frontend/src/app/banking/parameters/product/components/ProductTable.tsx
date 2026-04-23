@@ -13,6 +13,7 @@ import {
 import { GridColDef, GridRowParams } from '@mui/x-data-grid';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { ApprovalStatusBadge } from '@/components/approval';
+import type { EnterpriseDensity } from '@/types/enterprise-table';
 
 interface ProductParameter {
   pkid: number;
@@ -43,6 +44,12 @@ interface ProductTableProps {
   rowCount: number;
   onViewPending?: (request: any, record: ProductParameter) => void;
   canManage: boolean;
+  columnVisibilityModel?: Record<string, boolean>;
+  onColumnVisibilityModelChange?: (model: Record<string, boolean>) => void;
+  density?: EnterpriseDensity;
+  onDensityChange?: (density: EnterpriseDensity) => void;
+  onSaveView?: () => void;
+  onResetView?: () => void;
 }
 
 export default function ProductTable({
@@ -55,7 +62,13 @@ export default function ProductTable({
   onPaginationModelChange,
   rowCount,
   onViewPending,
-  canManage
+  canManage,
+  columnVisibilityModel,
+  onColumnVisibilityModelChange,
+  density,
+  onDensityChange,
+  onSaveView,
+  onResetView,
 }: ProductTableProps) {
   const columns: GridColDef[] = [
     {
@@ -192,6 +205,14 @@ export default function ProductTable({
         rowCount={rowCount}
         paginationModel={paginationModel}
         onPaginationModelChange={onPaginationModelChange}
+        enableColumnFilters={false}
+        columnVisibilityModel={columnVisibilityModel}
+        onColumnVisibilityModelChange={onColumnVisibilityModelChange}
+        density={density === 'dense' ? 'compact' : density}
+        onDensityChange={onDensityChange}
+        showEnterpriseControls
+        onSaveView={onSaveView}
+        onResetView={onResetView}
         pageSizeOptions={[10, 25, 50, 100]}
         disableRowSelectionOnClick
         sx={{

@@ -16,10 +16,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-// ✅ REAL-TIME DB SYNC: Import health monitoring hook
-import { useBackendHealth } from '../../hooks/useBackendHealth';
-
-
 import {
   Box,
   List,
@@ -391,9 +387,6 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   const theme = useTheme();
   const pathname = usePathname();
   const router = useRouter();
-
-  // ✅ REAL-TIME DB SYNC: Monitor backend health
-  const { isOnline, latency, isChecking, checkNow } = useBackendHealth(15000); // Check every 15s
 
   // 🔽 FLYOUT MENU STATE
   const [flyoutAnchorEl, setFlyoutAnchorEl] = useState<null | HTMLElement>(null);

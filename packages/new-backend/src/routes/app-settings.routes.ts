@@ -8,6 +8,7 @@ import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware
 import type { ApprovalResponse } from '../lib/approval-helpers'
 import { buildErrorResponse } from '../lib/http/error-response'
 import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
+import { buildListResponse, buildOffsetPagination, ListQueryValidationError, parseListQuery } from '../lib/http/list-query'
 
 const app = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
@@ -152,6 +153,43 @@ const ApprovalWorkflowResponse = z.object({
     message: z.string().optional()
 }).openapi('ApprovalWorkflowResponse')
 
+const AppSettingListContractResponse = z.object({
+    success: z.boolean(),
+    data: z.array(AppSettingSchema),
+    pagination: z.object({
+        mode: z.literal('offset'),
+        limit: z.number(),
+        total: z.number(),
+        page: z.number(),
+        offset: z.number(),
+        totalPages: z.number(),
+        hasNextPage: z.boolean(),
+        hasPreviousPage: z.boolean(),
+        nextCursor: z.null(),
+        previousCursor: z.null(),
+    }).optional(),
+    appliedQuery: z.object({
+        search: z.string().optional(),
+        filters: z.record(z.string(), z.unknown()).optional(),
+        sort: z.array(z.object({
+            field: z.string(),
+            direction: z.enum(['asc', 'desc']),
+        })).optional(),
+    }).optional(),
+    filterDefinitions: z.record(z.string(), z.object({
+        field: z.string(),
+        label: z.string().optional(),
+        type: z.enum(['text', 'date', 'number', 'enum', 'boolean']),
+    })).optional().optional(),
+}).openapi('AppSettingListContractResponse')
+
+const appSettingFilterDefinitions = {
+    commonCode: { field: 'commonCode', label: 'Common Code', type: 'text' as const },
+    description: { field: 'description', label: 'Description', type: 'text' as const },
+    value: { field: 'value', label: 'Value', type: 'text' as const },
+    createdBy: { field: 'createdBy', label: 'Created By', type: 'text' as const },
+}
+
 // ============================================================================
 // ENDPOINTS
 // ============================================================================
@@ -165,17 +203,81 @@ app.openapi(
         summary: 'List Application Settings',
         request: {
             query: z.object({
-                code: z.string().optional()
+                code: z.string().optional(),
+                page: z.string().optional(),
+                offset: z.string().optional(),
+                limit: z.string().optional(),
+                search: z.string().optional(),
+                filters: z.string().optional(),
+                sort: z.string().optional(),
+                paginationMode: z.string().optional(),
             })
         },
         responses: {
-            200: { content: { 'application/json': { schema: AppSettingListResponse } }, description: 'List Settings' },
+            200: { content: { 'application/json': { schema: AppSettingListContractResponse } }, description: 'List Settings' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
         const { code } = c.req.valid('query')
-        return runEffect(c, ParametersService.listAppSettings(code)) as any
+        const rawQuery = c.req.query()
+        const usesListContract = ['page', 'offset', 'limit', 'search', 'filters', 'sort', 'paginationMode'].some((key) => rawQuery[key] !== undefined)
+
+        if (!usesListContract) {
+            return runEffect(c, ParametersService.listAppSettings(code)) as any
+        }
+
+        try {
+            const query = parseListQuery(c, {
+                paginationMode: 'offset',
+                defaultLimit: 10,
+                maxLimit: 100,
+                defaultSort: [{ field: 'commonCode', direction: 'asc' }],
+                sortableColumns: [
+                    'commonCode',
+                    'description',
+                    'value',
+                    'createdBy',
+                    'createdDate',
+                    'updatedDate',
+                    'CommonCode',
+                    'Description',
+                    'Value',
+                    'CreatedBy',
+                    'CreatedDate',
+                    'UpdatedDate',
+                ],
+                filterableColumns: ['commonCode', 'description', 'value', 'createdBy'],
+                filterDefinitions: appSettingFilterDefinitions,
+                filterAliases: {
+                    CommonCode: 'commonCode',
+                    Description: 'description',
+                    Value: 'value',
+                    CreatedBy: 'createdBy',
+                },
+            })
+
+            const result = await Effect.runPromise(ParametersService.listAppSettingsPage(query) as any) as { rows: unknown[]; total: number }
+
+            return c.json(
+                buildListResponse(
+                    result.rows,
+                    query,
+                    buildOffsetPagination(query, result.total),
+                    { filterDefinitions: appSettingFilterDefinitions },
+                ),
+            )
+        } catch (error) {
+            if (error instanceof ListQueryValidationError) {
+                return c.json(buildErrorResponse(c, {
+                    error: 'Invalid list query',
+                    message: error.message,
+                    code: 'BAD_REQUEST',
+                    details: error.details,
+                }) as any, 400)
+            }
+            throw error
+        }
     }
 )
 

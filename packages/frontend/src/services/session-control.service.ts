@@ -48,6 +48,7 @@ export class SessionControlService {
   private timers: { [key: string]: NodeJS.Timeout } = {};
   private broadcastChannel: BroadcastChannel | null = null;
   private options: SessionControlOptions;
+  private lastTokenRefreshFailure: { status?: number; message?: string; kind: 'auth' | 'network' | 'server' | 'unknown' } | null = null;
 
   private constructor() {
     this.config = getSessionControlConfig();
@@ -189,16 +190,32 @@ export class SessionControlService {
               hasRefreshToken: !!refreshToken,
               refreshTokenSource: refreshToken ? (localStorage.getItem('refresh_token') ? 'localStorage' : 'cookie') : 'none'
             });
+          } else if (refreshToken) {
+            this.state.isAuthenticated = true;
+            this.state.token = token;
+            this.state.refreshToken = refreshToken;
+            this.state.user = user;
+            this.state.tokenExpiry = tokenExpiry;
+            this.state.lastActivity = Date.now();
+
+            this.log('Stored access token expired, attempting refresh-token session restore');
+            void this.restoreSessionFromStoredRefreshToken();
           } else {
-            // Token expired, clear storage
-            this.clearStorageData();
-            this.log('Stored token expired, cleared storage data');
+            // Keep refresh/reload non-destructive. Preserve stored auth state and let
+            // foreground verification decide whether re-authentication is required.
+            this.state.isAuthenticated = true;
+            this.state.token = token;
+            this.state.refreshToken = refreshToken;
+            this.state.user = user;
+            this.state.tokenExpiry = tokenExpiry;
+            this.state.lastActivity = Date.now();
+
+            this.log('Stored access token is expired and no refresh token is available; preserving state for foreground auth handling');
           }
         }
       }
     } catch (error: any) {
       this.log('Error loading authentication data from storage', { error: error.message });
-      this.clearStorageData();
     }
   }
 
@@ -398,6 +415,7 @@ export class SessionControlService {
     // ✅ FIXED: Validate refresh token before using it
     if (!refreshToken || refreshToken.trim() === '') {
       this.log('No refresh token available for token refresh');
+      this.lastTokenRefreshFailure = { kind: 'auth', message: 'No refresh token available' };
       return { success: false, error: 'No refresh token available' };
     }
 
@@ -408,12 +426,14 @@ export class SessionControlService {
         tokenPreview: refreshToken.substring(0, 20) + '...',
         length: refreshToken.length
       });
+      this.lastTokenRefreshFailure = { kind: 'auth', message: 'Invalid refresh token format' };
       return { success: false, error: 'Invalid refresh token format' };
     }
 
     // ✅ FIXED: Prevent refresh loops by checking if we've already tried too many times
     if (this.state.refreshFailureCount && this.state.refreshFailureCount > 2) {
       this.log('Too many refresh failures, giving up');
+      this.lastTokenRefreshFailure = { kind: 'unknown', message: 'Too many refresh failures' };
       return { success: false, error: 'Too many refresh failures' };
     }
 
@@ -452,6 +472,7 @@ export class SessionControlService {
         if (data.success && data.data?.token) {
           // Reset failure count on success
           this.state.refreshFailureCount = 0;
+          this.lastTokenRefreshFailure = null;
 
           // 🔧 FIXED: Preserve existing user data or use returned data, fallback to minimal object
           const userData = data.data.user || this.state.user || { email: 'refreshed-user', username: 'refreshed' };
@@ -476,6 +497,7 @@ export class SessionControlService {
           return { success: true, token: data.data.token };
         } else {
           this.log('Token refresh failed: Invalid response format', { data });
+          this.lastTokenRefreshFailure = { kind: 'server', message: 'Invalid response format' };
           return { success: false, error: 'Invalid response format' };
         }
       } else {
@@ -489,6 +511,7 @@ export class SessionControlService {
         // 🔧 LENIENT: Give refresh token multiple chances before logout
         if (response.status === 401) {
           this.state.refreshFailureCount = (this.state.refreshFailureCount || 0) + 1;
+          this.lastTokenRefreshFailure = { kind: 'auth', status: response.status, message: errorText || response.statusText };
           this.log('Refresh token failed (401)', { failureCount: this.state.refreshFailureCount });
 
           // ✅ GRACE PERIOD: Don't auto-logout within 60 seconds of login
@@ -500,16 +523,22 @@ export class SessionControlService {
             return { success: false, error: 'Refresh token failed (grace period active)' };
           }
 
-          // Only logout after 3 consecutive failures AND after grace period
+          // Preserve the local session on refresh failures. The app should only
+          // clear auth state from an explicit logout path or a foreground API 401
+          // policy, not from a background/manual-refresh restore race.
           if (this.state.refreshFailureCount >= 3) {
-            this.log('Refresh token failed 3 times (after grace period), logging out');
-            setTimeout(() => this.logout('refresh_token_expired', { skipAPI: true }), 100);
+            this.log('Refresh token failed 3 times (after grace period), preserving session for caller decision');
           }
           return { success: false, error: 'Refresh token attempt failed' };
         }
 
         // Increment failure count for other errors
         this.state.refreshFailureCount = (this.state.refreshFailureCount || 0) + 1;
+        this.lastTokenRefreshFailure = {
+          kind: response.status >= 500 ? 'server' : 'unknown',
+          status: response.status,
+          message: errorText || response.statusText,
+        };
 
         return { success: false, error: `HTTP ${response.status}: ${response.statusText}` };
       }
@@ -519,9 +548,39 @@ export class SessionControlService {
 
       // Increment failure count
       this.state.refreshFailureCount = (this.state.refreshFailureCount || 0) + 1;
+      this.lastTokenRefreshFailure = {
+        kind: error.name === 'AbortError' || error.message?.includes('fetch') || error.message?.includes('Network') ? 'network' : 'unknown',
+        message: error.message,
+      };
 
       return { success: false, error: error.message };
     }
+  }
+
+  public async restoreSessionFromStoredRefreshToken(): Promise<boolean> {
+    const refreshToken =
+      this.state.refreshToken ||
+      (typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null) ||
+      (typeof document !== 'undefined'
+        ? document.cookie.match(/refresh_token=([^;]+)/)?.[1] ?? null
+        : null);
+
+    if (!refreshToken) {
+      this.log('No stored refresh token available for session restore');
+      return false;
+    }
+
+    this.state.refreshToken = refreshToken;
+
+    const refreshed = await this.refreshTokenWithRetry();
+    if (refreshed) {
+      this.log('Session restored successfully from refresh token');
+      return true;
+    }
+
+    this.log('Session restore from refresh token failed');
+    this.log('Preserving stored session after refresh restore failure', this.lastTokenRefreshFailure);
+    return false;
   }
 
   // 🚨 LOGOUT MANAGEMENT
@@ -678,13 +737,11 @@ export class SessionControlService {
       hasRefreshToken: !!this.state.refreshToken
     });
 
-    // ✅ FIX: If token is already expired on page load, redirect to login instead of trying to refresh
-    // This handles the case where user has been away for a long time
+    // Keep manual refresh non-destructive. If a refresh token still exists, the
+    // foreground auth flow can decide whether a 401 should become a real logout.
     const tokenAge = now - (this.state.tokenExpiry - (8 * 60 * 60 * 1000)); // Assuming 8h token
     if (this.state.tokenExpiry < now && tokenAge > (7 * 24 * 60 * 60 * 1000)) {
-      // Token is expired AND refresh token is likely expired (7 days)
-      this.log('⚠️ Token and refresh token likely expired, clearing session');
-      this.clearAuthData();
+      this.log('⚠️ Stored access token is very stale, skipping background refresh timer without clearing session');
       return;
     }
 
@@ -712,6 +769,7 @@ export class SessionControlService {
 
   private startActivityTimer(): void {
     this.clearTimer('session');
+    this.clearTimer('sessionWarning');
 
     if (!this.config.sessionTimeout.enabled) {
       return;
@@ -722,7 +780,7 @@ export class SessionControlService {
 
     this.timers.session = setTimeout(() => {
       this.handleSessionTimeout();
-    }, timeout - warningTime);
+    }, timeout);
 
     this.timers.sessionWarning = setTimeout(() => {
       this.handleSessionWarning();
@@ -959,9 +1017,9 @@ export class SessionControlService {
       case 'logout':
         // 🔧 FIXED: Only logout if this is the final attempt and all retries exhausted
         if (attempts >= config.maxRefreshRetries) {
-          this.log('Initiating graceful logout due to final token refresh failure');
-          await this.logout('token_refresh_failed');
+          this.log('Final token refresh failure reached; preserving session and showing re-auth prompt instead of logout');
           this.showSessionExpiredMessage(errorAnalysis.userMessage);
+          this.showEnhancedReauthPrompt(errorAnalysis);
         } else {
           // For non-final attempts, treat as prompt
           this.log(`Token refresh failed (attempt ${attempts}/${config.maxRefreshRetries}), showing prompt instead of logout`);

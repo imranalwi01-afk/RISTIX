@@ -39,8 +39,25 @@ const normalizeSocketBaseFromApi = (rawUrl?: string | null): string => {
     return normalized
 }
 
+const normalizeLocalSocketPort = (rawUrl: string): string => {
+    if (typeof window === 'undefined' || !rawUrl) return rawUrl
+
+    try {
+        const url = new URL(rawUrl)
+        const isLocalHost = url.hostname === 'localhost' || url.hostname === '127.0.0.1'
+        if (isLocalHost && url.port === '4231') {
+            url.port = '4232'
+            return trimTrailingSlashes(url.toString())
+        }
+    } catch {
+        return rawUrl
+    }
+
+    return rawUrl
+}
+
 const resolveSocketBaseUrl = (): string => {
-    const explicitWsUrl = normalizeSocketBaseFromApi(process.env.NEXT_PUBLIC_WS_URL || '')
+    const explicitWsUrl = normalizeLocalSocketPort(normalizeSocketBaseFromApi(process.env.NEXT_PUBLIC_WS_URL || ''))
     if (explicitWsUrl) {
         return explicitWsUrl
     }
@@ -51,13 +68,13 @@ const resolveSocketBaseUrl = (): string => {
         process.env.NEXT_PUBLIC_API_BASE_URL ||
         ''
 
-    const normalizedBackend = normalizeSocketBaseFromApi(backendBase)
+    const normalizedBackend = normalizeLocalSocketPort(normalizeSocketBaseFromApi(backendBase))
     if (normalizedBackend) {
         return normalizedBackend
     }
 
     if (typeof window !== 'undefined') {
-        return window.location.origin
+        return normalizeLocalSocketPort(window.location.origin)
     }
 
     return ''

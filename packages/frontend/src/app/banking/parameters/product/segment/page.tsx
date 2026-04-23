@@ -1,7 +1,7 @@
 // packages/frontend/src/app/banking/parameters/product/segment/page.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
     Box,
     Typography,
@@ -16,7 +16,6 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
-    TextField,
     IconButton,
     Tooltip,
     FormControlLabel,
@@ -24,7 +23,12 @@ import {
     MenuItem,
     Chip,
     Alert,
-    Snackbar
+    Snackbar,
+    FormControl,
+    InputLabel,
+    Select,
+    TextField,
+    InputAdornment
 } from '@mui/material';
 import {
     Category as PageIcon,
@@ -32,11 +36,19 @@ import {
     Add as AddIcon,
     Edit as EditIcon,
     Delete as DeleteIcon,
-    Refresh as RefreshIcon
+    Refresh as RefreshIcon,
+    Download as DownloadIcon,
+    Search as SearchIcon,
 } from '@mui/icons-material';
-import { DataGrid, GridColDef, GridActionsCellItem, GridRowParams } from '@mui/x-data-grid';
-import { useRouter } from 'next/navigation';
+import { GridColDef, GridRowParams } from '@mui/x-data-grid';
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { productSegmentsApi, ProductSegment, CreateProductSegmentDto } from '../../../../../services/api/product-segments.api';
+import { exportToCSV, exportToPDF, exportToXLSX } from '@/utils/exportUtils';
+import { getErrorMessage } from '@/utils/error-message';
+import { useAuth } from '@/providers/AuthProvider';
+import { useEnterpriseTableQuery } from '@/hooks/useEnterpriseTableQuery';
+import { useSavedTableView } from '@/hooks/useSavedTableView';
+import type { EnterpriseColumnFilterValue, EnterpriseSort } from '@/types/enterprise-table';
 
 interface SegmentForm {
     groupSegment: string;
@@ -48,14 +60,121 @@ interface SegmentForm {
     isActive: boolean;
 }
 
+const SEGMENT_EXPORT_COLUMNS = [
+    { field: 'groupSegment', headerName: 'Group Segment' },
+    { field: 'segment', headerName: 'Segment' },
+    { field: 'subSegment', headerName: 'Sub Segment' },
+    { field: 'segmentType', headerName: 'Segment Type' },
+    { field: 'description', headerName: 'Description' },
+    { field: 'displayOrder', headerName: 'Display Order' },
+    { field: 'isActive', headerName: 'Active' },
+] as const;
+
+const normalizeSegmentFilterValue = (value: EnterpriseColumnFilterValue) => {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'boolean') return value ? 'true' : 'false';
+    if (Array.isArray(value)) return value.join(' ');
+    if (typeof value === 'object') return JSON.stringify(value);
+    return String(value);
+};
+
+const getSegmentFieldValue = (row: ProductSegment, field: string): EnterpriseColumnFilterValue => {
+    const record = row as unknown as Record<string, unknown>;
+    return record[field] as EnterpriseColumnFilterValue;
+};
+
+const compareSegmentValues = (left: unknown, right: unknown) => {
+    if (left === right) return 0;
+    if (left === null || left === undefined) return 1;
+    if (right === null || right === undefined) return -1;
+
+    const leftNumber = typeof left === 'number' ? left : Number(left);
+    const rightNumber = typeof right === 'number' ? right : Number(right);
+    if (!Number.isNaN(leftNumber) && !Number.isNaN(rightNumber)) {
+        return leftNumber - rightNumber;
+    }
+
+    return String(left).localeCompare(String(right), undefined, {
+        numeric: true,
+        sensitivity: 'base',
+    });
+};
+
+const applySegmentTableQuery = (
+    rows: ProductSegment[],
+    columnFilters: Record<string, EnterpriseColumnFilterValue>,
+    sort: EnterpriseSort[],
+) => {
+    const activeFilters = Object.entries(columnFilters).filter(([, value]) => normalizeSegmentFilterValue(value).trim().length > 0);
+    const filteredRows = activeFilters.length === 0
+        ? rows
+        : rows.filter((row) =>
+            activeFilters.every(([field, value]) =>
+                normalizeSegmentFilterValue(getSegmentFieldValue(row, field)).toLowerCase().includes(normalizeSegmentFilterValue(value).toLowerCase())
+            )
+        );
+
+    const activeSort = sort[0];
+    if (!activeSort) return filteredRows;
+
+    return [...filteredRows].sort((leftRow, rightRow) => {
+        const leftValue = getSegmentFieldValue(leftRow, activeSort.field);
+        const rightValue = getSegmentFieldValue(rightRow, activeSort.field);
+        const result = compareSegmentValues(leftValue, rightValue);
+        return activeSort.direction === 'asc' ? result : -result;
+    });
+};
+
 export default function ProductSegmentPage() {
-    const router = useRouter();
+    const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [data, setData] = useState<ProductSegment[]>([]);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedSegment, setSelectedSegment] = useState<ProductSegment | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [segmentTypeFilter, setSegmentTypeFilter] = useState<'all' | SegmentForm['segmentType']>('all');
+    const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
+    const {
+        queryState,
+        setPaginationModel,
+        setColumnVisibilityModel,
+        setDensity,
+        setColumnFilters,
+        setSort,
+        applySavedView,
+        toSavedViewState,
+        resetView,
+    } = useEnterpriseTableQuery({
+        pageKey: 'banking:product-segments',
+        paginationMode: 'client',
+        initialPageSize: 10,
+        syncUrl: true,
+    });
+    const savedView = useSavedTableView({
+        userId: user?.id,
+        scope: 'banking:product-segments',
+        enabled: Boolean(user?.id),
+        onApplyView: (view) => {
+            applySavedView(view);
+            setSearchTerm(typeof view.state.search === 'string' ? view.state.search : '');
+            const savedFilters = (view.state.filters ?? {}) as Record<string, unknown>;
+            setSegmentTypeFilter(
+                savedFilters.segmentType === 'EAD Segment'
+                || savedFilters.segmentType === 'LGD Segment'
+                || savedFilters.segmentType === 'PD Segment'
+                || savedFilters.segmentType === 'Portfolio Segment'
+                    ? savedFilters.segmentType
+                    : 'all'
+            );
+            setActiveFilter(
+                savedFilters.activeFilter === 'active' || savedFilters.activeFilter === 'inactive' || savedFilters.activeFilter === 'all'
+                    ? savedFilters.activeFilter
+                    : 'all'
+            );
+        },
+    });
 
     const [formData, setFormData] = useState<SegmentForm>({
         groupSegment: '',
@@ -130,13 +249,13 @@ export default function ProductSegmentPage() {
             getActions: (params: GridRowParams) => {
                 if (!params.row) return [];
                 return [
-                    <GridActionsCellItem
+                    <SafeGridActionsCellItem
                         icon={<EditIcon color="primary" />}
                         label="Edit"
                         onClick={() => handleEdit(params.row)}
                         key="edit"
                     />,
-                    <GridActionsCellItem
+                    <SafeGridActionsCellItem
                         icon={<DeleteIcon color="error" />}
                         label="Delete"
                         onClick={() => handleDelete(params.row)}
@@ -147,8 +266,38 @@ export default function ProductSegmentPage() {
         }
     ];
 
+    const filteredData = useMemo(() => {
+        let filtered = [...data];
+
+        if (searchTerm.trim()) {
+            const normalizedSearch = searchTerm.trim().toLowerCase();
+            filtered = filtered.filter((segment) =>
+                [segment.groupSegment, segment.segment, segment.subSegment, segment.description, segment.segmentType]
+                    .filter(Boolean)
+                    .some((value) => String(value).toLowerCase().includes(normalizedSearch))
+            );
+        }
+
+        if (segmentTypeFilter !== 'all') {
+            filtered = filtered.filter((segment) => segment.segmentType === segmentTypeFilter);
+        }
+
+        if (activeFilter === 'active') {
+            filtered = filtered.filter((segment) => segment.isActive);
+        } else if (activeFilter === 'inactive') {
+            filtered = filtered.filter((segment) => !segment.isActive);
+        }
+
+        return filtered;
+    }, [activeFilter, data, searchTerm, segmentTypeFilter]);
+
+    const tableRows = useMemo(
+        () => applySegmentTableQuery(filteredData, queryState.columnFilters, queryState.sort),
+        [filteredData, queryState.columnFilters, queryState.sort],
+    );
+
     // Load data
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         setLoading(true);
         setError(null);
 
@@ -168,7 +317,7 @@ export default function ProductSegmentPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     // Component lifecycle
     useEffect(() => {
@@ -292,6 +441,71 @@ export default function ProductSegmentPage() {
         }
     };
 
+    const handleResetFilters = useCallback(async () => {
+        setSearchTerm('');
+        setSegmentTypeFilter('all');
+        setActiveFilter('all');
+        resetView();
+        setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
+        if (savedView.hasSavedView) {
+            await savedView.clearSavedView();
+        }
+        setSuccess('Product segment table view reset');
+    }, [queryState.paginationModel.pageSize, resetView, savedView, setPaginationModel]);
+
+    const handleSaveView = useCallback(async () => {
+        if (!user?.id) return;
+        await savedView.saveDefaultView({
+            ...toSavedViewState(),
+            search: searchTerm,
+            filters: {
+                ...toSavedViewState().filters,
+                segmentType: segmentTypeFilter,
+                activeFilter,
+            },
+        });
+        setSuccess('Product segment table view saved');
+    }, [activeFilter, savedView, searchTerm, segmentTypeFilter, toSavedViewState, user?.id]);
+
+    const handleExport = useCallback((format: 'xlsx' | 'csv' | 'pdf') => {
+        try {
+            const exportColumns = SEGMENT_EXPORT_COLUMNS.filter(
+                (column) => queryState.columnVisibilityModel[column.field] !== false,
+            );
+            const exportFilters: Record<string, string> = {};
+            if (searchTerm) exportFilters.Search = searchTerm;
+            if (segmentTypeFilter !== 'all') exportFilters['Segment Type'] = segmentTypeFilter;
+            if (activeFilter !== 'all') exportFilters.Status = activeFilter;
+            Object.entries(queryState.columnFilters).forEach(([field, value]) => {
+                const normalizedValue = normalizeSegmentFilterValue(value);
+                if (normalizedValue.trim()) {
+                    exportFilters[`Column: ${field}`] = normalizedValue;
+                }
+            });
+
+            const exportOptions = {
+                title: 'Product Segmentation',
+                filename: 'product_segmentation',
+                filters: exportFilters,
+                confidential: true,
+            };
+
+            const result = format === 'xlsx'
+                ? exportToXLSX(tableRows, exportColumns, exportOptions)
+                : format === 'csv'
+                    ? exportToCSV(tableRows, exportColumns, exportOptions)
+                    : exportToPDF(tableRows, exportColumns, exportOptions);
+
+            if (!result?.success) {
+                throw new Error(result?.error || `Failed to export ${format.toUpperCase()}`);
+            }
+
+            setSuccess(`Exported ${tableRows.length} product segments to ${format.toUpperCase()}`);
+        } catch (exportError) {
+            setError(getErrorMessage(exportError, 'Failed to export product segments'));
+        }
+    }, [activeFilter, queryState.columnFilters, queryState.columnVisibilityModel, searchTerm, segmentTypeFilter, tableRows]);
+
     // Render loading state
     if (loading && data.length === 0) {
         return (
@@ -358,6 +572,14 @@ export default function ProductSegmentPage() {
                         </IconButton>
                     </Tooltip>
                     <Button
+                        variant="outlined"
+                        startIcon={<DownloadIcon />}
+                        onClick={() => handleExport('xlsx')}
+                        disabled={loading || tableRows.length === 0}
+                    >
+                        Export
+                    </Button>
+                    <Button
                         variant="contained"
                         startIcon={<AddIcon />}
                         onClick={handleCreate}
@@ -378,18 +600,90 @@ export default function ProductSegmentPage() {
             {/* Main Content */}
             <Card>
                 <CardContent>
+                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
+                        <TextField
+                            placeholder="Search group, segment, sub segment, or description"
+                            value={searchTerm}
+                            onChange={(event) => {
+                                setSearchTerm(event.target.value);
+                                setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
+                            }}
+                            size="small"
+                            sx={{ minWidth: 280, flex: '1 1 320px' }}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchIcon />
+                                    </InputAdornment>
+                                ),
+                            }}
+                        />
+                        <FormControl size="small" sx={{ minWidth: 180 }}>
+                            <InputLabel>Segment Type</InputLabel>
+                            <Select
+                                value={segmentTypeFilter}
+                                label="Segment Type"
+                                onChange={(event) => {
+                                    setSegmentTypeFilter(event.target.value as typeof segmentTypeFilter);
+                                    setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
+                                }}
+                            >
+                                <MenuItem value="all">All</MenuItem>
+                                <MenuItem value="EAD Segment">EAD Segment</MenuItem>
+                                <MenuItem value="LGD Segment">LGD Segment</MenuItem>
+                                <MenuItem value="PD Segment">PD Segment</MenuItem>
+                                <MenuItem value="Portfolio Segment">Portfolio Segment</MenuItem>
+                            </Select>
+                        </FormControl>
+                        <FormControl size="small" sx={{ minWidth: 140 }}>
+                            <InputLabel>Status</InputLabel>
+                            <Select
+                                value={activeFilter}
+                                label="Status"
+                                onChange={(event) => {
+                                    setActiveFilter(event.target.value as typeof activeFilter);
+                                    setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
+                                }}
+                            >
+                                <MenuItem value="all">All</MenuItem>
+                                <MenuItem value="active">Active</MenuItem>
+                                <MenuItem value="inactive">Inactive</MenuItem>
+                            </Select>
+                        </FormControl>
+                        <Button variant="text" onClick={handleResetFilters}>
+                            Reset Filters
+                        </Button>
+                    </Box>
                     <Box sx={{ height: 600, width: '100%' }}>
-                        <DataGrid
-                            rows={data}
+                        <SafeDataGrid
+                            rows={tableRows}
                             columns={columns}
                             getRowId={(row) => row.id}
+                            paginationMode="client"
+                            rowCount={tableRows.length}
+                            paginationModel={queryState.paginationModel}
+                            onPaginationModelChange={setPaginationModel}
                             pageSizeOptions={[5, 10, 25, 50]}
-                            initialState={{
-                                pagination: { paginationModel: { pageSize: 10 } }
-                            }}
                             disableRowSelectionOnClick
                             loading={loading}
-                        />
+                            columnFilters={queryState.columnFilters}
+                            onColumnFiltersChange={setColumnFilters}
+                            sortModel={queryState.sort.map((item) => ({ field: item.field, sort: item.direction }))}
+                            onSortModelChange={(model) => {
+                                setSort(
+                                    model
+                                        .filter((item) => item.sort === 'asc' || item.sort === 'desc')
+                                        .map((item) => ({ field: item.field, direction: item.sort as 'asc' | 'desc' }))
+                                );
+                            }}
+                            columnVisibilityModel={queryState.columnVisibilityModel}
+                            onColumnVisibilityModelChange={setColumnVisibilityModel}
+                            density={queryState.density === 'dense' ? 'compact' : queryState.density}
+                            onDensityChange={setDensity}
+                            showEnterpriseControls
+                            onSaveView={handleSaveView}
+                            onResetView={handleResetFilters}
+                            />
                     </Box>
                 </CardContent>
             </Card>

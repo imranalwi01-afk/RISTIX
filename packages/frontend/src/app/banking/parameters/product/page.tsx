@@ -16,6 +16,9 @@ import { Download as DownloadIcon } from '@mui/icons-material';
 import { useSearchParams } from 'next/navigation';
 import { api, handleAPIError, bankingAPI } from '@/services/api';
 import { exportToXLSX, exportToCSV, exportToPDF } from '@/utils/exportUtils';
+import { useAuth } from '@/providers/AuthProvider';
+import { useEnterpriseTableQuery } from '@/hooks/useEnterpriseTableQuery';
+import { useSavedTableView } from '@/hooks/useSavedTableView';
 
 // Modular Components
 import PageHeader from '@/components/banking/shared/PageHeader';
@@ -88,6 +91,7 @@ const toDropdownOptions = (items: OptionItem[], withCodePrefix = false) =>
   }));
 
 export default function ProductParametersPage() {
+  const { user } = useAuth();
   const { hasAnyPermission } = usePermission();
   const canViewProduct = hasAnyPermission(['banking.parameter.product.view', 'banking.parameter.product.manage', 'banking.parameter.product', 'admin.super_admin']);
   const canManageProduct = hasAnyPermission(['banking.parameter.product.manage', 'banking.parameter.product.create', 'banking.parameter.product.update', 'banking.parameter.product.delete', 'admin.super_admin']);
@@ -101,9 +105,37 @@ export default function ProductParametersPage() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any[]>([]);
   const [rowCount, setRowCount] = useState(0);
-  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 25 });
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({ currency: '', activeOnly: 'all', dataSource: '' });
+  const {
+    queryState,
+    setPaginationModel,
+    setColumnVisibilityModel,
+    setDensity,
+    applySavedView,
+    toSavedViewState,
+    resetView,
+  } = useEnterpriseTableQuery({
+    pageKey: 'banking:product-parameters',
+    paginationMode: 'offset',
+    initialPageSize: 25,
+    syncUrl: true,
+  });
+  const savedView = useSavedTableView({
+    userId: user?.id,
+    scope: 'banking:product-parameters',
+    enabled: Boolean(user?.id),
+    onApplyView: (view) => {
+      applySavedView(view);
+      setSearchTerm(typeof view.state.search === 'string' ? view.state.search : '');
+      const savedFilters = (view.state.filters ?? {}) as Record<string, unknown>;
+      setFilters({
+        currency: typeof savedFilters.currency === 'string' ? savedFilters.currency : '',
+        activeOnly: typeof savedFilters.activeOnly === 'string' ? savedFilters.activeOnly : 'all',
+        dataSource: typeof savedFilters.dataSource === 'string' ? savedFilters.dataSource : '',
+      });
+    },
+  });
 
   const [formOpen, setFormOpen] = useState(false);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
@@ -140,8 +172,8 @@ export default function ProductParametersPage() {
     setLoading(true);
     try {
       const result = await api.banking.productParameters.getAll(mode, {
-        page: paginationModel.page + 1,
-        limit: paginationModel.pageSize,
+        page: queryState.paginationModel.page + 1,
+        limit: queryState.paginationModel.pageSize,
         search: searchTerm || undefined,
         currency: filters.currency || undefined,
         activeOnly: filters.activeOnly === 'all' ? undefined : (filters.activeOnly === 'active')
@@ -190,7 +222,7 @@ export default function ProductParametersPage() {
     } finally {
       setLoading(false);
     }
-  }, [mode, paginationModel, searchTerm, filters]);
+  }, [filters, mode, queryState.paginationModel.page, queryState.paginationModel.pageSize, searchTerm]);
 
   const loadOptions = useCallback(async () => {
     try {
@@ -343,9 +375,74 @@ export default function ProductParametersPage() {
     const opts = { title: 'Product Parameters', confidential: true };
     const exporter = format === 'xlsx' ? exportToXLSX : format === 'csv' ? exportToCSV : exportToPDF;
 
-    if (exporter(data, cols, opts).success) setSuccess(`Exported to ${format.toUpperCase()}`);
-    else setError('Export failed');
+    const fetchAllRows = async () => {
+      const limit = 1000;
+      const firstPage = await api.banking.productParameters.getAll(mode, {
+        page: 1,
+        limit,
+        search: searchTerm || undefined,
+        currency: filters.currency || undefined,
+        activeOnly: filters.activeOnly === 'all' ? undefined : (filters.activeOnly === 'active'),
+      });
+      const firstPayload = firstPage?.data && typeof firstPage.data === 'object' ? firstPage.data : firstPage;
+      const firstRows = Array.isArray(firstPayload?.products) ? firstPayload.products : [];
+      const totalPages = Math.max(1, Number(firstPayload?.pagination?.totalPages ?? 1));
+      if (totalPages === 1) return firstRows;
+
+      const restPages = await Promise.all(
+        Array.from({ length: totalPages - 1 }, (_, index) => api.banking.productParameters.getAll(mode, {
+          page: index + 2,
+          limit,
+          search: searchTerm || undefined,
+          currency: filters.currency || undefined,
+          activeOnly: filters.activeOnly === 'all' ? undefined : (filters.activeOnly === 'active'),
+        }))
+      );
+
+      return [
+        ...firstRows,
+        ...restPages.flatMap((pageResult: any) => {
+          const payload = pageResult?.data && typeof pageResult.data === 'object' ? pageResult.data : pageResult;
+          return Array.isArray(payload?.products) ? payload.products : [];
+        }),
+      ];
+    };
+
+    void (async () => {
+      try {
+        const rows = await fetchAllRows();
+        if (exporter(rows, cols, opts).success) setSuccess(`Exported to ${format.toUpperCase()}`);
+        else setError('Export failed');
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Export failed');
+      }
+    })();
   };
+
+  const handleSaveView = useCallback(async () => {
+    try {
+      await savedView.saveDefaultView({
+        ...toSavedViewState(),
+        search: searchTerm,
+        filters,
+      });
+      setSuccess('Product table view saved.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save product table view.');
+    }
+  }, [filters, savedView, searchTerm, toSavedViewState]);
+
+  const handleResetView = useCallback(async () => {
+    try {
+      await savedView.clearSavedView();
+      resetView();
+      setSearchTerm('');
+      setFilters({ currency: '', activeOnly: 'all', dataSource: '' });
+      setSuccess('Product table view cleared.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to clear product table view.');
+    }
+  }, [resetView, savedView]);
 
   // State calculations
   const activeFilterCount = Object.values(filters).filter(v => v !== '' && v !== 'all').length;
@@ -386,10 +483,16 @@ export default function ProductParametersPage() {
           onEdit={handleEdit}
           onClone={handleClone}
           onDelete={handleDelete}
-          paginationModel={paginationModel}
+          paginationModel={queryState.paginationModel}
           onPaginationModelChange={setPaginationModel}
           rowCount={rowCount}
           canManage={canManageProduct}
+          columnVisibilityModel={queryState.columnVisibilityModel}
+          onColumnVisibilityModelChange={setColumnVisibilityModel}
+          density={queryState.density}
+          onDensityChange={setDensity}
+          onSaveView={handleSaveView}
+          onResetView={handleResetView}
           onViewPending={(request, record) => {
             setSelectedPendingRequest(request);
             setCurrentRecordForPending(record);

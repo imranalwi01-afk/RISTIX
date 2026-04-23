@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import {
     Box,
     Typography,
@@ -50,9 +50,22 @@ import {
     VpnKey as VpnKeyIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
-import { usersAPI, tenantsAPI, rolesAPI } from '@/services/api';
 import { exportToCsv } from '@/utils/export-csv';
 import { getErrorMessage } from '@/utils/error-message';
+import { usePlatformTenantsQuery } from '@/features/platform-tenants/hooks/usePlatformTenantsQueries';
+import {
+    useCreateTenantUserMutation,
+    useDeleteTenantUserMutation,
+    useResetTenantUserPasswordMutation,
+    useSaveTenantRolePermissionsMutation,
+    useSaveTenantUserRolesMutation,
+    useTenantPermissionsCatalogQuery,
+    useTenantRoleCatalogQuery,
+    useTenantRolePermissionCodesQuery,
+    useTenantUsersQuery,
+    useToggleTenantUserMutation,
+    useUpdateTenantUserMutation,
+} from '@/features/tenant-user-management/hooks/useTenantUserManagementQueries';
 
 // Types
 interface Tenant {
@@ -158,14 +171,7 @@ const normalizePermission = (permission: any): PermissionOption => ({
 
 const TenantUserManagement = () => {
     // State for tenant selection
-    const [tenants, setTenants] = useState<Tenant[]>([]);
     const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
-    const [loadingTenants, setLoadingTenants] = useState(false);
-
-    // State for users data
-    const [users, setUsers] = useState<TenantUser[]>([]);
-    const [total, setTotal] = useState(0);
-    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // State for pagination & filtering
@@ -211,116 +217,62 @@ const TenantUserManagement = () => {
     const [permissionSearchTerm, setPermissionSearchTerm] = useState('');
     const [permissionDialogLoading, setPermissionDialogLoading] = useState(false);
     const [permissionDialogSaving, setPermissionDialogSaving] = useState(false);
-
-    // Fetch tenants on mount
-    useEffect(() => {
-        const loadTenants = async () => {
-            setLoadingTenants(true);
-            try {
-                const response = await tenantsAPI.getAll({ limit: 100 }); // Fetch first 100 for now
-                const responseData = (response as any)?.data;
-                const data = Array.isArray(responseData)
-                    ? responseData
-                    : Array.isArray(responseData?.tenants)
-                        ? responseData.tenants
-                        : [];
-                setTenants(data);
-            } catch (err) {
-                console.error('Failed to load tenants', err);
-                const status = (err as any)?.response?.status;
-                if (status === 403) {
-                    setError('Access denied. This account does not have platform admin permissions.');
-                } else if (status === 401) {
-                    setError('Session expired. Please log in again.');
-                } else {
-                    setError('Failed to load tenants list.');
-                }
-            } finally {
-                setLoadingTenants(false);
-            }
-        };
-        loadTenants();
-    }, []);
-
-    const hydrateUserRoles = useCallback(async (tenantId: string, targetUsers: TenantUser[]) => {
-        if (!tenantId || targetUsers.length === 0) {
-            setUserRolesMap({});
-            return;
-        }
-
-        const roleResults = await Promise.allSettled(
-            targetUsers.map(async (user) => {
-                const response = await rolesAPI.getUserRoles(user.id, tenantId);
-                const assigned = extractCollection<any>(response, ['roles']).map((entry) => normalizeRole(entry?.role || entry));
-                return { userId: user.id, roles: assigned };
-            })
-        );
-
-        const nextMap: Record<string, TenantRole[]> = {};
-        roleResults.forEach((result, index) => {
-            const fallbackUserId = targetUsers[index]?.id;
-            if (result.status === 'fulfilled') {
-                nextMap[result.value.userId] = result.value.roles;
-            } else if (fallbackUserId) {
-                nextMap[fallbackUserId] = [];
-            }
-        });
-
-        setUserRolesMap(nextMap);
-    }, []);
-
-    // Fetch users whenever selectedTenant changes or pagination/search updates
-    const fetchUsers = useCallback(async () => {
-        if (!selectedTenant) {
-            setUsers([]);
-            setTotal(0);
-            setUserRolesMap({});
-            return;
-        }
-
-        setLoading(true);
-        setError(null);
-        try {
-            console.log(`Fetching users for tenant: ${selectedTenant.name} (${selectedTenant.id})`);
-            const response = await usersAPI.getAll({
-                page: page + 1,
-                limit: rowsPerPage,
-                search: searchQuery || undefined
-            }, selectedTenant.id); // Pass tenantId override
-
-            const responseData = (response as any)?.data;
-            const data = Array.isArray(responseData?.users)
-                ? responseData.users
-                : Array.isArray(responseData)
-                    ? responseData
-                    : [];
-            const totalCountRaw = (response as any)?.pagination?.total ?? (response as any)?.total ?? responseData?.total ?? data.length;
-            const totalCount = Number(totalCountRaw);
-
-            setUsers(data);
-            setTotal(Number.isFinite(totalCount) ? totalCount : data.length);
-            void hydrateUserRoles(selectedTenant.id, data);
-        } catch (err) {
-            console.error('Failed to fetch tenant users:', err);
-            const status = (err as any)?.response?.status;
-            if (status === 403) {
-                setError('Access denied for selected tenant users.');
-            } else if (status === 401) {
-                setError('Session expired. Please log in again.');
-            } else {
-                setError('Failed to load users for the selected tenant.');
-            }
-        } finally {
-            setLoading(false);
-        }
-    }, [selectedTenant, page, rowsPerPage, searchQuery, hydrateUserRoles]);
+    const deferredSearchQuery = useDeferredValue(searchQuery);
+    const tenantsQuery = usePlatformTenantsQuery({ page: 1, limit: 100, mode: 'admin' });
+    const tenants = (tenantsQuery.data?.rows ?? []) as Tenant[];
+    const usersQuery = useTenantUsersQuery({
+        tenantId: selectedTenant?.id || '',
+        page: page + 1,
+        limit: rowsPerPage,
+        search: deferredSearchQuery || undefined,
+    }, Boolean(selectedTenant?.id));
+    const roleCatalogQuery = useTenantRoleCatalogQuery(selectedTenant?.id || null, isRoleDialogOpen && Boolean(selectedTenant?.id));
+    const permissionsCatalogQuery = useTenantPermissionsCatalogQuery(selectedTenant?.id || null, isPermissionDialogOpen && Boolean(selectedTenant?.id));
+    const permissionCodesQuery = useTenantRolePermissionCodesQuery(
+        selectedTenant?.id || null,
+        permissionDialogRole?.id || null,
+        isPermissionDialogOpen && Boolean(selectedTenant?.id) && Boolean(permissionDialogRole?.id),
+    );
+    const createUserMutation = useCreateTenantUserMutation();
+    const updateUserMutation = useUpdateTenantUserMutation();
+    const deleteUserMutation = useDeleteTenantUserMutation();
+    const toggleUserMutation = useToggleTenantUserMutation();
+    const resetPasswordMutation = useResetTenantUserPasswordMutation();
+    const saveUserRolesMutation = useSaveTenantUserRolesMutation();
+    const saveRolePermissionsMutation = useSaveTenantRolePermissionsMutation();
+    const users = (usersQuery.data?.users ?? []) as TenantUser[];
+    const total = usersQuery.data?.total ?? 0;
+    const loading = usersQuery.isLoading || usersQuery.isFetching || deleteUserMutation.isPending || toggleUserMutation.isPending;
+    const loadingTenants = tenantsQuery.isLoading || tenantsQuery.isFetching;
 
     useEffect(() => {
-        const timer = setTimeout(() => {
-            fetchUsers();
-        }, 300);
-        return () => clearTimeout(timer);
-    }, [fetchUsers]);
+        if (!selectedTenant && tenants.length > 0) {
+            setSelectedTenant(tenants[0]);
+        }
+    }, [selectedTenant, tenants]);
+
+    useEffect(() => {
+        setUserRolesMap((usersQuery.data?.userRolesMap ?? {}) as Record<string, TenantRole[]>);
+    }, [usersQuery.data?.userRolesMap]);
+
+    useEffect(() => {
+        if (roleCatalogQuery.data) {
+            setAvailableRoles(roleCatalogQuery.data as TenantRole[]);
+        }
+    }, [roleCatalogQuery.data]);
+
+    useEffect(() => {
+        if (permissionsCatalogQuery.data) {
+            setPermissionsCatalog(permissionsCatalogQuery.data as PermissionOption[]);
+            setPermissionsTenantId(selectedTenant?.id || null);
+        }
+    }, [permissionsCatalogQuery.data, selectedTenant?.id]);
+
+    useEffect(() => {
+        if (permissionCodesQuery.data && isPermissionDialogOpen) {
+            setSelectedPermissionCodes(permissionCodesQuery.data);
+        }
+    }, [permissionCodesQuery.data, isPermissionDialogOpen]);
 
     // Handlers
     const handlePageChange = (event: unknown, newPage: number) => {
@@ -376,8 +328,7 @@ const TenantUserManagement = () => {
         }
 
         try {
-            await usersAPI.delete(id, selectedTenant.id);
-            fetchUsers();
+            await deleteUserMutation.mutateAsync({ tenantId: selectedTenant.id, userId: id });
         } catch (err) {
             console.error('Failed to delete user:', err);
             setError('Failed to delete user.');
@@ -387,12 +338,7 @@ const TenantUserManagement = () => {
     const handleToggle = async (user: TenantUser) => {
         if (!selectedTenant) return;
         try {
-            if (user.isActive) {
-                await usersAPI.disable(user.id, selectedTenant.id);
-            } else {
-                await usersAPI.enable(user.id, selectedTenant.id);
-            }
-            fetchUsers();
+            await toggleUserMutation.mutateAsync({ tenantId: selectedTenant.id, userId: user.id, isActive: user.isActive });
         } catch (err) {
             console.error('Failed to toggle user:', err);
             setError('Failed to update user status.');
@@ -407,13 +353,19 @@ const TenantUserManagement = () => {
         setError(null);
         try {
             if (formMode === 'create') {
-                await usersAPI.create(formData, selectedTenant.id);
+                await createUserMutation.mutateAsync({
+                    tenantId: selectedTenant.id,
+                    input: formData as unknown as Record<string, unknown>,
+                });
             } else {
                 if (!formData.id) throw new Error("User ID missing for update");
-                await usersAPI.update(formData.id, formData, selectedTenant.id);
+                await updateUserMutation.mutateAsync({
+                    tenantId: selectedTenant.id,
+                    userId: formData.id,
+                    input: formData as unknown as Record<string, unknown>,
+                });
             }
             setIsFormOpen(false);
-            fetchUsers();
         } catch (err: any) {
             console.error('Form submission failed:', err);
             const msg = getErrorMessage(err, 'Operation failed');
@@ -440,18 +392,17 @@ const TenantUserManagement = () => {
         setResetLoading(true);
         setError(null);
         try {
-            await usersAPI.resetPassword(
-                resetTargetUser.id,
-                {
+            await resetPasswordMutation.mutateAsync({
+                tenantId: selectedTenant.id,
+                userId: resetTargetUser.id,
+                payload: {
                     newPassword: resetPasswordValue,
                     forcePasswordChange: resetForceChange,
                 },
-                selectedTenant.id
-            );
+            });
             setIsResetPasswordOpen(false);
             setResetTargetUser(null);
             setResetPasswordValue('');
-            fetchUsers();
         } catch (err: any) {
             console.error('Failed to reset user password:', err);
             const msg = getErrorMessage(err, 'Operation failed');
@@ -489,34 +440,10 @@ const TenantUserManagement = () => {
         setRoleDialogUser(user);
         setRoleSearchTerm('');
         setIsRoleDialogOpen(true);
-        setRoleDialogLoading(true);
         setError(null);
-
-        try {
-            const [allRolesResponse, userRolesResponse] = await Promise.all([
-                rolesAPI.getAll({ limit: 200 }, selectedTenant.id),
-                rolesAPI.getUserRoles(user.id, selectedTenant.id),
-            ]);
-
-            const allRoles = extractCollection<any>(allRolesResponse, ['roles', 'data'])
-                .map(normalizeRole)
-                .filter((role) => role.id);
-
-            const userRoles = extractCollection<any>(userRolesResponse, ['roles'])
-                .map((entry) => normalizeRole(entry?.role || entry))
-                .filter((role) => role.id);
-
-            const assignedIds = userRoles.map((role) => role.id);
-            setAvailableRoles(allRoles);
-            setSelectedRoleIds(assignedIds);
-            setInitialRoleIds(assignedIds);
-        } catch (err: any) {
-            console.error('Failed to open role assignment dialog:', err);
-            const msg = getErrorMessage(err, 'Failed to load role assignments');
-            setError(msg);
-        } finally {
-            setRoleDialogLoading(false);
-        }
+        const assignedIds = ((usersQuery.data?.userRolesMap as Record<string, TenantRole[]> | undefined)?.[user.id] || []).map((role) => role.id);
+        setSelectedRoleIds(assignedIds);
+        setInitialRoleIds(assignedIds);
     };
 
     const handleToggleRole = (roleId: string) => {
@@ -539,31 +466,14 @@ const TenantUserManagement = () => {
         if (!selectedTenant || !roleDialogUser) return;
         setRoleDialogSaving(true);
         setError(null);
-
-        const toAssign = selectedRoleIds.filter((roleId) => !initialRoleIds.includes(roleId));
-        const toRemove = initialRoleIds.filter((roleId) => !selectedRoleIds.includes(roleId));
-
         try {
-            const assignResults = await Promise.allSettled(
-                toAssign.map((roleId) => rolesAPI.assignUser(roleId, roleDialogUser.id, selectedTenant.id))
-            );
-            const removeResults = await Promise.allSettled(
-                toRemove.map((roleId) => rolesAPI.removeUser(roleId, roleDialogUser.id, selectedTenant.id))
-            );
-
-            const failedAssignments = assignResults.filter((result) => result.status === 'rejected').length;
-            const failedRemovals = removeResults.filter((result) => result.status === 'rejected').length;
-
-            if (failedAssignments || failedRemovals) {
-                setError(`Some role updates failed (${failedAssignments} assign, ${failedRemovals} remove).`);
-            }
-
-            const assignedRoles = availableRoles.filter((role) => selectedRoleIds.includes(role.id));
-            setUserRolesMap((prev) => ({ ...prev, [roleDialogUser.id]: assignedRoles }));
-
-            if (!failedAssignments && !failedRemovals) {
-                closeRoleDialog();
-            }
+            await saveUserRolesMutation.mutateAsync({
+                tenantId: selectedTenant.id,
+                userId: roleDialogUser.id,
+                initialRoleIds,
+                selectedRoleIds,
+            });
+            closeRoleDialog();
         } catch (err: any) {
             console.error('Failed to save role assignments:', err);
             const msg = getErrorMessage(err, 'Failed to save role assignments');
@@ -578,45 +488,7 @@ const TenantUserManagement = () => {
         setPermissionDialogRole(role);
         setPermissionSearchTerm('');
         setIsPermissionDialogOpen(true);
-        setPermissionDialogLoading(true);
         setError(null);
-
-        try {
-            let catalog = permissionsCatalog;
-            if (!catalog.length || permissionsTenantId !== selectedTenant.id) {
-                const permissionResponse = await rolesAPI.getPermissions(selectedTenant.id);
-                catalog = extractCollection<any>(permissionResponse, ['permissions', 'data'])
-                    .map(normalizePermission)
-                    .filter((permission) => permission.id && permission.code);
-                setPermissionsCatalog(catalog);
-                setPermissionsTenantId(selectedTenant.id);
-            }
-
-            const roleResponse = await rolesAPI.getById(role.id, selectedTenant.id);
-            const rolePayload = (roleResponse as any)?.data ?? roleResponse;
-            const groupedPermissions = rolePayload?.permissions;
-
-            const selected = new Set<string>();
-
-            if (groupedPermissions && typeof groupedPermissions === 'object') {
-                Object.values(groupedPermissions as Record<string, unknown>).forEach((value) => {
-                    if (Array.isArray(value)) {
-                        value.forEach((item: any) => {
-                            const key = item?.code || item?.id;
-                            if (typeof key === 'string' && key.length > 0) selected.add(key);
-                        });
-                    }
-                });
-            }
-
-            setSelectedPermissionCodes(Array.from(selected));
-        } catch (err: any) {
-            console.error('Failed to open permission dialog:', err);
-            const msg = getErrorMessage(err, 'Failed to load role permissions');
-            setError(msg);
-        } finally {
-            setPermissionDialogLoading(false);
-        }
     };
 
     const handleTogglePermission = (code: string) => {
@@ -640,11 +512,11 @@ const TenantUserManagement = () => {
         setError(null);
 
         try {
-            await rolesAPI.updatePermissions(
-                permissionDialogRole.id,
-                selectedPermissionCodes,
-                selectedTenant.id
-            );
+            await saveRolePermissionsMutation.mutateAsync({
+                tenantId: selectedTenant.id,
+                roleId: permissionDialogRole.id,
+                permissionCodes: selectedPermissionCodes,
+            });
 
             setAvailableRoles((prev) =>
                 prev.map((role) =>
@@ -720,6 +592,11 @@ const TenantUserManagement = () => {
             {error && (
                 <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
                     {error}
+                </Alert>
+            )}
+            {!error && (tenantsQuery.error || usersQuery.error) && (
+                <Alert severity="error" sx={{ mb: 3 }}>
+                    Failed to load tenant user management data.
                 </Alert>
             )}
 
@@ -818,7 +695,7 @@ const TenantUserManagement = () => {
                     <Button
                         variant="outlined"
                         startIcon={<RefreshIcon />}
-                        onClick={fetchUsers}
+                        onClick={() => usersQuery.refetch()}
                         disabled={!selectedTenant}
                     >
                         Refresh
@@ -1071,7 +948,7 @@ const TenantUserManagement = () => {
                         />
                     </Box>
 
-                    {roleDialogLoading ? (
+                    {roleCatalogQuery.isLoading || roleCatalogQuery.isFetching ? (
                         <Box display="flex" justifyContent="center" py={6}>
                             <CircularProgress />
                         </Box>
@@ -1128,7 +1005,7 @@ const TenantUserManagement = () => {
                     <Button
                         variant="contained"
                         onClick={saveRoleAssignments}
-                        disabled={roleDialogSaving || roleDialogLoading}
+                        disabled={roleDialogSaving || roleCatalogQuery.isLoading || roleCatalogQuery.isFetching}
                     >
                         {roleDialogSaving ? 'Saving...' : 'Save Role Assignments'}
                     </Button>
@@ -1167,7 +1044,7 @@ const TenantUserManagement = () => {
                         />
                     </Box>
 
-                    {permissionDialogLoading ? (
+                    {permissionsCatalogQuery.isLoading || permissionsCatalogQuery.isFetching || permissionCodesQuery.isLoading || permissionCodesQuery.isFetching ? (
                         <Box display="flex" justifyContent="center" py={6}>
                             <CircularProgress />
                         </Box>
@@ -1228,7 +1105,13 @@ const TenantUserManagement = () => {
                     <Button
                         variant="contained"
                         onClick={saveRolePermissions}
-                        disabled={permissionDialogSaving || permissionDialogLoading}
+                        disabled={
+                            permissionDialogSaving
+                            || permissionsCatalogQuery.isLoading
+                            || permissionsCatalogQuery.isFetching
+                            || permissionCodesQuery.isLoading
+                            || permissionCodesQuery.isFetching
+                        }
                     >
                         {permissionDialogSaving ? 'Saving...' : 'Save Permissions'}
                     </Button>

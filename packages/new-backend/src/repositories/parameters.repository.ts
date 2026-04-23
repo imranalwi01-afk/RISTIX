@@ -1,6 +1,6 @@
 import { legacyDb } from '../config'
 import { frs9ParamCommonh, frs9ParamCommond } from '../db/schema'
-import { eq, and, asc, inArray, ilike } from 'drizzle-orm'
+import { eq, and, asc, desc, inArray, ilike, or, sql } from 'drizzle-orm'
 import { queryEffect } from './base.repository'
 import type { InferInsertModel } from 'drizzle-orm'
 
@@ -33,6 +33,87 @@ export const ParametersRepository = {
                 },
                 orderBy: frs9ParamCommonh.paramCode
             })
+        })
+    },
+
+    findHeadersPage: (
+        paramType: string | string[],
+        options: {
+            code?: string
+            search?: string
+            filters?: Record<string, string | number | boolean | string[]>
+            sort?: Array<{ field: string; direction: 'asc' | 'desc' }>
+            limit: number
+            offset: number
+        },
+    ) => {
+        return queryEffect(async () => {
+            const typeCondition = Array.isArray(paramType)
+                ? inArray(frs9ParamCommonh.paramType, paramType)
+                : eq(frs9ParamCommonh.paramType, paramType)
+
+            const searchValue = options.search?.trim()
+            const commonCode = typeof options.filters?.commonCode === 'string' ? options.filters.commonCode : undefined
+            const description = typeof options.filters?.description === 'string' ? options.filters.description : undefined
+            const value = typeof options.filters?.value === 'string' ? options.filters.value : undefined
+            const createdBy = typeof options.filters?.createdBy === 'string' ? options.filters.createdBy : undefined
+            const category = typeof options.filters?.category === 'string' ? options.filters.category : undefined
+
+            const whereClause = and(
+                typeCondition,
+                options.code ? eq(frs9ParamCommonh.paramCode, options.code) : undefined,
+                category ? eq(frs9ParamCommonh.paramType, category) : undefined,
+                searchValue ? or(
+                    ilike(frs9ParamCommonh.paramCode, `%${searchValue}%`),
+                    ilike(frs9ParamCommonh.paramName, `%${searchValue}%`),
+                    ilike(frs9ParamCommonh.paramUsage, `%${searchValue}%`),
+                    ilike(frs9ParamCommonh.createdby, `%${searchValue}%`),
+                ) : undefined,
+                commonCode ? ilike(frs9ParamCommonh.paramCode, `%${commonCode}%`) : undefined,
+                description ? ilike(frs9ParamCommonh.paramName, `%${description}%`) : undefined,
+                value ? ilike(frs9ParamCommonh.paramUsage, `%${value}%`) : undefined,
+                createdBy ? ilike(frs9ParamCommonh.createdby, `%${createdBy}%`) : undefined,
+            )
+
+            const sortField = options.sort?.[0]?.field
+            const sortDirection = options.sort?.[0]?.direction ?? 'asc'
+            const sortColumn =
+                sortField === 'createdDate' || sortField === 'CreatedDate' || sortField === 'created_date'
+                    ? frs9ParamCommonh.createddate
+                    : sortField === 'updatedDate' || sortField === 'UpdatedDate'
+                        ? frs9ParamCommonh.updateddate
+                        : sortField === 'description' || sortField === 'Description' || sortField === 'param_desc'
+                            ? frs9ParamCommonh.paramName
+                            : sortField === 'value' || sortField === 'Value' || sortField === 'param_value'
+                                ? frs9ParamCommonh.paramUsage
+                                : sortField === 'createdBy' || sortField === 'CreatedBy' || sortField === 'created_by'
+                                    ? frs9ParamCommonh.createdby
+                                    : sortField === 'category' || sortField === 'param_category'
+                                        ? frs9ParamCommonh.paramType
+                                        : frs9ParamCommonh.paramCode
+
+            const orderByClause = sortDirection === 'desc'
+                ? [desc(sortColumn), asc(frs9ParamCommonh.paramCode)]
+                : [asc(sortColumn), asc(frs9ParamCommonh.paramCode)]
+
+            const [rows, totalResult] = await Promise.all([
+                legacyDb
+                    .select()
+                    .from(frs9ParamCommonh)
+                    .where(whereClause)
+                    .orderBy(...orderByClause)
+                    .limit(options.limit)
+                    .offset(options.offset),
+                legacyDb
+                    .select({ count: sql<number>`count(*)::int` })
+                    .from(frs9ParamCommonh)
+                    .where(whereClause),
+            ])
+
+            return {
+                rows,
+                total: Number(totalResult[0]?.count ?? 0),
+            }
         })
     },
 
