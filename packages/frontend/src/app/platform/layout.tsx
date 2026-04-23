@@ -1,12 +1,13 @@
 
 'use client';
 
-import React, { useEffect } from 'react';
-import { Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, AppBar, Toolbar, Typography, IconButton, Chip } from '@mui/material';
+import React from 'react';
+import { Box, CircularProgress, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, AppBar, Toolbar, Typography, IconButton, Chip } from '@mui/material';
 import { SupervisorAccount as AdminIcon, Business as TenantIcon, People as UsersIcon, Logout as LogoutIcon, Security as SecurityIcon } from '@mui/icons-material';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
 import { TenantSwitcher } from '@/components/admin/TenantSwitcher';
+import { usePlatformAccessGuard } from '@/features/platform-access/hooks/usePlatformAccessGuard';
 
 const DRAWER_WIDTH = 240;
 const PLATFORM_COLORS = {
@@ -28,7 +29,8 @@ export default function PlatformLayout({
 }) {
     const router = useRouter();
     const pathname = usePathname();
-    const { logout, user, isAuthenticated, isLoading } = useAuth();
+    const { logout, user } = useAuth();
+    const { isLoading, isLoginRoute, canRenderPlatformShell } = usePlatformAccessGuard();
 
     const menuItems = [
         { text: 'Users', icon: <AdminIcon />, path: '/platform/users' },
@@ -42,28 +44,25 @@ export default function PlatformLayout({
         router.push('/platform/login');
     };
 
-    useEffect(() => {
-        if (pathname === '/platform/login') return;
-        if (isLoading) return;
-        if (!isAuthenticated) {
-            router.push('/platform/login?error=unauthorized');
-            return;
-        }
-
-        const isPlatform =
-            user?.stakeholderType === 'platform' ||
-            user?.isPlatformAdmin ||
-            (user?.permissions || []).includes('admin.super_admin') ||
-            (user?.permissions || []).includes('PLATFORM_ADMIN');
-
-        if (!isPlatform) {
-            router.push('/banking/dashboard');
-        }
-    }, [pathname, isLoading, isAuthenticated, user, router]);
-
     // If on login page, don't show layout
-    if (pathname === '/platform/login') {
+    if (isLoginRoute) {
         return children;
+    }
+
+    if (!canRenderPlatformShell) {
+        return (
+            <Box
+                sx={{
+                    minHeight: '100vh',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)',
+                }}
+            >
+                <CircularProgress />
+            </Box>
+        );
     }
 
     return (

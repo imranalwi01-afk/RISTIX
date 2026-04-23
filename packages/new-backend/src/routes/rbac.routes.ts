@@ -256,22 +256,25 @@ const createStrictApprovalRequest = async (input: {
         })
     )
 
-    await auditService.logApproval.requested(
-        request.id,
-        request.title,
-        input.userId,
-        input.tenantId,
-        {
-            entityType: input.entityType,
-            description: input.description,
-            oldValues: input.oldValues,
-            newValues: {
-                operation: input.operation,
+    auditService.runAuditSafely(
+        auditService.logApproval.requested(
+            request.id,
+            request.title,
+            input.userId,
+            input.tenantId,
+            {
                 entityType: input.entityType,
-                entityId: input.entityId,
-                payload: input.payload,
-            },
-        }
+                description: input.description,
+                oldValues: input.oldValues,
+                newValues: {
+                    operation: input.operation,
+                    entityType: input.entityType,
+                    entityId: input.entityId,
+                    payload: input.payload,
+                },
+            }
+        ),
+        `approval request logging for ${input.entityType} ${input.entityId ?? 'create'}`
     )
 
     return request
@@ -1037,26 +1040,29 @@ rbacRoutes.openapi(
                 })
             )
 
-            await auditService.logApproval.requested(
-                request.id,
-                request.title,
-                userId,
-                tenantId,
-                {
-                    entityType: 'role_permission',
-                    oldValues: {
-                        roleId,
-                        roleName: currentRole.roleName,
-                        permissionCodes: currentPermissionCodes,
-                    },
-                    newValues: {
-                        roleId,
-                        roleName: currentRole.roleName,
-                        permissionIds: resolvedPermissionIds,
-                        permissionCodes: resolvedPermissionCodes,
-                        diff: { added, removed },
-                    },
-                }
+            auditService.runAuditSafely(
+                auditService.logApproval.requested(
+                    request.id,
+                    request.title,
+                    userId,
+                    tenantId,
+                    {
+                        entityType: 'role_permission',
+                        oldValues: {
+                            roleId,
+                            roleName: currentRole.roleName,
+                            permissionCodes: currentPermissionCodes,
+                        },
+                        newValues: {
+                            roleId,
+                            roleName: currentRole.roleName,
+                            permissionIds: resolvedPermissionIds,
+                            permissionCodes: resolvedPermissionCodes,
+                            diff: { added, removed },
+                        },
+                    }
+                ),
+                `approval request logging for role permissions ${roleId}`
             )
 
             return c.json(

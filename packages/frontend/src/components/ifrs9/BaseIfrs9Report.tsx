@@ -68,6 +68,10 @@ import api from '../../services/api';
 import ModernLoader from '../common/ModernLoader'; // ✅ Import ModernLoader
 import { useBankingTheme } from '../../providers/BankingThemeProvider';
 import { usePermission } from '@/hooks/usePermission';
+import type { EnterpriseFilterDefinition } from '@/types/enterprise-table';
+import { useEnterpriseTableQuery } from '@/hooks/useEnterpriseTableQuery';
+import { useSavedTableView } from '@/hooks/useSavedTableView';
+import { useIfrs9ReportQuery } from '@/features/ifrs9-reports/hooks/useIfrs9ReportQuery';
 
 const formatLocalDate = (date: Date) => {
   const yyyy = date.getFullYear();
@@ -231,6 +235,7 @@ export interface ReportResponse {
   message?: string;
   effectivePrcDate?: string | null;
   summary?: Record<string, unknown> | null;
+  filterDefinitions?: Record<string, EnterpriseFilterDefinition>;
 }
 
 export interface ReportDebugMetadata {
@@ -289,11 +294,11 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   }, [user?.tenantId, user?.tenantSlug]);
 
   // State management
-  const fetchRef = React.useRef(false);
   const [data, setData] = useState<Record<string, unknown>[]>([]);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [columns, setColumns] = useState<GridColDef[]>([]);
+  const [filterDefinitions, setFilterDefinitions] = useState<Record<string, EnterpriseFilterDefinition>>({});
   const [filters, setFilters] = useState<ReportFilters>(getDefaultFilters(reportType));
 
   const [pagination, setPagination] = useState({
@@ -304,6 +309,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   });
   const [showFilters, setShowFilters] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const deferredSearchTerm = React.useDeferredValue(searchTerm);
   const [exportLoading, setExportLoading] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportOptions, setExportOptions] = useState({
@@ -323,9 +329,54 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   const [reportDebugEnabled, setReportDebugEnabled] = useState(false);
   const [reportDebugLoading, setReportDebugLoading] = useState(false);
   const [reportDebugSaving, setReportDebugSaving] = useState(false);
+  const {
+    queryState,
+    queryParams,
+    setPaginationModel,
+    setColumnFilters,
+    setSort,
+    setColumnVisibilityModel,
+    setDensity,
+    applySavedView,
+    toSavedViewState,
+    resetView,
+  } = useEnterpriseTableQuery({
+    pageKey: `ifrs9-report:${reportType}`,
+    paginationMode: supportsPagination ? 'offset' : 'client',
+    initialPageSize: getDefaultFilters(reportType).limit ?? 20,
+    syncUrl: supportsPagination,
+  });
+  const savedView = useSavedTableView({
+    userId: user?.id,
+    scope: `ifrs9-report:${reportType}`,
+    enabled: Boolean(user?.id),
+    onApplyView: (view) => {
+      applySavedView(view);
+      const savedSearch = typeof view.state.search === 'string' ? view.state.search : '';
+      setSearchTerm(savedSearch);
+    },
+  });
+  const missingParams = React.useMemo(
+    () => requiredParams.filter((param) => {
+      const value = filters[param as keyof ReportFilters];
+      return value === null || value === undefined || value === '';
+    }),
+    [filters, requiredParams],
+  );
+  const reportQuery = useIfrs9ReportQuery({
+    reportType,
+    filters,
+    requiredParams,
+    supportsPagination,
+    queryParams,
+    deferredSearchTerm,
+    enabled: Boolean(tenant && filters.prc_date && missingParams.length === 0),
+  });
+  const loading = reportQuery.isLoading || reportQuery.isFetching;
 
   // Client-side search filtering
   const filteredData = React.useMemo(() => {
+    if (supportsPagination) return data;
     if (!searchTerm) return data;
     const lowerTerm = searchTerm.toLowerCase();
     return data.filter(row => {
@@ -333,7 +384,12 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         String(val).toLowerCase().includes(lowerTerm)
       );
     });
-  }, [data, searchTerm]);
+  }, [data, searchTerm, supportsPagination]);
+
+  const gridDensity = React.useMemo(() => {
+    if (!supportsPagination) return undefined;
+    return queryState.density === 'dense' ? 'compact' : queryState.density;
+  }, [queryState.density, supportsPagination]);
 
   const segmentOptions = React.useMemo(() => {
     if (reportType !== 'lifetime-lgd' && reportType !== 'ead-model') return segments;
@@ -500,220 +556,155 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
     return baseColumns;
   }, []);
 
-  // Fetch data based on report type
-  const fetchData = useCallback(async () => {
+  useEffect(() => {
     if (!tenant) {
       setError('Tenant context required');
       return;
     }
 
-    // Validate required parameters
-    const missingParams = requiredParams.filter(param => {
-      const value = filters[param as keyof ReportFilters];
-      return value === null || value === undefined || value === '';
-    });
+    if (!filters.prc_date) {
+      setError('Processing date is required');
+      return;
+    }
 
     if (missingParams.length > 0) {
       setError(`Missing required parameters: ${missingParams.join(', ')}`);
       return;
     }
 
-    if (fetchRef.current) return;
-    fetchRef.current = true;
+    if (!reportQuery.data) return;
 
-    setLoading(true);
-    setError(null);
-
-    try {
-      if (!filters.prc_date) {
-        setError('Processing date is required');
-        return;
-      }
-
-      let response: ReportResponse;
-      const params: any = {
-        prc_date: formatLocalDate(filters.prc_date),
-        pd_config_id: filters.pd_config_id,
-        pd_method: filters.pd_method,
-        scalar_id: filters.scalar_id,
-        lgd_config_id: filters.lgd_config_id,
-        lgd_method: filters.lgd_method,
-        model_id: filters.model_id,
-        ead_config_id: filters.ead_config_id,
-        segment_id: Number.isFinite(Number(filters.segment_id)) ? filters.segment_id : undefined,
-        scenario_id: filters.scenario_id,
-        fl_flag: filters.fl_flag,
-        branch_code: filters.branch_code,
-        group_segment: filters.group_segment,
-        page: filters.page,
-        limit: filters.limit,
-        stage: Array.isArray(filters.stage)
-          ? (filters.stage.length > 0 ? filters.stage.map(String) : undefined)
-          : (filters.stage ? String(filters.stage) : undefined),
-      };
-
-      // Route to appropriate API method based on report type
-      switch (reportType) {
-        case 'nominative-report':
-          response = await api.banking.ifrs9Reports.nominativeReport.get(params);
-          break;
-        case 'lifetime-pd-yearly':
-          response = await api.banking.ifrs9Reports.lifetimePD.getYearly(params);
-          break;
-        case 'lifetime-pd-monthly':
-          response = await api.banking.ifrs9Reports.lifetimePD.getMonthly(params);
-          break;
-        case 'lifetime-pd-account-details':
-          response = await api.banking.ifrs9Reports.lifetimePD.getAccountDetails(params);
-          break;
-        case 'lifetime-lgd':
-          response = await api.banking.ifrs9Reports.lifetimeLGD.get(params);
-          break;
-        case 'ead-model': {
-          const eadData = await api.banking.ifrs9Reports.eadModel.get(params);
-          const eadSummary = await api.banking.ifrs9Reports.eadModel.getSummary(params);
-          let summaryRow = eadSummary.data?.[0] ?? null;
-
-          const summaryTotalAccounts =
-            summaryRow && typeof summaryRow === 'object' && 'totalAccounts' in summaryRow
-              ? Number((summaryRow as { totalAccounts?: unknown }).totalAccounts ?? 0)
-              : 0;
-
-          if (summaryTotalAccounts === 0) {
-            const fallbackSummary = await api.banking.ifrs9Reports.eadModel.getSummary({
-              ...params,
-              ead_config_id: undefined,
-              segment_id: undefined,
-            });
-            summaryRow = fallbackSummary.data?.[0] ?? summaryRow;
-          }
-
-          response = {
-            ...eadData,
-            summary: summaryRow
-          };
-          break;
-        }
-        case 'ecl-result':
-          response = await api.banking.ifrs9Reports.eclResult.get(params);
-          break;
-        case 'ecl-movement':
-          response = await api.banking.ifrs9Reports.eclMovement.get(params);
-          break;
-        case 'gca-movement':
-          response = await api.banking.ifrs9Reports.gcaMovement.get(params);
-          break;
-        default:
-          throw new Error(`Unknown report type: ${reportType}`);
-      }
-
-      if (response.success) {
-        const rawData = response.data || [];
-        let nextData = rawData;
-
-        if (reportType === 'gca-movement' || reportType === 'ecl-movement') {
-          const numericKeys = new Set<string>();
-          for (const row of rawData) {
-            for (const [k, v] of Object.entries(row || {})) {
-              if (v === null || v === undefined || v === '') continue;
-              if (typeof v === 'number') numericKeys.add(k);
-              if (typeof v === 'string' && Number.isFinite(Number(v))) numericKeys.add(k);
-            }
-          }
-
-          nextData = rawData.map((row) => {
-            const out: Record<string, unknown> = { ...(row || {}) };
-            for (const k of numericKeys) {
-              const v = out[k];
-              if (v === null || v === undefined || v === '') out[k] = 0;
-            }
-            return out;
-          });
-        }
-
-        setData(nextData);
-        setEffectivePrcDate(response.effectivePrcDate ?? null);
-        setReportMeta(response.meta ?? null);
-        if (nextData.length === 0) {
-          setError(response.message || 'No data available for the selected processing date and filters.');
-        }
-
-        // Use columns from backend if available (for empty data scenarios), otherwise generate from data
-        let finalColumns: GridColDef[] = [];
-        
-        if (response.columns && Array.isArray(response.columns) && response.columns.length > 0) {
-          // Backend provided column metadata (useful when data is empty)
-          finalColumns = response.columns.map((col) => ({
-            field: col.field || col.column_name || '',
-            headerName: col.headerName || col.field?.replace(/_/g, ' ').toUpperCase() || col.column_name?.replace(/_/g, ' ').toUpperCase() || '',
-            width: col.width ?? 150,
-            type: col.type ?? 'string',
-            sortable: true,
-            filterable: true,
-            ...(col.type === 'number' && {
-              valueFormatter: (value: number | null | undefined) => {
-                if (value === null || value === undefined) return '';
-                return new Intl.NumberFormat('id-ID', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2
-                }).format(value);
-              },
-              align: 'right' as const,
-              headerAlign: 'right' as const
-            })
-          }));
-        } else if (nextData.length > 0) {
-          // Generate columns from actual data (fallback)
-          finalColumns = generateDynamicColumns(nextData);
-        }
-
-        if (reportType === 'gca-movement' || reportType === 'ecl-movement') {
-          finalColumns = finalColumns.map((col) => {
-            if (col.type !== 'number') return col;
-            if (col.field === 'movement_order') return col;
-            return {
-              ...col,
-              valueFormatter: (value: number | null | undefined) => {
-                if (value === null || value === undefined) return '';
-                return new Intl.NumberFormat('id-ID', {
-                  style: 'currency',
-                  currency: 'IDR',
-                  minimumFractionDigits: 0,
-                }).format(value);
-              },
-              width: typeof col.width === 'number' ? col.width : 180,
-              align: 'right',
-              headerAlign: 'right',
-            } as GridColDef;
-          });
-        }
-        
-        setColumns(finalColumns);
-
-        // Handle pagination
-        if (response.pagination) {
-          setPagination(response.pagination);
-        }
-
-        // Notify parent component
-        if (onDataLoaded) {
-          onDataLoaded(nextData, response.summary ?? null);
-        }
-      } else {
-        setEffectivePrcDate(null);
-        setReportMeta(response.meta ?? null);
-        setError('Failed to fetch report data');
-      }
-    } catch (err: unknown) {
-      console.error('Report fetch error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch report data';
-      setReportMeta(null);
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-      fetchRef.current = false;
+    const response = reportQuery.data;
+    if (!response.success) {
+      setEffectivePrcDate(null);
+      setReportMeta(response.meta ?? null);
+      setError(response.message || 'Failed to fetch report data');
+      return;
     }
-  }, [reportType, filters, tenant, requiredParams, generateDynamicColumns, onDataLoaded]);
+
+    const rawData = response.data || [];
+    let nextData = rawData;
+
+    if (reportType === 'gca-movement' || reportType === 'ecl-movement') {
+      const numericKeys = new Set<string>();
+      for (const row of rawData) {
+        for (const [key, value] of Object.entries(row || {})) {
+          if (value === null || value === undefined || value === '') continue;
+          if (typeof value === 'number') numericKeys.add(key);
+          if (typeof value === 'string' && Number.isFinite(Number(value))) numericKeys.add(key);
+        }
+      }
+
+      nextData = rawData.map((row) => {
+        const out: Record<string, unknown> = { ...(row || {}) };
+        for (const key of numericKeys) {
+          const value = out[key];
+          if (value === null || value === undefined || value === '') out[key] = 0;
+        }
+        return out;
+      });
+    }
+
+    setData(nextData);
+    setEffectivePrcDate(response.effectivePrcDate ?? null);
+    setReportMeta(response.meta ?? null);
+    setError(nextData.length === 0 ? (response.message || 'No data available for the selected processing date and filters.') : null);
+
+    let finalColumns: GridColDef[] = [];
+
+    if (response.columns && Array.isArray(response.columns) && response.columns.length > 0) {
+      finalColumns = response.columns.map((col) => ({
+        field: col.field || col.column_name || '',
+        headerName: col.headerName || col.field?.replace(/_/g, ' ').toUpperCase() || col.column_name?.replace(/_/g, ' ').toUpperCase() || '',
+        width: col.width ?? 150,
+        type: col.type ?? 'string',
+        sortable: true,
+        filterable: true,
+        ...(col.type === 'number' && {
+          valueFormatter: (value: number | null | undefined) => {
+            if (value === null || value === undefined) return '';
+            return new Intl.NumberFormat('id-ID', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            }).format(value);
+          },
+          align: 'right' as const,
+          headerAlign: 'right' as const,
+        }),
+      }));
+    } else if (nextData.length > 0) {
+      finalColumns = generateDynamicColumns(nextData);
+    }
+
+    if (reportType === 'gca-movement' || reportType === 'ecl-movement') {
+      finalColumns = finalColumns.map((col) => {
+        if (col.type !== 'number' || col.field === 'movement_order') return col;
+        return {
+          ...col,
+          valueFormatter: (value: number | null | undefined) => {
+            if (value === null || value === undefined) return '';
+            return new Intl.NumberFormat('id-ID', {
+              style: 'currency',
+              currency: 'IDR',
+              minimumFractionDigits: 0,
+            }).format(value);
+          },
+          width: typeof col.width === 'number' ? col.width : 180,
+          align: 'right',
+          headerAlign: 'right',
+        } as GridColDef;
+      });
+    }
+
+    setColumns(finalColumns);
+    if (response.pagination) setPagination(response.pagination);
+    setFilterDefinitions(response.filterDefinitions || {});
+
+    if (onDataLoaded) {
+      onDataLoaded(nextData, response.summary ?? null);
+    }
+  }, [
+    filters.prc_date,
+    generateDynamicColumns,
+    missingParams,
+    onDataLoaded,
+    reportQuery.data,
+    reportType,
+    tenant,
+  ]);
+
+  useEffect(() => {
+    if (reportQuery.error) {
+      console.error('Report fetch error:', reportQuery.error);
+      setReportMeta(null);
+      setError(reportQuery.error instanceof Error ? reportQuery.error.message : 'Failed to fetch report data');
+    }
+  }, [reportQuery.error]);
+
+  const handleSaveCurrentView = useCallback(async () => {
+    try {
+      await savedView.saveDefaultView({
+        ...toSavedViewState(),
+        search: searchTerm,
+      });
+      setInfoMessage('Current table view saved.');
+    } catch (err) {
+      console.error('Failed to save table view:', err);
+      setError(err instanceof Error ? err.message : 'Failed to save table view.');
+    }
+  }, [savedView, searchTerm, toSavedViewState]);
+
+  const handleResetCurrentView = useCallback(async () => {
+    try {
+      await savedView.clearSavedView();
+      resetView();
+      setSearchTerm('');
+      setInfoMessage('Saved table view cleared.');
+    } catch (err) {
+      console.error('Failed to clear table view:', err);
+      setError(err instanceof Error ? err.message : 'Failed to clear table view.');
+    }
+  }, [resetView, savedView]);
 
   const loadReportDebugConfig = useCallback(async () => {
     if (!canManageReportDebug) return;
@@ -736,23 +727,26 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
     try {
       const response = await api.banking.ifrs9Reports.debugConfig.update(checked) as ReportDebugConfigResponse;
       setReportDebugEnabled(Boolean(response?.data?.enabled ?? checked));
-      await fetchData();
+      await reportQuery.refetch();
     } catch (err) {
       console.error('Failed to update IFRS9 report debug config:', err);
       setError(err instanceof Error ? err.message : 'Failed to update report debug configuration.');
     } finally {
       setReportDebugSaving(false);
     }
-  }, [canManageReportDebug, fetchData]);
+  }, [canManageReportDebug, reportQuery]);
 
   const handleRun = useCallback(() => {
-    fetchData();
-  }, [fetchData]);
+    void reportQuery.refetch();
+  }, [reportQuery]);
 
   const handleClear = useCallback(() => {
     setSearchTerm('');
     setFilters(getDefaultFilters(reportType));
-  }, [reportType]);
+    setColumnFilters({});
+    setSort([]);
+    setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
+  }, [queryState.paginationModel.pageSize, reportType, setColumnFilters, setPaginationModel, setSort]);
 
   // --- Effects ---
 
@@ -793,6 +787,21 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         }
       };
 
+      const buildCurrentTableQueryParams = (processingDate: Date, page: number, limit: number) => {
+        if (!supportsPagination) return {};
+
+        return {
+          ...queryParams,
+          page,
+          offset: (page - 1) * limit,
+          limit,
+          cursor: undefined,
+          paginationMode: 'offset',
+          search: deferredSearchTerm.trim() || undefined,
+          prc_date: formatLocalDate(processingDate),
+        };
+      };
+
       const buildBaseParams = (processingDate: Date) => {
         const params: Record<string, any> = {
           prc_date: formatLocalDate(processingDate),
@@ -817,13 +826,19 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
       const fetchAllRowsForDate = async (processingDate: Date) => {
         if (!supportsPagination) {
-          const result = await fetchReportPage(buildBaseParams(processingDate));
+          const result = await fetchReportPage({
+            ...buildBaseParams(processingDate),
+            search: deferredSearchTerm.trim() || undefined,
+          });
           const rows = Array.isArray(result?.data) ? result.data : [];
           return rows as Record<string, unknown>[];
         }
 
         const limit = 1000;
-        const first = await fetchReportPage({ ...buildBaseParams(processingDate), page: 1, limit });
+        const first = await fetchReportPage({
+          ...buildBaseParams(processingDate),
+          ...buildCurrentTableQueryParams(processingDate, 1, limit),
+        });
         const firstRows = Array.isArray(first?.data) ? first.data : [];
         const totalPages = Math.max(1, Number(first?.pagination?.totalPages ?? 1));
 
@@ -832,7 +847,10 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         const pages = await Promise.all(
           Array.from({ length: totalPages - 1 }, (_, idx) => {
             const page = idx + 2;
-            return fetchReportPage({ ...buildBaseParams(processingDate), page, limit });
+            return fetchReportPage({
+              ...buildBaseParams(processingDate),
+              ...buildCurrentTableQueryParams(processingDate, page, limit),
+            });
           })
         );
 
@@ -922,14 +940,15 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
           pdfPayload = { title, rows: combined, processingDate: null };
         }
       } else if (scope === 'visible') {
-        if (filteredData.length === 0) {
+        const visibleRows = supportsPagination ? data : filteredData;
+        if (visibleRows.length === 0) {
           throw new Error('No data to export.');
         }
         if (format === 'xlsx') {
-          addSheet(workbook, title, filters.prc_date, filteredData);
+          addSheet(workbook, title, filters.prc_date, visibleRows);
         } else {
-          csvWorksheet = createCombinedWorksheet(filteredData, filters.prc_date);
-          pdfPayload = { title, rows: filteredData, processingDate: filters.prc_date };
+          csvWorksheet = createCombinedWorksheet(visibleRows, filters.prc_date);
+          pdfPayload = { title, rows: visibleRows, processingDate: filters.prc_date };
         }
       } else {
         if (!filters.prc_date) {
@@ -1189,13 +1208,6 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         : prev;
     });
   }, [reportType, eadConfigs]);
-
-  // Fetch data on initial load and date change
-  useEffect(() => {
-    if (tenant && filters.prc_date) {
-      fetchData();
-    }
-  }, [tenant, fetchData, filters.prc_date]);
 
   // Keyboard Shortcuts (Accessibility)
   useEffect(() => {
@@ -1457,7 +1469,16 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
               placeholder="Search data..."
               size="small"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                const nextValue = e.target.value;
+                setSearchTerm(nextValue);
+                if (supportsPagination) {
+                  setPaginationModel({
+                    page: 0,
+                    pageSize: queryState.paginationModel.pageSize,
+                  });
+                }
+              }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -1496,7 +1517,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
               <Tooltip title="Refresh Data">
                 <IconButton
-                  onClick={fetchData}
+                  onClick={handleRun}
                   disabled={loading}
                   sx={{
                     bgcolor: alpha(themeStyles.primary, 0.05),
@@ -1914,6 +1935,12 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
           </Alert>
         )}
 
+        {infoMessage && (
+          <Alert severity="success" sx={{ mb: 2 }} onClose={() => setInfoMessage(null)}>
+            {infoMessage}
+          </Alert>
+        )}
+
         {effectivePrcDate && filters.prc_date && effectivePrcDate !== formatLocalDate(filters.prc_date) && (
           <Alert severity="info" sx={{ mb: 2 }}>
             Snapshot used: <strong>{effectivePrcDate}</strong>{' '}
@@ -2040,16 +2067,41 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
               paginationMode={supportsPagination ? 'server' : 'client'}
               {...(supportsPagination && pagination.total > 0 && { rowCount: pagination.total })}
               paginationModel={{
-                page: supportsPagination ? pagination.page - 1 : 0,
-                pageSize: supportsPagination ? pagination.limit : 100
+                page: supportsPagination ? queryState.paginationModel.page : 0,
+                pageSize: supportsPagination ? queryState.paginationModel.pageSize : 100
               }}
               onPaginationModelChange={(model) => {
                 if (supportsPagination) {
+                  setPaginationModel({
+                    page: model.page,
+                    pageSize: model.pageSize,
+                  });
                   handlePaginationChange(model.page + 1, model.pageSize);
                 }
               }}
+              columnFilters={supportsPagination ? queryState.columnFilters : undefined}
+              onColumnFiltersChange={supportsPagination ? setColumnFilters : undefined}
+              sortModel={supportsPagination ? queryState.sort.map((item) => ({ field: item.field, sort: item.direction })) : undefined}
+              onSortModelChange={supportsPagination ? (model) => {
+                setSort(
+                  model
+                    .filter((item) => item.sort === 'asc' || item.sort === 'desc')
+                    .map((item) => ({
+                      field: item.field,
+                      direction: item.sort as 'asc' | 'desc',
+                    }))
+                );
+              } : undefined}
+              columnVisibilityModel={supportsPagination ? queryState.columnVisibilityModel : undefined}
+              onColumnVisibilityModelChange={supportsPagination ? setColumnVisibilityModel : undefined}
+              density={gridDensity}
+              onDensityChange={supportsPagination ? setDensity : undefined}
               pageSizeOptions={supportsPagination ? [10, 20, 50, 100] : [100]}
               getRowId={(row) => row.id || row.account_id || row.pkid || Math.random()}
+              filterDefinitions={filterDefinitions}
+              showEnterpriseControls
+              onSaveView={supportsPagination ? handleSaveCurrentView : undefined}
+              onResetView={supportsPagination ? handleResetCurrentView : undefined}
               sx={{
                 '& .MuiDataGrid-cell': {
                   fontSize: '0.875rem'

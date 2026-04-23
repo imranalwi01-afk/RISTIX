@@ -46,11 +46,18 @@ const WatchlistListResponse = z.object({
     success: z.boolean(),
     data: z.array(WatchlistItemSchema),
     pagination: z.object({
-        page: z.number(),
         limit: z.number(),
-        total: z.number(),
-        totalPages: z.number()
-    }).optional()
+        mode: z.enum(['offset', 'cursor']).optional(),
+        page: z.number().optional(),
+        offset: z.number().optional(),
+        total: z.number().optional(),
+        totalPages: z.number().optional(),
+        nextCursor: z.string().nullable().optional(),
+        previousCursor: z.string().nullable().optional(),
+        hasNextPage: z.boolean().optional(),
+        hasPreviousPage: z.boolean().optional()
+    }).optional(),
+    appliedQuery: z.any().optional()
 }).openapi('WatchlistListResponse')
 
 const CustomerListItemSchema = z.object({
@@ -77,11 +84,18 @@ const CustomerListResponse = z.object({
     success: z.boolean(),
     data: z.array(CustomerListItemSchema),
     pagination: z.object({
-        page: z.number(),
         limit: z.number(),
-        total: z.number(),
-        totalPages: z.number()
-    }).optional()
+        mode: z.enum(['offset', 'cursor']).optional(),
+        page: z.number().optional(),
+        offset: z.number().optional(),
+        total: z.number().optional(),
+        totalPages: z.number().optional(),
+        nextCursor: z.string().nullable().optional(),
+        previousCursor: z.string().nullable().optional(),
+        hasNextPage: z.boolean().optional(),
+        hasPreviousPage: z.boolean().optional()
+    }).optional(),
+    appliedQuery: z.any().optional()
 }).openapi('CustomerListResponse')
 
 const AddWatchlistSchema = z.object({
@@ -342,7 +356,16 @@ individualImpairmentRoutes.openapi(
             query: z.object({
                 search: z.string().optional(),
                 page: z.string().optional(),
+                offset: z.string().optional(),
                 limit: z.string().optional(),
+                cursor: z.string().optional(),
+                paginationMode: z.enum(['offset', 'cursor']).optional(),
+                sort: z.string().optional(),
+                sortField: z.string().optional(),
+                sortOrder: z.enum(['asc', 'desc']).optional(),
+                filters: z.string().optional(),
+                dateFrom: z.string().optional(),
+                dateTo: z.string().optional(),
                 // Filter object patterns for documentation
                 'filter[stage]': z.string().optional(),
                 'filter[assessment_status]': z.string().optional(),
@@ -351,7 +374,6 @@ individualImpairmentRoutes.openapi(
                 // Legacy support
                 segment: z.string().optional(),
                 status: z.string().optional(),
-                offset: z.string().optional()
             })
         },
         responses: {
@@ -403,7 +425,14 @@ individualImpairmentRoutes.openapi(
             query: z.object({
                 search: z.string().optional(),
                 page: z.string().optional(),
+                offset: z.string().optional(),
                 limit: z.string().optional(),
+                cursor: z.string().optional(),
+                paginationMode: z.enum(['offset', 'cursor']).optional(),
+                sort: z.string().optional(),
+                sortField: z.string().optional(),
+                sortOrder: z.enum(['asc', 'desc']).optional(),
+                filters: z.string().optional(),
                 dateFrom: z.string().optional(),
                 dateTo: z.string().optional(),
                 'filter[date_range][start]': z.string().optional(),
@@ -583,6 +612,8 @@ individualImpairmentRoutes.openapi(
         request: {
             query: z.object({
                 status: z.string().optional(),
+                accountId: z.string().optional(),
+                accountNumber: z.string().optional(),
                 limit: z.string().optional(),
                 offset: z.string().optional()
             })

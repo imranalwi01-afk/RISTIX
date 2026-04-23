@@ -5,12 +5,14 @@ import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v16-appRouter';
 import CssBaseline from '@mui/material/CssBaseline';
+import { QueryClientProvider } from '@tanstack/react-query';
 
 // ✅ Import our custom providers
 import { AuthProvider } from '../providers/AuthProvider';
 import { ConfigurationProvider } from '../providers/ConfigurationProvider';
 import { BankingThemeProvider } from '../providers/BankingThemeProvider';
 import { PlatformSettingsProvider } from '../providers/PlatformSettingsProvider';
+import { getQueryClient } from '@/features/shared/query/query-client';
 
 import { store, persistor } from '../store';
 
@@ -26,22 +28,26 @@ export default function ClientProviders({ children }: { children: React.ReactNod
     }
   }, []);
 
+  const queryClient = React.useMemo(() => getQueryClient(), []);
+
   return (
     <AppRouterCacheProvider options={{ key: 'mui' }}>
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
-          <PlatformSettingsProvider>
-            <ConfigurationProvider>
-              <AuthProvider>
-                <BankingThemeProvider>
-                  <LocalizationProvider dateAdapter={AdapterDateFns}>
-                    <CssBaseline />
-                    {children as any}
-                  </LocalizationProvider>
-                </BankingThemeProvider>
-              </AuthProvider>
-            </ConfigurationProvider>
-          </PlatformSettingsProvider>
+          <QueryClientProvider client={queryClient}>
+            <PlatformSettingsProvider>
+              <ConfigurationProvider>
+                <AuthProvider>
+                  <BankingThemeProvider>
+                    <LocalizationProvider dateAdapter={AdapterDateFns}>
+                      <CssBaseline />
+                      {children as any}
+                    </LocalizationProvider>
+                  </BankingThemeProvider>
+                </AuthProvider>
+              </ConfigurationProvider>
+            </PlatformSettingsProvider>
+          </QueryClientProvider>
         </PersistGate>
       </Provider>
     </AppRouterCacheProvider>

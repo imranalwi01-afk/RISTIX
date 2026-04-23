@@ -176,7 +176,7 @@ export const DEFAULT_SESSION_CONTROL_CONFIG: SessionControlConfig = {
     unauthorized401: {
       enabled: true,
       autoLogout: process.env.NEXT_PUBLIC_SESSION_401_AUTO_LOGOUT === 'true', // 🌐 From .env
-      retryTokenRefresh: process.env.NEXT_PUBLIC_SESSION_401_RETRY_TOKEN_REFRESH === 'true',
+      retryTokenRefresh: process.env.NEXT_PUBLIC_SESSION_401_RETRY_TOKEN_REFRESH !== 'false',
       maxRetries: parseInt(process.env.NEXT_PUBLIC_SESSION_401_MAX_RETRIES || '5'),
       retryDelay: parseInt(process.env.NEXT_PUBLIC_SESSION_401_RETRY_DELAY || '1500'),
       gracePeriod: parseInt(process.env.NEXT_PUBLIC_SESSION_401_GRACE_PERIOD || '30000'),

@@ -291,8 +291,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // ✅ SURGICAL FIX: Sync tokens to cookie whenever auth state changes
   useEffect(() => {
-    const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null;
-    syncTokenToCookie(authState?.token || null, authState?.user, refreshToken);
+    if (typeof window === 'undefined') return;
+
+    const storedToken = localStorage.getItem('auth_token');
+    const refreshToken = localStorage.getItem('refresh_token');
+    const nextToken = authState?.token || storedToken;
+
+    // During hard refresh Redux can be empty before rehydration. Do not clear cookies while
+    // localStorage still has a session that the bootstrap flow can restore.
+    if (nextToken) {
+      syncTokenToCookie(nextToken, authState?.user, refreshToken);
+    }
   }, [authState?.token, authState?.user]);
 
   // ✅ SURGICAL ENHANCEMENT: Sync banking mode when user changes
@@ -324,10 +333,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const token = localStorage.getItem('auth_token')
         const userData = localStorage.getItem('user_data')
         const refreshToken = localStorage.getItem('refresh_token')
+        const tokenExpiryRaw = localStorage.getItem('token_expiry')
+        const tokenExpiry = tokenExpiryRaw ? Number(tokenExpiryRaw) : null
 
         if (token && userData && !authState?.isAuthenticated) {
           const parsedUser = JSON.parse(userData)
           console.log('✅ Found stored auth data for:', parsedUser.email)
+
+          const accessTokenExpired = !!tokenExpiry && tokenExpiry <= Date.now()
+          if (accessTokenExpired && refreshToken) {
+            console.log('🔄 Stored access token expired, attempting session restore via refresh token')
+
+            const restored = await sessionControlService.restoreSessionFromStoredRefreshToken()
+            if (restored) {
+              const restoredToken = localStorage.getItem('auth_token')
+              const restoredUserData = localStorage.getItem('user_data')
+              const restoredRefreshToken = localStorage.getItem('refresh_token')
+
+              if (restoredToken && restoredUserData) {
+                const restoredUser = JSON.parse(restoredUserData)
+
+                syncTokenToCookie(restoredToken, restoredUser, restoredRefreshToken)
+
+                dispatch(initializeAuth({
+                  user: restoredUser,
+                  token: restoredToken,
+                  refreshToken: restoredRefreshToken || undefined,
+                }))
+
+                const detectedBankingMode = detectBankingModeFromUser(restoredUser);
+                if (detectedBankingMode) {
+                  dispatch(setBankingMode(detectedBankingMode));
+                }
+
+                setLocalLoading(false)
+                return
+              }
+            }
+
+            console.warn('⚠️ Session restore failed, preserving stored session for foreground auth handling')
+          }
 
           // ✅ SURGICAL FIX: Sync token to cookie immediately
           syncTokenToCookie(token, parsedUser, refreshToken);
@@ -428,9 +473,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 // ✅ LOOP PREVENTION: Stay on login page if user navigates there manually
                 console.log('🔄 User manually navigated to login page - staying put')
               }
+            } else if (response.status === 401) {
+              console.log('❌ Token validation returned 401, attempting refresh-token restore before cleanup')
+              const restored = refreshToken
+                ? await sessionControlService.restoreSessionFromStoredRefreshToken()
+                : false
+
+              if (!restored) {
+                if (refreshToken) {
+                  console.warn('⚠️ Refresh-token restore failed during auth bootstrap; preserving stored session to avoid false logout on manual refresh')
+                } else {
+                  console.log('❌ Token validation returned 401 without refresh token, clearing auth data')
+                  handleLogoutCleanup()
+                  dispatch(logoutAction())
+                }
+              }
             } else {
-              console.log('❌ Token validation failed, clearing auth data')
-              handleLogoutCleanup()
+              console.warn('⚠️ Token validation failed with non-auth status; preserving session', {
+                status: response.status,
+                statusText: response.statusText,
+              })
             }
           } catch (validationError) {
             console.log('⚠️ Token validation error (network issue):', validationError)
@@ -835,7 +897,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         return true
       } else {
-        handleLogoutCleanup()
+        if (response.status === 401 && refreshToken) {
+          const restored = await sessionControlService.restoreSessionFromStoredRefreshToken()
+          if (restored) {
+            return true
+          }
+        }
+
+        if (response.status === 401 && !refreshToken) {
+          handleLogoutCleanup()
+        } else {
+          console.warn('⚠️ Auth check failed but session is being preserved', {
+            status: response.status,
+            hasRefreshToken: !!refreshToken,
+          })
+        }
         return false
       }
     } catch (error) {

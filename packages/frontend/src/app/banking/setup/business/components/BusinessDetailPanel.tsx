@@ -36,6 +36,17 @@ interface BusinessDetailPanelProps {
   onAddDetail: (paramCode: string, nextSeq: number) => void;
 }
 
+const normalizeListPayload = <T,>(value: unknown): T[] => {
+  if (Array.isArray(value)) return value as T[];
+  if (value && typeof value === 'object') {
+    const nestedData = (value as { data?: unknown }).data;
+    const nestedRows = (value as { rows?: unknown }).rows;
+    if (Array.isArray(nestedData)) return nestedData as T[];
+    if (Array.isArray(nestedRows)) return nestedRows as T[];
+  }
+  return [];
+};
+
 const BusinessDetailPanel = memo(function BusinessDetailPanel({
   row,
   refreshTrigger,
@@ -51,9 +62,10 @@ const BusinessDetailPanel = memo(function BusinessDetailPanel({
     try {
       setLoading(true);
       const response = await api.banking.businessSetup.getHeaderDetails(row.param_code);
-      if (response.success && response.data) {
+      const items = normalizeListPayload<any>(response?.data);
+      if (response.success && items.length > 0) {
         setDetails(
-          response.data.map((item: any) => ({
+          items.map((item: any) => ({
             pkid: item.pkid?.toString() || item.id?.toString() || '',
             param_code: item.paramCode || item.param_code || row.param_code,
             param_seq: item.paramSeq || item.param_seq || 0,

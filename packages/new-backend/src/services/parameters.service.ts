@@ -5,6 +5,7 @@ import { ParametersRepository } from '../repositories/parameters.repository'
 import { NotFoundError, DatabaseError, ValidationError } from '../lib/errors'
 import { frs9ParamCommond } from '../db/schema'
 import { legacyDb } from '../config'
+import type { ListQuery } from '../lib/http/list-query'
 
 /**
  * Service for managing Application and Business parameters.
@@ -394,6 +395,40 @@ export const ParametersService = {
         return pipe(
             ParametersRepository.findHeaders('B'),
             Effect.map(headers => headers.map(transformHeader))
+        )
+    },
+
+    listAppSettingsPage: (query: ListQuery, paramType: string | string[] = ['S', 'A']) => {
+        return pipe(
+            ParametersRepository.findHeadersPage(paramType, {
+                code: typeof query.filters.code === 'string' ? query.filters.code : undefined,
+                search: query.search,
+                filters: query.filters,
+                sort: query.sort,
+                limit: query.limit,
+                offset: query.offset ?? 0,
+            }),
+            Effect.map(({ rows, total }) => ({
+                rows: rows.map(transformHeader),
+                total,
+            })),
+        )
+    },
+
+    listBusinessSettingsPage: (query: ListQuery) => {
+        return pipe(
+            ParametersRepository.findHeadersPage('B', {
+                code: typeof query.filters.code === 'string' ? query.filters.code : undefined,
+                search: query.search,
+                filters: query.filters,
+                sort: query.sort,
+                limit: query.limit,
+                offset: query.offset ?? 0,
+            }),
+            Effect.map(({ rows, total }) => ({
+                rows: rows.map(transformHeader),
+                total,
+            })),
         )
     },
 

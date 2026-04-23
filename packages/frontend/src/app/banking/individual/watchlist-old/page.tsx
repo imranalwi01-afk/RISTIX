@@ -1,7 +1,6 @@
-'use client';
-
-import { WatchlistOld } from '@/components/banking/individual/WatchlistOld';
+import { redirect } from 'next/navigation';
+import { canonicalRoutes } from '@/features/shared/routing/canonical-routes';
 
 export default function WatchlistOldPage() {
-  return <WatchlistOld />;
+  redirect(canonicalRoutes.individualAssessment);
 }

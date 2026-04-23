@@ -4,6 +4,7 @@ import React from 'react';
 import { NativeTable, NativeTableColumn } from './NativeTable';
 import type { DataGridProps, GridColDef, GridValidRowModel } from '@mui/x-data-grid';
 import { IconButton, Tooltip } from '@mui/material';
+import type { EnterpriseColumnFilterValue, EnterpriseDensity, EnterpriseFilterDefinition, EnterprisePaginationMode, EnterpriseTableQueryState } from '@/types/enterprise-table';
 
 /**
  * Safe replacement for GridActionsCellItem that doesn't require DataGrid context
@@ -30,7 +31,7 @@ export function SafeGridActionsCellItem({ label, icon, onClick, showInMenu, ...o
  * Props for SafeDataGrid component
  * @template T - The row data type (optional, defaults to any)
  */
-export interface SafeDataGridProps<T extends GridValidRowModel = any> extends Omit<DataGridProps, 'rows' | 'columns'> {
+export interface SafeDataGridProps<T extends GridValidRowModel = any> extends Omit<DataGridProps, 'rows' | 'columns' | 'paginationMode'> {
   rows: T[];
   columns: GridColDef<T>[];
   getRowSx?: (params: { row: T; id: string | number }) => any;
@@ -40,6 +41,19 @@ export interface SafeDataGridProps<T extends GridValidRowModel = any> extends Om
   // Standard DataGrid footer controls
   hideFooter?: boolean;
   hideFooterPagination?: boolean;
+  enableColumnFilters?: boolean;
+  columnFilters?: Record<string, EnterpriseColumnFilterValue>;
+  onColumnFiltersChange?: (filters: Record<string, EnterpriseColumnFilterValue>) => void;
+  columnFilterPlaceholder?: string;
+  filterDefinitions?: Record<string, EnterpriseFilterDefinition>;
+  paginationMode?: DataGridProps['paginationMode'] | EnterprisePaginationMode;
+  columnVisibilityModel?: Record<string, boolean>;
+  onColumnVisibilityModelChange?: (model: Record<string, boolean>) => void;
+  onDensityChange?: (density: EnterpriseDensity) => void;
+  showEnterpriseControls?: boolean;
+  onSaveView?: () => void;
+  onResetView?: () => void;
+  onQueryChange?: (queryState: EnterpriseTableQueryState) => void;
 }
 
 /**
@@ -85,8 +99,14 @@ export function SafeDataGrid<T extends GridValidRowModel = any>(props: SafeDataG
       valueGetter: col.valueGetter,
       valueFormatter: col.valueFormatter,
       type: col.type,
+      filterable: col.filterable,
+      sortable: col.sortable,
     };
   });
+
+  const nativeSortModel = props.sortModel
+    ?.filter((item: any) => item.sort === 'asc' || item.sort === 'desc')
+    .map((item: any) => ({ field: item.field, sort: item.sort }));
 
   return (
     <NativeTable<T>
@@ -100,9 +120,31 @@ export function SafeDataGrid<T extends GridValidRowModel = any>(props: SafeDataG
       checkboxSelection={props.checkboxSelection}
       onRowSelectionModelChange={props.onRowSelectionModelChange as ((ids: (string | number)[]) => void) | undefined}
       rowSelectionModel={props.rowSelectionModel as (string | number)[] | undefined}
+      onRowDoubleClick={props.onRowDoubleClick as ((params: { row: T; id: string | number }) => void) | undefined}
       sx={props.sx}
       getDetailPanelContent={props.getDetailPanelContent}
       getDetailPanelHeight={props.getDetailPanelHeight}
+      enableColumnFilters={props.enableColumnFilters ?? !props.disableColumnFilter}
+      columnFilters={props.columnFilters}
+      onColumnFiltersChange={props.onColumnFiltersChange}
+      columnFilterPlaceholder={props.columnFilterPlaceholder}
+      filterDefinitions={props.filterDefinitions}
+      filteringMode={props.filterMode === 'server' || props.paginationMode === 'server' || props.paginationMode === 'offset' || props.paginationMode === 'cursor' ? 'server' : 'client'}
+      disableColumnSorting={props.disableColumnSorting}
+      sortModel={nativeSortModel}
+      onSortModelChange={props.onSortModelChange ? (model) => {
+        props.onSortModelChange?.(model as any, {} as any);
+      } : undefined}
+      sortingMode={props.sortingMode}
+      paginationMode={props.paginationMode === 'server' ? 'offset' : props.paginationMode}
+      columnVisibilityModel={props.columnVisibilityModel}
+      onColumnVisibilityModelChange={props.onColumnVisibilityModelChange}
+      density={props.density as any}
+      onDensityChange={props.onDensityChange}
+      showEnterpriseControls={props.showEnterpriseControls}
+      onSaveView={props.onSaveView}
+      onResetView={props.onResetView}
+      onQueryChange={props.onQueryChange}
       // Pagination mapping
       count={props.rowCount}
       page={props.paginationModel?.page}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     Box,
     Paper,
@@ -41,8 +41,10 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
-import { auditAPI } from '@/services/api';
 import AuditDiffViewer from '@/components/audit/AuditDiffViewer';
+import { exportAuditLogs } from '@/features/audit/api/audit.api';
+import { getAuditRequestId } from '@/features/audit/domain/audit.models';
+import { useAuditLogsQuery, useAuditStatsQuery } from '@/features/audit/hooks/useAuditLogQueries';
 
 interface AuditLog {
     id: string;
@@ -58,33 +60,15 @@ interface AuditLog {
     newValues?: any;
 }
 
-interface AuditStats {
-    total: number;
-    byEventType: Array<{ eventType: string; count: number }>;
-    byRiskLevel: Array<{ riskLevel?: string | null; count: number }>;
-    topUsers: Array<{ userId?: string | null; count: number }>;
-}
-
-const getRequestId = (log: AuditLog): string | null => {
-    if (typeof log.metadata?.requestId === 'string') return log.metadata.requestId;
-    if (typeof log.metadata?.request_id === 'string') return log.metadata.request_id;
-    return null;
-};
-
 const AuditLogList: React.FC = () => {
-    const [logs, setLogs] = useState<AuditLog[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [statsLoading, setStatsLoading] = useState(false);
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
-    const [total, setTotal] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
     const [requestIdQuery, setRequestIdQuery] = useState('');
     const [actionFilter, setActionFilter] = useState('');
     const [entityTypeFilter, setEntityTypeFilter] = useState('');
     const [showFilters, setShowFilters] = useState(false);
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
-    const [stats, setStats] = useState<AuditStats | null>(null);
 
     // Filters
     const [eventType, setEventType] = useState('');
@@ -93,56 +77,28 @@ const AuditLogList: React.FC = () => {
 
     const eventTypeOptions = ['approval', 'auth', 'data', 'job', 'permission', 'system'];
 
-    const fetchLogs = useCallback(async () => {
-        setLoading(true);
-        try {
-            const response = await auditAPI.getLogs({
-                page: page + 1,
-                limit: rowsPerPage,
-                search: searchQuery || undefined,
-                requestId: requestIdQuery || undefined,
-                eventType: eventType || undefined,
-                action: actionFilter || undefined,
-                entityType: entityTypeFilter || undefined,
-                startDate: startDate ? startDate.toISOString() : undefined,
-                endDate: endDate ? endDate.toISOString() : undefined,
-            });
+    const logsQuery = useAuditLogsQuery({
+        page: page + 1,
+        limit: rowsPerPage,
+        search: searchQuery || undefined,
+        requestId: requestIdQuery || undefined,
+        eventType: eventType || undefined,
+        action: actionFilter || undefined,
+        entityType: entityTypeFilter || undefined,
+        startDate: startDate ? startDate.toISOString() : undefined,
+        endDate: endDate ? endDate.toISOString() : undefined,
+    });
 
-            const data = response.data || [];
-            const totalCount = response.pagination?.total || data.length;
+    const statsQuery = useAuditStatsQuery({
+        startDate: startDate ? startDate.toISOString() : undefined,
+        endDate: endDate ? endDate.toISOString() : undefined,
+    });
 
-            setLogs(data);
-            setTotal(totalCount);
-        } catch (err) {
-            console.error('Failed to fetch audit logs:', err);
-        } finally {
-            setLoading(false);
-        }
-    }, [page, rowsPerPage, searchQuery, requestIdQuery, eventType, actionFilter, entityTypeFilter, startDate, endDate]);
-
-    const fetchStats = useCallback(async () => {
-        setStatsLoading(true);
-        try {
-            const response = await auditAPI.getStats({
-                startDate: startDate ? startDate.toISOString() : undefined,
-                endDate: endDate ? endDate.toISOString() : undefined,
-            });
-            setStats(response || null);
-        } catch (err) {
-            console.error('Failed to fetch audit stats:', err);
-            setStats(null);
-        } finally {
-            setStatsLoading(false);
-        }
-    }, [startDate, endDate]);
-
-    useEffect(() => {
-        fetchLogs();
-    }, [fetchLogs]);
-
-    useEffect(() => {
-        fetchStats();
-    }, [fetchStats]);
+    const logs = logsQuery.data?.logs ?? [];
+    const total = logsQuery.data?.total ?? 0;
+    const stats = statsQuery.data ?? null;
+    const loading = logsQuery.isLoading || logsQuery.isFetching;
+    const statsLoading = statsQuery.isLoading || statsQuery.isFetching;
 
     const handleChangePage = (event: unknown, newPage: number) => {
         setPage(newPage);
@@ -155,7 +111,7 @@ const AuditLogList: React.FC = () => {
 
     const handleExport = async (format: 'csv' | 'json') => {
         try {
-            const data = await auditAPI.exportLogs(format, {
+            const data = await exportAuditLogs(format, {
                 eventType,
                 requestId: requestIdQuery || undefined,
                 action: actionFilter || undefined,
@@ -193,8 +149,14 @@ const AuditLogList: React.FC = () => {
         setPage(0);
     };
 
-    const actionOptions = Array.from(new Set(logs.map((log) => log.action).filter(Boolean))).sort();
-    const entityTypeOptions = Array.from(new Set(logs.map((log) => log.entityType).filter(Boolean) as string[])).sort();
+    const actionOptions = useMemo(
+        () => Array.from(new Set(logs.map((log) => log.action).filter(Boolean))).sort(),
+        [logs],
+    );
+    const entityTypeOptions = useMemo(
+        () => Array.from(new Set(logs.map((log) => log.entityType).filter(Boolean) as string[])).sort(),
+        [logs],
+    );
     const topEventType = stats?.byEventType?.[0];
     const topUser = stats?.topUsers?.[0];
     const totalEventsValue = stats?.total ?? total;
@@ -382,7 +344,11 @@ const AuditLogList: React.FC = () => {
                                     </Button>
                                     <Button
                                         variant="outlined"
-                                        onClick={() => { setPage(0); fetchLogs(); }}
+                                        onClick={() => {
+                                            setPage(0);
+                                            void logsQuery.refetch();
+                                            void statsQuery.refetch();
+                                        }}
                                         data-testid="audit-apply-filters-button"
                                     >
                                         Apply Filters
@@ -455,19 +421,19 @@ const AuditLogList: React.FC = () => {
                                                                     variant="outlined"
                                                                 />
                                                             )}
-                                                            {getRequestId(log) && (
+                                                            {getAuditRequestId(log) && (
                                                                 <Chip
                                                                     size="small"
                                                                     color="info"
                                                                     variant="outlined"
-                                                                    label={`Request ID: ${getRequestId(log)}`}
+                                                                    label={`Request ID: ${getAuditRequestId(log)}`}
                                                                 />
                                                             )}
-                                                            {getRequestId(log) && (
+                                                            {getAuditRequestId(log) && (
                                                                 <Button
                                                                     size="small"
                                                                     variant="outlined"
-                                                                    onClick={() => openApprovalRequest(getRequestId(log)!)}
+                                                                    onClick={() => openApprovalRequest(getAuditRequestId(log)!)}
                                                                     data-testid={`audit-open-approval-button-${log.id}`}
                                                                 >
                                                                     Open Approval

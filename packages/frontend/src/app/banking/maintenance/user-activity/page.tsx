@@ -1,7 +1,7 @@
 // packages/frontend/src/app/banking/maintenance/user-activity/page.tsx
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   Box,
   Card,
@@ -35,7 +35,8 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { DataGrid, GridColDef, GridRowParams, GridValueGetter, GridRenderCellParams } from '@mui/x-data-grid';
+import { GridColDef, GridRowParams, GridValueGetter, GridRenderCellParams } from '@mui/x-data-grid';
+import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import {
   Visibility as VisibilityIcon,
   Download as DownloadIcon,
@@ -60,6 +61,13 @@ import {
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { format, parseISO, subDays, startOfDay, endOfDay } from 'date-fns';
+import { exportToCSV, exportToPDF, exportToXLSX } from '@/utils/exportUtils';
+import { getErrorMessage } from '@/utils/error-message';
+import { useAuth } from '@/providers/AuthProvider';
+import { useEnterpriseTableQuery } from '@/hooks/useEnterpriseTableQuery';
+import { useSavedTableView } from '@/hooks/useSavedTableView';
+import { useUserActivitiesQuery } from '@/features/user-activity/hooks/useUserActivityQueries';
+import type { EnterpriseColumnFilterValue, EnterpriseSort } from '@/types/enterprise-table';
 
 // Types and Interfaces
 interface UserActivityLog {
@@ -122,6 +130,82 @@ interface ActivityStatistics {
   riskDistribution: { risk: string; count: number }[];
 }
 
+const USER_ACTIVITY_EXPORT_COLUMNS = [
+  { field: 'timestamp', headerName: 'Timestamp' },
+  { field: 'userName', headerName: 'User Name' },
+  { field: 'userEmail', headerName: 'User Email' },
+  { field: 'activityType', headerName: 'Activity Type' },
+  { field: 'actionPerformed', headerName: 'Action' },
+  { field: 'moduleAccessed', headerName: 'Module' },
+  { field: 'actionResult', headerName: 'Result' },
+  { field: 'riskLevel', headerName: 'Risk Level' },
+  { field: 'bankingType', headerName: 'Banking Type' },
+  { field: 'ipAddress', headerName: 'IP Address' },
+  { field: 'responseTimeMs', headerName: 'Response Time (ms)' },
+  { field: 'complianceRelevant', headerName: 'Compliance Relevant' },
+] as const;
+
+const normalizeActivityFilterValue = (value: EnterpriseColumnFilterValue) => {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
+  if (Array.isArray(value)) return value.join(' ');
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+};
+
+const getActivityFieldValue = (row: UserActivityLog, field: string): EnterpriseColumnFilterValue => {
+  const record = row as unknown as Record<string, unknown>;
+  return record[field] as EnterpriseColumnFilterValue;
+};
+
+const compareActivityValues = (left: unknown, right: unknown) => {
+  if (left === right) return 0;
+  if (left === null || left === undefined) return 1;
+  if (right === null || right === undefined) return -1;
+
+  const leftNumber = typeof left === 'number' ? left : Number(left);
+  const rightNumber = typeof right === 'number' ? right : Number(right);
+  if (!Number.isNaN(leftNumber) && !Number.isNaN(rightNumber)) {
+    return leftNumber - rightNumber;
+  }
+
+  const leftDate = left instanceof Date ? left.getTime() : Date.parse(String(left));
+  const rightDate = right instanceof Date ? right.getTime() : Date.parse(String(right));
+  if (!Number.isNaN(leftDate) && !Number.isNaN(rightDate)) {
+    return leftDate - rightDate;
+  }
+
+  return String(left).localeCompare(String(right), undefined, {
+    numeric: true,
+    sensitivity: 'base',
+  });
+};
+
+const applyActivityTableQuery = (
+  rows: UserActivityLog[],
+  columnFilters: Record<string, EnterpriseColumnFilterValue>,
+  sort: EnterpriseSort[],
+) => {
+  const activeFilters = Object.entries(columnFilters).filter(([, value]) => normalizeActivityFilterValue(value).trim().length > 0);
+  const filteredRows = activeFilters.length === 0
+    ? rows
+    : rows.filter((row) =>
+        activeFilters.every(([field, value]) =>
+          normalizeActivityFilterValue(getActivityFieldValue(row, field)).toLowerCase().includes(normalizeActivityFilterValue(value).toLowerCase())
+        )
+      );
+
+  const activeSort = sort[0];
+  if (!activeSort) return filteredRows;
+
+  return [...filteredRows].sort((leftRow, rightRow) => {
+    const leftValue = getActivityFieldValue(leftRow, activeSort.field);
+    const rightValue = getActivityFieldValue(rightRow, activeSort.field);
+    const result = compareActivityValues(leftValue, rightValue);
+    return activeSort.direction === 'asc' ? result : -result;
+  });
+};
+
 interface TabPanelProps {
   children?: React.ReactNode;
   index: number;
@@ -143,14 +227,56 @@ const TabPanel = ({ children, value, index, ...other }: TabPanelProps) => (
 export default function UserActivityPage({ params }: { params: Promise<{}> }) {
   void params; // required by typed routes signature, unused in this page
   const theme = useTheme();
+  const { user } = useAuth();
   const [currentTab, setCurrentTab] = useState(0);
-  const [activities, setActivities] = useState<UserActivityLog[]>([]);
-  const [statistics, setStatistics] = useState<ActivityStatistics | null>(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<UserActivityFilters>({
     dateFrom: subDays(new Date(), 7),
     dateTo: new Date(),
+  });
+  const {
+    queryState,
+    setPaginationModel,
+    setColumnVisibilityModel,
+    setDensity,
+    setColumnFilters,
+    setSort,
+    applySavedView,
+    toSavedViewState,
+    resetView,
+  } = useEnterpriseTableQuery({
+    pageKey: 'maintenance:user-activity',
+    paginationMode: 'client',
+    initialPageSize: 25,
+    syncUrl: true,
+  });
+  const savedView = useSavedTableView({
+    userId: user?.id,
+    scope: 'maintenance:user-activity',
+    enabled: Boolean(user?.id),
+    onApplyView: (view) => {
+      applySavedView(view);
+      const savedFilters = (view.state.filters ?? {}) as Record<string, unknown>;
+      setFilters({
+        userId: typeof savedFilters.userId === 'string' ? savedFilters.userId : undefined,
+        activityType: typeof savedFilters.activityType === 'string' ? savedFilters.activityType : undefined,
+        actionResult: savedFilters.actionResult === 'SUCCESS' || savedFilters.actionResult === 'FAILURE' || savedFilters.actionResult === 'PARTIAL'
+          ? savedFilters.actionResult
+          : undefined,
+        riskLevel: savedFilters.riskLevel === 'LOW' || savedFilters.riskLevel === 'MEDIUM' || savedFilters.riskLevel === 'HIGH' || savedFilters.riskLevel === 'CRITICAL'
+          ? savedFilters.riskLevel
+          : undefined,
+        bankingType: savedFilters.bankingType === 'conventional' || savedFilters.bankingType === 'syariah'
+          ? savedFilters.bankingType
+          : undefined,
+        complianceRelevant: typeof savedFilters.complianceRelevant === 'boolean' ? savedFilters.complianceRelevant : undefined,
+        dateFrom: typeof savedFilters.dateFrom === 'string' ? new Date(savedFilters.dateFrom) : subDays(new Date(), 7),
+        dateTo: typeof savedFilters.dateTo === 'string' ? new Date(savedFilters.dateTo) : new Date(),
+        moduleAccessed: typeof savedFilters.moduleAccessed === 'string' ? savedFilters.moduleAccessed : undefined,
+        ipAddress: typeof savedFilters.ipAddress === 'string' ? savedFilters.ipAddress : undefined,
+        searchTerm: typeof view.state.search === 'string' ? view.state.search : '',
+      });
+    },
   });
 
   // Dialog states
@@ -163,158 +289,79 @@ export default function UserActivityPage({ params }: { params: Promise<{}> }) {
   });
 
   const [exportDialog, setExportDialog] = useState(false);
+  const activitiesQuery = useUserActivitiesQuery({
+    userId: filters.userId,
+    activityType: filters.activityType,
+    actionResult: filters.actionResult,
+    riskLevel: filters.riskLevel,
+    bankingType: filters.bankingType,
+    complianceRelevant: filters.complianceRelevant,
+    moduleAccessed: filters.moduleAccessed,
+    ipAddress: filters.ipAddress,
+    dateFrom: filters.dateFrom ?? undefined,
+    dateTo: filters.dateTo ?? undefined,
+    searchTerm: filters.searchTerm,
+    limit: 500,
+    offset: 0,
+  });
+  const activities = useMemo(
+    () => (activitiesQuery.data?.rows ?? []) as UserActivityLog[],
+    [activitiesQuery.data?.rows],
+  );
+  const statistics = useMemo(
+    () => (activitiesQuery.data?.statistics ?? null) as ActivityStatistics | null,
+    [activitiesQuery.data?.statistics],
+  );
+  const loading = activitiesQuery.isLoading || activitiesQuery.isFetching;
 
-  // Mock data - in real implementation, this would come from the API
-  const mockActivities: UserActivityLog[] = [
-    {
-      id: 'act-001',
-      userId: 'user-001',
-      userName: 'Sarah Chen',
-      userEmail: 'sarah.chen@metrobank.com',
-      sessionId: 'session-001',
-      activityType: 'DATA_ACCESS',
-      actionPerformed: 'View Portfolio Accounts',
-      targetEntity: 'PortfolioAccount',
-      targetId: 'acc-001',
-      pageUrl: '/banking/portfolio/accounts',
-      moduleAccessed: 'Portfolio Management',
-      actionResult: 'SUCCESS',
-      responseTimeMs: 245,
-      ipAddress: '192.168.1.100',
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      location: 'Jakarta, Indonesia',
-      deviceType: 'Desktop',
-      browserName: 'Chrome',
-      riskLevel: 'LOW',
-      bankingType: 'conventional',
-      complianceRelevant: true,
-      businessProcess: 'Portfolio Review',
-      timestamp: new Date().toISOString(),
-      duration: 245,
-      metadata: { recordsViewed: 50 }
-    },
-    {
-      id: 'act-002',
-      userId: 'user-002',
-      userName: 'Ahmad Hassan',
-      userEmail: 'ahmad.hassan@syariahbank.com',
-      sessionId: 'session-002',
-      activityType: 'CONFIGURATION_CHANGE',
-      actionPerformed: 'Update IFRS9 Parameters',
-      targetEntity: 'IFRS9Parameter',
-      targetId: 'param-001',
-      pageUrl: '/banking/configuration/ifrs9',
-      moduleAccessed: 'IFRS9 Configuration',
-      actionResult: 'SUCCESS',
-      responseTimeMs: 1200,
-      ipAddress: '192.168.1.105',
-      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-      location: 'Kuala Lumpur, Malaysia',
-      deviceType: 'Desktop',
-      browserName: 'Safari',
-      riskLevel: 'HIGH',
-      bankingType: 'syariah',
-      complianceRelevant: true,
-      businessProcess: 'Parameter Management',
-      timestamp: new Date(Date.now() - 300000).toISOString(),
-      duration: 1200,
-      metadata: { parametersChanged: 3 }
-    },
-    {
-      id: 'act-003',
-      userId: 'user-003',
-      userName: 'Lisa Rodriguez',
-      userEmail: 'lisa.rodriguez@metrobank.com',
-      sessionId: 'session-003',
-      activityType: 'FILE_UPLOAD',
-      actionPerformed: 'Upload ECL Data',
-      targetEntity: 'UploadBatch',
-      targetId: 'batch-001',
-      pageUrl: '/banking/tools/upload',
-      moduleAccessed: 'Data Upload',
-      actionResult: 'FAILURE',
-      errorMessage: 'File format validation failed',
-      responseTimeMs: 5600,
-      ipAddress: '192.168.1.110',
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      location: 'Manila, Philippines',
-      deviceType: 'Desktop',
-      browserName: 'Edge',
-      riskLevel: 'MEDIUM',
-      bankingType: 'conventional',
-      complianceRelevant: false,
-      businessProcess: 'Data Processing',
-      timestamp: new Date(Date.now() - 600000).toISOString(),
-      duration: 5600,
-      metadata: { fileName: 'ecl-data-2024.xlsx', fileSize: '2.5MB' }
+  React.useEffect(() => {
+    if (activitiesQuery.error) {
+      setError(getErrorMessage(activitiesQuery.error, 'Failed to fetch user activities. Please try again.'));
+      return;
     }
-  ];
-
-  const mockStatistics: ActivityStatistics = {
-    totalActivities: 1247,
-    successfulActivities: 1156,
-    failedActivities: 67,
-    partialActivities: 24,
-    criticalRiskActivities: 8,
-    highRiskActivities: 45,
-    uniqueUsers: 89,
-    uniqueSessions: 324,
-    avgResponseTime: 850,
-    complianceRelevantActivities: 892,
-    topModules: [
-      { module: 'Portfolio Management', count: 345 },
-      { module: 'IFRS9 Configuration', count: 234 },
-      { module: 'Data Upload', count: 178 },
-      { module: 'User Management', count: 156 },
-      { module: 'Approval Workflow', count: 134 }
-    ],
-    topUsers: [
-      { userId: 'user-001', userName: 'Sarah Chen', count: 89 },
-      { userId: 'user-002', userName: 'Ahmad Hassan', count: 76 },
-      { userId: 'user-003', userName: 'Lisa Rodriguez', count: 65 },
-      { userId: 'user-004', userName: 'David Wilson', count: 54 },
-      { userId: 'user-005', userName: 'Maria Santos', count: 43 }
-    ],
-    hourlyDistribution: Array.from({ length: 24 }, (_, i) => ({
-      hour: i,
-      count: Math.floor(Math.random() * 50) + 10
-    })),
-    riskDistribution: [
-      { risk: 'LOW', count: 856 },
-      { risk: 'MEDIUM', count: 298 },
-      { risk: 'HIGH', count: 85 },
-      { risk: 'CRITICAL', count: 8 }
-    ]
-  };
-
-  // Fetch activities data
-  const fetchActivities = useCallback(async () => {
-    setLoading(true);
     setError(null);
+  }, [activitiesQuery.error]);
 
-    try {
-      // In real implementation, call API with filters
-      // const response = await api.get('/api/v1/audit/logs', { params: filters });
-      // setActivities(response.data.data);
+  const filteredActivities = useMemo(() => {
+    return activities.filter((activity) => {
+      if (filters.searchTerm?.trim()) {
+        const normalizedSearch = filters.searchTerm.trim().toLowerCase();
+        const matchesSearch = [
+          activity.userName,
+          activity.userEmail,
+          activity.actionPerformed,
+          activity.moduleAccessed,
+          activity.activityType,
+          activity.ipAddress,
+        ]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(normalizedSearch));
+        if (!matchesSearch) return false;
+      }
 
-      // Mock implementation
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setActivities(mockActivities);
-      setStatistics(mockStatistics);
-    } catch (error) {
-      console.error('Error fetching user activities:', error);
-      setError('Failed to fetch user activities. Please try again.');
-      // Fallback to mock data
-      setActivities(mockActivities);
-      setStatistics(mockStatistics);
-    } finally {
-      setLoading(false);
-    }
-  }, [filters]);
+      if (filters.activityType && activity.activityType !== filters.activityType) return false;
+      if (filters.actionResult && activity.actionResult !== filters.actionResult) return false;
+      if (filters.riskLevel && activity.riskLevel !== filters.riskLevel) return false;
+      if (filters.bankingType && activity.bankingType !== filters.bankingType) return false;
+      if (filters.ipAddress && !activity.ipAddress.toLowerCase().includes(filters.ipAddress.toLowerCase())) return false;
 
-  useEffect(() => {
-    fetchActivities();
-  }, [fetchActivities]);
+      if (filters.dateFrom) {
+        const fromDate = startOfDay(filters.dateFrom).getTime();
+        if (new Date(activity.timestamp).getTime() < fromDate) return false;
+      }
+      if (filters.dateTo) {
+        const toDate = endOfDay(filters.dateTo).getTime();
+        if (new Date(activity.timestamp).getTime() > toDate) return false;
+      }
+
+      return true;
+    });
+  }, [activities, filters]);
+
+  const tableRows = useMemo(
+    () => applyActivityTableQuery(filteredActivities, queryState.columnFilters, queryState.sort),
+    [filteredActivities, queryState.columnFilters, queryState.sort],
+  );
 
   // Handlers
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -328,15 +375,20 @@ export default function UserActivityPage({ params }: { params: Promise<{}> }) {
     }));
   };
 
-  const handleClearFilters = () => {
+  const handleClearFilters = useCallback(async () => {
     setFilters({
       dateFrom: subDays(new Date(), 7),
       dateTo: new Date(),
     });
-  };
+    resetView();
+    setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
+    if (savedView.hasSavedView) {
+      await savedView.clearSavedView();
+    }
+  }, [queryState.paginationModel.pageSize, resetView, savedView, setPaginationModel]);
 
   const handleRefresh = () => {
-    fetchActivities();
+    void activitiesQuery.refetch();
   };
 
   const handleViewDetails = (activity: UserActivityLog) => {
@@ -348,14 +400,71 @@ export default function UserActivityPage({ params }: { params: Promise<{}> }) {
 
   const handleExport = async (format: 'csv' | 'excel' | 'pdf') => {
     try {
-      // In real implementation, call export API
-      // const response = await api.get(`/api/v1/audit/export?format=${format}`, { params: filters });
-      console.log(`Exporting user activities as ${format}`);
+      const exportColumns = USER_ACTIVITY_EXPORT_COLUMNS.filter(
+        (column) => queryState.columnVisibilityModel[column.field] !== false,
+      );
+      const exportFilters: Record<string, string> = {};
+      if (filters.searchTerm) exportFilters.Search = filters.searchTerm;
+      if (filters.activityType) exportFilters['Activity Type'] = filters.activityType;
+      if (filters.actionResult) exportFilters.Result = filters.actionResult;
+      if (filters.riskLevel) exportFilters['Risk Level'] = filters.riskLevel;
+      if (filters.bankingType) exportFilters['Banking Type'] = filters.bankingType;
+      if (filters.ipAddress) exportFilters['IP Address'] = filters.ipAddress;
+      if (filters.dateFrom) exportFilters['From Date'] = filters.dateFrom.toISOString();
+      if (filters.dateTo) exportFilters['To Date'] = filters.dateTo.toISOString();
+      Object.entries(queryState.columnFilters).forEach(([field, value]) => {
+        const normalizedValue = normalizeActivityFilterValue(value);
+        if (normalizedValue.trim()) exportFilters[`Column: ${field}`] = normalizedValue;
+      });
+
+      const exportOptions = {
+        title: 'User Activity Logs',
+        filename: 'user_activity_logs',
+        filters: exportFilters,
+        confidential: true,
+      };
+
+      const result = format === 'csv'
+        ? exportToCSV(tableRows, exportColumns, exportOptions)
+        : format === 'excel'
+          ? exportToXLSX(tableRows, exportColumns, exportOptions)
+          : exportToPDF(tableRows, exportColumns, exportOptions);
+
+      if (!result?.success) {
+        throw new Error(result?.error || `Failed to export ${format}`);
+      }
+
       setExportDialog(false);
+      setError(null);
     } catch (error) {
       console.error('Export error:', error);
+      setError(getErrorMessage(error, 'Failed to export user activities'));
     }
   };
+
+  const handleSaveView = useCallback(async () => {
+    if (!user?.id) return;
+    const savedFilterState: Record<string, EnterpriseColumnFilterValue> = {};
+    if (filters.userId) savedFilterState.userId = filters.userId;
+    if (filters.activityType) savedFilterState.activityType = filters.activityType;
+    if (filters.actionResult) savedFilterState.actionResult = filters.actionResult;
+    if (filters.riskLevel) savedFilterState.riskLevel = filters.riskLevel;
+    if (filters.bankingType) savedFilterState.bankingType = filters.bankingType;
+    if (typeof filters.complianceRelevant === 'boolean') savedFilterState.complianceRelevant = filters.complianceRelevant;
+    if (filters.dateFrom) savedFilterState.dateFrom = filters.dateFrom.toISOString();
+    if (filters.dateTo) savedFilterState.dateTo = filters.dateTo.toISOString();
+    if (filters.moduleAccessed) savedFilterState.moduleAccessed = filters.moduleAccessed;
+    if (filters.ipAddress) savedFilterState.ipAddress = filters.ipAddress;
+
+    await savedView.saveDefaultView({
+      ...toSavedViewState(),
+      search: filters.searchTerm || '',
+      filters: {
+        ...toSavedViewState().filters,
+        ...savedFilterState,
+      },
+    });
+  }, [filters, savedView, toSavedViewState, user?.id]);
 
   // Helper functions
   const getActionResultColor = (result: string) => {
@@ -802,18 +911,34 @@ export default function UserActivityPage({ params }: { params: Promise<{}> }) {
               subheader={`Last updated: ${format(new Date(), 'MMM dd, yyyy HH:mm')}`}
             />
             <CardContent>
-              <DataGrid
-                rows={activities}
+              <SafeDataGrid
+                rows={tableRows}
                 columns={columns}
                 loading={loading}
+                paginationMode="client"
+                rowCount={tableRows.length}
+                paginationModel={queryState.paginationModel}
+                onPaginationModelChange={setPaginationModel}
                 pageSizeOptions={[10, 25, 50, 100]}
-                initialState={{
-                  pagination: {
-                    paginationModel: { pageSize: 25 },
-                  },
-                }}
                 checkboxSelection
                 disableRowSelectionOnClick
+                columnFilters={queryState.columnFilters}
+                onColumnFiltersChange={setColumnFilters}
+                sortModel={queryState.sort.map((item) => ({ field: item.field, sort: item.direction }))}
+                onSortModelChange={(model) => {
+                  setSort(
+                    model
+                      .filter((item) => item.sort === 'asc' || item.sort === 'desc')
+                      .map((item) => ({ field: item.field, direction: item.sort as 'asc' | 'desc' }))
+                  );
+                }}
+                columnVisibilityModel={queryState.columnVisibilityModel}
+                onColumnVisibilityModelChange={setColumnVisibilityModel}
+                density={queryState.density === 'dense' ? 'compact' : queryState.density}
+                onDensityChange={setDensity}
+                showEnterpriseControls
+                onSaveView={handleSaveView}
+                onResetView={handleClearFilters}
                 sx={{ height: 600 }}
                 onRowDoubleClick={(params: GridRowParams) => handleViewDetails(params.row)}
               />

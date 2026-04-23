@@ -2,6 +2,12 @@ import { tenantDb } from '../config/database'
 import { auditLogs, userActivityLogs, dataAccessLogs, calculationAuditLogs } from '../db/schema'
 import type { NewAuditLog, NewUserActivityLog, NewDataAccessLog, NewCalculationAuditLog } from '../db/schema'
 
+export const runAuditSafely = (operation: Promise<void>, context: string): void => {
+    void operation.catch((error) => {
+        console.error(`[Audit] ${context} failed:`, error)
+    })
+}
+
 /**
  * Core audit logging function.
  * Uses tenantDb since audit schema exists in tenant database.

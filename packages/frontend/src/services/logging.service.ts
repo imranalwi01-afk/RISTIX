@@ -56,6 +56,7 @@ class CentralizedLoggingService {
   private bufferSize = 100;
   private flushInterval = 30000; // 30 seconds
   private flushTimer?: NodeJS.Timeout;
+  private isLogging = false;
 
   constructor() {
     this.sessionId = this.generateSessionId();
@@ -77,20 +78,21 @@ class CentralizedLoggingService {
 
       // Set up error capture
       window.addEventListener('error', (event) => {
+        if (String(event.filename || '').includes('logging.service')) return;
+
         this.error(LogCategory.SYSTEM, 'Unhandled JavaScript Error', {
           message: event.message,
           filename: event.filename,
           lineno: event.lineno,
           colno: event.colno,
-          stack: event.error?.stack
+          error: this.normalizeErrorLike(event.error),
         });
       });
 
       // Set up unhandled promise rejection capture
       window.addEventListener('unhandledrejection', (event) => {
         this.error(LogCategory.SYSTEM, 'Unhandled Promise Rejection', {
-          reason: event.reason,
-          promise: event.promise
+          reason: this.normalizeErrorLike(event.reason),
         });
       });
 
@@ -123,6 +125,76 @@ class CentralizedLoggingService {
     return null;
   }
 
+  private normalizeErrorLike(value: unknown): unknown {
+    if (value instanceof Error) {
+      return {
+        name: value.name,
+        message: value.message,
+        stack: value.stack,
+      };
+    }
+
+    if (value === null || value === undefined) return value;
+
+    if (typeof value === 'object') {
+      try {
+        const record = value as Record<string, unknown>;
+        const keys = Object.keys(record);
+        if (keys.length === 0) {
+          return { message: '[empty object]' };
+        }
+      } catch {
+        return { message: '[uninspectable object]' };
+      }
+    }
+
+    return value;
+  }
+
+  private sanitizeLogData(value: unknown): unknown {
+    const seen = new WeakSet<object>();
+
+    const sanitize = (item: unknown): unknown => {
+      if (item === null || item === undefined) return item;
+      if (typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean') return item;
+      if (typeof item === 'bigint') return item.toString();
+      if (typeof item === 'function') return `[Function ${(item as Function).name || 'anonymous'}]`;
+      if (item instanceof Error) return this.normalizeErrorLike(item);
+      if (typeof Promise !== 'undefined' && item instanceof Promise) return '[Promise]';
+
+      if (typeof item === 'object') {
+        if (seen.has(item)) return '[Circular]';
+        seen.add(item);
+
+        if (typeof Event !== 'undefined' && item instanceof Event) {
+          return {
+            type: item.type,
+            target: item.target ? '[EventTarget]' : null,
+          };
+        }
+
+        if (Array.isArray(item)) {
+          return item.map(sanitize);
+        }
+
+        return Object.fromEntries(
+          Object.entries(item as Record<string, unknown>).map(([key, nestedValue]) => [key, sanitize(nestedValue)]),
+        );
+      }
+
+      return String(item);
+    };
+
+    try {
+      return sanitize(value);
+    } catch (error) {
+      return {
+        message: 'Failed to sanitize log payload',
+        error: this.normalizeErrorLike(error),
+      };
+    }
+  }
+
   // ✅ Create log entry
   private createLogEntry(
     level: LogLevel,
@@ -139,7 +211,7 @@ class CentralizedLoggingService {
       level,
       category,
       message,
-      data,
+      data: this.sanitizeLogData(data),
       userId: user?.id,
       userRole: user?.role,
       stakeholderType: user?.stakeholderType,
@@ -227,34 +299,55 @@ class CentralizedLoggingService {
   private logToConsole(logEntry: LogEntry) {
     if (this.config.app.environment !== 'development') return;
 
-    const message = this.formatConsoleMessage(logEntry);
-    const data = logEntry.data;
+    try {
+      const message = this.formatConsoleMessage(logEntry);
+      const data = logEntry.data;
+      const isGlobalCapture =
+        logEntry.category === LogCategory.SYSTEM &&
+        (logEntry.message === 'Unhandled JavaScript Error' || logEntry.message === 'Unhandled Promise Rejection');
 
-    switch (logEntry.level) {
-      case LogLevel.DEBUG:
-        console.debug(message, data);
-        break;
-      case LogLevel.INFO:
-        console.info(message, data);
-        break;
-      case LogLevel.WARN:
-        console.warn(message, data);
-        break;
-      case LogLevel.ERROR:
-      case LogLevel.CRITICAL:
-        console.error(message, data);
-        break;
-      default:
-        console.log(message, data);
+      switch (logEntry.level) {
+        case LogLevel.DEBUG:
+          console.debug(message, data);
+          break;
+        case LogLevel.INFO:
+          console.info(message, data);
+          break;
+        case LogLevel.WARN:
+          console.warn(message, data);
+          break;
+        case LogLevel.ERROR:
+        case LogLevel.CRITICAL:
+          // Avoid making Next dev overlay point at the logger instead of the original error.
+          if (isGlobalCapture) {
+            console.warn(message, data);
+          } else {
+            console.error(message, data);
+          }
+          break;
+        default:
+          console.log(message, data);
+      }
+    } catch (error) {
+      console.warn('Logging console output failed', this.normalizeErrorLike(error));
     }
   }
 
   // ✅ Main logging method
   private log(level: LogLevel, category: LogCategory, message: string, data?: any) {
-    const logEntry = this.createLogEntry(level, category, message, data);
+    if (this.isLogging) return;
 
-    this.logToConsole(logEntry);
-    this.addToBuffer(logEntry);
+    try {
+      this.isLogging = true;
+      const logEntry = this.createLogEntry(level, category, message, data);
+
+      this.logToConsole(logEntry);
+      this.addToBuffer(logEntry);
+    } catch (error) {
+      console.warn('Logging failed', this.normalizeErrorLike(error));
+    } finally {
+      this.isLogging = false;
+    }
   }
 
   // ✅ Public logging methods

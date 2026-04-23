@@ -1,7 +1,7 @@
 // packages/frontend/src/app/banking/maintenance/job-monitoring/page.tsx
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -36,6 +36,7 @@ import { format, parseISO, subDays } from 'date-fns';
 import { bankingAPI } from '@/services/api';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/utils/error-message';
+import { useJobExecutionRuntimeQuery, useJobMonitoringQuery } from '@/features/job-monitoring/hooks/useJobMonitoringQueries';
 import { ActiveJobsPanel } from './components/ActiveJobsPanel';
 import { JobSystemMetricsPanel } from './components/JobSystemMetricsPanel';
 import { JobDefinitionsPanel } from './components/JobDefinitionsPanel';
@@ -197,7 +198,7 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
   const [jobExecutions, setJobExecutions] = useState<JobExecution[]>([]);
   const [jobDefinitions, setJobDefinitions] = useState<JobDefinition[]>([]);
   const [systemMetrics, setSystemMetrics] = useState<SystemMetrics | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [filters, setFilters] = useState<JobFilters>({
@@ -226,6 +227,17 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
 
   const [createJobDialogOpen, setCreateJobDialogOpen] = useState(false);
   const [newJobData, setNewJobData] = useState<CreateJobForm>(DEFAULT_NEW_JOB_DATA);
+  const monitoringQuery = useJobMonitoringQuery({
+    enabled: canViewJobs,
+    autoRefresh,
+  });
+  const runtimeQuery = useJobExecutionRuntimeQuery(
+    jobDetailsDialog.open && jobDetailsDialog.job?.status === 'RUNNING' && !jobDetailsDialog.job?.runtime?.available
+      ? jobDetailsDialog.job.id
+      : null,
+    canViewRuntime,
+  );
+  const loading = monitoringQuery.isLoading || monitoringQuery.isFetching || actionLoading;
 
   const normalizeSqlProcedureInput = (jobData: CreateJobForm) => {
     const rawProcedure = (jobData.procedureName || '').trim();
@@ -291,7 +303,7 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
         return;
       }
 
-      setLoading(true);
+      setActionLoading(true);
 
       // Construct defaultParameters based on job type
       let defaultParams: Record<string, unknown> = { ...(newJobData.parameters || {}) };
@@ -321,7 +333,7 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
       await bankingAPI.jobs.createDefinition(payload as any);
 
       setCreateJobDialogOpen(false);
-      fetchJobExecutions();
+      await fetchJobExecutions();
 
       // Reset form
       setNewJobData(DEFAULT_NEW_JOB_DATA);
@@ -329,7 +341,7 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
       console.error('Error creating job:', error);
       setError(getErrorMessage(error, 'Failed to create job definition. Please check your inputs.'));
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
@@ -349,114 +361,93 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
     || (newJobData.type === 'SQL_SP' && !(newJobData.procedureName || '').trim())
     || (newJobData.type === 'INTERNAL_SCRIPT' && !(newJobData.handlerName || '').trim())
     || (newJobData.type === 'SHELL_COMMAND' && !(newJobData.command || '').trim());
-
-
-
-  // Fetch data
   const fetchJobExecutions = useCallback(async () => {
+    await monitoringQuery.refetch();
+  }, [monitoringQuery]);
+
+  useEffect(() => {
     if (!canViewJobs) {
       setJobExecutions([]);
       setJobDefinitions([]);
       setSystemMetrics(null);
-      setLoading(false);
       setError('You do not have permission to view job monitoring.');
       return;
     }
 
-    setLoading(true);
-    setError(null);
+    if (!monitoringQuery.data) return;
 
-    try {
-      const [executions, definitions, metrics] = await Promise.all([
-        bankingAPI.jobs.getExecutions({ limit: 100 }),
-        bankingAPI.jobs.getDefinitions(),
-        bankingAPI.jobs.getMetrics()
-      ]);
+    const executions = monitoringQuery.data.executions || [];
+    const definitions = monitoringQuery.data.definitions || [];
+    const metrics = monitoringQuery.data.metrics || {};
 
-      // Map backend statuses to UI statuses
-      const mapped: JobExecution[] = (executions || []).map((e: any) => mapExecutionFromApi(e));
-
-      const latestExecutionByDefinition = new Map<string, JobExecution>();
-      for (const execution of mapped) {
-        if (!execution.jobId || execution.jobId === execution.id) continue;
-        if (!latestExecutionByDefinition.has(execution.jobId)) {
-          latestExecutionByDefinition.set(execution.jobId, execution);
-        }
+    const mapped: JobExecution[] = executions.map((execution: any) => mapExecutionFromApi(execution));
+    const latestExecutionByDefinition = new Map<string, JobExecution>();
+    for (const execution of mapped) {
+      if (!execution.jobId || execution.jobId === execution.id) continue;
+      if (!latestExecutionByDefinition.has(execution.jobId)) {
+        latestExecutionByDefinition.set(execution.jobId, execution);
       }
+    }
 
-      const mappedDefinitions: JobDefinition[] = (definitions || []).map((d: any) => {
-        const latestExecution = latestExecutionByDefinition.get(d.id);
+    const mappedDefinitions: JobDefinition[] = definitions.map((definition: any) => {
+      const latestExecution = latestExecutionByDefinition.get(definition.id);
 
+      return {
+        id: definition.id,
+        name: definition.name,
+        description: definition.description || '',
+        type: definition.type || definition.jobType || 'UNKNOWN',
+        isEnabled: Boolean(definition.isEnabled),
+        scheduleExpression: definition.scheduleExpression || definition.cronExpression || '',
+        parameters: definition.parameters || definition.defaultParameters || {},
+        maxRetries: Number(definition.maxRetries ?? 0),
+        timeout: Number(definition.timeout ?? 3600),
+        priority: definition.priority || 'NORMAL',
+        createdBy: definition.createdBy || '',
+        lastModified: definition.updatedAt || definition.lastModified || definition.createdAt || new Date().toISOString(),
+        nextRunTime: definition.nextRunTime || undefined,
+        lastRunStatus: definition.lastRunStatus
+          ? toUiStatus(definition.lastRunStatus)
+          : latestExecution
+            ? toUiStatus(latestExecution.status)
+            : undefined,
+        lastRunTime: definition.lastRunTime || latestExecution?.startTime || undefined,
+      };
+    });
+
+    setJobExecutions(mapped);
+    setJobDefinitions((prev) => {
+      const prevById = new Map(prev.map((job) => [job.id, job]));
+
+      return mappedDefinitions.map((job) => {
+        const previous = prevById.get(job.id);
         return {
-          id: d.id,
-          name: d.name,
-          description: d.description || '',
-          type: d.type || d.jobType || 'UNKNOWN',
-          isEnabled: Boolean(d.isEnabled),
-          scheduleExpression: d.scheduleExpression || d.cronExpression || '',
-          parameters: d.parameters || d.defaultParameters || {},
-          maxRetries: Number(d.maxRetries ?? 0),
-          timeout: Number(d.timeout ?? 3600),
-          priority: d.priority || 'NORMAL',
-          createdBy: d.createdBy || '',
-          lastModified: d.updatedAt || d.lastModified || d.createdAt || new Date().toISOString(),
-          nextRunTime: d.nextRunTime || undefined,
-          lastRunStatus: d.lastRunStatus
-            ? toUiStatus(d.lastRunStatus)
-            : latestExecution
-              ? toUiStatus(latestExecution.status)
-              : undefined,
-          lastRunTime: d.lastRunTime || latestExecution?.startTime || undefined,
+          ...job,
+          lastRunStatus: job.lastRunStatus ?? previous?.lastRunStatus,
+          lastRunTime: job.lastRunTime ?? previous?.lastRunTime,
         };
       });
-
-      setJobExecutions(mapped);
-      setJobDefinitions((prev) => {
-        const prevById = new Map(prev.map((job) => [job.id, job]));
-
-        return mappedDefinitions.map((job) => {
-          const previous = prevById.get(job.id);
-          return {
-            ...job,
-            // Preserve optimistic status/time until backend has persisted last-run state.
-            lastRunStatus: job.lastRunStatus ?? previous?.lastRunStatus,
-            lastRunTime: job.lastRunTime ?? previous?.lastRunTime,
-          };
-        });
-      });
-      setSystemMetrics({
-        cpuUsage: metrics?.cpuUsage || 0,
-        memoryUsage: metrics?.memoryUsage || 0,
-        diskUsage: metrics?.diskUsage || 0,
-        activeJobs: metrics?.activeJobs || 0,
-        queuedJobs: metrics?.queuedJobs || 0,
-        completedJobsToday: metrics?.completedJobsToday || 0,
-        failedJobsToday: metrics?.failedJobsToday || 0,
-        averageExecutionTime: metrics?.averageExecutionTime || 0,
-        throughputPerHour: metrics?.throughputPerHour || 0,
-      });
-    } catch (error) {
-      console.error('Error fetching job data:', error);
-      setError(getErrorMessage(error, 'Failed to fetch job data. Please try again.'));
-    } finally {
-      setLoading(false);
-    }
-  }, [filters, canViewJobs]);
+    });
+    setSystemMetrics({
+      cpuUsage: metrics?.cpuUsage || 0,
+      memoryUsage: metrics?.memoryUsage || 0,
+      diskUsage: metrics?.diskUsage || 0,
+      activeJobs: metrics?.activeJobs || 0,
+      queuedJobs: metrics?.queuedJobs || 0,
+      completedJobsToday: metrics?.completedJobsToday || 0,
+      failedJobsToday: metrics?.failedJobsToday || 0,
+      averageExecutionTime: metrics?.averageExecutionTime || 0,
+      throughputPerHour: metrics?.throughputPerHour || 0,
+    });
+    setError(null);
+  }, [canViewJobs, monitoringQuery.data]);
 
   useEffect(() => {
-    fetchJobExecutions();
-  }, [fetchJobExecutions]);
-
-  // Auto-refresh effect
-  useEffect(() => {
-    if (autoRefresh) {
-      const interval = setInterval(() => {
-        fetchJobExecutions();
-      }, 30000); // Refresh every 30 seconds
-
-      return () => clearInterval(interval);
+    if (monitoringQuery.error) {
+      console.error('Error fetching job data:', monitoringQuery.error);
+      setError(getErrorMessage(monitoringQuery.error, 'Failed to fetch job data. Please try again.'));
     }
-  }, [autoRefresh, fetchJobExecutions]);
+  }, [monitoringQuery.error]);
 
   // Handlers
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -482,38 +473,8 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
   };
 
   const handleRefresh = () => {
-    fetchJobExecutions();
+    void fetchJobExecutions();
   };
-
-  const fetchExecutionRuntime = useCallback(async (executionId: string) => {
-    if (!canViewRuntime) return;
-
-    try {
-      const runtime = await bankingAPI.jobs.getExecutionRuntime(executionId);
-      if (!runtime || !runtime.available) return;
-
-      setJobExecutions((prev) =>
-        prev.map((job) => (job.id === executionId ? { ...job, runtime } : job))
-      );
-
-      setJobDetailsDialog((prev) => {
-        if (!prev.job || prev.job.id !== executionId) return prev;
-        return {
-          ...prev,
-          job: {
-            ...prev.job,
-            runtime,
-          },
-        };
-      });
-    } catch (runtimeError) {
-      const statusCode = getHttpStatus(runtimeError);
-      if (statusCode === 403 || statusCode === 404) {
-        return;
-      }
-      console.error('Failed to fetch runtime diagnostics:', runtimeError);
-    }
-  }, [canViewRuntime]);
 
   const handleViewJobDetails = (job: JobExecution) => {
     setJobDetailsDialog({
@@ -523,12 +484,34 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
   };
 
   useEffect(() => {
-    if (!canViewRuntime) return;
-    if (!jobDetailsDialog.open || !jobDetailsDialog.job) return;
-    if (jobDetailsDialog.job.status !== 'RUNNING') return;
-    if (jobDetailsDialog.job.runtime?.available) return;
-    fetchExecutionRuntime(jobDetailsDialog.job.id);
-  }, [jobDetailsDialog, fetchExecutionRuntime, canViewRuntime]);
+    if (!runtimeQuery.data || !runtimeQuery.data.available) return;
+
+    const runtime = runtimeQuery.data;
+    const executionId = jobDetailsDialog.job?.id;
+    if (!executionId) return;
+
+    setJobExecutions((prev) =>
+      prev.map((job) => (job.id === executionId ? { ...job, runtime } : job))
+    );
+
+    setJobDetailsDialog((prev) => {
+      if (!prev.job || prev.job.id !== executionId) return prev;
+      return {
+        ...prev,
+        job: {
+          ...prev.job,
+          runtime,
+        },
+      };
+    });
+  }, [jobDetailsDialog.job?.id, runtimeQuery.data]);
+
+  useEffect(() => {
+    if (!runtimeQuery.error) return;
+    const statusCode = getHttpStatus(runtimeQuery.error);
+    if (statusCode === 403 || statusCode === 404) return;
+    console.error('Failed to fetch runtime diagnostics:', runtimeQuery.error);
+  }, [runtimeQuery.error]);
 
   const handleJobControl = async (job: JobExecution, action: 'start' | 'pause' | 'stop' | 'restart') => {
     setJobControlDialog({
@@ -546,7 +529,7 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
       }
 
       try {
-        setLoading(true);
+        setActionLoading(true);
         const runResponse = await bankingAPI.jobs.runJob(jobId);
         const immediateStatus = toUiStatus(runResponse?.status || 'PENDING');
         const nowIso = new Date().toISOString();
@@ -596,7 +579,7 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
           setError(getErrorMessage(error, 'Failed to start job execution.'));
         }
       } finally {
-        setLoading(false);
+        setActionLoading(false);
       }
     } else {
       if (!canControlJobs) {
@@ -633,7 +616,7 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
       }
 
       setJobControlDialog({ open: false, job: null, action: null });
-      fetchJobExecutions();
+      await fetchJobExecutions();
     } catch (error) {
       const statusCode = getHttpStatus(error);
       if (statusCode === 403) {

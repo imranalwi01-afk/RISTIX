@@ -12,6 +12,7 @@ import {
 import type { ApprovalResponse } from '../lib/approval-helpers'
 import { buildErrorResponse } from '../lib/http/error-response'
 import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
+import { buildListResponse, buildOffsetPagination, ListQueryValidationError, parseListQuery } from '../lib/http/list-query'
 
 const app = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
@@ -167,6 +168,53 @@ const ApprovalWorkflowResponse = z.object({
     message: z.string().optional()
 }).openapi('ApprovalWorkflowResponse')
 
+const BusinessSettingListContractResponse = z.object({
+    success: z.boolean(),
+    data: z.array(BusinessSettingHeaderSchema),
+    pagination: z.object({
+        mode: z.literal('offset'),
+        limit: z.number(),
+        total: z.number(),
+        page: z.number(),
+        offset: z.number(),
+        totalPages: z.number(),
+        hasNextPage: z.boolean(),
+        hasPreviousPage: z.boolean(),
+        nextCursor: z.null(),
+        previousCursor: z.null(),
+    }).optional(),
+    appliedQuery: z.object({
+        search: z.string().optional(),
+        filters: z.record(z.string(), z.unknown()).optional(),
+        sort: z.array(z.object({
+            field: z.string(),
+            direction: z.enum(['asc', 'desc']),
+        })).optional(),
+    }).optional(),
+    filterDefinitions: z.record(z.string(), z.object({
+        field: z.string(),
+        label: z.string().optional(),
+        type: z.enum(['text', 'date', 'number', 'enum', 'boolean']),
+    })).optional().optional(),
+}).openapi('BusinessSettingListContractResponse')
+
+const businessSettingFilterDefinitions = {
+    commonCode: { field: 'commonCode', label: 'Code', type: 'text' as const },
+    description: { field: 'description', label: 'Description', type: 'text' as const },
+    value: { field: 'value', label: 'Value', type: 'text' as const },
+    createdBy: { field: 'createdBy', label: 'Created By', type: 'text' as const },
+    category: {
+        field: 'category',
+        label: 'Category',
+        type: 'enum' as const,
+        options: [
+            { label: 'Business', value: 'B' },
+            { label: 'Application', value: 'A' },
+            { label: 'System', value: 'S' },
+        ],
+    },
+}
+
 // Export schemas for unit testing
 export { CreateBusinessSettingSchema, UpdateBusinessSettingSchema }
 
@@ -183,26 +231,84 @@ app.openapi(
         tags: ['Business Settings'],
         summary: 'List Business Settings',
         request: {
-            // query: z.object({
-            //     code: z.string().optional()
-            // })
+            query: z.object({
+                code: z.string().optional(),
+                page: z.string().optional(),
+                offset: z.string().optional(),
+                limit: z.string().optional(),
+                search: z.string().optional(),
+                filters: z.string().optional(),
+                sort: z.string().optional(),
+                paginationMode: z.string().optional(),
+            })
         },
         responses: {
-            200: { content: { 'application/json': { schema: BusinessSettingListResponse } }, description: 'List Settings' },
+            200: { content: { 'application/json': { schema: BusinessSettingListContractResponse } }, description: 'List Settings' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
-        // We reuse listAppSettings from ParametersService as it fetches from frs9ParamCommonh
-        // But we need to ensure we filter by paramType='B' if the service only does 'S' (System) or generic.
-        // Looking at ParametersService.listAppSettings, it hardcodes 'S'.
-        // We need to modify ParametersService to accept paramType or create a new method.
-        // For now, I'll assume I need to update ParametersService first, but to pass validation, I'll cast for now
-        // and fix the service logic in the next step. 
-        // Wait, I should fix the service first or reuse a method that allows type.
+        const rawQuery = c.req.query()
+        const usesListContract = ['page', 'offset', 'limit', 'search', 'filters', 'sort', 'paginationMode'].some((key) => rawQuery[key] !== undefined)
 
-        // Now calling listBusinessSettings which correctly fetches type 'B' headers
-        return runEffect(c, ParametersService.listBusinessSettings() as any) as any
+        if (!usesListContract) {
+            return runEffect(c, ParametersService.listBusinessSettings() as any) as any
+        }
+
+        try {
+            const query = parseListQuery(c, {
+                paginationMode: 'offset',
+                defaultLimit: 10,
+                maxLimit: 100,
+                defaultSort: [{ field: 'commonCode', direction: 'asc' }],
+                sortableColumns: [
+                    'commonCode',
+                    'description',
+                    'value',
+                    'createdBy',
+                    'createdDate',
+                    'category',
+                    'param_code',
+                    'param_desc',
+                    'param_value',
+                    'created_by',
+                    'created_date',
+                    'param_category',
+                ],
+                filterableColumns: ['commonCode', 'description', 'value', 'createdBy', 'category'],
+                filterDefinitions: businessSettingFilterDefinitions,
+                filterAliases: {
+                    param_code: 'commonCode',
+                    param_desc: 'description',
+                    param_value: 'value',
+                    CommonCode: 'commonCode',
+                    Description: 'description',
+                    Value: 'value',
+                    CreatedBy: 'createdBy',
+                },
+            })
+
+            const result = await Effect.runPromise(ParametersService.listBusinessSettingsPage(query) as any) as { rows: unknown[]; total: number }
+
+            return c.json(
+                buildListResponse(
+                    result.rows,
+                    query,
+                    buildOffsetPagination(query, result.total),
+                    { filterDefinitions: businessSettingFilterDefinitions },
+                ),
+            )
+        } catch (error) {
+            if (error instanceof ListQueryValidationError) {
+                return c.json(buildErrorResponse(c, {
+                    error: 'Invalid list query',
+                    message: error.message,
+                    code: 'BAD_REQUEST',
+                    details: error.details,
+                }) as any, 400)
+            }
+            throw error
+        }
     }
 )
 

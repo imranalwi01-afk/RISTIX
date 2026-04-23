@@ -29,6 +29,10 @@ import { useRouter } from 'next/navigation';
 import { api, handleAPIError, bankingAPI } from '../../../../services/api';
 import { exportToXLSX, exportToCSV, exportToPDF } from '@/utils/exportUtils';
 import { getErrorMessage } from '@/utils/error-message';
+import { useAuth } from '@/providers/AuthProvider';
+import { useEnterpriseTableQuery } from '@/hooks/useEnterpriseTableQuery';
+import { useSavedTableView } from '@/hooks/useSavedTableView';
+import type { EnterpriseColumnFilterValue, EnterpriseSort } from '@/types/enterprise-table';
 
 // Shared components
 import PageHeader from '@/components/banking/shared/PageHeader';
@@ -55,7 +59,81 @@ import {
   type JournalDropdownOption
 } from './components';
 
+const JOURNAL_EXPORT_COLUMNS = [
+  { field: 'glCode', headerName: 'GL Code' },
+  { field: 'glDesc', headerName: 'Description' },
+  { field: 'glGroup', headerName: 'GL Group' },
+  { field: 'glType', headerName: 'GL Type' },
+  { field: 'currency', headerName: 'Currency' },
+  { field: 'glNumber', headerName: 'GL Number' },
+  { field: 'dbcr', headerName: 'DB/CR' },
+  { field: 'activeFlag', headerName: 'Active' },
+] as const;
+
+const normalizeFilterValue = (value: EnterpriseColumnFilterValue) => {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
+  if (Array.isArray(value)) return value.join(' ');
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+};
+
+const getJournalFieldValue = (row: JournalParameter, field: string): EnterpriseColumnFilterValue => {
+  const record = row as unknown as Record<string, unknown>;
+  return record[field] as EnterpriseColumnFilterValue;
+};
+
+const compareJournalValues = (left: unknown, right: unknown) => {
+  if (left === right) return 0;
+  if (left === null || left === undefined) return 1;
+  if (right === null || right === undefined) return -1;
+
+  const leftNumber = typeof left === 'number' ? left : Number(left);
+  const rightNumber = typeof right === 'number' ? right : Number(right);
+  if (!Number.isNaN(leftNumber) && !Number.isNaN(rightNumber)) {
+    return leftNumber - rightNumber;
+  }
+
+  const leftDate = left instanceof Date ? left.getTime() : Date.parse(String(left));
+  const rightDate = right instanceof Date ? right.getTime() : Date.parse(String(right));
+  if (!Number.isNaN(leftDate) && !Number.isNaN(rightDate)) {
+    return leftDate - rightDate;
+  }
+
+  return String(left).localeCompare(String(right), undefined, {
+    numeric: true,
+    sensitivity: 'base',
+  });
+};
+
+const applyJournalTableQuery = (
+  rows: JournalParameter[],
+  columnFilters: Record<string, EnterpriseColumnFilterValue>,
+  sort: EnterpriseSort[],
+) => {
+  const activeFilters = Object.entries(columnFilters).filter(([, value]) => normalizeFilterValue(value).trim().length > 0);
+
+  const filteredRows = activeFilters.length === 0
+    ? rows
+    : rows.filter((row) =>
+        activeFilters.every(([field, value]) =>
+          normalizeFilterValue(getJournalFieldValue(row, field)).toLowerCase().includes(normalizeFilterValue(value).toLowerCase())
+        )
+      );
+
+  const activeSort = sort[0];
+  if (!activeSort) return filteredRows;
+
+  return [...filteredRows].sort((leftRow, rightRow) => {
+    const leftValue = getJournalFieldValue(leftRow, activeSort.field);
+    const rightValue = getJournalFieldValue(rightRow, activeSort.field);
+    const result = compareJournalValues(leftValue, rightValue);
+    return activeSort.direction === 'asc' ? result : -result;
+  });
+};
+
 export default function JournalParametersPage() {
+  const { user } = useAuth();
   const { hasAnyPermission } = usePermission();
   const canViewJournal = hasAnyPermission(['banking.parameter.journal.view', 'banking.parameter.journal.manage', 'banking.parameter.journal', 'admin.super_admin']);
   const canManageJournal = hasAnyPermission(['banking.parameter.journal.manage', 'banking.parameter.journal.create', 'banking.parameter.journal.update', 'banking.parameter.journal.delete', 'admin.super_admin']);
@@ -83,13 +161,6 @@ export default function JournalParametersPage() {
   const [selectedPendingRequest, setSelectedPendingRequest] = useState<any>(null);
   const [currentRecordForPending, setCurrentRecordForPending] = useState<any>(null);
 
-  // Pagination State
-  const [paginationModel, setPaginationModel] = useState({
-    page: 0,
-    pageSize: 25,
-  });
-  const [rowCount, setRowCount] = useState(0);
-
   // State for dropdown options
   const [glGroupOptions, setGlGroupOptions] = useState<Array<{ id: string, name: string }>>([]);
   const [currencyOptions, setCurrencyOptions] = useState<Array<{ id: string, name: string }>>([]);
@@ -103,6 +174,39 @@ export default function JournalParametersPage() {
   const [filterGlGroup, setFilterGlGroup] = useState('');
   const [filterCurrency, setFilterCurrency] = useState('');
   const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('all');
+  const {
+    queryState,
+    setPaginationModel,
+    setColumnVisibilityModel,
+    setDensity,
+    setColumnFilters,
+    setSort,
+    applySavedView,
+    toSavedViewState,
+    resetView,
+  } = useEnterpriseTableQuery({
+    pageKey: 'banking:journal-parameters',
+    paginationMode: 'client',
+    initialPageSize: 25,
+    syncUrl: true,
+  });
+  const savedView = useSavedTableView({
+    userId: user?.id,
+    scope: 'banking:journal-parameters',
+    enabled: Boolean(user?.id),
+    onApplyView: (view) => {
+      applySavedView(view);
+      setSearchTerm(typeof view.state.search === 'string' ? view.state.search : '');
+      const savedFilters = (view.state.filters ?? {}) as Record<string, unknown>;
+      setFilterGlGroup(typeof savedFilters.filterGlGroup === 'string' ? savedFilters.filterGlGroup : '');
+      setFilterCurrency(typeof savedFilters.filterCurrency === 'string' ? savedFilters.filterCurrency : '');
+      setFilterActive(
+        savedFilters.filterActive === 'active' || savedFilters.filterActive === 'inactive' || savedFilters.filterActive === 'all'
+          ? savedFilters.filterActive
+          : 'all'
+      );
+    },
+  });
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -110,14 +214,6 @@ export default function JournalParametersPage() {
 
     try {
       console.log('🔄 Loading journal parameters from real database...');
-
-      const params: any = {};
-      if (searchTerm) params.search = searchTerm;
-      if (filterGlGroup) params.gl_group = filterGlGroup; // API might still use snake_case for query params, if backend route reads params manually. But helper `getAll(params)` constructs URL. Backend Route likely filters manually or doesn't support complex filtering yet. 
-      // Actually backend `journal-parameters.routes.ts` GET / doesn't seem to implement filtering yet (it just selects all formatted). But we can filter client side.
-      if (filterCurrency) params.currency = filterCurrency;
-      if (filterActive === 'active') params.active_only = true;
-      else if (filterActive === 'inactive') params.active_only = false;
 
       const result = await api.banking.journalParameters.getAll();
 
@@ -154,7 +250,7 @@ export default function JournalParametersPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, filterGlGroup, filterCurrency, filterActive]);
+  }, []);
 
   // Filtering logic moved to useMemo below
 
@@ -163,7 +259,8 @@ export default function JournalParametersPage() {
     setFilterGlGroup('');
     setFilterCurrency('');
     setFilterActive('all');
-  }, []);
+    resetView();
+  }, [resetView]);
 
   const loadDropdownOptions = useCallback(async () => {
     setOptionsLoading(true);
@@ -234,11 +331,12 @@ export default function JournalParametersPage() {
       filtered = filtered.filter(item => item.activeFlag === false);
     }
 
-    // Update row count for pagination
-    setRowCount(filtered.length);
-
     return filtered;
   }, [data, searchTerm, filterGlGroup, filterCurrency, filterActive]);
+  const tableRows = useMemo(
+    () => applyJournalTableQuery(filteredData, queryState.columnFilters, queryState.sort),
+    [filteredData, queryState.columnFilters, queryState.sort],
+  );
 
   const handleCreate = useCallback(() => {
     if (!canManageJournal) return;
@@ -337,24 +435,40 @@ export default function JournalParametersPage() {
     setCurrentRecordForPending(row);
     setPendingChangesDialogOpen(true);
   }, []);
+  const handleSaveView = useCallback(async () => {
+    if (!user?.id) return;
+    await savedView.saveDefaultView({
+      ...toSavedViewState(),
+      search: searchTerm,
+      filters: {
+        ...toSavedViewState().filters,
+        filterGlGroup,
+        filterCurrency,
+        filterActive,
+      },
+    });
+    setSuccess('Journal table view saved');
+  }, [filterActive, filterCurrency, filterGlGroup, savedView, searchTerm, toSavedViewState, user?.id]);
+
+  const handleResetView = useCallback(async () => {
+    clearFilters();
+    setColumnFilters({});
+    setSort([]);
+    setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
+    if (savedView.hasSavedView) {
+      await savedView.clearSavedView();
+    }
+    setSuccess('Journal table view reset');
+  }, [clearFilters, queryState.paginationModel.pageSize, savedView, setColumnFilters, setPaginationModel, setSort]);
 
   // Export handler (Client-side export matching Product Parameters)
   const handleExport = (format: 'xlsx' | 'csv' | 'pdf') => {
     if (!canExportJournal) return;
     try {
       setExportMenuAnchor(null);
-
-      // Define columns for export (matching data grid)
-      const exportColumns = [
-        { field: 'glCode', headerName: 'GL Code' },
-        { field: 'glDesc', headerName: 'Description' },
-        { field: 'glGroup', headerName: 'GL Group' },
-        { field: 'glType', headerName: 'GL Type' },
-        { field: 'currency', headerName: 'Currency' },
-        { field: 'glNumber', headerName: 'GL Number' },
-        { field: 'dbcr', headerName: 'DB/CR' },
-        { field: 'activeFlag', headerName: 'Active' }
-      ];
+      const exportColumns = JOURNAL_EXPORT_COLUMNS.filter(
+        (column) => queryState.columnVisibilityModel[column.field] !== false,
+      );
 
       // Build filter description
       const activeFilters: Record<string, any> = {};
@@ -362,6 +476,15 @@ export default function JournalParametersPage() {
       if (filterGlGroup) activeFilters['GL Group'] = filterGlGroup;
       if (filterCurrency) activeFilters['Currency'] = filterCurrency;
       if (filterActive !== 'all') activeFilters['Status'] = filterActive;
+      Object.entries(queryState.columnFilters).forEach(([field, value]) => {
+        const normalizedValue = normalizeFilterValue(value);
+        if (normalizedValue.trim()) {
+          activeFilters[`Column: ${field}`] = normalizedValue;
+        }
+      });
+      if (queryState.sort[0]) {
+        activeFilters['Sort'] = `${queryState.sort[0].field} (${queryState.sort[0].direction})`;
+      }
 
       const exportOptions = {
         title: 'Journal Parameters',
@@ -370,8 +493,7 @@ export default function JournalParametersPage() {
         confidential: true
       };
 
-      // Use filtered data
-      const dataToExport = filteredData;
+      const dataToExport = tableRows;
 
       let result;
       switch (format) {
@@ -475,29 +597,49 @@ export default function JournalParametersPage() {
         filterCurrency={filterCurrency}
         filterActive={filterActive}
         totalRows={data.length}
-        filteredRows={filteredData.length}
+        filteredRows={tableRows.length}
         glGroupOptions={glGroupOptions}
         currencyOptions={currencyOptions}
-        onSearchChange={setSearchTerm}
-        onGlGroupChange={setFilterGlGroup}
-        onCurrencyChange={setFilterCurrency}
-        onActiveChange={setFilterActive}
+        onSearchChange={(value) => {
+          setSearchTerm(value);
+          setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
+        }}
+        onGlGroupChange={(value) => {
+          setFilterGlGroup(value);
+          setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
+        }}
+        onCurrencyChange={(value) => {
+          setFilterCurrency(value);
+          setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
+        }}
+        onActiveChange={(value) => {
+          setFilterActive(value);
+          setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
+        }}
         onApply={loadData}
         onClear={clearFilters}
       />
 
       <JournalParametersGrid
-        rows={filteredData}
+        rows={tableRows}
         loading={loading}
         error={error}
         canManage={canManageJournal}
-        page={paginationModel.page}
-        pageSize={paginationModel.pageSize}
-        rowCount={rowCount}
+        paginationModel={queryState.paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        rowCount={tableRows.length}
         success={success}
         onSuccessClose={() => setSuccess(null)}
-        onPageChange={(page) => setPaginationModel({ ...paginationModel, page })}
-        onPageSizeChange={(pageSize) => setPaginationModel({ page: 0, pageSize })}
+        columnVisibilityModel={queryState.columnVisibilityModel}
+        onColumnVisibilityModelChange={setColumnVisibilityModel}
+        density={queryState.density}
+        onDensityChange={setDensity}
+        columnFilters={queryState.columnFilters}
+        onColumnFiltersChange={setColumnFilters}
+        sort={queryState.sort}
+        onSortChange={setSort}
+        onSaveView={handleSaveView}
+        onResetView={handleResetView}
         onRetry={loadData}
         onCreate={handleCreate}
         onEdit={handleEdit}

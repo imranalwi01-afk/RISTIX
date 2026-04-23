@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Box,
   Typography,
@@ -39,20 +39,20 @@ import {
   CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
-import { individualImpairmentAPI } from '../../../services/api/individual-impairment.api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
-import ModernLoader from '@/components/common/ModernLoader';
 import { StatCard } from '@/components/common/StatCard';
 import { useAssessmentWorkspaceEmbedded } from '@/app/banking/individual/assessment/embedded-context';
+import { useCreateWatchlistMutation, useRemoveWatchlistMutation, useStandaloneWatchlistQuery } from '@/features/individual-impairment/hooks/useWatchlistQueries';
+import type { StandaloneWatchlistRowViewModel } from '@/features/individual-impairment/domain/individual-impairment.models';
 
 export const Watchlist = () => {
   const embedded = useAssessmentWorkspaceEmbedded();
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<any[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [searchDraft, setSearchDraft] = useState('');
+  const [dateFromDraft, setDateFromDraft] = useState('');
+  const [dateToDraft, setDateToDraft] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -66,93 +66,49 @@ export const Watchlist = () => {
     remarks: ''
   });
 
-  const normalizeSegment = (value: any): string => {
-    const raw = String(value || '').trim();
-    if (!raw) return 'Unknown';
-    const upper = raw.toUpperCase();
-    if (upper.includes('SME')) return 'SME';
-    if (upper.includes('RETAIL')) return 'Retail';
-    return raw;
-  };
-
-  const pickText = (...values: any[]): string | undefined => {
-    for (const value of values) {
-      const raw = value == null ? '' : String(value).trim();
-      if (raw) return raw;
-    }
-    return undefined;
-  };
-
-  const mapWatchlistRow = (row: any) => ({
-    ...row,
-    // Keep stable id for SafeDataGrid row key + actions.
-    id: row.id ?? row.pkid ?? row.account_id ?? row.accountId ?? row.account_number ?? row.accountNumber,
-    customerName: pickText(row.customerName, row.cif_name, row.cifName) ?? '-',
-    accountNumber: pickText(row.accountNumber, row.account_number, row.accountNo) ?? '-',
-    segment: normalizeSegment(
-      pickText(row.segment, row.sub_segment, row.group_segment, row.prd_group, row.prdGroup, row.prd_type, row.prdType)
-    ),
-    impairmentStatus: pickText(row.impairmentStatus, row.assessment_status, row.status) ?? 'WATCHLIST',
-    remarks: pickText(row.remarks, row.notes, row.trigger_remarks, row.triggerRemarks) ?? '-',
-    triggerDate: row.triggerDate ?? row.prc_date ?? row.createddate ?? row.createdDate ?? null,
+  const watchlistQuery = useStandaloneWatchlistQuery({
+    page: 1,
+    limit: 20000,
+    search: searchKeyword || undefined,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
   });
+  const createWatchlistMutation = useCreateWatchlistMutation();
+  const removeWatchlistMutation = useRemoveWatchlistMutation();
 
-  const loadData = async (options?: { search?: string; dateFrom?: string; dateTo?: string }) => {
-    setLoading(true);
-    try {
-      const effectiveSearch = options?.search ?? searchKeyword;
-      const effectiveDateFrom = options?.dateFrom ?? dateFrom;
-      const effectiveDateTo = options?.dateTo ?? dateTo;
-      const response = await individualImpairmentAPI.getWatchlist({
-        page: 1,
-        // Keep this high enough so this page can show complete snapshot with client-side pagination.
-        limit: 20000,
-        search: effectiveSearch || undefined,
-        dateFrom: effectiveDateFrom || undefined,
-        dateTo: effectiveDateTo || undefined,
-      });
-      if (response.success) {
-        const rawRows = Array.isArray(response.data) ? response.data : [];
-        setData(rawRows.map(mapWatchlistRow));
-        setTotalCount(Number(response.pagination?.total ?? rawRows.length ?? 0));
-      }
-    } catch (err: any) {
-      console.error('Failed to load watchlist:', err);
-      // Don't block UI on error, just show empty or cached
-      setError(err.message || 'Failed to load watchlist');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
+  const data = watchlistQuery.data?.rows ?? [];
+  const totalCount = watchlistQuery.data?.total ?? 0;
+  const loading =
+    watchlistQuery.isLoading ||
+    watchlistQuery.isFetching ||
+    createWatchlistMutation.isPending ||
+    removeWatchlistMutation.isPending;
 
   const handleApplyFilters = () => {
-    loadData();
+    setSearchKeyword(searchDraft.trim());
+    setDateFrom(dateFromDraft);
+    setDateTo(dateToDraft);
   };
 
   const handleClearFilters = () => {
+    setSearchDraft('');
+    setDateFromDraft('');
+    setDateToDraft('');
     setSearchKeyword('');
     setDateFrom('');
     setDateTo('');
-    loadData({ search: '', dateFrom: '', dateTo: '' });
   };
 
   const handleCreate = async () => {
     if (!formData.customerName || !formData.accountNumber) return;
 
     try {
-      setLoading(true);
-      await individualImpairmentAPI.addToWatchlist(formData);
+      await createWatchlistMutation.mutateAsync(formData);
       setSuccess('Customer added to watchlist');
       setOpenDialog(false);
       setFormData({ customerName: '', accountNumber: '', segment: 'Retail', remarks: '' });
-      loadData();
     } catch (err: any) {
       setError(err.message || 'Failed to add customer');
-      setLoading(false);
     }
   };
 
@@ -160,17 +116,14 @@ export const Watchlist = () => {
     if (!confirm('Are you sure you want to remove this customer from watchlist?')) return;
 
     try {
-      setLoading(true);
-      await individualImpairmentAPI.removeFromWatchlist(id);
+      await removeWatchlistMutation.mutateAsync(id);
       setSuccess('Removed from watchlist');
-      loadData();
     } catch (err: any) {
       setError(err.message || 'Failed to remove customer');
-      setLoading(false);
     }
   };
 
-  const columns: GridColDef[] = [
+  const columns = useMemo<GridColDef<StandaloneWatchlistRowViewModel>[]>(() => [
     { field: 'customerName', headerName: 'Customer Name', flex: 1, minWidth: 200 },
     { field: 'accountNumber', headerName: 'Account Number', flex: 1, minWidth: 150 },
     { field: 'segment', headerName: 'Segment', width: 150 },
@@ -222,19 +175,13 @@ export const Watchlist = () => {
         />
       ]
     }
-  ];
+  ], [router]);
 
   return (
     <Container
       maxWidth="xl"
       sx={embedded ? { position: 'relative', minHeight: '80vh', px: '0 !important' } : { position: 'relative', minHeight: '80vh' }}
     >
-      <ModernLoader
-        open={loading}
-        message="Loading Watchlist"
-        subMessage="Fetching flagged accounts..."
-      />
-
       {!embedded && (
         <Breadcrumbs sx={{ mb: 2 }}>
           <Link href="/banking/dashboard" underline="hover" color="inherit" sx={{ display: 'flex', alignItems: 'center' }}>
@@ -266,8 +213,8 @@ export const Watchlist = () => {
               fullWidth
               label="Search"
               placeholder="Account Number / Customer Name / CIF"
-              value={searchKeyword}
-              onChange={(e) => setSearchKeyword(e.target.value)}
+              value={searchDraft}
+              onChange={(e) => setSearchDraft(e.target.value)}
             />
           </Grid>
           <Grid size={{ xs: 12, md: 3 }}>
@@ -275,8 +222,8 @@ export const Watchlist = () => {
               fullWidth
               label="Date From"
               type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
+              value={dateFromDraft}
+              onChange={(e) => setDateFromDraft(e.target.value)}
               InputLabelProps={{ shrink: true }}
             />
           </Grid>
@@ -285,8 +232,8 @@ export const Watchlist = () => {
               fullWidth
               label="Date To"
               type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
+              value={dateToDraft}
+              onChange={(e) => setDateToDraft(e.target.value)}
               InputLabelProps={{ shrink: true }}
             />
           </Grid>
@@ -352,7 +299,7 @@ export const Watchlist = () => {
         <SafeDataGrid
           rows={data}
           columns={columns}
-          loading={loading}
+          loading={watchlistQuery.isLoading || watchlistQuery.isFetching}
           slots={{ toolbar: GridToolbar }}
           disableRowSelectionOnClick
           getRowId={(row) => row.id}
@@ -412,6 +359,13 @@ export const Watchlist = () => {
 
       <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
         <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>
+      </Snackbar>
+      <Snackbar
+        open={Boolean(watchlistQuery.error) && !error}
+        autoHideDuration={6000}
+        onClose={() => undefined}
+      >
+        <Alert severity="error">Failed to load watchlist data.</Alert>
       </Snackbar>
       <Snackbar open={!!success} autoHideDuration={6000} onClose={() => setSuccess(null)}>
         <Alert severity="success" onClose={() => setSuccess(null)}>{success}</Alert>

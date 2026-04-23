@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
     Alert,
@@ -38,8 +38,14 @@ import {
     Shield as RoleIcon,
     Verified as VerifiedIcon,
 } from '@mui/icons-material';
-import { rolesAPI, tenantsAPI, usersAPI } from '@/services/api';
 import { getErrorMessage } from '@/utils/error-message';
+import { usePlatformTenantsQuery } from '@/features/platform-tenants/hooks/usePlatformTenantsQueries';
+import {
+    usePlatformRbacPermissionCheckQuery,
+    usePlatformRbacTenantDataQuery,
+    useSavePlatformRbacAssignmentsMutation,
+    useSavePlatformRbacPermissionsMutation,
+} from '@/features/platform-rbac/hooks/usePlatformRbacQueries';
 
 interface TenantOption {
     id: string;
@@ -154,13 +160,7 @@ const PlatformRBACManagement = () => {
     const roleParam = searchParams.get('roleId') || '';
     const requestParam = searchParams.get('requestId') || '';
 
-    const [tenants, setTenants] = useState<TenantOption[]>([]);
     const [selectedTenant, setSelectedTenant] = useState<TenantOption | null>(null);
-    const [loadingTenants, setLoadingTenants] = useState(false);
-
-    const [roles, setRoles] = useState<RoleOption[]>([]);
-    const [users, setUsers] = useState<UserOption[]>([]);
-    const [permissions, setPermissions] = useState<PermissionOption[]>([]);
 
     const [rolePermissionMap, setRolePermissionMap] = useState<Record<string, string[]>>({});
     const [userRoleMap, setUserRoleMap] = useState<Record<string, string[]>>({});
@@ -174,19 +174,25 @@ const PlatformRBACManagement = () => {
     const [permissionDraftCodes, setPermissionDraftCodes] = useState<string[]>([]);
 
     const [previewPermissionCode, setPreviewPermissionCode] = useState<string>('');
-    const [serverPreviewLoading, setServerPreviewLoading] = useState(false);
-    const [serverPreviewAllowed, setServerPreviewAllowed] = useState<boolean | null>(null);
-    const [serverPreviewError, setServerPreviewError] = useState<string | null>(null);
 
     const [submitForApproval, setSubmitForApproval] = useState(false);
     const [approvalReason, setApprovalReason] = useState('');
 
-    const [loadingData, setLoadingData] = useState(false);
     const [savingPermissions, setSavingPermissions] = useState(false);
     const [savingAssignments, setSavingAssignments] = useState(false);
 
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+    const tenantsQuery = usePlatformTenantsQuery({ page: 1, limit: 200, mode: 'admin' });
+    const tenants = (tenantsQuery.data?.rows ?? []) as TenantOption[];
+    const tenantDataQuery = usePlatformRbacTenantDataQuery(selectedTenant?.id || null, Boolean(selectedTenant?.id));
+    const saveAssignmentsMutation = useSavePlatformRbacAssignmentsMutation();
+    const savePermissionsMutation = useSavePlatformRbacPermissionsMutation();
+    const roles = (tenantDataQuery.data?.roles ?? []) as RoleOption[];
+    const users = (tenantDataQuery.data?.users ?? []) as UserOption[];
+    const permissions = (tenantDataQuery.data?.permissions ?? []) as PermissionOption[];
+    const loadingTenants = tenantsQuery.isLoading || tenantsQuery.isFetching;
+    const loadingData = tenantDataQuery.isLoading || tenantDataQuery.isFetching;
 
     const selectedRole = useMemo(
         () => roles.find((role) => role.id === selectedRoleId) || null,
@@ -207,130 +213,56 @@ const PlatformRBACManagement = () => {
         () => permissions.find((permission) => permission.code === previewPermissionCode) || null,
         [permissions, previewPermissionCode]
     );
-
-    const loadTenants = useCallback(async () => {
-        setLoadingTenants(true);
-        setError(null);
-        try {
-            const response = await tenantsAPI.getAll({ page: 1, limit: 200, mode: 'admin' });
-            const items = extractCollection<any>(response, ['tenants']).map(normalizeTenant).filter((tenant) => tenant.id);
-            setTenants(items);
-            if (!selectedTenant && items.length > 0) {
-                const requestedTenant = tenantParam
-                    ? items.find((tenant) => tenant.id === tenantParam || tenant.code === tenantParam)
-                    : null;
-                setSelectedTenant(requestedTenant || items[0]);
-            }
-        } catch (err: any) {
-            const message = getErrorMessage(err, 'Failed to load tenants');
-            setError(message);
-        } finally {
-            setLoadingTenants(false);
-        }
-    }, [selectedTenant, tenantParam]);
+    const previewPermissionQuery = usePlatformRbacPermissionCheckQuery(
+        selectedTenant?.id || null,
+        selectedUserId || null,
+        {
+            resource: selectedPreviewPermission?.resource,
+            action: selectedPreviewPermission?.action,
+        },
+        Boolean(selectedTenant?.id) && Boolean(selectedUserId) && Boolean(selectedPreviewPermission),
+    );
+    const serverPreviewLoading = previewPermissionQuery.isLoading || previewPermissionQuery.isFetching;
+    const serverPreviewAllowed = previewPermissionQuery.data ?? null;
+    const serverPreviewError = previewPermissionQuery.error
+        ? getErrorMessage(previewPermissionQuery.error, 'Permission check failed')
+        : (selectedPreviewPermission && (!selectedPreviewPermission.resource || !selectedPreviewPermission.action)
+            ? 'Selected permission is missing resource/action metadata.'
+            : null);
 
     useEffect(() => {
-        void loadTenants();
-    }, [loadTenants]);
-
-    const loadTenantData = useCallback(async () => {
-        if (!selectedTenant) {
-            setRoles([]);
-            setUsers([]);
-            setPermissions([]);
-            setRolePermissionMap({});
-            setUserRoleMap({});
-            setSelectedRoleId('');
-            return;
+        if (!selectedTenant && tenants.length > 0) {
+            const requestedTenant = tenantParam
+                ? tenants.find((tenant) => tenant.id === tenantParam || tenant.code === tenantParam)
+                : null;
+            setSelectedTenant(requestedTenant || tenants[0]);
         }
-
-        setLoadingData(true);
-        setError(null);
-        setSuccess(null);
-        try {
-            const [rolesResponse, permissionsResponse, usersResponse] = await Promise.all([
-                rolesAPI.getAll({ page: 1, limit: 200 }, selectedTenant.id),
-                rolesAPI.getPermissions(selectedTenant.id),
-                usersAPI.getAll({ page: 1, limit: 200 }, selectedTenant.id),
-            ]);
-
-            const roleRows = extractCollection<any>(rolesResponse, ['roles'])
-                .map(normalizeRole)
-                .filter((role) => role.id);
-            const permissionRows = extractCollection<any>(permissionsResponse, ['permissions'])
-                .map(normalizePermission)
-                .filter((permission) => permission.code);
-            const userRows = extractCollection<any>(usersResponse, ['users'])
-                .map(normalizeUser)
-                .filter((user) => user.id);
-
-            setRoles(roleRows);
-            setPermissions(permissionRows);
-            setUsers(userRows);
-
-            setSelectedRoleId((prev) => {
-                const requestedRole = roleParam
-                    ? roleRows.find((role) => role.id === roleParam || role.roleCode === roleParam || role.roleName === roleParam)
-                    : null;
-                if (requestedRole) return requestedRole.id;
-                return roleRows.some((role) => role.id === prev) ? prev : (roleRows[0]?.id || '');
-            });
-            setSelectedUserId((prev) => (userRows.some((user) => user.id === prev) ? prev : (userRows[0]?.id || '')));
-            setAssignmentUserId((prev) => (userRows.some((user) => user.id === prev) ? prev : (userRows[0]?.id || '')));
-
-            const roleDetails = await Promise.allSettled(
-                roleRows.map(async (role) => {
-                    const detail = await rolesAPI.getById(role.id, selectedTenant.id);
-                    const payload = (detail as any)?.data ?? detail;
-                    return { roleId: role.id, codes: extractRolePermissionCodes(payload) };
-                })
-            );
-
-            const nextRolePermissionMap: Record<string, string[]> = {};
-            roleDetails.forEach((result, index) => {
-                const fallbackId = roleRows[index]?.id;
-                if (!fallbackId) return;
-                if (result.status === 'fulfilled') {
-                    nextRolePermissionMap[result.value.roleId] = result.value.codes;
-                } else {
-                    nextRolePermissionMap[fallbackId] = [];
-                }
-            });
-            setRolePermissionMap(nextRolePermissionMap);
-
-            const userRoleResults = await Promise.allSettled(
-                userRows.map(async (user) => {
-                    const response = await rolesAPI.getUserRoles(user.id, selectedTenant.id);
-                    const assignedRoles = extractCollection<any>(response, ['roles'])
-                        .map((entry) => normalizeRole(entry?.role || entry))
-                        .filter((role) => role.id)
-                        .map((role) => role.id);
-                    return { userId: user.id, roleIds: assignedRoles };
-                })
-            );
-
-            const nextUserRoleMap: Record<string, string[]> = {};
-            userRoleResults.forEach((result, index) => {
-                const fallbackUserId = userRows[index]?.id;
-                if (!fallbackUserId) return;
-                if (result.status === 'fulfilled') {
-                    nextUserRoleMap[result.value.userId] = result.value.roleIds;
-                } else {
-                    nextUserRoleMap[fallbackUserId] = [];
-                }
-            });
-            setUserRoleMap(nextUserRoleMap);
-        } catch (err: any) {
-            const message = getErrorMessage(err, 'Failed to load tenant RBAC data');
-            setError(message);
-        } finally {
-            setLoadingData(false);
-        }
-    }, [selectedTenant, roleParam]);
+    }, [selectedTenant, tenantParam, tenants]);
 
     useEffect(() => {
-        void loadTenantData();
-    }, [loadTenantData]);
+        if (tenantDataQuery.error) {
+            const message = getErrorMessage(tenantDataQuery.error, 'Failed to load tenant RBAC data');
+            setError(message);
+        }
+    }, [tenantDataQuery.error]);
+
+    useEffect(() => {
+        if (!tenantDataQuery.data) return;
+        setRolePermissionMap(tenantDataQuery.data.rolePermissionMap);
+        setUserRoleMap(tenantDataQuery.data.userRoleMap);
+
+        const roleRows = tenantDataQuery.data.roles;
+        const userRows = tenantDataQuery.data.users;
+        setSelectedRoleId((prev) => {
+            const requestedRole = roleParam
+                ? roleRows.find((role) => role.id === roleParam || role.roleCode === roleParam || role.roleName === roleParam)
+                : null;
+            if (requestedRole) return requestedRole.id;
+            return roleRows.some((role) => role.id === prev) ? prev : (roleRows[0]?.id || '');
+        });
+        setSelectedUserId((prev) => (userRows.some((user) => user.id === prev) ? prev : (userRows[0]?.id || '')));
+        setAssignmentUserId((prev) => (userRows.some((user) => user.id === prev) ? prev : (userRows[0]?.id || '')));
+    }, [tenantDataQuery.data, roleParam]);
 
     useEffect(() => {
         if (!selectedRoleId) {
@@ -398,20 +330,15 @@ const PlatformRBACManagement = () => {
         setError(null);
         setSuccess(null);
         try {
-            const response = await rolesAPI.getUserRoles(assignmentUserId, selectedTenant.id);
-            const initialRoleIds = extractCollection<any>(response, ['roles'])
-                .map((entry) => normalizeRole(entry?.role || entry))
-                .filter((role) => role.id)
-                .map((role) => role.id);
-
+            const initialRoleIds = tenantDataQuery.data?.userRoleMap?.[assignmentUserId] || [];
             const currentRoleIds = userRoleMap[assignmentUserId] || [];
-            const toAssign = currentRoleIds.filter((roleId) => !initialRoleIds.includes(roleId));
-            const toRemove = initialRoleIds.filter((roleId) => !currentRoleIds.includes(roleId));
 
-            await Promise.allSettled([
-                ...toAssign.map((roleId) => rolesAPI.assignUser(roleId, assignmentUserId, selectedTenant.id)),
-                ...toRemove.map((roleId) => rolesAPI.removeUser(roleId, assignmentUserId, selectedTenant.id)),
-            ]);
+            await saveAssignmentsMutation.mutateAsync({
+                tenantId: selectedTenant.id,
+                userId: assignmentUserId,
+                initialRoleIds,
+                currentRoleIds,
+            });
 
             setSuccess('User role assignment updated.');
         } catch (err: any) {
@@ -453,15 +380,15 @@ const PlatformRBACManagement = () => {
         setSuccess(null);
 
         try {
-            const response = await rolesAPI.updatePermissions(
-                selectedRoleId,
-                permissionDraftCodes,
-                selectedTenant.id,
-                {
+            const response = await savePermissionsMutation.mutateAsync({
+                tenantId: selectedTenant.id,
+                roleId: selectedRoleId,
+                permissionCodes: permissionDraftCodes,
+                options: {
                     submitForApproval,
                     approvalReason: approvalReason.trim() || undefined,
-                }
-            );
+                },
+            });
 
             const approvalRequired = Boolean((response as any)?.approvalRequired);
             if (approvalRequired) {
@@ -498,46 +425,6 @@ const PlatformRBACManagement = () => {
         });
     }, [selectedUserId, previewPermissionCode, roles, userRoleMap, rolePermissionMap]);
 
-    useEffect(() => {
-        const checkPermission = async () => {
-            if (!selectedTenant || !selectedUserId || !selectedPreviewPermission) {
-                setServerPreviewAllowed(null);
-                setServerPreviewError(null);
-                return;
-            }
-
-            if (!selectedPreviewPermission.resource || !selectedPreviewPermission.action) {
-                setServerPreviewAllowed(null);
-                setServerPreviewError('Selected permission is missing resource/action metadata.');
-                return;
-            }
-
-            setServerPreviewLoading(true);
-            setServerPreviewError(null);
-
-            try {
-                const response = await rolesAPI.checkUserPermission(
-                    selectedUserId,
-                    {
-                        resource: selectedPreviewPermission.resource,
-                        action: selectedPreviewPermission.action,
-                    },
-                    selectedTenant.id
-                );
-                const result = (response as any)?.data ?? response;
-                setServerPreviewAllowed(Boolean(result?.hasPermission));
-            } catch (err: any) {
-                setServerPreviewAllowed(null);
-                const message = getErrorMessage(err, 'Permission check failed');
-                setServerPreviewError(message);
-            } finally {
-                setServerPreviewLoading(false);
-            }
-        };
-
-        void checkPermission();
-    }, [selectedTenant, selectedUserId, selectedPreviewPermission]);
-
     return (
         <Box sx={{ p: 3 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3} flexWrap="wrap" gap={2}>
@@ -552,7 +439,7 @@ const PlatformRBACManagement = () => {
                         </Typography>
                     </Box>
                 </Box>
-                <Button variant="outlined" startIcon={<RefreshIcon />} onClick={loadTenantData} disabled={!selectedTenant || loadingData}>
+                <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => tenantDataQuery.refetch()} disabled={!selectedTenant || loadingData}>
                     Refresh
                 </Button>
             </Stack>

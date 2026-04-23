@@ -1,11 +1,16 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import { legacyDb as db } from '../config'
-import { eq, desc, sql, and } from 'drizzle-orm'
+import { eq, desc, sql, and, asc, or, ilike } from 'drizzle-orm'
 import {
+    frs9AccountId,
     frs9ImpCaEclSum,
     frs9ImpCaEclConfigh,
     frs9ImpCaResultH,
-    frs9ImpCaResultD
+    frs9ImpCaResultD,
+    frs9MasterAccount,
+    frs9ImpIaResultH,
+    frs9ImpIaResultD,
+    frs9ImpJournalData,
 } from '../db/schema'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
@@ -131,6 +136,133 @@ const ErrorResponse = z.object({
     details: z.unknown().optional(),
 }).openapi('ErrorResponse')
 
+const ImpairmentModuleListRowSchema = z.object({
+    pkid: z.string(),
+    accountId: z.number(),
+}).passthrough().openapi('ImpairmentModuleListRow')
+
+const ImpairmentModuleDetailSchema = z.object({
+    contractDetail: z.record(z.string(), z.unknown()).nullable(),
+    collectiveDetails: z.array(z.record(z.string(), z.unknown())),
+    individualSummary: z.record(z.string(), z.unknown()).nullable(),
+    individualDetails: z.array(z.record(z.string(), z.unknown())),
+    journalDetails: z.array(z.record(z.string(), z.unknown())),
+}).openapi('ImpairmentModuleDetail')
+
+function normalizePrcDateInput(value?: string | null) {
+    if (!value) return null
+    const trimmed = value.trim()
+    if (/^\d{8}$/.test(trimmed)) {
+        return `${trimmed.slice(0, 4)}-${trimmed.slice(4, 6)}-${trimmed.slice(6, 8)}`
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+        return trimmed
+    }
+
+    return null
+}
+
+async function resolveEffectivePrcDate(requestedPrcDate?: string | null) {
+    const normalized = normalizePrcDateInput(requestedPrcDate)
+    if (requestedPrcDate && !normalized) {
+        throw new Error('Invalid PRC date format. Use YYYY-MM-DD or YYYYMMDD.')
+    }
+
+    if (normalized) {
+        return normalized
+    }
+
+    const latest = await db
+        .select({ prcDate: frs9MasterAccount.prcDate })
+        .from(frs9MasterAccount)
+        .orderBy(desc(frs9MasterAccount.prcDate))
+        .limit(1)
+
+    return latest[0]?.prcDate ?? null
+}
+
+function buildImpairmentMasterSelection() {
+    return {
+        pkid: sql<string>`${frs9MasterAccount.pkid}::text`.as('pkid'),
+        prcDate: frs9MasterAccount.prcDate,
+        accountId: frs9MasterAccount.accountId,
+        accountNumber: frs9MasterAccount.accountNumber,
+        facilityNumber: frs9MasterAccount.facilityNumber,
+        cifNumber: frs9MasterAccount.cifNumber,
+        cifName: frs9MasterAccount.cifName,
+        accountStatus: frs9MasterAccount.accountStatus,
+        dataSource: frs9MasterAccount.dataSource,
+        prdGroup: frs9MasterAccount.prdGroup,
+        prdType: frs9MasterAccount.prdType,
+        prdCode: frs9MasterAccount.prdCode,
+        branchCode: frs9MasterAccount.branchCode,
+        tenorOrg: frs9MasterAccount.tenorOrg,
+        startDate: frs9MasterAccount.startDate,
+        maturityDate: frs9MasterAccount.maturityDate,
+        paidOffDate: frs9MasterAccount.paidOffDate,
+        writeOffDate: frs9MasterAccount.writeOffDate,
+        firstPaymentDate: frs9MasterAccount.firstPaymentDate,
+        nextPaymentDate: frs9MasterAccount.nextPaymentDate,
+        lastPaymentDate: frs9MasterAccount.lastPaymentDate,
+        graceType: frs9MasterAccount.graceType,
+        graceStartDate: frs9MasterAccount.graceStartDate,
+        graceEndDate: frs9MasterAccount.graceEndDate,
+        interestRate: sql<number>`COALESCE(${frs9MasterAccount.interestRate}, 0)`.as('interestRate'),
+        effInterestRate: sql<number>`COALESCE(${frs9MasterAccount.effInterestRate}, 0)`.as('effInterestRate'),
+        collectability: frs9MasterAccount.collectability,
+        dpd: frs9MasterAccount.dpd,
+        extRatingCodeInitial: frs9MasterAccount.extRatingCodeInitial,
+        extRatingAgencyInitial: frs9MasterAccount.extRatingAgencyInitial,
+        extRatingCode: frs9MasterAccount.extRatingCode,
+        extRatingAgency: frs9MasterAccount.extRatingAgency,
+        paymentCode: frs9MasterAccount.paymentCode,
+        paymentTerm: frs9MasterAccount.paymentTerm,
+        paymentFreq: frs9MasterAccount.paymentFreq,
+        intPmtTerm: frs9MasterAccount.intPmtTerm,
+        intPmtFreq: frs9MasterAccount.intPmtFreq,
+        nplFlag: frs9MasterAccount.nplFlag,
+        nplDate: frs9MasterAccount.nplDate,
+        restructureFlag: frs9MasterAccount.restructureFlag,
+        restructureDate: frs9MasterAccount.restructureDate,
+        restructureReviewDate: frs9MasterAccount.restructureReviewDate,
+        interestBase: frs9MasterAccount.interestBase,
+        assetClass: frs9MasterAccount.assetClass,
+        currency: frs9MasterAccount.currency,
+        exchangeRate: sql<number>`COALESCE(${frs9MasterAccount.exchangeRate}, 0)`.as('exchangeRate'),
+        plafond: sql<number>`COALESCE(${frs9MasterAccount.plafond}, 0)`.as('plafond'),
+        unusedAmt: sql<number>`COALESCE(${frs9MasterAccount.unusedAmt}, 0)`.as('unusedAmt'),
+        outstanding: sql<number>`COALESCE(${frs9MasterAccount.outstanding}, 0)`.as('outstanding'),
+        outstandingWo: sql<number>`COALESCE(${frs9MasterAccount.outstandingWo}, 0)`.as('outstandingWo'),
+        accruedInterest: sql<number>`COALESCE(${frs9MasterAccount.accruedInterest}, 0)`.as('accruedInterest'),
+        installmentAmt: sql<number>`COALESCE(${frs9MasterAccount.installmentAmt}, 0)`.as('installmentAmt'),
+        fixPrincipalAmt: sql<number>`COALESCE(${frs9MasterAccount.fixPrincipalAmt}, 0)`.as('fixPrincipalAmt'),
+        fixInterestAmt: sql<number>`COALESCE(${frs9MasterAccount.fixInterestAmt}, 0)`.as('fixInterestAmt'),
+        impairedFlag: frs9MasterAccount.impairedFlag,
+        impairedStatus: frs9MasterAccount.impairedStatus,
+        groupSegment: frs9MasterAccount.groupSegment,
+        segment: frs9MasterAccount.segment,
+        subSegment: frs9MasterAccount.subSegment,
+        bucketId: frs9MasterAccount.bucketId,
+        sicrFlag: frs9MasterAccount.sicrFlag,
+        stage: frs9MasterAccount.stage,
+        eclCaOnbsAmt: sql<number>`COALESCE(${frs9MasterAccount.eclCaOnbsAmt}, 0)`.as('eclCaOnbsAmt'),
+        eclCaOffbsAmt: sql<number>`COALESCE(${frs9MasterAccount.eclCaOffbsAmt}, 0)`.as('eclCaOffbsAmt'),
+        eclIaOnbsAmt: sql<number>`COALESCE(${frs9MasterAccount.eclIaOnbsAmt}, 0)`.as('eclIaOnbsAmt'),
+        eclOverlayAmt: sql<number>`COALESCE(${frs9MasterAccount.eclOverlayAmt}, 0)`.as('eclOverlayAmt'),
+        eclFinalAmt: sql<number>`COALESCE(${frs9MasterAccount.eclFinalAmt}, 0)`.as('eclFinalAmt'),
+        eclCoverage: sql<number>`
+            CASE
+                WHEN COALESCE(${frs9MasterAccount.outstanding}, 0) = 0 THEN 0
+                ELSE COALESCE(${frs9MasterAccount.eclFinalAmt}, 0) / NULLIF(COALESCE(${frs9MasterAccount.outstanding}, 0), 0)
+            END
+        `.as('eclCoverage'),
+        unwindingCaAmt: sql<number>`COALESCE(${frs9MasterAccount.unwindingCaAmt}, 0)`.as('unwindingCaAmt'),
+        unwindingIaAmt: sql<number>`COALESCE(${frs9MasterAccount.unwindingIaAmt}, 0)`.as('unwindingIaAmt'),
+        unwindingIaSumAmt: sql<number>`COALESCE(${frs9MasterAccount.unwindingIaSumAmt}, 0)`.as('unwindingIaSumAmt'),
+    }
+}
+
 // ============================================================================
 // ROUTES
 // ============================================================================
@@ -145,11 +277,25 @@ impairmentRoutes.openapi(
         request: {
             query: z.object({
                 page: z.string().optional(),
-                limit: z.string().optional()
+                limit: z.string().optional(),
+                prcDate: z.string().optional(),
+                search: z.string().optional(),
             } as any)
         },
         responses: {
-            200: { content: { 'application/json': { schema: ListResponse(ImpResultHSchema) } }, description: 'Results' },
+            200: {
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            data: z.array(ImpairmentModuleListRowSchema),
+                            effectivePrcDate: z.string().nullable(),
+                            pagination: PaginationSchema,
+                        }),
+                    },
+                },
+                description: 'Results'
+            },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
@@ -158,19 +304,49 @@ impairmentRoutes.openapi(
             const page = Number(c.req.query('page') || '1')
             const limit = Number(c.req.query('limit') || '10')
             const offset = (page - 1) * limit
+            const search = c.req.query('search')?.trim()
+            const effectivePrcDate = await resolveEffectivePrcDate(c.req.query('prcDate'))
 
-            const data = await db
-                .select()
-                .from(frs9ImpCaResultH)
-                .orderBy(desc(frs9ImpCaResultH.prcDate))
-                .limit(limit)
-                .offset(offset)
+            if (!effectivePrcDate) {
+                return c.json({
+                    success: true,
+                    data: [],
+                    effectivePrcDate: null,
+                    pagination: { page, limit, total: 0, totalPages: 0 },
+                } as any)
+            }
 
-            const total = 1000 // Placeholder
+            const conditions = [eq(frs9MasterAccount.prcDate, effectivePrcDate)]
+
+            if (search) {
+                conditions.push(or(
+                    ilike(frs9MasterAccount.accountNumber, `%${search}%`),
+                    ilike(frs9MasterAccount.facilityNumber, `%${search}%`),
+                    ilike(frs9MasterAccount.cifNumber, `%${search}%`),
+                    ilike(frs9MasterAccount.cifName, `%${search}%`),
+                ) as any)
+            }
+
+            const [totalRows, data] = await Promise.all([
+                db
+                    .select({ count: sql<number>`count(*)::int` })
+                    .from(frs9MasterAccount)
+                    .where(and(...conditions)),
+                db
+                    .select(buildImpairmentMasterSelection() as any)
+                    .from(frs9MasterAccount)
+                    .where(and(...conditions))
+                    .orderBy(asc(frs9MasterAccount.accountNumber), asc(frs9MasterAccount.facilityNumber))
+                    .limit(limit)
+                    .offset(offset),
+            ])
+
+            const total = totalRows[0]?.count ?? 0
 
             return c.json({
                 success: true,
                 data: data,
+                effectivePrcDate,
                 pagination: {
                     page,
                     limit,
@@ -188,6 +364,215 @@ impairmentRoutes.openapi(
             }), 500)
         }
     }
+)
+
+// GET /api/v1/banking/ifrs9/impairment-module/results/{pkid}/details
+impairmentRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/results/{pkid}/details',
+        tags: ['Impairment Module'],
+        summary: 'Get Impairment Result Details',
+        request: {
+            params: z.object({ pkid: z.string() }),
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: ImpairmentModuleDetailSchema }) } }, description: 'Impairment detail' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' },
+        },
+    }),
+    async (c: any): Promise<any> => {
+        try {
+            const { pkid } = c.req.valid('param')
+
+            const contractRows = await db
+                .select(buildImpairmentMasterSelection() as any)
+                .from(frs9MasterAccount)
+                .where(eq(frs9MasterAccount.pkid, BigInt(pkid)))
+                .limit(1)
+
+            const contractDetail = contractRows[0]
+
+            if (!contractDetail) {
+                return c.json(buildErrorResponse(c, {
+                    error: 'Impairment result not found',
+                    message: 'Impairment result not found',
+                    code: 'NOT_FOUND',
+                }) as any, 404)
+            }
+
+            const collectiveConditions = [
+                eq(frs9ImpCaResultD.accountId, contractDetail.accountId),
+                eq(frs9ImpCaResultD.prcDate, contractDetail.prcDate),
+            ]
+            if (contractDetail.facilityNumber) {
+                collectiveConditions.push(eq(frs9ImpCaResultD.facilityNumber, contractDetail.facilityNumber) as any)
+            }
+
+            const [collectiveDetails, individualSummaryRows, individualDetails, journalDetails] = await Promise.all([
+                db
+                    .select({
+                        prcDate: frs9ImpCaResultD.prcDate,
+                        accountId: frs9ImpCaResultD.accountId,
+                        accountNumber: frs9AccountId.accountNumber,
+                        facilityNumber: frs9ImpCaResultD.facilityNumber,
+                        cifNumber: frs9ImpCaResultD.cifNumber,
+                        segmentId: frs9ImpCaResultD.segmentId,
+                        remainingTenor: frs9ImpCaResultD.remainingTenor,
+                        startDate: frs9ImpCaResultD.startDate,
+                        maturityDate: frs9ImpCaResultD.maturityDate,
+                        defaultFlag: frs9ImpCaResultD.defaultFlag,
+                        dpd: frs9ImpCaResultD.dpd,
+                        internalRatingCode: frs9ImpCaResultD.internalRatingCode,
+                        extRatingCode: frs9ImpCaResultD.extRatingCode,
+                        extRatingId: frs9ImpCaResultD.extRatingId,
+                        eclModelId: frs9ImpCaResultD.eclModelId,
+                        pdConfigId: frs9ImpCaResultD.pdConfigId,
+                        lgdConfigId: frs9ImpCaResultD.lgdConfigId,
+                        eadConfigId: frs9ImpCaResultD.eadConfigId,
+                        eadMethod: frs9ImpCaResultD.eadMethod,
+                        bucketGroup: frs9ImpCaResultD.bucketGroup,
+                        bucketId: frs9ImpCaResultD.bucketId,
+                        currency: frs9ImpCaResultD.currency,
+                        stage: frs9ImpCaResultD.stage,
+                        scenarioNo: frs9ImpCaResultD.scenarioNo,
+                        flSeq: frs9ImpCaResultD.flSeq,
+                        flYear: frs9ImpCaResultD.flYear,
+                        flMonth: frs9ImpCaResultD.flMotnh,
+                        eir: frs9ImpCaResultD.eir,
+                        exchangeRate: frs9ImpCaResultD.exchangeRate,
+                        outstanding: frs9ImpCaResultD.outstanding,
+                        plafond: frs9ImpCaResultD.plafond,
+                        fibAmt: frs9ImpCaResultD.fibAmt,
+                        accruedInterest: frs9ImpCaResultD.accruedInterest,
+                        unamortCostAmt: frs9ImpCaResultD.unamortCostAmt,
+                        unamortFeeAmt: frs9ImpCaResultD.unamortFeeAmt,
+                        eadBalance: frs9ImpCaResultD.eadBalance,
+                        paymAvg: frs9ImpCaResultD.paymAvg,
+                        principalAmt: frs9ImpCaResultD.principalAmt,
+                        sumPrincipalAmt: frs9ImpCaResultD.sumPrincipalAmt,
+                        nextInterest: frs9ImpCaResultD.nextInterest,
+                        sumNextInterest: frs9ImpCaResultD.sumNextInterest,
+                        ead: frs9ImpCaResultD.ead,
+                        pd: frs9ImpCaResultD.pd,
+                        lgd: frs9ImpCaResultD.lgd,
+                        eclAmount: frs9ImpCaResultD.eclAmount,
+                        probability: frs9ImpCaResultD.probability,
+                        eclWeighted: frs9ImpCaResultD.eclWeighted,
+                    } as any)
+                    .from(frs9ImpCaResultD)
+                    .innerJoin(frs9AccountId, eq(frs9ImpCaResultD.accountId, frs9AccountId.accountId))
+                    .where(and(...collectiveConditions))
+                    .orderBy(asc(frs9ImpCaResultD.flSeq)),
+                db
+                    .select({
+                        reportingDate: frs9ImpIaResultH.prcDate,
+                        accountNumber: frs9ImpIaResultH.accountNumber,
+                        cifNumber: frs9ImpIaResultH.cifNumber,
+                        cifName: frs9ImpIaResultH.cifName,
+                        currency: frs9ImpIaResultH.currency,
+                        dpd: frs9ImpIaResultH.dpd,
+                        collectability: frs9ImpIaResultH.collectability,
+                        ratingCode: frs9ImpIaResultH.ratingCode,
+                        interestRate: sql<number>`COALESCE(${frs9ImpIaResultH.interestRate}, 0)`.as('interestRate'),
+                        effInterestRate: sql<number>`COALESCE(${frs9ImpIaResultH.effInterestRate}, 0)`.as('effInterestRate'),
+                        outstanding: sql<number>`COALESCE(${frs9ImpIaResultH.outstanding}, 0)`.as('outstanding'),
+                        accruedInterest: sql<number>`COALESCE(${frs9ImpIaResultH.accruedInterest}, 0)`.as('accruedInterest'),
+                        carryingAmt: sql<number>`COALESCE(${frs9ImpIaResultH.carryingAmt}, 0)`.as('carryingAmt'),
+                        eadAmt: sql<number>`COALESCE(${frs9ImpIaResultH.eadAmt}, 0)`.as('eadAmt'),
+                        pvDcfAmt: sql<number>`COALESCE(${frs9ImpIaResultH.pvDcfAmt}, 0)`.as('pvDcfAmt'),
+                        eclIaAmt: sql<number>`COALESCE(${frs9ImpIaResultH.eclIaAmt}, 0)`.as('eclIaAmt'),
+                    } as any)
+                    .from(frs9ImpIaResultH)
+                    .where(and(
+                        eq(frs9ImpIaResultH.accountId, contractDetail.accountId),
+                        eq(frs9ImpIaResultH.prcDate, contractDetail.prcDate),
+                    ))
+                    .limit(1),
+                db
+                    .select({
+                        mob: frs9ImpIaResultD.mob,
+                        periode: frs9ImpIaResultD.periode,
+                        principal: sql<number>`COALESCE(${frs9ImpIaResultD.principal}, 0)`.as('principal'),
+                        interest: sql<number>`COALESCE(${frs9ImpIaResultD.interest}, 0)`.as('interest'),
+                        installment: sql<number>`COALESCE(${frs9ImpIaResultD.installment}, 0)`.as('installment'),
+                        collateral: sql<number>`COALESCE(${frs9ImpIaResultD.collateral}, 0)`.as('collateral'),
+                        poRate1: sql<number>`COALESCE(${frs9ImpIaResultD.poRate1}, 0)`.as('poRate1'),
+                        rrRate1: sql<number>`COALESCE(${frs9ImpIaResultD.rrRate1}, 0)`.as('rrRate1'),
+                        default1: sql<number>`COALESCE(${frs9ImpIaResultD.default1}, 0)`.as('default1'),
+                        poRate2: sql<number>`COALESCE(${frs9ImpIaResultD.poRate2}, 0)`.as('poRate2'),
+                        rrRate2: sql<number>`COALESCE(${frs9ImpIaResultD.rrRate2}, 0)`.as('rrRate2'),
+                        default2: sql<number>`COALESCE(${frs9ImpIaResultD.default2}, 0)`.as('default2'),
+                        poRate3: sql<number>`COALESCE(${frs9ImpIaResultD.poRate3}, 0)`.as('poRate3'),
+                        rrRate3: sql<number>`COALESCE(${frs9ImpIaResultD.rrRate3}, 0)`.as('rrRate3'),
+                        default3: sql<number>`COALESCE(${frs9ImpIaResultD.default3}, 0)`.as('default3'),
+                        pwAmt: sql<number>`COALESCE(${frs9ImpIaResultD.pwAmt}, 0)`.as('pwAmt'),
+                        discountFactor: sql<number>`COALESCE(${frs9ImpIaResultD.discountFactor}, 0)`.as('discountFactor'),
+                        pvAmt: sql<number>`COALESCE(${frs9ImpIaResultD.pvAmt}, 0)`.as('pvAmt'),
+                        beginningBalance: sql<number>`COALESCE(${frs9ImpIaResultD.beginningBalance}, 0)`.as('beginningBalance'),
+                        eirAmt: sql<number>`COALESCE(${frs9ImpIaResultD.eirAmt}, 0)`.as('eirAmt'),
+                        endingBalance: sql<number>`COALESCE(${frs9ImpIaResultD.endingBalance}, 0)`.as('endingBalance'),
+                    } as any)
+                    .from(frs9ImpIaResultD)
+                    .where(and(
+                        eq(frs9ImpIaResultD.accountId, contractDetail.accountId),
+                        eq(frs9ImpIaResultD.prcDate, contractDetail.prcDate),
+                    ))
+                    .orderBy(asc(frs9ImpIaResultD.mob)),
+                db
+                    .select({
+                        downloadDate: frs9ImpJournalData.prcDate,
+                        accountId: frs9ImpJournalData.accountId,
+                        accountNumber: frs9AccountId.accountNumber,
+                        branchCode: frs9ImpJournalData.branch,
+                        branch: frs9ImpJournalData.branch,
+                        currency: frs9ImpJournalData.currency,
+                        journalType: frs9ImpJournalData.journalcode,
+                        journalCode: frs9ImpJournalData.journalcode,
+                        journalDescription: frs9ImpJournalData.glDesc,
+                        glDesc: frs9ImpJournalData.glDesc,
+                        glAccount: frs9ImpJournalData.glNumber,
+                        glNumber: frs9ImpJournalData.glNumber,
+                        dbCr: frs9ImpJournalData.dbcr,
+                        originalAmount: frs9ImpJournalData.nAmount,
+                        amount: frs9ImpJournalData.nAmount,
+                        eqvIdrAmount: frs9ImpJournalData.nAmountIdr,
+                        amountIdr: frs9ImpJournalData.nAmountIdr,
+                    } as any)
+                    .from(frs9ImpJournalData)
+                    .innerJoin(frs9AccountId, eq(frs9ImpJournalData.accountId, frs9AccountId.accountId))
+                    .where(eq(frs9ImpJournalData.accountId, contractDetail.accountId))
+                    .orderBy(
+                        asc(frs9ImpJournalData.prcDate),
+                        asc(frs9ImpJournalData.branch),
+                        asc(frs9ImpJournalData.currency),
+                        asc(frs9ImpJournalData.journalcode),
+                        asc(frs9ImpJournalData.glNumber),
+                        asc(frs9ImpJournalData.dbcr),
+                    ),
+            ])
+
+            return c.json({
+                success: true,
+                data: {
+                    contractDetail,
+                    collectiveDetails,
+                    individualSummary: individualSummaryRows[0] ?? null,
+                    individualDetails,
+                    journalDetails,
+                },
+            } as any)
+        } catch (error) {
+            console.error('Error fetching impairment detail:', error)
+            return c.json(buildErrorResponse(c, {
+                error: 'Failed to fetch impairment detail',
+                message: 'Failed to fetch impairment detail',
+                code: 'IMPAIRMENT_ERROR',
+                details: String(error),
+            }), 500)
+        }
+    },
 )
 
 // GET /api/v1/banking/ifrs9/impairment-module/calculations
