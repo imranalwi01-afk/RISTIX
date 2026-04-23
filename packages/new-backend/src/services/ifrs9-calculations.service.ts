@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { db, getDatabase, legacyDb } from '../config/database';
 import { sql, eq, desc, and, inArray } from 'drizzle-orm';
-import { frs9ImpCaResultH, jobExecutions, frs9MasterAccount, frs9PrcDate, frs9ImpCaEclConfigh, frs9ParamSegmenth } from '../db/schema';
+import { frs9ImpCaResultH, jobExecutions, frs9MasterAccount, frs9PrcDate, frs9ImpCaEclConfigh, frs9ParamSegmenth, frs9EclSummary } from '../db/schema';
 import { JobsRepository } from '../repositories/jobs.repository';
 import { addJob } from './queue.service';
 
@@ -156,9 +156,25 @@ export class Ifrs9CalculationsService {
             // Resolve segment IDs if mode is provided
             const segmentIds = mode ? await this.getSegmentIdsForMode(mode) : [];
             const hasSegmentFilter = segmentIds.length > 0;
+            const stage1Values = ['1', 'stage 1', 'stage1'];
+            const stage2Values = ['2', 'stage 2', 'stage2'];
+            const stage3Values = ['3', 'stage 3', 'stage3'];
 
             // 1. Determine the process date to use
             let prcDate = requestedDate;
+
+            if (!prcDate) {
+                try {
+                    const latestSummaryDate = await legacyDb
+                        .select({ maxDate: sql<string>`max(${frs9EclSummary.prcDate})` })
+                        .from(frs9EclSummary)
+                        .where(hasSegmentFilter ? inArray(frs9EclSummary.segmentId, segmentIds) : sql`true`);
+                    prcDate = latestSummaryDate[0]?.maxDate;
+                } catch (error: any) {
+                    if (!this.isLegacySchemaError(error)) throw error
+                    prcDate = undefined
+                }
+            }
 
             if (!prcDate) {
                 // If no date requested, find the latest process date in the result table
@@ -176,7 +192,63 @@ export class Ifrs9CalculationsService {
 
             if (requestedDate === 'all') {
                 console.log(`📊 Calculating Grand Total (All Periods)${mode ? ' [Mode: ' + mode + ']' : ''}...`);
-                
+
+                try {
+                    const conditions = [];
+                    if (hasSegmentFilter) {
+                        conditions.push(inArray(frs9EclSummary.segmentId, segmentIds));
+                    }
+
+                    const [row] = await legacyDb
+                        .select({
+                            totalECL: sql<number>`coalesce(sum(${frs9EclSummary.eclFinalAmt})::double precision, 0)`,
+                            totalPortfolio: sql<number>`coalesce(sum(${frs9EclSummary.outstanding})::double precision, 0)`,
+                            totalAccounts: sql<number>`coalesce(sum(${frs9EclSummary.noa})::bigint, 0)`,
+                            stage1ECL: sql<number>`coalesce(sum(case when lower(trim(${frs9EclSummary.stage})) in (${sql.join(stage1Values.map((value) => sql`${value}`), sql`, `)}) then ${frs9EclSummary.eclFinalAmt} else 0 end)::double precision, 0)`,
+                            stage2ECL: sql<number>`coalesce(sum(case when lower(trim(${frs9EclSummary.stage})) in (${sql.join(stage2Values.map((value) => sql`${value}`), sql`, `)}) then ${frs9EclSummary.eclFinalAmt} else 0 end)::double precision, 0)`,
+                            stage3ECL: sql<number>`coalesce(sum(case when lower(trim(${frs9EclSummary.stage})) in (${sql.join(stage3Values.map((value) => sql`${value}`), sql`, `)}) then ${frs9EclSummary.eclFinalAmt} else 0 end)::double precision, 0)`,
+                            stage1Count: sql<number>`coalesce(sum(case when lower(trim(${frs9EclSummary.stage})) in (${sql.join(stage1Values.map((value) => sql`${value}`), sql`, `)}) then coalesce(${frs9EclSummary.noa}, 0) else 0 end)::bigint, 0)`,
+                            stage2Count: sql<number>`coalesce(sum(case when lower(trim(${frs9EclSummary.stage})) in (${sql.join(stage2Values.map((value) => sql`${value}`), sql`, `)}) then coalesce(${frs9EclSummary.noa}, 0) else 0 end)::bigint, 0)`,
+                            stage3Count: sql<number>`coalesce(sum(case when lower(trim(${frs9EclSummary.stage})) in (${sql.join(stage3Values.map((value) => sql`${value}`), sql`, `)}) then coalesce(${frs9EclSummary.noa}, 0) else 0 end)::bigint, 0)`,
+                        })
+                        .from(frs9EclSummary)
+                        .where(conditions.length > 0 ? and(...(conditions as any)) : sql`true`);
+
+                    if (row && Number(row.totalAccounts) > 0) {
+                        const totalECL = Number(row.totalECL || 0);
+                        const totalPortfolio = Number(row.totalPortfolio || 0);
+                        const count = Number(row.totalAccounts || 0);
+                        const stage1 = Number(row.stage1ECL || 0);
+                        const stage2 = Number(row.stage2ECL || 0);
+                        const stage3 = Number(row.stage3ECL || 0);
+                        const stage1Count = Number(row.stage1Count || 0);
+                        const stage2Count = Number(row.stage2Count || 0);
+                        const stage3Count = Number(row.stage3Count || 0);
+
+                        return {
+                            totalECL,
+                            stage1ECL: stage1,
+                            stage2ECL: stage2,
+                            stage3ECL: stage3,
+                            stage1Count,
+                            stage2Count,
+                            stage3Count,
+                            totalPortfolio,
+                            totalExposure: totalPortfolio,
+                            totalAccounts: count,
+                            activeAccounts: count,
+                            eclRate: totalPortfolio > 0 ? (totalECL / totalPortfolio) * 100 : 0,
+                            impairedRatio: totalPortfolio > 0 ? (stage3 / totalPortfolio) : 0,
+                            coverageRatio: totalPortfolio > 0 ? (totalECL / totalPortfolio) : 0,
+                            lastUpdated: 'Cumulative Grand Total (All Periods)',
+                            currency: 'IDR',
+                            isFallback: false
+                        };
+                    }
+                } catch (error: any) {
+                    if (!this.isLegacySchemaError(error)) throw error
+                }
+
                 try {
                     const conditions = [];
                     if (hasSegmentFilter) {
@@ -236,6 +308,62 @@ export class Ifrs9CalculationsService {
                 }
             } else if (prcDate) {
                 // Aggregrate summary for the latest process date
+                try {
+                    const conditions = [eq(frs9EclSummary.prcDate, prcDate as any)];
+                    if (hasSegmentFilter) {
+                        conditions.push(inArray(frs9EclSummary.segmentId, segmentIds));
+                    }
+
+                    const [row] = await legacyDb
+                        .select({
+                            totalECL: sql<number>`coalesce(sum(${frs9EclSummary.eclFinalAmt})::double precision, 0)`,
+                            totalPortfolio: sql<number>`coalesce(sum(${frs9EclSummary.outstanding})::double precision, 0)`,
+                            totalAccounts: sql<number>`coalesce(sum(${frs9EclSummary.noa})::bigint, 0)`,
+                            stage1ECL: sql<number>`coalesce(sum(case when lower(trim(${frs9EclSummary.stage})) in (${sql.join(stage1Values.map((value) => sql`${value}`), sql`, `)}) then ${frs9EclSummary.eclFinalAmt} else 0 end)::double precision, 0)`,
+                            stage2ECL: sql<number>`coalesce(sum(case when lower(trim(${frs9EclSummary.stage})) in (${sql.join(stage2Values.map((value) => sql`${value}`), sql`, `)}) then ${frs9EclSummary.eclFinalAmt} else 0 end)::double precision, 0)`,
+                            stage3ECL: sql<number>`coalesce(sum(case when lower(trim(${frs9EclSummary.stage})) in (${sql.join(stage3Values.map((value) => sql`${value}`), sql`, `)}) then ${frs9EclSummary.eclFinalAmt} else 0 end)::double precision, 0)`,
+                            stage1Count: sql<number>`coalesce(sum(case when lower(trim(${frs9EclSummary.stage})) in (${sql.join(stage1Values.map((value) => sql`${value}`), sql`, `)}) then coalesce(${frs9EclSummary.noa}, 0) else 0 end)::bigint, 0)`,
+                            stage2Count: sql<number>`coalesce(sum(case when lower(trim(${frs9EclSummary.stage})) in (${sql.join(stage2Values.map((value) => sql`${value}`), sql`, `)}) then coalesce(${frs9EclSummary.noa}, 0) else 0 end)::bigint, 0)`,
+                            stage3Count: sql<number>`coalesce(sum(case when lower(trim(${frs9EclSummary.stage})) in (${sql.join(stage3Values.map((value) => sql`${value}`), sql`, `)}) then coalesce(${frs9EclSummary.noa}, 0) else 0 end)::bigint, 0)`,
+                        })
+                        .from(frs9EclSummary)
+                        .where(and(...(conditions as any)));
+
+                    if (row && Number(row.totalAccounts) > 0) {
+                        const totalECL = Number(row.totalECL || 0);
+                        const totalPortfolio = Number(row.totalPortfolio || 0);
+                        const count = Number(row.totalAccounts || 0);
+                        const stage1 = Number(row.stage1ECL || 0);
+                        const stage2 = Number(row.stage2ECL || 0);
+                        const stage3 = Number(row.stage3ECL || 0);
+                        const stage1Count = Number(row.stage1Count || 0);
+                        const stage2Count = Number(row.stage2Count || 0);
+                        const stage3Count = Number(row.stage3Count || 0);
+
+                        return {
+                            totalECL,
+                            stage1ECL: stage1,
+                            stage2ECL: stage2,
+                            stage3ECL: stage3,
+                            stage1Count,
+                            stage2Count,
+                            stage3Count,
+                            totalPortfolio,
+                            totalExposure: totalPortfolio,
+                            totalAccounts: count,
+                            activeAccounts: count,
+                            eclRate: totalPortfolio > 0 ? (totalECL / totalPortfolio) * 100 : 0,
+                            impairedRatio: totalPortfolio > 0 ? (stage3 / totalPortfolio) : 0,
+                            coverageRatio: totalPortfolio > 0 ? (totalECL / totalPortfolio) : 0,
+                            lastUpdated: prcDate,
+                            currency: 'IDR',
+                            isFallback: false
+                        };
+                    }
+                } catch (error: any) {
+                    if (!this.isLegacySchemaError(error)) throw error
+                }
+
                 try {
                     const conditions = [eq(frs9ImpCaResultH.prcDate, prcDate as any)];
                     if (hasSegmentFilter) {
@@ -717,35 +845,80 @@ export class Ifrs9CalculationsService {
         try {
             const normalizedEndDate = typeof endDate === 'string' ? endDate.trim() : undefined;
             const hasDateLimit = Boolean(normalizedEndDate && normalizedEndDate !== 'all');
+            const stage1Values = ['1', 'stage 1', 'stage1'];
+            const stage2Values = ['2', 'stage 2', 'stage2'];
+            const stage3Values = ['3', 'stage 3', 'stage3'];
 
-            // 1. Try Result Table first - Get ECL by stage over time
+            // 1. Try summary table first - aggregated ECL by stage over time
             let trend: any[] = []
             try {
+                const segmentIds = _mode ? await this.getSegmentIdsForMode(_mode) : [];
+                const hasSegmentFilter = segmentIds.length > 0;
                 const trendQuery = legacyDb
                     .select({
-                        date: frs9ImpCaResultH.prcDate,
-                        stage1: sql<number>`sum(CASE WHEN cast(${frs9ImpCaResultH.stage} as int) = 1 THEN ${frs9ImpCaResultH.eclAmount} ELSE 0 END)`,
-                        stage2: sql<number>`sum(CASE WHEN cast(${frs9ImpCaResultH.stage} as int) = 2 THEN ${frs9ImpCaResultH.eclAmount} ELSE 0 END)`,
-                        stage3: sql<number>`sum(CASE WHEN cast(${frs9ImpCaResultH.stage} as int) = 3 THEN ${frs9ImpCaResultH.eclAmount} ELSE 0 END)`,
-                        totalECL: sql<number>`sum(${frs9ImpCaResultH.eclAmount})`,
-                        totalPortfolio: sql<number>`sum(${frs9ImpCaResultH.outstanding})`
+                        date: frs9EclSummary.prcDate,
+                        stage1: sql<number>`sum(CASE WHEN lower(trim(${frs9EclSummary.stage})) in (${sql.join(stage1Values.map((value) => sql`${value}`), sql`, `)}) THEN ${frs9EclSummary.eclFinalAmt} ELSE 0 END)`,
+                        stage2: sql<number>`sum(CASE WHEN lower(trim(${frs9EclSummary.stage})) in (${sql.join(stage2Values.map((value) => sql`${value}`), sql`, `)}) THEN ${frs9EclSummary.eclFinalAmt} ELSE 0 END)`,
+                        stage3: sql<number>`sum(CASE WHEN lower(trim(${frs9EclSummary.stage})) in (${sql.join(stage3Values.map((value) => sql`${value}`), sql`, `)}) THEN ${frs9EclSummary.eclFinalAmt} ELSE 0 END)`,
+                        totalECL: sql<number>`sum(${frs9EclSummary.eclFinalAmt})`,
+                        totalPortfolio: sql<number>`sum(${frs9EclSummary.outstanding})`
                     })
-                    .from(frs9ImpCaResultH);
+                    .from(frs9EclSummary);
 
                 if (hasDateLimit) {
-                    trendQuery.where(sql`date(${frs9ImpCaResultH.prcDate}) <= ${normalizedEndDate}`);
+                    trendQuery.where(and(
+                        sql`date(${frs9EclSummary.prcDate}) <= ${normalizedEndDate}`,
+                        hasSegmentFilter ? inArray(frs9EclSummary.segmentId, segmentIds) : sql`true`
+                    ));
+                } else if (hasSegmentFilter) {
+                    trendQuery.where(inArray(frs9EclSummary.segmentId, segmentIds));
                 }
 
                 trend = await trendQuery
-                    .groupBy(frs9ImpCaResultH.prcDate)
-                    .orderBy(desc(frs9ImpCaResultH.prcDate))
+                    .groupBy(frs9EclSummary.prcDate)
+                    .orderBy(desc(frs9EclSummary.prcDate))
                     .limit(12);
             } catch (error: any) {
                 if (!this.isLegacySchemaError(error)) throw error
                 trend = []
             }
 
-            // 2. Fallback to Master Account if Result table is empty
+            // 2. Fallback to Result table if summary is empty
+            if (!trend || trend.length === 0) {
+                try {
+                    const segmentIds = _mode ? await this.getSegmentIdsForMode(_mode) : [];
+                    const hasSegmentFilter = segmentIds.length > 0;
+                    const trendQuery = legacyDb
+                        .select({
+                            date: frs9ImpCaResultH.prcDate,
+                            stage1: sql<number>`sum(CASE WHEN cast(${frs9ImpCaResultH.stage} as int) = 1 THEN ${frs9ImpCaResultH.eclAmount} ELSE 0 END)`,
+                            stage2: sql<number>`sum(CASE WHEN cast(${frs9ImpCaResultH.stage} as int) = 2 THEN ${frs9ImpCaResultH.eclAmount} ELSE 0 END)`,
+                            stage3: sql<number>`sum(CASE WHEN cast(${frs9ImpCaResultH.stage} as int) = 3 THEN ${frs9ImpCaResultH.eclAmount} ELSE 0 END)`,
+                            totalECL: sql<number>`sum(${frs9ImpCaResultH.eclAmount})`,
+                            totalPortfolio: sql<number>`sum(${frs9ImpCaResultH.outstanding})`
+                        })
+                        .from(frs9ImpCaResultH);
+
+                    if (hasDateLimit) {
+                        trendQuery.where(and(
+                            sql`date(${frs9ImpCaResultH.prcDate}) <= ${normalizedEndDate}`,
+                            hasSegmentFilter ? inArray(frs9ImpCaResultH.segmentId, segmentIds) : sql`true`
+                        ));
+                    } else if (hasSegmentFilter) {
+                        trendQuery.where(inArray(frs9ImpCaResultH.segmentId, segmentIds));
+                    }
+
+                    trend = await trendQuery
+                        .groupBy(frs9ImpCaResultH.prcDate)
+                        .orderBy(desc(frs9ImpCaResultH.prcDate))
+                        .limit(12);
+                } catch (error: any) {
+                    if (!this.isLegacySchemaError(error)) throw error
+                    trend = []
+                }
+            }
+
+            // 3. Fallback to Master Account if Result table is empty
             if (!trend || trend.length === 0) {
                 console.log('📉 No trend data in Result table, falling back to Master Account...');
                 try {
@@ -867,6 +1040,7 @@ export class Ifrs9CalculationsService {
             }
 
             let prcDateRows: Array<{ currdate: unknown }> = []
+            let summaryDateRows: Array<{ date: unknown }> = []
             let masterDateRows: Array<{ date: unknown }> = []
             let resultDateRows: Array<{ date: unknown }> = []
 
@@ -877,6 +1051,20 @@ export class Ifrs9CalculationsService {
                     .orderBy(desc(frs9PrcDate.currdate))
             } catch (err: any) {
                 console.warn('⚠️ frs9_prc_date not available:', err?.message || err)
+            }
+
+            try {
+                const baseSummaryQuery = legacyDb
+                    .select({ date: frs9EclSummary.prcDate })
+                    .from(frs9EclSummary)
+
+                const summaryQuery = hasSegmentFilter
+                    ? baseSummaryQuery.where(inArray(frs9EclSummary.segmentId, segmentIds))
+                    : baseSummaryQuery
+
+                summaryDateRows = await summaryQuery.groupBy(frs9EclSummary.prcDate)
+            } catch (err: any) {
+                console.warn('⚠️ frs9_ecl_summary not available:', err?.message || err)
             }
 
             try {
@@ -913,6 +1101,12 @@ export class Ifrs9CalculationsService {
             // Process frs9_prc_date
             prcDateRows.forEach(r => {
                 const normalized = normalizeDate(r.currdate)
+                if (normalized) allDates.add(normalized)
+            });
+
+            // Process frs9_ecl_summary
+            summaryDateRows.forEach(r => {
+                const normalized = normalizeDate(r.date)
                 if (normalized) allDates.add(normalized)
             });
 

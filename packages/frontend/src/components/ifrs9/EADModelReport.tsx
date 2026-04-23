@@ -33,8 +33,6 @@ import {
   AreaChart,
   Area
 } from 'recharts';
-import { GridColDef } from '@mui/x-data-grid';
-import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import { useBankingTheme } from '../../providers/BankingThemeProvider';
 import BaseIfrs9Report from './BaseIfrs9Report';
 import ReportSummaryGrid, { KPIItem } from './ReportSummaryGrid';
@@ -59,6 +57,12 @@ interface SummaryStats {
   avgUtilization: number;
   eadTrend: EADTrendItem[];
   productDistribution: ProductDistItem[];
+}
+
+interface EADMatrixRow {
+  id: string | number;
+  ltMonth: number;
+  values: Record<string, number | null>;
 }
 
 const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
@@ -295,39 +299,14 @@ const EADModelReport: React.FC = () => {
     productDistribution: []
   });
 
-  const [pivotData, setPivotData] = useState<Record<string, unknown>[]>([]);
-  const [pivotColumns, setPivotColumns] = useState<GridColDef[]>([]);
+  const [pivotRows, setPivotRows] = useState<EADMatrixRow[]>([]);
+  const [pivotMonths, setPivotMonths] = useState<string[]>([]);
 
   const handleDataLoaded = React.useCallback((data: Record<string, unknown>[], summary?: any) => {
     console.log("📊 [EADModelReport] handleDataLoaded called", { dataLength: data?.length, summary });
-    const { pivotData: pData, columns: pCols } = processEADPivotData(data);
-    setPivotData(pData);
-    
-    // Generate dynamic columns for SafeDataGrid
-    const gridCols: GridColDef[] = pCols.map(col => {
-      const isDynamic = col.match(/^(tenor|month|paym|seq|seq_)_\d+$/i);
-      const isNumber = pData.length > 0 && typeof pData[0][col] === 'number';
-
-      return {
-        field: col,
-        headerName: isDynamic 
-          ? col.replace(/^(tenor|month|paym|seq|seq_)_?/i, '').toUpperCase()
-          : col.replace(/_/g, ' ').toUpperCase(),
-        width: isDynamic ? 100 : 150,
-        type: isNumber ? 'number' : 'string',
-        align: isNumber ? 'right' : 'left',
-        headerAlign: isNumber ? 'right' : 'left',
-        valueFormatter: (value: any) => {
-          if (value === null || value === undefined) return '';
-          if (typeof value === 'number') {
-            return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(value);
-          }
-          return value;
-        }
-      };
-    });
-
-    setPivotColumns(gridCols);
+    const { rows, monthColumns } = processEADPivotData(data);
+    setPivotRows(rows);
+    setPivotMonths(monthColumns);
 
     if (summary) {
       setSummaryStats({
@@ -414,19 +393,84 @@ const EADModelReport: React.FC = () => {
           <Typography variant="h6" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
             Payment Average by Tenor (Pivoted)
           </Typography>
-          <Box sx={{ height: 600, width: '100%' }}>
-            <SafeDataGrid
-              rows={pivotData}
-              columns={pivotColumns}
-              getRowId={(row) => row.id || row.account_id || Math.random()}
-              initialState={{
-                pagination: {
-                  paginationModel: { pageSize: 100 }
-                }
-              }}
-              pageSizeOptions={[100]}
-              disableRowSelectionOnClick
-            />
+          <TableContainer
+            component={Paper}
+            variant="outlined"
+            sx={{
+              borderRadius: 4,
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              borderColor: alpha('#000', 0.08),
+            }}
+          >
+            <Table stickyHeader size="small" sx={{ minWidth: Math.max(900, 140 + (pivotMonths.length * 140)) }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell
+                    sx={{
+                      minWidth: 140,
+                      fontWeight: 800,
+                      fontSize: '0.95rem',
+                      color: 'text.secondary',
+                      bgcolor: 'background.paper',
+                      position: 'sticky',
+                      left: 0,
+                      zIndex: 3,
+                    }}
+                  >
+                    LT/MONTH
+                  </TableCell>
+                  {pivotMonths.map((month) => (
+                    <TableCell
+                      key={month}
+                      align="center"
+                      sx={{
+                        minWidth: 140,
+                        fontWeight: 800,
+                        fontSize: '0.95rem',
+                        color: 'text.secondary',
+                        bgcolor: 'background.paper',
+                      }}
+                    >
+                      {month}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {pivotRows.length > 0 ? (
+                  pivotRows.map((row) => (
+                    <TableRow key={row.id} hover>
+                      <TableCell
+                        sx={{
+                          position: 'sticky',
+                          left: 0,
+                          zIndex: 2,
+                          bgcolor: 'background.paper',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {row.ltMonth}
+                      </TableCell>
+                      {pivotMonths.map((month) => (
+                        <TableCell key={`${row.id}-${month}`} align="right" sx={{ color: 'text.secondary' }}>
+                          {formatMatrixValue(row.values[month])}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={Math.max(1, pivotMonths.length + 1)} align="center" sx={{ py: 6, color: 'text.secondary' }}>
+                      No EAD model detail data available.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <Box sx={{ px: 1, pt: 2, color: 'text.secondary', fontSize: '0.95rem' }}>
+            {pivotRows.length > 0 ? `1 - ${pivotRows.length} of ${pivotRows.length}` : '0 - 0 of 0'}
           </Box>
         </CardContent>
       </Card>
@@ -435,22 +479,46 @@ const EADModelReport: React.FC = () => {
 };
 
 const processEADPivotData = (data: Record<string, unknown>[]) => {
-  if (!data || data.length === 0) return { pivotData: [], columns: [] };
+  if (!data || data.length === 0) return { rows: [] as EADMatrixRow[], monthColumns: [] as string[] };
 
   const firstRow = data[0];
-  const baseColumns = ['account_id', 'product_type', 'segment_name', 'tenor', 'id', 'lt_month'];
+  const monthColumns = Object.keys(firstRow)
+    .filter((key) => key.match(/^paym_\d+$/i) || key.match(/^seq_\d+$/i) || key.match(/^month_\d+$/i))
+    .sort((left, right) => {
+      const leftNumber = Number(left.replace(/^[^\d]+/, ''));
+      const rightNumber = Number(right.replace(/^[^\d]+/, ''));
+      return leftNumber - rightNumber;
+    })
+    .map((key) => key.replace(/^[^\d]+/, ''));
 
-  const dynamicColumns = Object.keys(firstRow).filter(key =>
-    key.match(/^(tenor|month|paym|seq|seq_)_\d+$/i)
-  ).sort();
+  const rows: EADMatrixRow[] = data.map((row, index) => {
+    const ltMonthRaw = row.tenor ?? row.lt_month ?? row.id ?? index + 1;
+    const ltMonth = Number.isFinite(Number(ltMonthRaw)) ? Number(ltMonthRaw) : index + 1;
+    const values = monthColumns.reduce<Record<string, number | null>>((acc, month) => {
+      const rawValue = row[`paym_${month}`] ?? row[`seq_${month}`] ?? row[`month_${month}`];
+      const parsedValue = rawValue === null || rawValue === undefined || rawValue === ''
+        ? null
+        : Number(rawValue);
+      acc[month] = Number.isFinite(parsedValue) ? parsedValue : null;
+      return acc;
+    }, {});
 
-  const pivotCols = dynamicColumns.length > 0 ? dynamicColumns : Object.keys(firstRow).filter(k => !baseColumns.includes(k) && typeof firstRow[k] === 'number');
-  const allColumns = [...baseColumns.filter(k => k in firstRow), ...pivotCols];
+    return {
+      id: String(row.id ?? ltMonth),
+      ltMonth,
+      values,
+    };
+  });
 
-  return {
-    pivotData: data,
-    columns: allColumns
-  };
+  return { rows, monthColumns };
+};
+
+const formatMatrixValue = (value: number | null | undefined) => {
+  if (value === null || value === undefined) return '';
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 15,
+  }).format(value);
 };
 
 export default EADModelReport;

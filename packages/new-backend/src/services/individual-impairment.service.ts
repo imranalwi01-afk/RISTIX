@@ -1,15 +1,16 @@
 // @ts-nocheck
 
 import { Effect } from 'effect';
-import { db, legacyDb } from '../config';
+import { legacyDb } from '../config';
 import {
     frs9ImpIaHeader,
     frs9ImpIaDetail,
     frs9ImpIaDcf,
     frs9ImpIaResultH,
-    frs9ImpIaResultD
+    frs9ImpIaResultD,
+    frs9ImpIaRr
 } from '../db/schema/legacy';
-import { frs9MasterAccount, users, individualImpairmentScenarios } from '../db/schema';
+import { frs9MasterAccount, users } from '../db/schema';
 import { and, eq, desc, sql, inArray, ilike, or } from 'drizzle-orm';
 import { MasterAccountRepository } from '@/repositories/master-account.repository';
 import { decodeCursor, encodeCursor } from '@/lib/http/list-query';
@@ -29,6 +30,129 @@ const STATUS_MAP_TO_INT: Record<string, number> = {
 };
 
 export class IndividualImpairmentService {
+    private getScenarioMethodTemplates() {
+        return [
+            {
+                scenarioId: 1,
+                scenarioCode: 'POSSIBLE_OUTCOME_AND_REPAYMENT_RATE',
+                scenarioName: 'Possible Outcome and Repayment Rate',
+                description: 'Legacy DCF scenario method using possible outcome and repayment rate.'
+            },
+            {
+                scenarioId: 2,
+                scenarioCode: 'DCF',
+                scenarioName: 'DCF',
+                description: 'Legacy DCF scenario method.'
+            },
+            {
+                scenarioId: 3,
+                scenarioCode: 'COLLATERAL',
+                scenarioName: 'Collateral',
+                description: 'Legacy collateral-based scenario method.'
+            }
+        ];
+    }
+
+    private normalizeScenarioMethodId(input: unknown) {
+        const numeric = Number(input);
+        if (Number.isFinite(numeric) && numeric >= 1 && numeric <= 3) {
+            return numeric;
+        }
+
+        const raw = String(input || '').trim().toLowerCase();
+        if (raw.includes('possible outcome')) return 1;
+        if (raw === 'dcf') return 2;
+        if (raw.includes('collateral')) return 3;
+        return 1;
+    }
+
+    private buildLegacyScenarioRows(header: any, rrRows: any[]) {
+        const count = Math.max(
+            1,
+            Math.min(
+                3,
+                Number(
+                    header?.nOfScenario
+                    || [header?.scName1, header?.scName2, header?.scName3].filter(Boolean).length
+                    || 1
+                )
+            )
+        );
+
+        const poRates = [
+            Number(header?.poRate1 || 0),
+            Number(header?.poRate2 || 0),
+            Number(header?.poRate3 || 0)
+        ];
+
+        const scenarioNames = [
+            String(header?.scName1 || 'Scenario 1'),
+            String(header?.scName2 || 'Scenario 2'),
+            String(header?.scName3 || 'Scenario 3')
+        ];
+
+        return Array.from({ length: count }, (_, index) => {
+            const rrRow = rrRows[index] || rrRows[0];
+            const repaymentRate = index === 0
+                ? Number(rrRow?.rrRate1 || 0)
+                : index === 1
+                    ? Number(rrRow?.rrRate2 || 0)
+                    : Number(rrRow?.rrRate3 || 0);
+
+            return {
+                id: `legacy-${header?.iaId || header?.pkid || 'scenario'}-${index + 1}`,
+                possibleOutcomeRate: poRates[index] || 0,
+                scenarioName: scenarioNames[index] || `Scenario ${index + 1}`,
+                periodStart: rrRow?.periodStart || header?.prcDate || null,
+                periodEnd: rrRow?.periodEnd || header?.prcDate || null,
+                repaymentRate
+            };
+        });
+    }
+
+    private mapLegacyScenarioHeader(header: any, rrRows: any[]) {
+        const method = this.getScenarioMethodTemplates().find((item) => item.scenarioId === Number(header?.scenarioId))
+            || this.getScenarioMethodTemplates()[0];
+        const scenarioRows = this.buildLegacyScenarioRows(header, rrRows);
+
+        return {
+            pkid: Number(header.pkid),
+            id: String(header.pkid),
+            iaId: Number(header.iaId),
+            accountId: Number(header.accountId),
+            accountNumber: header.accountNumber,
+            scenarioId: Number(header.scenarioId || method.scenarioId),
+            scenarioCode: method.scenarioCode,
+            scenarioName: method.scenarioName,
+            description: header.triggerRemarks || method.description,
+            status: STATUS_MAP_TO_STRING[Number(header.status || 0)] || 'PENDING',
+            activeFlag: true,
+            createdAt: header.createddate,
+            createdDate: header.createddate,
+            createdBy: header.createdby,
+            discountRate: Number(scenarioRows[0]?.repaymentRate || 0),
+            recoveryRate: Number(scenarioRows[0]?.possibleOutcomeRate || 0),
+            growthRate: 0,
+            timeHorizon: scenarioRows.length,
+            paymentFrequency: 'monthly',
+            configuration: {
+                nScenarios: scenarioRows.length,
+                weights: {
+                    base: Number(header.poRate1 || 0),
+                    best: Number(header.poRate2 || 0),
+                    worst: Number(header.poRate3 || 0)
+                },
+                scenarioRows,
+                repaymentPlan: rrRows.map((row) => ({
+                    periodStart: row.periodStart,
+                    periodEnd: row.periodEnd,
+                    rrRate1: Number(row.rrRate1 || 0),
+                    rrRate2: Number(row.rrRate2 || 0),
+                    rrRate3: Number(row.rrRate3 || 0)
+                }))
+            }
+        };
+    }
 
     // =========================================================================
     // AUDIT TRAIL / HISTORY
@@ -156,37 +280,75 @@ export class IndividualImpairmentService {
 
     async getScenarios(tenantId: string, filters: { status?: string; limit?: number; offset?: number; accountId?: number }) {
         try {
-            // Base conditions: Active scenarios only by default
-            const conditions = [eq(individualImpairmentScenarios.isActive, true)];
+            const conditions = [sql`${frs9ImpIaHeader.scenarioId} is not null`];
 
-            // Filter by Account ID if provided
-            if (filters.accountId) {
-                conditions.push(eq(individualImpairmentScenarios.accountId, BigInt(filters.accountId)));
+            if (filters.status) {
+                const statusInt = STATUS_MAP_TO_INT[String(filters.status).toUpperCase()];
+                if (typeof statusInt === 'number') {
+                    conditions.push(eq(frs9ImpIaHeader.status, statusInt));
+                }
             }
 
-            // Execute Query
-            const results = await db.select()
-                .from(individualImpairmentScenarios)
+            if (filters.accountId && Number.isFinite(filters.accountId)) {
+                conditions.push(eq(frs9ImpIaHeader.accountId, Number(filters.accountId)));
+            }
+
+            const headers = await legacyDb.select()
+                .from(frs9ImpIaHeader)
                 .where(and(...conditions))
-                .orderBy(desc(individualImpairmentScenarios.createdAt));
+                .orderBy(desc(frs9ImpIaHeader.updateddate), desc(frs9ImpIaHeader.createddate))
+                .limit(filters.limit || 100);
 
-            // Map DB result to Frontend format
-            return results.map(r => ({
-                pkid: r.id,
-                scenarioCode: r.name.toUpperCase().replace(/\s+/g, '_'),
-                scenarioName: r.name,
-                description: `Scenario with DR=${r.discountRate}%, RR=${r.recoveryRate}%, GR=${r.growthRate}%`,
-                status: 'APPROVED',
-                activeFlag: r.isActive,
-                createdDate: r.createdAt?.toISOString(),
-                createdBy: r.createdBy || 'System',
-                discountRate: r.discountRate,
-                recoveryRate: r.recoveryRate,
-                growthRate: r.growthRate,
-                timeHorizon: r.timeHorizon,
-                paymentFrequency: r.paymentFrequency
-            }));
+            const iaIds = headers.map((item) => Number(item.iaId)).filter((value) => Number.isFinite(value));
+            const rrRows = iaIds.length > 0
+                ? await legacyDb.select()
+                    .from(frs9ImpIaRr)
+                    .where(inArray(frs9ImpIaRr.iaId, iaIds))
+                    .orderBy(frs9ImpIaRr.periodStart, frs9ImpIaRr.periodEnd)
+                : [];
 
+            const mappedSavedScenarios = headers.map((header) => {
+                const headerRows = rrRows.filter((row) => Number(row.iaId) === Number(header.iaId));
+                return this.mapLegacyScenarioHeader(header, headerRows);
+            });
+
+            if (filters.accountId) {
+                const templates = this.getScenarioMethodTemplates().map((template) => {
+                    const saved = mappedSavedScenarios.find((item) => Number(item.scenarioId) === Number(template.scenarioId));
+                    return saved || {
+                        ...template,
+                        pkid: 0,
+                        id: `template-${template.scenarioId}`,
+                        iaId: null,
+                        accountId: Number(filters.accountId),
+                        accountNumber: null,
+                        status: 'APPROVED',
+                        activeFlag: true,
+                        createdAt: null,
+                        createdDate: null,
+                        createdBy: 'SYSTEM',
+                        discountRate: 0,
+                        recoveryRate: template.scenarioId === 1 ? 60 : 0,
+                        growthRate: 0,
+                        timeHorizon: 2,
+                        paymentFrequency: 'monthly',
+                        configuration: {
+                            nScenarios: 2,
+                            weights: {
+                                base: 60,
+                                best: 20,
+                                worst: 20
+                            },
+                            scenarioRows: [],
+                            repaymentPlan: []
+                        }
+                    };
+                });
+
+                return templates;
+            }
+
+            return mappedSavedScenarios;
         } catch (error) {
             console.error('Error fetching scenarios:', error);
             return [];
@@ -195,30 +357,137 @@ export class IndividualImpairmentService {
 
     async createScenario(data: any) {
         try {
-            const [inserted] = await db.insert(individualImpairmentScenarios).values({
-                accountId: BigInt(data.accountId || 0), // 0 if global template? But schema says not null.
-                name: data.scenarioName,
-                discountRate: Number(data.discountRate || 0),
-                recoveryRate: Number(data.recoveryRate || 0),
-                growthRate: Number(data.growthRate || 0),
-                timeHorizon: Number(data.timeHorizon || 60),
-                paymentFrequency: data.paymentFrequency || 'monthly',
-                createdBy: data.createdBy || 'System',
-                isActive: true
-            }).returning();
+            const accountId = Number(data.accountId || data.account_id || data.configuration?.accountId || 0);
+            if (!accountId) {
+                throw new Error('Account ID is required to save DCF scenario');
+            }
 
-            return [{
-                pkid: inserted.id,
-                scenarioCode: inserted.name.toUpperCase().replace(/\s+/g, '_'),
-                scenarioName: inserted.name,
-                status: 'APPROVED',
-                activeFlag: inserted.isActive,
-                createdDate: inserted.createdAt?.toISOString(),
-                createdBy: inserted.createdBy,
-                discountRate: inserted.discountRate,
-                recoveryRate: inserted.recoveryRate,
-                growthRate: inserted.growthRate
-            }];
+            const scenarioMethodId = this.normalizeScenarioMethodId(
+                data.scenarioId
+                || data.configuration?.scenarioId
+                || data.scenarioCode
+                || data.scenarioName
+            );
+
+            const inputRows = Array.isArray(data.scenarioRows)
+                ? data.scenarioRows
+                : Array.isArray(data.configuration?.scenarioRows)
+                    ? data.configuration.scenarioRows
+                    : [];
+
+            const boundedRows = (inputRows.length > 0 ? inputRows : [{
+                possibleOutcomeRate: Number(data.recoveryRate || 100),
+                scenarioName: data.scenarioName || 'Scenario 1',
+                periodStart: data.periodStart || new Date().toISOString().slice(0, 10),
+                periodEnd: data.periodEnd || new Date().toISOString().slice(0, 10),
+                repaymentRate: Number(data.discountRate || 0)
+            }]).slice(0, 3);
+
+            const scenarioCount = Math.max(1, Math.min(3, Number(data.nOfScenario || data.configuration?.nScenarios || boundedRows.length || 1)));
+            const poRates = [0, 0, 0];
+            const scNames = [null, null, null];
+
+            boundedRows.forEach((row, index) => {
+                poRates[index] = Number(row.possibleOutcomeRate || 0);
+                scNames[index] = String(row.scenarioName || `Scenario ${index + 1}`).slice(0, 20);
+            });
+
+            const assessment = await this.getAssessment(data.tenantId || 'legacy', accountId);
+            if (!assessment) {
+                throw new Error(`Assessment source for account ${accountId} not found`);
+            }
+
+            const now = new Date().toISOString();
+            const createdBy = String(data.createdBy || 'SYSTEM').slice(0, 36) || 'SYSTEM';
+
+            const existing = await legacyDb.select()
+                .from(frs9ImpIaHeader)
+                .where(eq(frs9ImpIaHeader.accountId, accountId))
+                .orderBy(desc(frs9ImpIaHeader.updateddate), desc(frs9ImpIaHeader.createddate))
+                .limit(1);
+
+            const headerPayload = {
+                scenarioId: scenarioMethodId,
+                nOfScenario: scenarioCount,
+                poRate1: poRates[0] || 0,
+                poRate2: poRates[1] || 0,
+                poRate3: poRates[2] || 0,
+                scName1: scNames[0],
+                scName2: scNames[1],
+                scName3: scNames[2],
+                triggerRemarks: String(data.description || assessment.impairment_reason || assessment.analyst_comments || ''),
+                status: STATUS_MAP_TO_INT[String(data.status || 'PENDING').toUpperCase()] ?? 0,
+                updatedby: createdBy,
+                updateddate: now,
+                updatedhost: 'localhost'
+            };
+
+            let savedHeader;
+            let iaId;
+
+            if (existing.length > 0) {
+                iaId = Number(existing[0].iaId);
+                [savedHeader] = await legacyDb.update(frs9ImpIaHeader)
+                    .set(headerPayload)
+                    .where(eq(frs9ImpIaHeader.pkid, existing[0].pkid))
+                    .returning();
+            } else {
+                iaId = await this.generateIaId();
+                const prcDate = assessment.prc_date || new Date().toISOString().slice(0, 10);
+                const impairedFlag = String(assessment.impaired_flag || 'N').toUpperCase() === 'I' ? 'T' : 'F';
+
+                [savedHeader] = await legacyDb.insert(frs9ImpIaHeader).values({
+                    iaId,
+                    prcDate,
+                    effDate: assessment.eff_date || prcDate,
+                    cifNumber: assessment.cif_number || 'UNKNOWN',
+                    cifName: assessment.cif_name || 'UNKNOWN',
+                    accountId,
+                    accountNumber: assessment.account_number || String(accountId),
+                    currency: assessment.currency || 'IDR',
+                    effInterestRate: Number(assessment.eff_interest_rate || 0),
+                    interestRate: Number(assessment.interest_rate || 0),
+                    dpd: Number(assessment.dpd || 0),
+                    collectability: Number(assessment.collectability || 0),
+                    ratingCode: assessment.rating_code || null,
+                    impairedFlag,
+                    method: 'DCF',
+                    plafond: String(assessment.plafond || assessment.outstanding_balance || 0),
+                    outstanding: String(assessment.outstanding_balance || 0),
+                    accruedInterest: String(assessment.accrued_interest || 0),
+                    carryingAmt: String(assessment.carrying_amt || assessment.outstanding_balance || 0),
+                    eadAmt: String(assessment.ead_amt || assessment.outstanding_balance || 0),
+                    pvDcfAmt: '0',
+                    eclIaAmt: '0',
+                    triggerFilename: assessment.supporting_documents?.[0] || null,
+                    createdby: createdBy,
+                    createddate: now,
+                    createdhost: 'localhost',
+                    ...headerPayload
+                }).returning();
+            }
+
+            await legacyDb.delete(frs9ImpIaRr)
+                .where(eq(frs9ImpIaRr.iaId, iaId));
+
+            const rrRowsPayload = boundedRows.map((row, index) => ({
+                iaId,
+                accountId,
+                periodStart: row.periodStart || assessment.prc_date || new Date().toISOString().slice(0, 10),
+                periodEnd: row.periodEnd || row.periodStart || assessment.prc_date || new Date().toISOString().slice(0, 10),
+                rrRate1: index === 0 ? Number(row.repaymentRate || 0) : 0,
+                rrRate2: index === 1 ? Number(row.repaymentRate || 0) : 0,
+                rrRate3: index === 2 ? Number(row.repaymentRate || 0) : 0,
+                createdby: createdBy,
+                createddate: now,
+                createdhost: 'localhost'
+            }));
+
+            if (rrRowsPayload.length > 0) {
+                await legacyDb.insert(frs9ImpIaRr).values(rrRowsPayload);
+            }
+
+            return [this.mapLegacyScenarioHeader(savedHeader, rrRowsPayload)];
         } catch (error) {
             console.error('Error creating scenario:', error);
             throw error;
@@ -235,11 +504,42 @@ export class IndividualImpairmentService {
     // =========================================================================
 
     async getDcfUploads(tenantId: string, limit = 50, offset = 0) {
-        return legacyDb.select()
+        const rows = await legacyDb
+            .select({
+                id: frs9ImpIaDcf.iaId,
+                iaId: frs9ImpIaDcf.iaId,
+                accountId: frs9ImpIaDcf.accountId,
+                accountNumber: frs9ImpIaDcf.accountNumber,
+                prcDate: frs9ImpIaDcf.prcDate,
+                createdBy: sql<string>`max(${frs9ImpIaDcf.createdby})`,
+                createdAt: sql<string>`max(${frs9ImpIaDcf.createddate})`,
+                statusCode: sql<string>`max(${frs9ImpIaDcf.status})`,
+                recordCount: sql<number>`count(*)::int`
+            })
             .from(frs9ImpIaDcf)
-            .orderBy(desc(frs9ImpIaDcf.createddate))
+            .groupBy(
+                frs9ImpIaDcf.iaId,
+                frs9ImpIaDcf.accountId,
+                frs9ImpIaDcf.accountNumber,
+                frs9ImpIaDcf.prcDate
+            )
+            .orderBy(sql`max(${frs9ImpIaDcf.createddate}) desc`)
             .limit(limit)
             .offset(offset);
+
+        return rows.map((row) => ({
+            id: row.id,
+            iaId: row.iaId,
+            batchId: `IA-${row.iaId}`,
+            fileName: `DCF_UPLOAD_${row.accountNumber || row.iaId}_${row.prcDate || 'CURRENT'}.xlsx`,
+            accountId: row.accountId,
+            accountNumber: row.accountNumber,
+            prcDate: row.prcDate,
+            recordCount: Number(row.recordCount || 0),
+            validationStatus: STATUS_MAP_TO_STRING[Number(row.statusCode || 0)] || 'PENDING',
+            createdBy: row.createdBy || 'SYSTEM',
+            createdAt: row.createdAt
+        }));
     }
 
     async createDcfUpload(data: any) {
@@ -384,7 +684,30 @@ export class IndividualImpairmentService {
     }
 
     async createDcfCashflows(data: any[]) {
-        return [];
+        if (!Array.isArray(data) || data.length === 0) {
+            return [];
+        }
+
+        const iaId = await this.generateIaId();
+        const createdAt = new Date().toISOString();
+
+        const rows = data.map((row: any, index: number) => ({
+            iaId,
+            prcDate: row.prcDate || createdAt.slice(0, 10),
+            accountId: Number(row.accountId),
+            accountNumber: String(row.accountNumber || ''),
+            mob: Number(row.mob || index + 1),
+            periode: row.periodDate || row.periode || createdAt.slice(0, 10),
+            principal: String(Number(row.principal || 0)),
+            interest: String(Number(row.interest || 0)),
+            collateral: String(Number(row.collateral || 0)),
+            status: String(row.status || '0').slice(0, 1) || '0',
+            createdby: String(row.createdBy || 'SYSTEM').slice(0, 36) || 'SYSTEM',
+            createddate: createdAt,
+            createdhost: String(row.createdHost || 'localhost').slice(0, 36) || 'localhost'
+        }));
+
+        return legacyDb.insert(frs9ImpIaDcf).values(rows).returning();
     }
 
     async calculateDcf(tenantId: string, params: any) {

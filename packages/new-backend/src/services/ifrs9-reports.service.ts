@@ -4,6 +4,7 @@ import { sql, desc, eq, and, lte } from 'drizzle-orm';
 import {
     frs9ImpIaHeader,
     frs9ImpCaResultH,
+    frs9NominativeOutput,
     frs9ImpCaPdStructure,
     frs9AccountId,
     frs9ImpCaLgdData,
@@ -12,7 +13,6 @@ import {
     frs9ImpCaLgdConfig,
     frs9ImpCaEad,
     frs9ImpCaEadPaymAvg,
-    frs9ImpCaEadConfig,
     frs9MasterAccount,
     frs9ImpCaResultD,
     frs9ParamSegmenth,
@@ -430,7 +430,7 @@ export class Ifrs9ReportsService {
 
         const scopedDateResult = await legacyDb.execute(sql.raw(`
             SELECT MAX(prc_date) AS effective_date
-            FROM public.frs9_imp_nominative
+            FROM public.frs9_nominative_output
             ${scopedWhereClause}
         `));
 
@@ -442,7 +442,7 @@ export class Ifrs9ReportsService {
         if (requestedPrcDate) {
             const lessEqualDateResult = await legacyDb.execute(sql.raw(`
                 SELECT MAX(prc_date) AS effective_date
-                FROM public.frs9_imp_nominative
+                FROM public.frs9_nominative_output
                 WHERE prc_date <= '${this.escapeSqlLiteral(requestedPrcDate)}'
             `));
 
@@ -454,7 +454,7 @@ export class Ifrs9ReportsService {
 
         const latestDateResult = await legacyDb.execute(sql.raw(`
             SELECT MAX(prc_date) AS effective_date
-            FROM public.frs9_imp_nominative
+            FROM public.frs9_nominative_output
         `));
 
         const latestDate = (latestDateResult as any[])[0]?.effective_date;
@@ -1345,44 +1345,55 @@ export class Ifrs9ReportsService {
                 };
             }
 
-            // Nominative source aligned to tech spec section "Nominatif Report".
-            // Branch code is joined from master account for current UI compatibility.
+            const stageNumericExpression = `COALESCE(NULLIF(regexp_replace(lower(COALESCE(n.stage::text, m.stage::text, '')), '[^0-9]', '', 'g'), '')::int, 1)`;
+            const groupSegmentExpression = `COALESCE(NULLIF(m.group_segment, ''), NULLIF(n.segment, ''), '')`;
+            const segmentExpression = `COALESCE(NULLIF(n.segment, ''), NULLIF(m.segment, ''), '')`;
+            const branchExpression = `COALESCE(NULLIF(n.branch_code, ''), NULLIF(m.branch_code, ''), '')`;
+            const interestRateExpression = `COALESCE(n.interest_rate, m.interest_rate)`;
+            const startDateExpression = `COALESCE(n.start_date, m.start_date)`;
+            const maturityDateExpression = `COALESCE(n.maturity_date, m.maturity_date)`;
+            const bucketExpression = `COALESCE(n.bucket_id, m.bucket_id)`;
+            const watchlistExpression = `CASE WHEN COALESCE(m.sicr_flag, false) THEN 'Yes' ELSE 'No' END`;
+            const sicrExpression = `COALESCE(m.sicr_flag, false)`;
+
+            // Nominative source now uses the dedicated frs9_nominative_output table,
+            // with master-account join only for compatibility/enrichment fields.
             let whereClause = `n.prc_date = '${this.escapeSqlLiteral(effectivePrcDate)}'`;
 
             if (groupSegmentValues) {
                 const groupSegmentList = groupSegmentValues
                     .map((value) => `'${this.escapeSqlLiteral(value)}'`)
                     .join(',');
-                whereClause += ` AND (n.group_segment IN (${groupSegmentList}) OR n.segment IN (${groupSegmentList}))`;
+                whereClause += ` AND ${groupSegmentExpression} IN (${groupSegmentList})`;
             }
 
             if (segmentValues) {
                 const segmentList = segmentValues
                     .map((value) => `'${this.escapeSqlLiteral(value)}'`)
                     .join(',');
-                whereClause += ` AND n.segment IN (${segmentList})`;
+                whereClause += ` AND ${segmentExpression} IN (${segmentList})`;
             }
 
             if (stageValues) {
                 const stageList = stageValues.join(',');
-                whereClause += ` AND (CASE WHEN n.stage = 0 THEN 1 ELSE n.stage END) IN (${stageList})`;
+                whereClause += ` AND ${stageNumericExpression} IN (${stageList})`;
             }
 
             if (branchValues) {
                 const branchList = branchValues
                     .map((value) => `'${this.escapeSqlLiteral(value)}'`)
                     .join(',');
-                whereClause += ` AND COALESCE(m.branch_code, '') IN (${branchList})`;
+                whereClause += ` AND ${branchExpression} IN (${branchList})`;
             }
 
             const sort = params?.sort?.[0] ?? { field: 'account_number', direction: 'asc' };
             const sortMap: Record<string, { expression: string, resultKey: string, numeric?: boolean }> = {
                 account_number: { expression: 'n.account_number', resultKey: 'account_number' },
                 cif_name: { expression: 'n.cif_name', resultKey: 'cif_name' },
-                branch_code: { expression: "COALESCE(m.branch_code, '')", resultKey: 'branch_code' },
-                stage: { expression: 'CASE WHEN n.stage = 0 THEN 1 ELSE n.stage END', resultKey: 'stage', numeric: true },
+                branch_code: { expression: branchExpression, resultKey: 'branch_code' },
+                stage: { expression: stageNumericExpression, resultKey: 'stage', numeric: true },
                 outstanding: { expression: 'CAST(n.outstanding AS DECIMAL)', resultKey: 'outstanding', numeric: true },
-                ecl_final_amt: { expression: 'CAST(n.ecl AS DECIMAL)', resultKey: 'ecl_final_amt', numeric: true },
+                ecl_final_amt: { expression: 'CAST(n.ecl_final_amt AS DECIMAL)', resultKey: 'ecl_final_amt', numeric: true },
                 prc_date: { expression: 'n.prc_date', resultKey: 'prc_date' },
             };
             const sortConfig = sortMap[sort.field] ?? sortMap.account_number;
@@ -1427,25 +1438,25 @@ export class Ifrs9ReportsService {
                     n.cif_number,
                     n.cif_name,
                     n.prc_date AS download_date,
-                    m.branch_code,
-                    COALESCE(n.start_date, m.start_date) AS loan_start_date,
-                    COALESCE(n.maturity_date, m.maturity_date) AS loan_maturity_date,
-                    n.group_segment,
-                    n.segment,
-                    n.sub_segment,
-                    CASE WHEN n.stage = 0 THEN 1 ELSE n.stage END AS stage,
+                    ${branchExpression} AS branch_code,
+                    ${startDateExpression} AS loan_start_date,
+                    ${maturityDateExpression} AS loan_maturity_date,
+                    ${groupSegmentExpression} AS group_segment,
+                    ${segmentExpression} AS segment,
+                    COALESCE(NULLIF(m.sub_segment, ''), '') AS sub_segment,
+                    ${stageNumericExpression} AS stage,
                     n.currency,
-                    n.interest_rate,
+                    ${interestRateExpression} AS interest_rate,
                     CAST(n.outstanding AS DECIMAL) AS outstanding,
-                    CAST(n.ecl AS DECIMAL) AS ecl_final_amt,
+                    CAST(n.ecl_final_amt AS DECIMAL) AS ecl_final_amt,
                     CAST(n.ecl_coverage AS DECIMAL) AS ecl_coverage,
                     n.dpd,
-                    n.ext_rating AS internal_rating_code,
-                    n.rating_bucket,
-                    n.sicr AS sicr_flag,
-                    CASE WHEN n.sicr THEN 'Yes' ELSE 'No' END AS watchlist,
+                    COALESCE(m.internal_rating_code, '') AS internal_rating_code,
+                    ${bucketExpression} AS rating_bucket,
+                    ${sicrExpression} AS sicr_flag,
+                    ${watchlistExpression} AS watchlist,
                     n.prc_date
-                FROM public.frs9_imp_nominative n
+                FROM public.frs9_nominative_output n
                 LEFT JOIN public.frs9_master_account m
                     ON m.account_id = n.account_id
                    AND m.prc_date = n.prc_date
@@ -1474,8 +1485,8 @@ export class Ifrs9ReportsService {
                 SELECT 
                     COUNT(*) as total,
                     COALESCE(SUM(CAST(n.outstanding AS DECIMAL)), 0) as total_outstanding,
-                    COALESCE(SUM(CAST(n.ecl AS DECIMAL)), 0) as total_ecl
-                FROM public.frs9_imp_nominative n
+                    COALESCE(SUM(CAST(n.ecl_final_amt AS DECIMAL)), 0) as total_ecl
+                FROM public.frs9_nominative_output n
                 LEFT JOIN public.frs9_master_account m
                     ON m.account_id = n.account_id
                    AND m.prc_date = n.prc_date
@@ -1552,8 +1563,8 @@ export class Ifrs9ReportsService {
                     prc_date,
                     COUNT(*)::bigint AS total_accounts,
                     COALESCE(SUM(CAST(outstanding AS DECIMAL)), 0) AS total_outstanding,
-                    COALESCE(SUM(CAST(ecl AS DECIMAL)), 0) AS total_ecl
-                FROM public.frs9_imp_nominative
+                    COALESCE(SUM(CAST(ecl_final_amt AS DECIMAL)), 0) AS total_ecl
+                FROM public.frs9_nominative_output
                 ${whereClause}
                 GROUP BY prc_date
                 ORDER BY prc_date DESC
@@ -1883,15 +1894,9 @@ export class Ifrs9ReportsService {
      */
     private async resolveEadReportSegmentId(params?: EADModelParams): Promise<number | undefined> {
         if (params?.ead_config_id !== undefined && params.ead_config_id !== null) {
-            const [config] = await legacyDb
-                .select({ segmentId: frs9ImpCaEadConfig.segmentId })
-                .from(frs9ImpCaEadConfig)
-                .where(eq(frs9ImpCaEadConfig.pkid, Number(params.ead_config_id)))
-                .limit(1);
-
-            const configSegmentId = Number((config as any)?.segmentId);
-            if (Number.isFinite(configSegmentId)) {
-                return configSegmentId;
+            const legacySelectedId = Number(params.ead_config_id);
+            if (Number.isFinite(legacySelectedId)) {
+                return legacySelectedId;
             }
         }
 
@@ -2174,10 +2179,26 @@ export class Ifrs9ReportsService {
      */
     async getEADPaymentAverage(tenantId: string, page: number, limit: number, params?: EADModelParams) {
         try {
-            const prcDate = params?.prc_date || '2023-12-31';
-            const segmentId = params?.segment_id;
+            const requestedPrcDate = params?.prc_date || '2023-12-31';
+            const requestedSegmentId = params?.segment_id;
+            const segmentId = await this.resolveEadReportSegmentId(params);
+            const prcDate = await this.resolveLatestPrcDate(
+                'public.frs9_imp_ca_ead_paym_avg',
+                requestedPrcDate,
+                segmentId !== undefined && segmentId !== null ? [`segment_id = ${Number(segmentId)}`] : [],
+            );
 
-            console.log('📊 [EAD Payment Avg] Fetching with params:', { prcDate, segmentId });
+            console.log('📊 [EAD Payment Avg] Fetching with params:', {
+                requestedPrcDate,
+                effectivePrcDate: prcDate,
+                requestedSegmentId,
+                resolvedSegmentId: segmentId,
+                eadConfigId: params?.ead_config_id,
+            });
+
+            if (!prcDate) {
+                return { data: [], total: 0, page, totalPages: 0, effectivePrcDate: null as string | null };
+            }
 
             const conditions = [eq(frs9ImpCaEadPaymAvg.prcDate, prcDate)];
             if (segmentId !== undefined && segmentId !== null) {
@@ -2200,11 +2221,12 @@ export class Ifrs9ReportsService {
                 data: pivotData,
                 total: pivotData.length,
                 page,
-                totalPages: Math.ceil(pivotData.length / limit)
+                totalPages: Math.ceil(pivotData.length / limit),
+                effectivePrcDate: prcDate,
             };
         } catch (error) {
             console.error('❌ Error in getEADPaymentAverage service:', error);
-            return { data: [], total: 0, page, totalPages: 0 };
+            return { data: [], total: 0, page, totalPages: 0, effectivePrcDate: null as string | null };
         }
     }
 

@@ -103,7 +103,7 @@ export const individualImpairmentAPI = {
   },
 
   // SCENARIOS
-  getScenarios: async (params?: { status?: string }) => {
+  getScenarios: async (params?: { status?: string; accountId?: string | number }) => {
     const response = await apiClient.get('/banking/individual/impairment/scenarios', { params });
     return response.data;
   },
