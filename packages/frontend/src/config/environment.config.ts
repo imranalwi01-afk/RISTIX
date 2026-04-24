@@ -25,7 +25,7 @@ export const getConfigValue = (key: string, defaultValue?: string): string => {
     APP_NAME: 'IFRS 9 Pro System',
     APP_VERSION: '2.0.0',
     ENVIRONMENT: 'development',
-    API_URL: 'http://iaf-ifrs-be.danafin.com/api/v1',
+    API_URL: 'https://iaf-ifrs-be.danafin.com/api/v1',
     BANKING_MODE: 'conventional',
     PLATFORM_NAME: 'IFRS 9 Platform',
     COMPANY_NAME: 'Banking Institution'
@@ -109,10 +109,10 @@ export const getEnvironmentConfig = (): EnvironmentConfig => {
       name: getConfigValue('APP_NAME', 'IFRS 9 Pro System'),
       version: getConfigValue('APP_VERSION', '2.0.0'),
       environment: getConfigValue('ENVIRONMENT', 'development') as any,
-      baseUrl: getConfigValue('BASE_URL', 'http://iaf-ifrs.danafin.com')
+      baseUrl: getConfigValue('BASE_URL', 'https://iaf-ifrs.danafin.com')
     },
     api: {
-      baseUrl: getConfigValue('API_URL', 'http://iaf-ifrs-be.danafin.com/api/v1'),
+      baseUrl: getConfigValue('API_URL', 'https://iaf-ifrs-be.danafin.com/api/v1'),
       timeout: parseInt(getConfigValue('API_TIMEOUT', '30000')),
       retries: parseInt(getConfigValue('API_RETRIES', '3'))
     },
