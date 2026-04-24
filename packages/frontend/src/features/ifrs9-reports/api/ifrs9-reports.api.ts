@@ -1,5 +1,6 @@
 'use client';
 
+import axios from 'axios';
 import api from '@/services/api';
 import type {
   BaseIfrs9ReportProps,
@@ -13,6 +14,11 @@ function formatLocalDate(date: Date) {
   const mm = String(date.getMonth() + 1).padStart(2, '0');
   const dd = String(date.getDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
+}
+
+function toNumeric(value: unknown): number {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 export type Ifrs9ReportQueryInput = {
@@ -72,7 +78,87 @@ export async function fetchIfrs9Report(input: Ifrs9ReportQueryInput): Promise<Re
     case 'lifetime-pd-account-details':
       return api.banking.ifrs9Reports.lifetimePD.getAccountDetails(params);
     case 'lifetime-lgd':
-      return api.banking.ifrs9Reports.lifetimeLGD.get(params);
+      {
+        const [summaryResult, detailData] = await Promise.all([
+          api.banking.ifrs9Reports.lifetimeLGD.getSummary(params)
+            .then((response) => ({ response, missing: false }))
+            .catch((error: unknown) => {
+              if (axios.isAxiosError(error) && error.response?.status === 404) {
+                return { response: null, missing: true };
+              }
+
+              throw error;
+            }),
+          api.banking.ifrs9Reports.lifetimeLGD.get(params),
+        ]);
+
+        const summaryData = summaryResult.response;
+        const detailRows = Array.isArray(detailData?.data) ? detailData.data : [];
+        const effectivePrcDate = summaryData?.effectivePrcDate ?? detailData?.effectivePrcDate ?? params.prc_date ?? null;
+        const fallbackSummaryRow = detailRows.length > 0
+          ? (() => {
+              const totals = detailRows.reduce(
+                (acc: { totalEad: number; totalPvRecovery: number; weightedLgdRate: number }, row: Record<string, unknown>) => {
+                  const ead = toNumeric(row.os_at_default ?? row.ead_amount ?? row.ead);
+                  const pvRecovery = toNumeric(row.recovery_amount_pv ?? row.total_recovery_pv ?? row.recovery_amount);
+                  const lgdRate = toNumeric(row.lgd_rate ?? row.final_lgd ?? row.lgd);
+
+                  acc.totalEad += ead;
+                  acc.totalPvRecovery += pvRecovery;
+                  acc.weightedLgdRate += lgdRate * ead;
+                  return acc;
+                },
+                { totalEad: 0, totalPvRecovery: 0, weightedLgdRate: 0 }
+              );
+
+              const recRate = totals.totalEad > 0 ? totals.totalPvRecovery / totals.totalEad : 0;
+              const lgdRate = totals.totalEad > 0 ? totals.weightedLgdRate / totals.totalEad : (1 - recRate);
+
+              return {
+                id: 1,
+                period: effectivePrcDate,
+                lgd_model: 'Selected LGD Model',
+                total_ead: totals.totalEad,
+                total_pv_recovery: totals.totalPvRecovery,
+                rec_rate: recRate,
+                lgd_rate: lgdRate,
+              };
+            })()
+          : null;
+
+        const summaryRows = Array.isArray(summaryData?.data) && summaryData.data.length > 0
+          ? summaryData.data
+          : (fallbackSummaryRow ? [fallbackSummaryRow] : []);
+        const rowsWithDetails = summaryRows.map((row: Record<string, unknown>, index: number) => ({
+          ...row,
+          id: row.id ?? index + 1,
+          _detail_rows: detailRows,
+        }));
+
+        return {
+          ...summaryData,
+          data: rowsWithDetails,
+          columns: [
+            { field: 'period', headerName: 'Period', width: 160, type: 'date' },
+            { field: 'lgd_model', headerName: 'LGD Model', width: 220, type: 'string' },
+            { field: 'total_ead', headerName: 'Total EAD', width: 190, type: 'number' },
+            { field: 'total_pv_recovery', headerName: 'Total PV Recovery', width: 220, type: 'number' },
+            { field: 'rec_rate', headerName: 'Rec. Rate (%)', width: 160, type: 'number' },
+            { field: 'lgd_rate', headerName: 'LGD', width: 140, type: 'number' },
+          ],
+          summary: {
+            ...(summaryData?.summary ?? {}),
+            detailRows,
+            summarySource: summaryResult.missing ? 'detail-fallback' : 'summary-endpoint',
+          },
+          detailData: detailRows,
+          detailMeta: detailData?.meta ?? null,
+          detailMessage: detailData?.message,
+          effectivePrcDate,
+          meta: summaryData?.meta ?? detailData?.meta,
+          message: summaryData?.message ?? detailData?.message,
+        };
+      }
     case 'ead-model': {
       const eadData = await api.banking.ifrs9Reports.eadModel.get(params);
       const eadSummary = await api.banking.ifrs9Reports.eadModel.getSummary(params);

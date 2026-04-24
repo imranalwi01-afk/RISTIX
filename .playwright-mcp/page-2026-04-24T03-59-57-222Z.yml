@@ -1,0 +1,188 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8]
+  - alert [ref=e11]
+  - generic [ref=e13]:
+    - banner [ref=e14]:
+      - generic [ref=e15]:
+        - button "Collapse Sidebar" [ref=e16] [cursor=pointer]:
+          - img [ref=e17]
+        - generic [ref=e20]: IFRS 9 | i9 model platform
+        - button "Switch to Dark Mode" [ref=e21] [cursor=pointer]:
+          - img [ref=e22]
+        - button "Notifications (offline)" [ref=e24] [cursor=pointer]:
+          - generic [ref=e25]:
+            - img [ref=e26]
+            - generic: "0"
+        - button "User menu" [ref=e28] [cursor=pointer]:
+          - generic [ref=e29]: S
+    - navigation "breadcrumb" [ref=e32]:
+      - list [ref=e33]:
+        - listitem [ref=e34]:
+          - link "Banking Dashboard" [ref=e35] [cursor=pointer]:
+            - /url: /banking/dashboard
+            - img [ref=e36]
+            - text: Banking Dashboard
+        - listitem [ref=e38]:
+          - img [ref=e39]
+        - listitem [ref=e41]:
+          - link "Ifrs9 reports" [ref=e42] [cursor=pointer]:
+            - /url: /banking/ifrs9-reports
+        - listitem [ref=e43]:
+          - img [ref=e44]
+        - listitem [ref=e46]:
+          - paragraph [ref=e47]: Lifetime lgd
+    - navigation [ref=e48]:
+      - generic [ref=e50]:
+        - generic [ref=e51]:
+          - heading "IAF IFRS 9 Platform" [level=6] [ref=e53]
+          - list [ref=e54]:
+            - listitem [ref=e55]:
+              - link "IFRS 9 System Overview" [ref=e56] [cursor=pointer]:
+                - /url: /banking/dashboard
+                - img [ref=e58]
+                - generic [ref=e60]:
+                  - paragraph [ref=e63]: Dashboard
+                  - generic [ref=e64]: IFRS 9 System Overview
+            - listitem [ref=e65]:
+              - button "Core System Configuration" [ref=e66] [cursor=pointer]:
+                - img [ref=e68]
+                - generic [ref=e70]:
+                  - paragraph [ref=e73]: System Setup
+                  - generic [ref=e74]: Core System Configuration
+                - img [ref=e76]
+            - listitem [ref=e78]:
+              - button "Banking Parameters & Configuration" [ref=e79] [cursor=pointer]:
+                - img [ref=e81]
+                - generic [ref=e85]:
+                  - paragraph [ref=e88]: Parameter Management
+                  - generic [ref=e89]: Banking Parameters & Configuration
+                - img [ref=e91]
+            - listitem [ref=e93]:
+              - button "Portfolio Assessment" [ref=e94] [cursor=pointer]:
+                - img [ref=e96]
+                - generic [ref=e98]:
+                  - paragraph [ref=e101]: Collective Impairment
+                  - generic [ref=e102]: Portfolio Assessment
+                - img [ref=e104]
+            - listitem [ref=e106]:
+              - button "Account Assessment" [ref=e107] [cursor=pointer]:
+                - img [ref=e109]
+                - generic [ref=e111]:
+                  - paragraph [ref=e114]: Individual Impairment
+                  - generic [ref=e115]: Account Assessment
+                - img [ref=e117]
+            - listitem [ref=e119]:
+              - button "Processing Modules" [ref=e120] [cursor=pointer]:
+                - img [ref=e122]
+                - generic [ref=e124]:
+                  - paragraph [ref=e127]: IFRS 9
+                  - generic [ref=e128]: Processing Modules
+                - img [ref=e130]
+            - listitem [ref=e132]:
+              - button "Comprehensive IFRS 9 Reporting Suite" [ref=e133] [cursor=pointer]:
+                - img [ref=e135]
+                - generic [ref=e137]:
+                  - paragraph [ref=e140]: IFRS 9 Reports
+                  - generic [ref=e141]: Comprehensive IFRS 9 Reporting Suite
+                - img [ref=e143]
+            - generic [ref=e148]:
+              - listitem [ref=e149]:
+                - link "Detailed account-level IFRS 9 report" [ref=e150] [cursor=pointer]:
+                  - /url: /banking/ifrs9-reports/nominative
+                  - img [ref=e152]
+                  - generic [ref=e157]: Nominative Report
+              - listitem [ref=e158]:
+                - link "Lifetime Probability of Default analysis" [ref=e159] [cursor=pointer]:
+                  - /url: /banking/ifrs9-reports/lifetime-pd
+                  - img [ref=e161]
+                  - generic [ref=e166]: Lifetime PD
+              - listitem [ref=e167]:
+                - link "Lifetime Loss Given Default analysis" [ref=e168] [cursor=pointer]:
+                  - /url: /banking/ifrs9-reports/lifetime-lgd
+                  - img [ref=e170]
+                  - generic [ref=e175]: Lifetime LGD
+              - listitem [ref=e176]:
+                - link "Exposure at Default model results" [ref=e177] [cursor=pointer]:
+                  - /url: /banking/ifrs9-reports/ead-model
+                  - img [ref=e179]
+                  - generic [ref=e184]: EAD Model
+              - listitem [ref=e185]:
+                - link "Expected Credit Loss calculation results" [ref=e186] [cursor=pointer]:
+                  - /url: /banking/ifrs9-reports/ecl-result
+                  - img [ref=e188]
+                  - generic [ref=e193]: ECL Result
+              - listitem [ref=e194]:
+                - link "ECL movement and reconciliation" [ref=e195] [cursor=pointer]:
+                  - /url: /banking/ifrs9-reports/ecl-movement
+                  - img [ref=e197]
+                  - generic [ref=e202]: ECL Movement
+              - listitem [ref=e203]:
+                - link "Gross Carrying Amount movement analysis" [ref=e204] [cursor=pointer]:
+                  - /url: /banking/ifrs9-reports/gca-movement
+                  - img [ref=e206]
+                  - generic [ref=e211]: GCA Movement
+            - listitem [ref=e212]:
+              - button "R Analytics & BI" [ref=e213] [cursor=pointer]:
+                - img [ref=e215]
+                - generic [ref=e217]:
+                  - paragraph [ref=e220]: Advanced Analytics
+                  - generic [ref=e221]: R Analytics & BI
+                - img [ref=e223]
+            - listitem [ref=e225]:
+              - button "Business Process & Approval" [ref=e226] [cursor=pointer]:
+                - img [ref=e228]
+                - generic [ref=e230]:
+                  - paragraph [ref=e233]: Workflow Management
+                  - generic [ref=e234]: Business Process & Approval
+                - img [ref=e236]
+            - listitem [ref=e238]:
+              - button "Utilities" [ref=e239] [cursor=pointer]:
+                - img [ref=e241]
+                - generic [ref=e243]:
+                  - paragraph [ref=e246]: Tools
+                  - generic [ref=e247]: Utilities
+                - img [ref=e249]
+            - listitem [ref=e251]:
+              - button "System Administration" [ref=e252] [cursor=pointer]:
+                - img [ref=e254]
+                - generic [ref=e256]:
+                  - paragraph [ref=e259]: Admin & Maintenance
+                  - generic [ref=e260]: System Administration
+                - img [ref=e262]
+        - generic [ref=e264]:
+          - link "IAF Logo Indonesia Airawata Finance" [ref=e265] [cursor=pointer]:
+            - /url: /banking/ifrs9-reports
+            - generic [ref=e266]:
+              - img "IAF Logo" [ref=e267]
+              - generic [ref=e268]: Indonesia Airawata Finance
+          - generic [ref=e269]: IFRS 9 Platform v2.0
+          - generic [ref=e270]: Conventional Banking
+          - generic [ref=e271]:
+            - generic [ref=e272]:
+              - img [ref=e273]
+              - generic [ref=e275]: Compliant
+            - generic [ref=e276]:
+              - img [ref=e277]
+              - generic [ref=e279]: Online
+    - main [ref=e280]:
+      - generic [ref=e283]:
+        - navigation "breadcrumb" [ref=e284]:
+          - list [ref=e285]:
+            - listitem [ref=e286]:
+              - link "Dashboard" [ref=e287] [cursor=pointer]:
+                - /url: /banking/dashboard
+                - img [ref=e288]
+                - text: Dashboard
+            - listitem [ref=e290]: /
+            - listitem [ref=e291]:
+              - generic [ref=e292]:
+                - img [ref=e294]
+                - text: Lifetime LGD Reports
+        - generic [ref=e297]:
+          - generic [ref=e298]:
+            - img [ref=e300]
+            - heading "Lifetime LGD Reports" [level=1] [ref=e302]
+          - heading "Loss Given Default with recovery information and risk analysis" [level=6] [ref=e303]
+        - progressbar [ref=e305]:
+          - img [ref=e306]

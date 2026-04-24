@@ -5,6 +5,55 @@ import { frs9ImpCaResultH, jobExecutions, frs9MasterAccount, frs9PrcDate, frs9Im
 import { JobsRepository } from '../repositories/jobs.repository';
 import { addJob } from './queue.service';
 
+type DashboardQueryDebug = {
+    endpoint: string;
+    sourceTables: string[];
+    selectedSource: string;
+    filtersApplied: Record<string, unknown>;
+    sqlPreview: string;
+    notes?: string[];
+};
+
+type DashboardSummaryResult = {
+    totalECL: number;
+    stage1ECL: number;
+    stage2ECL: number;
+    stage3ECL: number;
+    stage1Count?: number;
+    stage2Count?: number;
+    stage3Count?: number;
+    totalPortfolio: number;
+    totalExposure: number;
+    totalAccounts: number;
+    activeAccounts: number;
+    eclRate: number;
+    impairedRatio: number;
+    coverageRatio: number;
+    lastUpdated: string;
+    currency: string;
+    isFallback: boolean;
+};
+
+type DashboardSummaryPayload = {
+    data: DashboardSummaryResult;
+    debug: DashboardQueryDebug;
+};
+
+type DashboardTrendPoint = {
+    month: string;
+    stage1: number;
+    stage2: number;
+    stage3: number;
+    totalECL: number;
+    totalPortfolio: number;
+    fullDate: unknown;
+};
+
+type DashboardTrendPayload = {
+    data: DashboardTrendPoint[];
+    debug: DashboardQueryDebug;
+};
+
 export class Ifrs9CalculationsService {
     private static readonly IFRS9_PREVIEW_SP_NAME = 'sp_frs9_preview_sequence';
     private static readonly IFRS9_IMPAIRMENT_SP_NAME = 'sp_frs9_imp_sequence';
@@ -151,7 +200,61 @@ export class Ifrs9CalculationsService {
         }
     }
 
-    async getSummary(tenantId: string, requestedDate?: string, mode?: string) {
+    private buildSummaryDebug(
+        selectedSource: string,
+        requestedDate: string | undefined,
+        effectiveDate: string | undefined,
+        mode: string | undefined,
+        segmentIds: number[],
+        sqlPreview: string,
+        notes: string[] = [],
+    ): DashboardQueryDebug {
+        return {
+            endpoint: '/api/v1/ifrs9/calculations/summary',
+            sourceTables: [
+                'public.frs9_ecl_summary',
+                'public.frs9_imp_ca_result_h',
+                'public.frs9_master_account',
+            ],
+            selectedSource,
+            filtersApplied: {
+                requestedDate: requestedDate || 'latest',
+                effectiveDate: effectiveDate || null,
+                mode: mode || 'all',
+                segmentIds,
+            },
+            sqlPreview,
+            notes,
+        };
+    }
+
+    private buildTrendDebug(
+        selectedSource: string,
+        endDate: string | undefined,
+        mode: string | undefined,
+        segmentIds: number[],
+        sqlPreview: string,
+        notes: string[] = [],
+    ): DashboardQueryDebug {
+        return {
+            endpoint: '/api/v1/ifrs9/calculations/portfolio-trend',
+            sourceTables: [
+                'public.frs9_ecl_summary',
+                'public.frs9_imp_ca_result_h',
+                'public.frs9_master_account',
+            ],
+            selectedSource,
+            filtersApplied: {
+                endDate: endDate || 'latest-12-periods',
+                mode: mode || 'all',
+                segmentIds,
+            },
+            sqlPreview,
+            notes,
+        };
+    }
+
+    async getSummary(tenantId: string, requestedDate?: string, mode?: string): Promise<DashboardSummaryPayload> {
         try {
             // Resolve segment IDs if mode is provided
             const segmentIds = mode ? await this.getSegmentIdsForMode(mode) : [];
@@ -226,23 +329,38 @@ export class Ifrs9CalculationsService {
                         const stage3Count = Number(row.stage3Count || 0);
 
                         return {
-                            totalECL,
-                            stage1ECL: stage1,
-                            stage2ECL: stage2,
-                            stage3ECL: stage3,
-                            stage1Count,
-                            stage2Count,
-                            stage3Count,
-                            totalPortfolio,
-                            totalExposure: totalPortfolio,
-                            totalAccounts: count,
-                            activeAccounts: count,
-                            eclRate: totalPortfolio > 0 ? (totalECL / totalPortfolio) * 100 : 0,
-                            impairedRatio: totalPortfolio > 0 ? (stage3 / totalPortfolio) : 0,
-                            coverageRatio: totalPortfolio > 0 ? (totalECL / totalPortfolio) : 0,
-                            lastUpdated: 'Cumulative Grand Total (All Periods)',
-                            currency: 'IDR',
-                            isFallback: false
+                            data: {
+                                totalECL,
+                                stage1ECL: stage1,
+                                stage2ECL: stage2,
+                                stage3ECL: stage3,
+                                stage1Count,
+                                stage2Count,
+                                stage3Count,
+                                totalPortfolio,
+                                totalExposure: totalPortfolio,
+                                totalAccounts: count,
+                                activeAccounts: count,
+                                eclRate: totalPortfolio > 0 ? (totalECL / totalPortfolio) * 100 : 0,
+                                impairedRatio: totalPortfolio > 0 ? (stage3 / totalPortfolio) : 0,
+                                coverageRatio: totalPortfolio > 0 ? (totalECL / totalPortfolio) : 0,
+                                lastUpdated: 'Cumulative Grand Total (All Periods)',
+                                currency: 'IDR',
+                                isFallback: false
+                            },
+                            debug: this.buildSummaryDebug(
+                                'public.frs9_ecl_summary',
+                                requestedDate,
+                                'all',
+                                mode,
+                                segmentIds,
+                                `select sum(ecl_final_amt) as total_ecl, sum(outstanding) as total_exposure, sum(noa) as total_accounts, sum(case when lower(trim(stage)) in ('1','stage 1','stage1') then ecl_final_amt else 0 end) as stage1_ecl, sum(case when lower(trim(stage)) in ('2','stage 2','stage2') then ecl_final_amt else 0 end) as stage2_ecl, sum(case when lower(trim(stage)) in ('3','stage 3','stage3') then ecl_final_amt else 0 end) as stage3_ecl from public.frs9_ecl_summary${hasSegmentFilter ? ' where segment_id in (...)' : ''}`,
+                                [
+                                    'Active Accounts currently mirrors totalAccounts.',
+                                    'High Risk card on UI uses stage3ECL amount, not stage3Count.',
+                                    'ECL Distribution chart also derives from stage1ECL/stage2ECL/stage3ECL.'
+                                ],
+                            ),
                         };
                     }
                 } catch (error: any) {
@@ -284,23 +402,37 @@ export class Ifrs9CalculationsService {
                         console.log(`✅ Grand Total Summary loaded: ${count} total system records`);
 
                         return {
-                            totalECL,
-                            stage1ECL: stage1,
-                            stage2ECL: stage2,
-                            stage3ECL: stage3,
-                            stage1Count,
-                            stage2Count,
-                            stage3Count,
-                            totalPortfolio,
-                            totalExposure: totalPortfolio,
-                            totalAccounts: count,
-                            activeAccounts: count,
-                            eclRate: totalPortfolio > 0 ? (totalECL / totalPortfolio) * 100 : 0,
-                            impairedRatio: totalPortfolio > 0 ? (stage3 / totalPortfolio) : 0,
-                            coverageRatio: totalPortfolio > 0 ? (totalECL / totalPortfolio) : 0,
-                            lastUpdated: 'Cumulative Grand Total (All Periods)',
-                            currency: 'IDR',
-                            isFallback: false
+                            data: {
+                                totalECL,
+                                stage1ECL: stage1,
+                                stage2ECL: stage2,
+                                stage3ECL: stage3,
+                                stage1Count,
+                                stage2Count,
+                                stage3Count,
+                                totalPortfolio,
+                                totalExposure: totalPortfolio,
+                                totalAccounts: count,
+                                activeAccounts: count,
+                                eclRate: totalPortfolio > 0 ? (totalECL / totalPortfolio) * 100 : 0,
+                                impairedRatio: totalPortfolio > 0 ? (stage3 / totalPortfolio) : 0,
+                                coverageRatio: totalPortfolio > 0 ? (totalECL / totalPortfolio) : 0,
+                                lastUpdated: 'Cumulative Grand Total (All Periods)',
+                                currency: 'IDR',
+                                isFallback: false
+                            },
+                            debug: this.buildSummaryDebug(
+                                'public.frs9_imp_ca_result_h',
+                                requestedDate,
+                                'all',
+                                mode,
+                                segmentIds,
+                                `select sum(ecl_amount) as total_ecl, sum(outstanding) as total_exposure, count(*) as total_accounts, sum(case when stage = 1 then ecl_amount else 0 end) as stage1_ecl, sum(case when stage = 2 then ecl_amount else 0 end) as stage2_ecl, sum(case when stage = 3 then ecl_amount else 0 end) as stage3_ecl from public.frs9_imp_ca_result_h${hasSegmentFilter ? ' where segment_id in (...)' : ''}`,
+                                [
+                                    'Used because frs9_ecl_summary had no rows for the requested scope.',
+                                    'Active Accounts currently mirrors totalAccounts.',
+                                ],
+                            ),
                         };
                     }
                 } catch (error: any) {
@@ -341,23 +473,37 @@ export class Ifrs9CalculationsService {
                         const stage3Count = Number(row.stage3Count || 0);
 
                         return {
-                            totalECL,
-                            stage1ECL: stage1,
-                            stage2ECL: stage2,
-                            stage3ECL: stage3,
-                            stage1Count,
-                            stage2Count,
-                            stage3Count,
-                            totalPortfolio,
-                            totalExposure: totalPortfolio,
-                            totalAccounts: count,
-                            activeAccounts: count,
-                            eclRate: totalPortfolio > 0 ? (totalECL / totalPortfolio) * 100 : 0,
-                            impairedRatio: totalPortfolio > 0 ? (stage3 / totalPortfolio) : 0,
-                            coverageRatio: totalPortfolio > 0 ? (totalECL / totalPortfolio) : 0,
-                            lastUpdated: prcDate,
-                            currency: 'IDR',
-                            isFallback: false
+                            data: {
+                                totalECL,
+                                stage1ECL: stage1,
+                                stage2ECL: stage2,
+                                stage3ECL: stage3,
+                                stage1Count,
+                                stage2Count,
+                                stage3Count,
+                                totalPortfolio,
+                                totalExposure: totalPortfolio,
+                                totalAccounts: count,
+                                activeAccounts: count,
+                                eclRate: totalPortfolio > 0 ? (totalECL / totalPortfolio) * 100 : 0,
+                                impairedRatio: totalPortfolio > 0 ? (stage3 / totalPortfolio) : 0,
+                                coverageRatio: totalPortfolio > 0 ? (totalECL / totalPortfolio) : 0,
+                                lastUpdated: prcDate,
+                                currency: 'IDR',
+                                isFallback: false
+                            },
+                            debug: this.buildSummaryDebug(
+                                'public.frs9_ecl_summary',
+                                requestedDate,
+                                prcDate,
+                                mode,
+                                segmentIds,
+                                `select sum(ecl_final_amt) as total_ecl, sum(outstanding) as total_exposure, sum(noa) as total_accounts, sum(case when lower(trim(stage)) in ('1','stage 1','stage1') then ecl_final_amt else 0 end) as stage1_ecl, sum(case when lower(trim(stage)) in ('2','stage 2','stage2') then ecl_final_amt else 0 end) as stage2_ecl, sum(case when lower(trim(stage)) in ('3','stage 3','stage3') then ecl_final_amt else 0 end) as stage3_ecl from public.frs9_ecl_summary where prc_date = :effectiveDate${hasSegmentFilter ? ' and segment_id in (...)' : ''}`,
+                                [
+                                    'Active Accounts currently mirrors totalAccounts.',
+                                    'High Risk card on UI uses stage3ECL amount, not stage3Count.',
+                                ],
+                            ),
                         };
                     }
                 } catch (error: any) {
@@ -399,23 +545,37 @@ export class Ifrs9CalculationsService {
                         console.log(`✅ Calculation summary loaded (DATE: ${prcDate}): ${count} accounts, Total ECL: ${totalECL}`);
 
                         return {
-                            totalECL,
-                            stage1ECL: stage1,
-                            stage2ECL: stage2,
-                            stage3ECL: stage3,
-                            stage1Count,
-                            stage2Count,
-                            stage3Count,
-                            totalPortfolio,
-                            totalExposure: totalPortfolio,
-                            totalAccounts: count,
-                            activeAccounts: count,
-                            eclRate: totalPortfolio > 0 ? (totalECL / totalPortfolio) * 100 : 0,
-                            impairedRatio: totalPortfolio > 0 ? (stage3 / totalPortfolio) : 0,
-                            coverageRatio: totalPortfolio > 0 ? (totalECL / totalPortfolio) : 0,
-                            lastUpdated: prcDate,
-                            currency: 'IDR',
-                            isFallback: false
+                            data: {
+                                totalECL,
+                                stage1ECL: stage1,
+                                stage2ECL: stage2,
+                                stage3ECL: stage3,
+                                stage1Count,
+                                stage2Count,
+                                stage3Count,
+                                totalPortfolio,
+                                totalExposure: totalPortfolio,
+                                totalAccounts: count,
+                                activeAccounts: count,
+                                eclRate: totalPortfolio > 0 ? (totalECL / totalPortfolio) * 100 : 0,
+                                impairedRatio: totalPortfolio > 0 ? (stage3 / totalPortfolio) : 0,
+                                coverageRatio: totalPortfolio > 0 ? (totalECL / totalPortfolio) : 0,
+                                lastUpdated: prcDate,
+                                currency: 'IDR',
+                                isFallback: false
+                            },
+                            debug: this.buildSummaryDebug(
+                                'public.frs9_imp_ca_result_h',
+                                requestedDate,
+                                prcDate,
+                                mode,
+                                segmentIds,
+                                `select sum(ecl_amount) as total_ecl, sum(outstanding) as total_exposure, count(*) as total_accounts, sum(case when stage = 1 then ecl_amount else 0 end) as stage1_ecl, sum(case when stage = 2 then ecl_amount else 0 end) as stage2_ecl, sum(case when stage = 3 then ecl_amount else 0 end) as stage3_ecl from public.frs9_imp_ca_result_h where prc_date = :effectiveDate${hasSegmentFilter ? ' and segment_id in (...)' : ''}`,
+                                [
+                                    'Used because frs9_ecl_summary had no rows for the requested date/scope.',
+                                    'Active Accounts currently mirrors totalAccounts.',
+                                ],
+                            ),
                         };
                     }
                 } catch (error: any) {
@@ -463,20 +623,34 @@ export class Ifrs9CalculationsService {
                     console.log(`📡 Fallback data loaded from Master Account (DATE: ${masterDate}): ${count} accounts, Exposure: ${totalExposure}`);
 
                     return {
-                        totalECL: 0,
-                        stage1ECL: 0,
-                        stage2ECL: 0,
-                        stage3ECL: 0,
-                        totalPortfolio: totalExposure,
-                        totalExposure: totalExposure,
-                        totalAccounts: count,
-                        activeAccounts: count,
-                        eclRate: 0,
-                        impairedRatio: 0,
-                        coverageRatio: 0,
-                        lastUpdated: masterDate,
-                        currency: 'IDR',
-                        isFallback: true
+                        data: {
+                            totalECL: 0,
+                            stage1ECL: 0,
+                            stage2ECL: 0,
+                            stage3ECL: 0,
+                            totalPortfolio: totalExposure,
+                            totalExposure: totalExposure,
+                            totalAccounts: count,
+                            activeAccounts: count,
+                            eclRate: 0,
+                            impairedRatio: 0,
+                            coverageRatio: 0,
+                            lastUpdated: masterDate,
+                            currency: 'IDR',
+                            isFallback: true
+                        },
+                        debug: this.buildSummaryDebug(
+                            'public.frs9_master_account',
+                            requestedDate,
+                            masterDate,
+                            mode,
+                            segmentIds,
+                            `select sum(outstanding) as total_exposure, count(*) as total_accounts from public.frs9_master_account where date(prc_date) = :effectiveDate${hasSegmentFilter ? ' and segment_id in (...)' : ''}`,
+                            [
+                                'Fallback path because no calculation result rows were found.',
+                                'Total ECL and stage values are zero on this fallback path.',
+                            ],
+                        ),
                     };
                 } catch (error: any) {
                     if (!this.isLegacySchemaError(error)) throw error
@@ -486,26 +660,7 @@ export class Ifrs9CalculationsService {
             // 3. FINAL FALLBACK: No data at all
             console.warn('❌ No data found in Result or Master Account tables');
             return {
-                totalECL: 0,
-                stage1ECL: 0,
-                stage2ECL: 0,
-                stage3ECL: 0,
-                totalPortfolio: 0,
-                totalExposure: 0,
-                totalAccounts: 0,
-                activeAccounts: 0,
-                eclRate: 0,
-                impairedRatio: 0,
-                coverageRatio: 0,
-                lastUpdated: 'No data',
-                currency: 'IDR',
-                isFallback: true
-            };
-
-        } catch (error: any) {
-            console.error('❌ Error fetching calculation summary:', error);
-            if (this.isLegacySchemaError(error)) {
-                return {
+                data: {
                     totalECL: 0,
                     stage1ECL: 0,
                     stage2ECL: 0,
@@ -520,6 +675,47 @@ export class Ifrs9CalculationsService {
                     lastUpdated: 'No data',
                     currency: 'IDR',
                     isFallback: true
+                },
+                debug: this.buildSummaryDebug(
+                    'none',
+                    requestedDate,
+                    prcDate || undefined,
+                    mode,
+                    segmentIds,
+                    'No query produced rows from frs9_ecl_summary, frs9_imp_ca_result_h, or frs9_master_account.',
+                    ['No dashboard source rows were found for the current filter scope.'],
+                ),
+            };
+
+        } catch (error: any) {
+            console.error('❌ Error fetching calculation summary:', error);
+            if (this.isLegacySchemaError(error)) {
+                return {
+                    data: {
+                        totalECL: 0,
+                        stage1ECL: 0,
+                        stage2ECL: 0,
+                        stage3ECL: 0,
+                        totalPortfolio: 0,
+                        totalExposure: 0,
+                        totalAccounts: 0,
+                        activeAccounts: 0,
+                        eclRate: 0,
+                        impairedRatio: 0,
+                        coverageRatio: 0,
+                        lastUpdated: 'No data',
+                        currency: 'IDR',
+                        isFallback: true
+                    },
+                    debug: this.buildSummaryDebug(
+                        'none',
+                        requestedDate,
+                        undefined,
+                        mode,
+                        [],
+                        'Legacy schema error prevented summary debug query resolution.',
+                        ['Legacy schema fallback returned an empty summary.'],
+                    ),
                 };
             }
             throw new Error(error.message || 'Failed to fetch calculation summary from database');
@@ -841,19 +1037,21 @@ export class Ifrs9CalculationsService {
         }
     }
 
-    async getPortfolioTrend(tenantId: string, endDate?: string, _mode?: string) {
+    async getPortfolioTrend(tenantId: string, endDate?: string, _mode?: string): Promise<DashboardTrendPayload> {
         try {
             const normalizedEndDate = typeof endDate === 'string' ? endDate.trim() : undefined;
             const hasDateLimit = Boolean(normalizedEndDate && normalizedEndDate !== 'all');
             const stage1Values = ['1', 'stage 1', 'stage1'];
             const stage2Values = ['2', 'stage 2', 'stage2'];
             const stage3Values = ['3', 'stage 3', 'stage3'];
+            const segmentIds = _mode ? await this.getSegmentIdsForMode(_mode) : [];
+            const hasSegmentFilter = segmentIds.length > 0;
 
             // 1. Try summary table first - aggregated ECL by stage over time
             let trend: any[] = []
+            let selectedSource = 'public.frs9_ecl_summary'
+            let sqlPreview = `select prc_date, sum(ecl_final_amt) as total_ecl, sum(outstanding) as total_portfolio from public.frs9_ecl_summary${hasDateLimit ? ' where date(prc_date) <= :endDate' : ''}${hasSegmentFilter ? `${hasDateLimit ? ' and' : ' where'} segment_id in (...)` : ''} group by prc_date order by prc_date desc limit 12`;
             try {
-                const segmentIds = _mode ? await this.getSegmentIdsForMode(_mode) : [];
-                const hasSegmentFilter = segmentIds.length > 0;
                 const trendQuery = legacyDb
                     .select({
                         date: frs9EclSummary.prcDate,
@@ -886,8 +1084,8 @@ export class Ifrs9CalculationsService {
             // 2. Fallback to Result table if summary is empty
             if (!trend || trend.length === 0) {
                 try {
-                    const segmentIds = _mode ? await this.getSegmentIdsForMode(_mode) : [];
-                    const hasSegmentFilter = segmentIds.length > 0;
+                    selectedSource = 'public.frs9_imp_ca_result_h';
+                    sqlPreview = `select prc_date, sum(ecl_amount) as total_ecl, sum(outstanding) as total_portfolio from public.frs9_imp_ca_result_h${hasDateLimit ? ' where date(prc_date) <= :endDate' : ''}${hasSegmentFilter ? `${hasDateLimit ? ' and' : ' where'} segment_id in (...)` : ''} group by prc_date order by prc_date desc limit 12`;
                     const trendQuery = legacyDb
                         .select({
                             date: frs9ImpCaResultH.prcDate,
@@ -922,6 +1120,8 @@ export class Ifrs9CalculationsService {
             if (!trend || trend.length === 0) {
                 console.log('📉 No trend data in Result table, falling back to Master Account...');
                 try {
+                    selectedSource = 'public.frs9_master_account';
+                    sqlPreview = `select prc_date, sum(outstanding) as total_portfolio from public.frs9_master_account${hasDateLimit ? ' where date(prc_date) <= :endDate' : ''} group by prc_date order by prc_date desc limit 12`;
                     const masterTrendQuery = legacyDb
                         .select({
                             date: frs9MasterAccount.prcDate,
@@ -951,7 +1151,17 @@ export class Ifrs9CalculationsService {
             }
 
             if (!trend || trend.length === 0) {
-                return [];
+                return {
+                    data: [],
+                    debug: this.buildTrendDebug(
+                        'none',
+                        normalizedEndDate,
+                        _mode,
+                        segmentIds,
+                        'No query produced rows from frs9_ecl_summary, frs9_imp_ca_result_h, or frs9_master_account.',
+                        ['No trend rows were found for the current filter scope.'],
+                    ),
+                };
             }
 
             // Reverse to show chronological order
@@ -974,10 +1184,32 @@ export class Ifrs9CalculationsService {
             });
 
             console.log(`✅ Portfolio trend loaded: ${formattedTrend.length} periods`);
-            return formattedTrend;
+            return {
+                data: formattedTrend,
+                debug: this.buildTrendDebug(
+                    selectedSource,
+                    normalizedEndDate,
+                    _mode,
+                    segmentIds,
+                    sqlPreview,
+                    ['Portfolio Exposure Trend chart uses totalPortfolio per period.'],
+                ),
+            };
         } catch (error: any) {
             console.error('❌ Error fetching portfolio trend:', error);
-            if (this.isLegacySchemaError(error)) return []
+            if (this.isLegacySchemaError(error)) {
+                return {
+                    data: [],
+                    debug: this.buildTrendDebug(
+                        'none',
+                        endDate,
+                        _mode,
+                        [],
+                        'Legacy schema error prevented trend debug query resolution.',
+                        ['Legacy schema fallback returned an empty trend dataset.'],
+                    ),
+                };
+            }
             throw new Error(error.message || 'Failed to fetch portfolio trend from database');
         }
     }

@@ -1422,6 +1422,18 @@ export const bankingAPI = {
         console.log('📊 Getting Lifetime LGD data from DS2 database');
         const response = await apiClient.get('/ifrs9/reports/lifetime-lgd', { params });
         return response.data;
+      },
+      getSummary: async (params: {
+        prc_date: string;
+        lgd_config_id?: number;
+        lgd_method?: number;
+        model_id?: number;
+        segment_id?: number;
+        fl_flag?: boolean;
+      }) => {
+        console.log('📊 Getting Lifetime LGD Summary data from DS2 database');
+        const response = await apiClient.get('/ifrs9/reports/lifetime-lgd/summary', { params });
+        return response.data;
       }
     },
 
