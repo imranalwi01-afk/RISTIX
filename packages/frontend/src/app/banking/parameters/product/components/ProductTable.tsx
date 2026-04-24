@@ -14,6 +14,7 @@ import { GridColDef, GridRowParams } from '@mui/x-data-grid';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { ApprovalStatusBadge } from '@/components/approval';
 import type { EnterpriseDensity } from '@/types/enterprise-table';
+import type { EnterpriseColumnFilterValue, EnterpriseFilterDefinition } from '@/types/enterprise-table';
 
 interface ProductParameter {
   pkid: number;
@@ -44,6 +45,9 @@ interface ProductTableProps {
   rowCount: number;
   onViewPending?: (request: any, record: ProductParameter) => void;
   canManage: boolean;
+  columnFilters?: Record<string, EnterpriseColumnFilterValue>;
+  onColumnFiltersChange?: (filters: Record<string, EnterpriseColumnFilterValue>) => void;
+  filterDefinitions?: Record<string, EnterpriseFilterDefinition>;
   columnVisibilityModel?: Record<string, boolean>;
   onColumnVisibilityModelChange?: (model: Record<string, boolean>) => void;
   density?: EnterpriseDensity;
@@ -63,6 +67,9 @@ export default function ProductTable({
   rowCount,
   onViewPending,
   canManage,
+  columnFilters,
+  onColumnFiltersChange,
+  filterDefinitions,
   columnVisibilityModel,
   onColumnVisibilityModelChange,
   density,
@@ -205,7 +212,10 @@ export default function ProductTable({
         rowCount={rowCount}
         paginationModel={paginationModel}
         onPaginationModelChange={onPaginationModelChange}
-        enableColumnFilters={false}
+        enableColumnFilters
+        columnFilters={columnFilters}
+        onColumnFiltersChange={onColumnFiltersChange}
+        filterDefinitions={filterDefinitions}
         columnVisibilityModel={columnVisibilityModel}
         onColumnVisibilityModelChange={onColumnVisibilityModelChange}
         density={density === 'dense' ? 'compact' : density}
