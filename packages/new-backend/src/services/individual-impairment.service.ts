@@ -1,15 +1,19 @@
 // @ts-nocheck
 
-import { db, legacyDb } from '../config';
+import { Effect } from 'effect';
+import { legacyDb } from '../config';
 import {
     frs9ImpIaHeader,
     frs9ImpIaDetail,
     frs9ImpIaDcf,
     frs9ImpIaResultH,
-    frs9ImpIaResultD
+    frs9ImpIaResultD,
+    frs9ImpIaRr
 } from '../db/schema/legacy';
-import { frs9MasterAccount, users, individualImpairmentScenarios } from '../db/schema';
+import { frs9MasterAccount, users } from '../db/schema';
 import { and, eq, desc, sql, inArray, ilike, or } from 'drizzle-orm';
+import { MasterAccountRepository } from '@/repositories/master-account.repository';
+import { decodeCursor, encodeCursor } from '@/lib/http/list-query';
 
 
 // Helper to map Legacy Status (Int) <-> Frontend Status (String)
@@ -26,6 +30,393 @@ const STATUS_MAP_TO_INT: Record<string, number> = {
 };
 
 export class IndividualImpairmentService {
+    private toNumber(value: unknown) {
+        if (value == null || value === '') return 0;
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    private toDateString(value?: string | Date | null) {
+        if (!value) return new Date().toISOString().slice(0, 10);
+        const date = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(date.getTime())) {
+            return String(value).slice(0, 10);
+        }
+        return date.toISOString().slice(0, 10);
+    }
+
+    private mapDcfCashflowRow(row: any) {
+        return {
+            pkid: Number(row.pkid),
+            iaId: row.iaId ? Number(row.iaId) : null,
+            prcDate: row.prcDate || null,
+            accountId: row.accountId ? Number(row.accountId) : null,
+            accountNumber: row.accountNumber || '',
+            mob: Number(row.mob || 0),
+            periode: row.periode || null,
+            principal: this.toNumber(row.principal),
+            interest: this.toNumber(row.interest),
+            collateral: this.toNumber(row.collateral),
+            status: row.status || null,
+            createdby: row.createdby || '',
+            createddate: row.createddate || null
+        };
+    }
+
+    private mapIaResultHeaderRow(header: any) {
+        return {
+            pkid: Number(header.pkid),
+            iaId: header.iaId ? Number(header.iaId) : null,
+            prcDate: header.prcDate || null,
+            effectiveDate: header.effDate || header.prcDate || null,
+            accountId: header.accountId ? Number(header.accountId) : null,
+            accountNumber: header.accountNumber || '',
+            cifNumber: header.cifNumber || '',
+            cifName: header.cifName || '',
+            currency: header.currency || '',
+            dpd: this.toNumber(header.dpd),
+            collectability: this.toNumber(header.collectability),
+            ratingCode: header.ratingCode || '',
+            interestRate: this.toNumber(header.interestRate),
+            effInterestRate: this.toNumber(header.effInterestRate),
+            outstanding: this.toNumber(header.outstanding),
+            accruedInterest: this.toNumber(header.accruedInterest),
+            carryingAmt: this.toNumber(header.carryingAmt),
+            eadAmt: this.toNumber(header.eadAmt),
+            pvDcfAmt: this.toNumber(header.pvDcfAmt),
+            eclIaAmt: this.toNumber(header.eclIaAmt),
+            createdby: header.createdby || '',
+            createddate: header.createddate || null
+        };
+    }
+
+    private mapIaResultDetailRow(row: any) {
+        return {
+            pkid: Number(row.pkid),
+            iaId: row.iaId ? Number(row.iaId) : null,
+            prcDate: row.prcDate || null,
+            accountId: row.accountId ? Number(row.accountId) : null,
+            mob: this.toNumber(row.mob),
+            periode: row.periode || null,
+            principal: this.toNumber(row.principal),
+            interest: this.toNumber(row.interest),
+            installment: this.toNumber(row.installment),
+            collateral: this.toNumber(row.collateral),
+            poRate1: this.toNumber(row.poRate1),
+            rrRate1: this.toNumber(row.rrRate1),
+            default1: this.toNumber(row.default1),
+            poRate2: this.toNumber(row.poRate2),
+            rrRate2: this.toNumber(row.rrRate2),
+            default2: this.toNumber(row.default2),
+            poRate3: this.toNumber(row.poRate3),
+            rrRate3: this.toNumber(row.rrRate3),
+            default3: this.toNumber(row.default3),
+            pwAmt: this.toNumber(row.pwAmt),
+            discountFactor: this.toNumber(row.discountFactor),
+            pvAmt: this.toNumber(row.pvAmt),
+            beginningBalance: this.toNumber(row.beginningBalance),
+            eirAmt: this.toNumber(row.eirAmt),
+            endingBalance: this.toNumber(row.endingBalance)
+        };
+    }
+
+    private async ensureLegacyIaHeader(
+        tx: any,
+        accountId: number,
+        createdBy: string,
+        createdHost: string
+    ) {
+        const existing = await tx.select()
+            .from(frs9ImpIaHeader)
+            .where(eq(frs9ImpIaHeader.accountId, accountId))
+            .orderBy(desc(frs9ImpIaHeader.updateddate), desc(frs9ImpIaHeader.createddate))
+            .limit(1);
+
+        if (existing.length > 0) {
+            return existing[0];
+        }
+
+        const assessment = await this.getAssessment('legacy', accountId);
+        if (!assessment) {
+            throw new Error(`Assessment source for account ${accountId} not found`);
+        }
+
+        const iaId = await this.generateIaId();
+        const now = new Date().toISOString();
+        const prcDate = this.toDateString(assessment.prc_date || new Date());
+        const impairedFlag = String(assessment.impaired_flag || 'N').toUpperCase() === 'I' ? 'T' : 'F';
+
+        const [inserted] = await tx.insert(frs9ImpIaHeader).values({
+            iaId,
+            prcDate,
+            effDate: this.toDateString(assessment.eff_date || prcDate),
+            cifNumber: assessment.cif_number || 'UNKNOWN',
+            cifName: assessment.cif_name || 'UNKNOWN',
+            accountId,
+            accountNumber: assessment.account_number || String(accountId),
+            currency: assessment.currency || 'IDR',
+            effInterestRate: this.toNumber(assessment.eff_interest_rate),
+            interestRate: this.toNumber(assessment.interest_rate),
+            dpd: this.toNumber(assessment.dpd),
+            collectability: this.toNumber(assessment.collectability),
+            ratingCode: assessment.rating_code || null,
+            impairedFlag,
+            method: 'DCF',
+            plafond: String(this.toNumber(assessment.plafond || assessment.outstanding_balance)),
+            outstanding: String(this.toNumber(assessment.outstanding_balance)),
+            accruedInterest: String(this.toNumber(assessment.accrued_interest)),
+            carryingAmt: String(this.toNumber(assessment.carrying_amt || assessment.outstanding_balance)),
+            eadAmt: String(this.toNumber(assessment.ead_amt || assessment.outstanding_balance)),
+            pvDcfAmt: '0',
+            eclIaAmt: '0',
+            triggerRemarks: String(assessment.impairment_reason || assessment.analyst_comments || ''),
+            triggerFilename: assessment.supporting_documents?.[0] || null,
+            scenarioId: 1,
+            nOfScenario: 1,
+            poRate1: 100,
+            poRate2: 0,
+            poRate3: 0,
+            scName1: 'DEFAULT',
+            scName2: null,
+            scName3: null,
+            status: 1,
+            createdby: createdBy,
+            createddate: now,
+            createdhost: createdHost
+        }).returning();
+
+        return inserted;
+    }
+
+    private buildLegacyIaDetailRows(
+        header: any,
+        rrRows: any[],
+        dcfRows: any[],
+        createdBy: string,
+        createdHost: string
+    ) {
+        const poRate1 = this.toNumber(header.poRate1);
+        const poRate2 = this.toNumber(header.poRate2);
+        const poRate3 = this.toNumber(header.poRate3);
+        const effInterestRate = this.toNumber(header.effInterestRate);
+        const effectiveMonthlyRate = (effInterestRate > 0 ? effInterestRate : 12) / 100 / 12;
+        const now = new Date().toISOString();
+
+        const sortedDcfRows = [...dcfRows].sort((left, right) => {
+            const leftMob = this.toNumber(left.mob);
+            const rightMob = this.toNumber(right.mob);
+            if (leftMob !== rightMob) return leftMob - rightMob;
+            const leftDate = Date.parse(this.toDateString(left.periode));
+            const rightDate = Date.parse(this.toDateString(right.periode));
+            return leftDate - rightDate;
+        });
+
+        const normalizedRrRows = rrRows.length > 0
+            ? rrRows
+            : [{
+                periodStart: sortedDcfRows[0]?.periode || header.prcDate,
+                periodEnd: sortedDcfRows[sortedDcfRows.length - 1]?.periode || header.prcDate,
+                rrRate1: 0,
+                rrRate2: 0,
+                rrRate3: 0
+            }];
+
+        const detailRows = sortedDcfRows.map((row) => {
+            const periode = this.toDateString(row.periode);
+            const periodeTime = Date.parse(periode);
+            const matchedRr = normalizedRrRows.find((rr) => {
+                const start = Date.parse(this.toDateString(rr.periodStart));
+                const end = Date.parse(this.toDateString(rr.periodEnd));
+                return periodeTime >= start && periodeTime <= end;
+            }) || normalizedRrRows[0];
+
+            const principal = this.toNumber(row.principal);
+            const interest = this.toNumber(row.interest);
+            const collateral = this.toNumber(row.collateral);
+            const installment = principal + interest;
+            const exposure = principal + interest + collateral;
+            const rrRate1 = this.toNumber(matchedRr.rrRate1);
+            const rrRate2 = this.toNumber(matchedRr.rrRate2);
+            const rrRate3 = this.toNumber(matchedRr.rrRate3);
+            const default1 = exposure * poRate1 / 100 * rrRate1 / 100;
+            const default2 = exposure * poRate2 / 100 * rrRate2 / 100;
+            const default3 = exposure * poRate3 / 100 * rrRate3 / 100;
+            const pwAmt = default1 + default2 + default3;
+            const mob = this.toNumber(row.mob);
+            const discountFactor = Math.pow(1 / (1 + effectiveMonthlyRate), mob);
+            const pvAmt = Number((pwAmt * discountFactor).toFixed(6));
+
+            return {
+                iaId: Number(header.iaId),
+                accountId: Number(header.accountId),
+                effInterestRate,
+                mob,
+                periode,
+                principal,
+                interest,
+                installment,
+                collateral,
+                poRate1,
+                rrRate1,
+                default1,
+                poRate2,
+                rrRate2,
+                default2,
+                poRate3,
+                rrRate3,
+                default3,
+                pwAmt,
+                discountFactor,
+                pvAmt,
+                beginningBalance: 0,
+                eirAmt: 0,
+                endingBalance: 0,
+                createdby: createdBy,
+                createddate: now,
+                createdhost: createdHost
+            };
+        });
+
+        const npv = detailRows.reduce((sum, row) => sum + this.toNumber(row.pvAmt), 0);
+        let previousEndingBalance = 0;
+
+        detailRows.forEach((row, index) => {
+            const beginningBalance = index === 0 ? npv : previousEndingBalance;
+            const eirAmt = beginningBalance * effectiveMonthlyRate;
+            const endingBalance = beginningBalance + eirAmt - this.toNumber(row.pwAmt);
+
+            row.beginningBalance = Number(beginningBalance.toFixed(6));
+            row.eirAmt = Number(eirAmt.toFixed(6));
+            row.endingBalance = Number(endingBalance.toFixed(6));
+            previousEndingBalance = row.endingBalance;
+        });
+
+        return detailRows;
+    }
+
+    private getScenarioMethodTemplates() {
+        return [
+            {
+                scenarioId: 1,
+                scenarioCode: 'POSSIBLE_OUTCOME_AND_REPAYMENT_RATE',
+                scenarioName: 'Possible Outcome and Repayment Rate',
+                description: 'Legacy DCF scenario method using possible outcome and repayment rate.'
+            },
+            {
+                scenarioId: 2,
+                scenarioCode: 'DCF',
+                scenarioName: 'DCF',
+                description: 'Legacy DCF scenario method.'
+            },
+            {
+                scenarioId: 3,
+                scenarioCode: 'COLLATERAL',
+                scenarioName: 'Collateral',
+                description: 'Legacy collateral-based scenario method.'
+            }
+        ];
+    }
+
+    private normalizeScenarioMethodId(input: unknown) {
+        const numeric = Number(input);
+        if (Number.isFinite(numeric) && numeric >= 1 && numeric <= 3) {
+            return numeric;
+        }
+
+        const raw = String(input || '').trim().toLowerCase();
+        if (raw.includes('possible outcome')) return 1;
+        if (raw === 'dcf') return 2;
+        if (raw.includes('collateral')) return 3;
+        return 1;
+    }
+
+    private buildLegacyScenarioRows(header: any, rrRows: any[]) {
+        const count = Math.max(
+            1,
+            Math.min(
+                3,
+                Number(
+                    header?.nOfScenario
+                    || [header?.scName1, header?.scName2, header?.scName3].filter(Boolean).length
+                    || 1
+                )
+            )
+        );
+
+        const poRates = [
+            Number(header?.poRate1 || 0),
+            Number(header?.poRate2 || 0),
+            Number(header?.poRate3 || 0)
+        ];
+
+        const scenarioNames = [
+            String(header?.scName1 || 'Scenario 1'),
+            String(header?.scName2 || 'Scenario 2'),
+            String(header?.scName3 || 'Scenario 3')
+        ];
+
+        return Array.from({ length: count }, (_, index) => {
+            const rrRow = rrRows[index] || rrRows[0];
+            const repaymentRate = index === 0
+                ? Number(rrRow?.rrRate1 || 0)
+                : index === 1
+                    ? Number(rrRow?.rrRate2 || 0)
+                    : Number(rrRow?.rrRate3 || 0);
+
+            return {
+                id: `legacy-${header?.iaId || header?.pkid || 'scenario'}-${index + 1}`,
+                possibleOutcomeRate: poRates[index] || 0,
+                scenarioName: scenarioNames[index] || `Scenario ${index + 1}`,
+                periodStart: rrRow?.periodStart || header?.prcDate || null,
+                periodEnd: rrRow?.periodEnd || header?.prcDate || null,
+                repaymentRate
+            };
+        });
+    }
+
+    private mapLegacyScenarioHeader(header: any, rrRows: any[]) {
+        const method = this.getScenarioMethodTemplates().find((item) => item.scenarioId === Number(header?.scenarioId))
+            || this.getScenarioMethodTemplates()[0];
+        const scenarioRows = this.buildLegacyScenarioRows(header, rrRows);
+
+        return {
+            pkid: Number(header.pkid),
+            id: String(header.pkid),
+            iaId: Number(header.iaId),
+            accountId: Number(header.accountId),
+            accountNumber: header.accountNumber,
+            scenarioId: Number(header.scenarioId || method.scenarioId),
+            scenarioCode: method.scenarioCode,
+            scenarioName: method.scenarioName,
+            description: header.triggerRemarks || method.description,
+            status: STATUS_MAP_TO_STRING[Number(header.status || 0)] || 'PENDING',
+            activeFlag: true,
+            createdAt: header.createddate,
+            createdDate: header.createddate,
+            createdBy: header.createdby,
+            discountRate: Number(scenarioRows[0]?.repaymentRate || 0),
+            recoveryRate: Number(scenarioRows[0]?.possibleOutcomeRate || 0),
+            growthRate: 0,
+            timeHorizon: scenarioRows.length,
+            paymentFrequency: 'monthly',
+            configuration: {
+                nScenarios: scenarioRows.length,
+                weights: {
+                    base: Number(header.poRate1 || 0),
+                    best: Number(header.poRate2 || 0),
+                    worst: Number(header.poRate3 || 0)
+                },
+                scenarioRows,
+                repaymentPlan: rrRows.map((row) => ({
+                    periodStart: row.periodStart,
+                    periodEnd: row.periodEnd,
+                    rrRate1: Number(row.rrRate1 || 0),
+                    rrRate2: Number(row.rrRate2 || 0),
+                    rrRate3: Number(row.rrRate3 || 0)
+                }))
+            }
+        };
+    }
 
     // =========================================================================
     // AUDIT TRAIL / HISTORY
@@ -43,7 +434,27 @@ export class IndividualImpairmentService {
                 .where(eq(frs9ImpIaHeader.accountId, Number(accountId)))
                 .limit(1);
 
-            if (!result.length) return [];
+            if (!result.length) {
+                const masterRows = await legacyDb.select()
+                    .from(frs9MasterAccount)
+                    .where(eq(frs9MasterAccount.accountId, Number(accountId)))
+                    .orderBy(desc(frs9MasterAccount.prcDate))
+                    .limit(1);
+
+                if (!masterRows.length) return [];
+
+                const master = masterRows[0];
+                return [{
+                    id: `HIST-SRC-${master.pkid}`,
+                    entityId: String(master.accountId),
+                    entityType: 'MASTER_ACCOUNT',
+                    action: 'CREATE',
+                    actor: 'SYSTEM',
+                    timestamp: master.prcDate,
+                    details: `Source account loaded from FRS9_MASTER_ACCOUNT (${master.accountNumber || accountId})`,
+                    status: master.impairedFlag ? 'IMPAIRED_SOURCE' : 'SOURCE'
+                }];
+            }
 
             const row = result[0];
             const history = [];
@@ -133,37 +544,75 @@ export class IndividualImpairmentService {
 
     async getScenarios(tenantId: string, filters: { status?: string; limit?: number; offset?: number; accountId?: number }) {
         try {
-            // Base conditions: Active scenarios only by default
-            const conditions = [eq(individualImpairmentScenarios.isActive, true)];
+            const conditions = [sql`${frs9ImpIaHeader.scenarioId} is not null`];
 
-            // Filter by Account ID if provided
-            if (filters.accountId) {
-                conditions.push(eq(individualImpairmentScenarios.accountId, BigInt(filters.accountId)));
+            if (filters.status) {
+                const statusInt = STATUS_MAP_TO_INT[String(filters.status).toUpperCase()];
+                if (typeof statusInt === 'number') {
+                    conditions.push(eq(frs9ImpIaHeader.status, statusInt));
+                }
             }
 
-            // Execute Query
-            const results = await db.select()
-                .from(individualImpairmentScenarios)
+            if (filters.accountId && Number.isFinite(filters.accountId)) {
+                conditions.push(eq(frs9ImpIaHeader.accountId, Number(filters.accountId)));
+            }
+
+            const headers = await legacyDb.select()
+                .from(frs9ImpIaHeader)
                 .where(and(...conditions))
-                .orderBy(desc(individualImpairmentScenarios.createdAt));
+                .orderBy(desc(frs9ImpIaHeader.updateddate), desc(frs9ImpIaHeader.createddate))
+                .limit(filters.limit || 100);
 
-            // Map DB result to Frontend format
-            return results.map(r => ({
-                pkid: r.id,
-                scenarioCode: r.name.toUpperCase().replace(/\s+/g, '_'),
-                scenarioName: r.name,
-                description: `Scenario with DR=${r.discountRate}%, RR=${r.recoveryRate}%, GR=${r.growthRate}%`,
-                status: 'APPROVED',
-                activeFlag: r.isActive,
-                createdDate: r.createdAt?.toISOString(),
-                createdBy: r.createdBy || 'System',
-                discountRate: r.discountRate,
-                recoveryRate: r.recoveryRate,
-                growthRate: r.growthRate,
-                timeHorizon: r.timeHorizon,
-                paymentFrequency: r.paymentFrequency
-            }));
+            const iaIds = headers.map((item) => Number(item.iaId)).filter((value) => Number.isFinite(value));
+            const rrRows = iaIds.length > 0
+                ? await legacyDb.select()
+                    .from(frs9ImpIaRr)
+                    .where(inArray(frs9ImpIaRr.iaId, iaIds))
+                    .orderBy(frs9ImpIaRr.periodStart, frs9ImpIaRr.periodEnd)
+                : [];
 
+            const mappedSavedScenarios = headers.map((header) => {
+                const headerRows = rrRows.filter((row) => Number(row.iaId) === Number(header.iaId));
+                return this.mapLegacyScenarioHeader(header, headerRows);
+            });
+
+            if (filters.accountId) {
+                const templates = this.getScenarioMethodTemplates().map((template) => {
+                    const saved = mappedSavedScenarios.find((item) => Number(item.scenarioId) === Number(template.scenarioId));
+                    return saved || {
+                        ...template,
+                        pkid: 0,
+                        id: `template-${template.scenarioId}`,
+                        iaId: null,
+                        accountId: Number(filters.accountId),
+                        accountNumber: null,
+                        status: 'APPROVED',
+                        activeFlag: true,
+                        createdAt: null,
+                        createdDate: null,
+                        createdBy: 'SYSTEM',
+                        discountRate: 0,
+                        recoveryRate: template.scenarioId === 1 ? 60 : 0,
+                        growthRate: 0,
+                        timeHorizon: 2,
+                        paymentFrequency: 'monthly',
+                        configuration: {
+                            nScenarios: 2,
+                            weights: {
+                                base: 60,
+                                best: 20,
+                                worst: 20
+                            },
+                            scenarioRows: [],
+                            repaymentPlan: []
+                        }
+                    };
+                });
+
+                return templates;
+            }
+
+            return mappedSavedScenarios;
         } catch (error) {
             console.error('Error fetching scenarios:', error);
             return [];
@@ -172,30 +621,137 @@ export class IndividualImpairmentService {
 
     async createScenario(data: any) {
         try {
-            const [inserted] = await db.insert(individualImpairmentScenarios).values({
-                accountId: BigInt(data.accountId || 0), // 0 if global template? But schema says not null.
-                name: data.scenarioName,
-                discountRate: Number(data.discountRate || 0),
-                recoveryRate: Number(data.recoveryRate || 0),
-                growthRate: Number(data.growthRate || 0),
-                timeHorizon: Number(data.timeHorizon || 60),
-                paymentFrequency: data.paymentFrequency || 'monthly',
-                createdBy: data.createdBy || 'System',
-                isActive: true
-            }).returning();
+            const accountId = Number(data.accountId || data.account_id || data.configuration?.accountId || 0);
+            if (!accountId) {
+                throw new Error('Account ID is required to save DCF scenario');
+            }
 
-            return [{
-                pkid: inserted.id,
-                scenarioCode: inserted.name.toUpperCase().replace(/\s+/g, '_'),
-                scenarioName: inserted.name,
-                status: 'APPROVED',
-                activeFlag: inserted.isActive,
-                createdDate: inserted.createdAt?.toISOString(),
-                createdBy: inserted.createdBy,
-                discountRate: inserted.discountRate,
-                recoveryRate: inserted.recoveryRate,
-                growthRate: inserted.growthRate
-            }];
+            const scenarioMethodId = this.normalizeScenarioMethodId(
+                data.scenarioId
+                || data.configuration?.scenarioId
+                || data.scenarioCode
+                || data.scenarioName
+            );
+
+            const inputRows = Array.isArray(data.scenarioRows)
+                ? data.scenarioRows
+                : Array.isArray(data.configuration?.scenarioRows)
+                    ? data.configuration.scenarioRows
+                    : [];
+
+            const boundedRows = (inputRows.length > 0 ? inputRows : [{
+                possibleOutcomeRate: Number(data.recoveryRate || 100),
+                scenarioName: data.scenarioName || 'Scenario 1',
+                periodStart: data.periodStart || new Date().toISOString().slice(0, 10),
+                periodEnd: data.periodEnd || new Date().toISOString().slice(0, 10),
+                repaymentRate: Number(data.discountRate || 0)
+            }]).slice(0, 3);
+
+            const scenarioCount = Math.max(1, Math.min(3, Number(data.nOfScenario || data.configuration?.nScenarios || boundedRows.length || 1)));
+            const poRates = [0, 0, 0];
+            const scNames = [null, null, null];
+
+            boundedRows.forEach((row, index) => {
+                poRates[index] = Number(row.possibleOutcomeRate || 0);
+                scNames[index] = String(row.scenarioName || `Scenario ${index + 1}`).slice(0, 20);
+            });
+
+            const assessment = await this.getAssessment(data.tenantId || 'legacy', accountId);
+            if (!assessment) {
+                throw new Error(`Assessment source for account ${accountId} not found`);
+            }
+
+            const now = new Date().toISOString();
+            const createdBy = String(data.createdBy || 'SYSTEM').slice(0, 36) || 'SYSTEM';
+
+            const existing = await legacyDb.select()
+                .from(frs9ImpIaHeader)
+                .where(eq(frs9ImpIaHeader.accountId, accountId))
+                .orderBy(desc(frs9ImpIaHeader.updateddate), desc(frs9ImpIaHeader.createddate))
+                .limit(1);
+
+            const headerPayload = {
+                scenarioId: scenarioMethodId,
+                nOfScenario: scenarioCount,
+                poRate1: poRates[0] || 0,
+                poRate2: poRates[1] || 0,
+                poRate3: poRates[2] || 0,
+                scName1: scNames[0],
+                scName2: scNames[1],
+                scName3: scNames[2],
+                triggerRemarks: String(data.description || assessment.impairment_reason || assessment.analyst_comments || ''),
+                status: STATUS_MAP_TO_INT[String(data.status || 'PENDING').toUpperCase()] ?? 0,
+                updatedby: createdBy,
+                updateddate: now,
+                updatedhost: 'localhost'
+            };
+
+            let savedHeader;
+            let iaId;
+
+            if (existing.length > 0) {
+                iaId = Number(existing[0].iaId);
+                [savedHeader] = await legacyDb.update(frs9ImpIaHeader)
+                    .set(headerPayload)
+                    .where(eq(frs9ImpIaHeader.pkid, existing[0].pkid))
+                    .returning();
+            } else {
+                iaId = await this.generateIaId();
+                const prcDate = assessment.prc_date || new Date().toISOString().slice(0, 10);
+                const impairedFlag = String(assessment.impaired_flag || 'N').toUpperCase() === 'I' ? 'T' : 'F';
+
+                [savedHeader] = await legacyDb.insert(frs9ImpIaHeader).values({
+                    iaId,
+                    prcDate,
+                    effDate: assessment.eff_date || prcDate,
+                    cifNumber: assessment.cif_number || 'UNKNOWN',
+                    cifName: assessment.cif_name || 'UNKNOWN',
+                    accountId,
+                    accountNumber: assessment.account_number || String(accountId),
+                    currency: assessment.currency || 'IDR',
+                    effInterestRate: Number(assessment.eff_interest_rate || 0),
+                    interestRate: Number(assessment.interest_rate || 0),
+                    dpd: Number(assessment.dpd || 0),
+                    collectability: Number(assessment.collectability || 0),
+                    ratingCode: assessment.rating_code || null,
+                    impairedFlag,
+                    method: 'DCF',
+                    plafond: String(assessment.plafond || assessment.outstanding_balance || 0),
+                    outstanding: String(assessment.outstanding_balance || 0),
+                    accruedInterest: String(assessment.accrued_interest || 0),
+                    carryingAmt: String(assessment.carrying_amt || assessment.outstanding_balance || 0),
+                    eadAmt: String(assessment.ead_amt || assessment.outstanding_balance || 0),
+                    pvDcfAmt: '0',
+                    eclIaAmt: '0',
+                    triggerFilename: assessment.supporting_documents?.[0] || null,
+                    createdby: createdBy,
+                    createddate: now,
+                    createdhost: 'localhost',
+                    ...headerPayload
+                }).returning();
+            }
+
+            await legacyDb.delete(frs9ImpIaRr)
+                .where(eq(frs9ImpIaRr.iaId, iaId));
+
+            const rrRowsPayload = boundedRows.map((row, index) => ({
+                iaId,
+                accountId,
+                periodStart: row.periodStart || assessment.prc_date || new Date().toISOString().slice(0, 10),
+                periodEnd: row.periodEnd || row.periodStart || assessment.prc_date || new Date().toISOString().slice(0, 10),
+                rrRate1: index === 0 ? Number(row.repaymentRate || 0) : 0,
+                rrRate2: index === 1 ? Number(row.repaymentRate || 0) : 0,
+                rrRate3: index === 2 ? Number(row.repaymentRate || 0) : 0,
+                createdby: createdBy,
+                createddate: now,
+                createdhost: 'localhost'
+            }));
+
+            if (rrRowsPayload.length > 0) {
+                await legacyDb.insert(frs9ImpIaRr).values(rrRowsPayload);
+            }
+
+            return [this.mapLegacyScenarioHeader(savedHeader, rrRowsPayload)];
         } catch (error) {
             console.error('Error creating scenario:', error);
             throw error;
@@ -212,11 +768,42 @@ export class IndividualImpairmentService {
     // =========================================================================
 
     async getDcfUploads(tenantId: string, limit = 50, offset = 0) {
-        return legacyDb.select()
+        const rows = await legacyDb
+            .select({
+                id: frs9ImpIaDcf.iaId,
+                iaId: frs9ImpIaDcf.iaId,
+                accountId: frs9ImpIaDcf.accountId,
+                accountNumber: frs9ImpIaDcf.accountNumber,
+                prcDate: frs9ImpIaDcf.prcDate,
+                createdBy: sql<string>`max(${frs9ImpIaDcf.createdby})`,
+                createdAt: sql<string>`max(${frs9ImpIaDcf.createddate})`,
+                statusCode: sql<string>`max(${frs9ImpIaDcf.status})`,
+                recordCount: sql<number>`count(*)::int`
+            })
             .from(frs9ImpIaDcf)
-            .orderBy(desc(frs9ImpIaDcf.createddate))
+            .groupBy(
+                frs9ImpIaDcf.iaId,
+                frs9ImpIaDcf.accountId,
+                frs9ImpIaDcf.accountNumber,
+                frs9ImpIaDcf.prcDate
+            )
+            .orderBy(sql`max(${frs9ImpIaDcf.createddate}) desc`)
             .limit(limit)
             .offset(offset);
+
+        return rows.map((row) => ({
+            id: row.id,
+            iaId: row.iaId,
+            batchId: `IA-${row.iaId}`,
+            fileName: `DCF_UPLOAD_${row.accountNumber || row.iaId}_${row.prcDate || 'CURRENT'}.xlsx`,
+            accountId: row.accountId,
+            accountNumber: row.accountNumber,
+            prcDate: row.prcDate,
+            recordCount: Number(row.recordCount || 0),
+            validationStatus: STATUS_MAP_TO_STRING[Number(row.statusCode || 0)] || 'PENDING',
+            createdBy: row.createdBy || 'SYSTEM',
+            createdAt: row.createdAt
+        }));
     }
 
     async createDcfUpload(data: any) {
@@ -232,10 +819,12 @@ export class IndividualImpairmentService {
     }
 
     async getDcfCashflows(tenantId: string, uploadId: string) {
-        return legacyDb.select()
+        const rows = await legacyDb.select()
             .from(frs9ImpIaDcf)
             .where(eq(frs9ImpIaDcf.iaId, Number(uploadId)))
             .orderBy(frs9ImpIaDcf.periode);
+
+        return rows.map((row) => this.mapDcfCashflowRow(row));
     }
 
     async getDcfCalculations(tenantId: string) {
@@ -259,22 +848,23 @@ export class IndividualImpairmentService {
         const headerConditions = [];
 
         if (accountId) {
-            headerConditions.push(eq(frs9ImpIaResultH.accountId, Number(accountId)));
+            headerConditions.push(eq(frs9ImpIaHeader.accountId, Number(accountId)));
         }
 
         if (!accountId && accountNumber) {
-            headerConditions.push(eq(frs9ImpIaResultH.accountNumber, accountNumber));
+            headerConditions.push(eq(frs9ImpIaHeader.accountNumber, accountNumber));
         }
 
         const headers = await legacyDb.select()
-            .from(frs9ImpIaResultH)
+            .from(frs9ImpIaHeader)
             .where(and(...headerConditions))
-            .orderBy(desc(frs9ImpIaResultH.createddate), desc(frs9ImpIaResultH.prcDate))
+            .orderBy(desc(frs9ImpIaHeader.updateddate), desc(frs9ImpIaHeader.createddate), desc(frs9ImpIaHeader.prcDate))
             .limit(1);
 
         if (!headers.length) {
             return {
                 header: null,
+                cashflows: [],
                 details: []
             };
         }
@@ -284,84 +874,122 @@ export class IndividualImpairmentService {
         const detailConditions = [];
 
         if (header.iaId != null) {
-            detailConditions.push(eq(frs9ImpIaResultD.iaId, Number(header.iaId)));
+            detailConditions.push(eq(frs9ImpIaDetail.iaId, Number(header.iaId)));
         } else if (header.accountId != null) {
-            detailConditions.push(eq(frs9ImpIaResultD.accountId, Number(header.accountId)));
-            if (header.prcDate) {
-                detailConditions.push(eq(frs9ImpIaResultD.prcDate, header.prcDate));
-            }
+            detailConditions.push(eq(frs9ImpIaDetail.accountId, Number(header.accountId)));
         }
 
         const details = detailConditions.length > 0
             ? await legacyDb.select()
-                .from(frs9ImpIaResultD)
+                .from(frs9ImpIaDetail)
                 .where(and(...detailConditions))
-                .orderBy(frs9ImpIaResultD.mob, frs9ImpIaResultD.periode)
+                .orderBy(frs9ImpIaDetail.mob, frs9ImpIaDetail.periode)
             : [];
 
-        const toNumber = (value: unknown) => {
-            if (value == null || value === '') return 0;
-            const parsed = Number(value);
-            return Number.isFinite(parsed) ? parsed : 0;
-        };
+        const cashflowConditions = [];
+        if (header.iaId != null) {
+            cashflowConditions.push(eq(frs9ImpIaDcf.iaId, Number(header.iaId)));
+        } else if (header.accountId != null) {
+            cashflowConditions.push(eq(frs9ImpIaDcf.accountId, Number(header.accountId)));
+        }
+
+        const cashflows = cashflowConditions.length > 0
+            ? await legacyDb.select()
+                .from(frs9ImpIaDcf)
+                .where(and(...cashflowConditions))
+                .orderBy(frs9ImpIaDcf.mob, frs9ImpIaDcf.periode)
+            : [];
 
         return {
-            header: {
-                pkid: Number(header.pkid),
-                iaId: header.iaId ? Number(header.iaId) : null,
-                prcDate: header.prcDate || null,
-                effectiveDate: header.prcDate || null,
-                accountId: header.accountId ? Number(header.accountId) : null,
-                accountNumber: header.accountNumber || '',
-                cifNumber: header.cifNumber || '',
-                cifName: header.cifName || '',
-                currency: header.currency || '',
-                dpd: header.dpd || 0,
-                collectability: header.collectability || 0,
-                ratingCode: header.ratingCode || '',
-                interestRate: toNumber(header.interestRate),
-                effInterestRate: toNumber(header.effInterestRate),
-                outstanding: toNumber(header.outstanding),
-                accruedInterest: toNumber(header.accruedInterest),
-                carryingAmt: toNumber(header.carryingAmt),
-                eadAmt: toNumber(header.eadAmt),
-                pvDcfAmt: toNumber(header.pvDcfAmt),
-                eclIaAmt: toNumber(header.eclIaAmt),
-                createdby: header.createdby || '',
-                createddate: header.createddate || null
-            },
-            details: details.map((row) => ({
-                pkid: Number(row.pkid),
-                iaId: row.iaId ? Number(row.iaId) : null,
-                prcDate: row.prcDate || null,
-                accountId: row.accountId ? Number(row.accountId) : null,
-                mob: row.mob || 0,
-                periode: row.periode || null,
-                principal: toNumber(row.principal),
-                interest: toNumber(row.interest),
-                installment: toNumber(row.installment),
-                collateral: toNumber(row.collateral),
-                poRate1: toNumber(row.poRate1),
-                rrRate1: toNumber(row.rrRate1),
-                default1: toNumber(row.default1),
-                poRate2: toNumber(row.poRate2),
-                rrRate2: toNumber(row.rrRate2),
-                default2: toNumber(row.default2),
-                poRate3: toNumber(row.poRate3),
-                rrRate3: toNumber(row.rrRate3),
-                default3: toNumber(row.default3),
-                pwAmt: toNumber(row.pwAmt),
-                discountFactor: toNumber(row.discountFactor),
-                pvAmt: toNumber(row.pvAmt),
-                beginningBalance: toNumber(row.beginningBalance),
-                eirAmt: toNumber(row.eirAmt),
-                endingBalance: toNumber(row.endingBalance)
-            }))
+            header: this.mapIaResultHeaderRow(header),
+            cashflows: cashflows.map((row) => this.mapDcfCashflowRow(row)),
+            details: details.map((row) => this.mapIaResultDetailRow(row))
         };
     }
 
     async createDcfCashflows(data: any[]) {
-        return [];
+        if (!Array.isArray(data) || data.length === 0) {
+            return [];
+        }
+
+        const sample = data[0];
+        const accountId = Number(sample.accountId || sample.account_id || 0);
+        if (!accountId) {
+            throw new Error('Account ID is required for DCF upload');
+        }
+
+        const createdBy = String(sample.createdBy || 'SYSTEM').slice(0, 36) || 'SYSTEM';
+        const createdHost = String(sample.createdHost || 'localhost').slice(0, 36) || 'localhost';
+
+        return legacyDb.transaction(async (tx) => {
+            const existingHeader = await this.ensureLegacyIaHeader(tx, accountId, createdBy, createdHost);
+            const iaId = Number(existingHeader.iaId);
+            const prcDate = this.toDateString(sample.prcDate || existingHeader.prcDate || new Date());
+            const createdAt = new Date().toISOString();
+
+            await tx.delete(frs9ImpIaDcf).where(eq(frs9ImpIaDcf.accountId, accountId));
+            await tx.delete(frs9ImpIaDetail).where(eq(frs9ImpIaDetail.accountId, accountId));
+
+            const rows = data.map((row: any, index: number) => ({
+                iaId,
+                prcDate,
+                accountId,
+                accountNumber: String(row.accountNumber || existingHeader.accountNumber || ''),
+                mob: Number(row.mob || index + 1),
+                periode: this.toDateString(row.periodDate || row.periode || createdAt.slice(0, 10)),
+                principal: String(this.toNumber(row.principal)),
+                interest: String(this.toNumber(row.interest)),
+                collateral: String(this.toNumber(row.collateral)),
+                status: String(row.status || '0').slice(0, 1) || '0',
+                createdby: createdBy,
+                createddate: createdAt,
+                createdhost: createdHost
+            }));
+
+            const inserted = await tx.insert(frs9ImpIaDcf).values(rows).returning();
+
+            const rrRows = await tx.select()
+                .from(frs9ImpIaRr)
+                .where(eq(frs9ImpIaRr.iaId, iaId))
+                .orderBy(frs9ImpIaRr.periodStart, frs9ImpIaRr.periodEnd);
+
+            const detailRows = this.buildLegacyIaDetailRows(existingHeader, rrRows, inserted, createdBy, createdHost);
+            const npv = detailRows.reduce((sum, row) => sum + this.toNumber(row.pvAmt), 0);
+            const eadAmt = this.toNumber(existingHeader.eadAmt);
+
+            await tx.update(frs9ImpIaHeader)
+                .set({
+                    prcDate,
+                    pvDcfAmt: String(Number(npv.toFixed(6))),
+                    eclIaAmt: String(Number((eadAmt - npv).toFixed(6))),
+                    updatedby: createdBy,
+                    updateddate: createdAt,
+                    updatedhost: createdHost
+                })
+                .where(eq(frs9ImpIaHeader.pkid, Number(existingHeader.pkid)));
+
+            if (detailRows.length > 0) {
+                await tx.insert(frs9ImpIaDetail).values(
+                    detailRows.map((row) => ({
+                        ...row,
+                        principal: String(Number(row.principal.toFixed(6))),
+                        interest: String(Number(row.interest.toFixed(6))),
+                        installment: String(Number(row.installment.toFixed(6))),
+                        collateral: String(Number(row.collateral.toFixed(6))),
+                        default1: String(Number(row.default1.toFixed(6))),
+                        default2: String(Number(row.default2.toFixed(6))),
+                        default3: String(Number(row.default3.toFixed(6))),
+                        pwAmt: String(Number(row.pwAmt.toFixed(6))),
+                        pvAmt: String(Number(row.pvAmt.toFixed(6))),
+                        beginningBalance: String(Number(row.beginningBalance.toFixed(6))),
+                        eirAmt: String(Number(row.eirAmt.toFixed(6))),
+                        endingBalance: String(Number(row.endingBalance.toFixed(6)))
+                    }))
+                );
+            }
+
+            return inserted.map((row) => this.mapDcfCashflowRow(row));
+        });
     }
 
     async calculateDcf(tenantId: string, params: any) {
@@ -432,19 +1060,111 @@ export class IndividualImpairmentService {
     // WATCHLIST (1.4.1) -> frs9_imp_ia_header
     // =========================================================================
 
+    private async mapWatchlistRows(results: any[]) {
+        const accountNumbers = results.map(r => r.accountNumber).filter((n): n is string => !!n);
+        const overrides = accountNumbers.length > 0
+            ? await legacyDb.select()
+                .from(frs9ImpIaHeader)
+                .where(inArray(frs9ImpIaHeader.accountNumber, accountNumbers))
+            : [];
+
+        return results.map(row => {
+            const override = overrides.find(o => o.accountNumber === row.accountNumber);
+
+            let currentStage = Number(row.stage) || 1;
+            let currentStatus = 'PENDING';
+            let currentNotes = '';
+            let currentImpaired = row.impairedFlag ? 'I' : 'N';
+
+            if (override) {
+                currentStage = override.impairedFlag === 'T' ? 3 : 1;
+                currentStatus = STATUS_MAP_TO_STRING[override.status as number] || 'IN_PROGRESS';
+                currentNotes = override.triggerRemarks || 'Manual Override';
+                currentImpaired = override.impairedFlag === 'T' ? 'I' : 'N';
+            }
+
+            return {
+                pkid: Number(row.pkid),
+                ia_id: override ? Number(override.iaId) : null,
+                prc_date: row.prcDate,
+                eff_date: row.prcDate,
+                cif_number: row.cifNumber,
+                cif_name: row.cifName,
+                account_id: Number(row.accountId),
+                account_number: row.accountNumber,
+                currency: row.currency,
+                eff_interest_rate: Number(row.effInterestRate || 0),
+                interest_rate: Number(row.interestRate || 0),
+                dpd: row.dpd || 0,
+                collectability: row.collectability || 0,
+                rating_code: row.internalRatingCode,
+                impaired_flag: currentImpaired,
+                method: 'DCF',
+                outstanding_balance: Number(row.outstanding || 0),
+                provision_amount: Number(row.eclFinalAmt || 0),
+                ecl_amount: Number(row.eclFinalAmt || 0),
+                stage: currentStage,
+                priority_level: (Number(row.outstanding) > 1000000000) ? 'HIGH' : 'MEDIUM',
+                assessment_status: currentStatus,
+                notes: currentNotes,
+                group_segment: row.groupSegment,
+                segment: row.segment,
+                sub_segment: row.subSegment,
+                createdby: 'SYSTEM',
+                createddate: row.prcDate,
+                is_override: !!override
+            };
+        });
+    }
+
     async getWatchlist(tenantId: string, filters: {
         search?: string;
         stage?: number;
         impaired_flag?: string;
         status?: string;
+        priority_level?: string;
         rating_code?: string;
         dateFrom?: string;
         dateTo?: string;
         limit?: number;
-        offset?: number
+        offset?: number;
+        cursor?: string;
+        paginationMode?: 'offset' | 'cursor';
+        sort?: Array<{ field: string; direction: 'asc' | 'desc' }>;
     }) {
         try {
-            const { limit = 50, offset = 0, search, stage, impaired_flag, status, rating_code, dateFrom, dateTo } = filters;
+            const { limit = 50, offset = 0, search, stage, impaired_flag, status, priority_level, rating_code, dateFrom, dateTo } = filters;
+
+            if (filters.paginationMode === 'cursor' || filters.cursor) {
+                const result = await Effect.runPromise(MasterAccountRepository.findAllCursor({
+                    limit,
+                    search,
+                    stage,
+                    impairedFlag: impaired_flag === 'I' || impaired_flag === 'N' ? impaired_flag : undefined,
+                    ratingCode: rating_code,
+                    dateFrom,
+                    dateTo,
+                    cursor: filters.cursor,
+                    sort: filters.sort,
+                }) as any);
+                const mergedData = await this.mapWatchlistRows(result.data);
+                let filteredResponse = mergedData;
+                if (status) {
+                    filteredResponse = filteredResponse.filter(item => item.assessment_status === status);
+                }
+                if (priority_level) {
+                    filteredResponse = filteredResponse.filter(item => item.priority_level === priority_level);
+                }
+
+                return {
+                    data: filteredResponse,
+                    total: undefined,
+                    nextCursor: result.nextCursor,
+                    previousCursor: result.previousCursor,
+                    hasNextPage: result.hasNextPage,
+                    hasPreviousPage: result.hasPreviousPage,
+                };
+            }
 
             // 1. Build Query Conditions for Master Account (Source Data)
             const conditions = [];
@@ -508,68 +1228,16 @@ export class IndividualImpairmentService {
                 .limit(limit)
                 .offset(offset);
 
-            // 4. Fetch Overrides (Manual Interventions) from Header
-            const accountNumbers = results.map(r => r.accountNumber).filter((n): n is string => !!n);
-            const overrides = accountNumbers.length > 0
-                ? await legacyDb.select()
-                    .from(frs9ImpIaHeader)
-                    .where(inArray(frs9ImpIaHeader.accountNumber, accountNumbers))
-                : [];
-
-            // 5. Merge Logic: Override > Master Account
-            const mergedData = results.map(row => {
-                const override = overrides.find(o => o.accountNumber === row.accountNumber);
-
-                // Base values from Master Account
-                let currentStage = Number(row.stage) || 1;
-                let currentStatus = 'PENDING'; // Master accounts are pending assessment by default
-                let currentNotes = '';
-                let currentImpaired = row.impairedFlag ? 'I' : 'N';
-
-                if (override) {
-                    currentStage = override.impairedFlag === 'T' ? 3 : 1;
-                    currentStatus = STATUS_MAP_TO_STRING[override.status as number] || 'IN_PROGRESS';
-                    currentNotes = override.triggerRemarks || 'Manual Override';
-                    currentImpaired = override.impairedFlag === 'T' ? 'I' : 'N';
-                }
-
-                return {
-                    pkid: Number(row.pkid), // Use actual unique row ID
-                    ia_id: override ? Number(override.iaId) : null,
-                    prc_date: row.prcDate,
-                    eff_date: row.prcDate,
-                    cif_number: row.cifNumber,
-                    cif_name: row.cifName,
-                    account_id: Number(row.accountId),
-                    account_number: row.accountNumber,
-                    currency: row.currency,
-                    eff_interest_rate: Number(row.effInterestRate || 0),
-                    interest_rate: Number(row.interestRate || 0),
-                    dpd: row.dpd || 0,
-                    collectability: row.collectability || 0,
-                    rating_code: row.internalRatingCode,
-                    impaired_flag: currentImpaired,
-                    method: 'DCF',
-                    outstanding_balance: Number(row.outstanding || 0),
-                    provision_amount: Number(row.eclFinalAmt || 0),
-                    ecl_amount: Number(row.eclFinalAmt || 0),
-                    stage: currentStage,
-                    priority_level: (Number(row.outstanding) > 1000000000) ? 'HIGH' : 'MEDIUM',
-                    assessment_status: currentStatus,
-                    notes: currentNotes,
-                    group_segment: row.groupSegment,
-                    segment: row.segment,
-                    sub_segment: row.subSegment,
-                    createdby: 'SYSTEM',
-                    createddate: row.prcDate, // Use process date as creation date for list
-                    is_override: !!override
-                };
-            });
+            // 4. Merge overrides (Manual Interventions): Override > Master Account
+            const mergedData = await this.mapWatchlistRows(results);
 
             // 6. Final Filter (Status filtering applies to Overrides primarily)
             let filteredResponse = mergedData;
             if (status) {
                 filteredResponse = mergedData.filter(item => item.assessment_status === status);
+            }
+            if (priority_level) {
+                filteredResponse = filteredResponse.filter(item => item.priority_level === priority_level);
             }
 
             return {
@@ -588,6 +1256,9 @@ export class IndividualImpairmentService {
         dateTo?: string;
         limit?: number;
         offset?: number;
+        cursor?: string;
+        paginationMode?: 'offset' | 'cursor';
+        sort?: Array<{ field: string; direction: 'asc' | 'desc' }>;
     }) {
         try {
             const { limit = 25, offset = 0, search, dateFrom, dateTo } = filters;
@@ -628,6 +1299,134 @@ export class IndividualImpairmentService {
             const whereClause = conditions.length > 0
                 ? sql`WHERE ${conditions.reduce((acc, condition, index) => index === 0 ? condition : sql`${acc} AND ${condition}`)}`
                 : sql``;
+
+            if (filters.paginationMode === 'cursor' || filters.cursor) {
+                const sort = filters.sort?.[0] ?? { field: 'prc_date', direction: 'desc' };
+                const sortColumnMap = {
+                    pkid: sql`f.pkid`,
+                    prcDate: sql`f.prc_date`,
+                    prc_date: sql`f.prc_date`,
+                    accountNumber: sql`f.account_number`,
+                    account_number: sql`f.account_number`,
+                    cifName: sql`f.cif_name`,
+                    cif_name: sql`f.cif_name`,
+                    outstanding: sql`f.outstanding`,
+                    stage: sql`f.stage`,
+                    dpd: sql`f.dpd`,
+                };
+                const sortResultKey = {
+                    pkid: 'pkid',
+                    prcDate: 'prc_date',
+                    prc_date: 'prc_date',
+                    accountNumber: 'account_number',
+                    account_number: 'account_number',
+                    cifName: 'cif_name',
+                    cif_name: 'cif_name',
+                    outstanding: 'outstanding_balance',
+                    stage: 'stage',
+                    dpd: 'dpd',
+                }[sort.field] ?? 'prc_date';
+                const sortColumn = sortColumnMap[sort.field] ?? sql`f.prc_date`;
+                const cursorPayload = decodeCursor(filters.cursor);
+                const cursorCondition = cursorPayload?.pkid !== undefined && cursorPayload.sortValue !== undefined
+                    ? (sort.direction === 'asc'
+                        ? sql`AND (${sortColumn} > ${cursorPayload.sortValue} OR (${sortColumn} = ${cursorPayload.sortValue} AND f.pkid > ${BigInt(String(cursorPayload.pkid))}))`
+                        : sql`AND (${sortColumn} < ${cursorPayload.sortValue} OR (${sortColumn} = ${cursorPayload.sortValue} AND f.pkid < ${BigInt(String(cursorPayload.pkid))}))`)
+                    : sql``;
+                const orderBy = sort.direction === 'asc'
+                    ? sql`${sortColumn} ASC, f.pkid ASC`
+                    : sql`${sortColumn} DESC, f.pkid DESC`;
+
+                const cursorQuery = sql`
+                    WITH filtered AS (
+                        SELECT
+                            m.pkid,
+                            m.prc_date,
+                            m.account_id,
+                            m.account_number,
+                            m.cif_number,
+                            m.cif_name,
+                            m.group_segment,
+                            m.segment,
+                            m.sub_segment,
+                            m.stage,
+                            m.impaired_flag,
+                            m.outstanding,
+                            m.ecl_final_amt,
+                            m.internal_rating_code,
+                            m.dpd,
+                            ROW_NUMBER() OVER (
+                                PARTITION BY m.account_number
+                                ORDER BY m.prc_date DESC, m.pkid DESC
+                            ) as rn
+                        FROM frs9_master_account m
+                        ${whereClause}
+                    ),
+                    latest_header AS (
+                        SELECT DISTINCT ON (h.account_number)
+                            h.account_number,
+                            h.trigger_remarks,
+                            h.status
+                        FROM frs9_imp_ia_header h
+                        WHERE h.account_number IS NOT NULL
+                        ORDER BY h.account_number, h.createddate DESC NULLS LAST, h.pkid DESC
+                    )
+                    SELECT
+                        f.pkid,
+                        f.prc_date,
+                        f.account_id,
+                        f.account_number,
+                        f.cif_number,
+                        f.cif_name,
+                        f.group_segment,
+                        f.segment,
+                        f.sub_segment,
+                        COALESCE(NULLIF(REGEXP_REPLACE(CAST(f.stage AS TEXT), '[^0-9]', '', 'g'), '')::INTEGER, 1) as stage,
+                        CASE WHEN f.impaired_flag = true THEN 'I' ELSE 'N' END as impaired_flag,
+                        COALESCE(CAST(f.outstanding AS DECIMAL), 0) as outstanding_balance,
+                        COALESCE(CAST(f.ecl_final_amt AS DECIMAL), 0) as provision_amount,
+                        f.internal_rating_code as rating_code,
+                        COALESCE(f.dpd, 0) as dpd,
+                        COALESCE(
+                            CASE lh.status
+                                WHEN 0 THEN 'PENDING'
+                                WHEN 1 THEN 'APPROVED'
+                                WHEN 2 THEN 'REJECTED'
+                                ELSE NULL
+                            END,
+                            'PENDING'
+                        ) as assessment_status,
+                        NULLIF(TRIM(COALESCE(lh.trigger_remarks, '')), '') as remarks
+                    FROM filtered f
+                    LEFT JOIN latest_header lh ON lh.account_number = f.account_number
+                    WHERE f.rn = 1
+                    ${cursorCondition}
+                    ORDER BY ${orderBy}
+                    LIMIT ${limit + 1}
+                `;
+
+                const rows = await legacyDb.execute(cursorQuery);
+                const pageRows = rows.slice(0, limit);
+                const lastRow = pageRows[pageRows.length - 1];
+                const hasNextPage = rows.length > limit;
+                const nextCursor = hasNextPage && lastRow
+                    ? encodeCursor({
+                        field: sort.field,
+                        direction: sort.direction,
+                        sortValue: lastRow[sortResultKey],
+                        pkid: String(lastRow.pkid),
+                    })
+                    : null;
+
+                return {
+                    data: pageRows,
+                    total: undefined,
+                    nextCursor,
+                    previousCursor: filters.cursor ?? null,
+                    hasNextPage,
+                    hasPreviousPage: Boolean(filters.cursor),
+                };
+            }
 
             const countQuery = sql`
                 WITH filtered AS (
@@ -919,8 +1718,8 @@ export class IndividualImpairmentService {
     // OVERRIDE TRIGGER (1.4.3) -> frs9_imp_ia_header
     // =========================================================================
 
-    async getOverrides(tenantId: string, filters: { status?: string; limit?: number; offset?: number }) {
-        const { status, limit = 50, offset = 0 } = filters;
+    async getOverrides(tenantId: string, filters: { status?: string; accountId?: number; accountNumber?: string; limit?: number; offset?: number }) {
+        const { status, accountId, accountNumber, limit = 50, offset = 0 } = filters;
         const conditions = [];
 
         // Map status string to legacy int if present
@@ -929,9 +1728,17 @@ export class IndividualImpairmentService {
             conditions.push(eq(frs9ImpIaHeader.status, statusInt));
         }
 
+        if (accountId && Number.isFinite(accountId)) {
+            conditions.push(eq(frs9ImpIaHeader.accountId, accountId));
+        }
+
+        if (accountNumber && String(accountNumber).trim()) {
+            conditions.push(eq(frs9ImpIaHeader.accountNumber, String(accountNumber).trim()));
+        }
+
         const results = await legacyDb.select()
             .from(frs9ImpIaHeader)
-            .where(and(...conditions))
+            .where(conditions.length > 0 ? and(...conditions) : undefined)
             .orderBy(desc(frs9ImpIaHeader.createddate))
             .limit(limit)
             .offset(offset);

@@ -94,6 +94,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       const params = {
         page: page + 1,
         limit: rowsPerPage,
+        includeInactive: true,
         ...(searchTerm && { search: searchTerm }),
         ...(filterDepartment && { department: filterDepartment }),
         ...(filterBankingAccess && { bankingAccess: filterBankingAccess as 'CONVENTIONAL' | 'SYARIAH' | 'BOTH' }),

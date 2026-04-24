@@ -3,6 +3,7 @@ import { ProductParametersRepository } from '../repositories/product-parameters.
 import { ParametersRepository } from '../repositories/parameters.repository'
 import { NotFoundError, ConflictError } from '../lib/errors'
 import { frs9ParamProduct } from '../db/schema'
+import type { ListQuery } from '../lib/http/list-query'
 
 export const ProductParametersService = {
     // CRUD Operations
@@ -33,6 +34,30 @@ export const ProductParametersService = {
                     pages: Math.ceil(total / options.limit)
                 }
             }))
+        )
+    },
+
+    listPage: (mode: string, query: ListQuery) => {
+        console.log(`📝 [PROD-SERVICE] Fetching paged product parameters for mode: ${mode}`, query)
+
+        return pipe(
+            ProductParametersRepository.findMany({
+                page: query.page,
+                offset: query.offset,
+                limit: query.limit,
+                search: query.search,
+                currency: typeof query.filters.currency === 'string' ? query.filters.currency : undefined,
+                dataSource: typeof query.filters.dataSource === 'string' ? query.filters.dataSource : undefined,
+                activeFlag:
+                    typeof query.filters.activeFlag === 'boolean' || typeof query.filters.activeFlag === 'string'
+                        ? query.filters.activeFlag
+                        : undefined,
+                sort: query.sort,
+            }),
+            Effect.map(({ products, total }) => ({
+                rows: products.map(transformProduct),
+                total,
+            })),
         )
     },
 

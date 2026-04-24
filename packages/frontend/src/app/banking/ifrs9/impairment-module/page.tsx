@@ -1,218 +1,203 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Box,
-  Typography,
-  Container,
+  Breadcrumbs,
+  Button,
   Card,
   CardContent,
-  Button,
-  CircularProgress,
-  Alert,
-  Breadcrumbs,
+  Container,
   Link,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  TablePagination,
+  Stack,
   TextField,
-  Chip
+  Typography,
 } from '@mui/material';
-
+import { Refresh as RefreshIcon } from '@mui/icons-material';
+import { ImpairmentModuleDetailsPanel } from '@/features/ifrs9-modules/components/ImpairmentModuleDetailsPanel';
+import { ImpairmentModuleTable } from '@/features/ifrs9-modules/components/ImpairmentModuleTable';
 import {
-  Refresh as RefreshIcon,
-  PlayArrow as PlayArrowIcon,
-  Warning as WarningIcon,
-  CheckCircle as CheckCircleIcon,
-  Search as SearchIcon
-} from '@mui/icons-material';
-
-import { useApi } from '@/hooks/useApi';
-import { useAuth } from '@/providers/AuthProvider';
-
-interface ImpairmentResult {
-  accountId: number;
-  facilityNumber: string;
-  cifNumber: string;
-  prcDate: string;
-  stage: number;
-  outstanding: number;
-  eclFinal: number;
-  currency: string;
-}
-
-interface ApiResponse<T> {
-  success: boolean;
-  data: T[];
-  message?: string;
-  pagination?: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-}
+  useImpairmentModuleDetailQuery,
+  useImpairmentModuleResultsQuery,
+} from '@/features/ifrs9-modules/hooks/useIfrs9ModuleQueries';
 
 export default function ImpairmentModulePage() {
-  const { apiCall } = useApi();
-
-  const [results, setResults] = useState<ImpairmentResult[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [totalCount, setTotalCount] = useState(0);
+  const [search, setSearch] = useState('');
+  const [prcDate, setPrcDate] = useState('');
+  const [selectedPkid, setSelectedPkid] = useState<string | null>(null);
 
-  const loadResults = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  const resultsQuery = useImpairmentModuleResultsQuery({
+    page: page + 1,
+    limit: rowsPerPage,
+    prcDate: prcDate || undefined,
+    search: search.trim() || undefined,
+  });
 
-      const params = new URLSearchParams({
-        page: (page + 1).toString(),
-        limit: rowsPerPage.toString()
-      });
-
-      // Fetch from the new /results endpoint
-      const response = await apiCall(`/api/v1/ifrs9/impairment-module/results?${params}`) as ApiResponse<ImpairmentResult>;
-
-      if (response.success) {
-        setResults(response.data);
-        setTotalCount(response.pagination?.total || 0);
-      } else {
-        setError(response.message || 'Failed to load impairment results');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setLoading(false);
-    }
-  }, [apiCall, page, rowsPerPage]);
+  const results = useMemo(() => resultsQuery.data?.rows ?? [], [resultsQuery.data]);
+  const totalCount = resultsQuery.data?.total ?? 0;
+  const effectivePrcDate = resultsQuery.data?.effectivePrcDate ?? null;
+  const detailSupported = resultsQuery.data?.detailSupported ?? false;
+  const compatibilityMessage = resultsQuery.data?.compatibilityMessage ?? null;
+  const loading = resultsQuery.isLoading || resultsQuery.isFetching;
+  const error = !resultsQuery.data?.success ? resultsQuery.data?.message || 'Failed to load impairment results' : null;
 
   useEffect(() => {
-    loadResults();
-  }, [loadResults]);
+    if (results.length === 0) {
+      if (selectedPkid) setSelectedPkid(null);
+      return;
+    }
 
-  const formatCurrency = (amount: number, currency: string = 'IDR') => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount || 0);
-  };
+    const selectableRows = results.filter((row) => Boolean(row.pkid));
+    if (selectableRows.length === 0) {
+      if (selectedPkid) setSelectedPkid(null);
+      return;
+    }
+
+    const selectedStillExists = selectableRows.some((row) => row.pkid === selectedPkid);
+    if (!selectedStillExists) {
+      setSelectedPkid(selectableRows[0].pkid ?? null);
+    }
+  }, [results, selectedPkid, detailSupported]);
+
+  const selectedRow = useMemo(
+    () => results.find((row) => row.pkid === selectedPkid) ?? null,
+    [results, selectedPkid],
+  );
+
+  const detailQuery = useImpairmentModuleDetailQuery(selectedPkid);
+  const detailResponse = detailQuery.data;
+  const detailPayload = detailResponse && detailResponse.success ? detailResponse.data : null;
+  const detailError = detailResponse && !detailResponse.success
+    ? detailResponse.message || 'Failed to load impairment details'
+    : null;
 
   return (
-    <Container maxWidth="xl" sx={{ py: 3 }}>
-      {/* Header */}
+    <Container maxWidth="xl" sx={{ py: 3, minWidth: 0, overflowX: 'hidden' }}>
       <Box mb={3}>
         <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-          <Link color="inherit" href="/banking">Banking</Link>
+          <Link color="inherit" href="/banking">Banking Dashboard</Link>
           <Link color="inherit" href="/banking/ifrs9">IFRS 9</Link>
-          <Typography color="text.primary">Impairment Results</Typography>
+          <Typography color="text.primary">Impairment Module</Typography>
         </Breadcrumbs>
 
-        <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h4" component="h1" gutterBottom>
-            Impairment Results
-          </Typography>
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          justifyContent="space-between"
+          alignItems={{ xs: 'stretch', md: 'center' }}
+          spacing={2}
+          useFlexGap
+          sx={{ flexWrap: 'wrap' }}
+        >
+          <Box sx={{ minWidth: 0, flex: '1 1 560px' }}>
+            <Typography variant="h4" component="h1" gutterBottom>
+              Impairment Module
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Tech-spec aligned list sourced from `frs9_master_account`, with detail tabs for contract, collective, individual, and journal views.
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Effective PRC date: {effectivePrcDate || '-'}
+            </Typography>
+          </Box>
           <Button
             variant="contained"
             startIcon={<RefreshIcon />}
-            onClick={loadResults}
+            onClick={() => {
+              void resultsQuery.refetch();
+              if (selectedPkid) void detailQuery.refetch();
+            }}
           >
             Refresh Data
           </Button>
-        </Box>
-        <Typography variant="body1" color="text.secondary">
-          Detailed view of impairment calculations and ECL results per account.
-        </Typography>
+        </Stack>
       </Box>
 
       {error && (
-        <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
       )}
 
-      {/* Results Table */}
-      <Card>
-        <CardContent>
-          {loading ? (
-            <Box display="flex" justifyContent="center" py={4}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <TableContainer component={Paper} variant="outlined">
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Reporting Date</TableCell>
-                    <TableCell>Account ID</TableCell>
-                    <TableCell>Facility No</TableCell>
-                    <TableCell>CIF</TableCell>
-                    <TableCell>Stage</TableCell>
-                    <TableCell align="right">Outstanding Balance</TableCell>
-                    <TableCell align="right">ECL Final</TableCell>
-                    <TableCell align="right">Covg %</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {results.map((row) => {
-                    const coverage = row.outstanding ? (row.eclFinal / row.outstanding) * 100 : 0;
-                    return (
-                      <TableRow key={`${row.accountId}-${row.prcDate}`}>
-                        <TableCell>{row.prcDate}</TableCell>
-                        <TableCell>{row.accountId}</TableCell>
-                        <TableCell>{row.facilityNumber}</TableCell>
-                        <TableCell>{row.cifNumber}</TableCell>
-                        <TableCell>
-                          <Chip
-                            label={`Stage ${row.stage}`}
-                            color={row.stage === 3 ? 'error' : row.stage === 2 ? 'warning' : 'success'}
-                            size="small"
-                          />
-                        </TableCell>
-                        <TableCell align="right">{formatCurrency(row.outstanding, row.currency)}</TableCell>
-                        <TableCell align="right">{formatCurrency(row.eclFinal, row.currency)}</TableCell>
-                        <TableCell align="right">{coverage.toFixed(2)}%</TableCell>
-                      </TableRow>
-                    )
-                  })}
-                  {results.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={8} align="center">
-                        <Box py={4}>
-                          <Typography variant="h6" color="text.secondary">
-                            No impairment results found
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-              <TablePagination
-                rowsPerPageOptions={[10, 25, 50]}
-                component="div"
-                count={totalCount}
-                rowsPerPage={rowsPerPage}
-                page={page}
-                onPageChange={(_, newPage) => setPage(newPage)}
-                onRowsPerPageChange={(e) => {
-                  setRowsPerPage(parseInt(e.target.value));
+      {compatibilityMessage && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          {compatibilityMessage}
+        </Alert>
+      )}
+
+      <Stack spacing={3} sx={{ minWidth: 0 }}>
+        <Card sx={{ minWidth: 0, overflowX: 'hidden' }}>
+          <CardContent sx={{ minWidth: 0, overflowX: 'hidden' }}>
+            <Stack
+              direction={{ xs: 'column', lg: 'row' }}
+              spacing={2}
+              justifyContent="space-between"
+              alignItems={{ xs: 'stretch', lg: 'center' }}
+              useFlexGap
+              sx={{ mb: 2, flexWrap: 'wrap' }}
+            >
+              <Box sx={{ minWidth: 0, flex: '1 1 420px' }}>
+                <Typography variant="h6">Impairment Contract List</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Query source follows the tech spec list from `FRS9_MASTER_ACCOUNT`.
+                </Typography>
+              </Box>
+              <TextField
+                size="small"
+                type="date"
+                label="Processing Date"
+                value={prcDate}
+                onChange={(event) => {
+                  setPrcDate(event.target.value);
                   setPage(0);
                 }}
+                slotProps={{
+                  inputLabel: { shrink: true },
+                }}
+                sx={{ width: { xs: '100%', sm: 220 }, minWidth: 0, flexShrink: 0 }}
               />
-            </TableContainer>
-          )}
-        </CardContent>
-      </Card>
+              <TextField
+                size="small"
+                label="Search contract"
+                placeholder="Account / Facility / CIF / Name"
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(0);
+                }}
+                sx={{ width: { xs: '100%', lg: 360 }, minWidth: 0, flexShrink: 0 }}
+              />
+            </Stack>
+
+            <ImpairmentModuleTable
+              rows={results}
+              totalCount={totalCount}
+              page={page}
+              rowsPerPage={rowsPerPage}
+              loading={loading}
+              selectedPkid={selectedPkid}
+              onSelectRow={setSelectedPkid}
+              detailSupported={detailSupported}
+              onPageChange={setPage}
+              onRowsPerPageChange={(nextRowsPerPage) => {
+                setRowsPerPage(nextRowsPerPage);
+                setPage(0);
+              }}
+            />
+          </CardContent>
+        </Card>
+
+        <ImpairmentModuleDetailsPanel
+          selectedRow={selectedRow}
+          loading={detailSupported && (detailQuery.isLoading || detailQuery.isFetching)}
+          error={detailError}
+          detail={detailPayload}
+          detailSupported={detailSupported}
+          compatibilityMessage={compatibilityMessage}
+        />
+      </Stack>
     </Container>
   );
 }

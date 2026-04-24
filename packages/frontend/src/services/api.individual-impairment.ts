@@ -391,7 +391,13 @@ export const individualImpairmentAPI = {
       };
     }) => {
       console.log('🔍 Fetching Individual Impairment watchlist from FRS9PRO database', params);
-      const response = await apiClient.get('/banking/individual/impairment/watchlist', { params });
+      const { mode: _mode, ...filterWithoutMode } = params?.filter ?? {};
+      const response = await apiClient.get('/banking/individual/impairment/watchlist', {
+        params: {
+          ...params,
+          filter: filterWithoutMode,
+        },
+      });
       return response.data;
     },
 

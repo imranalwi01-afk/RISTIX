@@ -16,6 +16,9 @@ import {
   Box,
   Drawer,
   useMediaQuery,
+  Alert,
+  Button,
+  Typography,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 
@@ -44,6 +47,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [hasSessionEvidence, setHasSessionEvidence] = useState<boolean | null>(null);
 
   const [userRole, setUserRole] = useState<string>('');
   const [userName, setUserName] = useState<string>('');
@@ -100,12 +104,69 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
     }
   }, [authState]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if (authState?.user || authState?.token) {
+      setHasSessionEvidence(true);
+      return;
+    }
+
+    const storedToken = localStorage.getItem('auth_token');
+    const storedRefreshToken = localStorage.getItem('refresh_token');
+    const hasStoredSession = Boolean(storedToken || storedRefreshToken);
+
+    if (!hasStoredSession) {
+      localStorage.removeItem('user_data');
+    }
+
+    setHasSessionEvidence(hasStoredSession);
+
+    if (!hasStoredSession) {
+      const redirectTarget = `${window.location.pathname}${window.location.search}`;
+      const redirectUrl = `/login?logout=true&redirect=${encodeURIComponent(redirectTarget)}`;
+      const timer = window.setTimeout(() => {
+        window.location.replace(redirectUrl);
+      }, 50);
+
+      return () => window.clearTimeout(timer);
+    }
+  }, [authState?.token, authState?.user]);
+
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
   const handleSidebarToggle = () => setSidebarCollapsed(!sidebarCollapsed);
 
+  if (hasSessionEvidence === false && !authState?.user && !authState?.token) {
+    return (
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3 }}>
+        <Box sx={{ width: '100%', maxWidth: 520 }}>
+          <Alert severity="error" sx={{ mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
+              Authentication Required
+            </Typography>
+            <Typography variant="body2">
+              Redirecting to login. This banking route requires an authenticated session.
+            </Typography>
+          </Alert>
+          <Button
+            variant="contained"
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                const redirectTarget = `${window.location.pathname}${window.location.search}`;
+                window.location.replace(`/login?logout=true&redirect=${encodeURIComponent(redirectTarget)}`);
+              }
+            }}
+          >
+            Go to Login
+          </Button>
+        </Box>
+      </Box>
+    );
+  }
+
   return (
     <NotificationProvider>
-      <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      <Box sx={{ display: 'flex', minHeight: '100vh', width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
         {/* AppBar */}
         <BankingAppBar
         drawerWidth={currentDrawerWidth}
@@ -129,6 +190,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
         sx={{
           width: { md: currentDrawerWidth },
           flexShrink: { md: 0 },
+          minWidth: 0,
           transition: theme.transitions.create('width', {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
@@ -197,8 +259,12 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
         component="main"
         sx={{
           flexGrow: 1,
+          width: '100%',
+          maxWidth: '100%',
+          minWidth: 0,
           minHeight: '100vh',
           bgcolor: 'background.default',
+          overflowX: 'hidden',
         }}
       >
         <Box sx={{
@@ -206,7 +272,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
           flexShrink: 0
         }} />
 
-        <Box sx={{ p: 2 }}>
+        <Box sx={{ p: 2, width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
           {children as any}
         </Box>
       </Box>

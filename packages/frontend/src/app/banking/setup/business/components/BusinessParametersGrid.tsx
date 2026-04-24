@@ -11,7 +11,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  TablePagination,
   TextField,
   Typography,
 } from '@mui/material';
@@ -19,6 +18,7 @@ import { Clear as ClearIcon, Delete as DeleteIcon, Edit as EditIcon, Search as S
 import { GridColDef } from '@mui/x-data-grid';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { ApprovalStatusBadge } from '@/components/approval';
+import type { EnterpriseColumnFilterValue, EnterpriseDensity, EnterpriseSort } from '@/types/enterprise-table';
 import type { BusinessParameter } from './BusinessParameterDialog';
 import BusinessDetailPanel from './BusinessDetailPanel';
 import type { BusinessParameterDetail } from './BusinessDetailFormDialog';
@@ -28,16 +28,24 @@ interface BusinessParametersGridProps {
   loading: boolean;
   searchTerm: string;
   categoryFilter: string;
-  page: number;
-  rowsPerPage: number;
+  paginationModel: { page: number; pageSize: number };
   totalCount: number;
   detailRefreshTrigger: number;
   canManage: boolean;
   onSearchChange: (value: string) => void;
   onCategoryChange: (value: string) => void;
   onResetFilters: () => void;
-  onPageChange: (page: number) => void;
-  onRowsPerPageChange: (rowsPerPage: number) => void;
+  onPaginationModelChange: (model: { page: number; pageSize: number }) => void;
+  columnVisibilityModel?: Record<string, boolean>;
+  onColumnVisibilityModelChange?: (model: Record<string, boolean>) => void;
+  density?: EnterpriseDensity;
+  onDensityChange?: (density: EnterpriseDensity) => void;
+  columnFilters?: Record<string, EnterpriseColumnFilterValue>;
+  onColumnFiltersChange?: (filters: Record<string, EnterpriseColumnFilterValue>) => void;
+  sort?: EnterpriseSort[];
+  onSortChange?: (sort: EnterpriseSort[]) => void;
+  onSaveView?: () => void;
+  onResetView?: () => void;
   onOpenPendingChanges: (row: BusinessParameter) => void;
   onEditParameter: (row: BusinessParameter) => void;
   onDeleteParameter: (row: BusinessParameter) => void;
@@ -51,16 +59,24 @@ const BusinessParametersGrid = memo(function BusinessParametersGrid({
   loading,
   searchTerm,
   categoryFilter,
-  page,
-  rowsPerPage,
+  paginationModel,
   totalCount,
   detailRefreshTrigger,
   canManage,
   onSearchChange,
   onCategoryChange,
   onResetFilters,
-  onPageChange,
-  onRowsPerPageChange,
+  onPaginationModelChange,
+  columnVisibilityModel,
+  onColumnVisibilityModelChange,
+  density,
+  onDensityChange,
+  columnFilters,
+  onColumnFiltersChange,
+  sort,
+  onSortChange,
+  onSaveView,
+  onResetView,
   onOpenPendingChanges,
   onEditParameter,
   onDeleteParameter,
@@ -158,9 +174,9 @@ const BusinessParametersGrid = memo(function BusinessParametersGrid({
   );
 
   return (
-    <Card sx={{ mt: 2, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-      <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
-        <Box sx={{ p: 2, display: 'flex', gap: 2, alignItems: 'center', bgcolor: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(8px)', borderBottom: '1px solid', borderColor: 'divider' }}>
+    <Card sx={{ mt: 2, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden', width: '100%', maxWidth: '100%', minWidth: 0 }}>
+      <CardContent sx={{ p: 0, minWidth: 0, overflowX: 'hidden', '&:last-child': { pb: 0 } }}>
+        <Box sx={{ p: 2, display: 'flex', gap: 2, rowGap: 1.5, flexWrap: 'wrap', alignItems: 'center', minWidth: 0, bgcolor: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(8px)', borderBottom: '1px solid', borderColor: 'divider' }}>
           <TextField
             size="small"
             placeholder="Search parameters..."
@@ -171,9 +187,9 @@ const BusinessParametersGrid = memo(function BusinessParametersGrid({
               startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1, fontSize: 20 }} />,
               sx: { borderRadius: 2, bgcolor: 'background.paper' },
             }}
-            sx={{ flexGrow: 1, maxWidth: 400 }}
+            sx={{ flex: '1 1 280px', minWidth: 0, width: { xs: '100%', sm: 'auto' }, maxWidth: { xs: '100%', md: 400 } }}
           />
-          <FormControl size="small" sx={{ minWidth: 160 }}>
+          <FormControl size="small" sx={{ minWidth: 160, width: { xs: '100%', sm: 'auto' }, flex: { xs: '1 1 180px', sm: '0 0 auto' } }}>
             <InputLabel>Category</InputLabel>
             <Select value={categoryFilter} onChange={(e) => onCategoryChange(e.target.value)} label="Category" sx={{ borderRadius: 2, bgcolor: 'background.paper' }}>
               <MenuItem value="ALL">All</MenuItem>
@@ -187,15 +203,35 @@ const BusinessParametersGrid = memo(function BusinessParametersGrid({
           </Button>
         </Box>
 
-        <Box sx={{ height: 600, width: '100%' }}>
+        <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
           <SafeDataGrid
-            rows={rows.slice(page * rowsPerPage, (page + 1) * rowsPerPage)}
+            rows={rows}
             columns={columns}
+            responsiveMode="cards"
             getRowId={(row) => ((row as BusinessParameter).pkid && (row as BusinessParameter).pkid !== '0' ? (row as BusinessParameter).pkid : (row as BusinessParameter).param_code)}
             loading={loading}
             rowCount={totalCount}
-            hideFooterPagination
-            hideFooter
+            paginationMode="offset"
+            paginationModel={paginationModel}
+            onPaginationModelChange={onPaginationModelChange}
+            columnFilters={columnFilters}
+            onColumnFiltersChange={onColumnFiltersChange}
+            sortModel={sort?.map((item) => ({ field: item.field, sort: item.direction }))}
+            onSortModelChange={onSortChange ? (model) => {
+              onSortChange(
+                model
+                  .filter((item) => item.sort === 'asc' || item.sort === 'desc')
+                  .map((item) => ({ field: item.field, direction: item.sort as 'asc' | 'desc' }))
+              );
+            } : undefined}
+            columnVisibilityModel={columnVisibilityModel}
+            onColumnVisibilityModelChange={onColumnVisibilityModelChange}
+            density={density === 'dense' ? 'compact' : density}
+            onDensityChange={onDensityChange}
+            showEnterpriseControls
+            onSaveView={onSaveView}
+            onResetView={onResetView}
+            pageSizeOptions={[10, 25, 50, 100]}
             disableRowSelectionOnClick
             getDetailPanelContent={(params) => (
               <BusinessDetailPanel
@@ -209,24 +245,13 @@ const BusinessParametersGrid = memo(function BusinessParametersGrid({
             )}
             getDetailPanelHeight={() => 'auto'}
             sx={{
+              minHeight: 400,
+              width: '100%',
+              maxWidth: '100%',
               '& .MuiDataGrid-main': { minHeight: 400 },
             }}
           />
         </Box>
-        <TablePagination
-          rowsPerPageOptions={[10, 25, 50, 100]}
-          component="div"
-          count={totalCount}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={(_, nextPage) => onPageChange(nextPage)}
-          onRowsPerPageChange={(e) => onRowsPerPageChange(parseInt(e.target.value, 10))}
-          labelDisplayedRows={({ from, to, count }) => `Showing ${from}–${to} of ${count} • Page ${page + 1}`}
-          sx={{
-            borderTop: '2px solid #e0e0e0',
-            bgcolor: '#fafafa',
-          }}
-        />
       </CardContent>
     </Card>
   );

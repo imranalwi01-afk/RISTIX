@@ -66,17 +66,22 @@ const MonitoringPanel: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
     mb: 5,
     borderRadius: 4,
     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
-    background: 'white'
+    background: 'white',
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    overflowX: 'hidden',
   }}>
-    <CardContent sx={{ p: 4 }}>
+    <CardContent sx={{ p: 4, minWidth: 0, overflowX: 'hidden' }}>
       <Typography variant="h6" fontWeight={800} gutterBottom sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
         <AssessmentIcon color="primary" />
         ECL Monitoring Overview
       </Typography>
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, md: 5 }}>
-          <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3 }}>
-            <Table size="small">
+          <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <TableContainer component={Paper} variant="outlined" sx={{ width: '100%', maxWidth: '100%', borderRadius: 3, overflowX: 'unset' }}>
+              <Table size="small" sx={{ minWidth: 360 }}>
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 800 }}>Stage</TableCell>
@@ -98,12 +103,14 @@ const MonitoringPanel: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
-          </TableContainer>
+              </Table>
+            </TableContainer>
+          </Box>
         </Grid>
         <Grid size={{ xs: 12, md: 7 }}>
-          <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3 }}>
-            <Table size="small">
+          <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <TableContainer component={Paper} variant="outlined" sx={{ width: '100%', maxWidth: '100%', borderRadius: 3, overflowX: 'unset' }}>
+              <Table size="small" sx={{ minWidth: 560 }}>
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 800 }}>Segment</TableCell>
@@ -136,8 +143,9 @@ const MonitoringPanel: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
-          </TableContainer>
+              </Table>
+            </TableContainer>
+          </Box>
         </Grid>
       </Grid>
     </CardContent>

@@ -1,8 +1,5 @@
-
-'use client';
-
-import LoginPage from '../../(auth)/login/page';
+import { redirect } from 'next/navigation';
 
 export default function PlatformLoginPage() {
-    return <LoginPage initialRole="platform_admin" />;
+  redirect('/login?role=platform_admin');
 }

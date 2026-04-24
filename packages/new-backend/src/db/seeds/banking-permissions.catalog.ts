@@ -149,6 +149,20 @@ export const BANKING_PERMISSION_CATALOG: SeedPermissionDefinition[] = [
         actions: ['access', 'view', 'manage'],
     }),
     ...createResourcePermissions({
+        stem: 'banking.processing.impairment',
+        label: 'Impairment Module',
+        resource: 'processing.impairment',
+        category: 'BANKING_PROCESSING',
+        actions: ['access', 'view', 'manage'],
+    }),
+    ...createResourcePermissions({
+        stem: 'banking.processing.amortization',
+        label: 'Amortization Module',
+        resource: 'processing.amortization',
+        category: 'BANKING_PROCESSING',
+        actions: ['access', 'view', 'manage'],
+    }),
+    ...createResourcePermissions({
         stem: 'banking.setup',
         label: 'System Setup',
         resource: 'setup',
@@ -528,6 +542,12 @@ export const MAKER_CHECKER_FRONTEND_PERMISSION_CODES = [
     'banking.collective.ecl.view',
     'banking.collective.fl_scalar.view',
     'banking.individual.view',
+    'banking.processing',
+    'banking.processing.view',
+    'banking.processing.impairment',
+    'banking.processing.impairment.view',
+    'banking.processing.amortization',
+    'banking.processing.amortization.view',
     'banking.reports.ifrs9.view',
     'banking.analytics.view',
     'banking.analytics.r.view',
@@ -552,9 +572,21 @@ const DASHBOARD_AND_ANALYTICS_VIEW = [
     'banking.analytics.r.view',
 ]
 
-const PROCESSING_VIEW = ['banking.processing', 'banking.processing.view']
+const PROCESSING_VIEW = [
+    'banking.processing',
+    'banking.processing.view',
+    'banking.processing.impairment',
+    'banking.processing.impairment.view',
+    'banking.processing.amortization',
+    'banking.processing.amortization.view',
+]
 
-const PROCESSING_MANAGE = [...PROCESSING_VIEW, 'banking.processing.manage']
+const PROCESSING_MANAGE = [
+    ...PROCESSING_VIEW,
+    'banking.processing.manage',
+    'banking.processing.impairment.manage',
+    'banking.processing.amortization.manage',
+]
 
 const SETUP_APPLICATION_VIEW = ['banking.setup.application', 'banking.setup.application.view']
 

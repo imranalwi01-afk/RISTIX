@@ -1,9 +1,58 @@
 import crypto from 'node:crypto';
 import { db, getDatabase, legacyDb } from '../config/database';
 import { sql, eq, desc, and, inArray } from 'drizzle-orm';
-import { frs9ImpCaResultH, jobExecutions, frs9MasterAccount, frs9PrcDate, frs9ImpCaEclConfigh, frs9ParamSegmenth } from '../db/schema';
+import { frs9ImpCaResultH, jobExecutions, frs9MasterAccount, frs9PrcDate, frs9ImpCaEclConfigh, frs9ParamSegmenth, frs9EclSummary } from '../db/schema';
 import { JobsRepository } from '../repositories/jobs.repository';
 import { addJob } from './queue.service';
+
+type DashboardQueryDebug = {
+    endpoint: string;
+    sourceTables: string[];
+    selectedSource: string;
+    filtersApplied: Record<string, unknown>;
+    sqlPreview: string;
+    notes?: string[];
+};
+
+type DashboardSummaryResult = {
+    totalECL: number;
+    stage1ECL: number;
+    stage2ECL: number;
+    stage3ECL: number;
+    stage1Count?: number;
+    stage2Count?: number;
+    stage3Count?: number;
+    totalPortfolio: number;
+    totalExposure: number;
+    totalAccounts: number;
+    activeAccounts: number;
+    eclRate: number;
+    impairedRatio: number;
+    coverageRatio: number;
+    lastUpdated: string;
+    currency: string;
+    isFallback: boolean;
+};
+
+type DashboardSummaryPayload = {
+    data: DashboardSummaryResult;
+    debug: DashboardQueryDebug;
+};
+
+type DashboardTrendPoint = {
+    month: string;
+    stage1: number;
+    stage2: number;
+    stage3: number;
+    totalECL: number;
+    totalPortfolio: number;
+    fullDate: unknown;
+};
+
+type DashboardTrendPayload = {
+    data: DashboardTrendPoint[];
+    debug: DashboardQueryDebug;
+};
 
 export class Ifrs9CalculationsService {
     private static readonly IFRS9_PREVIEW_SP_NAME = 'sp_frs9_preview_sequence';
@@ -151,237 +200,165 @@ export class Ifrs9CalculationsService {
         }
     }
 
-    async getSummary(tenantId: string, requestedDate?: string, mode?: string) {
+    private buildSummaryDebug(
+        selectedSource: string,
+        requestedDate: string | undefined,
+        effectiveDate: string | undefined,
+        mode: string | undefined,
+        segmentIds: number[],
+        sqlPreview: string,
+        notes: string[] = [],
+    ): DashboardQueryDebug {
+        return {
+            endpoint: '/api/v1/ifrs9/calculations/summary',
+            sourceTables: [
+                'public.frs9_ecl_summary',
+            ],
+            selectedSource,
+            filtersApplied: {
+                requestedDate: requestedDate || 'latest',
+                effectiveDate: effectiveDate || null,
+                mode: mode || 'all',
+                segmentIds,
+            },
+            sqlPreview,
+            notes,
+        };
+    }
+
+    private buildTrendDebug(
+        selectedSource: string,
+        endDate: string | undefined,
+        mode: string | undefined,
+        segmentIds: number[],
+        sqlPreview: string,
+        notes: string[] = [],
+    ): DashboardQueryDebug {
+        return {
+            endpoint: '/api/v1/ifrs9/calculations/portfolio-trend',
+            sourceTables: [
+                'public.frs9_ecl_summary',
+            ],
+            selectedSource,
+            filtersApplied: {
+                endDate: endDate || 'latest-12-periods',
+                mode: mode || 'all',
+                segmentIds,
+            },
+            sqlPreview,
+            notes,
+        };
+    }
+
+    async getSummary(tenantId: string, requestedDate?: string, mode?: string): Promise<DashboardSummaryPayload> {
         try {
-            // Resolve segment IDs if mode is provided
             const segmentIds = mode ? await this.getSegmentIdsForMode(mode) : [];
             const hasSegmentFilter = segmentIds.length > 0;
+            const stage1Values = ['1', 'stage 1', 'stage1'];
+            const stage2Values = ['2', 'stage 2', 'stage2'];
+            const stage3Values = ['3', 'stage 3', 'stage3'];
 
-            // 1. Determine the process date to use
             let prcDate = requestedDate;
 
             if (!prcDate) {
-                // If no date requested, find the latest process date in the result table
-                // If filtered, we should only look at dates relevant to that segment, but usually max date is global.
                 try {
-                    const latestResultDate = await legacyDb
-                        .select({ maxDate: sql<string>`max(${frs9ImpCaResultH.prcDate})` })
-                        .from(frs9ImpCaResultH);
-                    prcDate = latestResultDate[0]?.maxDate;
+                    const latestSummaryDate = await legacyDb
+                        .select({ maxDate: sql<string>`max(${frs9EclSummary.prcDate})` })
+                        .from(frs9EclSummary)
+                        .where(hasSegmentFilter ? inArray(frs9EclSummary.segmentId, segmentIds) : sql`true`);
+                    prcDate = latestSummaryDate[0]?.maxDate;
                 } catch (error: any) {
-                    if (!this.isLegacySchemaError(error)) throw error
-                    prcDate = undefined
+                    if (!this.isLegacySchemaError(error)) throw error;
+                    prcDate = undefined;
                 }
             }
 
-            if (requestedDate === 'all') {
-                console.log(`📊 Calculating Grand Total (All Periods)${mode ? ' [Mode: ' + mode + ']' : ''}...`);
-                
-                try {
-                    const conditions = [];
-                    if (hasSegmentFilter) {
-                        conditions.push(inArray(frs9ImpCaResultH.segmentId, segmentIds));
-                    }
+            const isAllPeriods = requestedDate === 'all';
 
-                    const [row] = await legacyDb
-                        .select({
-                            totalECL: sql<number>`coalesce(sum(${frs9ImpCaResultH.eclAmount})::double precision, 0)`,
-                            totalPortfolio: sql<number>`coalesce(sum(${frs9ImpCaResultH.outstanding})::double precision, 0)`,
-                            totalAccounts: sql<number>`count(*)`,
-                            stage1ECL: sql<number>`coalesce(sum(case when ${frs9ImpCaResultH.stage} = 1 then ${frs9ImpCaResultH.eclAmount} else 0 end)::double precision, 0)`,
-                            stage2ECL: sql<number>`coalesce(sum(case when ${frs9ImpCaResultH.stage} = 2 then ${frs9ImpCaResultH.eclAmount} else 0 end)::double precision, 0)`,
-                            stage3ECL: sql<number>`coalesce(sum(case when ${frs9ImpCaResultH.stage} = 3 then ${frs9ImpCaResultH.eclAmount} else 0 end)::double precision, 0)`,
-                            stage1Count: sql<number>`coalesce(sum(case when ${frs9ImpCaResultH.stage} = 1 then 1 else 0 end)::int, 0)`,
-                            stage2Count: sql<number>`coalesce(sum(case when ${frs9ImpCaResultH.stage} = 2 then 1 else 0 end)::int, 0)`,
-                            stage3Count: sql<number>`coalesce(sum(case when ${frs9ImpCaResultH.stage} = 3 then 1 else 0 end)::int, 0)`,
-                        })
-                        .from(frs9ImpCaResultH)
-                        .where(conditions.length > 0 ? and(...(conditions as any)) : sql`true`);
-
-                    if (row && Number(row.totalAccounts) > 0) {
-                        const totalECL = Number(row.totalECL || 0);
-                        const totalPortfolio = Number(row.totalPortfolio || 0);
-                        const count = Number(row.totalAccounts || 0);
-                        const stage1 = Number(row.stage1ECL || 0);
-                        const stage2 = Number(row.stage2ECL || 0);
-                        const stage3 = Number(row.stage3ECL || 0);
-                        const stage1Count = Number(row.stage1Count || 0);
-                        const stage2Count = Number(row.stage2Count || 0);
-                        const stage3Count = Number(row.stage3Count || 0);
-
-                        console.log(`✅ Grand Total Summary loaded: ${count} total system records`);
-
-                        return {
-                            totalECL,
-                            stage1ECL: stage1,
-                            stage2ECL: stage2,
-                            stage3ECL: stage3,
-                            stage1Count,
-                            stage2Count,
-                            stage3Count,
-                            totalPortfolio,
-                            totalExposure: totalPortfolio,
-                            totalAccounts: count,
-                            activeAccounts: count,
-                            eclRate: totalPortfolio > 0 ? (totalECL / totalPortfolio) * 100 : 0,
-                            impairedRatio: totalPortfolio > 0 ? (stage3 / totalPortfolio) : 0,
-                            coverageRatio: totalPortfolio > 0 ? (totalECL / totalPortfolio) : 0,
-                            lastUpdated: 'Cumulative Grand Total (All Periods)',
-                            currency: 'IDR',
-                            isFallback: false
-                        };
-                    }
-                } catch (error: any) {
-                    if (!this.isLegacySchemaError(error)) throw error
+            try {
+                const conditions = [];
+                if (!isAllPeriods && prcDate) {
+                    conditions.push(eq(frs9EclSummary.prcDate, prcDate as any));
                 }
-            } else if (prcDate) {
-                // Aggregrate summary for the latest process date
-                try {
-                    const conditions = [eq(frs9ImpCaResultH.prcDate, prcDate as any)];
-                    if (hasSegmentFilter) {
-                        conditions.push(inArray(frs9ImpCaResultH.segmentId, segmentIds));
-                    }
-
-                    const [row] = await legacyDb
-                        .select({
-                            totalECL: sql<number>`coalesce(sum(${frs9ImpCaResultH.eclAmount})::double precision, 0)`,
-                            totalPortfolio: sql<number>`coalesce(sum(${frs9ImpCaResultH.outstanding})::double precision, 0)`,
-                            totalAccounts: sql<number>`count(*)`,
-                            stage1ECL: sql<number>`coalesce(sum(case when ${frs9ImpCaResultH.stage} = 1 then ${frs9ImpCaResultH.eclAmount} else 0 end)::double precision, 0)`,
-                            stage2ECL: sql<number>`coalesce(sum(case when ${frs9ImpCaResultH.stage} = 2 then ${frs9ImpCaResultH.eclAmount} else 0 end)::double precision, 0)`,
-                            stage3ECL: sql<number>`coalesce(sum(case when ${frs9ImpCaResultH.stage} = 3 then ${frs9ImpCaResultH.eclAmount} else 0 end)::double precision, 0)`,
-                            stage1Count: sql<number>`coalesce(sum(case when ${frs9ImpCaResultH.stage} = 1 then 1 else 0 end)::int, 0)`,
-                            stage2Count: sql<number>`coalesce(sum(case when ${frs9ImpCaResultH.stage} = 2 then 1 else 0 end)::int, 0)`,
-                            stage3Count: sql<number>`coalesce(sum(case when ${frs9ImpCaResultH.stage} = 3 then 1 else 0 end)::int, 0)`,
-                        })
-                        .from(frs9ImpCaResultH)
-                        .where(and(...(conditions as any)));
-
-                    if (row && Number(row.totalAccounts) > 0) {
-                        const totalECL = Number(row.totalECL || 0);
-                        const totalPortfolio = Number(row.totalPortfolio || 0);
-                        const count = Number(row.totalAccounts || 0);
-                        const stage1 = Number(row.stage1ECL || 0);
-                        const stage2 = Number(row.stage2ECL || 0);
-                        const stage3 = Number(row.stage3ECL || 0);
-                        const stage1Count = Number(row.stage1Count || 0);
-                        const stage2Count = Number(row.stage2Count || 0);
-                        const stage3Count = Number(row.stage3Count || 0);
-
-                        console.log(`✅ Calculation summary loaded (DATE: ${prcDate}): ${count} accounts, Total ECL: ${totalECL}`);
-
-                        return {
-                            totalECL,
-                            stage1ECL: stage1,
-                            stage2ECL: stage2,
-                            stage3ECL: stage3,
-                            stage1Count,
-                            stage2Count,
-                            stage3Count,
-                            totalPortfolio,
-                            totalExposure: totalPortfolio,
-                            totalAccounts: count,
-                            activeAccounts: count,
-                            eclRate: totalPortfolio > 0 ? (totalECL / totalPortfolio) * 100 : 0,
-                            impairedRatio: totalPortfolio > 0 ? (stage3 / totalPortfolio) : 0,
-                            coverageRatio: totalPortfolio > 0 ? (totalECL / totalPortfolio) : 0,
-                            lastUpdated: prcDate,
-                            currency: 'IDR',
-                            isFallback: false
-                        };
-                    }
-                } catch (error: any) {
-                    if (!this.isLegacySchemaError(error)) throw error
+                if (hasSegmentFilter) {
+                    conditions.push(inArray(frs9EclSummary.segmentId, segmentIds));
                 }
-            }
 
-            // 2. FALLBACK: No calculation results found, try to get basic metrics from Master Account
-            console.log('⚠️ No calculation results found, trying fallback to Master Account...');
+                const [row] = await legacyDb
+                    .select({
+                        totalECL: sql<number>`coalesce(sum(${frs9EclSummary.eclFinalAmt})::double precision, 0)`,
+                        totalPortfolio: sql<number>`coalesce(sum(${frs9EclSummary.outstanding})::double precision, 0)`,
+                        totalAccounts: sql<number>`coalesce(sum(${frs9EclSummary.noa})::bigint, 0)`,
+                        stage1ECL: sql<number>`coalesce(sum(case when lower(trim(${frs9EclSummary.stage})) in (${sql.join(stage1Values.map((value) => sql`${value}`), sql`, `)}) then ${frs9EclSummary.eclFinalAmt} else 0 end)::double precision, 0)`,
+                        stage2ECL: sql<number>`coalesce(sum(case when lower(trim(${frs9EclSummary.stage})) in (${sql.join(stage2Values.map((value) => sql`${value}`), sql`, `)}) then ${frs9EclSummary.eclFinalAmt} else 0 end)::double precision, 0)`,
+                        stage3ECL: sql<number>`coalesce(sum(case when lower(trim(${frs9EclSummary.stage})) in (${sql.join(stage3Values.map((value) => sql`${value}`), sql`, `)}) then ${frs9EclSummary.eclFinalAmt} else 0 end)::double precision, 0)`,
+                        stage1Count: sql<number>`coalesce(sum(case when lower(trim(${frs9EclSummary.stage})) in (${sql.join(stage1Values.map((value) => sql`${value}`), sql`, `)}) then coalesce(${frs9EclSummary.noa}, 0) else 0 end)::bigint, 0)`,
+                        stage2Count: sql<number>`coalesce(sum(case when lower(trim(${frs9EclSummary.stage})) in (${sql.join(stage2Values.map((value) => sql`${value}`), sql`, `)}) then coalesce(${frs9EclSummary.noa}, 0) else 0 end)::bigint, 0)`,
+                        stage3Count: sql<number>`coalesce(sum(case when lower(trim(${frs9EclSummary.stage})) in (${sql.join(stage3Values.map((value) => sql`${value}`), sql`, `)}) then coalesce(${frs9EclSummary.noa}, 0) else 0 end)::bigint, 0)`,
+                    })
+                    .from(frs9EclSummary)
+                    .where(conditions.length > 0 ? and(...(conditions as any)) : sql`true`);
 
-            let masterDate = requestedDate;
-
-            if (!masterDate) {
-                try {
-                    const latestMasterDate = await legacyDb
-                        .select({ maxDate: sql<string>`max(${frs9MasterAccount.prcDate})` })
-                        .from(frs9MasterAccount);
-                    masterDate = latestMasterDate[0]?.maxDate;
-                } catch (error: any) {
-                    if (!this.isLegacySchemaError(error)) throw error
-                    masterDate = undefined
-                }
-            }
-
-            if (masterDate) {
-                try {
-                    let masterQuery = legacyDb
-                        .select({
-                            totalExposure: sql<number>`sum(${frs9MasterAccount.outstanding})`,
-                            count: sql<number>`count(*)`
-                        })
-                        .from(frs9MasterAccount);
-                    
-                    const masterConditions = [sql`date(${frs9MasterAccount.prcDate}) = ${masterDate}`];
-                    if (hasSegmentFilter) {
-                        masterConditions.push(inArray(frs9MasterAccount.segmentId, segmentIds));
-                    }
-
-                    const masterSummary = await masterQuery.where(and(...masterConditions));
-
-                    const row = masterSummary[0];
-                    const totalExposure = Number(row?.totalExposure || 0);
-                    const count = Number(row?.count || 0);
-
-                    console.log(`📡 Fallback data loaded from Master Account (DATE: ${masterDate}): ${count} accounts, Exposure: ${totalExposure}`);
+                if (row && Number(row.totalAccounts) > 0) {
+                    const totalECL = Number(row.totalECL || 0);
+                    const totalPortfolio = Number(row.totalPortfolio || 0);
+                    const count = Number(row.totalAccounts || 0);
+                    const stage1 = Number(row.stage1ECL || 0);
+                    const stage2 = Number(row.stage2ECL || 0);
+                    const stage3 = Number(row.stage3ECL || 0);
+                    const stage1Count = Number(row.stage1Count || 0);
+                    const stage2Count = Number(row.stage2Count || 0);
+                    const stage3Count = Number(row.stage3Count || 0);
 
                     return {
-                        totalECL: 0,
-                        stage1ECL: 0,
-                        stage2ECL: 0,
-                        stage3ECL: 0,
-                        totalPortfolio: totalExposure,
-                        totalExposure: totalExposure,
-                        totalAccounts: count,
-                        activeAccounts: count,
-                        eclRate: 0,
-                        impairedRatio: 0,
-                        coverageRatio: 0,
-                        lastUpdated: masterDate,
-                        currency: 'IDR',
-                        isFallback: true
+                        data: {
+                            totalECL,
+                            stage1ECL: stage1,
+                            stage2ECL: stage2,
+                            stage3ECL: stage3,
+                            stage1Count,
+                            stage2Count,
+                            stage3Count,
+                            totalPortfolio,
+                            totalExposure: totalPortfolio,
+                            totalAccounts: count,
+                            activeAccounts: count,
+                            eclRate: totalPortfolio > 0 ? (totalECL / totalPortfolio) * 100 : 0,
+                            impairedRatio: totalPortfolio > 0 ? (stage3 / totalPortfolio) : 0,
+                            coverageRatio: totalPortfolio > 0 ? (totalECL / totalPortfolio) : 0,
+                            lastUpdated: isAllPeriods ? 'Cumulative Grand Total (All Periods)' : (prcDate || 'No data'),
+                            currency: 'IDR',
+                            isFallback: false,
+                        },
+                        debug: this.buildSummaryDebug(
+                            'public.frs9_ecl_summary',
+                            requestedDate,
+                            isAllPeriods ? 'all' : prcDate,
+                            mode,
+                            segmentIds,
+                            `select sum(ecl_final_amt) as total_ecl, sum(outstanding) as total_exposure, sum(noa) as total_accounts, sum(case when lower(trim(stage)) in ('1','stage 1','stage1') then ecl_final_amt else 0 end) as stage1_ecl, sum(case when lower(trim(stage)) in ('2','stage 2','stage2') then ecl_final_amt else 0 end) as stage2_ecl, sum(case when lower(trim(stage)) in ('3','stage 3','stage3') then ecl_final_amt else 0 end) as stage3_ecl from public.frs9_ecl_summary${!isAllPeriods && prcDate ? ' where prc_date = :effectiveDate' : ''}${hasSegmentFilter ? `${!isAllPeriods && prcDate ? ' and' : (!isAllPeriods ? ' where' : ' where')} segment_id in (...)` : ''}`,
+                            [
+                                'Dashboard summary widgets are sourced from frs9_ecl_summary only.',
+                                'Active Accounts currently mirrors totalAccounts.',
+                                'High Risk card on UI uses stage3ECL amount, not stage3Count.',
+                                'ECL Distribution chart derives from stage1ECL/stage2ECL/stage3ECL.',
+                            ],
+                        ),
                     };
-                } catch (error: any) {
-                    if (!this.isLegacySchemaError(error)) throw error
                 }
+            } catch (error: any) {
+                if (!this.isLegacySchemaError(error)) throw error;
             }
 
-            // 3. FINAL FALLBACK: No data at all
-            console.warn('❌ No data found in Result or Master Account tables');
             return {
-                totalECL: 0,
-                stage1ECL: 0,
-                stage2ECL: 0,
-                stage3ECL: 0,
-                totalPortfolio: 0,
-                totalExposure: 0,
-                totalAccounts: 0,
-                activeAccounts: 0,
-                eclRate: 0,
-                impairedRatio: 0,
-                coverageRatio: 0,
-                lastUpdated: 'No data',
-                currency: 'IDR',
-                isFallback: true
-            };
-
-        } catch (error: any) {
-            console.error('❌ Error fetching calculation summary:', error);
-            if (this.isLegacySchemaError(error)) {
-                return {
+                data: {
                     totalECL: 0,
                     stage1ECL: 0,
                     stage2ECL: 0,
                     stage3ECL: 0,
+                    stage1Count: 0,
+                    stage2Count: 0,
+                    stage3Count: 0,
                     totalPortfolio: 0,
                     totalExposure: 0,
                     totalAccounts: 0,
@@ -389,9 +366,52 @@ export class Ifrs9CalculationsService {
                     eclRate: 0,
                     impairedRatio: 0,
                     coverageRatio: 0,
-                    lastUpdated: 'No data',
+                    lastUpdated: prcDate || requestedDate || 'No data',
                     currency: 'IDR',
-                    isFallback: true
+                    isFallback: false,
+                },
+                debug: this.buildSummaryDebug(
+                    'public.frs9_ecl_summary',
+                    requestedDate,
+                    isAllPeriods ? 'all' : prcDate,
+                    mode,
+                    segmentIds,
+                    `select sum(ecl_final_amt) as total_ecl, sum(outstanding) as total_exposure, sum(noa) as total_accounts, sum(case when stage = '3' then ecl_final_amt else 0 end) as stage3_ecl from public.frs9_ecl_summary${!isAllPeriods && prcDate ? ' where prc_date = :effectiveDate' : ''}${hasSegmentFilter ? `${!isAllPeriods && prcDate ? ' and' : (!isAllPeriods ? ' where' : ' where')} segment_id in (...)` : ''}`,
+                    ['No rows were found in frs9_ecl_summary for the current filter scope.'],
+                ),
+            };
+        } catch (error: any) {
+            console.error('❌ Error fetching calculation summary:', error);
+            if (this.isLegacySchemaError(error)) {
+                return {
+                    data: {
+                        totalECL: 0,
+                        stage1ECL: 0,
+                        stage2ECL: 0,
+                        stage3ECL: 0,
+                        stage1Count: 0,
+                        stage2Count: 0,
+                        stage3Count: 0,
+                        totalPortfolio: 0,
+                        totalExposure: 0,
+                        totalAccounts: 0,
+                        activeAccounts: 0,
+                        eclRate: 0,
+                        impairedRatio: 0,
+                        coverageRatio: 0,
+                        lastUpdated: 'No data',
+                        currency: 'IDR',
+                        isFallback: false,
+                    },
+                    debug: this.buildSummaryDebug(
+                        'public.frs9_ecl_summary',
+                        requestedDate,
+                        undefined,
+                        mode,
+                        [],
+                        'Legacy schema error prevented frs9_ecl_summary query resolution.',
+                        ['No summary rows were returned because frs9_ecl_summary could not be queried.'],
+                    ),
                 };
             }
             throw new Error(error.message || 'Failed to fetch calculation summary from database');
@@ -713,72 +733,62 @@ export class Ifrs9CalculationsService {
         }
     }
 
-    async getPortfolioTrend(tenantId: string, endDate?: string, _mode?: string) {
+    async getPortfolioTrend(tenantId: string, endDate?: string, _mode?: string): Promise<DashboardTrendPayload> {
         try {
             const normalizedEndDate = typeof endDate === 'string' ? endDate.trim() : undefined;
             const hasDateLimit = Boolean(normalizedEndDate && normalizedEndDate !== 'all');
+            const stage1Values = ['1', 'stage 1', 'stage1'];
+            const stage2Values = ['2', 'stage 2', 'stage2'];
+            const stage3Values = ['3', 'stage 3', 'stage3'];
+            const segmentIds = _mode ? await this.getSegmentIdsForMode(_mode) : [];
+            const hasSegmentFilter = segmentIds.length > 0;
 
-            // 1. Try Result Table first - Get ECL by stage over time
+            // 1. Query summary table only - aggregated ECL by stage over time
             let trend: any[] = []
+            let selectedSource = 'public.frs9_ecl_summary'
+            let sqlPreview = `select prc_date, sum(ecl_final_amt) as total_ecl, sum(outstanding) as total_portfolio from public.frs9_ecl_summary${hasDateLimit ? ' where date(prc_date) <= :endDate' : ''}${hasSegmentFilter ? `${hasDateLimit ? ' and' : ' where'} segment_id in (...)` : ''} group by prc_date order by prc_date desc limit 12`;
             try {
                 const trendQuery = legacyDb
                     .select({
-                        date: frs9ImpCaResultH.prcDate,
-                        stage1: sql<number>`sum(CASE WHEN cast(${frs9ImpCaResultH.stage} as int) = 1 THEN ${frs9ImpCaResultH.eclAmount} ELSE 0 END)`,
-                        stage2: sql<number>`sum(CASE WHEN cast(${frs9ImpCaResultH.stage} as int) = 2 THEN ${frs9ImpCaResultH.eclAmount} ELSE 0 END)`,
-                        stage3: sql<number>`sum(CASE WHEN cast(${frs9ImpCaResultH.stage} as int) = 3 THEN ${frs9ImpCaResultH.eclAmount} ELSE 0 END)`,
-                        totalECL: sql<number>`sum(${frs9ImpCaResultH.eclAmount})`,
-                        totalPortfolio: sql<number>`sum(${frs9ImpCaResultH.outstanding})`
+                        date: frs9EclSummary.prcDate,
+                        stage1: sql<number>`sum(CASE WHEN lower(trim(${frs9EclSummary.stage})) in (${sql.join(stage1Values.map((value) => sql`${value}`), sql`, `)}) THEN ${frs9EclSummary.eclFinalAmt} ELSE 0 END)`,
+                        stage2: sql<number>`sum(CASE WHEN lower(trim(${frs9EclSummary.stage})) in (${sql.join(stage2Values.map((value) => sql`${value}`), sql`, `)}) THEN ${frs9EclSummary.eclFinalAmt} ELSE 0 END)`,
+                        stage3: sql<number>`sum(CASE WHEN lower(trim(${frs9EclSummary.stage})) in (${sql.join(stage3Values.map((value) => sql`${value}`), sql`, `)}) THEN ${frs9EclSummary.eclFinalAmt} ELSE 0 END)`,
+                        totalECL: sql<number>`sum(${frs9EclSummary.eclFinalAmt})`,
+                        totalPortfolio: sql<number>`sum(${frs9EclSummary.outstanding})`
                     })
-                    .from(frs9ImpCaResultH);
+                    .from(frs9EclSummary);
 
                 if (hasDateLimit) {
-                    trendQuery.where(sql`date(${frs9ImpCaResultH.prcDate}) <= ${normalizedEndDate}`);
+                    trendQuery.where(and(
+                        sql`date(${frs9EclSummary.prcDate}) <= ${normalizedEndDate}`,
+                        hasSegmentFilter ? inArray(frs9EclSummary.segmentId, segmentIds) : sql`true`
+                    ));
+                } else if (hasSegmentFilter) {
+                    trendQuery.where(inArray(frs9EclSummary.segmentId, segmentIds));
                 }
 
                 trend = await trendQuery
-                    .groupBy(frs9ImpCaResultH.prcDate)
-                    .orderBy(desc(frs9ImpCaResultH.prcDate))
+                    .groupBy(frs9EclSummary.prcDate)
+                    .orderBy(desc(frs9EclSummary.prcDate))
                     .limit(12);
             } catch (error: any) {
                 if (!this.isLegacySchemaError(error)) throw error
                 trend = []
             }
 
-            // 2. Fallback to Master Account if Result table is empty
             if (!trend || trend.length === 0) {
-                console.log('📉 No trend data in Result table, falling back to Master Account...');
-                try {
-                    const masterTrendQuery = legacyDb
-                        .select({
-                            date: frs9MasterAccount.prcDate,
-                            value: sql<number>`sum(${frs9MasterAccount.outstanding})`
-                        })
-                        .from(frs9MasterAccount);
-
-                    if (hasDateLimit) {
-                        masterTrendQuery.where(sql`date(${frs9MasterAccount.prcDate}) <= ${normalizedEndDate}`);
-                    }
-
-                    trend = (await masterTrendQuery
-                        .groupBy(frs9MasterAccount.prcDate)
-                        .orderBy(desc(frs9MasterAccount.prcDate))
-                        .limit(12)).map(t => ({
-                            date: t.date,
-                            stage1: 0,
-                            stage2: 0,
-                            stage3: 0,
-                            totalECL: 0,
-                            totalPortfolio: Number(t.value || 0)
-                        })) as any;
-                } catch (error: any) {
-                    if (!this.isLegacySchemaError(error)) throw error
-                    trend = []
-                }
-            }
-
-            if (!trend || trend.length === 0) {
-                return [];
+                return {
+                    data: [],
+                    debug: this.buildTrendDebug(
+                        selectedSource,
+                        normalizedEndDate,
+                        _mode,
+                        segmentIds,
+                        sqlPreview,
+                        ['No trend rows were found in frs9_ecl_summary for the current filter scope.'],
+                    ),
+                };
             }
 
             // Reverse to show chronological order
@@ -801,10 +811,32 @@ export class Ifrs9CalculationsService {
             });
 
             console.log(`✅ Portfolio trend loaded: ${formattedTrend.length} periods`);
-            return formattedTrend;
+            return {
+                data: formattedTrend,
+                debug: this.buildTrendDebug(
+                    selectedSource,
+                    normalizedEndDate,
+                    _mode,
+                    segmentIds,
+                    sqlPreview,
+                    ['Portfolio Exposure Trend chart uses totalPortfolio per period.'],
+                ),
+            };
         } catch (error: any) {
             console.error('❌ Error fetching portfolio trend:', error);
-            if (this.isLegacySchemaError(error)) return []
+            if (this.isLegacySchemaError(error)) {
+                return {
+                    data: [],
+                    debug: this.buildTrendDebug(
+                        'none',
+                        endDate,
+                        _mode,
+                        [],
+                        'Legacy schema error prevented frs9_ecl_summary trend query resolution.',
+                        ['No trend rows were returned because frs9_ecl_summary could not be queried.'],
+                    ),
+                };
+            }
             throw new Error(error.message || 'Failed to fetch portfolio trend from database');
         }
     }
@@ -850,7 +882,7 @@ export class Ifrs9CalculationsService {
     }
     async getAvailableDates(tenantId: string, mode?: string, groupBy?: string) {
         try {
-            console.log(`📅 Fetching available process dates from all sources [Mode: ${mode || 'all'}]...`);
+            console.log(`📅 Fetching available dashboard dates from frs9_ecl_summary [Mode: ${mode || 'all'}]...`);
             
             const segmentIds = mode ? await this.getSegmentIdsForMode(mode) : [];
             const hasSegmentFilter = segmentIds.length > 0;
@@ -866,64 +898,27 @@ export class Ifrs9CalculationsService {
                 return null
             }
 
-            let prcDateRows: Array<{ currdate: unknown }> = []
-            let masterDateRows: Array<{ date: unknown }> = []
-            let resultDateRows: Array<{ date: unknown }> = []
+            let summaryDateRows: Array<{ date: unknown }> = []
 
             try {
-                prcDateRows = await legacyDb
-                    .select({ currdate: frs9PrcDate.currdate })
-                    .from(frs9PrcDate)
-                    .orderBy(desc(frs9PrcDate.currdate))
+                const baseSummaryQuery = legacyDb
+                    .select({ date: frs9EclSummary.prcDate })
+                    .from(frs9EclSummary)
+
+                const summaryQuery = hasSegmentFilter
+                    ? baseSummaryQuery.where(inArray(frs9EclSummary.segmentId, segmentIds))
+                    : baseSummaryQuery
+
+                summaryDateRows = await summaryQuery.groupBy(frs9EclSummary.prcDate)
             } catch (err: any) {
-                console.warn('⚠️ frs9_prc_date not available:', err?.message || err)
+                console.warn('⚠️ frs9_ecl_summary not available:', err?.message || err)
             }
 
-            try {
-                const baseMasterQuery = legacyDb
-                    .select({ date: frs9MasterAccount.prcDate })
-                    .from(frs9MasterAccount)
-
-                const masterQuery = hasSegmentFilter
-                    ? baseMasterQuery.where(inArray(frs9MasterAccount.segmentId, segmentIds))
-                    : baseMasterQuery
-
-                masterDateRows = await masterQuery.groupBy(frs9MasterAccount.prcDate)
-            } catch (err: any) {
-                console.warn('⚠️ frs9_master_account not available:', err?.message || err)
-            }
-
-            try {
-                const baseResultQuery = legacyDb
-                    .select({ date: frs9ImpCaResultH.prcDate })
-                    .from(frs9ImpCaResultH)
-
-                const resultQuery = hasSegmentFilter
-                    ? baseResultQuery.where(inArray(frs9ImpCaResultH.segmentId, segmentIds))
-                    : baseResultQuery
-
-                resultDateRows = await resultQuery.groupBy(frs9ImpCaResultH.prcDate)
-            } catch (err: any) {
-                console.warn('⚠️ frs9_imp_ca_result_h not available:', err?.message || err)
-            }
-
-            // Collect all unique dates
+            // Collect all unique dates from summary only
             const allDates = new Set<string>();
 
-            // Process frs9_prc_date
-            prcDateRows.forEach(r => {
-                const normalized = normalizeDate(r.currdate)
-                if (normalized) allDates.add(normalized)
-            });
-
-            // Process frs9_master_account
-            masterDateRows.forEach(r => {
-                const normalized = normalizeDate(r.date)
-                if (normalized) allDates.add(normalized)
-            });
-
-            // Process frs9_imp_ca_result_h
-            resultDateRows.forEach(r => {
+            // Process frs9_ecl_summary
+            summaryDateRows.forEach(r => {
                 const normalized = normalizeDate(r.date)
                 if (normalized) allDates.add(normalized)
             });
@@ -933,7 +928,7 @@ export class Ifrs9CalculationsService {
                 return new Date(b).getTime() - new Date(a).getTime();
             });
 
-            console.log(`✅ Consolidated available dates: ${sortedDates.length} unique dates found across all tables`);
+            console.log(`✅ Dashboard available dates: ${sortedDates.length} unique dates found in frs9_ecl_summary`);
 
             if (groupBy === 'year') {
                 const byYear: Record<string, string[]> = {}

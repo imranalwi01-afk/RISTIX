@@ -57,13 +57,16 @@ export const BankingAppBar: React.FC<BankingAppBarProps> = ({
             <AppBar
                 position="fixed"
                 sx={{
-                    width: { md: `calc(100% - ${drawerWidth}px)` },
-                    ml: { md: `${drawerWidth}px` },
+                    left: { md: `${drawerWidth}px` },
+                    right: 0,
+                    width: { md: 'auto' },
+                    maxWidth: '100vw',
                     background: colorMode === 'dark' ? 'rgba(15, 23, 42, 0.75)' : 'rgba(255, 255, 255, 0.85)',
                     backdropFilter: 'blur(16px)',
                     borderBottom: `1px solid ${colorMode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'}`,
                     boxShadow: theme.shadows[1],
                     zIndex: theme.zIndex.drawer + 1,
+                    overflow: 'hidden',
                     transition: theme.transitions.create(['width', 'margin'], {
                         easing: theme.transitions.easing.sharp,
                         duration: theme.transitions.duration.leavingScreen,
@@ -74,7 +77,9 @@ export const BankingAppBar: React.FC<BankingAppBarProps> = ({
                     sx={{
                         minHeight: `${appBarHeight}px !important`,
                         height: appBarHeight,
-                        px: 2
+                        px: 2,
+                        minWidth: 0,
+                        overflow: 'hidden',
                     }}
                     disableGutters
                 >
@@ -111,7 +116,7 @@ export const BankingAppBar: React.FC<BankingAppBarProps> = ({
                     </Tooltip>
 
                     {/* Title */}
-                    <Box sx={{ flexGrow: 1 }}>
+                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                         <Typography
                             variant="h6"
                             noWrap

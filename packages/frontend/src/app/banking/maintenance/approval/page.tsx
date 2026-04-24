@@ -49,6 +49,15 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { bankingAPI } from '@/services/api';
 import { useAuth } from '@/providers/AuthProvider';
 import { getErrorMessage } from '@/utils/error-message';
+import { useEnterpriseTableQuery } from '@/hooks/useEnterpriseTableQuery';
+import { useSavedTableView } from '@/hooks/useSavedTableView';
+import {
+  useApprovalMatricesQuery,
+  useApprovalRequestsQuery,
+  useApprovalRoutingQuery,
+  useApprovalStatistics,
+  useApprovalUniverseQuery,
+} from '@/features/approval/hooks/useApprovalQueries';
 import { ApprovalActionDialog, ApprovalMatrixEditorDialog } from '@/components/approval';
 import { ApprovalRequestList } from './components/ApprovalRequestList';
 import { ApprovalStatisticsPanel } from './components/ApprovalStatisticsPanel';
@@ -64,6 +73,7 @@ import {
   ApprovalOperation,
   RequestRoutingMatch,
 } from './types';
+import type { EnterpriseColumnFilterValue, EnterpriseFilterDefinition, EnterpriseSort } from '@/types/enterprise-table';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -120,6 +130,95 @@ const matchesApprovalSearch = (request: ApprovalRequest, rawSearchTerm: string):
   ]
     .filter((value): value is string => typeof value === 'string' && value.length > 0)
     .some((value) => value.toLowerCase().includes(searchLower));
+};
+
+const normalizeApprovalFilterValue = (value: EnterpriseColumnFilterValue): string => {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
+  if (Array.isArray(value)) return value.join(' ');
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+};
+
+const mapApprovalGridFiltersToBackend = (
+  filters: Record<string, EnterpriseColumnFilterValue>,
+): Record<string, EnterpriseColumnFilterValue> => {
+  const mapped: Record<string, EnterpriseColumnFilterValue> = {};
+
+  Object.entries(filters).forEach(([field, value]) => {
+    if (normalizeApprovalFilterValue(value).trim().length === 0) return;
+
+    if (field.startsWith('requestedAt.')) {
+      mapped[field.replace('requestedAt.', 'createdAt.')] = value;
+      return;
+    }
+    if (field === 'priority') {
+      mapped.impactLevel = value;
+      return;
+    }
+    if (field === 'requestType') {
+      mapped.entityType = value;
+      return;
+    }
+    if (field === 'level') {
+      mapped.currentLevel = value;
+      return;
+    }
+
+    mapped[field] = value;
+  });
+
+  return mapped;
+};
+
+const transformApprovalRequest = (req: any): ApprovalRequest => ({
+  ...req,
+  requestTitle: req.title || req.requestTitle || 'Untitled Request',
+  requestType: req.entityType || req.requestType || 'unknown',
+  priority: req.impactLevel || req.priority || 'medium',
+  dueDate: req.expiresAt || req.dueDate,
+  requestedAt: req.createdAt || req.requestedAt || new Date().toISOString(),
+  completedAt: req.completedAt || req.completed_at,
+  requestedByName: getRequestedByDisplay(req),
+  bankingType: req.matrix?.bankingMode || req.bankingType || req.requestData?.bankingType || 'conventional',
+  riskLevel: req.riskLevel || req.requestData?.riskLevel || 'medium',
+  approvalsRequired: req.approvalsRequired || 1,
+  approvalsReceived: req.approvalsReceived || 0,
+  currentApprovers: req.currentApprovers || [],
+  status: String(req.status || 'pending').toLowerCase(),
+});
+
+const buildApprovalRequestParams = (input: {
+  page?: number;
+  limit: number;
+  searchTerm: string;
+  statusFilter: string;
+  priorityFilter: string;
+  bankingTypeFilter: string;
+  requestTypeFilter: string;
+  levelFilter: string;
+  riskLevelFilter: string;
+  columnFilters?: Record<string, EnterpriseColumnFilterValue>;
+  sort?: EnterpriseSort[];
+}) => {
+  const filters: Record<string, EnterpriseColumnFilterValue> = {
+    ...mapApprovalGridFiltersToBackend(input.columnFilters ?? {}),
+  };
+
+  if (input.statusFilter !== 'all') filters.status = input.statusFilter;
+  if (input.priorityFilter !== 'all') filters.impactLevel = input.priorityFilter;
+  if (input.bankingTypeFilter !== 'all') filters.bankingType = input.bankingTypeFilter;
+  if (input.requestTypeFilter !== 'all') filters.entityType = input.requestTypeFilter;
+  if (input.levelFilter !== 'all') filters.currentLevel = input.levelFilter;
+  if (input.riskLevelFilter !== 'all') filters.riskLevel = input.riskLevelFilter;
+
+  return {
+    page: input.page,
+    limit: input.limit,
+    search: input.searchTerm || undefined,
+    filters: Object.keys(filters).length > 0 ? JSON.stringify(filters) : undefined,
+    sort: input.sort && input.sort.length > 0 ? JSON.stringify(input.sort) : undefined,
+  };
 };
 
 
@@ -265,14 +364,12 @@ export default function ApprovalManagementPage() {
 
   // State management
   const [activeTab, setActiveTab] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [approvalRequests, setApprovalRequests] = useState<ApprovalRequest[]>([]);
+  const [approvalRowCount, setApprovalRowCount] = useState(0);
+  const [approvalUniverse, setApprovalUniverse] = useState<ApprovalRequest[]>([]);
+  const [approvalFilterDefinitions, setApprovalFilterDefinitions] = useState<Record<string, EnterpriseFilterDefinition>>({});
   const [approvalMatrices, setApprovalMatrices] = useState<ApprovalMatrix[]>([]);
   const [approvalRouting, setApprovalRouting] = useState<ApprovalRoutingItem[]>([]);
-  const [matricesLoading, setMatricesLoading] = useState(false);
-  const [routingLoading, setRoutingLoading] = useState(false);
-  const [statistics, setStatistics] = useState<ApprovalStatistics | null>(null);
-  const [filteredRequests, setFilteredRequests] = useState<ApprovalRequest[]>([]);
 
   // Filter and search state
   const [searchTerm, setSearchTerm] = useState('');
@@ -316,6 +413,86 @@ export default function ApprovalManagementPage() {
     message: '',
     severity: 'success' as 'success' | 'error' | 'info' | 'warning'
   });
+  const {
+    queryState,
+    setPaginationModel,
+    setColumnFilters,
+    setSort,
+    setColumnVisibilityModel,
+    setDensity,
+    applySavedView,
+    toSavedViewState,
+    resetView,
+  } = useEnterpriseTableQuery({
+    pageKey: 'approval:requests',
+    paginationMode: 'offset',
+    initialPageSize: 10,
+    syncUrl: false,
+  });
+  const savedView = useSavedTableView({
+    userId: user?.id,
+    scope: 'approval:requests',
+    enabled: Boolean(user?.id),
+    onApplyView: (view) => {
+      applySavedView(view);
+      const savedSearch = typeof view.state.search === 'string' ? view.state.search : '';
+      const savedFilters = (view.state.filters ?? {}) as Record<string, unknown>;
+
+      setSearchTerm(savedSearch);
+      setStatusFilter(typeof savedFilters.status === 'string' ? savedFilters.status : 'all');
+      setPriorityFilter(typeof savedFilters.priority === 'string' ? savedFilters.priority : 'all');
+      setBankingTypeFilter(typeof savedFilters.bankingType === 'string' ? savedFilters.bankingType : 'all');
+      setRequestTypeFilter(typeof savedFilters.requestType === 'string' ? savedFilters.requestType : 'all');
+      setLevelFilter(typeof savedFilters.level === 'string' ? savedFilters.level : 'all');
+      setRiskLevelFilter(typeof savedFilters.riskLevel === 'string' ? savedFilters.riskLevel : 'all');
+    },
+  });
+  const requestQueryInput = useMemo(() => ({
+    page: queryState.paginationModel.page + 1,
+    limit: queryState.paginationModel.pageSize,
+    searchTerm,
+    statusFilter,
+    priorityFilter,
+    bankingTypeFilter,
+    requestTypeFilter,
+    levelFilter,
+    riskLevelFilter,
+    columnFilters: queryState.columnFilters,
+    sort: queryState.sort,
+  }), [
+    bankingTypeFilter,
+    levelFilter,
+    priorityFilter,
+    queryState.columnFilters,
+    queryState.paginationModel.page,
+    queryState.paginationModel.pageSize,
+    queryState.sort,
+    requestTypeFilter,
+    riskLevelFilter,
+    searchTerm,
+    statusFilter,
+  ]);
+  const approvalRequestsQuery = useApprovalRequestsQuery(requestQueryInput);
+  const approvalUniverseQuery = useApprovalUniverseQuery({
+    limit: 200,
+    searchTerm,
+    statusFilter,
+    priorityFilter,
+    bankingTypeFilter,
+    requestTypeFilter,
+    levelFilter,
+    riskLevelFilter,
+  });
+  const approvalMatricesQuery = useApprovalMatricesQuery();
+  const approvalRoutingQuery = useApprovalRoutingQuery({
+    entityType: routingEntityFilter !== 'all' ? routingEntityFilter : undefined,
+    operation: routingOperationFilter !== 'all' ? routingOperationFilter : undefined,
+    department: routingDepartmentFilter.trim() || undefined,
+  });
+  const loading = approvalRequestsQuery.isLoading || approvalRequestsQuery.isFetching;
+  const matricesLoading = approvalMatricesQuery.isLoading || approvalMatricesQuery.isFetching;
+  const routingLoading = approvalRoutingQuery.isLoading || approvalRoutingQuery.isFetching;
+  const statistics = useApprovalStatistics(approvalUniverse);
 
   const getDeepLinkedRowSx = ({ id }: { id: string | number }) => {
     if (!deepLinkedRequestId || String(id) !== deepLinkedRequestId) {
@@ -357,321 +534,164 @@ export default function ApprovalManagementPage() {
   const showSnackbar = useCallback((message: string, severity: 'success' | 'error' | 'info' | 'warning') => {
     setSnackbar({ open: true, message, severity });
   }, []);
-
   const loadApprovalRequests = useCallback(async () => {
-    try {
-      setLoading(true);
+    await approvalRequestsQuery.refetch();
+  }, [approvalRequestsQuery]);
 
-      // Fetch both pending and history to get a full picture
-      // In a real app we might separate these calls or have a unified list endpoint
-      // For now we use getApprovalHistory to list all requests visible to tenant
-      const response = await bankingAPI.approval.getApprovalHistory();
-
-      console.log('Approval response:', response);
-
-      // Handle different response formats
-      let requestsData: any[] = [];
-      if (Array.isArray(response)) {
-        requestsData = response;
-      } else if (response && Array.isArray(response.data)) {
-        requestsData = response.data;
-      } else if (response && response.requests && Array.isArray(response.requests)) {
-        requestsData = response.requests;
-      } else {
-        console.warn('Unexpected response format:', response);
-        requestsData = [];
-      }
-
-      // Transform backend data to frontend model
-      const requests = requestsData.map((req: any) => ({
-        ...req,
-        // UI Mappings
-        requestTitle: req.title || req.requestTitle || 'Untitled Request',
-        requestType: req.entityType || req.requestType || 'unknown',
-        priority: req.impactLevel || req.priority || 'medium',
-        dueDate: req.expiresAt || req.dueDate,
-        requestedAt: req.createdAt || req.requestedAt || new Date().toISOString(),
-        completedAt: req.completedAt || req.completed_at,
-        // Placeholders/Joins
-        requestedByName: getRequestedByDisplay(req),
-        bankingType: req.matrix?.bankingMode || req.bankingType || 'conventional',
-        // Ensure required fields have defaults
-        approvalsRequired: req.approvalsRequired || 1,
-        approvalsReceived: req.approvalsReceived || 0,
-        currentApprovers: req.currentApprovers || [],
-        status: String(req.status || 'pending').toLowerCase()
-      }));
-
-      setApprovalRequests(requests);
-      setFilteredRequests(requests);
-      calculateStatistics(requests);
-    } catch (error) {
-      console.error('Error loading approval requests:', error);
-      showSnackbar(getErrorMessage(error, 'Failed to load approval requests.'), 'error');
-      // Set empty data on error
-      setApprovalRequests([]);
-      setFilteredRequests([]);
-      calculateStatistics([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [showSnackbar]);
-
-  const calculateStatistics = (requests: ApprovalRequest[]) => {
-    const total = requests.length;
-    const pending = requests.filter(r => r.status === 'pending').length;
-    const approved = requests.filter(r => r.status === 'approved').length;
-    const rejected = requests.filter(r => r.status === 'rejected').length;
-    const overdue = requests.filter(r => r.expiresAt && new Date(r.expiresAt) < new Date() && r.status === 'pending').length;
-    const infoRequested = requests.filter(r => r.status === 'info_requested').length;
-    const delegated = requests.filter(r => r.status === 'delegated').length;
-    const criticalPending = requests.filter(r => r.status === 'pending' && r.priority === 'critical').length;
-
-    const completedRequests = requests.filter(
-      (r) => r.completedAt && ['approved', 'rejected', 'completed', 'cancelled'].includes(r.status)
-    );
-    const totalApprovalTimeMs = completedRequests.reduce((sum, request) => {
-      const startedAt = new Date(request.requestedAt).getTime();
-      const completedAt = request.completedAt ? new Date(request.completedAt).getTime() : startedAt;
-      if (Number.isNaN(startedAt) || Number.isNaN(completedAt) || completedAt < startedAt) return sum;
-      return sum + (completedAt - startedAt);
-    }, 0);
-    const avgTime = completedRequests.length > 0
-      ? Number((totalApprovalTimeMs / completedRequests.length / (1000 * 60 * 60 * 24)).toFixed(1))
-      : 0;
-
-    const pendingByLevel = Array.from(
-      requests
-        .filter((request) => request.status === 'pending' && typeof request.currentLevel === 'number')
-        .reduce((map, request) => {
-          const level = request.currentLevel as number;
-          map.set(level, (map.get(level) || 0) + 1);
-          return map;
-        }, new Map<number, number>())
-        .entries()
-    )
-      .map(([level, count]) => ({ level, count }))
-      .sort((a, b) => a.level - b.level);
-
-    const byRequestType = Array.from(
-      requests.reduce((map, request) => {
-        const key = request.requestType || 'unknown';
-        map.set(key, (map.get(key) || 0) + 1);
-        return map;
-      }, new Map<string, number>()).entries()
-    )
-      .map(([requestType, count]) => ({ requestType, count }))
-      .sort((a, b) => b.count - a.count);
-
-    setStatistics({
-      totalRequests: total,
-      pendingRequests: pending,
-      approvedRequests: approved,
-      rejectedRequests: rejected,
-      averageApprovalTime: avgTime,
-      overdueRequests: overdue,
-      infoRequestedRequests: infoRequested,
-      delegatedRequests: delegated,
-      criticalPendingRequests: criticalPending,
-      uniqueRequestTypes: byRequestType.length,
-      pendingByLevel,
-      byRequestType,
-    });
-  };
-
-  const loadStatistics = async () => {
-    // Deprecated: Statistics now calculated from loadApprovalRequests
-  };
+  const loadApprovalUniverse = useCallback(async () => {
+    await approvalUniverseQuery.refetch();
+  }, [approvalUniverseQuery]);
 
   const loadApprovalMatrices = useCallback(async () => {
-    try {
-      setMatricesLoading(true);
-      const response = await bankingAPI.approval.getMatrices();
+    await approvalMatricesQuery.refetch();
+  }, [approvalMatricesQuery]);
 
-      const rawMatrices = Array.isArray(response)
-        ? response
-        : Array.isArray(response?.data)
-          ? response.data
-          : Array.isArray(response?.matrices)
-            ? response.matrices
-            : [];
+  const loadApprovalRouting = useCallback(async () => {
+    await approvalRoutingQuery.refetch();
+  }, [approvalRoutingQuery]);
 
-      const mappedMatrices: ApprovalMatrix[] = rawMatrices.map((matrix: any) => ({
-        id: String(matrix.id),
-        name: String(matrix.name || 'Unnamed Matrix'),
-        description: matrix.description ?? null,
-        entityType: String(matrix.entityType || matrix.entity_type || 'unknown'),
-        operationType: matrix.operationType || matrix.operation_type || null,
-        bankingMode: matrix.bankingMode || matrix.banking_mode || null,
-        isActive: matrix.isActive ?? matrix.is_active ?? true,
-        syariahBoardRequired: matrix.syariahBoardRequired ?? matrix.syariah_board_required ?? false,
-        autoApprovalRules: matrix.autoApprovalRules ?? matrix.auto_approval_rules ?? null,
-        levels: Array.isArray(matrix.levels)
-          ? matrix.levels.map((level: any) => {
-            const levelRecord = (level ?? {}) as Record<string, unknown>;
-            const requiredCountRaw = levelRecord.requiredCount ?? levelRecord.required_count;
-            const timeoutHoursRaw = levelRecord.timeoutHours ?? levelRecord.timeout_hours;
-
-            return {
-              level: Number(levelRecord.level || 0),
-              name: String(levelRecord.name || `Level ${levelRecord.level || '-'}`),
-              requiredRoleCodes: Array.isArray(levelRecord.requiredRoleCodes)
-                ? levelRecord.requiredRoleCodes
-                : Array.isArray(levelRecord.required_role_codes)
-                  ? levelRecord.required_role_codes
-                  : Array.isArray(levelRecord.requiredRoles)
-                    ? levelRecord.requiredRoles.filter((entry: string) => typeof entry === 'string' && !entry.includes('.'))
-                    : [],
-              requiredPermissionCodes: Array.isArray(levelRecord.requiredPermissionCodes)
-                ? levelRecord.requiredPermissionCodes
-                : Array.isArray(levelRecord.required_permission_codes)
-                  ? levelRecord.required_permission_codes
-                  : Array.isArray(levelRecord.requiredRoles)
-                    ? levelRecord.requiredRoles.filter((entry: string) => typeof entry === 'string' && entry.includes('.'))
-                    : ['approval.requests.approve'],
-              requiredCount: Number(requiredCountRaw ?? 1),
-              timeoutHours: timeoutHoursRaw ?? undefined,
-            };
-          })
-          : [],
-        createdAt: String(matrix.createdAt || matrix.created_at || new Date().toISOString()),
-      }));
-
-      mappedMatrices.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setApprovalMatrices(mappedMatrices);
-    } catch (error) {
-      console.error('Error loading approval matrices:', error);
-      showSnackbar(getErrorMessage(error, 'Failed to load approval matrices.'), 'error');
-      setApprovalMatrices([]);
-    } finally {
-      setMatricesLoading(false);
+  useEffect(() => {
+    if (approvalRequestsQuery.data) {
+      setApprovalRequests(approvalRequestsQuery.data.rows as ApprovalRequest[]);
+      setApprovalRowCount(approvalRequestsQuery.data.total);
+      setApprovalFilterDefinitions(approvalRequestsQuery.data.filterDefinitions);
     }
-  }, [showSnackbar]);
+  }, [approvalRequestsQuery.data]);
 
-  const loadApprovalRouting = useCallback(async (overrides?: {
-    entityType?: string;
-    operation?: 'create' | 'update' | 'delete';
-    department?: string;
-  }) => {
-    try {
-      setRoutingLoading(true);
+  useEffect(() => {
+    if (approvalRequestsQuery.error) {
+      console.error('Error loading approval requests:', approvalRequestsQuery.error);
+      showSnackbar(getErrorMessage(approvalRequestsQuery.error, 'Failed to load approval requests.'), 'error');
+      setApprovalRequests([]);
+      setApprovalRowCount(0);
+    }
+  }, [approvalRequestsQuery.error, showSnackbar]);
 
-      const entityType = overrides?.entityType ?? (routingEntityFilter !== 'all' ? routingEntityFilter : undefined);
-      const operation = overrides?.operation ?? (routingOperationFilter !== 'all' ? routingOperationFilter : undefined);
-      const departmentRaw = overrides?.department ?? routingDepartmentFilter;
-      const department = departmentRaw?.trim() ? departmentRaw.trim() : undefined;
+  useEffect(() => {
+    if (approvalUniverseQuery.data) {
+      setApprovalUniverse(approvalUniverseQuery.data as ApprovalRequest[]);
+    }
+  }, [approvalUniverseQuery.data]);
 
-      const response = await bankingAPI.approval.getRoutingOverview({
-        entityType,
-        operation,
-        department,
-      });
+  useEffect(() => {
+    if (approvalUniverseQuery.error) {
+      console.error('Error loading approval request universe:', approvalUniverseQuery.error);
+      setApprovalUniverse([]);
+    }
+  }, [approvalUniverseQuery.error]);
 
-      const rawData = Array.isArray(response)
-        ? response
-        : Array.isArray(response?.data)
-          ? response.data
-          : [];
+  useEffect(() => {
+    if (!approvalMatricesQuery.data) return;
 
-      const mapped: ApprovalRoutingItem[] = rawData.map((item: any) => ({
-        entityType: String(item.entityType || 'unknown'),
-        operationType: String(item.operationType || 'create,update,delete'),
-        matrixId: item.matrixId ?? null,
-        matrixName: String(item.matrixName || 'Unnamed Routing'),
-        isActive: Boolean(item.isActive ?? true),
-        levels: Array.isArray(item.levels)
-          ? item.levels.map((level: any) => {
-            const levelRecord = (level ?? {}) as Record<string, unknown>;
-            const requiredCountRaw = levelRecord.requiredCount ?? levelRecord.required_count;
-            const timeoutHoursRaw = levelRecord.timeoutHours ?? levelRecord.timeout_hours;
+    const mappedMatrices: ApprovalMatrix[] = approvalMatricesQuery.data.map((matrix: any) => ({
+      id: String(matrix.id),
+      name: String(matrix.name || 'Unnamed Matrix'),
+      description: matrix.description ?? null,
+      entityType: String(matrix.entityType || matrix.entity_type || 'unknown'),
+      operationType: matrix.operationType || matrix.operation_type || null,
+      bankingMode: matrix.bankingMode || matrix.banking_mode || null,
+      isActive: matrix.isActive ?? matrix.is_active ?? true,
+      syariahBoardRequired: matrix.syariahBoardRequired ?? matrix.syariah_board_required ?? false,
+      autoApprovalRules: matrix.autoApprovalRules ?? matrix.auto_approval_rules ?? null,
+      levels: Array.isArray(matrix.levels)
+        ? matrix.levels.map((level: any) => {
+          const levelRecord = (level ?? {}) as Record<string, unknown>;
+          const requiredCountRaw = levelRecord.requiredCount ?? levelRecord.required_count;
+          const timeoutHoursRaw = levelRecord.timeoutHours ?? levelRecord.timeout_hours;
 
-            return {
-              level: Number(levelRecord.level || 0),
-              name: String(levelRecord.name || `Level ${levelRecord.level || '-'}`),
-              requiredRoleCodes: Array.isArray(levelRecord.requiredRoleCodes)
-                ? levelRecord.requiredRoleCodes
+          return {
+            level: Number(levelRecord.level || 0),
+            name: String(levelRecord.name || `Level ${levelRecord.level || '-'}`),
+            requiredRoleCodes: Array.isArray(levelRecord.requiredRoleCodes)
+              ? levelRecord.requiredRoleCodes
+              : Array.isArray(levelRecord.required_role_codes)
+                ? levelRecord.required_role_codes
                 : Array.isArray(levelRecord.requiredRoles)
                   ? levelRecord.requiredRoles.filter((entry: string) => typeof entry === 'string' && !entry.includes('.'))
                   : [],
-              requiredPermissionCodes: Array.isArray(levelRecord.requiredPermissionCodes)
-                ? levelRecord.requiredPermissionCodes
+            requiredPermissionCodes: Array.isArray(levelRecord.requiredPermissionCodes)
+              ? levelRecord.requiredPermissionCodes
+              : Array.isArray(levelRecord.required_permission_codes)
+                ? levelRecord.required_permission_codes
                 : Array.isArray(levelRecord.requiredRoles)
                   ? levelRecord.requiredRoles.filter((entry: string) => typeof entry === 'string' && entry.includes('.'))
                   : ['approval.requests.approve'],
-              requiredCount: Number(requiredCountRaw ?? 1),
-              timeoutHours: timeoutHoursRaw ? Number(timeoutHoursRaw) : undefined,
-              candidateCount: Number(levelRecord.candidateCount || 0),
-              candidates: Array.isArray(levelRecord.candidates)
-                ? levelRecord.candidates.map((candidate: any) => ({
-                  userId: String(candidate.userId || ''),
-                  fullName: String(candidate.fullName || 'Unknown User'),
-                  email: String(candidate.email || ''),
-                  department: candidate.department ?? null,
-                  position: candidate.position ?? null,
-                  roleCodes: Array.isArray(candidate.roleCodes) ? candidate.roleCodes : [],
-                }))
+            requiredCount: Number(requiredCountRaw ?? 1),
+            timeoutHours: timeoutHoursRaw ?? undefined,
+          };
+        })
+        : [],
+      createdAt: String(matrix.createdAt || matrix.created_at || new Date().toISOString()),
+    }));
+
+    mappedMatrices.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    setApprovalMatrices(mappedMatrices);
+  }, [approvalMatricesQuery.data]);
+
+  useEffect(() => {
+    if (approvalMatricesQuery.error) {
+      console.error('Error loading approval matrices:', approvalMatricesQuery.error);
+      showSnackbar(getErrorMessage(approvalMatricesQuery.error, 'Failed to load approval matrices.'), 'error');
+      setApprovalMatrices([]);
+    }
+  }, [approvalMatricesQuery.error, showSnackbar]);
+
+  useEffect(() => {
+    if (!approvalRoutingQuery.data) return;
+
+    const mapped: ApprovalRoutingItem[] = approvalRoutingQuery.data.map((item: any) => ({
+      entityType: String(item.entityType || 'unknown'),
+      operationType: String(item.operationType || 'create,update,delete'),
+      matrixId: item.matrixId ?? null,
+      matrixName: String(item.matrixName || 'Unnamed Routing'),
+      isActive: Boolean(item.isActive ?? true),
+      levels: Array.isArray(item.levels)
+        ? item.levels.map((level: any) => {
+          const levelRecord = (level ?? {}) as Record<string, unknown>;
+          const requiredCountRaw = levelRecord.requiredCount ?? levelRecord.required_count;
+          const timeoutHoursRaw = levelRecord.timeoutHours ?? levelRecord.timeout_hours;
+
+          return {
+            level: Number(levelRecord.level || 0),
+            name: String(levelRecord.name || `Level ${levelRecord.level || '-'}`),
+            requiredRoleCodes: Array.isArray(levelRecord.requiredRoleCodes)
+              ? levelRecord.requiredRoleCodes
+              : Array.isArray(levelRecord.requiredRoles)
+                ? levelRecord.requiredRoles.filter((entry: string) => typeof entry === 'string' && !entry.includes('.'))
                 : [],
-            };
-          })
-          : [],
-      }));
+            requiredPermissionCodes: Array.isArray(levelRecord.requiredPermissionCodes)
+              ? levelRecord.requiredPermissionCodes
+              : Array.isArray(levelRecord.requiredRoles)
+                ? levelRecord.requiredRoles.filter((entry: string) => typeof entry === 'string' && entry.includes('.'))
+                : ['approval.requests.approve'],
+            requiredCount: Number(requiredCountRaw ?? 1),
+            timeoutHours: timeoutHoursRaw ? Number(timeoutHoursRaw) : undefined,
+            candidateCount: Number(levelRecord.candidateCount || 0),
+            candidates: Array.isArray(levelRecord.candidates)
+              ? levelRecord.candidates.map((candidate: any) => ({
+                userId: String(candidate.userId || ''),
+                fullName: String(candidate.fullName || 'Unknown User'),
+                email: String(candidate.email || ''),
+                department: candidate.department ?? null,
+                position: candidate.position ?? null,
+                roleCodes: Array.isArray(candidate.roleCodes) ? candidate.roleCodes : [],
+              }))
+              : [],
+          };
+        })
+        : [],
+    }));
 
-      setApprovalRouting(mapped);
-    } catch (error) {
-      console.error('Error loading approval routing:', error);
-      showSnackbar(getErrorMessage(error, 'Failed to load approval routing.'), 'error');
+    setApprovalRouting(mapped);
+  }, [approvalRoutingQuery.data]);
+
+  useEffect(() => {
+    if (approvalRoutingQuery.error) {
+      console.error('Error loading approval routing:', approvalRoutingQuery.error);
+      showSnackbar(getErrorMessage(approvalRoutingQuery.error, 'Failed to load approval routing.'), 'error');
       setApprovalRouting([]);
-    } finally {
-      setRoutingLoading(false);
     }
-  }, [routingDepartmentFilter, routingEntityFilter, routingOperationFilter, showSnackbar]);
-
-  // Load data
-  useEffect(() => {
-    loadApprovalRequests();
-    loadApprovalMatrices();
-    loadApprovalRouting();
-  }, [loadApprovalMatrices, loadApprovalRequests, loadApprovalRouting]);
-
-  // Filter and search logic
-  useEffect(() => {
-    let filtered = approvalRequests;
-
-    // Apply search filter
-    if (searchTerm) {
-      filtered = filtered.filter((request) => matchesApprovalSearch(request, searchTerm));
-    }
-
-    // Apply status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(request => request.status === statusFilter);
-    }
-
-    // Apply priority filter
-    if (priorityFilter !== 'all') {
-      filtered = filtered.filter(request => request.priority === priorityFilter);
-    }
-
-    // Apply banking type filter
-    if (bankingTypeFilter !== 'all') {
-      filtered = filtered.filter(request => request.bankingType === bankingTypeFilter);
-    }
-
-    // Apply request type filter
-    if (requestTypeFilter !== 'all') {
-      filtered = filtered.filter(request => request.requestType === requestTypeFilter);
-    }
-
-    if (levelFilter !== 'all') {
-      filtered = filtered.filter((request) => String(request.currentLevel ?? 'unknown') === levelFilter);
-    }
-
-    if (riskLevelFilter !== 'all') {
-      filtered = filtered.filter((request) => (request.riskLevel || 'unknown') === riskLevelFilter);
-    }
-
-    setFilteredRequests(filtered);
-  }, [searchTerm, statusFilter, priorityFilter, bankingTypeFilter, requestTypeFilter, levelFilter, riskLevelFilter, approvalRequests]);
+  }, [approvalRoutingQuery.error, showSnackbar]);
 
   // Utility functions
   const escapeCsvValue = (value: unknown): string => {
@@ -786,28 +806,67 @@ export default function ApprovalManagementPage() {
     router.push(`/platform/rbac?${query.toString()}`);
   }, [router, showSnackbar]);
 
+  const fetchAllApprovalRowsForCurrentQuery = useCallback(async () => {
+    const pageSize = 200;
+    let page = 1;
+    let total = 0;
+    const rows: ApprovalRequest[] = [];
+
+    do {
+      const response = await bankingAPI.approval.getApprovalHistory(buildApprovalRequestParams({
+        page,
+        limit: pageSize,
+        searchTerm,
+        statusFilter,
+        priorityFilter,
+        bankingTypeFilter,
+        requestTypeFilter,
+        levelFilter,
+        riskLevelFilter,
+        columnFilters: queryState.columnFilters,
+        sort: queryState.sort,
+      }));
+
+      const chunk = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+          ? response.data
+          : [];
+
+      rows.push(...chunk.map(transformApprovalRequest));
+      total = Number(response?.pagination?.total ?? chunk.length);
+      if (chunk.length === 0) break;
+      page += 1;
+    } while (rows.length < total);
+
+    return rows;
+  }, [
+    bankingTypeFilter,
+    levelFilter,
+    priorityFilter,
+    queryState.columnFilters,
+    queryState.sort,
+    requestTypeFilter,
+    riskLevelFilter,
+    searchTerm,
+    statusFilter,
+  ]);
+
   const getHistoryRequestsForExport = (): ApprovalRequest[] => {
-    let historyRequests = approvalRequests.filter(
+    let historyRequests = approvalUniverse.filter(
       (req) => req.status === 'approved' || req.status === 'rejected' || req.status === 'completed' || req.status === 'cancelled'
     );
-
-    if (searchTerm) {
-      historyRequests = historyRequests.filter((request) => matchesApprovalSearch(request, searchTerm));
-    }
-
-    if (statusFilter !== 'all') {
-      historyRequests = historyRequests.filter((request) => request.status === statusFilter);
-    }
 
     return historyRequests;
   };
 
-  const handleExport = useCallback(() => {
+  const handleExport = useCallback(async () => {
     const dateSuffix = new Date().toISOString().slice(0, 10);
 
     if (activeTab === 0) {
+      const currentQueryRows = await fetchAllApprovalRowsForCurrentQuery();
       const headers = ['id', 'requestTitle', 'requestType', 'requestedByName', 'requestedAt', 'status', 'priority', 'approvalsReceived', 'approvalsRequired', 'dueDate'];
-      const rows = filteredRequests.map((request) => ({
+      const rows = currentQueryRows.map((request) => ({
         id: request.id,
         requestTitle: request.requestTitle,
         requestType: request.requestType,
@@ -820,7 +879,7 @@ export default function ApprovalManagementPage() {
         dueDate: request.dueDate || '',
       }));
       downloadCsv(`approval-pending-${dateSuffix}.csv`, headers, rows);
-      showSnackbar('Pending approvals exported.', 'success');
+      showSnackbar('Pending approvals exported with current table query.', 'success');
       return;
     }
 
@@ -894,14 +953,16 @@ export default function ApprovalManagementPage() {
     }
 
     showSnackbar('Export is only available for Pending, History, Approval Matrix, and Routing tabs.', 'info');
-  }, [activeTab, approvalMatrices, approvalRequests, approvalRouting, filteredRequests, searchTerm, showSnackbar, statusFilter]);
+  }, [activeTab, approvalMatrices, approvalRouting, approvalUniverse, fetchAllApprovalRowsForCurrentQuery, showSnackbar]);
 
   const handleRefresh = useCallback(() => {
-    loadApprovalRequests();
-    loadApprovalMatrices();
-    loadApprovalRouting();
-    loadStatistics();
-  }, [loadApprovalMatrices, loadApprovalRequests, loadApprovalRouting]);
+    void Promise.all([
+      loadApprovalRequests(),
+      loadApprovalUniverse(),
+      loadApprovalMatrices(),
+      loadApprovalRouting(),
+    ]);
+  }, [loadApprovalMatrices, loadApprovalRequests, loadApprovalRouting, loadApprovalUniverse]);
 
   const detailRoutingMatch = useMemo(() => {
     if (!detailDialog.request) {
@@ -912,9 +973,9 @@ export default function ApprovalManagementPage() {
   const routingEntityOptions = useMemo(() => {
     const entities = new Set<string>();
     approvalMatrices.forEach((matrix) => entities.add(matrix.entityType));
-    approvalRequests.forEach((request) => entities.add(String(request.requestType || request.entityType || '')));
+    approvalUniverse.forEach((request) => entities.add(String(request.requestType || request.entityType || '')));
     return Array.from(entities).filter(Boolean).sort();
-  }, [approvalMatrices, approvalRequests]);
+  }, [approvalMatrices, approvalUniverse]);
   const resetPendingFilters = useCallback(() => {
     setSearchTerm('');
     setStatusFilter('all');
@@ -923,26 +984,61 @@ export default function ApprovalManagementPage() {
     setRequestTypeFilter('all');
     setLevelFilter('all');
     setRiskLevelFilter('all');
-  }, []);
+    resetView();
+    setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
+  }, [queryState.paginationModel.pageSize, resetView, setPaginationModel]);
+
+  const handleSaveApprovalView = useCallback(async () => {
+    try {
+      await savedView.saveDefaultView({
+        ...toSavedViewState(),
+        search: searchTerm,
+        filters: {
+          status: statusFilter,
+          priority: priorityFilter,
+          bankingType: bankingTypeFilter,
+          requestType: requestTypeFilter,
+          level: levelFilter,
+          riskLevel: riskLevelFilter,
+        },
+      });
+      showSnackbar('Approval table view saved.', 'success');
+    } catch (error) {
+      showSnackbar(getErrorMessage(error, 'Failed to save approval table view.'), 'error');
+    }
+  }, [
+    bankingTypeFilter,
+    levelFilter,
+    priorityFilter,
+    requestTypeFilter,
+    riskLevelFilter,
+    savedView,
+    searchTerm,
+    showSnackbar,
+    statusFilter,
+    toSavedViewState,
+  ]);
+
+  const handleResetApprovalView = useCallback(async () => {
+    try {
+      await savedView.clearSavedView();
+      resetPendingFilters();
+      showSnackbar('Approval table view cleared.', 'success');
+    } catch (error) {
+      showSnackbar(getErrorMessage(error, 'Failed to clear approval table view.'), 'error');
+    }
+  }, [resetPendingFilters, savedView, showSnackbar]);
 
   const historyRequests = useMemo(() => {
-    let requests = approvalRequests.filter(
+    let requests = approvalUniverse.filter(
       (req) => req.status === 'approved' || req.status === 'rejected' || req.status === 'completed' || req.status === 'cancelled'
     );
 
-    if (searchTerm) {
-      requests = requests.filter((request) => matchesApprovalSearch(request, searchTerm));
-    }
-
-    if (statusFilter !== 'all') {
-      requests = requests.filter((request) => request.status === statusFilter);
-    }
-
     return requests;
-  }, [approvalRequests, searchTerm, statusFilter]);
+  }, [approvalUniverse]);
 
   const handleRoutingApply = useCallback(() => {
-    loadApprovalRouting();
+    void loadApprovalRouting();
   }, [loadApprovalRouting]);
 
   const handleDetailDialogClose = useCallback(() => {
@@ -1062,8 +1158,9 @@ export default function ApprovalManagementPage() {
       <Box>
         {activeTab === 0 && (
           <ApprovalRequestList
-            rows={filteredRequests}
-            allRequests={approvalRequests}
+            rows={approvalRequests}
+            allRequests={approvalUniverse}
+            rowCount={approvalRowCount}
             loading={loading}
             searchTerm={searchTerm}
             statusFilter={statusFilter}
@@ -1073,13 +1170,34 @@ export default function ApprovalManagementPage() {
             levelFilter={levelFilter}
             riskLevelFilter={riskLevelFilter}
             currentUserId={user?.id}
-            onSearchChange={setSearchTerm}
-            onStatusFilterChange={setStatusFilter}
-            onPriorityFilterChange={setPriorityFilter}
-            onBankingTypeFilterChange={setBankingTypeFilter}
-            onRequestTypeFilterChange={setRequestTypeFilter}
-            onLevelFilterChange={setLevelFilter}
-            onRiskLevelFilterChange={setRiskLevelFilter}
+            onSearchChange={(value) => {
+              setSearchTerm(value);
+              setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
+            }}
+            onStatusFilterChange={(value) => {
+              setStatusFilter(value);
+              setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
+            }}
+            onPriorityFilterChange={(value) => {
+              setPriorityFilter(value);
+              setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
+            }}
+            onBankingTypeFilterChange={(value) => {
+              setBankingTypeFilter(value);
+              setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
+            }}
+            onRequestTypeFilterChange={(value) => {
+              setRequestTypeFilter(value);
+              setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
+            }}
+            onLevelFilterChange={(value) => {
+              setLevelFilter(value);
+              setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
+            }}
+            onRiskLevelFilterChange={(value) => {
+              setRiskLevelFilter(value);
+              setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
+            }}
             onRefresh={handleRefresh}
             onResetFilters={resetPendingFilters}
             onViewDetails={handleViewDetails}
@@ -1091,6 +1209,19 @@ export default function ApprovalManagementPage() {
             getStatusColor={getStatusColor}
             getPriorityColor={getPriorityColor}
             isOverdue={isOverdue}
+            filterDefinitions={approvalFilterDefinitions}
+            paginationModel={queryState.paginationModel}
+            onPaginationModelChange={setPaginationModel}
+            columnVisibilityModel={queryState.columnVisibilityModel}
+            onColumnVisibilityModelChange={setColumnVisibilityModel}
+            density={queryState.density}
+            onDensityChange={setDensity}
+            onSaveView={handleSaveApprovalView}
+            onResetView={handleResetApprovalView}
+            columnFilters={queryState.columnFilters}
+            onColumnFiltersChange={setColumnFilters}
+            sort={queryState.sort}
+            onSortChange={setSort}
           />
         )}
         {activeTab === 1 && <ApprovalStatisticsPanel statistics={statistics} />}

@@ -1,6 +1,6 @@
 import type { Context, Next } from 'hono'
 import type { AppContext } from '../app'
-import { logAuditEvent } from '../services/audit.service'
+import { logAuditEvent, runAuditSafely } from '../services/audit.service'
 
 /**
  * Audit middleware - logs all API requests
@@ -33,7 +33,7 @@ export const auditMiddleware = async (c: Context<AppContext>, next: Next) => {
             const { eventType, action, entityType, entityId } = classifyRequest(method, path)
 
             // Log successful request
-            await logAuditEvent({
+            runAuditSafely(logAuditEvent({
                 tenantId,
                 userId,
                 eventType,
@@ -52,10 +52,7 @@ export const auditMiddleware = async (c: Context<AppContext>, next: Next) => {
                     executionTimeMs: duration,
                     riskLevel: getRiskLevel(method, path, statusCode),
                 },
-            }).catch(err => {
-                // Don't throw - audit logging should never break the main flow
-                console.error('[Audit Middleware] Failed to log request:', err)
-            })
+            }), `middleware request ${method} ${path}`)
         }
     } catch (error: any) {
         const duration = Date.now() - startTime
@@ -64,7 +61,7 @@ export const auditMiddleware = async (c: Context<AppContext>, next: Next) => {
         const { eventType, action, entityType, entityId } = classifyRequest(method, path)
 
         // Log failed request
-        await logAuditEvent({
+        runAuditSafely(logAuditEvent({
             tenantId,
             userId,
             eventType,
@@ -84,9 +81,7 @@ export const auditMiddleware = async (c: Context<AppContext>, next: Next) => {
                 error: error.message,
                 stack: error.stack,
             },
-        }).catch(err => {
-            console.error('[Audit Middleware] Failed to log error:', err)
-        })
+        }), `middleware error ${method} ${path}`)
 
         // Re-throw the error
         throw error

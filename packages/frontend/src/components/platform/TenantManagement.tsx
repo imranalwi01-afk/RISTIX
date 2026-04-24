@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useDeferredValue, useState, useMemo } from 'react';
 import {
     Box,
     Typography,
@@ -41,9 +41,15 @@ import {
     Cancel as CancelIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
-import { tenantsAPI } from '@/services/api';
 import { exportToCsv } from '@/utils/export-csv';
 import { getErrorMessage } from '@/utils/error-message';
+import {
+    useCreatePlatformTenantMutation,
+    useDeletePlatformTenantMutation,
+    usePlatformTenantsQuery,
+    useTogglePlatformTenantMutation,
+    useUpdatePlatformTenantMutation,
+} from '@/features/platform-tenants/hooks/usePlatformTenantsQueries';
 
 // Types
 interface Tenant {
@@ -105,9 +111,6 @@ const toTitleCase = (value: string) =>
 
 const TenantManagement = () => {
     // State for data
-    const [tenants, setTenants] = useState<Tenant[]>([]);
-    const [total, setTotal] = useState(0);
-    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // State for pagination & filtering
@@ -133,52 +136,24 @@ const TenantManagement = () => {
         }
     });
     const [formLoading, setFormLoading] = useState(false);
-
-    // Fetch tenants
-    const fetchTenants = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const response = await tenantsAPI.getAll({
-                page: page + 1,
-                limit: rowsPerPage,
-                search: searchQuery || undefined,
-                mode: 'admin' // Include system tenants
-            });
-
-            const responseData = (response as any)?.data;
-            const data = Array.isArray(responseData)
-                ? responseData
-                : Array.isArray(responseData?.tenants)
-                    ? responseData.tenants
-                    : [];
-            const totalCountRaw = (response as any)?.total ?? responseData?.total ?? data.length;
-            const totalCount = Number(totalCountRaw);
-
-            setTenants(data);
-            setTotal(Number.isFinite(totalCount) ? totalCount : data.length);
-        } catch (err) {
-            console.error('Failed to fetch tenants:', err);
-            const status = (err as any)?.response?.status;
-            if (status === 403) {
-                setError('Access denied. This account does not have platform admin permissions.');
-            } else if (status === 401) {
-                setError('Session expired. Please log in again.');
-            } else {
-                setError('Failed to load tenants.');
-            }
-        } finally {
-            setLoading(false);
-        }
-    }, [page, rowsPerPage, searchQuery]);
-
-    // Initial load and debounced search
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            fetchTenants();
-        }, 300);
-        return () => clearTimeout(timer);
-    }, [fetchTenants]);
+    const deferredSearchQuery = useDeferredValue(searchQuery);
+    const platformTenantsQuery = usePlatformTenantsQuery({
+        page: page + 1,
+        limit: rowsPerPage,
+        search: deferredSearchQuery || undefined,
+        mode: 'admin',
+    });
+    const createPlatformTenantMutation = useCreatePlatformTenantMutation();
+    const updatePlatformTenantMutation = useUpdatePlatformTenantMutation();
+    const deletePlatformTenantMutation = useDeletePlatformTenantMutation();
+    const togglePlatformTenantMutation = useTogglePlatformTenantMutation();
+    const tenants = (platformTenantsQuery.data?.rows ?? []) as Tenant[];
+    const total = platformTenantsQuery.data?.total ?? 0;
+    const loading =
+        platformTenantsQuery.isLoading ||
+        platformTenantsQuery.isFetching ||
+        deletePlatformTenantMutation.isPending ||
+        togglePlatformTenantMutation.isPending;
 
     // Handlers
     const handlePageChange = (event: unknown, newPage: number) => {
@@ -265,8 +240,7 @@ const TenantManagement = () => {
         }
 
         try {
-            await tenantsAPI.delete(id);
-            fetchTenants();
+            await deletePlatformTenantMutation.mutateAsync(id);
         } catch (err) {
             console.error('Failed to delete tenant:', err);
             setError('Failed to delete tenant.');
@@ -275,12 +249,7 @@ const TenantManagement = () => {
 
     const handleToggle = async (tenant: Tenant) => {
         try {
-            if (tenant.isActive) {
-                await tenantsAPI.disable(tenant.id);
-            } else {
-                await tenantsAPI.enable(tenant.id);
-            }
-            fetchTenants();
+            await togglePlatformTenantMutation.mutateAsync({ id: tenant.id, isActive: tenant.isActive });
         } catch (err) {
             console.error('Failed to toggle tenant:', err);
             setError('Failed to update tenant status.');
@@ -293,13 +262,15 @@ const TenantManagement = () => {
         setError(null);
         try {
             if (formMode === 'create') {
-                await tenantsAPI.create(formData);
+                await createPlatformTenantMutation.mutateAsync(formData as unknown as Record<string, unknown>);
             } else {
                 if (!formData.id) throw new Error("Tenant ID missing for update");
-                await tenantsAPI.update(formData.id, formData);
+                await updatePlatformTenantMutation.mutateAsync({
+                    id: formData.id,
+                    input: formData as unknown as Record<string, unknown>,
+                });
             }
             setIsFormOpen(false);
-            fetchTenants();
         } catch (err: any) {
             console.error('Form submission failed:', err);
             const msg = getErrorMessage(err, 'Operation failed');
@@ -331,6 +302,11 @@ const TenantManagement = () => {
             {error && (
                 <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
                     {error}
+                </Alert>
+            )}
+            {!error && platformTenantsQuery.error && (
+                <Alert severity="error" sx={{ mb: 3 }}>
+                    Failed to load tenants.
                 </Alert>
             )}
 
@@ -392,7 +368,7 @@ const TenantManagement = () => {
                     <Button
                         variant="outlined"
                         startIcon={<RefreshIcon />}
-                        onClick={fetchTenants}
+                        onClick={() => platformTenantsQuery.refetch()}
                     >
                         Refresh
                     </Button>

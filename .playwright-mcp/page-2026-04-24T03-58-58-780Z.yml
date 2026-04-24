@@ -1,0 +1,58 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e59] [cursor=pointer]:
+    - generic [ref=e62]:
+      - text: Compiling
+      - generic [ref=e63]:
+        - generic [ref=e64]: .
+        - generic [ref=e65]: .
+        - generic [ref=e66]: .
+  - alert [ref=e11]
+  - generic [ref=e14]:
+    - generic [ref=e18]:
+      - heading "IFRS 9 ENGINE v2.0" [level=6] [ref=e20]
+      - heading "Next Generation Risk Management" [level=2] [ref=e21]:
+        - text: Next Generation
+        - text: Risk Management
+      - heading "Advanced Expected Credit Loss Modeling Powered by Statistical Analytics and Regulatory Compliance." [level=6] [ref=e22]
+    - generic [ref=e25]:
+      - generic [ref=e67]:
+        - heading "Authenticating Workspace" [level=6] [ref=e72]
+        - paragraph [ref=e73]: establishing secure handshake...
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - heading "Welcome Back" [level=4] [ref=e28]
+          - paragraph [ref=e29]: Please sign in to access your dashboard.
+          - generic [ref=e30]:
+            - generic [ref=e32]:
+              - generic [ref=e33]: Workspace / Tenant
+              - generic [ref=e34]:
+                - img [ref=e36]
+                - combobox "Workspace / Tenant" [disabled] [ref=e38]: Indonesia Airawata Finance
+                - textbox [disabled]: iaf
+                - img
+                - group:
+                  - generic: Workspace / Tenant
+            - generic [ref=e39]:
+              - generic [ref=e55]:
+                - text: Email Address
+                - generic [ref=e56]: "*"
+              - generic [ref=e40]:
+                - textbox "Email Address" [disabled] [ref=e41]: superadmin@iaf.co.id
+                - group:
+                  - generic: Email Address *
+            - generic [ref=e42]:
+              - generic [ref=e57]:
+                - text: Password
+                - generic [ref=e58]: "*"
+              - generic [ref=e43]:
+                - textbox "Password" [disabled] [ref=e44]: "1019181716"
+                - button [ref=e46] [cursor=pointer]:
+                  - img [ref=e47]
+                - group:
+                  - generic: Password *
+            - button [disabled]:
+              - progressbar:
+                - img
+        - generic [ref=e54]:
+          - text: © 2026 IFRSPro Platform & Airawata Framework.
+          - text: Secured by Enterprise Grade Encryption.

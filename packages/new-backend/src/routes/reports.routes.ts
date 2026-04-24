@@ -24,13 +24,55 @@ reportsRoutes.use('*', authMiddleware)
 
 const PaginationSchema = z.object({
     page: z.string().optional(),
-    limit: z.string().optional()
+    limit: z.string().optional(),
+    search: z.string().optional(),
+    sort: z.string().optional(),
+    sortField: z.string().optional(),
+    sortOrder: z.string().optional(),
+    cursor: z.string().optional(),
+    paginationMode: z.enum(['offset', 'cursor']).optional(),
+    filters: z.string().optional(),
+    filter: z.string().optional(),
 })
 
 const PDReportQuerySchema = PaginationSchema.extend({
     prcDate: z.string().optional(),
     pdModelId: z.string().optional(),
     pdYear: z.string().optional(),
+    prc_date: z.string().optional(),
+    pd_config_id: z.string().optional(),
+    pd_method: z.string().optional(),
+    scalar_id: z.string().optional(),
+    segment_id: z.string().optional(),
+    fl_flag: z.string().optional(),
+})
+
+const LifetimeLGDQuerySchema = PaginationSchema.extend({
+    prc_date: z.string().optional(),
+    lgd_config_id: z.string().optional(),
+    lgd_method: z.string().optional(),
+    model_id: z.string().optional(),
+    segment_id: z.string().optional(),
+    fl_flag: z.string().optional(),
+})
+
+const ECLResultQuerySchema = PaginationSchema.extend({
+    prc_date: z.string().optional(),
+    segment_id: z.string().optional(),
+    stage: z.union([z.string(), z.array(z.string())]).optional(),
+})
+
+const EADModelQuerySchema = PaginationSchema.extend({
+    prc_date: z.string().optional(),
+    ead_config_id: z.string().optional(),
+    segment_id: z.string().optional(),
+})
+
+const MovementQuerySchema = PaginationSchema.extend({
+    prc_date: z.string().optional(),
+    segment_id: z.string().optional(),
+    stage: z.union([z.string(), z.array(z.string())]).optional(),
+    group_segment: z.string().optional(),
 })
 
 const NominativeReportQuerySchema = PaginationSchema.extend({
@@ -222,7 +264,7 @@ reportsRoutes.openapi(
         tags: ['Reports'],
         summary: 'Get Lifetime LGD',
         request: {
-            query: PaginationSchema
+            query: LifetimeLGDQuerySchema
         },
         responses: {
             200: { content: { 'application/json': { schema: GenericListResponse(ReportDataSchema) } }, description: 'Report Data' },
@@ -230,6 +272,24 @@ reportsRoutes.openapi(
         }
     }),
     (c: any) => ifrs9ReportsController.getLifetimeLGD(c)
+)
+
+// GET /lifetime-lgd/summary
+reportsRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/lifetime-lgd/summary',
+        tags: ['Reports'],
+        summary: 'Get Lifetime LGD Summary',
+        request: {
+            query: LifetimeLGDQuerySchema
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: GenericListResponse(ReportDataSchema) } }, description: 'Report Data' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c: any) => ifrs9ReportsController.getLifetimeLGDSummary(c)
 )
 
 // GET /ead-model
@@ -240,7 +300,7 @@ reportsRoutes.openapi(
         tags: ['Reports'],
         summary: 'Get EAD Model',
         request: {
-            query: PaginationSchema
+            query: EADModelQuerySchema
         },
         responses: {
             200: { content: { 'application/json': { schema: GenericListResponse(ReportDataSchema) } }, description: 'Report Data' },
@@ -258,7 +318,7 @@ reportsRoutes.openapi(
         tags: ['Reports'],
         summary: 'Get EAD Model Summary',
         request: {
-            query: PaginationSchema
+            query: EADModelQuerySchema
         },
         responses: {
             200: { content: { 'application/json': { schema: GenericListResponse(ReportDataSchema) } }, description: 'Report Data' },
@@ -276,7 +336,7 @@ reportsRoutes.openapi(
         tags: ['Reports'],
         summary: 'Get ECL Result',
         request: {
-            query: PaginationSchema
+            query: ECLResultQuerySchema
         },
         responses: {
             200: { content: { 'application/json': { schema: GenericListResponse(ReportDataSchema) } }, description: 'Report Data' },
@@ -294,7 +354,7 @@ reportsRoutes.openapi(
         tags: ['Reports'],
         summary: 'Get ECL Movement',
         request: {
-            query: PaginationSchema
+            query: MovementQuerySchema
         },
         responses: {
             200: { content: { 'application/json': { schema: GenericListResponse(ReportDataSchema) } }, description: 'Report Data' },
@@ -312,7 +372,7 @@ reportsRoutes.openapi(
         tags: ['Reports'],
         summary: 'Get GCA Movement',
         request: {
-            query: PaginationSchema
+            query: MovementQuerySchema
         },
         responses: {
             200: { content: { 'application/json': { schema: GenericListResponse(ReportDataSchema) } }, description: 'Report Data' },

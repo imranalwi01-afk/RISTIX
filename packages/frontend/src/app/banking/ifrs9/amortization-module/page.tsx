@@ -1,206 +1,202 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Box,
-  Typography,
-  Container,
+  Breadcrumbs,
+  Button,
   Card,
   CardContent,
-  CircularProgress,
-  Alert,
-  Breadcrumbs,
+  Container,
   Link,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  TablePagination,
-  Button
+  Stack,
+  TextField,
+  Typography,
 } from '@mui/material';
-
 import RefreshIcon from '@mui/icons-material/Refresh';
-
-import { useApi } from '@/hooks/useApi';
-import { useAuth } from '@/providers/AuthProvider';
-
-interface AmortizationResult {
-  id: number;
-  accountId: number;
-  prcDate: string;
-  nLoanAmt: number;
-  nIntRate: number;
-  nEffIntRate: number;
-  startamortdate: string;
-  endamortdate: string;
-  restBalance: number;
-  currency?: string; // Not in schema explicitly, assuming default or derived
-}
-
-interface ApiResponse<T> {
-  success: boolean;
-  data: T[];
-  message?: string;
-  pagination?: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-}
+import { AmortizationModuleDetailsPanel } from '@/features/ifrs9-modules/components/AmortizationModuleDetailsPanel';
+import { AmortizationModuleTable } from '@/features/ifrs9-modules/components/AmortizationModuleTable';
+import { useAmortizationModuleDetailQuery, useAmortizationModuleResultsQuery } from '@/features/ifrs9-modules/hooks/useIfrs9ModuleQueries';
 
 export default function AmortizationModulePage() {
-  const { apiCall } = useApi();
-
-  const [results, setResults] = useState<AmortizationResult[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [totalCount, setTotalCount] = useState(0);
+  const [search, setSearch] = useState('');
+  const [prcDate, setPrcDate] = useState('');
+  const [selectedPkid, setSelectedPkid] = useState<string | null>(null);
 
-  const loadResults = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  const resultsQuery = useAmortizationModuleResultsQuery({
+    page: page + 1,
+    limit: rowsPerPage,
+    prcDate: prcDate || undefined,
+    search: search.trim() || undefined,
+  });
 
-      const params = new URLSearchParams({
-        page: (page + 1).toString(),
-        limit: rowsPerPage.toString()
-      });
-
-      const response = await apiCall(`/api/v1/ifrs9/amortization-module?${params}`) as ApiResponse<AmortizationResult>;
-
-      if (response.success) {
-        setResults(response.data);
-        setTotalCount(response.pagination?.total || 0);
-      } else {
-        setError(response.message || 'Failed to load amortization results');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setLoading(false);
-    }
-  }, [apiCall, page, rowsPerPage]);
+  const results = useMemo(() => resultsQuery.data?.rows ?? [], [resultsQuery.data]);
+  const totalCount = resultsQuery.data?.total ?? 0;
+  const effectivePrcDate = resultsQuery.data?.effectivePrcDate ?? null;
+  const detailSupported = resultsQuery.data?.detailSupported ?? false;
+  const compatibilityMessage = resultsQuery.data?.compatibilityMessage ?? null;
+  const loading = resultsQuery.isLoading || resultsQuery.isFetching;
+  const error = !resultsQuery.data?.success ? resultsQuery.data?.message || 'Failed to load amortization results' : null;
 
   useEffect(() => {
-    loadResults();
-  }, [loadResults]);
+    if (results.length === 0) {
+      if (selectedPkid) setSelectedPkid(null);
+      return;
+    }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR', // Defaulting as currency col might be missing
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount || 0);
-  };
+    const selectableRows = results.filter((row) => Boolean(row.pkid));
+    if (selectableRows.length === 0) {
+      if (selectedPkid) setSelectedPkid(null);
+      return;
+    }
 
-  const formatPercent = (val: number) => {
-    return val ? `${val.toFixed(2)}%` : '0%';
-  }
+    const selectedStillExists = selectableRows.some((row) => row.pkid === selectedPkid);
+    if (!selectedStillExists) {
+      setSelectedPkid(selectableRows[0].pkid ?? null);
+    }
+  }, [results, selectedPkid, detailSupported]);
+
+  const selectedRow = useMemo(
+    () => results.find((row) => row.pkid === selectedPkid) ?? null,
+    [results, selectedPkid],
+  );
+
+  const detailQuery = useAmortizationModuleDetailQuery(selectedPkid);
+  const detailData = useMemo(() => detailQuery.data?.data ?? null, [detailQuery.data]);
+  const detailLoading = detailSupported && (detailQuery.isLoading || detailQuery.isFetching);
+  const detailError = useMemo(
+    () => (!detailQuery.data?.success ? detailQuery.data?.message || 'Failed to load amortization details' : null),
+    [detailQuery.data],
+  );
 
   return (
-    <Container maxWidth="xl" sx={{ py: 3 }}>
-      {/* Header */}
+    <Container maxWidth="xl" sx={{ py: 3, minWidth: 0, overflowX: 'hidden' }}>
       <Box mb={3}>
         <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-          <Link color="inherit" href="/banking">Banking</Link>
+          <Link color="inherit" href="/banking">Banking Dashboard</Link>
           <Link color="inherit" href="/banking/ifrs9">IFRS 9</Link>
-          <Typography color="text.primary">Amortization</Typography>
+          <Typography color="text.primary">Amortization Module</Typography>
         </Breadcrumbs>
 
-        <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h4" component="h1" gutterBottom>
-            Amortization / EIR Results
-          </Typography>
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          justifyContent="space-between"
+          alignItems={{ xs: 'stretch', md: 'center' }}
+          spacing={2}
+          useFlexGap
+          sx={{ flexWrap: 'wrap' }}
+        >
+          <Box sx={{ minWidth: 0, flex: '1 1 560px' }}>
+            <Typography variant="h4" component="h1" gutterBottom>
+              Amortization Module
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Tech-spec aligned contract list with detail tabs for contract, fee/cost, amortization/event, and journal views.
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Effective PRC date: {effectivePrcDate || '-'}
+            </Typography>
+          </Box>
           <Button
             variant="contained"
             startIcon={<RefreshIcon />}
-            onClick={loadResults}
+            onClick={() => {
+              void resultsQuery.refetch();
+              if (selectedPkid) void detailQuery.refetch();
+            }}
+            sx={{ alignSelf: { xs: 'stretch', md: 'center' }, flexShrink: 0 }}
           >
             Refresh Data
           </Button>
-        </Box>
-        <Typography variant="body1" color="text.secondary">
-          Effective Interest Rate and Amortization Schedule data.
-        </Typography>
+        </Stack>
       </Box>
 
       {error && (
-        <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
       )}
 
-      {/* Results Table */}
-      <Card>
-        <CardContent>
-          {loading ? (
-            <Box display="flex" justifyContent="center" py={4}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <TableContainer component={Paper} variant="outlined">
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Process Date</TableCell>
-                    <TableCell>Account ID</TableCell>
-                    <TableCell align="right">Loan Amount</TableCell>
-                    <TableCell align="right">Interest Rate</TableCell>
-                    <TableCell align="right">Effective Rate</TableCell>
-                    <TableCell>Start Amort</TableCell>
-                    <TableCell>End Amort</TableCell>
-                    <TableCell align="right">Rest Balance</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {results.map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell>{row.prcDate}</TableCell>
-                      <TableCell>{row.accountId}</TableCell>
-                      <TableCell align="right">{formatCurrency(row.nLoanAmt)}</TableCell>
-                      <TableCell align="right">{formatPercent(row.nIntRate)}</TableCell>
-                      <TableCell align="right">{formatPercent(row.nEffIntRate)}</TableCell>
-                      <TableCell>{row.startamortdate}</TableCell>
-                      <TableCell>{row.endamortdate}</TableCell>
-                      <TableCell align="right">{formatCurrency(row.restBalance)}</TableCell>
-                    </TableRow>
-                  ))}
-                  {results.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={8} align="center">
-                        <Box py={4}>
-                          <Typography variant="h6" color="text.secondary">
-                            No amortization data found
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-              <TablePagination
-                rowsPerPageOptions={[10, 25, 50]}
-                component="div"
-                count={totalCount}
-                rowsPerPage={rowsPerPage}
-                page={page}
-                onPageChange={(_, newPage) => setPage(newPage)}
-                onRowsPerPageChange={(e) => {
-                  setRowsPerPage(parseInt(e.target.value));
+      {compatibilityMessage && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          {compatibilityMessage}
+        </Alert>
+      )}
+
+      <Stack spacing={3} sx={{ minWidth: 0 }}>
+        <Card sx={{ minWidth: 0, overflowX: 'hidden' }}>
+          <CardContent sx={{ p: { xs: 2, md: 3 }, minWidth: 0, overflowX: 'hidden' }}>
+            <Stack
+              direction={{ xs: 'column', lg: 'row' }}
+              spacing={2}
+              justifyContent="space-between"
+              alignItems={{ xs: 'stretch', lg: 'center' }}
+              useFlexGap
+              sx={{ mb: 2, flexWrap: 'wrap' }}
+            >
+              <Box sx={{ minWidth: 0, flex: '1 1 420px' }}>
+                <Typography variant="h6">Amortization Contract List</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Query source follows the workbook contract query from `FRS9_MASTER_ACCOUNT`.
+                </Typography>
+              </Box>
+              <TextField
+                size="small"
+                type="date"
+                label="Processing Date"
+                value={prcDate}
+                onChange={(event) => {
+                  setPrcDate(event.target.value);
                   setPage(0);
                 }}
+                slotProps={{
+                  inputLabel: { shrink: true },
+                }}
+                sx={{ width: { xs: '100%', sm: 220 }, minWidth: 0, flexShrink: 0 }}
               />
-            </TableContainer>
-          )}
-        </CardContent>
-      </Card>
+              <TextField
+                size="small"
+                label="Search contract"
+                placeholder="Account / Facility / CIF / Name"
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(0);
+                }}
+                sx={{ width: { xs: '100%', lg: 360 }, minWidth: 0, flexShrink: 0 }}
+              />
+            </Stack>
+
+            <AmortizationModuleTable
+              rows={results}
+              totalCount={totalCount}
+              page={page}
+              rowsPerPage={rowsPerPage}
+              loading={loading}
+              selectedPkid={selectedPkid}
+              onSelectRow={setSelectedPkid}
+              detailSupported={detailSupported}
+              onPageChange={setPage}
+              onRowsPerPageChange={(nextRowsPerPage) => {
+                setRowsPerPage(nextRowsPerPage);
+                setPage(0);
+              }}
+            />
+          </CardContent>
+        </Card>
+
+        <AmortizationModuleDetailsPanel
+          selectedRow={selectedRow}
+          loading={detailLoading}
+          error={detailError}
+          detail={detailData}
+          detailSupported={detailSupported}
+          compatibilityMessage={compatibilityMessage}
+        />
+      </Stack>
     </Container>
   );
 }

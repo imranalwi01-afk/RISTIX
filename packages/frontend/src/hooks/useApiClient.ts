@@ -1,19 +1,37 @@
 // packages/frontend/src/hooks/useApiClient.ts
-import { useState, useEffect } from 'react';
+import { useCallback, useState } from 'react';
+import { getAuthToken } from '@/utils/auth-token';
 
 // Basic API client hook
 export const useApiClient = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const apiCall = async (url: string, options?: RequestInit) => {
+  const apiCall = useCallback(async (url: string, options?: RequestInit) => {
     setLoading(true);
     setError(null);
     
     try {
+      const token = getAuthToken();
+      let tenantId: string | null = null;
+
+      if (typeof window !== 'undefined') {
+        const userDataStr = localStorage.getItem('user_data');
+        if (userDataStr) {
+          try {
+            tenantId = JSON.parse(userDataStr)?.tenantId ?? null;
+          } catch {
+            tenantId = null;
+          }
+        }
+      }
+
       const response = await fetch(url, {
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(tenantId ? { 'X-Tenant-ID': tenantId } : {}),
           ...options?.headers,
         },
         ...options,
@@ -32,7 +50,7 @@ export const useApiClient = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   return { apiCall, loading, error };
 };

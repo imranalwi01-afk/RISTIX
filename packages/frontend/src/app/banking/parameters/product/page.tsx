@@ -16,6 +16,9 @@ import { Download as DownloadIcon } from '@mui/icons-material';
 import { useSearchParams } from 'next/navigation';
 import { api, handleAPIError, bankingAPI } from '@/services/api';
 import { exportToXLSX, exportToCSV, exportToPDF } from '@/utils/exportUtils';
+import { useAuth } from '@/providers/AuthProvider';
+import { useEnterpriseTableQuery } from '@/hooks/useEnterpriseTableQuery';
+import { useSavedTableView } from '@/hooks/useSavedTableView';
 
 // Modular Components
 import PageHeader from '@/components/banking/shared/PageHeader';
@@ -88,6 +91,7 @@ const toDropdownOptions = (items: OptionItem[], withCodePrefix = false) =>
   }));
 
 export default function ProductParametersPage() {
+  const { user } = useAuth();
   const { hasAnyPermission } = usePermission();
   const canViewProduct = hasAnyPermission(['banking.parameter.product.view', 'banking.parameter.product.manage', 'banking.parameter.product', 'admin.super_admin']);
   const canManageProduct = hasAnyPermission(['banking.parameter.product.manage', 'banking.parameter.product.create', 'banking.parameter.product.update', 'banking.parameter.product.delete', 'admin.super_admin']);
@@ -101,9 +105,37 @@ export default function ProductParametersPage() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any[]>([]);
   const [rowCount, setRowCount] = useState(0);
-  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 25 });
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({ currency: '', activeOnly: 'all', dataSource: '' });
+  const {
+    queryState,
+    setPaginationModel,
+    setColumnVisibilityModel,
+    setDensity,
+    applySavedView,
+    toSavedViewState,
+    resetView,
+  } = useEnterpriseTableQuery({
+    pageKey: 'banking:product-parameters',
+    paginationMode: 'offset',
+    initialPageSize: 25,
+    syncUrl: true,
+  });
+  const savedView = useSavedTableView({
+    userId: user?.id,
+    scope: 'banking:product-parameters',
+    enabled: Boolean(user?.id),
+    onApplyView: (view) => {
+      applySavedView(view);
+      setSearchTerm(typeof view.state.search === 'string' ? view.state.search : '');
+      const savedFilters = (view.state.filters ?? {}) as Record<string, unknown>;
+      setFilters({
+        currency: typeof savedFilters.currency === 'string' ? savedFilters.currency : '',
+        activeOnly: typeof savedFilters.activeOnly === 'string' ? savedFilters.activeOnly : 'all',
+        dataSource: typeof savedFilters.dataSource === 'string' ? savedFilters.dataSource : '',
+      });
+    },
+  });
 
   const [formOpen, setFormOpen] = useState(false);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
@@ -134,27 +166,49 @@ export default function ProductParametersPage() {
     amortizationTypes: [] as OptionItem[],
     instrumentClasses: [] as OptionItem[],
   });
+  const currentPage = queryState.paginationModel.page;
+  const currentPageSize = queryState.paginationModel.pageSize;
+
+  const buildProductRequestParams = useCallback(
+    (page: number, pageSize: number) => {
+      const requestFilters: Record<string, unknown> = {};
+      if (filters.currency) requestFilters.currency = filters.currency;
+      if (filters.dataSource) requestFilters.dataSource = filters.dataSource;
+      if (filters.activeOnly !== 'all') requestFilters.activeFlag = filters.activeOnly === 'active';
+
+      return {
+        page: page + 1,
+        offset: page * pageSize,
+        limit: pageSize,
+        paginationMode: 'offset' as const,
+        search: searchTerm || undefined,
+        currency: filters.currency || undefined,
+        dataSource: filters.dataSource || undefined,
+        activeOnly: filters.activeOnly === 'all' ? undefined : (filters.activeOnly === 'active'),
+        filters: Object.keys(requestFilters).length > 0 ? JSON.stringify(requestFilters) : undefined,
+        sort: queryState.sort.length > 0 ? JSON.stringify(queryState.sort) : undefined,
+      };
+    },
+    [filters.activeOnly, filters.currency, filters.dataSource, queryState.sort, searchTerm],
+  );
 
   // Data Loading
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await api.banking.productParameters.getAll(mode, {
-        page: paginationModel.page + 1,
-        limit: paginationModel.pageSize,
-        search: searchTerm || undefined,
-        currency: filters.currency || undefined,
-        activeOnly: filters.activeOnly === 'all' ? undefined : (filters.activeOnly === 'active')
-      });
+      const result = await api.banking.productParameters.getAll(
+        mode,
+        buildProductRequestParams(currentPage, currentPageSize),
+      );
 
       // Support both payload styles:
       // 1) { success: true, products, pagination }
       // 2) { success: true, data: { products, pagination } }
       const listPayload = result?.data && typeof result.data === 'object' ? result.data : result;
-      const products = Array.isArray(listPayload?.products)
-        ? listPayload.products
-        : Array.isArray(listPayload?.data)
-          ? listPayload.data
+      const products = Array.isArray(listPayload?.data)
+        ? listPayload.data
+        : Array.isArray(listPayload?.products)
+          ? listPayload.products
           : [];
       const pagination = listPayload?.pagination ?? {};
 
@@ -190,7 +244,7 @@ export default function ProductParametersPage() {
     } finally {
       setLoading(false);
     }
-  }, [mode, paginationModel, searchTerm, filters]);
+  }, [buildProductRequestParams, currentPage, currentPageSize, mode, selectedProduct, showApprovalConflict]);
 
   const loadOptions = useCallback(async () => {
     try {
@@ -343,9 +397,69 @@ export default function ProductParametersPage() {
     const opts = { title: 'Product Parameters', confidential: true };
     const exporter = format === 'xlsx' ? exportToXLSX : format === 'csv' ? exportToCSV : exportToPDF;
 
-    if (exporter(data, cols, opts).success) setSuccess(`Exported to ${format.toUpperCase()}`);
-    else setError('Export failed');
+    const fetchAllRows = async () => {
+      const limit = 1000;
+      const firstPage = await api.banking.productParameters.getAll(mode, buildProductRequestParams(0, limit));
+      const firstPayload = firstPage?.data && typeof firstPage.data === 'object' ? firstPage.data : firstPage;
+      const firstRows = Array.isArray(firstPayload?.data)
+        ? firstPayload.data
+        : Array.isArray(firstPayload?.products)
+          ? firstPayload.products
+          : [];
+      const totalPages = Math.max(1, Number(firstPayload?.pagination?.totalPages ?? 1));
+      if (totalPages === 1) return firstRows;
+
+      const restPages = await Promise.all(
+        Array.from({ length: totalPages - 1 }, (_, index) =>
+          api.banking.productParameters.getAll(mode, buildProductRequestParams(index + 1, limit))
+        )
+      );
+
+      return [
+        ...firstRows,
+        ...restPages.flatMap((pageResult: any) => {
+          const payload = pageResult?.data && typeof pageResult.data === 'object' ? pageResult.data : pageResult;
+          if (Array.isArray(payload?.data)) return payload.data;
+          return Array.isArray(payload?.products) ? payload.products : [];
+        }),
+      ];
+    };
+
+    void (async () => {
+      try {
+        const rows = await fetchAllRows();
+        if (exporter(rows, cols, opts).success) setSuccess(`Exported to ${format.toUpperCase()}`);
+        else setError('Export failed');
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Export failed');
+      }
+    })();
   };
+
+  const handleSaveView = useCallback(async () => {
+    try {
+      await savedView.saveDefaultView({
+        ...toSavedViewState(),
+        search: searchTerm,
+        filters,
+      });
+      setSuccess('Product table view saved.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save product table view.');
+    }
+  }, [filters, savedView, searchTerm, toSavedViewState]);
+
+  const handleResetView = useCallback(async () => {
+    try {
+      await savedView.clearSavedView();
+      resetView();
+      setSearchTerm('');
+      setFilters({ currency: '', activeOnly: 'all', dataSource: '' });
+      setSuccess('Product table view cleared.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to clear product table view.');
+    }
+  }, [resetView, savedView]);
 
   // State calculations
   const activeFilterCount = Object.values(filters).filter(v => v !== '' && v !== 'all').length;
@@ -368,7 +482,10 @@ export default function ProductParametersPage() {
 
       <ProductToolbar
         searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
+        onSearchChange={(value) => {
+          setSearchTerm(value);
+          setPaginationModel({ page: 0, pageSize: currentPageSize });
+        }}
         onFilterClick={() => setFilterDrawerOpen(true)}
         onExportClick={(e) => setExportMenuAnchor(e.currentTarget)}
         onAddClick={() => { setSelectedProduct(null); setFormOpen(true); }}
@@ -386,10 +503,16 @@ export default function ProductParametersPage() {
           onEdit={handleEdit}
           onClone={handleClone}
           onDelete={handleDelete}
-          paginationModel={paginationModel}
+          paginationModel={queryState.paginationModel}
           onPaginationModelChange={setPaginationModel}
           rowCount={rowCount}
           canManage={canManageProduct}
+          columnVisibilityModel={queryState.columnVisibilityModel}
+          onColumnVisibilityModelChange={setColumnVisibilityModel}
+          density={queryState.density}
+          onDensityChange={setDensity}
+          onSaveView={handleSaveView}
+          onResetView={handleResetView}
           onViewPending={(request, record) => {
             setSelectedPendingRequest(request);
             setCurrentRecordForPending(record);
@@ -427,8 +550,14 @@ export default function ProductParametersPage() {
       <ProductFilterDrawer
         open={filterDrawerOpen}
         onClose={() => setFilterDrawerOpen(false)}
-        onApply={setFilters}
-        onClear={() => setFilters({ currency: '', activeOnly: 'all', dataSource: '' })}
+        onApply={(nextFilters) => {
+          setFilters(nextFilters);
+          setPaginationModel({ page: 0, pageSize: currentPageSize });
+        }}
+        onClear={() => {
+          setFilters({ currency: '', activeOnly: 'all', dataSource: '' });
+          setPaginationModel({ page: 0, pageSize: currentPageSize });
+        }}
         currentFilters={filters}
         options={{ currencies: options.currencies, dataSources: options.dataSources }}
       />

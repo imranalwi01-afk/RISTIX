@@ -112,6 +112,35 @@ export const tenantsRelations = relations(tenants, ({ many }) => ({
 }))
 
 // =============================================================================
+// USER TABLE VIEWS
+// =============================================================================
+
+/**
+ * Persisted enterprise table views per user and page scope.
+ * Stores column visibility, filters, sort, density, page size, and default view state.
+ */
+export const userTableViews = coreSchema.table(
+    'user_table_views',
+    {
+        id: uuid('id').primaryKey().defaultRandom(),
+        tenantId: varchar('tenant_id', { length: 100 }).notNull(),
+        userId: uuid('user_id').notNull(),
+        scope: varchar('scope', { length: 160 }).notNull(),
+        viewKey: varchar('view_key', { length: 160 }).notNull(),
+        name: varchar('name', { length: 160 }),
+        isDefault: boolean('is_default').notNull().default(false),
+        state: jsonb('state').notNull().default({}),
+        createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+        updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+    },
+    (table) => [
+        uniqueIndex('user_table_views_tenant_user_scope_key_idx').on(table.tenantId, table.userId, table.scope, table.viewKey),
+        index('user_table_views_tenant_user_scope_idx').on(table.tenantId, table.userId, table.scope),
+        index('user_table_views_default_idx').on(table.tenantId, table.userId, table.scope, table.isDefault),
+    ]
+)
+
+// =============================================================================
 // TYPE EXPORTS
 // =============================================================================
 
@@ -120,3 +149,6 @@ export type NewUser = typeof users.$inferInsert
 
 export type Tenant = typeof tenants.$inferSelect
 export type NewTenant = typeof tenants.$inferInsert
+
+export type UserTableView = typeof userTableViews.$inferSelect
+export type NewUserTableView = typeof userTableViews.$inferInsert

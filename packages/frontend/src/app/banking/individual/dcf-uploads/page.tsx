@@ -104,13 +104,26 @@ export default function DcfUploadPage() {
     setUploading(true);
     try {
       // Transform data to match API expectation
-      const cashflows = parsedData.map((row: any) => ({
-        accountId: row['Account No'] || row['account_no'], // Try flexible keys
-        periodDate: new Date(row['Period Date'] || row['period_date']),
-        cashflowAmount: Number(row['Cashflow Amount'] || row['cashflow_amount']),
-        discountRate: Number(row['Discount Rate'] || row['discount_rate'] || 0),
-        scenarioId: null // Optional logic to link scenario code if needed
-      })).filter(item => item.accountId && !isNaN(item.cashflowAmount));
+      const cashflows = parsedData.map((row: any, index: number) => {
+        const accountNumber = String(row['ACCOUNT_NUMBER'] || row['Account No'] || row['account_no'] || '').trim();
+        const periodDateRaw = row['PERIODE'] || row['Period Date'] || row['period_date'];
+        const periodDate = periodDateRaw instanceof Date ? periodDateRaw : new Date(periodDateRaw);
+        const principal = Number(row['PRINCIPAL'] || row['principal'] || row['Cashflow Amount'] || row['cashflow_amount'] || 0);
+        const interest = Number(row['INTEREST'] || row['interest'] || 0);
+        const collateral = Number(row['COLLATERAL'] || row['collateral'] || 0);
+
+        return {
+          accountId: accountNumber,
+          accountNumber,
+          periodDate,
+          periode: periodDate,
+          principal,
+          interest,
+          collateral,
+          mob: index + 1,
+          status: '0'
+        };
+      }).filter(item => item.accountNumber && !Number.isNaN(item.periodDate.getTime()));
 
       if (cashflows.length === 0) {
         throw new Error('No valid cashflow rows found. Please check column headers.');
@@ -137,6 +150,7 @@ export default function DcfUploadPage() {
   const columns: GridColDef[] = [
     { field: 'fileName', headerName: 'File Name', flex: 1.5 },
     { field: 'batchId', headerName: 'Batch ID', flex: 1 },
+    { field: 'accountNumber', headerName: 'Account Number', width: 160 },
     { field: 'recordCount', headerName: 'Records', width: 100 },
     {
       field: 'validationStatus',
@@ -145,7 +159,7 @@ export default function DcfUploadPage() {
       renderCell: (params) => (
         <Chip
           label={params.value}
-          color={params.value === 'VALID' ? 'success' : params.value === 'ERROR' ? 'error' : 'warning'}
+          color={params.value === 'APPROVED' || params.value === 'VALID' ? 'success' : params.value === 'REJECTED' || params.value === 'ERROR' ? 'error' : 'warning'}
           size="small"
         />
       )

@@ -106,6 +106,8 @@ const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'ead-setup-management': 'banking.collective.ead.view',
     'ecl-configuration': 'banking.collective.ecl.view',
     'ifrs9': 'banking.processing.view',
+    'impairment-module': ['banking.processing.impairment.view', 'banking.processing.view'],
+    'amortization-module': ['banking.processing.amortization.view', 'banking.processing.view'],
     'ifrs9-report': 'banking.reports.ifrs9.view',
     'nominative-report': ['banking.reports.ifrs9.nominative.view', 'banking.reports.ifrs9.view'],
     'lifetime-pd': ['banking.reports.ifrs9.lifetime_pd.view', 'banking.reports.ifrs9.view'],
@@ -398,23 +400,20 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         banking_modes: ['conventional', 'syariah', 'dual'],
         roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST'],
         children: [
-            // 🚫 DISABLED: Impairment Module menu item - Temporarily hidden as per user request
-            // {
-            //   id: 'impairment-module',
-            //   label: 'Impairment Module',
-            //   href: '/banking/ifrs9/impairment',
-            //   icon: <Warning />,
-            //   description: '/IFRS9N/ifrs',
-            //   status: 'disabled'
-            // },
-            // 🚫 DISABLED: Amortization Module menu item - Temporarily hidden as per user request
-            // {
-            //   id: 'amortization-module',
-            //   label: 'Amortization Module',
-            //   href: '/banking/ifrs9/amortization',
-            //   icon: <Schedule />,
-            //   description: '/IFRS9N/LeaseContract'
-            // },
+            {
+                id: 'impairment-module',
+                label: 'Impairment Module',
+                href: '/banking/ifrs9/impairment-module',
+                icon: <Warning />,
+                description: '/IFRS9N/ifrs'
+            },
+            {
+                id: 'amortization-module',
+                label: 'Amortization Module',
+                href: '/banking/ifrs9/amortization-module',
+                icon: <Schedule />,
+                description: '/IFRS9N/LeaseContract'
+            },
             {
                 id: 'ecl-calculations',
                 label: 'ECL Calculations',
@@ -919,6 +918,7 @@ export const getIconForMenuItem = (code: string, level: number): React.ReactElem
         'ecl-configuration': <Calculate />,
         'assessment-override': <Assessment />,
         'impairment-module': <Warning />,
+        'amortization-module': <Schedule />,
         'ecl-calculations': <Calculate />,
         'ifrs9-staging': <Layers />,
         'model-management': <ViewModule />,

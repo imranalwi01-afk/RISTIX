@@ -28,10 +28,12 @@ import {
 import { GridColDef } from '@mui/x-data-grid';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { ApprovalRequest } from '../types';
+import type { EnterpriseColumnFilterValue, EnterpriseDensity, EnterpriseFilterDefinition, EnterpriseSort } from '@/types/enterprise-table';
 
 interface ApprovalRequestListProps {
   rows: ApprovalRequest[];
   allRequests: ApprovalRequest[];
+  rowCount: number;
   loading: boolean;
   searchTerm: string;
   statusFilter: string;
@@ -59,11 +61,25 @@ interface ApprovalRequestListProps {
   getStatusColor: (status: string) => string;
   getPriorityColor: (priority: string) => string;
   isOverdue: (date?: string) => boolean;
+  filterDefinitions?: Record<string, EnterpriseFilterDefinition>;
+  paginationModel?: { page: number; pageSize: number };
+  onPaginationModelChange?: (model: { page: number; pageSize: number }) => void;
+  columnVisibilityModel?: Record<string, boolean>;
+  onColumnVisibilityModelChange?: (model: Record<string, boolean>) => void;
+  density?: EnterpriseDensity;
+  onDensityChange?: (density: EnterpriseDensity) => void;
+  onSaveView?: () => void;
+  onResetView?: () => void;
+  columnFilters?: Record<string, EnterpriseColumnFilterValue>;
+  onColumnFiltersChange?: (filters: Record<string, EnterpriseColumnFilterValue>) => void;
+  sort?: EnterpriseSort[];
+  onSortChange?: (sort: EnterpriseSort[]) => void;
 }
 
 export const ApprovalRequestList = memo(function ApprovalRequestList({
   rows,
   allRequests,
+  rowCount,
   loading,
   searchTerm,
   statusFilter,
@@ -91,6 +107,19 @@ export const ApprovalRequestList = memo(function ApprovalRequestList({
   getStatusColor,
   getPriorityColor,
   isOverdue,
+  filterDefinitions = {},
+  paginationModel,
+  onPaginationModelChange,
+  columnVisibilityModel,
+  onColumnVisibilityModelChange,
+  density,
+  onDensityChange,
+  onSaveView,
+  onResetView,
+  columnFilters,
+  onColumnFiltersChange,
+  sort,
+  onSortChange,
 }: ApprovalRequestListProps) {
   const requestTypes = useMemo(
     () => Array.from(new Set(allRequests.map((request) => request.requestType).filter(Boolean))).sort(),
@@ -294,6 +323,34 @@ export const ApprovalRequestList = memo(function ApprovalRequestList({
     ]
   );
 
+  const gridFilterDefinitions = useMemo<Record<string, EnterpriseFilterDefinition>>(() => ({
+    requestedAt: filterDefinitions.createdAt
+      ? { ...filterDefinitions.createdAt, field: 'requestedAt', label: 'Requested At' }
+      : { field: 'requestedAt', label: 'Requested At', type: 'date', operators: ['from', 'to'] },
+    status: filterDefinitions.status ?? {
+      field: 'status',
+      label: 'Status',
+      type: 'enum',
+      options: [
+        { label: 'Pending', value: 'pending' },
+        { label: 'Approved', value: 'approved' },
+        { label: 'Rejected', value: 'rejected' },
+        { label: 'Cancelled', value: 'cancelled' },
+      ],
+    },
+    priority: {
+      field: 'priority',
+      label: 'Priority',
+      type: 'enum',
+      options: [
+        { label: 'Critical', value: 'critical' },
+        { label: 'High', value: 'high' },
+        { label: 'Medium', value: 'medium' },
+        { label: 'Low', value: 'low' },
+      ],
+    },
+  }), [filterDefinitions]);
+
   return (
     <Box>
       <Paper sx={{ mb: 3, p: 2 }}>
@@ -395,8 +452,33 @@ export const ApprovalRequestList = memo(function ApprovalRequestList({
           rows={rows}
           columns={columns}
           loading={loading}
+          paginationMode="server"
+          rowCount={rowCount}
           getRowSx={getRowSx}
           disableRowSelectionOnClick
+          filterDefinitions={gridFilterDefinitions}
+          showEnterpriseControls
+          columnFilters={columnFilters}
+          onColumnFiltersChange={onColumnFiltersChange}
+          sortModel={sort?.map((item) => ({ field: item.field, sort: item.direction }))}
+          onSortModelChange={onSortChange ? (model) => {
+            onSortChange(
+              model
+                .filter((item) => item.sort === 'asc' || item.sort === 'desc')
+                .map((item) => ({
+                  field: item.field,
+                  direction: item.sort as 'asc' | 'desc',
+                }))
+            );
+          } : undefined}
+          paginationModel={paginationModel}
+          onPaginationModelChange={onPaginationModelChange}
+          columnVisibilityModel={columnVisibilityModel}
+          onColumnVisibilityModelChange={onColumnVisibilityModelChange}
+          density={density === 'dense' ? 'compact' : density}
+          onDensityChange={onDensityChange}
+          onSaveView={onSaveView}
+          onResetView={onResetView}
           pageSizeOptions={[10, 25, 50]}
           initialState={{
             pagination: {

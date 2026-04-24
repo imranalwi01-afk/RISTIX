@@ -8,7 +8,7 @@
 // Dependencies: React, Material-UI, React Admin
 // ============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Paper,
@@ -45,8 +45,10 @@ import {
   Analytics as AnalyticsIcon,
   Refresh as RefreshIcon
 } from '@mui/icons-material';
-import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import { menuApi, MenuConfiguration, MenuConfigurationRequest } from '../../services/api/menu.api';
+import { useMenuConfigurationsQuery, useSaveMenuConfigurationMutation } from '@/features/menu-admin/hooks/useMenuAdminQueries';
 
 interface MenuAdminProps {
   maxHeight?: number;
@@ -58,12 +60,17 @@ export const MenuAdmin: React.FC<MenuAdminProps> = ({
   showAnalytics = true
 }) => {
   // State management
-  const [configurations, setConfigurations] = useState<MenuConfiguration[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedConfig, setSelectedConfig] = useState<MenuConfiguration | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [analyticsDialogOpen, setAnalyticsDialogOpen] = useState(false);
+  const menuConfigurationsQuery = useMenuConfigurationsQuery();
+  const saveMenuConfigurationMutation = useSaveMenuConfigurationMutation();
+  const configurations = menuConfigurationsQuery.data ?? [];
+  const loading =
+    menuConfigurationsQuery.isLoading ||
+    menuConfigurationsQuery.isFetching ||
+    saveMenuConfigurationMutation.isPending;
 
   // Form state
   const [formData, setFormData] = useState<MenuConfigurationRequest>({
@@ -77,38 +84,15 @@ export const MenuAdmin: React.FC<MenuAdminProps> = ({
     version: '1.0.0'
   });
 
-  // Load menu configurations
-  const loadConfigurations = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await menuApi.getMenuConfigurations();
-      setConfigurations(response.data.configurations || []);
-    } catch (error: any) {
-      setError(error.message || 'Failed to load menu configurations');
-      console.error('Failed to load menu configurations:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Initial load
-  useEffect(() => {
-    loadConfigurations();
-  }, []);
-
   // Handle create/edit configuration
   const handleSaveConfiguration = async () => {
     try {
-      setLoading(true);
-      await menuApi.upsertMenuConfiguration(formData);
-      await loadConfigurations();
+      setError(null);
+      await saveMenuConfigurationMutation.mutateAsync(formData);
       setEditDialogOpen(false);
       resetForm();
     } catch (error: any) {
       setError(error.message || 'Failed to save menu configuration');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -252,7 +236,7 @@ export const MenuAdmin: React.FC<MenuAdminProps> = ({
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button
             startIcon={<RefreshIcon />}
-            onClick={loadConfigurations}
+            onClick={() => menuConfigurationsQuery.refetch()}
             disabled={loading}
           >
             Refresh
@@ -276,10 +260,15 @@ export const MenuAdmin: React.FC<MenuAdminProps> = ({
           {error}
         </Alert>
       )}
+      {!error && menuConfigurationsQuery.error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          Failed to load menu configurations.
+        </Alert>
+      )}
 
       {/* Data Grid */}
       <Paper sx={{ height: maxHeight }}>
-        <DataGrid
+        <SafeDataGrid
           rows={configurations}
           columns={columns}
           loading={loading}

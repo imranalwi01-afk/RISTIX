@@ -4,6 +4,7 @@ import { sql, desc, eq, and, lte } from 'drizzle-orm';
 import {
     frs9ImpIaHeader,
     frs9ImpCaResultH,
+    frs9NominativeOutput,
     frs9ImpCaPdStructure,
     frs9AccountId,
     frs9ImpCaLgdData,
@@ -12,12 +13,12 @@ import {
     frs9ImpCaLgdConfig,
     frs9ImpCaEad,
     frs9ImpCaEadPaymAvg,
-    frs9ImpCaEadConfig,
     frs9MasterAccount,
     frs9ImpCaResultD,
     frs9ParamSegmenth,
 } from '../db/schema';
 import { legacyDb } from '@/config';
+import { decodeCursor, encodeCursor } from '@/lib/http/list-query';
 
 export interface LifetimePDParams {
     prc_date: string;
@@ -35,18 +36,37 @@ export interface LifetimeLGDParams {
     model_id?: number;
     segment_id?: number;
     fl_flag?: boolean;
+    search?: string;
+    sort?: Array<{ field: string; direction: 'asc' | 'desc' }>;
+    detailFilters?: Record<string, unknown>;
 }
 
 export interface EADModelParams {
     prc_date: string;
     ead_config_id?: number;
     segment_id?: number;
+    search?: string;
+    sort?: Array<{ field: string; direction: 'asc' | 'desc' }>;
+    detailFilters?: Record<string, unknown>;
 }
 
 export interface ECLResultParams {
     prc_date: string;
     segment_id?: number;
     stage?: string | string[];
+    search?: string;
+    sort?: Array<{ field: string; direction: 'asc' | 'desc' }>;
+    detailFilters?: Record<string, unknown>;
+}
+
+export interface MovementParams {
+    prc_date: string;
+    segment_id?: number;
+    stage?: string | string[];
+    group_segment?: string;
+    search?: string;
+    sort?: Array<{ field: string; direction: 'asc' | 'desc' }>;
+    detailFilters?: Record<string, unknown>;
 }
 
 export class Ifrs9ReportsService {
@@ -60,6 +80,291 @@ export class Ifrs9ReportsService {
         if (value === null || value === undefined) return 0;
         const parsed = Number(value);
         return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    private normalizeText(value: unknown): string {
+        if (value === null || value === undefined) return '';
+        return String(value).trim().toLowerCase();
+    }
+
+    private compareValues(a: unknown, b: unknown): number {
+        if (a === b) return 0;
+        if (a === null || a === undefined) return -1;
+        if (b === null || b === undefined) return 1;
+
+        const aNumber = Number(a);
+        const bNumber = Number(b);
+        if (Number.isFinite(aNumber) && Number.isFinite(bNumber)) {
+            return aNumber - bNumber;
+        }
+
+        return String(a).localeCompare(String(b), 'en', { sensitivity: 'base', numeric: true });
+    }
+
+    private filterLifetimeLgdRows(
+        rows: any[],
+        search?: string,
+        detailFilters?: Record<string, unknown>,
+    ) {
+        const reportKeys = new Set(['prc_date', 'lgd_config_id', 'lgd_method', 'model_id', 'segment_id', 'fl_flag']);
+        const entries = Object.entries(detailFilters ?? {}).filter(([key]) => !reportKeys.has(key.split('.')[0] ?? key));
+
+        return rows.filter((row) => {
+            if (search) {
+                const needle = this.normalizeText(search);
+                const haystacks = [
+                    row.account_number,
+                    row.cif_name,
+                    row.account_id,
+                ].map((value) => this.normalizeText(value));
+
+                if (!haystacks.some((value) => value.includes(needle))) {
+                    return false;
+                }
+            }
+
+            for (const [key, rawValue] of entries) {
+                const [field, operator = 'equals'] = key.split('.');
+                const rowValue = row[field];
+
+                if (rawValue === undefined || rawValue === null || rawValue === '') continue;
+
+                if (field === 'account_number' || field === 'cif_name') {
+                    const actual = this.normalizeText(rowValue);
+                    const expected = this.normalizeText(rawValue);
+                    if (operator === 'contains' && !actual.includes(expected)) return false;
+                    if (operator === 'equals' && actual !== expected) return false;
+                    continue;
+                }
+
+                if (field === 'first_npl_date') {
+                    const actual = String(rowValue ?? '').slice(0, 10);
+                    const expected = String(rawValue).slice(0, 10);
+                    if (operator === 'equals' && actual !== expected) return false;
+                    if (operator === 'from' && actual < expected) return false;
+                    if (operator === 'to' && actual > expected) return false;
+                    continue;
+                }
+
+                const actualNumber = this.toNumber(rowValue);
+                const expectedNumber = this.toNumber(rawValue);
+                if (operator === 'equals' && actualNumber !== expectedNumber) return false;
+                if ((operator === 'min' || operator === 'from') && actualNumber < expectedNumber) return false;
+                if ((operator === 'max' || operator === 'to') && actualNumber > expectedNumber) return false;
+            }
+
+            return true;
+        });
+    }
+
+    private sortLifetimeLgdRows(
+        rows: any[],
+        sort?: Array<{ field: string; direction: 'asc' | 'desc' }>,
+    ) {
+        const sortModel = sort?.length ? sort : [{ field: 'account_number', direction: 'asc' as const }];
+
+        return [...rows].sort((left, right) => {
+            for (const item of sortModel) {
+                const baseComparison = this.compareValues(left?.[item.field], right?.[item.field]);
+                if (baseComparison !== 0) {
+                    return item.direction === 'desc' ? -baseComparison : baseComparison;
+                }
+            }
+
+            return this.compareValues(left?.account_number, right?.account_number);
+        });
+    }
+
+    private filterEclResultRows(
+        rows: any[],
+        search?: string,
+        detailFilters?: Record<string, unknown>,
+    ) {
+        const reportKeys = new Set(['prc_date', 'segment_id', 'stage']);
+        const entries = Object.entries(detailFilters ?? {}).filter(([key]) => !reportKeys.has(key.split('.')[0] ?? key));
+
+        return rows.filter((row) => {
+            if (search) {
+                const needle = this.normalizeText(search);
+                const haystacks = [
+                    row.branch_code,
+                    row.group_segment,
+                    row.segment,
+                    row.sub_segment,
+                    row.currency,
+                ].map((value) => this.normalizeText(value));
+
+                if (!haystacks.some((value) => value.includes(needle))) {
+                    return false;
+                }
+            }
+
+            for (const [key, rawValue] of entries) {
+                const [field, operator = 'equals'] = key.split('.');
+                const rowValue = row[field];
+                if (rawValue === undefined || rawValue === null || rawValue === '') continue;
+
+                if (typeof rowValue === 'boolean' || field === 'impaired_flag' || field === 'sicr_flag') {
+                    const actual = Boolean(rowValue);
+                    const expected = rawValue === true || String(rawValue).toLowerCase() === 'true';
+                    if (actual !== expected) return false;
+                    continue;
+                }
+
+                if (['branch_code', 'group_segment', 'segment', 'sub_segment', 'currency'].includes(field)) {
+                    const actual = this.normalizeText(rowValue);
+                    const expected = this.normalizeText(rawValue);
+                    if (operator === 'contains' && !actual.includes(expected)) return false;
+                    if (operator === 'equals' && actual !== expected) return false;
+                    continue;
+                }
+
+                const actualNumber = this.toNumber(rowValue);
+                const expectedNumber = this.toNumber(rawValue);
+                if (operator === 'equals' && actualNumber !== expectedNumber) return false;
+                if ((operator === 'min' || operator === 'from') && actualNumber < expectedNumber) return false;
+                if ((operator === 'max' || operator === 'to') && actualNumber > expectedNumber) return false;
+            }
+
+            return true;
+        });
+    }
+
+    private sortEclResultRows(
+        rows: any[],
+        sort?: Array<{ field: string; direction: 'asc' | 'desc' }>,
+    ) {
+        const sortModel = sort?.length ? sort : [
+            { field: 'segment_id', direction: 'asc' as const },
+            { field: 'stage', direction: 'asc' as const },
+        ];
+
+        return [...rows].sort((left, right) => {
+            for (const item of sortModel) {
+                const baseComparison = this.compareValues(left?.[item.field], right?.[item.field]);
+                if (baseComparison !== 0) {
+                    return item.direction === 'desc' ? -baseComparison : baseComparison;
+                }
+            }
+
+            return this.compareValues(left?.id, right?.id);
+        });
+    }
+
+    private filterEadModelRows(
+        rows: any[],
+        search?: string,
+        detailFilters?: Record<string, unknown>,
+    ) {
+        const reportKeys = new Set(['prc_date', 'ead_config_id', 'segment_id']);
+        const entries = Object.entries(detailFilters ?? {}).filter(([key]) => !reportKeys.has(key.split('.')[0] ?? key));
+
+        return rows.filter((row) => {
+            if (search) {
+                const needle = this.normalizeText(search);
+                const dynamicValues = Object.entries(row ?? {})
+                    .filter(([key]) => key === 'lt_month' || key === 'tenor' || key.startsWith('seq_'))
+                    .map(([, value]) => this.normalizeText(value));
+
+                if (!dynamicValues.some((value) => value.includes(needle))) {
+                    return false;
+                }
+            }
+
+            for (const [key, rawValue] of entries) {
+                const [field, operator = 'equals'] = key.split('.');
+                const rowValue = row[field];
+                if (rawValue === undefined || rawValue === null || rawValue === '') continue;
+
+                const actualNumber = this.toNumber(rowValue);
+                const expectedNumber = this.toNumber(rawValue);
+                if (operator === 'equals' && actualNumber !== expectedNumber) return false;
+                if ((operator === 'min' || operator === 'from') && actualNumber < expectedNumber) return false;
+                if ((operator === 'max' || operator === 'to') && actualNumber > expectedNumber) return false;
+            }
+
+            return true;
+        });
+    }
+
+    private sortEadModelRows(
+        rows: any[],
+        sort?: Array<{ field: string; direction: 'asc' | 'desc' }>,
+    ) {
+        const sortModel = sort?.length ? sort : [{ field: 'tenor', direction: 'asc' as const }];
+
+        return [...rows].sort((left, right) => {
+            for (const item of sortModel) {
+                const baseComparison = this.compareValues(left?.[item.field], right?.[item.field]);
+                if (baseComparison !== 0) {
+                    return item.direction === 'desc' ? -baseComparison : baseComparison;
+                }
+            }
+
+            return this.compareValues(left?.tenor, right?.tenor);
+        });
+    }
+
+    private filterMovementRows(
+        rows: any[],
+        search?: string,
+        detailFilters?: Record<string, unknown>,
+    ) {
+        const reportKeys = new Set(['prc_date', 'segment_id', 'stage', 'group_segment']);
+        const entries = Object.entries(detailFilters ?? {}).filter(([key]) => !reportKeys.has(key.split('.')[0] ?? key));
+
+        return rows.filter((row) => {
+            if (search) {
+                const needle = this.normalizeText(search);
+                const haystacks = [
+                    row.movement,
+                    row.prc_date,
+                ].map((value) => this.normalizeText(value));
+                if (!haystacks.some((value) => value.includes(needle))) {
+                    return false;
+                }
+            }
+
+            for (const [key, rawValue] of entries) {
+                const [field, operator = 'equals'] = key.split('.');
+                const rowValue = row[field];
+                if (rawValue === undefined || rawValue === null || rawValue === '') continue;
+
+                if (field === 'movement' || field === 'prc_date') {
+                    const actual = this.normalizeText(rowValue);
+                    const expected = this.normalizeText(rawValue);
+                    if (operator === 'contains' && !actual.includes(expected)) return false;
+                    if (operator === 'equals' && actual !== expected) return false;
+                    continue;
+                }
+
+                const actualNumber = this.toNumber(rowValue);
+                const expectedNumber = this.toNumber(rawValue);
+                if (operator === 'equals' && actualNumber !== expectedNumber) return false;
+                if ((operator === 'min' || operator === 'from') && actualNumber < expectedNumber) return false;
+                if ((operator === 'max' || operator === 'to') && actualNumber > expectedNumber) return false;
+            }
+
+            return true;
+        });
+    }
+
+    private sortMovementRows(
+        rows: any[],
+        sort?: Array<{ field: string; direction: 'asc' | 'desc' }>,
+    ) {
+        const sortModel = sort?.length ? sort : [{ field: 'movement_order', direction: 'asc' as const }];
+
+        return [...rows].sort((left, right) => {
+            for (const item of sortModel) {
+                const baseComparison = this.compareValues(left?.[item.field], right?.[item.field]);
+                if (baseComparison !== 0) {
+                    return item.direction === 'desc' ? -baseComparison : baseComparison;
+                }
+            }
+
+            return this.compareValues(left?.movement_order, right?.movement_order);
+        });
     }
 
     private endOfMonth(dateText: string): string {
@@ -125,7 +430,7 @@ export class Ifrs9ReportsService {
 
         const scopedDateResult = await legacyDb.execute(sql.raw(`
             SELECT MAX(prc_date) AS effective_date
-            FROM public.frs9_imp_nominative
+            FROM public.frs9_nominative_output
             ${scopedWhereClause}
         `));
 
@@ -137,7 +442,7 @@ export class Ifrs9ReportsService {
         if (requestedPrcDate) {
             const lessEqualDateResult = await legacyDb.execute(sql.raw(`
                 SELECT MAX(prc_date) AS effective_date
-                FROM public.frs9_imp_nominative
+                FROM public.frs9_nominative_output
                 WHERE prc_date <= '${this.escapeSqlLiteral(requestedPrcDate)}'
             `));
 
@@ -149,7 +454,7 @@ export class Ifrs9ReportsService {
 
         const latestDateResult = await legacyDb.execute(sql.raw(`
             SELECT MAX(prc_date) AS effective_date
-            FROM public.frs9_imp_nominative
+            FROM public.frs9_nominative_output
         `));
 
         const latestDate = (latestDateResult as any[])[0]?.effective_date;
@@ -231,7 +536,7 @@ export class Ifrs9ReportsService {
 
     private async resolveEclResultPrcDate(params?: ECLResultParams): Promise<string | null> {
         return this.resolveLatestPrcDate(
-            'public.frs9_imp_ca_result_h',
+            'public.frs9_master_account',
             params?.prc_date,
         );
     }
@@ -382,213 +687,10 @@ export class Ifrs9ReportsService {
             ORDER BY group_segment, urut
         `);
 
-        const normalizedRows = Array.from(rows as any[]);
-        const sumAbs = normalizedRows.reduce((sum, row) => {
-            return sum
-                + Math.abs(this.toNumber(row.stage1))
-                + Math.abs(this.toNumber(row.stage2))
-                + Math.abs(this.toNumber(row.stage3))
-                + Math.abs(this.toNumber(row.stage1_i))
-                + Math.abs(this.toNumber(row.stage2_i))
-                + Math.abs(this.toNumber(row.stage3_i))
-                + Math.abs(this.toNumber(row.gca_stage1))
-                + Math.abs(this.toNumber(row.gca_stage2))
-                + Math.abs(this.toNumber(row.gca_stage3))
-                + Math.abs(this.toNumber(row.gca_stage1_i))
-                + Math.abs(this.toNumber(row.gca_stage2_i))
-                + Math.abs(this.toNumber(row.gca_stage3_i))
-                + Math.abs(this.toNumber(row.poci));
-        }, 0);
-
-        if (sumAbs === 0 && valueKind) {
-            const fallbackRows = await this.buildMovementFallbackRowsFromMasterAccount(requestedEom, resolvedGroupSegment);
-            if (fallbackRows.length > 0) {
-                return {
-                    effectiveDate: requestedEom,
-                    rows: fallbackRows,
-                };
-            }
-        }
-
         return {
             effectiveDate: String(effectiveDate),
-            rows: normalizedRows,
+            rows: Array.from(rows as any[]),
         };
-    }
-
-    private async buildMovementFallbackRowsFromMasterAccount(
-        prcDateEom: string,
-        groupSegment?: string,
-    ): Promise<any[]> {
-        const whereGroup = (groupSegment && groupSegment.trim())
-            ? sql`AND lower(group_segment) = lower(${groupSegment.trim()})`
-            : sql``;
-
-        const prevDateResult = await legacyDb.execute(sql`
-            SELECT MAX(prc_date) AS prev_date
-            FROM public.frs9_master_account
-            WHERE prc_date < ${prcDateEom}::date
-              ${whereGroup}
-        `);
-
-        const prevDate = (prevDateResult as any[])[0]?.prev_date;
-        if (!prevDate) {
-            return [];
-        }
-
-        const metricsRows = await legacyDb.execute(sql`
-            WITH prev AS (
-                SELECT
-                    account_id,
-                    COALESCE(
-                        NULLIF(regexp_replace(COALESCE(NULLIF(stage_override, ''), NULLIF(stage, ''), NULLIF(stage_original, '')), '\\D', '', 'g'), '')::int,
-                        1
-                    ) AS stage_int,
-                    COALESCE(carrying_amt, 0)::numeric AS gca,
-                    COALESCE(ecl_final_amt, 0)::numeric AS ecl
-                FROM public.frs9_master_account
-                WHERE prc_date = ${prevDate}::date
-                  ${whereGroup}
-            ),
-            curr AS (
-                SELECT
-                    account_id,
-                    COALESCE(
-                        NULLIF(regexp_replace(COALESCE(NULLIF(stage_override, ''), NULLIF(stage, ''), NULLIF(stage_original, '')), '\\D', '', 'g'), '')::int,
-                        1
-                    ) AS stage_int,
-                    COALESCE(carrying_amt, 0)::numeric AS gca,
-                    COALESCE(ecl_final_amt, 0)::numeric AS ecl
-                FROM public.frs9_master_account
-                WHERE prc_date = ${prcDateEom}::date
-                  ${whereGroup}
-            ),
-            j AS (
-                SELECT
-                    COALESCE(prev.account_id, curr.account_id) AS account_id,
-                    prev.stage_int AS prev_stage,
-                    curr.stage_int AS curr_stage,
-                    prev.gca AS prev_gca,
-                    curr.gca AS curr_gca,
-                    prev.ecl AS prev_ecl,
-                    curr.ecl AS curr_ecl
-                FROM prev
-                FULL JOIN curr USING (account_id)
-            )
-            SELECT
-                SUM(CASE WHEN prev_stage = 1 THEN prev_gca ELSE 0 END)::double precision AS open_gca_1,
-                SUM(CASE WHEN prev_stage = 2 THEN prev_gca ELSE 0 END)::double precision AS open_gca_2,
-                SUM(CASE WHEN prev_stage = 3 THEN prev_gca ELSE 0 END)::double precision AS open_gca_3,
-                SUM(CASE WHEN curr_stage = 1 THEN curr_gca ELSE 0 END)::double precision AS close_gca_1,
-                SUM(CASE WHEN curr_stage = 2 THEN curr_gca ELSE 0 END)::double precision AS close_gca_2,
-                SUM(CASE WHEN curr_stage = 3 THEN curr_gca ELSE 0 END)::double precision AS close_gca_3,
-                SUM(CASE WHEN prev_stage = 1 AND curr_stage = 2 THEN prev_gca ELSE 0 END)::double precision AS t_gca_1_2,
-                SUM(CASE WHEN prev_stage = 2 AND curr_stage = 1 THEN prev_gca ELSE 0 END)::double precision AS t_gca_2_1,
-                SUM(CASE WHEN prev_stage = 2 AND curr_stage = 3 THEN prev_gca ELSE 0 END)::double precision AS t_gca_2_3,
-                SUM(CASE WHEN prev_stage = 3 AND curr_stage = 2 THEN prev_gca ELSE 0 END)::double precision AS t_gca_3_2,
-                SUM(CASE WHEN prev_stage IS NULL AND curr_stage = 1 THEN curr_gca ELSE 0 END)::double precision AS new_gca_1,
-                SUM(CASE WHEN prev_stage IS NULL AND curr_stage = 2 THEN curr_gca ELSE 0 END)::double precision AS new_gca_2,
-                SUM(CASE WHEN prev_stage IS NULL AND curr_stage = 3 THEN curr_gca ELSE 0 END)::double precision AS new_gca_3,
-                SUM(CASE WHEN prev_stage = 1 AND curr_stage IS NULL THEN prev_gca ELSE 0 END)::double precision AS rep_gca_1,
-                SUM(CASE WHEN prev_stage = 2 AND curr_stage IS NULL THEN prev_gca ELSE 0 END)::double precision AS rep_gca_2,
-                SUM(CASE WHEN prev_stage = 3 AND curr_stage IS NULL THEN prev_gca ELSE 0 END)::double precision AS rep_gca_3,
-                SUM(CASE WHEN prev_stage = 1 THEN prev_ecl ELSE 0 END)::double precision AS open_ecl_1,
-                SUM(CASE WHEN prev_stage = 2 THEN prev_ecl ELSE 0 END)::double precision AS open_ecl_2,
-                SUM(CASE WHEN prev_stage = 3 THEN prev_ecl ELSE 0 END)::double precision AS open_ecl_3,
-                SUM(CASE WHEN curr_stage = 1 THEN curr_ecl ELSE 0 END)::double precision AS close_ecl_1,
-                SUM(CASE WHEN curr_stage = 2 THEN curr_ecl ELSE 0 END)::double precision AS close_ecl_2,
-                SUM(CASE WHEN curr_stage = 3 THEN curr_ecl ELSE 0 END)::double precision AS close_ecl_3,
-                SUM(CASE WHEN prev_stage = 1 AND curr_stage = 2 THEN prev_ecl ELSE 0 END)::double precision AS t_ecl_1_2,
-                SUM(CASE WHEN prev_stage = 2 AND curr_stage = 1 THEN prev_ecl ELSE 0 END)::double precision AS t_ecl_2_1,
-                SUM(CASE WHEN prev_stage = 2 AND curr_stage = 3 THEN prev_ecl ELSE 0 END)::double precision AS t_ecl_2_3,
-                SUM(CASE WHEN prev_stage = 3 AND curr_stage = 2 THEN prev_ecl ELSE 0 END)::double precision AS t_ecl_3_2,
-                SUM(CASE WHEN prev_stage IS NULL AND curr_stage = 1 THEN curr_ecl ELSE 0 END)::double precision AS new_ecl_1,
-                SUM(CASE WHEN prev_stage IS NULL AND curr_stage = 2 THEN curr_ecl ELSE 0 END)::double precision AS new_ecl_2,
-                SUM(CASE WHEN prev_stage IS NULL AND curr_stage = 3 THEN curr_ecl ELSE 0 END)::double precision AS new_ecl_3,
-                SUM(CASE WHEN prev_stage = 1 AND curr_stage IS NULL THEN prev_ecl ELSE 0 END)::double precision AS rep_ecl_1,
-                SUM(CASE WHEN prev_stage = 2 AND curr_stage IS NULL THEN prev_ecl ELSE 0 END)::double precision AS rep_ecl_2,
-                SUM(CASE WHEN prev_stage = 3 AND curr_stage IS NULL THEN prev_ecl ELSE 0 END)::double precision AS rep_ecl_3
-            FROM j
-        `);
-
-        const m = (metricsRows as any[])[0];
-        if (!m) return [];
-
-        const openG1 = this.toNumber(m.open_gca_1);
-        const openG2 = this.toNumber(m.open_gca_2);
-        const openG3 = this.toNumber(m.open_gca_3);
-        const closeG1 = this.toNumber(m.close_gca_1);
-        const closeG2 = this.toNumber(m.close_gca_2);
-        const closeG3 = this.toNumber(m.close_gca_3);
-        const t12 = this.toNumber(m.t_gca_1_2);
-        const t21 = this.toNumber(m.t_gca_2_1);
-        const t23 = this.toNumber(m.t_gca_2_3);
-        const t32 = this.toNumber(m.t_gca_3_2);
-        const new1 = this.toNumber(m.new_gca_1);
-        const new2 = this.toNumber(m.new_gca_2);
-        const new3 = this.toNumber(m.new_gca_3);
-        const rep1 = this.toNumber(m.rep_gca_1);
-        const rep2 = this.toNumber(m.rep_gca_2);
-        const rep3 = this.toNumber(m.rep_gca_3);
-
-        const other1 = closeG1 - (openG1 - t12 + new1 - rep1);
-        const other2 = closeG2 - (openG2 - t21 - t23 + new2 - rep2);
-        const other3 = closeG3 - (openG3 - t32 + new3 - rep3);
-
-        const openE1 = this.toNumber(m.open_ecl_1);
-        const openE2 = this.toNumber(m.open_ecl_2);
-        const openE3 = this.toNumber(m.open_ecl_3);
-        const closeE1 = this.toNumber(m.close_ecl_1);
-        const closeE2 = this.toNumber(m.close_ecl_2);
-        const closeE3 = this.toNumber(m.close_ecl_3);
-        const te12 = this.toNumber(m.t_ecl_1_2);
-        const te21 = this.toNumber(m.t_ecl_2_1);
-        const te23 = this.toNumber(m.t_ecl_2_3);
-        const te32 = this.toNumber(m.t_ecl_3_2);
-        const ne1 = this.toNumber(m.new_ecl_1);
-        const ne2 = this.toNumber(m.new_ecl_2);
-        const ne3 = this.toNumber(m.new_ecl_3);
-        const re1 = this.toNumber(m.rep_ecl_1);
-        const re2 = this.toNumber(m.rep_ecl_2);
-        const re3 = this.toNumber(m.rep_ecl_3);
-
-        const otherE1 = closeE1 - (openE1 - te12 + ne1 - re1);
-        const otherE2 = closeE2 - (openE2 - te21 - te23 + ne2 - re2);
-        const otherE3 = closeE3 - (openE3 - te32 + ne3 - re3);
-
-        const gs = groupSegment?.trim() || 'ALL';
-
-        const makeRow = (urut: number, values: { g1: number, g2: number, g3: number, e1: number, e2: number, e3: number }) => ({
-            prc_date: prcDateEom,
-            urut,
-            group_segment: gs,
-            stage1: values.e1,
-            stage2: values.e2,
-            stage3: values.e3,
-            stage1_i: 0,
-            stage2_i: 0,
-            stage3_i: 0,
-            gca_stage1: values.g1,
-            gca_stage2: values.g2,
-            gca_stage3: values.g3,
-            gca_stage1_i: 0,
-            gca_stage2_i: 0,
-            gca_stage3_i: 0,
-            poci: 0,
-        });
-
-        return [
-            makeRow(1, { g1: openG1, g2: openG2, g3: openG3, e1: openE1, e2: openE2, e3: openE3 }),
-            makeRow(2, { g1: -t12, g2: 0, g3: 0, e1: -te12, e2: 0, e3: 0 }),
-            makeRow(4, { g1: 0, g2: -t21, g3: 0, e1: 0, e2: -te21, e3: 0 }),
-            makeRow(5, { g1: 0, g2: -t23, g3: 0, e1: 0, e2: -te23, e3: 0 }),
-            makeRow(6, { g1: 0, g2: 0, g3: -t32, e1: 0, e2: 0, e3: -te32 }),
-            makeRow(7, { g1: new1, g2: new2, g3: new3, e1: ne1, e2: ne2, e3: ne3 }),
-            makeRow(10, { g1: -rep1, g2: -rep2, g3: -rep3, e1: -re1, e2: -re2, e3: -re3 }),
-            makeRow(11, { g1: 0, g2: 0, g3: 0, e1: 0, e2: 0, e3: 0 }),
-            makeRow(13, { g1: other1, g2: other2, g3: other3, e1: otherE1, e2: otherE2, e3: otherE3 }),
-            makeRow(14, { g1: closeG1, g2: closeG2, g3: closeG3, e1: closeE1, e2: closeE2, e3: closeE3 }),
-        ];
     }
 
     private async resolveMovementGroupSegment(
@@ -1048,12 +1150,8 @@ export class Ifrs9ReportsService {
 
     /**
      * Get ECL Result Report
-     * SQL Script:
-     * ```sql
-     * SELECT SUM(OUTSTANDING), SUM(ECL_CA_ONBS_AMT), SUM(ECL_FINAL_AMT), etc.
-     * FROM FRS9_MASTER_ACCOUNT WHERE PRC_DATE = :PRC_DATE AND SEGMENT_ID = :SEGMENT_ID AND STAGE = :STAGE
-     * GROUP BY PRC_DATE, BRANCH_CODE, SEGMENT_ID, GROUP_SEGMENT, SEGMENT, SUB_SEGMENT, CURRENCY, etc.
-     * ```
+     * SQL Script aligned with tech spec workbook row 487:
+     * aggregates directly from FRS9_MASTER_ACCOUNT.
      */
     async getECLResult(tenantId: string, page: number, limit: number, params?: ECLResultParams) {
         try {
@@ -1073,59 +1171,76 @@ export class Ifrs9ReportsService {
                     totalPages: 0,
                     effectivePrcDate: null,
                     debug: {
-                        sourceTables: ['public.frs9_imp_ca_result_h', 'public.frs9_master_account'],
+                        sourceTables: ['public.frs9_master_account'],
                         queryName: 'ifrs9_reports.ecl_result',
-                        queryMode: 'result-table-only',
+                        queryMode: 'techspec-master-account',
                         fallbackUsed: false,
-                        emptyReason: 'No snapshot found in public.frs9_imp_ca_result_h for the requested processing date or earlier snapshot.',
+                        emptyReason: 'No snapshot found in public.frs9_master_account for the requested processing date or earlier snapshot.',
                     },
                 };
             }
 
-            // Build dynamic WHERE clause for result table
-            let resultWhereClause = `r.prc_date = '${this.escapeSqlLiteral(effectivePrcDate)}'`;
+            let whereClause = `prc_date = '${this.escapeSqlLiteral(effectivePrcDate)}'`;
             if (segmentId !== undefined && segmentId !== null) {
-                resultWhereClause += ` AND r.segment_id = ${segmentId}`;
+                whereClause += ` AND segment_id = ${segmentId}`;
             }
 
             if (stageFilter) {
                 const stageList = stageFilter.map((s) => `'${String(s)}'`).join(',');
-                resultWhereClause += ` AND r.stage IN (${stageList})`;
+                whereClause += ` AND stage IN (${stageList})`;
             }
 
             const rawData = await legacyDb.execute(sql.raw(`
                 SELECT 
-                    r.prc_date AS period,
-                    COALESCE(MAX(ma.branch_code), '-') AS branch_code,
-                    r.segment_id,
-                    COALESCE(MAX(ma.group_segment), 'Unknown') AS group_segment,
-                    COALESCE(MAX(ma.segment), 'Unknown') AS segment,
-                    COALESCE(MAX(ma.sub_segment), '-') AS sub_segment,
-                    r.currency,
-                    r.bucket_id,
-                    r.stage,
+                    prc_date AS period,
+                    branch_code,
+                    segment_id,
+                    group_segment,
+                    segment,
+                    sub_segment,
+                    currency,
+                    impaired_flag,
+                    impaired_status,
+                    bucket_id,
+                    sicr_flag,
+                    stage,
                     COUNT(*) AS account_count,
-                    SUM(CAST(r.outstanding AS DECIMAL)) AS outstanding,
-                    SUM(CAST(r.accrued_interest AS DECIMAL)) AS accrued_interest,
-                    SUM(CAST(r.ecl_amount AS DECIMAL)) AS ecl_amount,
-                    SUM(CAST(r.overlay_amount AS DECIMAL)) AS ecl_overlay,
-                    SUM(CAST(r.ecl_final AS DECIMAL)) AS ecl_final,
+                    SUM(CAST(outstanding AS DECIMAL)) AS outstanding,
+                    SUM(CAST(accrued_interest AS DECIMAL)) AS accrued_interest,
+                    SUM(CAST(ecl_ca_onbs_amt AS DECIMAL)) AS ecl_ca_onbs_amt,
+                    SUM(CAST(ecl_ca_offbs_amt AS DECIMAL)) AS ecl_ca_offbs_amt,
+                    SUM(CAST(ecl_ia_onbs_amt AS DECIMAL)) AS ecl_ia_onbs_amt,
+                    SUM(CAST(ecl_overlay_amt AS DECIMAL)) AS ecl_overlay_amt,
+                    SUM(CAST(ecl_final_amt AS DECIMAL)) AS ecl_final_amt,
                     CASE
-                        WHEN SUM(CAST(r.outstanding AS DECIMAL)) = 0 THEN 0
-                        ELSE SUM(CAST(r.ecl_final AS DECIMAL)) / SUM(CAST(r.outstanding AS DECIMAL))
+                        WHEN SUM(CAST(outstanding AS DECIMAL)) = 0 THEN 0
+                        ELSE SUM(
+                            CASE
+                                WHEN CAST(outstanding AS DECIMAL) = 0 THEN 0
+                                ELSE CAST(ecl_final_amt AS DECIMAL) / NULLIF(CAST(outstanding AS DECIMAL), 0)
+                            END
+                        )
                     END AS ecl_coverage
-                FROM public.frs9_imp_ca_result_h r
-                LEFT JOIN public.frs9_master_account ma
-                    ON ma.prc_date = r.prc_date
-                   AND ma.account_id = r.account_id
-                WHERE ${resultWhereClause}
+                    ,
+                    SUM(CAST(unwinding_ca_amt AS DECIMAL)) AS unwinding_ca_amt,
+                    SUM(CAST(unwinding_ia_amt AS DECIMAL)) AS unwinding_ia_amt,
+                    SUM(CAST(unwinding_ia_sum_amt AS DECIMAL)) AS unwinding_ia_sum_amt
+                FROM public.frs9_master_account
+                WHERE ${whereClause}
                 GROUP BY 
-                    r.prc_date,
-                    r.segment_id,
-                    r.currency,
-                    r.bucket_id,
-                    r.stage
-                ORDER BY r.segment_id, r.stage
+                    prc_date,
+                    branch_code,
+                    segment_id,
+                    group_segment,
+                    segment,
+                    sub_segment,
+                    currency,
+                    impaired_flag,
+                    impaired_status,
+                    bucket_id,
+                    sicr_flag,
+                    stage
+                ORDER BY segment_id, stage, branch_code, currency
             `));
 
             const rows = Array.from(rawData as any[]);
@@ -1138,19 +1253,28 @@ export class Ifrs9ReportsService {
                 ...row
             }));
 
-            return {
+            const filteredData = this.filterEclResultRows(
                 data,
-                total: data.length,
+                params?.search,
+                params?.detailFilters,
+            );
+            const sortedData = this.sortEclResultRows(filteredData, params?.sort);
+            const startIndex = (page - 1) * limit;
+            const paginatedData = sortedData.slice(startIndex, startIndex + limit);
+
+            return {
+                data: paginatedData,
+                total: sortedData.length,
                 page,
-                totalPages: Math.ceil(data.length / limit),
+                totalPages: Math.ceil(sortedData.length / limit),
                 effectivePrcDate,
                 debug: {
-                    sourceTables: ['public.frs9_imp_ca_result_h', 'public.frs9_master_account'],
+                    sourceTables: ['public.frs9_master_account'],
                     queryName: 'ifrs9_reports.ecl_result',
-                    queryMode: 'result-table-only',
+                    queryMode: 'techspec-master-account',
                     fallbackUsed: false,
-                    emptyReason: data.length === 0
-                        ? `No aggregated rows returned from public.frs9_imp_ca_result_h for snapshot ${effectivePrcDate}.`
+                    emptyReason: sortedData.length === 0
+                        ? `No aggregated rows returned from public.frs9_master_account for snapshot ${effectivePrcDate}.`
                         : null,
                 },
             };
@@ -1175,14 +1299,16 @@ export class Ifrs9ReportsService {
             group_segment?: string[] | string,
             segment?: string[] | string,
             stage?: string | string[],
-            branch_code?: string[] | string
+            branch_code?: string[] | string,
+            cursor?: string,
+            paginationMode?: 'offset' | 'cursor',
+            sort?: Array<{ field: string, direction: 'asc' | 'desc' }>
         }
     ) {
         try {
             const requestedPrcDate = params?.prc_date || new Date().toISOString().slice(0, 10);
             const downloadStartDate = params?.download_start_date;
             const downloadEndDate = params?.download_end_date;
-            const groupSegmentValues = this.normalizeTextFilter(params?.group_segment);
             const segmentValues = this.normalizeTextFilter(params?.segment);
             const stageValues = this.normalizeStageFilter(params?.stage);
             const branchValues = this.normalizeTextFilter(params?.branch_code);
@@ -1198,7 +1324,6 @@ export class Ifrs9ReportsService {
                 effectivePrcDate,
                 downloadStartDate,
                 downloadEndDate,
-                groupSegmentValues,
                 segmentValues,
                 stageValues,
                 branchValues
@@ -1218,80 +1343,131 @@ export class Ifrs9ReportsService {
                 };
             }
 
-            // Nominative source aligned to tech spec section "Nominatif Report".
-            // Branch code is joined from master account for current UI compatibility.
+            const stageNumericExpression = `COALESCE(NULLIF(regexp_replace(lower(COALESCE(n.stage::text, '')), '[^0-9]', '', 'g'), '')::int, 1)`;
             let whereClause = `n.prc_date = '${this.escapeSqlLiteral(effectivePrcDate)}'`;
-
-            if (groupSegmentValues) {
-                const groupSegmentList = groupSegmentValues
-                    .map((value) => `'${this.escapeSqlLiteral(value)}'`)
-                    .join(',');
-                whereClause += ` AND (n.group_segment IN (${groupSegmentList}) OR n.segment IN (${groupSegmentList}))`;
-            }
 
             if (segmentValues) {
                 const segmentList = segmentValues
                     .map((value) => `'${this.escapeSqlLiteral(value)}'`)
                     .join(',');
-                whereClause += ` AND n.segment IN (${segmentList})`;
+                whereClause += ` AND COALESCE(NULLIF(n.segment, ''), '') IN (${segmentList})`;
             }
 
             if (stageValues) {
                 const stageList = stageValues.join(',');
-                whereClause += ` AND (CASE WHEN n.stage = 0 THEN 1 ELSE n.stage END) IN (${stageList})`;
+                whereClause += ` AND ${stageNumericExpression} IN (${stageList})`;
             }
 
             if (branchValues) {
                 const branchList = branchValues
                     .map((value) => `'${this.escapeSqlLiteral(value)}'`)
                     .join(',');
-                whereClause += ` AND COALESCE(m.branch_code, '') IN (${branchList})`;
+                whereClause += ` AND COALESCE(NULLIF(n.branch_code, ''), '') IN (${branchList})`;
+            }
+
+            const sort = params?.sort?.[0] ?? { field: 'account_number', direction: 'asc' };
+            const sortMap: Record<string, { expression: string, resultKey: string, numeric?: boolean }> = {
+                pkid: { expression: 'COALESCE(n.pkid, 0)', resultKey: 'pkid', numeric: true },
+                prc_date: { expression: 'n.prc_date', resultKey: 'prc_date' },
+                account_id: { expression: 'COALESCE(n.account_id, 0)', resultKey: 'account_id', numeric: true },
+                account_number: { expression: 'n.account_number', resultKey: 'account_number' },
+                facility_number: { expression: `COALESCE(n.facility_number, '')`, resultKey: 'facility_number' },
+                cif_number: { expression: `COALESCE(n.cif_number, '')`, resultKey: 'cif_number' },
+                cif_name: { expression: 'n.cif_name', resultKey: 'cif_name' },
+                account_status: { expression: `COALESCE(n.account_status, '')`, resultKey: 'account_status' },
+                branch_code: { expression: `COALESCE(n.branch_code, '')`, resultKey: 'branch_code' },
+                prd_code: { expression: `COALESCE(n.prd_code, '')`, resultKey: 'prd_code' },
+                start_date: { expression: 'n.start_date', resultKey: 'start_date' },
+                maturity_date: { expression: 'n.maturity_date', resultKey: 'maturity_date' },
+                currency: { expression: `COALESCE(n.currency, '')`, resultKey: 'currency' },
+                interest_rate: { expression: 'COALESCE(n.interest_rate, 0)', resultKey: 'interest_rate', numeric: true },
+                eff_interest_rate: { expression: 'COALESCE(n.eff_interest_rate, 0)', resultKey: 'eff_interest_rate', numeric: true },
+                dpd: { expression: 'COALESCE(n.dpd, 0)', resultKey: 'dpd', numeric: true },
+                impaired_status: { expression: `COALESCE(n.impaired_status::text, '')`, resultKey: 'impaired_status' },
+                segment: { expression: `COALESCE(n.segment, '')`, resultKey: 'segment' },
+                stage: { expression: stageNumericExpression, resultKey: 'stage', numeric: true },
+                bucket_id: { expression: 'COALESCE(n.bucket_id, 0)', resultKey: 'bucket_id', numeric: true },
+                outstanding: { expression: 'CAST(n.outstanding AS DECIMAL)', resultKey: 'outstanding', numeric: true },
+                ecl_final_amt: { expression: 'CAST(n.ecl_final_amt AS DECIMAL)', resultKey: 'ecl_final_amt', numeric: true },
+                ecl_coverage: { expression: 'COALESCE(n.ecl_coverage, 0)', resultKey: 'ecl_coverage', numeric: true },
+            };
+            const sortConfig = sortMap[sort.field] ?? sortMap.account_number;
+            const sortDirection = sort.direction === 'desc' ? 'DESC' : 'ASC';
+            const cursorPayload = decodeCursor(params?.cursor);
+            let cursorClause = '';
+
+            if ((params?.paginationMode === 'cursor' || params?.cursor) && cursorPayload?.sortValue !== undefined && cursorPayload?.accountId !== undefined) {
+                const operator = sort.direction === 'desc' ? '<' : '>';
+                const tieOperator = sort.direction === 'desc' ? '<' : '>';
+                const sortValue = sortConfig.numeric
+                    ? String(Number(cursorPayload.sortValue))
+                    : `'${this.escapeSqlLiteral(String(cursorPayload.sortValue))}'`;
+                const accountIdValue = Number(cursorPayload.accountId);
+                const facilityValue = `'${this.escapeSqlLiteral(String(cursorPayload.facilityNumber ?? ''))}'`;
+                cursorClause = `
+                    AND (
+                        ${sortConfig.expression} ${operator} ${sortValue}
+                        OR (
+                            ${sortConfig.expression} = ${sortValue}
+                            AND (
+                                n.account_id ${tieOperator} ${accountIdValue}
+                                OR (
+                                    n.account_id = ${accountIdValue}
+                                    AND COALESCE(n.facility_number, '') ${tieOperator} ${facilityValue}
+                                )
+                            )
+                        )
+                    )
+                `;
             }
 
             const offset = Math.max(0, (page - 1) * limit);
+            const rowLimit = (params?.paginationMode === 'cursor' || params?.cursor) ? limit + 1 : limit;
+            const rowOffset = (params?.paginationMode === 'cursor' || params?.cursor) ? 0 : offset;
 
             const rawData = await legacyDb.execute(sql.raw(`
                 SELECT 
+                    n.pkid,
+                    n.prc_date,
                     n.account_id,
                     n.account_number,
                     n.facility_number,
                     n.cif_number,
                     n.cif_name,
-                    n.prc_date AS download_date,
-                    m.branch_code,
-                    COALESCE(n.start_date, m.start_date) AS loan_start_date,
-                    COALESCE(n.maturity_date, m.maturity_date) AS loan_maturity_date,
-                    n.group_segment,
-                    n.segment,
-                    n.sub_segment,
-                    CASE WHEN n.stage = 0 THEN 1 ELSE n.stage END AS stage,
+                    n.account_status,
+                    n.branch_code,
+                    n.prd_code,
+                    n.start_date,
+                    n.maturity_date,
                     n.currency,
                     n.interest_rate,
-                    CAST(n.outstanding AS DECIMAL) AS outstanding,
-                    CAST(n.ecl AS DECIMAL) AS ecl_final_amt,
-                    CAST(n.ecl_coverage AS DECIMAL) AS ecl_coverage,
+                    n.eff_interest_rate,
                     n.dpd,
-                    n.ext_rating AS internal_rating_code,
-                    n.rating_bucket,
-                    n.sicr AS sicr_flag,
-                    CASE WHEN n.sicr THEN 'Yes' ELSE 'No' END AS watchlist,
-                    n.prc_date
-                FROM public.frs9_imp_nominative n
-                LEFT JOIN public.frs9_master_account m
-                    ON m.account_id = n.account_id
-                   AND m.prc_date = n.prc_date
+                    n.impaired_status,
+                    n.segment,
+                    ${stageNumericExpression} AS stage,
+                    n.bucket_id,
+                    CAST(n.outstanding AS DECIMAL) AS outstanding,
+                    CAST(n.ecl_final_amt AS DECIMAL) AS ecl_final_amt,
+                    CAST(n.ecl_coverage AS DOUBLE PRECISION) AS ecl_coverage
+                FROM public.frs9_nominative_output n
                 WHERE ${whereClause}
-                ORDER BY n.account_number
-                LIMIT ${limit}
-                OFFSET ${offset}
+                ${cursorClause}
+                ORDER BY ${sortConfig.expression} ${sortDirection}, n.account_id ${sortDirection}, COALESCE(n.facility_number, '') ${sortDirection}
+                LIMIT ${rowLimit}
+                OFFSET ${rowOffset}
             `));
 
-            const rows = Array.from(rawData as any[]);
+            const allRows = Array.from(rawData as any[]);
+            const hasNextPage = (params?.paginationMode === 'cursor' || params?.cursor) && allRows.length > limit;
+            const rows = hasNextPage ? allRows.slice(0, limit) : allRows;
             console.log(`📊 [Nominative Report] Retrieved ${rows.length} records`);
 
             // Add id field for DataGrid
             const data = rows.map((row, index) => ({
-                id: index + 1,
+                id: params?.paginationMode === 'cursor' || params?.cursor
+                    ? `${row.pkid ?? row.account_id}-${row.facility_number ?? index}`
+                    : offset + index + 1,
                 ...row
             }));
 
@@ -1300,11 +1476,8 @@ export class Ifrs9ReportsService {
                 SELECT 
                     COUNT(*) as total,
                     COALESCE(SUM(CAST(n.outstanding AS DECIMAL)), 0) as total_outstanding,
-                    COALESCE(SUM(CAST(n.ecl AS DECIMAL)), 0) as total_ecl
-                FROM public.frs9_imp_nominative n
-                LEFT JOIN public.frs9_master_account m
-                    ON m.account_id = n.account_id
-                   AND m.prc_date = n.prc_date
+                    COALESCE(SUM(CAST(n.ecl_final_amt AS DECIMAL)), 0) as total_ecl
+                FROM public.frs9_nominative_output n
                 WHERE ${whereClause}
             `));
 
@@ -1320,7 +1493,19 @@ export class Ifrs9ReportsService {
                 },
                 page,
                 totalPages: Math.ceil(total / limit),
-                effectivePrcDate
+                effectivePrcDate,
+                nextCursor: hasNextPage && rows.length > 0
+                    ? encodeCursor({
+                        field: sort.field,
+                        direction: sort.direction,
+                        sortValue: rows[rows.length - 1][sortConfig.resultKey],
+                        accountId: rows[rows.length - 1].account_id,
+                        facilityNumber: rows[rows.length - 1].facility_number ?? '',
+                    })
+                    : null,
+                previousCursor: params?.cursor ?? null,
+                hasNextPage,
+                hasPreviousPage: Boolean(params?.cursor),
             };
         } catch (error) {
             console.error('❌ Error in getNominativeReport service:', error);
@@ -1366,8 +1551,8 @@ export class Ifrs9ReportsService {
                     prc_date,
                     COUNT(*)::bigint AS total_accounts,
                     COALESCE(SUM(CAST(outstanding AS DECIMAL)), 0) AS total_outstanding,
-                    COALESCE(SUM(CAST(ecl AS DECIMAL)), 0) AS total_ecl
-                FROM public.frs9_imp_nominative
+                    COALESCE(SUM(CAST(ecl_final_amt AS DECIMAL)), 0) AS total_ecl
+                FROM public.frs9_nominative_output
                 ${whereClause}
                 GROUP BY prc_date
                 ORDER BY prc_date DESC
@@ -1445,18 +1630,16 @@ export class Ifrs9ReportsService {
                 return { data: [], total: 0, page, totalPages: 0, effectivePrcDate: null };
             }
 
-            // Query with raw SQL for the complex join
+            // Tech spec uses B.PRC_DATE <= @DATE for the account-level detail set.
+            // Header rows can exist for a later run period than the LGD account data, so an equality
+            // filter here incorrectly hides all detail and falls back to summary-only output.
             const filters = [
-                sql`B.prc_date = ${effectivePrcDate}`,
+                sql`B.prc_date <= ${effectivePrcDate}`,
                 sql`B.lgd_config_id = ${lgdConfigId}`,
             ];
 
             if (lgdMethod !== undefined) {
                 filters.push(sql`B.lgd_method = ${lgdMethod}`);
-            }
-
-            if (params?.model_id !== undefined) {
-                filters.push(sql`E.model_id = ${params.model_id}`);
             }
 
             if (segmentId !== undefined) {
@@ -1468,7 +1651,47 @@ export class Ifrs9ReportsService {
             }
 
             const rawData = await legacyDb.execute(sql`
+                WITH recovery AS (
+                    SELECT
+                        account_id,
+                        lgd_config_id,
+                        seq,
+                        SUM(COALESCE(npv_eqv_rec, 0)) AS pv_recovery
+                    FROM public.frs9_imp_ca_lgd_rec_d
+                    WHERE prc_date <= ${effectivePrcDate}
+                    AND lgd_config_id = ${lgdConfigId}
+                    ${lgdMethod !== undefined ? sql`AND lgd_method = ${lgdMethod}` : sql``}
+                    GROUP BY account_id, lgd_config_id, seq
+                ),
+                latest_metric_dates AS (
+                    SELECT
+                        account_id,
+                        lgd_config_id,
+                        MAX(prc_date) AS prc_date
+                    FROM public.frs9_imp_ca_lgd_d
+                    WHERE prc_date <= ${effectivePrcDate}
+                    AND lgd_config_id = ${lgdConfigId}
+                    ${lgdMethod !== undefined ? sql`AND lgd_method = ${lgdMethod}` : sql``}
+                    GROUP BY account_id, lgd_config_id
+                ),
+                latest_metrics AS (
+                    SELECT DISTINCT ON (metric.account_id, metric.lgd_config_id)
+                        metric.account_id,
+                        metric.lgd_config_id,
+                        metric.lgd,
+                        metric.rec_rate,
+                        metric.npv_eqv_rec
+                    FROM public.frs9_imp_ca_lgd_d metric
+                    INNER JOIN latest_metric_dates latest
+                        ON metric.account_id = latest.account_id
+                        AND metric.lgd_config_id = latest.lgd_config_id
+                        AND metric.prc_date = latest.prc_date
+                    WHERE metric.lgd_config_id = ${lgdConfigId}
+                    ${lgdMethod !== undefined ? sql`AND metric.lgd_method = ${lgdMethod}` : sql``}
+                    ORDER BY metric.account_id, metric.lgd_config_id, metric.prc_date DESC
+                )
                 SELECT 
+                    A.account_id,
                     A.account_number,
                     A.cif_name,
                     B.prc_date AS first_npl_date,
@@ -1477,18 +1700,13 @@ export class Ifrs9ReportsService {
                     D.rec_rate AS recovery_rate,
                     D.npv_eqv_rec AS recovery_amount_pv,
                     C.seq,
-                    C.npv_eqv_rec AS pv_recovery
+                    C.pv_recovery
                 FROM public.frs9_account_id A
                 INNER JOIN public.frs9_imp_ca_lgd_data B ON A.account_id = B.account_id
-                INNER JOIN public.frs9_imp_ca_lgd_rec_d C ON B.account_id = C.account_id
-                    AND B.prc_date = C.prc_date
+                INNER JOIN recovery C ON B.account_id = C.account_id
                     AND B.lgd_config_id = C.lgd_config_id
-                LEFT JOIN public.frs9_imp_ca_lgd_d D ON B.account_id = D.account_id
-                    AND B.prc_date = D.prc_date 
+                LEFT JOIN latest_metrics D ON B.account_id = D.account_id
                     AND B.lgd_config_id = D.lgd_config_id
-                LEFT JOIN public.frs9_imp_ca_lgd_h E ON B.prc_date = E.prc_date
-                    AND B.lgd_config_id = E.lgd_config_id
-                    AND B.lgd_method = E.lgd_method
                 LEFT JOIN public.frs9_imp_ca_lgd_config F ON B.lgd_config_id = F.pkid
                 WHERE ${sql.join(filters, sql` AND `)}
                 ORDER BY A.account_number, C.seq
@@ -1502,16 +1720,23 @@ export class Ifrs9ReportsService {
 
             console.log(`📊 [Lifetime LGD Detail] Transformed to ${pivotData.length} pivot rows`);
 
+            const filteredData = this.filterLifetimeLgdRows(
+                pivotData,
+                params?.search,
+                params?.detailFilters,
+            );
+            const sortedData = this.sortLifetimeLgdRows(filteredData, params?.sort);
+
             // Apply pagination (in-memory slicing)
             const startIndex = (page - 1) * limit;
             const endIndex = startIndex + limit;
-            const paginatedData = pivotData.slice(startIndex, endIndex);
+            const paginatedData = sortedData.slice(startIndex, endIndex);
 
             return {
                 data: paginatedData,
-                total: pivotData.length,
+                total: sortedData.length,
                 page,
-                totalPages: Math.ceil(pivotData.length / limit),
+                totalPages: Math.ceil(sortedData.length / limit),
                 effectivePrcDate
             };
         } catch (error) {
@@ -1532,12 +1757,15 @@ export class Ifrs9ReportsService {
 
         data.forEach(row => {
             const accountNumber = row.account_number;
+            const accountId = row.account_id;
             const seq = row.seq;
-            const pvRecovery = row.pv_recovery;
+            const pvRecovery = this.toNumber(row.pv_recovery);
+            const key = accountId ?? accountNumber;
 
-            if (!accountMap.has(accountNumber)) {
-                accountMap.set(accountNumber, {
-                    id: accountNumber,
+            if (!accountMap.has(key)) {
+                accountMap.set(key, {
+                    id: key,
+                    account_id: accountId,
                     account_number: accountNumber,
                     cif_name: row.cif_name,
                     first_npl_date: row.first_npl_date,
@@ -1548,8 +1776,9 @@ export class Ifrs9ReportsService {
                 });
             }
 
-            const account = accountMap.get(accountNumber);
-            account[`seq_${seq}`] = pvRecovery;
+            const account = accountMap.get(key);
+            const seqKey = `seq_${seq}`;
+            account[seqKey] = this.toNumber(account[seqKey]) + pvRecovery;
         });
 
         return Array.from(accountMap.values());
@@ -1651,10 +1880,22 @@ export class Ifrs9ReportsService {
      * PIVOT (SUM(PAYM_AVG) FOR SEQ IN (...))
      * ```
      */
+    private async resolveEadReportSegmentId(params?: EADModelParams): Promise<number | undefined> {
+        if (params?.ead_config_id !== undefined && params.ead_config_id !== null) {
+            const legacySelectedId = Number(params.ead_config_id);
+            if (Number.isFinite(legacySelectedId)) {
+                return legacySelectedId;
+            }
+        }
+
+        const explicitSegmentId = Number(params?.segment_id);
+        return Number.isFinite(explicitSegmentId) ? explicitSegmentId : undefined;
+    }
+
     async getEADModel(tenantId: string, page: number, limit: number, params?: EADModelParams) {
         try {
             const requestedPrcDate = params?.prc_date || '2023-12-31';
-            const requestedSegmentId = params?.ead_config_id ?? params?.segment_id;
+            const requestedSegmentId = await this.resolveEadReportSegmentId(params);
 
             const extraWhere: string[] = [];
             if (requestedSegmentId !== undefined && requestedSegmentId !== null) {
@@ -1713,11 +1954,20 @@ export class Ifrs9ReportsService {
             const pivotData = this.transformEadToPivot(rows);
             console.log(`📊 [EAD Model] Transformed to ${pivotData.length} pivot rows`);
 
+            const filteredData = this.filterEadModelRows(
+                pivotData,
+                params?.search,
+                params?.detailFilters,
+            );
+            const sortedData = this.sortEadModelRows(filteredData, params?.sort);
+            const startIndex = (page - 1) * limit;
+            const paginatedData = sortedData.slice(startIndex, startIndex + limit);
+
             return {
-                data: pivotData,
-                total: pivotData.length,
+                data: paginatedData,
+                total: sortedData.length,
                 page,
-                totalPages: Math.ceil(pivotData.length / limit),
+                totalPages: Math.ceil(sortedData.length / limit),
                 effectivePrcDate: prcDate
             };
         } catch (error) {
@@ -1763,7 +2013,7 @@ export class Ifrs9ReportsService {
     async getEADModelSummary(tenantId: string, params?: { prc_date: string, ead_config_id?: number, segment_id?: number }) {
         try {
             const requestedPrcDate = params?.prc_date || '2023-12-31';
-            const requestedSegmentId = params?.segment_id ?? params?.ead_config_id;
+            const requestedSegmentId = await this.resolveEadReportSegmentId(params);
 
             const prcDate = await this.resolveLatestPrcDate(
                 'public.frs9_master_account',
@@ -1917,10 +2167,26 @@ export class Ifrs9ReportsService {
      */
     async getEADPaymentAverage(tenantId: string, page: number, limit: number, params?: EADModelParams) {
         try {
-            const prcDate = params?.prc_date || '2023-12-31';
-            const segmentId = params?.segment_id;
+            const requestedPrcDate = params?.prc_date || '2023-12-31';
+            const requestedSegmentId = params?.segment_id;
+            const segmentId = await this.resolveEadReportSegmentId(params);
+            const prcDate = await this.resolveLatestPrcDate(
+                'public.frs9_imp_ca_ead_paym_avg',
+                requestedPrcDate,
+                segmentId !== undefined && segmentId !== null ? [`segment_id = ${Number(segmentId)}`] : [],
+            );
 
-            console.log('📊 [EAD Payment Avg] Fetching with params:', { prcDate, segmentId });
+            console.log('📊 [EAD Payment Avg] Fetching with params:', {
+                requestedPrcDate,
+                effectivePrcDate: prcDate,
+                requestedSegmentId,
+                resolvedSegmentId: segmentId,
+                eadConfigId: params?.ead_config_id,
+            });
+
+            if (!prcDate) {
+                return { data: [], total: 0, page, totalPages: 0, effectivePrcDate: null as string | null };
+            }
 
             const conditions = [eq(frs9ImpCaEadPaymAvg.prcDate, prcDate)];
             if (segmentId !== undefined && segmentId !== null) {
@@ -1943,11 +2209,12 @@ export class Ifrs9ReportsService {
                 data: pivotData,
                 total: pivotData.length,
                 page,
-                totalPages: Math.ceil(pivotData.length / limit)
+                totalPages: Math.ceil(pivotData.length / limit),
+                effectivePrcDate: prcDate,
             };
         } catch (error) {
             console.error('❌ Error in getEADPaymentAverage service:', error);
-            return { data: [], total: 0, page, totalPages: 0 };
+            return { data: [], total: 0, page, totalPages: 0, effectivePrcDate: null as string | null };
         }
     }
 
@@ -1983,7 +2250,7 @@ export class Ifrs9ReportsService {
      * Get ECL Movement Report
      * Source: frs9_imp_movement_data (generated by SP: sp_frs9_imp_movement_data)
      */
-    async getECLMovement(tenantId: string, params?: { prc_date: string, segment_id?: number, stage?: string | string[], group_segment?: string }) {
+    async getECLMovement(tenantId: string, page: number, limit: number, params?: MovementParams) {
         try {
             const prcDate = params?.prc_date || '2023-12-31';
             const stageFilter = this.normalizeStageFilter(params?.stage);
@@ -1991,16 +2258,25 @@ export class Ifrs9ReportsService {
 
             const { effectiveDate, rows } = await this.fetchMovementRows(prcDate, params?.segment_id, groupSegment, 'ecl');
             if (!effectiveDate || rows.length === 0) {
-                return { data: [], effectivePrcDate: null as string | null };
+                return { data: [], total: 0, page, totalPages: 0, effectivePrcDate: null as string | null };
             }
 
+            const matrixRows = this.buildMovementMatrixRows(rows, effectiveDate, stageFilter, 'ecl');
+            const filteredRows = this.filterMovementRows(matrixRows, params?.search, params?.detailFilters);
+            const sortedRows = this.sortMovementRows(filteredRows, params?.sort);
+            const startIndex = (page - 1) * limit;
+            const paginatedRows = sortedRows.slice(startIndex, startIndex + limit);
+
             return {
-                data: this.buildMovementMatrixRows(rows, effectiveDate, stageFilter, 'ecl'),
+                data: paginatedRows,
+                total: sortedRows.length,
+                page,
+                totalPages: Math.ceil(sortedRows.length / limit),
                 effectivePrcDate: effectiveDate,
             };
         } catch (error) {
             console.error('❌ Error in getECLMovement service:', error);
-            return { data: [], effectivePrcDate: null as string | null };
+            return { data: [], total: 0, page, totalPages: 0, effectivePrcDate: null as string | null };
         }
     }
 
@@ -2008,7 +2284,7 @@ export class Ifrs9ReportsService {
      * Get GCA Movement Report
      * Source: frs9_imp_movement_data (generated by SP: sp_frs9_imp_movement_data)
      */
-    async getGCAMovement(tenantId: string, params?: { prc_date: string, segment_id?: number, stage?: string | string[], group_segment?: string }) {
+    async getGCAMovement(tenantId: string, page: number, limit: number, params?: MovementParams) {
         try {
             const prcDate = params?.prc_date || '2023-12-31';
             const stageFilter = this.normalizeStageFilter(params?.stage);
@@ -2016,16 +2292,25 @@ export class Ifrs9ReportsService {
 
             const { effectiveDate, rows } = await this.fetchMovementRows(prcDate, params?.segment_id, groupSegment, 'gca');
             if (!effectiveDate || rows.length === 0) {
-                return { data: [], effectivePrcDate: null as string | null };
+                return { data: [], total: 0, page, totalPages: 0, effectivePrcDate: null as string | null };
             }
 
+            const matrixRows = this.buildMovementMatrixRows(rows, effectiveDate, stageFilter, 'gca');
+            const filteredRows = this.filterMovementRows(matrixRows, params?.search, params?.detailFilters);
+            const sortedRows = this.sortMovementRows(filteredRows, params?.sort);
+            const startIndex = (page - 1) * limit;
+            const paginatedRows = sortedRows.slice(startIndex, startIndex + limit);
+
             return {
-                data: this.buildMovementMatrixRows(rows, effectiveDate, stageFilter, 'gca'),
+                data: paginatedRows,
+                total: sortedRows.length,
+                page,
+                totalPages: Math.ceil(sortedRows.length / limit),
                 effectivePrcDate: effectiveDate,
             };
         } catch (error) {
             console.error('❌ Error in getGCAMovement service:', error);
-            return { data: [], effectivePrcDate: null as string | null };
+            return { data: [], total: 0, page, totalPages: 0, effectivePrcDate: null as string | null };
         }
     }
 }

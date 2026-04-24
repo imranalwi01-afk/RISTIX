@@ -22,7 +22,13 @@ import {
 import {
   OpenInNew as OpenInNewIcon,
   ContentCopy as CopyIcon,
-  FileDownload as DownloadIcon
+  FileDownload as DownloadIcon,
+  Assignment as AssignmentIcon,
+  Assessment as AssessmentIcon,
+  Calculate as CalculateIcon,
+  MonetizationOn as MoneyIcon,
+  History as HistoryIcon,
+  Description as DescriptionIcon
 } from '@mui/icons-material';
 import PageHeader from '@/components/banking/shared/PageHeader';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
@@ -34,6 +40,13 @@ import { FILTER_DEFAULTS } from './constants';
 import { individualImpairmentAPI, IndividualImpairmentWatchlistItem } from '@/services/api.individual-impairment';
 import { DCFAnalysisTab } from '@/components/banking/individual/assessment/DCFAnalysisTab';
 import { ProvisionCalculationTab } from '@/components/banking/individual/assessment/ProvisionCalculationTab';
+import { AssessmentHistoryTab } from '@/components/banking/individual/assessment/AssessmentHistoryTab';
+import { AssessmentDocumentsTab } from '@/components/banking/individual/assessment/AssessmentDocumentsTab';
+import {
+  useAssessmentAccountLookupQuery,
+  useAssessmentSummaryQuery,
+  useAssessmentWatchlistQuery,
+} from '@/features/individual-impairment/hooks/useAssessmentDashboardQuery';
 
 const OverrideTriggerSection = dynamic(() => import('../override-trigger/page'));
 
@@ -42,23 +55,27 @@ interface SectionDef {
   label: string;
   section: string;
   helper: string;
+  icon: React.ReactElement;
   render: () => React.ReactNode;
 }
 
-interface KPISummary {
-  totalAccounts: number;
-  impairedAccounts: number;
-  pendingAssessments: number;
-  totalProvisions: number;
-  dataDate?: string;
-}
+const SECTION_KEYS = [
+  'watchlist',
+  'assessment-details',
+  'dcf-analysis',
+  'provision-calculation',
+  'history',
+  'documents',
+] as const;
 
 export default function IndividualAssessmentWizardPage() {
   const [activeTab, setActiveTab] = useState(0);
   const searchParams = useSearchParams();
   const router = useRouter();
+  const searchKey = searchParams.toString();
   const accountId = searchParams.get('accountId');
   const accountNumber = searchParams.get('accountNumber');
+  const tabParam = searchParams.get('tab');
   const mode = searchParams.get('mode') || 'conventional';
   const skipTabUrlSyncRef = useRef(false);
   const watchlistUrlInitializedRef = useRef(false);
@@ -122,10 +139,6 @@ export default function IndividualAssessmentWizardPage() {
   }, []);
 
   // Dashboard State
-  const [loading, setLoading] = useState(false);
-  const [watchlist, setWatchlist] = useState<IndividualImpairmentWatchlistItem[]>([]);
-  const [summary, setSummary] = useState<KPISummary | undefined>(undefined);
-  const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [pagination, setPagination] = useState({
     page: 0,
     limit: 10,
@@ -169,78 +182,61 @@ export default function IndividualAssessmentWizardPage() {
   const [selectedAccount, setSelectedAccount] = useState<IndividualImpairmentWatchlistItem | null>(null);
   const [dcfLoading, setDcfLoading] = useState(false);
   const [dcfCalculation, setDcfCalculation] = useState<any>(null);
+  const watchlistEnabled = !accountId || activeTab === 0;
+  const watchlistQuery = useAssessmentWatchlistQuery({
+    page: pagination.page + 1,
+    limit: pagination.limit,
+    search: filters.search,
+    stage: filters.stage,
+    impairedFlag: filters.impairedFlag,
+    priorityLevel: filters.priorityLevel,
+    downloadDate: filters.downloadDate,
+    mode,
+  }, watchlistEnabled);
+  const summaryQuery = useAssessmentSummaryQuery(filters.downloadDate || undefined, mode, watchlistEnabled);
+  const accountLookupQuery = useAssessmentAccountLookupQuery(
+    accountId,
+    accountNumber,
+    mode,
+    Boolean(accountId && accountNumber),
+  );
 
-  // Fetch Dashboard Data
-  const fetchDashboardData = useCallback(async () => {
-    if (accountId && activeTab !== 0) return;
-
-    setLoading(true);
-    setDashboardError(null);
-    try {
-      const stageValue = Number.parseInt(filters.stage, 10);
-      const stage = Number.isFinite(stageValue) ? stageValue : undefined;
-
-      const impairedFlag =
-        filters.impairedFlag === 'I' || filters.impairedFlag === 'N'
-          ? filters.impairedFlag
-          : undefined;
-
-      const [watchlistRes, summaryRes] = await Promise.all([
-        individualImpairmentAPI.watchlist.getAll({
-          page: pagination.page + 1,
-          limit: pagination.limit,
-          search: filters.search,
-          filter: {
-            stage,
-            impaired_flag: impairedFlag,
-            priority_level: filters.priorityLevel,
-            date_range: filters.downloadDate ? { start: filters.downloadDate, end: filters.downloadDate } : undefined,
-            mode: mode
-          }
-        }),
-        individualImpairmentAPI.watchlist.getSummary(filters.downloadDate, mode)
-      ]);
-
-      if (watchlistRes.success) {
-        setWatchlist(watchlistRes.data);
-        setPagination(prev => ({ ...prev, total: watchlistRes.meta?.total || 0 }));
-      }
-
-      if (summaryRes.success) {
-        setSummary(summaryRes.data as KPISummary);
-      }
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
-      const message =
-        (error as any)?.response?.data?.message ||
-        (error instanceof Error ? error.message : null) ||
-        'Failed to fetch dashboard data';
-      setDashboardError(String(message));
-    } finally {
-      setLoading(false);
-    }
-  }, [accountId, activeTab, filters, mode, pagination.limit, pagination.page]);
+  const watchlist = useMemo(
+    () => watchlistQuery.data?.rows ?? [],
+    [watchlistQuery.data],
+  );
+  const summary = useMemo(
+    () => summaryQuery.data ?? undefined,
+    [summaryQuery.data],
+  );
+  const loading = watchlistQuery.isLoading || watchlistQuery.isFetching || summaryQuery.isLoading || summaryQuery.isFetching;
+  const dashboardError =
+    (watchlistQuery.error instanceof Error ? watchlistQuery.error.message : null)
+    || (summaryQuery.error instanceof Error ? summaryQuery.error.message : null);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
+    if (typeof watchlistQuery.data?.total === 'number') {
+      setPagination((prev) => ({ ...prev, total: watchlistQuery.data?.total ?? 0 }));
+    }
+  }, [watchlistQuery.data?.total]);
 
   useEffect(() => {
     if (watchlistUrlInitializedRef.current) return;
     if (accountId) return;
 
-    const tabParam = searchParams.get('tab');
-    if (tabParam && tabParam !== 'watchlist') return;
+    const params = new URLSearchParams(searchKey);
+    const initialTab = params.get('tab');
+    if (initialTab && initialTab !== 'watchlist') return;
 
     const nextFilters = { ...FILTER_DEFAULTS };
 
-    const qSearch = searchParams.get('search');
-    const qDownloadDate = searchParams.get('downloadDate');
-    const qStage = searchParams.get('stage');
-    const qImpairedFlag = searchParams.get('impairedFlag');
-    const qPriorityLevel = searchParams.get('priorityLevel');
-    const qPage = searchParams.get('page');
-    const qLimit = searchParams.get('limit');
+    const qSearch = params.get('search');
+    const qDownloadDate = params.get('downloadDate');
+    const qStage = params.get('stage');
+    const qImpairedFlag = params.get('impairedFlag');
+    const qPriorityLevel = params.get('priorityLevel');
+    const qPage = params.get('page');
+    const qLimit = params.get('limit');
 
     if (qSearch) nextFilters.search = qSearch;
     if (qDownloadDate) nextFilters.downloadDate = qDownloadDate;
@@ -256,7 +252,7 @@ export default function IndividualAssessmentWizardPage() {
     }));
 
     watchlistUrlInitializedRef.current = true;
-  }, [accountId, searchParams]);
+  }, [accountId, searchKey]);
 
   useEffect(() => {
     if (accountId) return;
@@ -274,6 +270,10 @@ export default function IndividualAssessmentWizardPage() {
     if (!accountId) {
       setSelectedAccount(null);
       setDcfCalculation(null);
+      if (activeTab !== 0) {
+        skipTabUrlSyncRef.current = true;
+        setActiveTab(0);
+      }
       return;
     }
 
@@ -282,29 +282,22 @@ export default function IndividualAssessmentWizardPage() {
       const match = watchlist.find((w) => w.account_id === id);
       if (match) setSelectedAccount(match);
     }
-  }, [accountId, watchlist]);
+  }, [accountId, activeTab, watchlist]);
 
   useEffect(() => {
-    const fetchSelectedAccount = async () => {
-      if (!accountId) return;
-      if (selectedAccount && String(selectedAccount.account_id) === String(accountId)) return;
-      if (!accountNumber) return;
+    if (!accountId) return;
+    if (selectedAccount && String(selectedAccount.account_id) === String(accountId)) return;
+    if (accountLookupQuery.data) {
+      setSelectedAccount(accountLookupQuery.data);
+    }
+  }, [accountId, accountLookupQuery.data, selectedAccount]);
 
-      const res = await individualImpairmentAPI.watchlist.getAll({
-        page: 1,
-        limit: 1,
-        search: accountNumber,
-        filter: { mode }
-      });
-
-      if (res?.success && Array.isArray(res.data) && res.data.length > 0) {
-        const found = res.data.find((w) => String(w.account_id) === String(accountId)) ?? res.data[0];
-        setSelectedAccount(found);
-      }
-    };
-
-    fetchSelectedAccount();
-  }, [accountId, accountNumber, mode, selectedAccount]);
+  const handleRefreshDashboard = useCallback(async () => {
+    await Promise.all([
+      watchlistQuery.refetch(),
+      summaryQuery.refetch(),
+    ]);
+  }, [summaryQuery, watchlistQuery]);
 
   // Handlers for Dashboard
   const handlePageChange = (event: unknown, newPage: number) => {
@@ -340,9 +333,9 @@ export default function IndividualAssessmentWizardPage() {
 
   const handleResetAssessment = async (account: IndividualImpairmentWatchlistItem) => {
     try {
-      const response = await individualImpairmentAPI.watchlist.remove(String(account.account_id), mode);
+      const response = await (individualImpairmentAPI as any).removeFromWatchlist(String(account.account_id));
       if (response?.success) {
-        await fetchDashboardData();
+        await handleRefreshDashboard();
         if (String(accountId) === String(account.account_id)) {
           router.replace(buildAssessmentUrl({}));
         }
@@ -372,37 +365,8 @@ export default function IndividualAssessmentWizardPage() {
     }
   };
 
-  const watchlistView = (
-    <Container maxWidth="xl" sx={{ py: 2 }}>
-      <FullstackIndicator />
-      <PageHeader
-        title="Assessment Workspace"
-        subtitle={`Individual Impairment workflow (SOP) - ${mode.toUpperCase()} Mode`}
-        onRefresh={fetchDashboardData}
-        loading={loading}
-        extraActions={
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-            <Tooltip title="Copy watchlist link (includes current filters)">
-              <Button
-                variant="outlined"
-                startIcon={<CopyIcon />}
-                onClick={() => copyToClipboard(window.location.href, 'Watchlist link copied')}
-              >
-                Copy Link
-              </Button>
-            </Tooltip>
-            <Tooltip title="Open watchlist in new tab">
-              <Button
-                variant="outlined"
-                startIcon={<OpenInNewIcon />}
-                onClick={() => window.open(window.location.href, '_blank', 'noopener,noreferrer')}
-              >
-                Open
-              </Button>
-            </Tooltip>
-          </Box>
-        }
-      />
+  const watchlistContent = (
+    <>
       {dashboardError ? (
         <Alert severity="error" sx={{ mb: 2 }}>
           {dashboardError}
@@ -482,7 +446,7 @@ export default function IndividualAssessmentWizardPage() {
           />
         </CardContent>
       </Card>
-    </Container>
+    </>
   );
 
   const sections = useMemo<SectionDef[]>(
@@ -491,13 +455,15 @@ export default function IndividualAssessmentWizardPage() {
         key: 'watchlist',
         label: 'Watchlist',
         section: '16',
+        icon: <AssignmentIcon />,
         helper: 'Melihat daftar debitur yang memerlukan penilaian individu, termasuk filter dan pencarian.',
-        render: () => watchlistView
+        render: () => watchlistContent
       },
       {
         key: 'assessment-details',
         label: 'Assessment Details',
         section: '18',
+        icon: <AssessmentIcon />,
         helper: 'Melihat status detail dan melakukan override penilaian manual jika diperlukan.',
         render: () => <OverrideTriggerSection />
       },
@@ -505,6 +471,7 @@ export default function IndividualAssessmentWizardPage() {
         key: 'dcf-analysis',
         label: 'DCF Analysis',
         section: '20',
+        icon: <CalculateIcon />,
         helper: 'Melakukan perhitungan Discounted Cash Flow dan menghitung Present Value.',
         render: () => (
           <DCFAnalysisTab
@@ -520,6 +487,7 @@ export default function IndividualAssessmentWizardPage() {
         key: 'provision-calculation',
         label: 'Provision Calculation',
         section: '21',
+        icon: <MoneyIcon />,
         helper: 'Menghitung CKPN/Provision berdasarkan hasil DCF dan Outstanding Balance.',
         render: () => (
           <ProvisionCalculationTab
@@ -529,27 +497,43 @@ export default function IndividualAssessmentWizardPage() {
             loading={dcfLoading}
           />
         )
+      },
+      {
+        key: 'history',
+        label: 'History',
+        section: '22',
+        icon: <HistoryIcon />,
+        helper: 'Melihat audit trail dan riwayat perubahan assessment untuk debitur terpilih.',
+        render: () => <AssessmentHistoryTab account={selectedAccount} />
+      },
+      {
+        key: 'documents',
+        label: 'Documents',
+        section: '23',
+        icon: <DescriptionIcon />,
+        helper: 'Mengelola dokumen pendukung assessment individual untuk debitur terpilih.',
+        render: () => <AssessmentDocumentsTab account={selectedAccount} />
       }
     ],
-    [dcfCalculation, dcfLoading, handleCalculateDcf, selectedAccount, watchlistView]
+    [dcfCalculation, dcfLoading, handleCalculateDcf, selectedAccount, watchlistContent]
   );
 
   useEffect(() => {
-    if (accountId) {
-      const tabParam = searchParams.get('tab');
-      if (tabParam) {
-        const tabIndex = sections.findIndex(s => s.key === tabParam);
-        if (tabIndex !== -1) {
-          skipTabUrlSyncRef.current = true;
-          setActiveTab(tabIndex);
-          return;
-        }
+    if (!accountId) return;
+
+    if (tabParam) {
+      const tabIndex = SECTION_KEYS.indexOf(tabParam as typeof SECTION_KEYS[number]);
+      if (tabIndex !== -1) {
+        skipTabUrlSyncRef.current = true;
+        setActiveTab((current) => current === tabIndex ? current : tabIndex);
+        return;
       }
-      // Default to Assessment Details (index 1) if no tab specified
-      skipTabUrlSyncRef.current = true;
-      setActiveTab(1);
     }
-  }, [accountId, searchParams, sections]);
+
+    // Default to Assessment Details (index 1) if no tab specified.
+    skipTabUrlSyncRef.current = true;
+    setActiveTab((current) => current === 1 ? current : 1);
+  }, [accountId, tabParam]);
 
   useEffect(() => {
     if (!accountId) return;
@@ -558,18 +542,13 @@ export default function IndividualAssessmentWizardPage() {
       return;
     }
 
-    const key = sections[activeTab]?.key;
+    const key = SECTION_KEYS[activeTab];
     if (!key) return;
 
-    const current = searchParams.get('tab');
-    if (current === key) return;
+    if (tabParam === key) return;
 
     router.replace(buildAssessmentUrl({ accountId, tab: key, accountNumber: accountNumber || undefined }));
-  }, [accountId, accountNumber, activeTab, buildAssessmentUrl, router, searchParams, sections]);
-
-  if (!accountId) {
-    return watchlistView;
-  }
+  }, [accountId, accountNumber, activeTab, buildAssessmentUrl, router, tabParam]);
 
   const activeSection = sections[activeTab] ?? sections[0];
 
@@ -579,21 +558,24 @@ export default function IndividualAssessmentWizardPage() {
       <PageHeader
         title="Assessment Workspace"
         subtitle={`Individual Impairment workflow (SOP) - ${mode.toUpperCase()} Mode`}
+        onRefresh={activeSection.key === 'watchlist' ? handleRefreshDashboard : undefined}
+        loading={activeSection.key === 'watchlist' ? loading : false}
         extraActions={
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-            <Button
-              variant="outlined"
-              onClick={() => router.push(buildAssessmentUrl({}))}
-            >
-              Back to Watchlist
-            </Button>
+            {accountId && activeSection.key !== 'watchlist' ? (
+              <Button
+                variant="outlined"
+                onClick={() => router.push(buildAssessmentUrl({}))}
+              >
+                Back to Watchlist
+              </Button>
+            ) : null}
             <Tooltip title="Copy current workspace link">
               <span>
                 <Button
                   variant="outlined"
                   startIcon={<CopyIcon />}
                   onClick={() => copyToClipboard(window.location.href, 'Workspace link copied')}
-                  disabled={!accountId}
                 >
                   Copy Link
                 </Button>
@@ -605,7 +587,6 @@ export default function IndividualAssessmentWizardPage() {
                   variant="outlined"
                   startIcon={<OpenInNewIcon />}
                   onClick={() => window.open(window.location.href, '_blank', 'noopener,noreferrer')}
-                  disabled={!accountId}
                 >
                   Open
                 </Button>
@@ -615,9 +596,9 @@ export default function IndividualAssessmentWizardPage() {
         }
       />
 
-      {!selectedAccount && (
+      {accountId && !selectedAccount && (
         <Alert severity="info" sx={{ mb: 2 }}>
-          Pilih debitur dari Watchlist menggunakan ikon Mata (View Details) untuk membuka tab Assessment, DCF, dan Provision.
+          Memuat detail debitur terpilih. Jika data tidak muncul, kembali ke Watchlist lalu buka ulang dari ikon Mata (View Details).
         </Alert>
       )}
       {selectedAccount && (
@@ -690,16 +671,12 @@ export default function IndividualAssessmentWizardPage() {
           {sections.map((section) => (
             <Tab
               key={section.key}
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <span>{section.label}</span>
-                  <Chip label={`S${section.section}`} size="small" variant="outlined" />
-                </Box>
-              }
+              label={section.label}
+              icon={section.icon}
+              iconPosition="start"
               disabled={
                 (!accountId && section.key !== 'watchlist')
               }
-              sx={{ alignItems: 'flex-start' }}
             />
           ))}
         </Tabs>

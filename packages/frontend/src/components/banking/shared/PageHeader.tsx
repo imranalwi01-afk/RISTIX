@@ -68,11 +68,11 @@ const PageHeader: React.FC<PageHeaderProps> = ({
       </Breadcrumbs>
 
       {/* Page Header */}
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2, minWidth: 0 }}>
+        <Box sx={{ minWidth: 0, flex: '1 1 320px' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: 1, minWidth: 0, mb: 1 }}>
             <PageIcon sx={{ mr: 2, fontSize: 32, color: 'primary.main' }} />
-            <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
+            <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', minWidth: 0 }}>
               {title}
             </Typography>
             {chip && (
@@ -91,7 +91,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
           )}
         </Box>
 
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', justifyContent: { xs: 'flex-start', md: 'flex-end' }, minWidth: 0 }}>
           {onRefresh && (
             <Tooltip title="Refresh Data">
               <IconButton onClick={onRefresh} color="primary" disabled={loading}>

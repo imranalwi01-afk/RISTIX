@@ -1,4 +1,4 @@
-import { eq, and, asc, desc, count, gte, lte } from 'drizzle-orm'
+import { eq, and, asc, desc, count, gte, lte, ilike, or, sql } from 'drizzle-orm'
 import { getDatabase } from '@/config/database'
 import {
     approvalMatrices,
@@ -252,6 +252,112 @@ export const ApprovalRepository = {
             orderBy: [desc(approvalRequests.createdAt)],
             limit: 100,
         })
+    },
+
+    findRequestsList: async (input: {
+        tenantId: string
+        entityType?: string
+        entityId?: string
+        status?: string
+        impactLevel?: string
+        bankingType?: string
+        currentLevel?: number
+        currentLevelMin?: number
+        currentLevelMax?: number
+        riskLevel?: string
+        requestedBy?: string
+        operation?: string
+        search?: string
+        createdAtFrom?: Date
+        createdAtTo?: Date
+        limit: number
+        offset: number
+        sort?: { field: string; direction: 'asc' | 'desc' }
+    }) => {
+        const dbx = getDatabase(input.tenantId)
+        const conditions = [eq(approvalRequests.tenantId, input.tenantId)]
+
+        if (input.entityType) conditions.push(eq(approvalRequests.entityType, input.entityType))
+        if (input.entityId) conditions.push(eq(approvalRequests.entityId, input.entityId))
+        if (input.status) conditions.push(eq(approvalRequests.status, input.status))
+        if (input.impactLevel) conditions.push(eq(approvalRequests.impactLevel, input.impactLevel))
+        if (typeof input.currentLevel === 'number') conditions.push(eq(approvalRequests.currentLevel, input.currentLevel))
+        if (typeof input.currentLevelMin === 'number') conditions.push(gte(approvalRequests.currentLevel, input.currentLevelMin))
+        if (typeof input.currentLevelMax === 'number') conditions.push(lte(approvalRequests.currentLevel, input.currentLevelMax))
+        if (input.bankingType) {
+            conditions.push(
+                sql`lower(coalesce(
+                    (select ${approvalMatrices.bankingMode} from ${approvalMatrices} where ${approvalMatrices.id} = ${approvalRequests.matrixId}),
+                    ${approvalRequests.requestData}->>'bankingType',
+                    ''
+                )) = lower(${input.bankingType})`
+            )
+        }
+        if (input.riskLevel) {
+            conditions.push(
+                sql`lower(coalesce(${approvalRequests.requestData}->>'riskLevel', '')) = lower(${input.riskLevel})`
+            )
+        }
+        if (input.requestedBy) conditions.push(eq(approvalRequests.requestedBy, input.requestedBy))
+        if (input.operation) {
+            conditions.push(sql`coalesce(${approvalRequests.requestData}->>'operation', '') = ${input.operation}`)
+        }
+        if (input.createdAtFrom) conditions.push(gte(approvalRequests.createdAt, input.createdAtFrom))
+        if (input.createdAtTo) conditions.push(lte(approvalRequests.createdAt, input.createdAtTo))
+        if (input.search) {
+            const pattern = `%${input.search}%`
+            conditions.push(or(
+                ilike(approvalRequests.title, pattern),
+                ilike(approvalRequests.description, pattern),
+                ilike(approvalRequests.entityType, pattern),
+                ilike(approvalRequests.entityId, pattern),
+                ilike(approvalRequests.status, pattern),
+                ilike(approvalRequests.impactLevel, pattern),
+                sql`cast(${approvalRequests.currentLevel} as text) ilike ${pattern}`,
+                sql`coalesce(${approvalRequests.requestData}->>'operation', '') ilike ${pattern}`,
+                sql`coalesce(${approvalRequests.requestData}->>'riskLevel', '') ilike ${pattern}`,
+                sql`coalesce(
+                    (select ${approvalMatrices.bankingMode} from ${approvalMatrices} where ${approvalMatrices.id} = ${approvalRequests.matrixId}),
+                    ${approvalRequests.requestData}->>'bankingType',
+                    ''
+                ) ilike ${pattern}`
+            )!)
+        }
+
+        const sortColumns = {
+            createdAt: approvalRequests.createdAt,
+            updatedAt: approvalRequests.completedAt,
+            status: approvalRequests.status,
+            entityType: approvalRequests.entityType,
+            title: approvalRequests.title,
+            impactLevel: approvalRequests.impactLevel,
+            currentLevel: approvalRequests.currentLevel,
+        }
+        const sort = input.sort ?? { field: 'createdAt', direction: 'desc' as const }
+        const sortColumn = sortColumns[sort.field as keyof typeof sortColumns] ?? approvalRequests.createdAt
+
+        const whereClause = and(...conditions)
+        const [rows, totalRows] = await Promise.all([
+            dbx.query.approvalRequests.findMany({
+                where: whereClause,
+                with: {
+                    matrix: { with: { levels: true } },
+                    requester: true,
+                    actions: true,
+                },
+                orderBy: [sort.direction === 'asc' ? asc(sortColumn) : desc(sortColumn)],
+                limit: input.limit,
+                offset: input.offset,
+            }),
+            dbx.select({ count: count() })
+                .from(approvalRequests)
+                .where(whereClause),
+        ])
+
+        return {
+            data: rows,
+            total: Number(totalRows[0]?.count ?? 0),
+        }
     },
 
     /**

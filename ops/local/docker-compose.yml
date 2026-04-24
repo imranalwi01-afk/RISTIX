@@ -8,6 +8,8 @@
 #   - backend: Run backend only
 #   - frontend / frontend-only / dev-frontend: Run frontend variants
 #   - analytics: Run R analytics service only
+#   - backend-remote-db: Run backend against external/remote databases using ops/local/backend.env
+#   - frontend-remote-db: Run frontend against backend-remote-db flow
 #   - full: Run all major services
 # ============================================================================
 
@@ -253,6 +255,7 @@ services:
       - backend-only
       - backend-legacy-vpn
       - backend-vpn
+      - backend-remote-db
 
   # ============================================================================
   # 🚀 NEW BACKEND SERVICE (Hono + Drizzle + Bun)
@@ -370,9 +373,10 @@ services:
       - backend-legacy-vpn
 
   # ============================================================================
-  # 🔐 NEW BACKEND (VPN / External DB)
-  # - Use when DB is not the local postgres container, but an external DB over VPN.
-  # - Does not depend on postgres/db-init.
+  # 🔐 NEW BACKEND (REMOTE DB / EXTERNAL DB)
+  # - Use when platform/tenant/legacy DBs are external and must not be migrated/seeded from ops/local.
+  # - Run compose with: docker compose --env-file ops/local/backend.env -f ops/local/docker-compose.yml --profile backend-remote-db up
+  # - This service intentionally does not depend on postgres/db-init/platform-init/tenant-migrate/tenant-seed.
   # ============================================================================
   new-backend-vpn:
     build:
@@ -385,7 +389,7 @@ services:
       PORT: 4232
       HOST: 0.0.0.0
       LOG_LEVEL: ${LOG_LEVEL:-debug}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:4231,http://127.0.0.1:4231,https://app.ifrs9pro.id}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:4231,http://127.0.0.1:4231}
 
       JWT_SECRET: ${JWT_SECRET:-dev-local-jwt-secret-please-change-000000}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev-local-jwt-refresh-secret-please-change-000000}
@@ -445,6 +449,7 @@ services:
     command: sh -c "bun install && bun run src/index.ts"
     profiles:
       - backend-vpn
+      - backend-remote-db
 
   # ============================================================================
   # 🌐 FRONTEND SERVICE (Static Build - Optional)
@@ -470,6 +475,7 @@ services:
       - app
       - with-frontend
       - frontend
+      - frontend-remote-db
 
   # ============================================================================
   # 💻 FRONTEND DEVELOPMENT (Hot Reload)
@@ -489,17 +495,19 @@ services:
       - NEXT_TELEMETRY_DISABLED=1
       - NODE_OPTIONS=--max-old-space-size=4096
       - WSS_PORT=4231
-      # Watchpack polling for better file change detection on some systems
-      - WATCHPACK_POLLING=true
+      # Polling is reliable on every Docker setup, but very slow on macOS bind mounts.
+      # Override with WATCHPACK_POLLING=true only if file changes are not detected.
+      - WATCHPACK_POLLING=${WATCHPACK_POLLING:-false}
+      - CHOKIDAR_USEPOLLING=${CHOKIDAR_USEPOLLING:-false}
     volumes:
       - ../../packages/frontend:/app
-      - /app/node_modules
-      - /app/.next
+      - frontend-node-modules:/app/node_modules
+      - frontend-next-cache:/app/.next
     ports:
       - "4231:4231"
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    command: sh -c "npm install -g pnpm && pnpm install --no-frozen-lockfile && pnpm dev"
+    command: sh -c "corepack enable && corepack prepare pnpm@8.15.0 --activate && pnpm install --prefer-offline --frozen-lockfile && pnpm dev:turbopack"
     networks:
       - ifrs9-dev
     profiles:
@@ -508,6 +516,7 @@ services:
       - full
       - frontend-only
       - frontend
+      - frontend-remote-db
 
   # ============================================================================
   # 🌍 PUBLIC LINK (Quick Tunnel)
@@ -618,6 +627,10 @@ volumes:
     name: ifrs9-iaf_redis-dev-data
     driver: local
   new-backend-node-modules:
+    driver: local
+  frontend-node-modules:
+    driver: local
+  frontend-next-cache:
     driver: local
   r-analytics-logs:
     driver: local

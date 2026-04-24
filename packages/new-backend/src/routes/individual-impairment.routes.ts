@@ -46,11 +46,18 @@ const WatchlistListResponse = z.object({
     success: z.boolean(),
     data: z.array(WatchlistItemSchema),
     pagination: z.object({
-        page: z.number(),
         limit: z.number(),
-        total: z.number(),
-        totalPages: z.number()
-    }).optional()
+        mode: z.enum(['offset', 'cursor']).optional(),
+        page: z.number().optional(),
+        offset: z.number().optional(),
+        total: z.number().optional(),
+        totalPages: z.number().optional(),
+        nextCursor: z.string().nullable().optional(),
+        previousCursor: z.string().nullable().optional(),
+        hasNextPage: z.boolean().optional(),
+        hasPreviousPage: z.boolean().optional()
+    }).optional(),
+    appliedQuery: z.any().optional()
 }).openapi('WatchlistListResponse')
 
 const CustomerListItemSchema = z.object({
@@ -77,11 +84,18 @@ const CustomerListResponse = z.object({
     success: z.boolean(),
     data: z.array(CustomerListItemSchema),
     pagination: z.object({
-        page: z.number(),
         limit: z.number(),
-        total: z.number(),
-        totalPages: z.number()
-    }).optional()
+        mode: z.enum(['offset', 'cursor']).optional(),
+        page: z.number().optional(),
+        offset: z.number().optional(),
+        total: z.number().optional(),
+        totalPages: z.number().optional(),
+        nextCursor: z.string().nullable().optional(),
+        previousCursor: z.string().nullable().optional(),
+        hasNextPage: z.boolean().optional(),
+        hasPreviousPage: z.boolean().optional()
+    }).optional(),
+    appliedQuery: z.any().optional()
 }).openapi('CustomerListResponse')
 
 const AddWatchlistSchema = z.object({
@@ -201,9 +215,19 @@ const ScenarioListResponse = z.object({
 }).openapi('ScenarioListResponse')
 
 const CreateScenarioSchema = z.object({
-    scenarioCode: z.string(),
+    accountId: z.number().int().optional(),
+    scenarioId: z.number().int().min(1).max(3).optional(),
+    scenarioCode: z.string().optional(),
     scenarioName: z.string(),
     description: z.string().optional(),
+    nOfScenario: z.number().int().min(1).max(3).optional(),
+    scenarioRows: z.array(z.object({
+        possibleOutcomeRate: z.number().optional(),
+        scenarioName: z.string().optional(),
+        periodStart: z.string().optional(),
+        periodEnd: z.string().optional(),
+        repaymentRate: z.number().optional()
+    })).optional(),
     configuration: z.any().optional()
 }).openapi('CreateScenarioInput')
 
@@ -228,12 +252,18 @@ const DcfUploadListResponse = z.object({
 
 const DcfCashflowSchema = z.object({
     pkid: z.number().int(),
-    accountId: z.string(),
-    periodDate: z.string(),
-    cashflowAmount: z.number(),
-    discountRate: z.number(),
-    discountFactor: z.number().optional(),
-    presentValue: z.number().optional()
+    iaId: z.number().nullable().optional(),
+    prcDate: z.string().nullable().optional(),
+    accountId: z.number().nullable().optional(),
+    accountNumber: z.string().optional(),
+    mob: z.number().optional(),
+    periode: z.string().nullable().optional(),
+    principal: z.number(),
+    interest: z.number(),
+    collateral: z.number(),
+    status: z.string().nullable().optional(),
+    createdby: z.string().optional(),
+    createddate: z.string().nullable().optional()
 }).openapi('DcfCashflow')
 
 const DcfCashflowListResponse = z.object({
@@ -311,6 +341,7 @@ const IaResultDetailResponse = z.object({
     success: z.boolean(),
     data: z.object({
         header: IaResultHeaderSchema.nullable(),
+        cashflows: z.array(DcfCashflowSchema),
         details: z.array(IaResultDetailSchema)
     })
 }).openapi('IaResultDetailResponse')
@@ -319,10 +350,16 @@ const CreateBatchUploadSchema = z.object({
     fileName: z.string(),
     batchId: z.string().optional(),
     cashflows: z.array(z.object({
-        accountId: z.string(),
-        periodDate: z.string(),
-        cashflowAmount: z.number(),
-        discountRate: z.number().optional()
+        accountId: z.union([z.number(), z.string()]),
+        accountNumber: z.string().optional(),
+        prcDate: z.string().optional(),
+        periodDate: z.string().optional(),
+        periode: z.string().optional(),
+        mob: z.number().optional(),
+        principal: z.number().optional(),
+        interest: z.number().optional(),
+        collateral: z.number().optional(),
+        status: z.string().optional()
     }))
 }).openapi('CreateBatchUploadInput')
 
@@ -342,7 +379,16 @@ individualImpairmentRoutes.openapi(
             query: z.object({
                 search: z.string().optional(),
                 page: z.string().optional(),
+                offset: z.string().optional(),
                 limit: z.string().optional(),
+                cursor: z.string().optional(),
+                paginationMode: z.enum(['offset', 'cursor']).optional(),
+                sort: z.string().optional(),
+                sortField: z.string().optional(),
+                sortOrder: z.enum(['asc', 'desc']).optional(),
+                filters: z.string().optional(),
+                dateFrom: z.string().optional(),
+                dateTo: z.string().optional(),
                 // Filter object patterns for documentation
                 'filter[stage]': z.string().optional(),
                 'filter[assessment_status]': z.string().optional(),
@@ -351,7 +397,6 @@ individualImpairmentRoutes.openapi(
                 // Legacy support
                 segment: z.string().optional(),
                 status: z.string().optional(),
-                offset: z.string().optional()
             })
         },
         responses: {
@@ -403,7 +448,14 @@ individualImpairmentRoutes.openapi(
             query: z.object({
                 search: z.string().optional(),
                 page: z.string().optional(),
+                offset: z.string().optional(),
                 limit: z.string().optional(),
+                cursor: z.string().optional(),
+                paginationMode: z.enum(['offset', 'cursor']).optional(),
+                sort: z.string().optional(),
+                sortField: z.string().optional(),
+                sortOrder: z.enum(['asc', 'desc']).optional(),
+                filters: z.string().optional(),
                 dateFrom: z.string().optional(),
                 dateTo: z.string().optional(),
                 'filter[date_range][start]': z.string().optional(),
@@ -583,6 +635,8 @@ individualImpairmentRoutes.openapi(
         request: {
             query: z.object({
                 status: z.string().optional(),
+                accountId: z.string().optional(),
+                accountNumber: z.string().optional(),
                 limit: z.string().optional(),
                 offset: z.string().optional()
             })

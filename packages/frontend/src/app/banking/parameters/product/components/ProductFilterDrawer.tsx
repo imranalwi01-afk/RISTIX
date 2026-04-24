@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Drawer,
   Box,
@@ -35,6 +35,10 @@ export default function ProductFilterDrawer({
   options
 }: ProductFilterDrawerProps) {
   const [localFilters, setLocalFilters] = useState(currentFilters);
+
+  useEffect(() => {
+    setLocalFilters(currentFilters);
+  }, [currentFilters, open]);
 
   const handleChange = (field: string, value: any) => {
     setLocalFilters((prev: any) => ({ ...prev, [field]: value }));

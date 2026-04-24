@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useDeferredValue, useState, useMemo } from 'react';
 import {
     Box,
     Typography,
@@ -42,9 +42,14 @@ import {
     SupervisorAccount as AdminIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
-import { platformUsersAPI } from '@/services/api';
 import { exportToCsv } from '@/utils/export-csv';
 import { getErrorMessage } from '@/utils/error-message';
+import {
+    useCreatePlatformUserMutation,
+    useDeletePlatformUserMutation,
+    usePlatformUsersQuery,
+    useUpdatePlatformUserMutation,
+} from '@/features/platform-users/hooks/usePlatformUsersQueries';
 
 // Types
 interface PlatformUser {
@@ -69,9 +74,6 @@ interface PlatformUserFormData {
 
 const PlatformUserManagement = () => {
     // State for data
-    const [users, setUsers] = useState<PlatformUser[]>([]);
-    const [total, setTotal] = useState(0);
-    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // State for pagination & filtering
@@ -92,51 +94,21 @@ const PlatformUserManagement = () => {
         isActive: true
     });
     const [formLoading, setFormLoading] = useState(false);
-
-    // Fetch users
-    const fetchUsers = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const response = await platformUsersAPI.getAll({
-                page: page + 1,
-                limit: rowsPerPage,
-                search: searchQuery || undefined
-            });
-
-            const responseData = (response as any)?.data;
-            const data = Array.isArray(responseData)
-                ? responseData
-                : Array.isArray(responseData?.users)
-                    ? responseData.users
-                    : [];
-            const totalCountRaw = (response as any)?.total ?? responseData?.total ?? data.length;
-            const totalCount = Number(totalCountRaw);
-
-            setUsers(data);
-            setTotal(Number.isFinite(totalCount) ? totalCount : data.length);
-        } catch (err) {
-            console.error('Failed to fetch platform users:', err);
-            const status = (err as any)?.response?.status;
-            if (status === 403) {
-                setError('Access denied. This account does not have platform admin permissions.');
-            } else if (status === 401) {
-                setError('Session expired. Please log in again.');
-            } else {
-                setError('Failed to load platform users.');
-            }
-        } finally {
-            setLoading(false);
-        }
-    }, [page, rowsPerPage, searchQuery]);
-
-    // Initial load and debounced search
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            fetchUsers();
-        }, 300);
-        return () => clearTimeout(timer);
-    }, [fetchUsers]);
+    const deferredSearchQuery = useDeferredValue(searchQuery);
+    const platformUsersQuery = usePlatformUsersQuery({
+        page: page + 1,
+        limit: rowsPerPage,
+        search: deferredSearchQuery || undefined,
+    });
+    const createPlatformUserMutation = useCreatePlatformUserMutation();
+    const updatePlatformUserMutation = useUpdatePlatformUserMutation();
+    const deletePlatformUserMutation = useDeletePlatformUserMutation();
+    const users = (platformUsersQuery.data?.rows ?? []) as PlatformUser[];
+    const total = platformUsersQuery.data?.total ?? 0;
+    const loading =
+        platformUsersQuery.isLoading ||
+        platformUsersQuery.isFetching ||
+        deletePlatformUserMutation.isPending;
 
     // Handlers
     const handlePageChange = (event: unknown, newPage: number) => {
@@ -211,8 +183,7 @@ const PlatformUserManagement = () => {
         }
 
         try {
-            await platformUsersAPI.delete(id);
-            fetchUsers();
+            await deletePlatformUserMutation.mutateAsync(id);
         } catch (err) {
             console.error('Failed to delete user:', err);
             setError('Failed to delete user.');
@@ -225,13 +196,15 @@ const PlatformUserManagement = () => {
         setError(null);
         try {
             if (formMode === 'create') {
-                await platformUsersAPI.create(formData);
+                await createPlatformUserMutation.mutateAsync(formData as unknown as Record<string, unknown>);
             } else {
                 if (!formData.id) throw new Error("User ID missing for update");
-                await platformUsersAPI.update(formData.id, formData);
+                await updatePlatformUserMutation.mutateAsync({
+                    id: formData.id,
+                    input: formData as unknown as Record<string, unknown>,
+                });
             }
             setIsFormOpen(false);
-            fetchUsers();
         } catch (err: any) {
             console.error('Form submission failed:', err);
             const msg = getErrorMessage(err, 'Operation failed');
@@ -263,6 +236,11 @@ const PlatformUserManagement = () => {
             {error && (
                 <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
                     {error}
+                </Alert>
+            )}
+            {!error && platformUsersQuery.error && (
+                <Alert severity="error" sx={{ mb: 3 }}>
+                    Failed to load platform users.
                 </Alert>
             )}
 
@@ -324,7 +302,7 @@ const PlatformUserManagement = () => {
                     <Button
                         variant="outlined"
                         startIcon={<RefreshIcon />}
-                        onClick={fetchUsers}
+                        onClick={() => platformUsersQuery.refetch()}
                     >
                         Refresh
                     </Button>

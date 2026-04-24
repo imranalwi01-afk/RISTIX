@@ -1,4 +1,4 @@
-import { eq, desc } from 'drizzle-orm'
+import { and, asc, desc, eq, ilike, or, sql } from 'drizzle-orm'
 import { legacyDb as db } from '../config'
 import { frs9ParamJournal } from '../db/schema'
 import { Effect } from 'effect'
@@ -19,6 +19,130 @@ export const JournalParametersRepository = {
                     .orderBy(desc(frs9ParamJournal.createddate))
             },
             catch: (error) => new DatabaseError({ message: 'Failed to find journal parameters', operation: 'query', cause: error })
+        })
+    },
+
+    findMany: (options: {
+        page?: number
+        offset?: number
+        limit: number
+        search?: string
+        glGroup?: string
+        currency?: string
+        activeFlag?: boolean | string
+        filters?: Record<string, unknown>
+        sort?: Array<{ field: string; direction: 'asc' | 'desc' }>
+    }) => {
+        const { page = 1, limit, search, glGroup, currency, activeFlag, filters = {}, sort = [] } = options
+        const offset = options.offset ?? ((page - 1) * limit)
+
+        return Effect.tryPromise({
+            try: async () => {
+                const conditions = []
+
+                if (search) {
+                    conditions.push(
+                        or(
+                            ilike(frs9ParamJournal.glCode, `%${search}%`),
+                            ilike(frs9ParamJournal.glDesc, `%${search}%`),
+                            ilike(frs9ParamJournal.glNumber, `%${search}%`),
+                            ilike(frs9ParamJournal.glGroup, `%${search}%`),
+                            ilike(frs9ParamJournal.glType, `%${search}%`),
+                        )!,
+                    )
+                }
+
+                const resolvedGlGroup = typeof filters.glGroup === 'string' ? filters.glGroup : glGroup
+                if (resolvedGlGroup) {
+                    conditions.push(eq(frs9ParamJournal.glGroup, resolvedGlGroup))
+                }
+
+                const resolvedCurrency = typeof filters.currency === 'string' ? filters.currency : currency
+                if (resolvedCurrency) {
+                    conditions.push(eq(frs9ParamJournal.currency, resolvedCurrency))
+                }
+
+                const resolvedGlType = typeof filters.glType === 'string' ? filters.glType : undefined
+                if (resolvedGlType) {
+                    conditions.push(eq(frs9ParamJournal.glType, resolvedGlType))
+                }
+
+                const resolvedGlCode = typeof filters.glCode === 'string' ? filters.glCode : undefined
+                if (resolvedGlCode) {
+                    conditions.push(ilike(frs9ParamJournal.glCode, `%${resolvedGlCode}%`))
+                }
+
+                const resolvedGlNumber = typeof filters.glNumber === 'string' ? filters.glNumber : undefined
+                if (resolvedGlNumber) {
+                    conditions.push(ilike(frs9ParamJournal.glNumber, `%${resolvedGlNumber}%`))
+                }
+
+                const resolvedDbcr = typeof filters.dbcr === 'string' ? filters.dbcr : undefined
+                if (resolvedDbcr) {
+                    conditions.push(eq(frs9ParamJournal.dbcr, resolvedDbcr))
+                }
+
+                const resolvedGlDesc = typeof filters.glDesc === 'string' ? filters.glDesc : undefined
+                if (resolvedGlDesc) {
+                    conditions.push(ilike(frs9ParamJournal.glDesc, `%${resolvedGlDesc}%`))
+                }
+
+                const activeFilter = filters.activeFlag ?? activeFlag
+                if (activeFilter !== undefined && activeFilter !== '') {
+                    let normalizedActiveFlag: boolean | undefined
+                    if (typeof activeFilter === 'boolean') {
+                        normalizedActiveFlag = activeFilter
+                    } else if (activeFilter === 'active' || activeFilter === 'true') {
+                        normalizedActiveFlag = true
+                    } else if (activeFilter === 'inactive' || activeFilter === 'false') {
+                        normalizedActiveFlag = false
+                    }
+
+                    if (normalizedActiveFlag !== undefined) {
+                        conditions.push(eq(frs9ParamJournal.activeFlag, normalizedActiveFlag))
+                    }
+                }
+
+                const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+
+                const sortMap = {
+                    glCode: frs9ParamJournal.glCode,
+                    glDesc: frs9ParamJournal.glDesc,
+                    glGroup: frs9ParamJournal.glGroup,
+                    glType: frs9ParamJournal.glType,
+                    currency: frs9ParamJournal.currency,
+                    glNumber: frs9ParamJournal.glNumber,
+                    dbcr: frs9ParamJournal.dbcr,
+                    activeFlag: frs9ParamJournal.activeFlag,
+                    createddate: frs9ParamJournal.createddate,
+                    updateddate: frs9ParamJournal.updateddate,
+                } as const
+
+                const orderBy = sort
+                    .map((item) => {
+                        const column = sortMap[item.field as keyof typeof sortMap]
+                        if (!column) return undefined
+                        return item.direction === 'asc' ? asc(column) : desc(column)
+                    })
+                    .filter(Boolean) as Array<ReturnType<typeof asc>>
+
+                const journals = await db
+                    .select()
+                    .from(frs9ParamJournal)
+                    .where(whereClause)
+                    .orderBy(...(orderBy.length > 0 ? orderBy : [desc(frs9ParamJournal.createddate)]))
+                    .limit(limit)
+                    .offset(offset)
+
+                const totalResult = await db
+                    .select({ count: sql`count(*)` })
+                    .from(frs9ParamJournal)
+                    .where(whereClause)
+
+                const total = Number(totalResult[0]?.count || 0)
+                return { journals, total }
+            },
+            catch: (error) => new DatabaseError({ message: 'Failed to find journal parameters', operation: 'query', cause: error }),
         })
     },
 

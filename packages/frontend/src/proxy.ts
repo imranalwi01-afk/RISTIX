@@ -302,6 +302,14 @@ function getTokenFromRequest(request: NextRequest): string | null {
   return null;
 }
 
+function hasRefreshTokenFromRequest(request: NextRequest): boolean {
+  return Boolean(
+    request.cookies.get('refresh_token')?.value ||
+    request.cookies.get('refresh-token')?.value ||
+    request.headers.get('x-refresh-token')
+  );
+}
+
 // ✅ SURGICAL ENHANCEMENT: Banking mode redirect helper
 function getBankingModeAwareRedirect(user: any, pathname: string, baseUrl: string, currentUrlString: string): string | null {
   // Detect banking mode from URL
@@ -438,12 +446,15 @@ export function proxy(request: NextRequest) {
       return response;
     }
 
-    // ✅ NORMAL FLOW: Redirect to login for regular unauthorized access
-    if (request.headers.get('accept')?.includes('text/html') && !isGoingToLogin) {
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('error', 'session_expired');
-      loginUrl.searchParams.set('from', pathname);
-      return NextResponse.redirect(loginUrl);
+    // Allow full-page refresh / direct document navigation to boot the client auth flow.
+    // Proxy cannot read localStorage, so redirecting here creates a false logout race.
+    if (request.headers.get('accept')?.includes('text/html')) {
+      const response = NextResponse.next();
+      response.headers.set('x-session-restore-pending', 'true');
+      if (hasRefreshTokenFromRequest(request)) {
+        response.headers.set('x-refresh-token-present', 'true');
+      }
+      return response;
     }
 
     return NextResponse.next();
@@ -481,13 +492,16 @@ export function proxy(request: NextRequest) {
       return response;
     }
 
-    // ✅ NORMAL FLOW: Redirect to login for invalid token access
+    // Let the client auth flow decide what to do on full page refresh/direct document requests.
+    // Redirecting here causes false logout when cookies and localStorage are briefly out of sync.
     if (request.headers.get('accept')?.includes('text/html') && !isGoingToLogin) {
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('error', 'session_expired');
-      loginUrl.searchParams.set('invalid_token', 'true');
-      loginUrl.searchParams.set('from', pathname);
-      return NextResponse.redirect(loginUrl);
+      const response = NextResponse.next();
+      response.headers.set('x-session-restore-pending', 'true');
+      response.headers.set('x-invalid-access-token', 'true');
+      if (hasRefreshTokenFromRequest(request)) {
+        response.headers.set('x-refresh-token-present', 'true');
+      }
+      return response;
     }
 
     return NextResponse.next();
@@ -521,13 +535,17 @@ export function proxy(request: NextRequest) {
 
       const acceptsHtml = request.headers.get('accept')?.includes('text/html');
       if (acceptsHtml) {
-        const loginUrl = new URL('/login', request.url);
-        loginUrl.searchParams.set('error', 'forbidden');
-        loginUrl.searchParams.set('from', pathname);
-        if (accessResult.requiredPermission) {
-          loginUrl.searchParams.set('requiredPermission', accessResult.requiredPermission);
-        }
-        return NextResponse.redirect(loginUrl);
+        return new NextResponse(
+          `<!doctype html><html><head><title>403 Forbidden</title></head><body><h1>403 Forbidden</h1><p>You do not have permission to access ${pathname}.</p></body></html>`,
+          {
+            status: 403,
+            headers: {
+              'content-type': 'text/html; charset=utf-8',
+              ...(accessResult.matchedRoute ? { 'x-rbac-matched-route': accessResult.matchedRoute } : {}),
+              ...(accessResult.requiredPermission ? { 'x-rbac-required-permission': accessResult.requiredPermission } : {}),
+            },
+          },
+        );
       }
 
       const includeDebug = process.env.NODE_ENV === 'development' || request.headers.get('x-rbac-debug') === 'true';

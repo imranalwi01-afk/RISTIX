@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Box,
   Button,
@@ -16,53 +16,11 @@ import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import { StatCard } from '@/components/common/StatCard';
 import { Person, Search as SearchIcon, Clear as ClearIcon, ListAlt as ListAltIcon } from '@mui/icons-material';
-import { individualImpairmentAPI } from '@/services/api/individual-impairment.api';
 import PageHeader from '@/components/banking/shared/PageHeader';
-
-type CustomerRow = {
-  id: string | number;
-  customerName: string;
-  accountNumber: string;
-  segment: string;
-  stage: number;
-  status: string;
-  remarks: string;
-  processDate: string | null;
-};
-
-const pickText = (...values: any[]): string | undefined => {
-  for (const value of values) {
-    const raw = value == null ? '' : String(value).trim();
-    if (raw) return raw;
-  }
-  return undefined;
-};
-
-const normalizeSegment = (value: any): string => {
-  const raw = String(value || '').trim();
-  if (!raw) return 'Unknown';
-  const upper = raw.toUpperCase();
-  if (upper.includes('SME')) return 'SME';
-  if (upper.includes('RETAIL')) return 'Retail';
-  return raw;
-};
-
-const mapCustomerRow = (row: any): CustomerRow => ({
-  id: row.account_number ?? row.account_id ?? row.pkid,
-  customerName: pickText(row.cif_name, row.customerName) ?? '-',
-  accountNumber: pickText(row.account_number, row.accountNumber) ?? '-',
-  segment: normalizeSegment(pickText(row.segment, row.sub_segment, row.group_segment)),
-  stage: Number(row.stage || 1),
-  status: pickText(row.assessment_status, row.status) ?? 'PENDING',
-  remarks: pickText(row.remarks, row.notes, row.trigger_remarks) ?? '-',
-  processDate: row.prc_date ?? null,
-});
+import { useCustomerListQuery } from '@/features/individual-impairment/hooks/useCustomerListQuery';
+import type { IndividualCustomerListRowViewModel } from '@/features/individual-impairment/domain/individual-impairment.models';
 
 export default function IndividualCustomerListPage() {
-  const [rows, setRows] = useState<CustomerRow[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [total, setTotal] = useState(0);
-
   const [searchDraft, setSearchDraft] = useState('');
   const [dateFromDraft, setDateFromDraft] = useState('');
   const [dateToDraft, setDateToDraft] = useState('');
@@ -73,32 +31,17 @@ export default function IndividualCustomerListPage() {
 
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 25 });
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await individualImpairmentAPI.getCustomerList({
-        page: paginationModel.page + 1,
-        limit: paginationModel.pageSize,
-        search: search || undefined,
-        dateFrom: dateFrom || undefined,
-        dateTo: dateTo || undefined,
-      });
+  const customerListQuery = useCustomerListQuery({
+    page: paginationModel.page + 1,
+    limit: paginationModel.pageSize,
+    search: search || undefined,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+  });
 
-      const rawRows = Array.isArray(response?.data) ? response.data : [];
-      setRows(rawRows.map(mapCustomerRow));
-      setTotal(Number(response?.pagination?.total ?? rawRows.length));
-    } catch (error) {
-      console.error('Failed to load customer list:', error);
-      setRows([]);
-      setTotal(0);
-    } finally {
-      setLoading(false);
-    }
-  }, [paginationModel.page, paginationModel.pageSize, search, dateFrom, dateTo]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const rows = customerListQuery.data?.rows ?? [];
+  const total = customerListQuery.data?.total ?? 0;
+  const loading = customerListQuery.isLoading || customerListQuery.isFetching;
 
   const handleApply = () => {
     setSearch(searchDraft.trim());
@@ -117,7 +60,7 @@ export default function IndividualCustomerListPage() {
     setPaginationModel((prev) => ({ ...prev, page: 0 }));
   };
 
-  const columns = useMemo<GridColDef<CustomerRow>[]>(() => [
+  const columns = useMemo<GridColDef<IndividualCustomerListRowViewModel>[]>(() => [
     { field: 'customerName', headerName: 'Customer Name', flex: 1.2, minWidth: 220 },
     { field: 'accountNumber', headerName: 'Account Number', flex: 1, minWidth: 170 },
     { field: 'segment', headerName: 'Segment', width: 190 },

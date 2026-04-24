@@ -68,6 +68,10 @@ import api from '../../services/api';
 import ModernLoader from '../common/ModernLoader'; // ✅ Import ModernLoader
 import { useBankingTheme } from '../../providers/BankingThemeProvider';
 import { usePermission } from '@/hooks/usePermission';
+import type { EnterpriseFilterDefinition } from '@/types/enterprise-table';
+import { useEnterpriseTableQuery } from '@/hooks/useEnterpriseTableQuery';
+import { useSavedTableView } from '@/hooks/useSavedTableView';
+import { useIfrs9ReportQuery } from '@/features/ifrs9-reports/hooks/useIfrs9ReportQuery';
 
 const formatLocalDate = (date: Date) => {
   const yyyy = date.getFullYear();
@@ -82,12 +86,42 @@ const lookupCache: {
   scalars: { ts: number; value: any[] } | null;
   lgdMethods: { ts: number; value: any[] } | null;
   lgdConfigs: { ts: number; value: any[] } | null;
+  eadConfigs: { ts: number; value: any[] } | null;
 } = {
   segments: null,
   scalars: null,
   lgdMethods: null,
   lgdConfigs: null,
+  eadConfigs: null,
 };
+
+const EAD_CONFIG_ALLOWLIST_ORDER = [
+  'EAD Model',
+  'EAD All Segment',
+  'EAD Factoring',
+  'EAD Repo',
+  'EAD Treasury',
+  'EAD Model - Stable',
+  'EAD Model - Run Off',
+] as const;
+
+const GROUP_SEGMENT_ALLOWLIST_ORDER = [
+  'PF Lending All Segment',
+  'Repo',
+  'PD Lending All Segment',
+  'Treasury Moodys',
+  'LGD Lending All Segment',
+  'EAD Lending All Segment',
+  'Treasury Pefindo',
+  'Treasury Fitch',
+  'Treasury S&P',
+  'Factoring',
+  'PD Factoring',
+  'LGD Factoring',
+  'EAD Factoring',
+  'PD Repo',
+  'LGD Repo',
+] as const;
 
 export interface BaseIfrs9ReportProps {
   title: string;
@@ -105,6 +139,8 @@ export interface BaseIfrs9ReportProps {
   onDataLoaded?: (data: Record<string, unknown>[], summary?: Record<string, unknown> | null) => void;
   children?: React.ReactNode;
   hideHeader?: boolean;
+  headerAtTop?: boolean;
+  hideFilters?: boolean;
   hideDataGrid?: boolean;
   externalFilters?: Partial<ReportFilters>;
 }
@@ -141,11 +177,18 @@ interface SegmentOption {
 interface LgdConfigOption {
   id: number | string;
   model_name?: string;
+  segment_id?: number;
 }
 
 interface LgdMethodOption {
   value: number;
   label: string;
+}
+
+interface EadConfigOption {
+  id: number | string;
+  model_name: string;
+  segment_id?: number;
 }
 
 const getDefaultFilters = (reportType: BaseIfrs9ReportProps['reportType']): ReportFilters => ({
@@ -193,6 +236,7 @@ export interface ReportResponse {
   message?: string;
   effectivePrcDate?: string | null;
   summary?: Record<string, unknown> | null;
+  filterDefinitions?: Record<string, EnterpriseFilterDefinition>;
 }
 
 export interface ReportDebugMetadata {
@@ -234,7 +278,9 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   scope = 'IFRS 9 Regulatory Compliance',
   onDataLoaded,
   children,
-  hideHeader,
+  hideHeader = false,
+  headerAtTop = false,
+  hideFilters = false,
   hideDataGrid = false,
   externalFilters
 }) => {
@@ -249,11 +295,11 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   }, [user?.tenantId, user?.tenantSlug]);
 
   // State management
-  const fetchRef = React.useRef(false);
   const [data, setData] = useState<Record<string, unknown>[]>([]);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [columns, setColumns] = useState<GridColDef[]>([]);
+  const [filterDefinitions, setFilterDefinitions] = useState<Record<string, EnterpriseFilterDefinition>>({});
   const [filters, setFilters] = useState<ReportFilters>(getDefaultFilters(reportType));
 
   const [pagination, setPagination] = useState({
@@ -264,25 +310,74 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   });
   const [showFilters, setShowFilters] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const deferredSearchTerm = React.useDeferredValue(searchTerm);
   const [exportLoading, setExportLoading] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportOptions, setExportOptions] = useState({
-    scope: 'summary',
-    format: 'xlsx'
+    scope: 'all_pages',
+    format: 'xlsx',
+    fromDate: null as Date | null,
+    toDate: null as Date | null,
   });
   const [segments, setSegments] = useState<SegmentOption[]>([]);
   const [scalars, setScalars] = useState<Record<string, unknown>[]>([]);
   const [lgdMethods, setLgdMethods] = useState<LgdMethodOption[]>([]);
   const [lgdConfigs, setLgdConfigs] = useState<LgdConfigOption[]>([]);
+  const [eadConfigs, setEadConfigs] = useState<EadConfigOption[]>([]);
   const [configDrawerOpen, setConfigDrawerOpen] = useState(false);
   const [effectivePrcDate, setEffectivePrcDate] = useState<string | null>(null);
   const [reportMeta, setReportMeta] = useState<ReportResponse['meta'] | null>(null);
   const [reportDebugEnabled, setReportDebugEnabled] = useState(false);
   const [reportDebugLoading, setReportDebugLoading] = useState(false);
   const [reportDebugSaving, setReportDebugSaving] = useState(false);
+  const {
+    queryState,
+    queryParams,
+    setPaginationModel,
+    setColumnFilters,
+    setSort,
+    setColumnVisibilityModel,
+    setDensity,
+    applySavedView,
+    toSavedViewState,
+    resetView,
+  } = useEnterpriseTableQuery({
+    pageKey: `ifrs9-report:${reportType}`,
+    paginationMode: supportsPagination ? 'offset' : 'client',
+    initialPageSize: getDefaultFilters(reportType).limit ?? 20,
+    syncUrl: supportsPagination,
+  });
+  const savedView = useSavedTableView({
+    userId: user?.id,
+    scope: `ifrs9-report:${reportType}`,
+    enabled: Boolean(user?.id),
+    onApplyView: (view) => {
+      applySavedView(view);
+      const savedSearch = typeof view.state.search === 'string' ? view.state.search : '';
+      setSearchTerm(savedSearch);
+    },
+  });
+  const missingParams = React.useMemo(
+    () => requiredParams.filter((param) => {
+      const value = filters[param as keyof ReportFilters];
+      return value === null || value === undefined || value === '';
+    }),
+    [filters, requiredParams],
+  );
+  const reportQuery = useIfrs9ReportQuery({
+    reportType,
+    filters,
+    requiredParams,
+    supportsPagination,
+    queryParams,
+    deferredSearchTerm,
+    enabled: Boolean(tenant && filters.prc_date && missingParams.length === 0),
+  });
+  const loading = reportQuery.isLoading || reportQuery.isFetching;
 
   // Client-side search filtering
   const filteredData = React.useMemo(() => {
+    if (supportsPagination) return data;
     if (!searchTerm) return data;
     const lowerTerm = searchTerm.toLowerCase();
     return data.filter(row => {
@@ -290,7 +385,12 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         String(val).toLowerCase().includes(lowerTerm)
       );
     });
-  }, [data, searchTerm]);
+  }, [data, searchTerm, supportsPagination]);
+
+  const gridDensity = React.useMemo(() => {
+    if (!supportsPagination) return undefined;
+    return queryState.density === 'dense' ? 'compact' : queryState.density;
+  }, [queryState.density, supportsPagination]);
 
   const segmentOptions = React.useMemo(() => {
     if (reportType !== 'lifetime-lgd' && reportType !== 'ead-model') return segments;
@@ -457,220 +557,155 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
     return baseColumns;
   }, []);
 
-  // Fetch data based on report type
-  const fetchData = useCallback(async () => {
+  useEffect(() => {
     if (!tenant) {
       setError('Tenant context required');
       return;
     }
 
-    // Validate required parameters
-    const missingParams = requiredParams.filter(param => {
-      const value = filters[param as keyof ReportFilters];
-      return value === null || value === undefined || value === '';
-    });
+    if (!filters.prc_date) {
+      setError('Processing date is required');
+      return;
+    }
 
     if (missingParams.length > 0) {
       setError(`Missing required parameters: ${missingParams.join(', ')}`);
       return;
     }
 
-    if (fetchRef.current) return;
-    fetchRef.current = true;
+    if (!reportQuery.data) return;
 
-    setLoading(true);
-    setError(null);
-
-    try {
-      if (!filters.prc_date) {
-        setError('Processing date is required');
-        return;
-      }
-
-      let response: ReportResponse;
-      const params: any = {
-        prc_date: formatLocalDate(filters.prc_date),
-        pd_config_id: filters.pd_config_id,
-        pd_method: filters.pd_method,
-        scalar_id: filters.scalar_id,
-        lgd_config_id: filters.lgd_config_id,
-        lgd_method: filters.lgd_method,
-        model_id: filters.model_id,
-        ead_config_id: filters.ead_config_id,
-        segment_id: Number.isFinite(Number(filters.segment_id)) ? filters.segment_id : undefined,
-        scenario_id: filters.scenario_id,
-        fl_flag: filters.fl_flag,
-        branch_code: filters.branch_code,
-        group_segment: filters.group_segment,
-        page: filters.page,
-        limit: filters.limit,
-        stage: Array.isArray(filters.stage)
-          ? (filters.stage.length > 0 ? filters.stage.map(String) : undefined)
-          : (filters.stage ? String(filters.stage) : undefined),
-      };
-
-      // Route to appropriate API method based on report type
-      switch (reportType) {
-        case 'nominative-report':
-          response = await api.banking.ifrs9Reports.nominativeReport.get(params);
-          break;
-        case 'lifetime-pd-yearly':
-          response = await api.banking.ifrs9Reports.lifetimePD.getYearly(params);
-          break;
-        case 'lifetime-pd-monthly':
-          response = await api.banking.ifrs9Reports.lifetimePD.getMonthly(params);
-          break;
-        case 'lifetime-pd-account-details':
-          response = await api.banking.ifrs9Reports.lifetimePD.getAccountDetails(params);
-          break;
-        case 'lifetime-lgd':
-          response = await api.banking.ifrs9Reports.lifetimeLGD.get(params);
-          break;
-        case 'ead-model': {
-          const eadData = await api.banking.ifrs9Reports.eadModel.get(params);
-          const eadSummary = await api.banking.ifrs9Reports.eadModel.getSummary(params);
-          let summaryRow = eadSummary.data?.[0] ?? null;
-
-          const summaryTotalAccounts =
-            summaryRow && typeof summaryRow === 'object' && 'totalAccounts' in summaryRow
-              ? Number((summaryRow as { totalAccounts?: unknown }).totalAccounts ?? 0)
-              : 0;
-
-          if (summaryTotalAccounts === 0) {
-            const fallbackSummary = await api.banking.ifrs9Reports.eadModel.getSummary({
-              ...params,
-              ead_config_id: undefined,
-              segment_id: undefined,
-            });
-            summaryRow = fallbackSummary.data?.[0] ?? summaryRow;
-          }
-
-          response = {
-            ...eadData,
-            summary: summaryRow
-          };
-          break;
-        }
-        case 'ecl-result':
-          response = await api.banking.ifrs9Reports.eclResult.get(params);
-          break;
-        case 'ecl-movement':
-          response = await api.banking.ifrs9Reports.eclMovement.get(params);
-          break;
-        case 'gca-movement':
-          response = await api.banking.ifrs9Reports.gcaMovement.get(params);
-          break;
-        default:
-          throw new Error(`Unknown report type: ${reportType}`);
-      }
-
-      if (response.success) {
-        const rawData = response.data || [];
-        let nextData = rawData;
-
-        if (reportType === 'gca-movement' || reportType === 'ecl-movement') {
-          const numericKeys = new Set<string>();
-          for (const row of rawData) {
-            for (const [k, v] of Object.entries(row || {})) {
-              if (v === null || v === undefined || v === '') continue;
-              if (typeof v === 'number') numericKeys.add(k);
-              if (typeof v === 'string' && Number.isFinite(Number(v))) numericKeys.add(k);
-            }
-          }
-
-          nextData = rawData.map((row) => {
-            const out: Record<string, unknown> = { ...(row || {}) };
-            for (const k of numericKeys) {
-              const v = out[k];
-              if (v === null || v === undefined || v === '') out[k] = 0;
-            }
-            return out;
-          });
-        }
-
-        setData(nextData);
-        setEffectivePrcDate(response.effectivePrcDate ?? null);
-        setReportMeta(response.meta ?? null);
-        if (nextData.length === 0) {
-          setError(response.message || 'No data available for the selected processing date and filters.');
-        }
-
-        // Use columns from backend if available (for empty data scenarios), otherwise generate from data
-        let finalColumns: GridColDef[] = [];
-        
-        if (response.columns && Array.isArray(response.columns) && response.columns.length > 0) {
-          // Backend provided column metadata (useful when data is empty)
-          finalColumns = response.columns.map((col) => ({
-            field: col.field || col.column_name || '',
-            headerName: col.headerName || col.field?.replace(/_/g, ' ').toUpperCase() || col.column_name?.replace(/_/g, ' ').toUpperCase() || '',
-            width: col.width ?? 150,
-            type: col.type ?? 'string',
-            sortable: true,
-            filterable: true,
-            ...(col.type === 'number' && {
-              valueFormatter: (value: number | null | undefined) => {
-                if (value === null || value === undefined) return '';
-                return new Intl.NumberFormat('id-ID', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2
-                }).format(value);
-              },
-              align: 'right' as const,
-              headerAlign: 'right' as const
-            })
-          }));
-        } else if (nextData.length > 0) {
-          // Generate columns from actual data (fallback)
-          finalColumns = generateDynamicColumns(nextData);
-        }
-
-        if (reportType === 'gca-movement' || reportType === 'ecl-movement') {
-          finalColumns = finalColumns.map((col) => {
-            if (col.type !== 'number') return col;
-            if (col.field === 'movement_order') return col;
-            return {
-              ...col,
-              valueFormatter: (value: number | null | undefined) => {
-                if (value === null || value === undefined) return '';
-                return new Intl.NumberFormat('id-ID', {
-                  style: 'currency',
-                  currency: 'IDR',
-                  minimumFractionDigits: 0,
-                }).format(value);
-              },
-              width: typeof col.width === 'number' ? col.width : 180,
-              align: 'right',
-              headerAlign: 'right',
-            } as GridColDef;
-          });
-        }
-        
-        setColumns(finalColumns);
-
-        // Handle pagination
-        if (response.pagination) {
-          setPagination(response.pagination);
-        }
-
-        // Notify parent component
-        if (onDataLoaded) {
-          onDataLoaded(nextData, response.summary ?? null);
-        }
-      } else {
-        setEffectivePrcDate(null);
-        setReportMeta(response.meta ?? null);
-        setError('Failed to fetch report data');
-      }
-    } catch (err: unknown) {
-      console.error('Report fetch error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch report data';
-      setReportMeta(null);
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-      fetchRef.current = false;
+    const response = reportQuery.data;
+    if (!response.success) {
+      setEffectivePrcDate(null);
+      setReportMeta(response.meta ?? null);
+      setError(response.message || 'Failed to fetch report data');
+      return;
     }
-  }, [reportType, filters, tenant, requiredParams, generateDynamicColumns, onDataLoaded]);
+
+    const rawData = response.data || [];
+    let nextData = rawData;
+
+    if (reportType === 'gca-movement' || reportType === 'ecl-movement') {
+      const numericKeys = new Set<string>();
+      for (const row of rawData) {
+        for (const [key, value] of Object.entries(row || {})) {
+          if (value === null || value === undefined || value === '') continue;
+          if (typeof value === 'number') numericKeys.add(key);
+          if (typeof value === 'string' && Number.isFinite(Number(value))) numericKeys.add(key);
+        }
+      }
+
+      nextData = rawData.map((row) => {
+        const out: Record<string, unknown> = { ...(row || {}) };
+        for (const key of numericKeys) {
+          const value = out[key];
+          if (value === null || value === undefined || value === '') out[key] = 0;
+        }
+        return out;
+      });
+    }
+
+    setData(nextData);
+    setEffectivePrcDate(response.effectivePrcDate ?? null);
+    setReportMeta(response.meta ?? null);
+    setError(nextData.length === 0 ? (response.message || 'No data available for the selected processing date and filters.') : null);
+
+    let finalColumns: GridColDef[] = [];
+
+    if (response.columns && Array.isArray(response.columns) && response.columns.length > 0) {
+      finalColumns = response.columns.map((col) => ({
+        field: col.field || col.column_name || '',
+        headerName: col.headerName || col.field?.replace(/_/g, ' ').toUpperCase() || col.column_name?.replace(/_/g, ' ').toUpperCase() || '',
+        width: col.width ?? 150,
+        type: col.type ?? 'string',
+        sortable: true,
+        filterable: true,
+        ...(col.type === 'number' && {
+          valueFormatter: (value: number | null | undefined) => {
+            if (value === null || value === undefined) return '';
+            return new Intl.NumberFormat('id-ID', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            }).format(value);
+          },
+          align: 'right' as const,
+          headerAlign: 'right' as const,
+        }),
+      }));
+    } else if (nextData.length > 0) {
+      finalColumns = generateDynamicColumns(nextData);
+    }
+
+    if (reportType === 'gca-movement' || reportType === 'ecl-movement') {
+      finalColumns = finalColumns.map((col) => {
+        if (col.type !== 'number' || col.field === 'movement_order') return col;
+        return {
+          ...col,
+          valueFormatter: (value: number | null | undefined) => {
+            if (value === null || value === undefined) return '';
+            return new Intl.NumberFormat('id-ID', {
+              style: 'currency',
+              currency: 'IDR',
+              minimumFractionDigits: 0,
+            }).format(value);
+          },
+          width: typeof col.width === 'number' ? col.width : 180,
+          align: 'right',
+          headerAlign: 'right',
+        } as GridColDef;
+      });
+    }
+
+    setColumns(finalColumns);
+    if (response.pagination) setPagination(response.pagination);
+    setFilterDefinitions(response.filterDefinitions || {});
+
+    if (onDataLoaded) {
+      onDataLoaded(nextData, response.summary ?? null);
+    }
+  }, [
+    filters.prc_date,
+    generateDynamicColumns,
+    missingParams,
+    onDataLoaded,
+    reportQuery.data,
+    reportType,
+    tenant,
+  ]);
+
+  useEffect(() => {
+    if (reportQuery.error) {
+      console.error('Report fetch error:', reportQuery.error);
+      setReportMeta(null);
+      setError(reportQuery.error instanceof Error ? reportQuery.error.message : 'Failed to fetch report data');
+    }
+  }, [reportQuery.error]);
+
+  const handleSaveCurrentView = useCallback(async () => {
+    try {
+      await savedView.saveDefaultView({
+        ...toSavedViewState(),
+        search: searchTerm,
+      });
+      setInfoMessage('Current table view saved.');
+    } catch (err) {
+      console.error('Failed to save table view:', err);
+      setError(err instanceof Error ? err.message : 'Failed to save table view.');
+    }
+  }, [savedView, searchTerm, toSavedViewState]);
+
+  const handleResetCurrentView = useCallback(async () => {
+    try {
+      await savedView.clearSavedView();
+      resetView();
+      setSearchTerm('');
+      setInfoMessage('Saved table view cleared.');
+    } catch (err) {
+      console.error('Failed to clear table view:', err);
+      setError(err instanceof Error ? err.message : 'Failed to clear table view.');
+    }
+  }, [resetView, savedView]);
 
   const loadReportDebugConfig = useCallback(async () => {
     if (!canManageReportDebug) return;
@@ -693,33 +728,31 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
     try {
       const response = await api.banking.ifrs9Reports.debugConfig.update(checked) as ReportDebugConfigResponse;
       setReportDebugEnabled(Boolean(response?.data?.enabled ?? checked));
-      await fetchData();
+      await reportQuery.refetch();
     } catch (err) {
       console.error('Failed to update IFRS9 report debug config:', err);
       setError(err instanceof Error ? err.message : 'Failed to update report debug configuration.');
     } finally {
       setReportDebugSaving(false);
     }
-  }, [canManageReportDebug, fetchData]);
+  }, [canManageReportDebug, reportQuery]);
 
   const handleRun = useCallback(() => {
-    fetchData();
-  }, [fetchData]);
+    void reportQuery.refetch();
+  }, [reportQuery]);
 
   const handleClear = useCallback(() => {
     setSearchTerm('');
     setFilters(getDefaultFilters(reportType));
-  }, [reportType]);
+    setColumnFilters({});
+    setSort([]);
+    setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
+  }, [queryState.paginationModel.pageSize, reportType, setColumnFilters, setPaginationModel, setSort]);
 
   // --- Effects ---
 
   // Export functionality - Client-side using xlsx library with Audit Header (T1)
   const handleExportExecute = async () => {
-    if (filteredData.length === 0) {
-      console.warn('No data to export');
-      return;
-    }
-
     setExportLoading(true);
     setExportDialogOpen(false);
 
@@ -728,12 +761,107 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
       const xlsxModule = (await import('xlsx')) as XLSXNamespace & { default?: XLSXNamespace };
       const XLSX: XLSXNamespace = xlsxModule.default ?? xlsxModule;
       const format = exportOptions.format as 'xlsx' | 'csv' | 'pdf';
-      const scope = exportOptions.scope;
+      const scope = exportOptions.scope as 'visible' | 'by_date' | 'date_range' | 'all_pages';
 
-      // Inject T1 Header if it's Excel/CSV
-      const headerT1 = [
+      const fetchReportPage = async (params: any) => {
+        switch (reportType) {
+          case 'nominative-report':
+            return api.banking.ifrs9Reports.nominativeReport.get(params);
+          case 'lifetime-pd-yearly':
+            return api.banking.ifrs9Reports.lifetimePD.getYearly(params);
+          case 'lifetime-pd-monthly':
+            return api.banking.ifrs9Reports.lifetimePD.getMonthly(params);
+          case 'lifetime-pd-account-details':
+            return api.banking.ifrs9Reports.lifetimePD.getAccountDetails(params);
+          case 'lifetime-lgd':
+            return api.banking.ifrs9Reports.lifetimeLGD.get(params);
+          case 'ead-model':
+            return api.banking.ifrs9Reports.eadModel.get(params);
+          case 'ecl-result':
+            return api.banking.ifrs9Reports.eclResult.get(params);
+          case 'ecl-movement':
+            return api.banking.ifrs9Reports.eclMovement.get(params);
+          case 'gca-movement':
+            return api.banking.ifrs9Reports.gcaMovement.get(params);
+          default:
+            throw new Error(`Unsupported report type for export: ${reportType}`);
+        }
+      };
+
+      const buildCurrentTableQueryParams = (processingDate: Date, page: number, limit: number) => {
+        if (!supportsPagination) return {};
+
+        return {
+          ...queryParams,
+          page,
+          offset: (page - 1) * limit,
+          limit,
+          cursor: undefined,
+          paginationMode: 'offset',
+          search: deferredSearchTerm.trim() || undefined,
+          prc_date: formatLocalDate(processingDate),
+        };
+      };
+
+      const buildBaseParams = (processingDate: Date) => {
+        const params: Record<string, any> = {
+          prc_date: formatLocalDate(processingDate),
+        };
+
+        if (filters.segment_id) params.segment_id = filters.segment_id;
+        if (filters.stage && (Array.isArray(filters.stage) ? filters.stage.length > 0 : true)) params.stage = filters.stage;
+        if (filters.branch_code) params.branch_code = filters.branch_code;
+        if (filters.group_segment) params.group_segment = filters.group_segment;
+
+        if (filters.pd_config_id) params.pd_config_id = filters.pd_config_id;
+        if (filters.pd_method) params.pd_method = filters.pd_method;
+        if (filters.scalar_id) params.scalar_id = filters.scalar_id;
+        if (typeof filters.fl_flag === 'boolean') params.fl_flag = filters.fl_flag;
+        if (filters.lgd_config_id) params.lgd_config_id = filters.lgd_config_id;
+        if (filters.lgd_method) params.lgd_method = filters.lgd_method;
+        if (filters.model_id) params.model_id = filters.model_id;
+        if (filters.ead_config_id) params.ead_config_id = filters.ead_config_id;
+
+        return params;
+      };
+
+      const fetchAllRowsForDate = async (processingDate: Date) => {
+        if (!supportsPagination) {
+          const result = await fetchReportPage({
+            ...buildBaseParams(processingDate),
+            search: deferredSearchTerm.trim() || undefined,
+          });
+          const rows = Array.isArray(result?.data) ? result.data : [];
+          return rows as Record<string, unknown>[];
+        }
+
+        const limit = 1000;
+        const first = await fetchReportPage({
+          ...buildBaseParams(processingDate),
+          ...buildCurrentTableQueryParams(processingDate, 1, limit),
+        });
+        const firstRows = Array.isArray(first?.data) ? first.data : [];
+        const totalPages = Math.max(1, Number(first?.pagination?.totalPages ?? 1));
+
+        if (totalPages === 1) return firstRows as Record<string, unknown>[];
+
+        const pages = await Promise.all(
+          Array.from({ length: totalPages - 1 }, (_, idx) => {
+            const page = idx + 2;
+            return fetchReportPage({
+              ...buildBaseParams(processingDate),
+              ...buildCurrentTableQueryParams(processingDate, page, limit),
+            });
+          })
+        );
+
+        const restRows = pages.flatMap((p: any) => (Array.isArray(p?.data) ? p.data : []));
+        return [...firstRows, ...restRows] as Record<string, unknown>[];
+      };
+
+      const buildHeaderT1 = (processingDate: Date | null) => [
         ['Report Name', title],
-        ['Processing Date', filters.prc_date ? formatLocalDate(filters.prc_date) : 'N/A'],
+        ['Processing Date', processingDate ? formatLocalDate(processingDate) : 'N/A'],
         ['Segments', filters.segment_id ? String(filters.segment_id) : 'All'],
         ['LGD Config / Method', `${filters.lgd_config_id || 'N/A'} / ${filters.lgd_method || 'N/A'}`],
         ['Model Version / ID', `v1.2 / ${filters.model_id || 'DEFAULT'}`],
@@ -743,236 +871,104 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         ['Generated By', user?.fullName || user?.email || 'System'],
         ['Generated At', new Date().toLocaleString()],
         ['Notes', 'Confidential – Internal Use Only'],
-        [] // Spacer
+        [],
       ];
 
-      if (format === 'pdf') {
-        const [{ jsPDF }, autoTableModule] = await Promise.all([
-          import('jspdf'),
-          import('jspdf-autotable'),
-        ])
-        const autoTable = (autoTableModule as any).default || (autoTableModule as any)
+      const addSheet = (workbook: import('xlsx').WorkBook, sheetTitle: string, processingDate: Date | null, rows: Record<string, unknown>[]) => {
+        const headerT1 = buildHeaderT1(processingDate);
+        const worksheet = XLSX.utils.aoa_to_sheet(headerT1);
+        if (rows.length > 0) {
+          XLSX.utils.sheet_add_json(worksheet, rows, { origin: 'A13' });
 
-        const rows = scope === 'summary' && supportsCharts ? filteredData.slice(0, 10) : filteredData
-        const columns = Object.keys(rows[0] || {})
-
-        const safeCell = (value: unknown) => {
-          if (value === null || value === undefined) return ''
-          if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value)
-          try {
-            return JSON.stringify(value)
-          } catch {
-            return String(value)
-          }
+          const maxWidth = 30;
+          const colWidths = Object.keys(rows[0] || {}).map((key) => ({
+            wch: Math.min(maxWidth, Math.max(key.length, ...rows.map((row) => String((row as any)[key] ?? '').length))),
+          }));
+          worksheet['!cols'] = colWidths;
         }
 
-        const capturePngFromSvg = async (svg: SVGSVGElement) => {
-          const rect = svg.getBoundingClientRect()
-          const width = Math.max(1, Math.round(rect.width))
-          const height = Math.max(1, Math.round(rect.height))
-          const cloned = svg.cloneNode(true) as SVGSVGElement
-          if (!cloned.getAttribute('xmlns')) {
-            cloned.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
-          }
-          if (!cloned.getAttribute('xmlns:xlink')) {
-            cloned.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink')
-          }
-          cloned.setAttribute('width', String(width))
-          cloned.setAttribute('height', String(height))
+        const safeName = sheetTitle.substring(0, 31).replace(/[/\\*?[\]]/g, '');
+        XLSX.utils.book_append_sheet(workbook, worksheet, safeName);
+      };
 
-          const serialized = new XMLSerializer().serializeToString(cloned)
-          const blob = new Blob([serialized], { type: 'image/svg+xml;charset=utf-8' })
-          const url = URL.createObjectURL(blob)
-
-          try {
-            const img = new Image()
-            img.decoding = 'async'
-            const loaded = new Promise<void>((resolve, reject) => {
-              img.onload = () => resolve()
-              img.onerror = () => reject(new Error('Failed to load SVG image'))
-            })
-            img.src = url
-            await loaded
-
-            const scale = 2
-            const canvas = document.createElement('canvas')
-            canvas.width = width * scale
-            canvas.height = height * scale
-            const ctx = canvas.getContext('2d')
-            if (!ctx) return null
-
-            ctx.fillStyle = '#ffffff'
-            ctx.fillRect(0, 0, canvas.width, canvas.height)
-            ctx.scale(scale, scale)
-            ctx.drawImage(img, 0, 0, width, height)
-            return { dataUrl: canvas.toDataURL('image/png'), width, height }
-          } finally {
-            URL.revokeObjectURL(url)
-          }
+      const createCombinedWorksheet = (rows: Record<string, unknown>[], processingDate: Date | null) => {
+        const headerT1 = buildHeaderT1(processingDate);
+        const worksheet = XLSX.utils.aoa_to_sheet(headerT1);
+        if (rows.length > 0) {
+          XLSX.utils.sheet_add_json(worksheet, rows, { origin: 'A13' });
         }
+        return worksheet;
+      };
 
-        const capturePdfCharts = async () => {
-          if (typeof document === 'undefined') return []
-          const chartNodes = Array.from(document.querySelectorAll(`[data-pdf-export-chart="${reportType}"]`))
-          const out: Array<{ dataUrl: string; width: number; height: number }> = []
-
-          for (const node of chartNodes.slice(0, 2)) {
-            const el = node as HTMLElement
-            const canvas = el.querySelector('canvas') as HTMLCanvasElement | null
-            if (canvas) {
-              try {
-                const rect = canvas.getBoundingClientRect()
-                const width = Math.max(1, Math.round(rect.width))
-                const height = Math.max(1, Math.round(rect.height))
-                out.push({ dataUrl: canvas.toDataURL('image/png'), width, height })
-                continue
-              } catch {
-                continue
-              }
-            }
-
-            const svg = el.querySelector('svg') as SVGSVGElement | null
-            if (!svg) continue
-            try {
-              const captured = await capturePngFromSvg(svg)
-              if (captured) out.push(captured)
-            } catch {
-              continue
-            }
-          }
-
-          return out
-        }
-
-        const orientation = columns.length > 8 ? 'landscape' : 'portrait'
-        const doc = new jsPDF({ orientation, unit: 'pt', format: 'a4' })
-        const pageWidth = doc.internal.pageSize.getWidth()
-        const pageHeight = doc.internal.pageSize.getHeight()
-
-        doc.setFontSize(14)
-        doc.setTextColor(17, 24, 39)
-        doc.text(title, 32, 32)
-
-        doc.setFontSize(9)
-        doc.setTextColor(71, 85, 105)
-        const requestedDate = filters.prc_date ? formatLocalDate(filters.prc_date) : 'N/A'
-        const effectiveDateLabel = effectivePrcDate ? ` (Effective: ${effectivePrcDate})` : ''
-        doc.text(`Processing Date: ${requestedDate}${effectiveDateLabel}`, 32, 48, { maxWidth: pageWidth - 64 })
-        doc.text(`Generated By: ${user?.fullName || user?.email || 'System'} | Generated At: ${new Date().toISOString().replace('T', ' ').slice(0, 19)}`, 32, 62, {
-          maxWidth: pageWidth - 64,
-        })
-
-        const footer = () => {
-          const pageNumber = doc.getCurrentPageInfo().pageNumber
-          const totalPages = doc.getNumberOfPages()
-          doc.setFontSize(9)
-          doc.setTextColor(100)
-          doc.text(`Page ${pageNumber} / ${totalPages}`, pageWidth - 32, pageHeight - 18, { align: 'right' })
-        }
-
-        const auditBody = headerT1
-          .filter((row) => Array.isArray(row) && row.length >= 2 && row[0])
-          .map((row) => [safeCell(row[0]), safeCell(row[1])])
-
-        autoTable(doc, {
-          head: [['Field', 'Value']],
-          body: auditBody,
-          startY: 80,
-          margin: { left: 32, right: 32, bottom: 36 },
-          styles: { fontSize: 8, cellPadding: 3, overflow: 'linebreak' },
-          headStyles: { fillColor: [25, 118, 210], textColor: 255, fontStyle: 'bold' },
-          alternateRowStyles: { fillColor: [248, 250, 252] },
-          didDrawPage: footer,
-        })
-
-        const afterAuditY = (doc as any).lastAutoTable?.finalY
-        let cursorY = (typeof afterAuditY === 'number' ? afterAuditY : 120) + 22
-
-        const charts = supportsCharts ? await capturePdfCharts() : []
-        if (charts.length > 0) {
-          doc.setFontSize(11)
-          doc.setTextColor(17, 24, 39)
-          doc.text('Chart', 32, cursorY + 14)
-          cursorY += 22
-
-          for (const chart of charts) {
-            const maxWidth = pageWidth - 64
-            const aspect = chart.height > 0 ? chart.width / chart.height : 1
-            const targetWidth = maxWidth
-            let targetHeight = aspect > 0 ? targetWidth / aspect : 240
-
-            const availableHeight = pageHeight - cursorY - 80
-            if (targetHeight > availableHeight && availableHeight > 60) {
-              targetHeight = availableHeight
-            }
-
-            if (cursorY + targetHeight > pageHeight - 60) {
-              doc.addPage()
-              doc.setFontSize(14)
-              doc.setTextColor(17, 24, 39)
-              doc.text(title, 32, 32)
-              doc.setFontSize(9)
-              doc.setTextColor(71, 85, 105)
-              const requestedDate = filters.prc_date ? formatLocalDate(filters.prc_date) : 'N/A'
-              const effectiveDateLabel = effectivePrcDate ? ` (Effective: ${effectivePrcDate})` : ''
-              doc.text(`Processing Date: ${requestedDate}${effectiveDateLabel}`, 32, 48, { maxWidth: pageWidth - 64 })
-              doc.text(`Generated By: ${user?.fullName || user?.email || 'System'} | Generated At: ${new Date().toISOString().replace('T', ' ').slice(0, 19)}`, 32, 62, {
-                maxWidth: pageWidth - 64,
-              })
-              cursorY = 80
-            }
-
-            doc.addImage(chart.dataUrl, 'PNG', 32, cursorY, targetWidth, targetHeight)
-            cursorY += targetHeight + 16
-          }
-        }
-
-        const dataStartY = cursorY + 18
-
-        doc.setFontSize(11)
-        doc.setTextColor(17, 24, 39)
-        doc.text(scope === 'summary' && supportsCharts ? 'Top Results' : 'Data', 32, dataStartY - 10)
-
-        autoTable(doc, {
-          head: [columns],
-          body: rows.map((row) => columns.map((key) => safeCell((row as any)[key]))),
-          startY: dataStartY,
-          margin: { left: 32, right: 32, bottom: 36, top: 80 },
-          styles: { fontSize: columns.length > 10 ? 6 : 7, cellPadding: 3, overflow: 'linebreak' },
-          headStyles: { fillColor: [25, 118, 210], textColor: 255, fontStyle: 'bold' },
-          alternateRowStyles: { fillColor: [248, 250, 252] },
-          didDrawPage: footer,
-        })
-
-        const dateStr = filters.prc_date ? formatLocalDate(filters.prc_date) : formatLocalDate(new Date())
-        doc.save(`${reportType}-${dateStr}.pdf`)
-        return
-      }
-
-      // Create workbook
+      // Create workbook (XLSX only; CSV/PDF can use a single worksheet)
       const workbook = XLSX.utils.book_new();
-      let worksheet: import('xlsx').WorkSheet;
+      let csvWorksheet: import('xlsx').WorkSheet | null = null;
+      let pdfPayload: { title: string; rows: Record<string, unknown>[]; processingDate: Date | null } | null = null;
 
-      if (scope === 'summary' && supportsCharts) {
-        worksheet = XLSX.utils.aoa_to_sheet(headerT1);
-        XLSX.utils.sheet_add_json(worksheet, filteredData.slice(0, 10), { origin: 'A13' });
+      if (scope === 'date_range') {
+        const from = exportOptions.fromDate;
+        const to = exportOptions.toDate;
+        if (!from || !to) {
+          throw new Error('Please select both From and To dates.');
+        }
+        if (from > to) {
+          throw new Error('From date must be earlier than To date.');
+        }
+
+        const start = new Date(from.getFullYear(), from.getMonth(), 1);
+        const end = new Date(to.getFullYear(), to.getMonth(), 1);
+        const dates: Date[] = [];
+
+        for (let d = new Date(start); d <= end; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
+          const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+          dates.push(monthEnd);
+        }
+
+        if (format === 'xlsx') {
+          for (const processingDate of dates) {
+            const rows = await fetchAllRowsForDate(processingDate);
+            addSheet(workbook, formatLocalDate(processingDate), processingDate, rows);
+          }
+        } else {
+          const combined: Record<string, unknown>[] = [];
+          for (const processingDate of dates) {
+            const rows = await fetchAllRowsForDate(processingDate);
+            for (const row of rows) {
+              combined.push({ processing_date: formatLocalDate(processingDate), ...row });
+            }
+          }
+          csvWorksheet = createCombinedWorksheet(combined, null);
+          pdfPayload = { title, rows: combined, processingDate: null };
+        }
+      } else if (scope === 'visible') {
+        const visibleRows = supportsPagination ? data : filteredData;
+        if (visibleRows.length === 0) {
+          throw new Error('No data to export.');
+        }
+        if (format === 'xlsx') {
+          addSheet(workbook, title, filters.prc_date, visibleRows);
+        } else {
+          csvWorksheet = createCombinedWorksheet(visibleRows, filters.prc_date);
+          pdfPayload = { title, rows: visibleRows, processingDate: filters.prc_date };
+        }
       } else {
-        worksheet = XLSX.utils.aoa_to_sheet(headerT1);
-        XLSX.utils.sheet_add_json(worksheet, filteredData, { origin: 'A13' });
+        if (!filters.prc_date) {
+          throw new Error('Please select a processing date.');
+        }
+        const rows = await fetchAllRowsForDate(filters.prc_date);
+        if (rows.length === 0) {
+          throw new Error('No data to export for the selected date.');
+        }
+        if (format === 'xlsx') {
+          addSheet(workbook, title, filters.prc_date, rows);
+        } else {
+          csvWorksheet = createCombinedWorksheet(rows, filters.prc_date);
+          pdfPayload = { title, rows, processingDate: filters.prc_date };
+        }
       }
-
-      const sheetName = title.substring(0, 31).replace(/[/\\*?[\]]/g, '');
-      XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-
-      // Auto-size columns
-      const maxWidth = 30;
-      const colWidths = Object.keys(filteredData[0] || {}).map(key => ({
-        wch: Math.min(maxWidth, Math.max(key.length, ...filteredData.map(row => String(row[key] || '').length)))
-      }));
-      worksheet['!cols'] = colWidths;
 
       const dateStr = filters.prc_date ? formatLocalDate(filters.prc_date) : formatLocalDate(new Date());
-      const filename = `${reportType}-${dateStr}`;
+      const filename = `${reportType}-${dateStr}-export`;
 
       if (format === 'xlsx') {
         const arrayBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
@@ -988,7 +984,12 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         a.remove();
         URL.revokeObjectURL(url);
       } else if (format === 'csv') {
-        const csv = XLSX.utils.sheet_to_csv(worksheet);
+        const sheet =
+          csvWorksheet ||
+          (workbook.SheetNames.length > 0 ? workbook.Sheets[workbook.SheetNames[0]] : null);
+        if (!sheet) throw new Error('No export data available.');
+
+        const csv = XLSX.utils.sheet_to_csv(sheet);
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -998,9 +999,65 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
+      } else if (format === 'pdf') {
+        if (!pdfPayload) throw new Error('No export data available.');
+
+        const jspdfModule: any = await import('jspdf');
+        const jsPDF = jspdfModule?.jsPDF ?? jspdfModule?.default;
+        if (!jsPDF) throw new Error('PDF export library not available.');
+
+        const autoTableModule: any = await import('jspdf-autotable');
+        const autoTable = autoTableModule?.default ?? autoTableModule;
+
+        const doc = new jsPDF({
+          orientation: 'landscape',
+          unit: 'pt',
+          format: 'a4',
+        });
+
+        const headerLines = buildHeaderT1(pdfPayload.processingDate)
+          .filter((row) => Array.isArray(row) && row.length >= 2 && row[0])
+          .map((row) => `${String(row[0])}: ${String(row[1] ?? '')}`);
+
+        doc.setFontSize(16);
+        doc.text('Export Report', 40, 40);
+        doc.setFontSize(10);
+        let y = 60;
+        for (const line of headerLines) {
+          doc.text(line, 40, y);
+          y += 14;
+          if (y > 140) break;
+        }
+
+        const rows = pdfPayload.rows;
+        if (rows.length === 0) {
+          doc.text('No data available.', 40, y + 20);
+        } else {
+          const allKeys = Array.from(
+            rows.reduce((set, row) => {
+              Object.keys(row).forEach((k) => set.add(k));
+              return set;
+            }, new Set<string>())
+          );
+
+          const head = [allKeys.map((k) => k.replace(/_/g, ' ').toUpperCase())];
+          const body = rows.map((row) => allKeys.map((k) => String((row as any)[k] ?? '')));
+
+          autoTable(doc, {
+            head,
+            body,
+            startY: Math.max(120, y + 10),
+            styles: { fontSize: 8, cellPadding: 3 },
+            headStyles: { fillColor: [25, 118, 210] },
+            alternateRowStyles: { fillColor: [245, 247, 250] },
+            margin: { left: 40, right: 40 },
+          });
+        }
+
+        doc.save(`${filename}.pdf`);
       }
 
-      console.log(`✅ Exported ${filteredData.length} rows with audit header to ${filename}.${format}`);
+      console.log(`✅ Exported report with audit header to ${filename}.${format}`);
     } catch (err) {
       console.error('Export error:', err);
       setError(err instanceof Error ? err.message : 'Export failed');
@@ -1082,10 +1139,61 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
               setLgdMethods(normalized);
             }
             if (!configsFresh) {
-              const normalized = Array.isArray(configs) ? configs : [];
+              const normalized = (Array.isArray(configs) ? configs : [])
+                .map((config: any) => {
+                  const id = config?.id ?? config?.pkid ?? config?.lgd_config_id ?? config?.lgdConfigId;
+                  const model_name = String(config?.model_name ?? config?.modelName ?? '').trim();
+                  const rawSegmentId = config?.segment_id ?? config?.segmentId;
+                  const segment_id = Number.isFinite(Number(rawSegmentId)) ? Number(rawSegmentId) : undefined;
+                  return { ...config, id, model_name, segment_id };
+                })
+                .filter((config: any) => config.id !== undefined && config.id !== null && config.model_name);
               lookupCache.lgdConfigs = { ts: now, value: normalized };
               setLgdConfigs(normalized);
             }
+          }
+        }
+
+        if (reportType === 'ead-model') {
+          const eadConfigsFresh = lookupCache.eadConfigs && now - lookupCache.eadConfigs.ts < LOOKUP_CACHE_TTL_MS;
+
+          if (eadConfigsFresh) {
+            setEadConfigs(lookupCache.eadConfigs!.value);
+          } else {
+            const rawConfigs = await api.banking.eadConfigurations.getAll({ is_active: true });
+            const normalizedConfigs = Array.isArray(rawConfigs) ? rawConfigs : [];
+
+            const candidates = normalizedConfigs
+              .map((config: any) => {
+                const id = config?.id ?? config?.pkid ?? config?.ead_config_id ?? config?.eadConfigId;
+                const model_name = String(config?.model_name ?? config?.modelName ?? '').trim();
+                const rawSegmentId = config?.segment_id ?? config?.segmentId;
+                const segment_id = Number.isFinite(Number(rawSegmentId)) ? Number(rawSegmentId) : undefined;
+                return { id, model_name, segment_id };
+              })
+              .filter((config: any) => config.id !== undefined && config.id !== null && config.model_name);
+
+            const sortedById = candidates
+              .slice()
+              .sort((a: any, b: any) => Number(a.id) - Number(b.id));
+
+            const byModelName = new Map<string, EadConfigOption>();
+            for (const config of sortedById) {
+              const key = config.model_name.toLowerCase();
+              if (!byModelName.has(key)) byModelName.set(key, config);
+            }
+
+            const filteredOrdered = EAD_CONFIG_ALLOWLIST_ORDER
+              .map((name) => byModelName.get(name.toLowerCase()))
+              .filter(Boolean) as EadConfigOption[];
+
+            const finalConfigs =
+              filteredOrdered.length > 0
+                ? filteredOrdered
+                : Array.from(byModelName.values()).sort((a, b) => a.model_name.localeCompare(b.model_name));
+
+            lookupCache.eadConfigs = { ts: now, value: finalConfigs };
+            setEadConfigs(finalConfigs);
           }
         }
       } catch (err) {
@@ -1095,12 +1203,22 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
     loadLookups();
   }, [reportType]);
 
-  // Fetch data on initial load and date change
   useEffect(() => {
-    if (tenant && filters.prc_date) {
-      fetchData();
-    }
-  }, [tenant, fetchData, filters.prc_date]);
+    if (reportType !== 'ead-model') return;
+    if (!eadConfigs.length) return;
+
+    setFilters((prev) => {
+      if (prev.ead_config_id) {
+        return prev.segment_id === undefined ? prev : { ...prev, segment_id: undefined, segment_ids: [] };
+      }
+      const preferred = eadConfigs.find((c) => c.model_name.trim().toLowerCase() === 'ead model');
+      const selected = preferred ?? eadConfigs[0];
+      const parsed = Number(selected?.id);
+      return Number.isFinite(parsed)
+        ? { ...prev, ead_config_id: parsed, segment_id: undefined, segment_ids: [] }
+        : prev;
+    });
+  }, [reportType, eadConfigs]);
 
   // Keyboard Shortcuts (Accessibility)
   useEffect(() => {
@@ -1150,17 +1268,274 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
     }
   }, [bankingMode]);
 
+  const renderLifetimeLgdDetailPanel = useCallback((params: { row: any }) => {
+    const row = params.row || {};
+    const detailRows = Array.isArray(row._detail_rows) ? row._detail_rows : [];
+    const sequenceFieldSet = new Set<string>();
+
+    detailRows.forEach((detailRow: Record<string, unknown>) => {
+      Object.keys(detailRow || {}).forEach((key) => {
+        if (/^seq_\d+$/.test(key)) {
+          sequenceFieldSet.add(key);
+        }
+      });
+    });
+
+    const sequenceFields = Array.from(sequenceFieldSet).sort(
+      (left: string, right: string) => Number(left.replace('seq_', '')) - Number(right.replace('seq_', ''))
+    );
+
+    const detailColumns: GridColDef[] = [
+      { field: 'account_number', headerName: 'ACCOUNT_NUMBER', minWidth: 220, flex: 1 },
+      { field: 'cif_name', headerName: 'CIF_NAME', minWidth: 260, flex: 1.1 },
+      {
+        field: 'first_npl_date',
+        headerName: 'FIRST_NPL_DATE',
+        minWidth: 180,
+        valueFormatter: (value: string | null | undefined) => {
+          if (!value) return '';
+          const parsed = new Date(String(value));
+          return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        },
+      },
+      {
+        field: 'os_at_default',
+        headerName: 'OS_AT_DEFAULT',
+        minWidth: 180,
+        type: 'number',
+      },
+      ...sequenceFields.map((field: string): GridColDef => ({
+        field,
+        headerName: field.replace('seq_', ''),
+        minWidth: 180,
+        type: 'number' as const,
+      })),
+    ];
+
+    return (
+      <Box sx={{ p: 1, minWidth: 0 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2 }}>
+          Lifetime LGD Detail
+        </Typography>
+        {detailRows.length > 0 ? (
+          <SafeDataGrid
+            rows={detailRows}
+            columns={detailColumns}
+            getRowId={(detailRow) => detailRow.id || detailRow.account_id || detailRow.account_number || Math.random()}
+            pagination
+            paginationMode="client"
+            initialState={{
+              pagination: {
+                paginationModel: {
+                  page: 0,
+                  pageSize: 10,
+                },
+              },
+            }}
+            pageSizeOptions={[10, 25, 50, 75, 100]}
+            responsiveMode="scroll"
+            showEnterpriseControls
+            sx={{ width: '100%', maxWidth: '100%', minWidth: 0 }}
+          />
+        ) : (
+          <Alert severity="info" sx={{ borderRadius: 2 }}>
+            No account-level Lifetime LGD detail is available for this summary row.
+          </Alert>
+        )}
+      </Box>
+    );
+  }, []);
+
   const groupSegmentOptions = React.useMemo(
-    () =>
-      Array.from(
+    () => {
+      // Keep GCA Movement dropdown fixed to match legacy UI list/order exactly.
+      if (reportType === 'gca-movement') {
+        return [...GROUP_SEGMENT_ALLOWLIST_ORDER];
+      }
+
+      const unique = Array.from(
         new Set(
           segments
             .map((segment) => String(segment.group_segment || segment.groupSegment || '').trim())
             .filter((value) => value.length > 0)
         )
-      ).sort((a, b) => a.localeCompare(b)),
-    [segments]
+      );
+
+      const byName = new Map<string, string>();
+      for (const name of unique) {
+        const key = name.toLowerCase();
+        if (!byName.has(key)) byName.set(key, name);
+      }
+
+      return Array.from(byName.values()).sort((a, b) => a.localeCompare(b));
+    },
+    [reportType, segments]
   );
+
+  const headerNode = !hideHeader ? (
+    <Paper
+      elevation={0}
+      sx={{
+        mb: 4,
+        p: { xs: 3, md: 5 },
+        background: themeStyles.gradient,
+        color: 'white',
+        borderRadius: 4,
+        position: 'relative',
+        overflow: 'hidden',
+        boxShadow: themeStyles.shadow,
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: -100,
+          right: -100,
+          width: 300,
+          height: 300,
+          borderRadius: '50%',
+          background: 'rgba(255, 255, 255, 0.1)',
+          filter: 'blur(50px)',
+          pointerEvents: 'none'
+        },
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          bottom: -50,
+          left: -50,
+          width: 200,
+          height: 200,
+          borderRadius: '50%',
+          background: 'rgba(255, 255, 255, 0.05)',
+          filter: 'blur(40px)',
+          pointerEvents: 'none'
+        }
+      }}
+    >
+      <Box sx={{ position: 'relative', zIndex: 1 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Box
+              sx={{
+                fontSize: 48,
+                mr: 2.5,
+                p: 1.2,
+                bgcolor: 'rgba(255, 255, 255, 0.15)',
+                borderRadius: 2,
+                backdropFilter: 'blur(10px)',
+                boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'inherit'
+              }}
+            >
+              {headerIcon || <AssessmentIcon sx={{ fontSize: 32 }} />}
+            </Box>
+            <Box>
+              <Typography
+                variant="h3"
+                component="h1"
+                sx={{ fontWeight: 800, mb: 1, letterSpacing: '-0.02em', fontSize: { xs: '1.75rem', md: '2.5rem' } }}
+              >
+                {title}
+              </Typography>
+              {description && (
+                <Typography
+                  variant="body1"
+                  sx={{
+                    opacity: 0.9,
+                    maxWidth: '800px',
+                    fontWeight: 500,
+                    lineHeight: 1.6
+                  }}
+                >
+                  {description}
+                </Typography>
+              )}
+            </Box>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Chip
+              icon={<AssessmentIcon sx={{ color: 'white !important', fontSize: '1.2rem' }} />}
+              label={statusLabel}
+              sx={{
+                bgcolor: 'rgba(255, 255, 255, 0.2)',
+                color: 'white',
+                fontWeight: 600,
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                display: { xs: 'none', sm: 'flex' },
+                px: 1
+              }}
+            />
+            <Chip
+              label="Live Production Data"
+              color="success"
+              size="small"
+              sx={{
+                fontWeight: 700,
+                boxShadow: '0 2px 8px rgba(76, 175, 80, 0.4)',
+                display: { xs: 'none', md: 'flex' }
+              }}
+            />
+          </Box>
+        </Box>
+
+        <Box
+          sx={{
+            display: 'flex',
+            gap: { xs: 3, md: 5 },
+            mt: 4,
+            pt: 3,
+            borderTop: '1px solid rgba(255, 255, 255, 0.2)',
+            flexWrap: 'wrap'
+          }}
+        >
+          <Box>
+            <Typography
+              variant="caption"
+              sx={{ opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 0.5 }}
+            >
+              Report Granularity
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {granularity}
+            </Typography>
+          </Box>
+          <Box>
+            <Typography
+              variant="caption"
+              sx={{ opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 0.5 }}
+            >
+              Scope
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {scope}
+            </Typography>
+          </Box>
+          <Box>
+            <Typography
+              variant="caption"
+              sx={{ opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 0.5 }}
+            >
+              Last Calculation
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+    </Paper>
+  ) : null;
+
+  const debugMeta = reportMeta?.debug ?? null;
+  const debugReportTitle = String(debugMeta?.reportTitle || title);
+  const debugRowCount = String(debugMeta?.rowCount ?? data.length);
+  const debugSourceTables = Array.isArray(debugMeta?.sourceTables) ? debugMeta.sourceTables : [];
+  const debugFiltersApplied = (debugMeta?.filtersApplied as Record<string, unknown>) || {};
+  const debugJoins = Array.isArray(debugMeta?.joins) ? debugMeta.joins : [];
+  const debugEmptyReason = debugMeta?.emptyReason ? String(debugMeta.emptyReason) : '';
+  const debugSqlPreview = debugMeta?.sqlPreview ? String(debugMeta.sqlPreview) : '';
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -1172,155 +1547,36 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
           subMessage="Retrieving financial data..."
         />
 
-        {/* Enhanced Page Header with Gradient - Premium Look */}
-        {!hideHeader && (
-          <Paper
-            elevation={0}
-            sx={{
-              mb: 4,
-              p: { xs: 3, md: 5 },
-              background: themeStyles.gradient,
-              color: 'white',
-              borderRadius: 4,
-              position: 'relative',
-              overflow: 'hidden',
-              boxShadow: themeStyles.shadow,
-              '&::before': {
-                content: '""',
-                position: 'absolute',
-                top: -100,
-                right: -100,
-                width: 300,
-                height: 300,
-                borderRadius: '50%',
-                background: 'rgba(255, 255, 255, 0.1)',
-                filter: 'blur(50px)',
-                pointerEvents: 'none'
-              },
-              '&::after': {
-                content: '""',
-                position: 'absolute',
-                bottom: -50,
-                left: -50,
-                width: 200,
-                height: 200,
-                borderRadius: '50%',
-                background: 'rgba(255, 255, 255, 0.05)',
-                filter: 'blur(40px)',
-                pointerEvents: 'none'
-              }
-            }}
-          >
-            <Box sx={{ position: 'relative', zIndex: 1 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Box
-                    sx={{
-                      fontSize: 48,
-                      mr: 2.5,
-                      p: 1.2,
-                      bgcolor: 'rgba(255, 255, 255, 0.15)',
-                      borderRadius: 2,
-                      backdropFilter: 'blur(10px)',
-                      boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'inherit'
-                    }}
-                  >
-                    {headerIcon || <AssessmentIcon sx={{ fontSize: 32 }} />}
-                  </Box>
-                  <Box>
-                    <Typography variant="h3" component="h1" sx={{ fontWeight: 800, mb: 1, letterSpacing: '-0.02em', fontSize: { xs: '1.75rem', md: '2.5rem' } }}>
-                      {title}
-                    </Typography>
-                    {description && (
-                      <Typography
-                        variant="body1"
-                        sx={{
-                          opacity: 0.9,
-                          maxWidth: '800px',
-                          fontWeight: 500,
-                          lineHeight: 1.6
-                        }}
-                      >
-                        {description}
-                      </Typography>
-                    )}
-                  </Box>
-                </Box>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Chip
-                    icon={<AssessmentIcon sx={{ color: 'white !important', fontSize: '1.2rem' }} />}
-                    label={statusLabel}
-                    sx={{
-                      bgcolor: 'rgba(255, 255, 255, 0.2)',
-                      color: 'white',
-                      fontWeight: 600,
-                      backdropFilter: 'blur(10px)',
-                      border: '1px solid rgba(255, 255, 255, 0.3)',
-                      display: { xs: 'none', sm: 'flex' },
-                      px: 1
-                    }}
-                  />
-                  <Chip
-                    label="Live Production Data"
-                    color="success"
-                    size="small"
-                    sx={{
-                      fontWeight: 700,
-                      boxShadow: '0 2px 8px rgba(76, 175, 80, 0.4)',
-                      display: { xs: 'none', md: 'flex' }
-                    }}
-                  />
-                </Box>
-              </Box>
-
-              {/* Quick Stats / Info Bar */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  gap: { xs: 3, md: 5 },
-                  mt: 4,
-                  pt: 3,
-                  borderTop: '1px solid rgba(255, 255, 255, 0.2)',
-                  flexWrap: 'wrap'
-                }}
-              >
-                <Box>
-                  <Typography variant="caption" sx={{ opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 0.5 }}>
-                    Report Granularity
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{granularity}</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" sx={{ opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 0.5 }}>
-                    Scope
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{scope}</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" sx={{ opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 0.5 }}>
-                    Last Calculation
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-          </Paper>
-        )}
+        {headerAtTop ? headerNode : null}
 
         {/* Action buttons & Control Bar */}
         {!hideHeader && (
-          <Box sx={{ mb: 4, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Box sx={{
+            mb: 4,
+            display: 'flex',
+            gap: 2,
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            position: headerAtTop ? 'relative' : 'sticky',
+            top: headerAtTop ? undefined : 74,
+            zIndex: headerAtTop ? 1 : 2,
+            py: 1,
+            bgcolor: 'background.default'
+          }}>
             <TextField
               placeholder="Search data..."
               size="small"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                const nextValue = e.target.value;
+                setSearchTerm(nextValue);
+                if (supportsPagination) {
+                  setPaginationModel({
+                    page: 0,
+                    pageSize: queryState.paginationModel.pageSize,
+                  });
+                }
+              }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -1337,27 +1593,29 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
               }}
             />
 
-            <Button
-              variant={showFilters ? "contained" : "outlined"}
-              startIcon={<FilterIcon />}
-              onClick={() => setShowFilters(!showFilters)}
-              sx={{
-                borderRadius: 2,
-                textTransform: 'none',
-                fontWeight: 600,
-                ...(showFilters && {
-                  background: themeStyles.gradient,
-                  boxShadow: `0 4px 12px ${alpha(themeStyles.primary, 0.3)}`
-                })
-              }}
-            >
-              {showFilters ? 'Hide Filters' : 'Analysis Parameters'}
-            </Button>
+            {!hideFilters && (
+              <Button
+                variant={showFilters ? "contained" : "outlined"}
+                startIcon={<FilterIcon />}
+                onClick={() => setShowFilters(!showFilters)}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  ...(showFilters && {
+                    background: themeStyles.gradient,
+                    boxShadow: `0 4px 12px ${alpha(themeStyles.primary, 0.3)}`
+                  })
+                }}
+              >
+                {showFilters ? 'Hide Filters' : 'Analysis Parameters'}
+              </Button>
+            )}
 
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
               <Tooltip title="Refresh Data">
                 <IconButton
-                  onClick={fetchData}
+                  onClick={handleRun}
                   disabled={loading}
                   sx={{
                     bgcolor: alpha(themeStyles.primary, 0.05),
@@ -1403,13 +1661,15 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 transition: 'all 0.2s ease'
               }}
             >
-              {exportLoading ? 'Processing...' : 'Export to Excel'}
+              {exportLoading ? 'Processing...' : 'Export'}
             </Button>
           </Box>
         )}
 
+        {!headerAtTop ? headerNode : null}
+
         {/* Filters */}
-        {!hideHeader && showFilters && (
+        {!hideHeader && !hideFilters && showFilters && (
           <Card sx={{
             mb: 4,
             borderRadius: 3,
@@ -1501,8 +1761,8 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                                 renderInput={(params) => (
                                   <TextField
                                     {...params}
-                                    label="Segment ID"
-                                    placeholder="All Segments"
+                                    label={reportType === 'lifetime-lgd' ? 'Population Segment' : 'Segment ID'}
+                                    placeholder={reportType === 'lifetime-lgd' ? 'All Population Segments' : 'All Segments'}
                                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                                   />
                                 )}
@@ -1512,20 +1772,22 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
                           {optionalParams.includes('group_segment') && (
                             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                              <Autocomplete
-                                size="small"
-                                options={groupSegmentOptions}
-                                value={filters.group_segment || null}
-                                onChange={(_, newValue) => handleFilterChange('group_segment', newValue || undefined)}
-                                renderInput={(params) => (
-                                  <TextField
-                                    {...params}
-                                    label="Group Segment"
-                                    placeholder="All Group Segments"
-                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                                  />
-                                )}
-                              />
+                              <FormControl fullWidth size="small">
+                                <InputLabel>Group Segment</InputLabel>
+                                <Select
+                                  value={filters.group_segment || ''}
+                                  onChange={(e) => handleFilterChange('group_segment', e.target.value ? String(e.target.value) : undefined)}
+                                  label="Group Segment"
+                                  sx={{ borderRadius: 2 }}
+                                >
+                                  <MenuItem value="">ALL</MenuItem>
+                                  {groupSegmentOptions.map((value) => (
+                                    <MenuItem key={value} value={value}>
+                                      {value}
+                                    </MenuItem>
+                                  ))}
+                                </Select>
+                              </FormControl>
                             </Grid>
                           )}
 
@@ -1563,26 +1825,47 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
                           {optionalParams.includes('ead_config_id') && (
                             <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-                              <TextField
-                                label="EAD Config ID"
-                                type="number"
-                                size="small"
-                                value={filters.ead_config_id || ''}
-                                onChange={(e) => handleFilterChange('ead_config_id', parseInt(e.target.value) || undefined)}
-                                fullWidth
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                              />
+                              <FormControl fullWidth size="small">
+                                <InputLabel>EAD Model</InputLabel>
+                                <Select
+                                  value={filters.ead_config_id || ''}
+                                  onChange={(e) => {
+                                    const selectedConfigId = e.target.value ? Number(e.target.value) : undefined;
+                                    handleFilterChange('ead_config_id', selectedConfigId);
+                                  }}
+                                  label="EAD Model"
+                                  sx={{ borderRadius: 2 }}
+                                >
+                                  {eadConfigs.length > 0 ? (
+                                    eadConfigs.map((config) => (
+                                      <MenuItem key={String(config.id)} value={Number(config.id)}>
+                                        {config.segment_id ? `${config.model_name} (Segment ${config.segment_id})` : config.model_name}
+                                      </MenuItem>
+                                    ))
+                                  ) : (
+                                    <MenuItem value="" disabled>
+                                      No configurations
+                                    </MenuItem>
+                                  )}
+                                </Select>
+                              </FormControl>
                             </Grid>
                           )}
 
                           {optionalParams.includes('lgd_config_id') && (
                             <Grid size={{ xs: 12, sm: 4, md: 2 }}>
                               <FormControl fullWidth size="small">
-                                <InputLabel>LGD Config</InputLabel>
+                                <InputLabel>LGD Model</InputLabel>
                                 <Select
                                   value={filters.lgd_config_id || ''}
-                                  onChange={(e) => handleFilterChange('lgd_config_id', e.target.value ? Number(e.target.value) : undefined)}
-                                  label="LGD Config"
+                                  onChange={(e) => {
+                                    const selectedConfigId = e.target.value ? Number(e.target.value) : undefined;
+                                    const selectedConfig = lgdConfigs.find((config) => Number(config.id) === selectedConfigId);
+                                    handleFilterChange('lgd_config_id', selectedConfigId);
+                                    handleFilterChange('segment_id', selectedConfig?.segment_id);
+                                    handleFilterChange('segment_ids', selectedConfig?.segment_id ? [selectedConfig.segment_id] : []);
+                                  }}
+                                  label="LGD Model"
                                   sx={{ borderRadius: 2 }}
                                   endAdornment={
                                     <InputAdornment position="end" sx={{ mr: 4 }}>
@@ -1602,10 +1885,10 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                                     </InputAdornment>
                                   }
                                 >
-                                  <MenuItem value="">All Configurations</MenuItem>
+                                  <MenuItem value="">All LGD Models</MenuItem>
                                   {lgdConfigs.map((config) => (
                                     <MenuItem key={config.id} value={config.id}>
-                                      {config.model_name || `Config ${config.id}`}
+                                      {config.segment_id ? `${config.model_name} (Segment ${config.segment_id})` : (config.model_name || `Config ${config.id}`)}
                                     </MenuItem>
                                   ))}
                                 </Select>
@@ -1754,6 +2037,12 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
           </Alert>
         )}
 
+        {infoMessage && (
+          <Alert severity="success" sx={{ mb: 2 }} onClose={() => setInfoMessage(null)}>
+            {infoMessage}
+          </Alert>
+        )}
+
         {effectivePrcDate && filters.prc_date && effectivePrcDate !== formatLocalDate(filters.prc_date) && (
           <Alert severity="info" sx={{ mb: 2 }}>
             Snapshot used: <strong>{effectivePrcDate}</strong>{' '}
@@ -1792,13 +2081,13 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
           </Card>
         )}
 
-        {reportMeta?.debug && (
+        {debugMeta && (
           <Accordion defaultExpanded sx={{ mb: 2, borderRadius: 3, overflow: 'hidden', '&:before': { display: 'none' } }}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Box>
                 <Typography fontWeight={700}>Report Query Debug</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {String(reportMeta.debug.reportTitle || title)} · {String(reportMeta.debug.rowCount ?? data.length)} rows
+                  {debugReportTitle} · {debugRowCount} rows
                 </Typography>
               </Box>
             </AccordionSummary>
@@ -1807,7 +2096,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="subtitle2" fontWeight={700} gutterBottom>Source Tables</Typography>
                   <List dense disablePadding>
-                    {(reportMeta.debug.sourceTables || []).map((table) => (
+                    {debugSourceTables.map((table) => (
                       <ListItem key={table} disableGutters sx={{ py: 0.25 }}>
                         <ListItemText primary={table} />
                       </ListItem>
@@ -1817,18 +2106,18 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="subtitle2" fontWeight={700} gutterBottom>Applied Filters</Typography>
                   <List dense disablePadding>
-                    {Object.entries((reportMeta.debug.filtersApplied as Record<string, unknown>) || {}).map(([key, value]) => (
+                    {Object.entries(debugFiltersApplied).map(([key, value]) => (
                       <ListItem key={key} disableGutters sx={{ py: 0.25 }}>
                         <ListItemText primary={key} secondary={Array.isArray(value) ? value.join(', ') : String(value)} />
                       </ListItem>
                     ))}
                   </List>
                 </Grid>
-                {Array.isArray(reportMeta.debug.joins) && reportMeta.debug.joins.length > 0 && (
+                {debugJoins.length > 0 && (
                   <Grid size={{ xs: 12 }}>
                     <Typography variant="subtitle2" fontWeight={700} gutterBottom>Join Path</Typography>
                     <List dense disablePadding>
-                      {reportMeta.debug.joins.map((joinPath) => (
+                      {debugJoins.map((joinPath) => (
                         <ListItem key={joinPath} disableGutters sx={{ py: 0.25 }}>
                           <ListItemText primary={joinPath} />
                         </ListItem>
@@ -1836,12 +2125,12 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                     </List>
                   </Grid>
                 )}
-                {reportMeta.debug.emptyReason && (
+                {debugEmptyReason && (
                   <Grid size={{ xs: 12 }}>
-                    <Alert severity="warning">{String(reportMeta.debug.emptyReason)}</Alert>
+                    <Alert severity="warning">{debugEmptyReason}</Alert>
                   </Grid>
                 )}
-                {reportMeta.debug.sqlPreview && (
+                {debugSqlPreview && (
                   <Grid size={{ xs: 12 }}>
                     <Typography variant="subtitle2" fontWeight={700} gutterBottom>Query Preview</Typography>
                     <Box
@@ -1857,7 +2146,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                         overflowX: 'auto',
                       }}
                     >
-                      {String(reportMeta.debug.sqlPreview)}
+                      {debugSqlPreview}
                     </Box>
                   </Grid>
                 )}
@@ -1871,25 +2160,63 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
         {/* Data Grid */}
         {columns.length > 0 && !hideDataGrid ? (
-          <Paper sx={{ height: 600, width: '100%' }}>
+          <Paper
+            sx={{
+              minHeight: 600,
+              height: 'auto',
+              width: '100%',
+              maxWidth: '100%',
+              minWidth: 0,
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
             <SafeDataGrid
               rows={filteredData}
               columns={columns}
               loading={loading}
+              getDetailPanelContent={reportType === 'lifetime-lgd' ? renderLifetimeLgdDetailPanel : undefined}
+              getDetailPanelHeight={reportType === 'lifetime-lgd' ? () => 'auto' : undefined}
               pagination
               paginationMode={supportsPagination ? 'server' : 'client'}
               {...(supportsPagination && pagination.total > 0 && { rowCount: pagination.total })}
               paginationModel={{
-                page: supportsPagination ? pagination.page - 1 : 0,
-                pageSize: supportsPagination ? pagination.limit : 100
+                page: supportsPagination ? queryState.paginationModel.page : 0,
+                pageSize: supportsPagination ? queryState.paginationModel.pageSize : 100
               }}
               onPaginationModelChange={(model) => {
                 if (supportsPagination) {
+                  setPaginationModel({
+                    page: model.page,
+                    pageSize: model.pageSize,
+                  });
                   handlePaginationChange(model.page + 1, model.pageSize);
                 }
               }}
-              pageSizeOptions={supportsPagination ? [10, 20, 50, 100] : [100]}
+              columnFilters={supportsPagination ? queryState.columnFilters : undefined}
+              onColumnFiltersChange={supportsPagination ? setColumnFilters : undefined}
+              sortModel={supportsPagination ? queryState.sort.map((item) => ({ field: item.field, sort: item.direction })) : undefined}
+              onSortModelChange={supportsPagination ? (model) => {
+                setSort(
+                  model
+                    .filter((item) => item.sort === 'asc' || item.sort === 'desc')
+                    .map((item) => ({
+                      field: item.field,
+                      direction: item.sort as 'asc' | 'desc',
+                    }))
+                );
+              } : undefined}
+              columnVisibilityModel={supportsPagination ? queryState.columnVisibilityModel : undefined}
+              onColumnVisibilityModelChange={supportsPagination ? setColumnVisibilityModel : undefined}
+              density={gridDensity}
+              onDensityChange={supportsPagination ? setDensity : undefined}
+              pageSizeOptions={supportsPagination ? [10, 25, 50, 75, 100] : [100]}
               getRowId={(row) => row.id || row.account_id || row.pkid || Math.random()}
+              filterDefinitions={filterDefinitions}
+              showEnterpriseControls
+              onSaveView={supportsPagination ? handleSaveCurrentView : undefined}
+              onResetView={supportsPagination ? handleResetCurrentView : undefined}
               sx={{
                 '& .MuiDataGrid-cell': {
                   fontSize: '0.875rem'
@@ -1938,23 +2265,24 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
           </Box>
         )}
         {/* Export Dialog */}
-        <Dialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} maxWidth="xs" fullWidth>
+        <Dialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} maxWidth="sm" fullWidth>
           <DialogTitle sx={{ fontWeight: 800, bgcolor: alpha(themeStyles.primary, 0.03) }}>
             Export Report
           </DialogTitle>
           <DialogContent sx={{ mt: 2 }}>
             <FormControl fullWidth size="small">
-              <InputLabel id="export-scope-label">Export Scope</InputLabel>
+              <InputLabel id="export-scope-label">Data</InputLabel>
               <Select
                 labelId="export-scope-label"
-                label="Export Scope"
+                label="Data"
                 value={exportOptions.scope}
                 onChange={(e) => setExportOptions(prev => ({ ...prev, scope: String(e.target.value) }))}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               >
-                <MenuItem value="summary">Summary & Top Results</MenuItem>
-                <MenuItem value="account">Account-level Details</MenuItem>
-                <MenuItem value="all" disabled>All Data (ZIP)</MenuItem>
+                <MenuItem value="visible">Visible data</MenuItem>
+                <MenuItem value="by_date">By date</MenuItem>
+                <MenuItem value="date_range">Date range</MenuItem>
+                <MenuItem value="all_pages">All (all pages for selected date)</MenuItem>
               </Select>
             </FormControl>
 
@@ -1967,11 +2295,54 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 onChange={(e) => setExportOptions(prev => ({ ...prev, format: String(e.target.value) }))}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               >
-                <MenuItem value="xlsx">Excel</MenuItem>
-                <MenuItem value="csv">CSV</MenuItem>
-                <MenuItem value="pdf">PDF</MenuItem>
+                <MenuItem value="xlsx">Excel (.xlsx)</MenuItem>
+                <MenuItem value="csv">CSV (.csv)</MenuItem>
+                <MenuItem value="pdf">PDF (.pdf)</MenuItem>
               </Select>
             </FormControl>
+
+            {exportOptions.scope === 'date_range' && (
+              <Box sx={{ mt: 3, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                <DatePicker
+                  label="From"
+                  value={exportOptions.fromDate}
+                  onChange={(date: unknown) => {
+                    const finalDate = date && (date as { toDate?: () => Date }).toDate
+                      ? (date as { toDate: () => Date }).toDate()
+                      : (date as Date | null);
+                    setExportOptions(prev => ({ ...prev, fromDate: finalDate }));
+                  }}
+                  enableAccessibleFieldDOMStructure={false}
+                  slots={{ textField: TextField }}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      size: 'small',
+                      sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } },
+                    }
+                  }}
+                />
+                <DatePicker
+                  label="To"
+                  value={exportOptions.toDate}
+                  onChange={(date: unknown) => {
+                    const finalDate = date && (date as { toDate?: () => Date }).toDate
+                      ? (date as { toDate: () => Date }).toDate()
+                      : (date as Date | null);
+                    setExportOptions(prev => ({ ...prev, toDate: finalDate }));
+                  }}
+                  enableAccessibleFieldDOMStructure={false}
+                  slots={{ textField: TextField }}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      size: 'small',
+                      sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } },
+                    }
+                  }}
+                />
+              </Box>
+            )}
 
             <Box sx={{ mt: 2, p: 2, borderRadius: 2, bgcolor: 'info.light', color: 'info.contrastText', display: 'flex', gap: 1.5 }}>
               <InfoIcon />

@@ -84,6 +84,28 @@ local-backend: ## [LOCAL] Quick start: Backend only
 	@echo "⚡ Starting backend..."
 	$(COMPOSE) --profile backend up
 
+.PHONY: local-remote-db
+local-remote-db: ## [LOCAL] Quick start: Backend + Redis using ops/local/backend.env against remote DBs (no bootstrap/migrate/seed)
+	@echo "🔐 Starting backend against remote DBs (safe mode, no migrate/seed/bootstrap)..."
+	sh $(LOCAL_COMPOSE_DIR)/run-remote-db.sh
+
+.PHONY: local-remote-db-frontend
+local-remote-db-frontend: ## [LOCAL] Quick start: Backend + Redis + hot-reload frontend against remote DBs
+	@echo "🔐 Starting backend + frontend against remote DBs (safe mode, no migrate/seed/bootstrap)..."
+	sh $(LOCAL_COMPOSE_DIR)/run-remote-db-frontend.sh
+
+.PHONY: local-remote-db-logs
+local-remote-db-logs: ## [LOCAL] Tail logs for remote DB backend mode
+	docker compose --env-file $(LOCAL_COMPOSE_DIR)/backend.env -f $(COMPOSE_FILE) --profile backend-remote-db logs -f new-backend-vpn redis
+
+.PHONY: local-remote-db-frontend-logs
+local-remote-db-frontend-logs: ## [LOCAL] Tail logs for remote DB backend + frontend mode
+	docker compose --env-file $(LOCAL_COMPOSE_DIR)/backend.env -f $(COMPOSE_FILE) --profile backend-remote-db --profile frontend-remote-db logs -f new-backend-vpn frontend-dev redis
+
+.PHONY: local-remote-db-down
+local-remote-db-down: ## [LOCAL] Stop remote DB backend mode
+	docker compose --env-file $(LOCAL_COMPOSE_DIR)/backend.env -f $(COMPOSE_FILE) --profile backend-remote-db down
+
 .PHONY: local-frontend
 local-frontend: ## [LOCAL] Quick start: Frontend only (requires backend running)
 	@echo "🌐 Starting frontend..."

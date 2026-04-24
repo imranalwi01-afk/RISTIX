@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     Box,
     Button,
@@ -16,24 +16,12 @@ import {
     Check,
     AdminPanelSettings
 } from '@mui/icons-material';
-import { frontendEnvironmentLoader } from '../../config/environment-loader-frontend';
 import { useAuth } from '../../providers/AuthProvider';
-import { getAuthToken } from '../../utils/auth-token';
-
-interface TenantOption {
-    id: string;
-    slug: string;
-    name: string;
-    displayName?: string;
-    bankingType: string;
-    isActive: boolean;
-}
+import { useTenantContextQuery } from '@/features/tenant-context/hooks/useTenantContextQuery';
 
 export const TenantSwitcher: React.FC = () => {
     const { user } = useAuth();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-    const [tenants, setTenants] = useState<TenantOption[]>([]);
-    const [loading, setLoading] = useState(false);
     const open = Boolean(anchorEl);
 
     // Only show for platform admins
@@ -50,48 +38,9 @@ export const TenantSwitcher: React.FC = () => {
         user?.tenantSlug ||
         'system';
 
-    useEffect(() => {
-        if (isPlatformAdmin && open && tenants.length === 0) {
-            fetchTenants();
-        }
-    }, [isPlatformAdmin, open]);
-
-    const toApiV1BaseUrl = (rawValue: string): string => {
-        let normalized = (rawValue || '').trim().replace(/\/+$/, '');
-        while (/\/api\/v1$/i.test(normalized)) {
-            normalized = normalized.replace(/\/api\/v1$/i, '');
-        }
-        return normalized.length > 0 ? `${normalized}/api/v1` : '/api/v1';
-    };
-
-    const fetchTenants = async () => {
-        setLoading(true);
-        try {
-            const config = frontendEnvironmentLoader.getConfiguration();
-            const baseUrl = toApiV1BaseUrl(config?.api?.base || config?.api?.backend || '');
-            const token = getAuthToken();
-
-            // Use admin mode to see system tenant too if needed, though mostly we want to switch to others
-            const response = await fetch(`${baseUrl}/auth/login-data?mode=admin`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                }
-            });
-
-            if (response.ok) {
-                const result = await response.json();
-                if (result.success && result.data) {
-                    setTenants(result.data.tenants);
-                }
-            }
-        } catch (error) {
-            console.error('Failed to fetch tenants:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const tenantContextQuery = useTenantContextQuery(isPlatformAdmin && open);
+    const tenants = tenantContextQuery.data ?? [];
+    const loading = tenantContextQuery.isLoading || tenantContextQuery.isFetching;
 
     const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
         setAnchorEl(event.currentTarget);

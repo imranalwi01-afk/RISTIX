@@ -135,6 +135,7 @@ export const usersAPI = {
     department?: string;
     bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
     isActive?: boolean;
+    includeInactive?: boolean;
     sort?: string;
     order?: 'asc' | 'desc' | 'ASC' | 'DESC';
   }, tenantId?: string) => {
@@ -234,6 +235,7 @@ export const rolesAPI = {
     type?: 'SYSTEM' | 'BANKING' | 'CUSTOM';
     level?: 'PLATFORM' | 'TENANT' | 'DEPARTMENT';
     isActive?: boolean;
+    includeInactive?: boolean;
   }, tenantId?: string) => {
     console.log(`🔒 Fetching roles from tenant database with real API${tenantId ? ` (tenant: ${tenantId})` : ''}`, params);
     const config: any = { params };
@@ -613,9 +615,17 @@ export const bankingAPI = {
 
   // Business setup parameters (FRS9_PARAM_COMMONH - Type B)
   businessSetup: {
-    getAll: async () => {
-      console.log('🏢 Fetching business setup from DS2 database');
-      const response = await apiClient.get('/banking/setup/business');
+    getAll: async (params?: {
+      page?: number;
+      offset?: number;
+      limit?: number;
+      search?: string;
+      filters?: string;
+      sort?: string;
+      paginationMode?: 'client' | 'offset' | 'cursor';
+    }) => {
+      console.log('🏢 Fetching business setup from DS2 database', params);
+      const response = await apiClient.get('/banking/setup/business', { params });
       return response.data;
     },
 
@@ -666,14 +676,17 @@ export const bankingAPI = {
   productParameters: {
     getAll: async (mode: string, params?: {
       page?: number;
+      offset?: number;
       limit?: number;
+      paginationMode?: 'offset' | 'cursor';
       search?: string;
-      sortBy?: string;
-      sortOrder?: 'ASC' | 'DESC';
+      sort?: string;
       prdGroup?: string;
       prdType?: string;
       currency?: string;
+      dataSource?: string;
       activeOnly?: boolean | string;
+      filters?: string;
     }) => {
       console.log(`🏦 Fetching product parameters for ${mode} from DS2 database`, params);
       const response = await apiClient.get('/banking/parameters/product', { params: { ...params, mode } });
@@ -818,9 +831,20 @@ export const bankingAPI = {
   // JOURNAL PARAMETER API (frs9_param_journal)
   // ==========================================
   journalParameters: {
-    getAll: async () => {
-      console.log('📋 Fetching journal parameters');
-      const response = await apiClient.get('/banking/parameters/journal');
+    getAll: async (params?: {
+      page?: number;
+      offset?: number;
+      limit?: number;
+      paginationMode?: 'offset' | 'cursor';
+      search?: string;
+      filters?: string;
+      sort?: string;
+      glGroup?: string;
+      currency?: string;
+      activeFlag?: boolean | string;
+    }) => {
+      console.log('📋 Fetching journal parameters', params);
+      const response = await apiClient.get('/banking/parameters/journal', { params });
       return response.data;
     },
     getById: async (id: number) => {
@@ -1396,9 +1420,33 @@ export const bankingAPI = {
         lgd_config_id?: number;
         lgd_method?: number;
         model_id?: number;
+        segment_id?: number;
+        fl_flag?: boolean;
+        page?: number;
+        limit?: number;
+        search?: string;
+        sort?: string;
+        sortField?: string;
+        sortOrder?: string;
+        paginationMode?: 'offset' | 'cursor';
+        cursor?: string;
+        filters?: string;
+        filter?: string;
       }) => {
         console.log('📊 Getting Lifetime LGD data from DS2 database');
         const response = await apiClient.get('/ifrs9/reports/lifetime-lgd', { params });
+        return response.data;
+      },
+      getSummary: async (params: {
+        prc_date: string;
+        lgd_config_id?: number;
+        lgd_method?: number;
+        model_id?: number;
+        segment_id?: number;
+        fl_flag?: boolean;
+      }) => {
+        console.log('📊 Getting Lifetime LGD Summary data from DS2 database');
+        const response = await apiClient.get('/ifrs9/reports/lifetime-lgd/summary', { params });
         return response.data;
       }
     },
@@ -1409,6 +1457,16 @@ export const bankingAPI = {
         prc_date: string;
         ead_config_id?: number;
         segment_id?: number;
+        page?: number;
+        limit?: number;
+        search?: string;
+        sort?: string;
+        sortField?: string;
+        sortOrder?: string;
+        paginationMode?: 'offset' | 'cursor';
+        cursor?: string;
+        filters?: string;
+        filter?: string;
       }) => {
         console.log('📊 Getting EAD Model data from DS2 database');
         const response = await apiClient.get('/ifrs9/reports/ead-model', { params });
@@ -1432,6 +1490,16 @@ export const bankingAPI = {
         segment_id?: number;
         stage?: string | string[];
         sub_segment?: string;
+        page?: number;
+        limit?: number;
+        search?: string;
+        sort?: string;
+        sortField?: string;
+        sortOrder?: string;
+        paginationMode?: 'offset' | 'cursor';
+        cursor?: string;
+        filters?: string;
+        filter?: string;
       }) => {
         console.log('📊 Getting ECL Result data from DS2 database');
         const response = await apiClient.get('/ifrs9/reports/ecl-result', { params });
@@ -1457,6 +1525,16 @@ export const bankingAPI = {
         segment_id?: number;
         stage?: string | string[];
         group_segment?: string;
+        page?: number;
+        limit?: number;
+        search?: string;
+        sort?: string;
+        sortField?: string;
+        sortOrder?: string;
+        paginationMode?: 'offset' | 'cursor';
+        cursor?: string;
+        filters?: string;
+        filter?: string;
       }) => {
         console.log('📊 Getting ECL Movement data from DS2 database');
         const response = await apiClient.get('/ifrs9/reports/ecl-movement', { params });
@@ -1471,6 +1549,16 @@ export const bankingAPI = {
         segment_id?: number;
         stage?: string | string[];
         group_segment?: string;
+        page?: number;
+        limit?: number;
+        search?: string;
+        sort?: string;
+        sortField?: string;
+        sortOrder?: string;
+        paginationMode?: 'offset' | 'cursor';
+        cursor?: string;
+        filters?: string;
+        filter?: string;
       }) => {
         console.log('📊 Getting GCA Movement data from DS2 database');
         const response = await apiClient.get('/ifrs9/reports/gca-movement', { params });
@@ -1627,7 +1715,16 @@ export const apiDiagnostics = {
 export const applicationParameterAPI = {
   // Header operations
   headers: {
-    getAll: async (params?: { include_details?: boolean }) => {
+    getAll: async (params?: {
+      include_details?: boolean;
+      page?: number;
+      offset?: number;
+      limit?: number;
+      search?: string;
+      filters?: string;
+      sort?: string;
+      paginationMode?: 'client' | 'offset' | 'cursor';
+    }) => {
       console.log('📋 Fetching application parameter headers from real database', params);
       const response = await apiClient.get('/banking/setup/application', { params });
       return response.data;

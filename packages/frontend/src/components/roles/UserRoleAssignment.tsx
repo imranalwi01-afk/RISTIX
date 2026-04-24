@@ -341,9 +341,9 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
   });
 
   // Filters and pagination
-  const [searchTerm, setSearchTerm] = useState('');
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [roleSearchTerm, setRoleSearchTerm] = useState('');
   const [filterRoleType, setFilterRoleType] = useState<string>('all');
-  const [filterUserStatus, setFilterUserStatus] = useState<string>('all');
   const [approvalCoverageFilter, setApprovalCoverageFilter] = useState<'all' | 'can_approve' | 'no_approval'>('all');
   const [showInactiveUsers, setShowInactiveUsers] = useState(false);
   const [showInactiveRoles, setShowInactiveRoles] = useState(false);
@@ -468,8 +468,8 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
       if (!showInactiveUsers && !user.isActive) return false;
-      if (searchTerm && !user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !user.email.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      if (userSearchTerm && !user.fullName.toLowerCase().includes(userSearchTerm.toLowerCase()) &&
+        !user.email.toLowerCase().includes(userSearchTerm.toLowerCase())) return false;
 
       // Filter by role assignment
       if (filterRoleType !== 'all') {
@@ -482,18 +482,18 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
 
       return true;
     });
-  }, [users, searchTerm, showInactiveUsers, filterRoleType, roles]);
+  }, [users, userSearchTerm, showInactiveUsers, filterRoleType, roles]);
 
   const filteredRoles = useMemo(() => {
     return roles.filter(role => {
       if (!showInactiveRoles && !role.isActive) return false;
-      if (searchTerm && !getRoleLabel(role).toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !role.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      if (roleSearchTerm && !getRoleLabel(role).toLowerCase().includes(roleSearchTerm.toLowerCase()) &&
+        !role.name.toLowerCase().includes(roleSearchTerm.toLowerCase())) return false;
       if (approvalCoverageFilter === 'can_approve' && !canRoleApproveRequests(role)) return false;
       if (approvalCoverageFilter === 'no_approval' && canRoleApproveRequests(role)) return false;
       return true;
     });
-  }, [roles, searchTerm, showInactiveRoles, approvalCoverageFilter]);
+  }, [roles, roleSearchTerm, showInactiveRoles, approvalCoverageFilter]);
 
   // Paginated data
   const paginatedUsers = useMemo(() => {
@@ -1036,8 +1036,21 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
                   fullWidth
                   size="small"
                   label="Search Users"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={userSearchTerm}
+                  onChange={(e) => setUserSearchTerm(e.target.value)}
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>
+                  }}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 3 }}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Search Roles"
+                  value={roleSearchTerm}
+                  onChange={(e) => setRoleSearchTerm(e.target.value)}
                   InputProps={{
                     startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>
                   }}

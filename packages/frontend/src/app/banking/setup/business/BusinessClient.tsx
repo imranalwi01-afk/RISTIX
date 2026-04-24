@@ -9,15 +9,22 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useDeferredValue } from 'react';
 import {
-    Alert, Button, Container, Snackbar
+    Alert, Button, Container, Snackbar, Menu, MenuItem
 } from '@mui/material';
 import {
-    Add as AddIcon
+    Add as AddIcon,
+    Download as DownloadIcon,
 } from '@mui/icons-material';
 import api, { handleAPIError, bankingAPI } from '../../../../services/api';
 import PageHeader from '@/components/banking/shared/PageHeader';
+import { exportToCSV, exportToPDF, exportToXLSX } from '@/utils/exportUtils';
+import { getErrorMessage } from '@/utils/error-message';
+import { useAuth } from '@/providers/AuthProvider';
+import { useEnterpriseTableQuery } from '@/hooks/useEnterpriseTableQuery';
+import { useSavedTableView } from '@/hooks/useSavedTableView';
+import type { EnterpriseColumnFilterValue, EnterpriseSort } from '@/types/enterprise-table';
 import {
     ApprovalNotification,
     PendingChangesDialog,
@@ -37,18 +44,114 @@ import {
     type BusinessParameterDetailFormData,
 } from './components';
 
+const BUSINESS_EXPORT_COLUMNS = [
+    { field: 'param_code', headerName: 'Code' },
+    { field: 'param_desc', headerName: 'Description' },
+    { field: 'param_value', headerName: 'Value' },
+    { field: 'param_category', headerName: 'Category' },
+    { field: 'active_flag', headerName: 'Active' },
+    { field: 'created_by', headerName: 'Created By' },
+    { field: 'created_date', headerName: 'Created Date' },
+] as const;
+
+const BUSINESS_FILTER_FIELD_MAP: Record<string, string> = {
+    param_code: 'commonCode',
+    param_desc: 'description',
+    param_value: 'value',
+    param_category: 'category',
+    created_by: 'createdBy',
+};
+
+const BUSINESS_SORT_FIELD_MAP: Record<string, string> = {
+    param_code: 'param_code',
+    param_desc: 'param_desc',
+    param_value: 'param_value',
+    param_category: 'param_category',
+    created_by: 'created_by',
+    created_date: 'created_date',
+};
+
+const normalizeListPayload = <T,>(value: unknown): T[] => {
+    if (Array.isArray(value)) return value as T[];
+    if (value && typeof value === 'object') {
+        const nestedData = (value as { data?: unknown }).data;
+        const nestedRows = (value as { rows?: unknown }).rows;
+        if (Array.isArray(nestedData)) return nestedData as T[];
+        if (Array.isArray(nestedRows)) return nestedRows as T[];
+    }
+    return [];
+};
+
+const normalizeBusinessFilterValue = (value: EnterpriseColumnFilterValue) => {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'boolean') return value ? 'true' : 'false';
+    if (Array.isArray(value)) return value.join(' ');
+    if (typeof value === 'object') return JSON.stringify(value);
+    return String(value);
+};
+
+const getBusinessFieldValue = (row: BusinessParameter, field: string): EnterpriseColumnFilterValue => {
+    const record = row as unknown as Record<string, unknown>;
+    return record[field] as EnterpriseColumnFilterValue;
+};
+
+const compareBusinessValues = (left: unknown, right: unknown) => {
+    if (left === right) return 0;
+    if (left === null || left === undefined) return 1;
+    if (right === null || right === undefined) return -1;
+
+    const leftNumber = typeof left === 'number' ? left : Number(left);
+    const rightNumber = typeof right === 'number' ? right : Number(right);
+    if (!Number.isNaN(leftNumber) && !Number.isNaN(rightNumber)) {
+        return leftNumber - rightNumber;
+    }
+
+    return String(left).localeCompare(String(right), undefined, {
+        numeric: true,
+        sensitivity: 'base',
+    });
+};
+
+const applyBusinessTableQuery = (
+    rows: BusinessParameter[],
+    columnFilters: Record<string, EnterpriseColumnFilterValue>,
+    sort: EnterpriseSort[],
+) => {
+    const activeFilters = Object.entries(columnFilters).filter(([, value]) => normalizeBusinessFilterValue(value).trim().length > 0);
+    const filteredRows = activeFilters.length === 0
+        ? rows
+        : rows.filter((row) =>
+            activeFilters.every(([field, value]) =>
+                normalizeBusinessFilterValue(getBusinessFieldValue(row, field)).toLowerCase().includes(normalizeBusinessFilterValue(value).toLowerCase())
+            )
+        );
+
+    const activeSort = sort[0];
+    if (!activeSort) return filteredRows;
+
+    return [...filteredRows].sort((leftRow, rightRow) => {
+        const leftValue = getBusinessFieldValue(leftRow, activeSort.field);
+        const rightValue = getBusinessFieldValue(rightRow, activeSort.field);
+        const result = compareBusinessValues(leftValue, rightValue);
+        return activeSort.direction === 'asc' ? result : -result;
+    });
+};
+
 
 // =====================================================
 // MAIN COMPONENT
 // =====================================================
 
 export default function BusinessClient() {
+    const { user } = useAuth();
     const { hasAnyPermission } = usePermission();
     const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
     const canViewBusiness = hasAnyPermission(['banking.setup.business.view', 'banking.setup.business.manage', 'banking.setup.business', 'admin.super_admin']);
     const canManageBusiness = hasAnyPermission(['banking.setup.business.manage', 'banking.setup.business.create', 'banking.setup.business.update', 'banking.setup.business.delete', 'admin.super_admin']);
 
     const [businessParameters, setBusinessParameters] = useState<BusinessParameter[]>([]);
+    const [totalCount, setTotalCount] = useState(0);
+    const [pendingApprovalRequests, setPendingApprovalRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
@@ -60,14 +163,39 @@ export default function BusinessClient() {
         return true;
     };
 
-    // Pagination State (Segmentation Pattern)
-    const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(10);
-    const [totalCount, setTotalCount] = useState(0);
-
     // Filters
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('ALL');
+    const [exportAnchorEl, setExportAnchorEl] = useState<null | HTMLElement>(null);
+    const {
+        queryState,
+        setPaginationModel,
+        setColumnVisibilityModel,
+        setDensity,
+        setColumnFilters,
+        setSort,
+        applySavedView,
+        toSavedViewState,
+        resetView,
+    } = useEnterpriseTableQuery({
+        pageKey: 'setup:business-parameters',
+        paginationMode: 'offset',
+        initialPageSize: 10,
+        debounceMs: 0,
+        syncUrl: true,
+    });
+    const savedView = useSavedTableView({
+        userId: user?.id,
+        scope: 'setup:business-parameters',
+        enabled: Boolean(user?.id),
+        onApplyView: (view) => {
+            applySavedView(view);
+            const savedSearch = typeof view.state.search === 'string' ? view.state.search : '';
+            const savedFilters = (view.state.filters ?? {}) as Record<string, unknown>;
+            setSearchTerm(savedSearch);
+            setCategoryFilter(typeof savedFilters.categoryFilter === 'string' ? savedFilters.categoryFilter : 'ALL');
+        },
+    });
 
     // Dialog State
     const [paramDialogOpen, setParamDialogOpen] = useState(false);
@@ -86,68 +214,123 @@ export default function BusinessClient() {
 
     // Default Detail Sequence
     const [defaultDetailSeq, setDefaultDetailSeq] = useState(1);
+    const deferredSearchTerm = useDeferredValue(searchTerm);
+    const deferredCategoryFilter = useDeferredValue(categoryFilter);
+    const deferredGridFilters = useDeferredValue(queryState.columnFilters);
+    const normalizedGridFilters = useMemo(
+        () =>
+            Object.fromEntries(
+                Object.entries(deferredGridFilters).map(([field, value]) => [
+                    BUSINESS_FILTER_FIELD_MAP[field] ?? field,
+                    value,
+                ]),
+            ),
+        [deferredGridFilters],
+    );
+    const mergedServerFilters = useMemo(() => {
+        const filters: Record<string, string> = {};
+        if (deferredCategoryFilter !== 'ALL') {
+            filters.category = deferredCategoryFilter;
+        }
+
+        Object.entries(normalizedGridFilters).forEach(([field, value]) => {
+            const normalized = normalizeBusinessFilterValue(value).trim();
+            if (normalized) filters[field] = normalized;
+        });
+
+        return filters;
+    }, [deferredCategoryFilter, normalizedGridFilters]);
+    const normalizedSort = useMemo(
+        () =>
+            queryState.sort.map((item) => ({
+                field: BUSINESS_SORT_FIELD_MAP[item.field] ?? item.field,
+                direction: item.direction,
+            })),
+        [queryState.sort],
+    );
 
     // Callbacks
     const loadBusinessParameters = useCallback(async () => {
         try {
             setLoading(true);
-            const response = await api.banking.businessSetup.getAll();
-            if (response.success && response.data) {
-                const appParams = response.data.map((item: any) => ({
+            const response = await api.banking.businessSetup.getAll({
+                page: queryState.paginationModel.page + 1,
+                offset: queryState.paginationModel.page * queryState.paginationModel.pageSize,
+                limit: queryState.paginationModel.pageSize,
+                search: deferredSearchTerm.trim() || undefined,
+                filters: Object.keys(mergedServerFilters).length > 0 ? JSON.stringify(mergedServerFilters) : undefined,
+                sort: normalizedSort.length > 0 ? JSON.stringify(normalizedSort) : undefined,
+                paginationMode: 'offset',
+            });
+            const items = normalizeListPayload<any>(response?.data);
+            if (response.success) {
+                const appParams = items.map((item: any) => ({
                     pkid: item.pkid?.toString() || item.id?.toString() || '',
                     param_code: item.paramCode || item.param_code || '',
                     param_desc: item.paramName || item.param_name || item.param_desc || '',
                     param_category: item.paramType || item.param_type || '',
                     param_value: item.paramUsage || item.param_usage || 'Configured in Details',
+                    param_type: item.paramType || item.param_type || 'BUSINESS',
+                    is_editable: item.is_editable ?? true,
                     active_flag: item.is_active ?? true,
                     created_by: item.created_by || 'SYSTEM',
                     created_date: item.created_date || item.createddate || ''
                 }));
-                const sorted = appParams.sort((a: any, b: any) => a.param_code.localeCompare(b.param_code));
-
-                // Fetch pending approvals
-                try {
-                    const pendingRes = await bankingAPI.approval.getPendingApprovals();
-                    const pendingRequests = Array.isArray(pendingRes) ? pendingRes : (pendingRes as any).data || [];
-
-                    const mappedData = sorted.map((item: any) => {
-                        const pending = pendingRequests.find((r: any) => r.entityType === 'parameter' && r.entityId === item.param_code);
-                        return {
-                            ...item,
-                            approvalStatus: pending ? 'pending' : 'active',
-                            pendingRequest: pending || null
-                        };
-                    });
-                    setBusinessParameters(mappedData);
-                } catch (e) {
-                    console.warn('Failed to load pending approvals:', e);
-                    setBusinessParameters(sorted);
-                }
+                setTotalCount(response.pagination?.total ?? appParams.length);
+                setBusinessParameters(appParams);
+            } else {
+                setBusinessParameters([]);
+                setTotalCount(0);
             }
         } catch (error) {
+            setBusinessParameters([]);
+            setTotalCount(0);
             setError(handleAPIError(error).message);
         } finally {
             setLoading(false);
         }
+    }, [
+        deferredSearchTerm,
+        mergedServerFilters,
+        normalizedSort,
+        queryState.paginationModel.page,
+        queryState.paginationModel.pageSize,
+    ]);
+
+    const loadPendingApprovals = useCallback(async () => {
+        try {
+            const pendingRes = await bankingAPI.approval.getPendingApprovals();
+            const pendingRequests = Array.isArray(pendingRes)
+                ? pendingRes
+                : normalizeListPayload<any>((pendingRes as any)?.data ?? pendingRes);
+            setPendingApprovalRequests(pendingRequests);
+        } catch (error) {
+            console.warn('Failed to load pending approvals:', error);
+            setPendingApprovalRequests([]);
+        }
     }, []);
 
-    useEffect(() => { loadBusinessParameters(); }, []);
+    useEffect(() => { void loadBusinessParameters(); }, [loadBusinessParameters]);
+    useEffect(() => { void loadPendingApprovals(); }, [loadPendingApprovals]);
 
-    const filteredData = useMemo(() => {
-        let d = [...businessParameters];
-        if (searchTerm) {
-            const s = searchTerm.toLowerCase();
-            d = d.filter(i => i.param_code.toLowerCase().includes(s) || i.param_desc.toLowerCase().includes(s));
-        }
-        if (categoryFilter !== 'ALL') {
-            d = d.filter(i => i.param_category === categoryFilter);
-        }
+    const refreshAll = useCallback(async () => {
+        await Promise.all([loadBusinessParameters(), loadPendingApprovals()]);
+    }, [loadBusinessParameters, loadPendingApprovals]);
 
-        // Update total count
-        setTotalCount(d.length);
+    const tableRows = useMemo(
+        () => businessParameters.map((item) => {
+            const pendingRequest = pendingApprovalRequests.find(
+                (request: any) => request.entityType === 'parameter' && request.entityId === item.param_code,
+            );
 
-        return d;
-    }, [businessParameters, searchTerm, categoryFilter]);
+            return {
+                ...item,
+                approvalStatus: pendingRequest ? 'pending' : 'active',
+                pendingRequest: pendingRequest || null,
+            };
+        }),
+        [businessParameters, pendingApprovalRequests],
+    );
 
     // Handlers
     const handleSaveParameter = useCallback(async (form: BusinessParameterFormData) => {
@@ -168,11 +351,6 @@ export default function BusinessClient() {
                     setSuccess('Updated successfully');
                 }
             } else {
-                // Client-side duplicate check
-                if (businessParameters.some(p => p.param_code === payload.paramCode)) {
-                    setError(`Parameter code '${payload.paramCode}' already exists.`);
-                    return;
-                }
                 const result = await api.banking.businessSetup.create(payload);
                 if (result.approvalRequired) {
                     setApprovalNotification(buildApprovalNotification(result, 'Creation submitted for approval'));
@@ -181,7 +359,7 @@ export default function BusinessClient() {
                 }
             }
             setParamDialogOpen(false);
-            loadBusinessParameters();
+            await refreshAll();
         } catch (e) {
             if (!showApprovalConflict(e, editingParameter ? 'Update submitted for approval' : 'Creation submitted for approval')) {
                 setError(handleAPIError(e).message);
@@ -199,7 +377,7 @@ export default function BusinessClient() {
             } else {
                 setSuccess('Deleted successfully');
             }
-            loadBusinessParameters();
+            await refreshAll();
         } catch (e) {
             if (!showApprovalConflict(e, 'Deletion submitted for approval')) {
                 setError(handleAPIError(e).message);
@@ -240,6 +418,7 @@ export default function BusinessClient() {
             }
             setDetailDialogOpen(false);
             setDetailRefreshTrigger(prev => prev + 1);
+            await loadPendingApprovals();
         } catch (e) {
             const err = handleAPIError(e);
             if (!showApprovalConflict(e, editingDetail ? 'Detail update submitted for approval' : 'Detail creation submitted for approval')) {
@@ -259,6 +438,7 @@ export default function BusinessClient() {
                 setSuccess('Detail deleted successfully');
             }
             setDetailRefreshTrigger(prev => prev + 1);
+            await loadPendingApprovals();
         } catch (e) {
             if (!showApprovalConflict(e, 'Detail deletion submitted for approval')) {
                 setError(handleAPIError(e).message);
@@ -290,8 +470,72 @@ export default function BusinessClient() {
         setDetailDialogOpen(true);
     }, []);
 
+    const handleResetFilters = useCallback(async () => {
+        setSearchTerm('');
+        setCategoryFilter('ALL');
+        resetView();
+        setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
+        if (savedView.hasSavedView) {
+            await savedView.clearSavedView();
+        }
+        setSuccess('Business table view reset');
+    }, [queryState.paginationModel.pageSize, resetView, savedView, setPaginationModel]);
+
+    const handleSaveView = useCallback(async () => {
+        if (!user?.id) return;
+        await savedView.saveDefaultView({
+            ...toSavedViewState(),
+            search: searchTerm,
+            filters: {
+                ...toSavedViewState().filters,
+                categoryFilter,
+            },
+        });
+        setSuccess('Business table view saved');
+    }, [categoryFilter, savedView, searchTerm, toSavedViewState, user?.id]);
+
+    const handleExport = useCallback((format: 'xlsx' | 'csv' | 'pdf') => {
+        try {
+            setExportAnchorEl(null);
+            const exportColumns = BUSINESS_EXPORT_COLUMNS.filter(
+                (column) => queryState.columnVisibilityModel[column.field] !== false,
+            );
+            const exportFilters: Record<string, string> = {};
+            if (searchTerm) exportFilters.Search = searchTerm;
+            if (categoryFilter !== 'ALL') exportFilters.Category = categoryFilter;
+            Object.entries(queryState.columnFilters).forEach(([field, value]) => {
+                const normalizedValue = normalizeBusinessFilterValue(value);
+                if (normalizedValue.trim()) exportFilters[`Column: ${field}`] = normalizedValue;
+            });
+            if (queryState.sort[0]) {
+                exportFilters.Sort = `${queryState.sort[0].field} (${queryState.sort[0].direction})`;
+            }
+
+            const exportOptions = {
+                title: 'Business Parameters',
+                filename: 'business_parameters',
+                filters: exportFilters,
+                confidential: true,
+            };
+
+            const result = format === 'xlsx'
+                ? exportToXLSX(tableRows, exportColumns, exportOptions)
+                : format === 'csv'
+                    ? exportToCSV(tableRows, exportColumns, exportOptions)
+                    : exportToPDF(tableRows, exportColumns, exportOptions);
+
+            if (!result?.success) {
+                throw new Error(result?.error || `Failed to export ${format.toUpperCase()}`);
+            }
+
+            setSuccess(`Exported ${tableRows.length} business parameters to ${format.toUpperCase()}`);
+        } catch (error) {
+            setError(getErrorMessage(error, 'Failed to export business parameters'));
+        }
+    }, [categoryFilter, queryState.columnFilters, queryState.columnVisibilityModel, queryState.sort, searchTerm, tableRows]);
+
     return (
-        <Container maxWidth="xl">
+        <Container maxWidth="xl" sx={{ minWidth: 0, overflowX: 'hidden' }}>
             {!canViewBusiness && (
                 <Alert severity="warning" sx={{ mb: 2 }}>
                     You do not have permission to view business settings.
@@ -300,32 +544,56 @@ export default function BusinessClient() {
             <PageHeader
                 title="Business Configuration"
                 subtitle="Business parameters configuration with Master-Detail"
-                onRefresh={loadBusinessParameters}
+                onRefresh={refreshAll}
                 loading={loading}
-                extraActions={canManageBusiness ? <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditingParameter(null); setParamDialogOpen(true); }} data-testid="btn-create-business-setting">Create</Button> : undefined}
+                extraActions={
+                    <>
+                        <Button
+                            variant="outlined"
+                            startIcon={<DownloadIcon />}
+                            onClick={(event) => setExportAnchorEl(event.currentTarget)}
+                            disabled={loading || tableRows.length === 0}
+                        >
+                            Export
+                        </Button>
+                        {canManageBusiness ? (
+                            <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditingParameter(null); setParamDialogOpen(true); }} data-testid="btn-create-business-setting">
+                                Create
+                            </Button>
+                        ) : undefined}
+                    </>
+                }
             />
 
             <BusinessParametersGrid
-                rows={filteredData}
+                rows={tableRows}
                 loading={loading}
                 searchTerm={searchTerm}
                 categoryFilter={categoryFilter}
-                page={page}
-                rowsPerPage={rowsPerPage}
+                paginationModel={queryState.paginationModel}
                 totalCount={totalCount}
                 detailRefreshTrigger={detailRefreshTrigger}
                 canManage={canManageBusiness}
-                onSearchChange={setSearchTerm}
-                onCategoryChange={setCategoryFilter}
-                onResetFilters={() => {
-                    setSearchTerm('');
-                    setCategoryFilter('ALL');
+                onSearchChange={(value) => {
+                    setSearchTerm(value);
+                    setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
                 }}
-                onPageChange={setPage}
-                onRowsPerPageChange={(value) => {
-                    setRowsPerPage(value);
-                    setPage(0);
+                onCategoryChange={(value) => {
+                    setCategoryFilter(value);
+                    setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
                 }}
+                onResetFilters={handleResetFilters}
+                onPaginationModelChange={setPaginationModel}
+                columnVisibilityModel={queryState.columnVisibilityModel}
+                onColumnVisibilityModelChange={setColumnVisibilityModel}
+                density={queryState.density}
+                onDensityChange={setDensity}
+                columnFilters={queryState.columnFilters}
+                onColumnFiltersChange={setColumnFilters}
+                sort={queryState.sort}
+                onSortChange={setSort}
+                onSaveView={handleSaveView}
+                onResetView={handleResetFilters}
                 onOpenPendingChanges={handleOpenPendingChanges}
                 onEditParameter={handleEditParameter}
                 onDeleteParameter={handleDeleteParameter}
@@ -333,6 +601,11 @@ export default function BusinessClient() {
                 onAddDetail={handleAddDetail}
                 onDeleteDetail={handleDeleteDetail}
             />
+            <Menu anchorEl={exportAnchorEl} open={Boolean(exportAnchorEl)} onClose={() => setExportAnchorEl(null)}>
+                <MenuItem onClick={() => handleExport('xlsx')}>Export to Excel</MenuItem>
+                <MenuItem onClick={() => handleExport('csv')}>Export to CSV</MenuItem>
+                <MenuItem onClick={() => handleExport('pdf')}>Export to PDF</MenuItem>
+            </Menu>
 
             <BusinessParameterDialog
                 open={paramDialogOpen}

@@ -10,7 +10,7 @@ export const approvalAPI = {
   },
 
   // Get approval history (requests) with filters
-  getApprovalHistory: async (params?: { entityType?: string; entityId?: string }) => {
+  getApprovalHistory: async (params?: Record<string, unknown>) => {
     console.log('📜 Fetching approval history', params);
     const response = await apiClient.get('/approvals/requests', { params });
     return response.data;

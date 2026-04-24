@@ -1,4 +1,5 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import { Effect } from 'effect'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { JournalParametersService } from '../services/journal-parameters.service'
@@ -7,6 +8,7 @@ import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware
 import type { ApprovalResponse } from '../lib/approval-helpers'
 import { buildErrorResponse } from '../lib/http/error-response'
 import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
+import { buildListResponse, buildOffsetPagination, ListQueryValidationError, parseListQuery } from '../lib/http/list-query'
 
 const app = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
@@ -51,6 +53,31 @@ const JournalListResponse = z.object({
     data: z.array(JournalParamResponse)
 }).openapi('JournalListResponse')
 
+const JournalListContractResponse = z.object({
+    success: z.boolean(),
+    data: z.array(JournalParamResponse),
+    pagination: z.object({
+        mode: z.literal('offset'),
+        limit: z.number(),
+        total: z.number(),
+        page: z.number(),
+        offset: z.number(),
+        totalPages: z.number(),
+        hasNextPage: z.boolean(),
+        hasPreviousPage: z.boolean(),
+        nextCursor: z.null(),
+        previousCursor: z.null(),
+    }).optional(),
+    appliedQuery: z.object({
+        search: z.string().optional(),
+        filters: z.record(z.string(), z.unknown()).optional(),
+        sort: z.array(z.object({
+            field: z.string(),
+            direction: z.enum(['asc', 'desc']),
+        })).optional(),
+    }).optional(),
+}).openapi('JournalListContractResponse')
+
 const JournalDetailResponse = z.object({
     success: z.boolean(),
     data: JournalParamResponse
@@ -79,6 +106,27 @@ const ApprovalWorkflowResponse = z.object({
     data: z.any().optional(),
     message: z.string().optional()
 }).openapi('ApprovalWorkflowResponse')
+
+const journalFilterDefinitions = {
+    glCode: { field: 'glCode', label: 'GL Code', type: 'text' as const },
+    glDesc: { field: 'glDesc', label: 'Description', type: 'text' as const },
+    glGroup: { field: 'glGroup', label: 'GL Group', type: 'text' as const },
+    glType: { field: 'glType', label: 'GL Type', type: 'text' as const },
+    currency: { field: 'currency', label: 'Currency', type: 'text' as const },
+    glNumber: { field: 'glNumber', label: 'GL Number', type: 'text' as const },
+    dbcr: { field: 'dbcr', label: 'DB/CR', type: 'text' as const },
+    activeFlag: {
+        field: 'activeFlag',
+        label: 'Active',
+        type: 'enum' as const,
+        options: [
+            { label: 'Active', value: 'active' },
+            { label: 'Inactive', value: 'inactive' },
+            { label: 'True', value: 'true' },
+            { label: 'False', value: 'false' },
+        ],
+    },
+}
 
 // ============================================================================
 // LOOKUP ROUTES (Must be defined BEFORE parameterized routes)
@@ -119,13 +167,65 @@ app.openapi(
         path: '/',
         tags: ['Journal Parameters'],
         summary: 'List Journal Parameters',
+        request: {
+            query: z.object({
+                page: z.string().optional(),
+                offset: z.string().optional(),
+                limit: z.string().optional(),
+                search: z.string().optional(),
+                filters: z.string().optional(),
+                sort: z.string().optional(),
+                paginationMode: z.string().optional(),
+                glGroup: z.string().optional(),
+                currency: z.string().optional(),
+                activeFlag: z.string().optional(),
+            }),
+        },
         responses: {
-            200: { content: { 'application/json': { schema: JournalListResponse } }, description: 'List Journals' },
+            200: { content: { 'application/json': { schema: JournalListContractResponse } }, description: 'List Journals' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
-        return runEffect(c, JournalParametersService.list() as any) as any
+        const rawQuery = c.req.query()
+        const usesListContract = ['page', 'offset', 'limit', 'search', 'filters', 'sort', 'paginationMode', 'glGroup', 'currency', 'activeFlag'].some((key) => rawQuery[key] !== undefined)
+
+        if (!usesListContract) {
+            return runEffect(c, JournalParametersService.list() as any) as any
+        }
+
+        try {
+            const query = parseListQuery(c, {
+                paginationMode: 'offset',
+                defaultLimit: 10,
+                maxLimit: 100,
+                defaultSort: [{ field: 'glCode', direction: 'asc' }],
+                sortableColumns: ['glCode', 'glDesc', 'glGroup', 'glType', 'currency', 'glNumber', 'dbcr', 'activeFlag', 'createddate', 'updateddate'],
+                filterableColumns: ['glCode', 'glDesc', 'glGroup', 'glType', 'currency', 'glNumber', 'dbcr', 'activeFlag'],
+                filterDefinitions: journalFilterDefinitions,
+            })
+
+            const result = await Effect.runPromise(JournalParametersService.listPage(query) as any) as { rows: unknown[]; total: number }
+
+            return c.json(
+                buildListResponse(
+                    result.rows,
+                    query,
+                    buildOffsetPagination(query, result.total),
+                    { filterDefinitions: journalFilterDefinitions },
+                ),
+            )
+        } catch (error) {
+            if (error instanceof ListQueryValidationError) {
+                return c.json(buildErrorResponse(c, {
+                    error: 'Invalid list query',
+                    message: error.message,
+                    code: 'BAD_REQUEST',
+                    details: error.details,
+                }) as any, 400)
+            }
+            throw error
+        }
     }
 )
 

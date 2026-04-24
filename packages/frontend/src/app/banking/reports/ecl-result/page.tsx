@@ -1,3 +1,6 @@
-import ECLResultReportPage from '../../ifrs9-reports/ecl-result/page';
+import { redirect } from 'next/navigation';
+import { canonicalRoutes } from '@/features/shared/routing/canonical-routes';
 
-export default ECLResultReportPage;
+export default function LegacyEclResultReportPage() {
+  redirect(canonicalRoutes.ifrs9Reports.eclResult);
+}

@@ -76,7 +76,7 @@ export const individualImpairmentAPI = {
   },
 
   // OVERRIDES
-  getOverrides: async (params?: { status?: string }) => {
+  getOverrides: async (params?: { status?: string; accountId?: string | number; accountNumber?: string; limit?: number; offset?: number }) => {
     const response = await apiClient.get('/banking/individual/impairment/overrides', { params });
     return response.data;
   },
@@ -103,7 +103,7 @@ export const individualImpairmentAPI = {
   },
 
   // SCENARIOS
-  getScenarios: async (params?: { status?: string }) => {
+  getScenarios: async (params?: { status?: string; accountId?: string | number }) => {
     const response = await apiClient.get('/banking/individual/impairment/scenarios', { params });
     return response.data;
   },
@@ -127,6 +127,10 @@ export const individualImpairmentAPI = {
   },
   createBatchUpload: async (data: any) => {
     const response = await apiClient.post('/banking/individual/impairment/dcf-uploads', data);
+    return response.data;
+  },
+  getIaResultDetail: async (params: { accountId?: string | number; accountNumber?: string }) => {
+    const response = await apiClient.get('/banking/individual/impairment/ia-results/detail', { params });
     return response.data;
   },
   getDcfCalculations: async () => {

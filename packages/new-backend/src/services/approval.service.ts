@@ -1104,7 +1104,33 @@ async function executeBucketParameterAction(
 ): Promise<void> {
     const { BucketParametersService } = await import('./bucket-parameters.service')
     const effectiveActorId = actorId || 'system'
-    const numericEntityId = parseNumericEntityId(entityId, data?.id)
+    const isDetailScope = data?.scope === 'detail' || Boolean(entityId && entityId.startsWith('detail:'))
+    const numericEntityId = parseNumericEntityId(entityId, data?.detailId ?? data?.id)
+
+    if (isDetailScope) {
+        const numericHeaderId = parseNumericEntityId(null, data?.headerId ?? data?.bucket_id)
+        switch (operation) {
+            case 'create':
+                if (!Number.isFinite(numericHeaderId)) {
+                    throw new Error('Missing bucket header id in bucket detail approval payload')
+                }
+                await Effect.runPromise(BucketParametersService.createDetail(numericHeaderId, data, effectiveActorId) as any)
+                return
+            case 'update':
+                if (!Number.isFinite(numericEntityId)) {
+                    throw new Error('Missing bucket detail id in approval payload')
+                }
+                await Effect.runPromise(BucketParametersService.updateDetail(numericEntityId, data, effectiveActorId) as any)
+                return
+            case 'delete':
+                if (!Number.isFinite(numericEntityId)) {
+                    throw new Error('Missing bucket detail id in approval payload')
+                }
+                await Effect.runPromise(BucketParametersService.deleteDetail(numericEntityId) as any)
+                return
+        }
+        return
+    }
 
     switch (operation) {
         case 'create':
@@ -1756,6 +1782,30 @@ export const getApprovalHistory = (
             return ApprovalRepository.findRequestsByTenant(tenantId)
         }
     })
+
+export const getApprovalHistoryList = (
+    input: {
+        tenantId: string
+        entityType?: string
+        entityId?: string
+        status?: string
+        impactLevel?: string
+        bankingType?: string
+        currentLevel?: number
+        currentLevelMin?: number
+        currentLevelMax?: number
+        riskLevel?: string
+        requestedBy?: string
+        operation?: string
+        search?: string
+        createdAtFrom?: Date
+        createdAtTo?: Date
+        limit: number
+        offset: number
+        sort?: { field: string; direction: 'asc' | 'desc' }
+    }
+): Effect.Effect<{ data: ApprovalRequest[]; total: number }, DatabaseError> =>
+    dbOperation('query', () => ApprovalRepository.findRequestsList(input))
 
 // =============================================================================
 // HELPER FUNCTIONS

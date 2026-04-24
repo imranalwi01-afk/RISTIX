@@ -36,6 +36,17 @@ interface BusinessDetailPanelProps {
   onAddDetail: (paramCode: string, nextSeq: number) => void;
 }
 
+const normalizeListPayload = <T,>(value: unknown): T[] => {
+  if (Array.isArray(value)) return value as T[];
+  if (value && typeof value === 'object') {
+    const nestedData = (value as { data?: unknown }).data;
+    const nestedRows = (value as { rows?: unknown }).rows;
+    if (Array.isArray(nestedData)) return nestedData as T[];
+    if (Array.isArray(nestedRows)) return nestedRows as T[];
+  }
+  return [];
+};
+
 const BusinessDetailPanel = memo(function BusinessDetailPanel({
   row,
   refreshTrigger,
@@ -51,9 +62,10 @@ const BusinessDetailPanel = memo(function BusinessDetailPanel({
     try {
       setLoading(true);
       const response = await api.banking.businessSetup.getHeaderDetails(row.param_code);
-      if (response.success && response.data) {
+      const items = normalizeListPayload<any>(response?.data);
+      if (response.success && items.length > 0) {
         setDetails(
-          response.data.map((item: any) => ({
+          items.map((item: any) => ({
             pkid: item.pkid?.toString() || item.id?.toString() || '',
             param_code: item.paramCode || item.param_code || row.param_code,
             param_seq: item.paramSeq || item.param_seq || 0,
@@ -88,8 +100,8 @@ const BusinessDetailPanel = memo(function BusinessDetailPanel({
   }
 
   return (
-    <Box sx={{ p: 3, bgcolor: 'rgba(0, 0, 0, 0.02)', borderBottomLeftRadius: 8, borderBottomRightRadius: 8 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+    <Box sx={{ p: 3, bgcolor: 'rgba(0, 0, 0, 0.02)', borderBottomLeftRadius: 8, borderBottomRightRadius: 8, width: '100%', maxWidth: '100%', minWidth: 0 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5, minWidth: 0, mb: 2 }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.dark', display: 'flex', alignItems: 'center', gap: 1 }}>
           <DescriptionIcon fontSize="small" />
           Details for {row.param_code}
@@ -113,7 +125,7 @@ const BusinessDetailPanel = memo(function BusinessDetailPanel({
           description={`No parameters sequences defined for ${row.param_code}.`}
         />
       ) : (
-        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
+        <TableContainer component={Paper} elevation={0} sx={{ width: '100%', maxWidth: '100%', minWidth: 0, border: '1px solid', borderColor: 'divider', borderRadius: 2, overflowX: 'auto', overflowY: 'hidden' }}>
           <Table size="small">
             <TableHead sx={{ bgcolor: 'grey.100' }}>
               <TableRow>

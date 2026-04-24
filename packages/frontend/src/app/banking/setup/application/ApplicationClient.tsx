@@ -11,7 +11,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useDeferredValue } from 'react';
 import {
   Box,
   Container,
@@ -41,7 +41,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TablePagination
 } from '@mui/material';
 
 import {
@@ -60,6 +59,12 @@ import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 
 import EmptyState from '@/components/banking/shared/EmptyState';
 import api, { handleAPIError, bankingAPI } from '../../../../services/api';
+import { exportToCSV, exportToPDF, exportToXLSX } from '@/utils/exportUtils';
+import { getErrorMessage } from '@/utils/error-message';
+import { useAuth } from '@/providers/AuthProvider';
+import { useEnterpriseTableQuery } from '@/hooks/useEnterpriseTableQuery';
+import { useSavedTableView } from '@/hooks/useSavedTableView';
+import type { EnterpriseColumnFilterValue, EnterpriseSort } from '@/types/enterprise-table';
 import {
   ApprovalNotification,
   ApprovalStatusBadge,
@@ -81,6 +86,104 @@ import {
   type DetailFormData
 } from './components';
 
+const APPLICATION_EXPORT_COLUMNS = [
+  { field: 'CommonCode', headerName: 'Common Code' },
+  { field: 'Description', headerName: 'Description' },
+  { field: 'Value', headerName: 'Value' },
+  { field: 'CreatedBy', headerName: 'Created By' },
+  { field: 'CreatedDate', headerName: 'Created Date' },
+  { field: 'UpdatedBy', headerName: 'Updated By' },
+  { field: 'UpdatedDate', headerName: 'Updated Date' },
+] as const;
+
+const APPLICATION_FILTER_FIELD_MAP: Record<string, string> = {
+  CommonCode: 'commonCode',
+  Description: 'description',
+  Value: 'value',
+  CreatedBy: 'createdBy',
+};
+
+const APPLICATION_SORT_FIELD_MAP: Record<string, string> = {
+  CommonCode: 'commonCode',
+  Description: 'description',
+  Value: 'value',
+  CreatedBy: 'createdBy',
+  CreatedDate: 'createdDate',
+  UpdatedDate: 'updatedDate',
+};
+
+const normalizeListPayload = <T,>(value: unknown): T[] => {
+  if (Array.isArray(value)) return value as T[];
+  if (value && typeof value === 'object') {
+    const nestedData = (value as { data?: unknown }).data;
+    const nestedRows = (value as { rows?: unknown }).rows;
+    if (Array.isArray(nestedData)) return nestedData as T[];
+    if (Array.isArray(nestedRows)) return nestedRows as T[];
+  }
+  return [];
+};
+
+const normalizeApplicationFilterValue = (value: EnterpriseColumnFilterValue) => {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
+  if (Array.isArray(value)) return value.join(' ');
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+};
+
+const getApplicationFieldValue = (row: ApplicationSettingDataTable, field: string): EnterpriseColumnFilterValue => {
+  const record = row as unknown as Record<string, unknown>;
+  return record[field] as EnterpriseColumnFilterValue;
+};
+
+const compareApplicationValues = (left: unknown, right: unknown) => {
+  if (left === right) return 0;
+  if (left === null || left === undefined) return 1;
+  if (right === null || right === undefined) return -1;
+
+  const leftNumber = typeof left === 'number' ? left : Number(left);
+  const rightNumber = typeof right === 'number' ? right : Number(right);
+  if (!Number.isNaN(leftNumber) && !Number.isNaN(rightNumber)) {
+    return leftNumber - rightNumber;
+  }
+
+  const leftDate = left instanceof Date ? left.getTime() : Date.parse(String(left));
+  const rightDate = right instanceof Date ? right.getTime() : Date.parse(String(right));
+  if (!Number.isNaN(leftDate) && !Number.isNaN(rightDate)) {
+    return leftDate - rightDate;
+  }
+
+  return String(left).localeCompare(String(right), undefined, {
+    numeric: true,
+    sensitivity: 'base',
+  });
+};
+
+const applyApplicationTableQuery = (
+  rows: ApplicationSettingDataTable[],
+  columnFilters: Record<string, EnterpriseColumnFilterValue>,
+  sort: EnterpriseSort[],
+) => {
+  const activeFilters = Object.entries(columnFilters).filter(([, value]) => normalizeApplicationFilterValue(value).trim().length > 0);
+  const filteredRows = activeFilters.length === 0
+    ? rows
+    : rows.filter((row) =>
+        activeFilters.every(([field, value]) =>
+          normalizeApplicationFilterValue(getApplicationFieldValue(row, field)).toLowerCase().includes(normalizeApplicationFilterValue(value).toLowerCase())
+        )
+      );
+
+  const activeSort = sort[0];
+  if (!activeSort) return filteredRows;
+
+  return [...filteredRows].sort((leftRow, rightRow) => {
+    const leftValue = getApplicationFieldValue(leftRow, activeSort.field);
+    const rightValue = getApplicationFieldValue(rightRow, activeSort.field);
+    const result = compareApplicationValues(leftValue, rightValue);
+    return activeSort.direction === 'asc' ? result : -result;
+  });
+};
+
 // =====================================================
 // DETAIL PANEL COMPONENT
 // =====================================================
@@ -92,8 +195,9 @@ const ApplicationDetailPanel = ({ row, onEditDetail, onDeleteDetail, onAddDetail
     try {
       setLoading(true);
       const result = await api.applicationParameter.details.getForHeader(row.CommonCode);
-      if (result.success && result.data) {
-        setDetails(result.data.map((item: any) => ({
+      const items = normalizeListPayload<any>(result?.data);
+      if (result.success && items.length > 0) {
+        setDetails(items.map((item: any) => ({
           ID: item.id || item.pkid,
           SeqNo: item.param_seq || item.SeqNo,
           Value1: item.value1 || item.Value1,
@@ -125,8 +229,8 @@ const ApplicationDetailPanel = ({ row, onEditDetail, onDeleteDetail, onAddDetail
   if (loading) return <Box sx={{ p: 2, textAlign: 'center' }}><CircularProgress size={20} /></Box>;
 
   return (
-    <Box sx={{ p: 2, bgcolor: 'grey.50' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+    <Box sx={{ p: 2, bgcolor: 'grey.50', width: '100%', maxWidth: '100%', minWidth: 0 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5, mb: 1 }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
           Parameter Details for {row.CommonCode}
         </Typography>
@@ -145,7 +249,7 @@ const ApplicationDetailPanel = ({ row, onEditDetail, onDeleteDetail, onAddDetail
       {details.length === 0 ? (
         <Typography variant="body2" color="text.secondary">No details found.</Typography>
       ) : (
-        <TableContainer component={Paper} variant="outlined">
+        <TableContainer component={Paper} variant="outlined" sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto', overflowY: 'hidden' }}>
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -192,17 +296,15 @@ const ApplicationDetailPanel = ({ row, onEditDetail, onDeleteDetail, onAddDetail
 // =====================================================
 
 export default function ApplicationSettingPage() {
+  const { user } = useAuth();
   const { hasAnyPermission } = usePermission();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<ApplicationSettingDataTable[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [pendingApprovalRequests, setPendingApprovalRequests] = useState<any[]>([]);
   const canViewApplication = hasAnyPermission(['banking.setup.application.view', 'banking.setup.application.manage', 'banking.setup.application', 'admin.super_admin']);
   const canManageApplication = hasAnyPermission(['banking.setup.application.manage', 'banking.setup.application.create', 'banking.setup.application.update', 'banking.setup.application.delete', 'admin.super_admin']);
   const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
-
-  // Pagination State (Segmentation Pattern)
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [totalCount, setTotalCount] = useState(0);
 
   // State
   const [searchTerm, setSearchTerm] = useState('');
@@ -213,6 +315,48 @@ export default function ApplicationSettingPage() {
     createdBy: ''
   });
   const [showColumnFilters, setShowColumnFilters] = useState(false);
+  const [exportAnchorEl, setExportAnchorEl] = useState<null | HTMLElement>(null);
+  const {
+    queryState,
+    setPaginationModel,
+    setColumnVisibilityModel,
+    setDensity,
+    setColumnFilters: setEnterpriseColumnFilters,
+    setSort,
+    applySavedView,
+    toSavedViewState,
+    resetView,
+  } = useEnterpriseTableQuery({
+    pageKey: 'setup:application-parameters',
+    paginationMode: 'offset',
+    initialPageSize: 10,
+    debounceMs: 0,
+    syncUrl: true,
+  });
+  const savedView = useSavedTableView({
+    userId: user?.id,
+    scope: 'setup:application-parameters',
+    enabled: Boolean(user?.id),
+    onApplyView: (view) => {
+      applySavedView(view);
+      setSearchTerm(typeof view.state.search === 'string' ? view.state.search : '');
+      const savedFilters = (view.state.filters ?? {}) as Record<string, unknown>;
+      setColumnFilters({
+        commonCode: typeof savedFilters.commonCode === 'string' ? savedFilters.commonCode : '',
+        description: typeof savedFilters.description === 'string' ? savedFilters.description : '',
+        value: typeof savedFilters.value === 'string' ? savedFilters.value : '',
+        createdBy: typeof savedFilters.createdBy === 'string' ? savedFilters.createdBy : '',
+      });
+      setShowColumnFilters(
+        Boolean(
+          (typeof savedFilters.commonCode === 'string' && savedFilters.commonCode)
+          || (typeof savedFilters.description === 'string' && savedFilters.description)
+          || (typeof savedFilters.value === 'string' && savedFilters.value)
+          || (typeof savedFilters.createdBy === 'string' && savedFilters.createdBy)
+        )
+      );
+    },
+  });
 
   // Modals
   // Modals
@@ -253,12 +397,49 @@ export default function ApplicationSettingPage() {
   const [selectedPendingRequest, setSelectedPendingRequest] = useState<any>(null);
   const [currentRecordForPending, setCurrentRecordForPending] = useState<any>(null);
 
+  const deferredSearchTerm = useDeferredValue(searchTerm);
+  const deferredHeaderFilters = useDeferredValue(columnFilters);
+  const deferredGridFilters = useDeferredValue(queryState.columnFilters);
+  const normalizedGridFilters = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(deferredGridFilters).map(([field, value]) => [
+          APPLICATION_FILTER_FIELD_MAP[field] ?? field,
+          value,
+        ]),
+      ),
+    [deferredGridFilters],
+  );
+  const mergedServerFilters = useMemo(() => {
+    const filters: Record<string, string> = {};
+    if (deferredHeaderFilters.commonCode.trim()) filters.commonCode = deferredHeaderFilters.commonCode.trim();
+    if (deferredHeaderFilters.description.trim()) filters.description = deferredHeaderFilters.description.trim();
+    if (deferredHeaderFilters.value.trim()) filters.value = deferredHeaderFilters.value.trim();
+    if (deferredHeaderFilters.createdBy.trim()) filters.createdBy = deferredHeaderFilters.createdBy.trim();
+
+    Object.entries(normalizedGridFilters).forEach(([field, value]) => {
+      const normalized = normalizeApplicationFilterValue(value).trim();
+      if (normalized) filters[field] = normalized;
+    });
+
+    return filters;
+  }, [deferredHeaderFilters, normalizedGridFilters]);
+  const normalizedSort = useMemo(
+    () =>
+      queryState.sort.map((item) => ({
+        field: APPLICATION_SORT_FIELD_MAP[item.field] ?? item.field,
+        direction: item.direction,
+      })),
+    [queryState.sort],
+  );
+
   // Helper to re-fetch details for modal logic
   const fetchDetailsForModal = async (paramCode: string) => {
     try {
       const result = await api.applicationParameter.details.getForHeader(paramCode);
-      if (result.success && result.data) {
-        setDetailDataForModal(result.data.map((item: any) => ({
+      const items = normalizeListPayload<any>(result?.data);
+      if (result.success && items.length > 0) {
+        setDetailDataForModal(items.map((item: any) => ({
           ID: item.id || item.pkid,
           SeqNo: item.param_seq,
           // other fields not strictly needed for sequence calc but good to have
@@ -283,8 +464,9 @@ export default function ApplicationSettingPage() {
     try {
       setDetailLoading(true);
       const result = await api.applicationParameter.details.getForHeader(paramCode);
-      if (result.success && result.data) {
-        setDetailData(result.data.map((item: any) => ({
+      const items = normalizeListPayload<any>(result?.data);
+      if (result.success && items.length > 0) {
+        setDetailData(items.map((item: any) => ({
           ID: item.id || item.pkid,
           SeqNo: item.param_seq,
           Value1: item.value1,
@@ -310,12 +492,21 @@ export default function ApplicationSettingPage() {
     }
   };
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await api.applicationParameter.headers.getAll({ include_details: true });
-      if (result.success && result.data) {
-        const transformedData: ApplicationSettingDataTable[] = result.data.map((item: any) => ({
+      const result = await api.applicationParameter.headers.getAll({
+        page: queryState.paginationModel.page + 1,
+        offset: queryState.paginationModel.page * queryState.paginationModel.pageSize,
+        limit: queryState.paginationModel.pageSize,
+        search: deferredSearchTerm.trim() || undefined,
+        filters: Object.keys(mergedServerFilters).length > 0 ? JSON.stringify(mergedServerFilters) : undefined,
+        sort: normalizedSort.length > 0 ? JSON.stringify(normalizedSort) : undefined,
+        paginationMode: 'offset',
+      });
+      const items = normalizeListPayload<any>(result?.data);
+      if (result.success) {
+        const transformedData: ApplicationSettingDataTable[] = items.map((item: any) => ({
           ID: item.ID || item.id || item.pkid,
           CommonCode: item.CommonCode || item.param_code || item.paramCode,
           Description: item.Description || item.param_name || item.paramName,
@@ -333,59 +524,62 @@ export default function ApplicationSettingPage() {
           createdby: item.created_by || item.createdby,
           createddate: item.created_date || item.createddate
         }));
-        // Filter S and A types
         const appParams = transformedData.filter(item => item.CommonCode && (item.ParamType === 'S' || item.ParamType === 'A'));
-
-        // Fetch pending approvals for these parameters
-        try {
-          const pendingRes = await bankingAPI.approval.getPendingApprovals();
-          const pendingRequests = Array.isArray(pendingRes) ? pendingRes : (pendingRes as any).data || [];
-
-          const mappedData = appParams.map(item => {
-            const pending = pendingRequests.find((r: any) => r.entityType === 'parameter' && r.entityId === item.CommonCode);
-            return {
-              ...item,
-              approvalStatus: pending ? 'pending' : 'active',
-              pendingRequest: pending || null
-            };
-          });
-          setData(mappedData.sort((a: any, b: any) => new Date(b.created_date || b.CreatedDate).getTime() - new Date(a.created_date || a.CreatedDate).getTime()));
-        } catch (e) {
-          console.warn('Failed to load pending approvals:', e);
-          setData(appParams.sort((a: any, b: any) => new Date(b.created_date || b.CreatedDate).getTime() - new Date(a.created_date || a.CreatedDate).getTime()));
-        }
+        setTotalCount(result.pagination?.total ?? appParams.length);
+        setData(appParams);
+      } else {
+        setData([]);
+        setTotalCount(0);
       }
     } catch (error) {
+      setData([]);
+      setTotalCount(0);
       setError(`Failed to load data: ${handleAPIError(error).message}`);
     } finally {
       setLoading(false);
     }
-  };
+  }, [
+    deferredSearchTerm,
+    mergedServerFilters,
+    normalizedSort,
+    queryState.paginationModel.page,
+    queryState.paginationModel.pageSize,
+  ]);
 
-  useEffect(() => { loadData(); }, []);
-
-  // Filter Logic
-  const filteredData = useMemo(() => {
-    let filtered = [...data];
-    if (searchTerm.trim()) {
-      const s = searchTerm.toLowerCase();
-      filtered = filtered.filter(i =>
-        i.CommonCode.toLowerCase().includes(s) ||
-        i.Description.toLowerCase().includes(s) ||
-        i.Value.toLowerCase().includes(s)
-      );
+  const loadPendingApprovals = useCallback(async () => {
+    try {
+      const pendingRes = await bankingAPI.approval.getPendingApprovals();
+      const pendingRequests = Array.isArray(pendingRes)
+        ? pendingRes
+        : normalizeListPayload<any>((pendingRes as any)?.data ?? pendingRes);
+      setPendingApprovalRequests(pendingRequests);
+    } catch (error) {
+      console.warn('Failed to load pending approvals:', error);
+      setPendingApprovalRequests([]);
     }
-    // Column filters
-    if (columnFilters.commonCode) filtered = filtered.filter(i => i.CommonCode.toLowerCase().includes(columnFilters.commonCode.toLowerCase()));
-    if (columnFilters.description) filtered = filtered.filter(i => i.Description.toLowerCase().includes(columnFilters.description.toLowerCase()));
-    if (columnFilters.value) filtered = filtered.filter(i => i.Value.toLowerCase().includes(columnFilters.value.toLowerCase()));
-    if (columnFilters.createdBy) filtered = filtered.filter(i => i.CreatedBy.toLowerCase().includes(columnFilters.createdBy.toLowerCase()));
+  }, []);
 
-    // Update total count
-    setTotalCount(filtered.length);
+  useEffect(() => { void loadData(); }, [loadData]);
+  useEffect(() => { void loadPendingApprovals(); }, [loadPendingApprovals]);
 
-    return filtered;
-  }, [data, searchTerm, columnFilters]);
+  const refreshAll = useCallback(async () => {
+    await Promise.all([loadData(), loadPendingApprovals()]);
+  }, [loadData, loadPendingApprovals]);
+
+  const tableRows = useMemo(
+    () => data.map((item) => {
+      const pendingRequest = pendingApprovalRequests.find(
+        (request: any) => request.entityType === 'parameter' && request.entityId === item.CommonCode,
+      );
+
+      return {
+        ...item,
+        approvalStatus: pendingRequest ? 'pending' : 'active',
+        pendingRequest: pendingRequest || null,
+      };
+    }),
+    [data, pendingApprovalRequests],
+  );
 
   // CRUD Handlers
   const handleCreate = () => {
@@ -417,7 +611,7 @@ export default function ApplicationSettingPage() {
       } else {
         setSuccess('Deleted successfully');
       }
-      await loadData();
+      await refreshAll();
     } catch (e) {
       if (!showApprovalConflict(e, 'Deletion submitted for approval')) {
         setError(handleAPIError(e).message);
@@ -445,10 +639,6 @@ export default function ApplicationSettingPage() {
           setSuccess('Updated successfully');
         }
       } else {
-        if (data.some(p => p.CommonCode === payload.param_code)) {
-          setError(`Parameter code '${payload.param_code}' already exists.`);
-          return;
-        }
         const result = await api.applicationParameter.headers.create(payload);
         if (result.approvalRequired) {
           setApprovalNotification(buildApprovalNotification(result, 'Creation submitted for approval'));
@@ -458,7 +648,7 @@ export default function ApplicationSettingPage() {
       }
       setCreateModalOpen(false);
       setEditModalOpen(false);
-      loadData();
+      await refreshAll();
     } catch (e) {
       if (!showApprovalConflict(e, 'Request submitted for approval')) {
         setError(handleAPIError(e).message);
@@ -497,6 +687,7 @@ export default function ApplicationSettingPage() {
       refreshCallback(); // For ApplicationDetailPanel
       setDetailRefreshTrigger(prev => prev + 1); // For other panels if needed
       if (selectedRecord) loadDetailData(selectedRecord.CommonCode); // For View Dialog
+      await loadPendingApprovals();
 
     } catch (e) {
       if (!showApprovalConflict(e, 'Detail deletion submitted for approval')) {
@@ -504,10 +695,76 @@ export default function ApplicationSettingPage() {
       }
     }
   }
-  // Export function removed temporarily due to missing dependencies
-  const handleExport = (format: string) => {
-    alert("Export feature is currently disabled.");
-  };
+  const handleResetFilters = useCallback(async () => {
+    setSearchTerm('');
+    setColumnFilters({ commonCode: '', description: '', value: '', createdBy: '' });
+    setShowColumnFilters(false);
+    resetView();
+    setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
+    if (savedView.hasSavedView) {
+      await savedView.clearSavedView();
+    }
+    setSuccess('Application table view reset');
+  }, [queryState.paginationModel.pageSize, resetView, savedView, setPaginationModel]);
+
+  const handleSaveView = useCallback(async () => {
+    if (!user?.id) return;
+    await savedView.saveDefaultView({
+      ...toSavedViewState(),
+      search: searchTerm,
+      filters: {
+        ...toSavedViewState().filters,
+        commonCode: columnFilters.commonCode,
+        description: columnFilters.description,
+        value: columnFilters.value,
+        createdBy: columnFilters.createdBy,
+      },
+    });
+    setSuccess('Application table view saved');
+  }, [columnFilters.commonCode, columnFilters.createdBy, columnFilters.description, columnFilters.value, savedView, searchTerm, toSavedViewState, user?.id]);
+
+  const handleExport = useCallback((format: 'xlsx' | 'csv' | 'pdf') => {
+    try {
+      setExportAnchorEl(null);
+      const exportColumns = APPLICATION_EXPORT_COLUMNS.filter(
+        (column) => queryState.columnVisibilityModel[column.field] !== false,
+      );
+      const exportFilters: Record<string, string> = {};
+      if (searchTerm) exportFilters.Search = searchTerm;
+      if (columnFilters.commonCode) exportFilters['Code'] = columnFilters.commonCode;
+      if (columnFilters.description) exportFilters['Description'] = columnFilters.description;
+      if (columnFilters.value) exportFilters['Value'] = columnFilters.value;
+      if (columnFilters.createdBy) exportFilters['Created By'] = columnFilters.createdBy;
+      Object.entries(queryState.columnFilters).forEach(([field, value]) => {
+        const normalizedValue = normalizeApplicationFilterValue(value);
+        if (normalizedValue.trim()) exportFilters[`Column: ${field}`] = normalizedValue;
+      });
+      if (queryState.sort[0]) {
+        exportFilters.Sort = `${queryState.sort[0].field} (${queryState.sort[0].direction})`;
+      }
+
+      const exportOptions = {
+        title: 'Application Settings',
+        filename: 'application_settings',
+        filters: exportFilters,
+        confidential: true,
+      };
+
+      const result = format === 'xlsx'
+        ? exportToXLSX(tableRows, exportColumns, exportOptions)
+        : format === 'csv'
+          ? exportToCSV(tableRows, exportColumns, exportOptions)
+          : exportToPDF(tableRows, exportColumns, exportOptions);
+
+      if (!result?.success) {
+        throw new Error(result?.error || `Failed to export ${format.toUpperCase()}`);
+      }
+
+      setSuccess(`Exported ${tableRows.length} application settings to ${format.toUpperCase()}`);
+    } catch (error) {
+      setError(getErrorMessage(error, 'Failed to export application settings'));
+    }
+  }, [columnFilters.commonCode, columnFilters.createdBy, columnFilters.description, columnFilters.value, queryState.columnFilters, queryState.columnVisibilityModel, queryState.sort, searchTerm, tableRows]);
 
   // Detail CRUD Operations
   const handleCreateDetail = () => {
@@ -571,7 +828,7 @@ export default function ApplicationSettingPage() {
       setDetailRefreshTrigger(prev => prev + 1);
       // Force refresh of the grid - simpler to just let user re-expand or auto-refresh if we tracked expanded state
       // For now, the detail panel itself fetches on mount/update so we are good if we trigger a re-render or if the user collapses/expands
-      loadData(); // This refreshes the parent, but details are fetched by the panel
+      await refreshAll(); // Keep parent list and pending approval badges in sync
     } catch (e) {
       if (!showApprovalConflict(e, 'Request submitted for approval')) {
         setError(handleAPIError(e).message);
@@ -648,7 +905,7 @@ export default function ApplicationSettingPage() {
   ];
 
   return (
-    <Container maxWidth="xl">
+    <Container maxWidth="xl" sx={{ minWidth: 0 }}>
       {!canViewApplication && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           You do not have permission to view application settings.
@@ -664,12 +921,18 @@ export default function ApplicationSettingPage() {
         Application Setting
       </Typography>
 
-      <Card sx={{ mb: 2 }}>
+      <Card sx={{ mb: 2, width: '100%', maxWidth: '100%', minWidth: 0, overflow: 'hidden' }}>
         <CardContent>
           {/* Toolbar */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-            {/* Export not fully implemented in refactor yet, placeholder */}
-            <Button variant="outlined" startIcon={<DownloadIcon />} disabled>Export</Button>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5, mb: 2 }}>
+            <Button
+              variant="outlined"
+              startIcon={<DownloadIcon />}
+              onClick={(event) => setExportAnchorEl(event.currentTarget)}
+              disabled={loading || tableRows.length === 0}
+            >
+              Export
+            </Button>
 
             <Can permission={['banking.setup.application.create', 'banking.setup.application.manage', 'admin.super_admin']}>
               <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreate}>
@@ -677,14 +940,29 @@ export default function ApplicationSettingPage() {
               </Button>
             </Can>
           </Box>
+          <Menu anchorEl={exportAnchorEl} open={Boolean(exportAnchorEl)} onClose={() => setExportAnchorEl(null)}>
+            <MenuItem onClick={() => handleExport('xlsx')}>
+              <ListItemText>Export to Excel</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={() => handleExport('csv')}>
+              <ListItemText>Export to CSV</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={() => handleExport('pdf')}>
+              <ListItemText>Export to PDF</ListItemText>
+            </MenuItem>
+          </Menu>
 
-          <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2, rowGap: 1.5, flexWrap: 'wrap', alignItems: 'center', minWidth: 0, mb: 2 }}>
             <TextField
               placeholder="Search..."
               size="small"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
+              }}
               InputProps={{ startAdornment: <SearchIcon color="action" /> }}
+              sx={{ flex: '1 1 260px', minWidth: 0, width: { xs: '100%', sm: 'auto' } }}
             />
             <Button
               variant={showColumnFilters ? 'contained' : 'outlined'}
@@ -693,29 +971,52 @@ export default function ApplicationSettingPage() {
             >
               Filters
             </Button>
-            <Button onClick={() => { setSearchTerm(''); setColumnFilters({ commonCode: '', description: '', value: '', createdBy: '' }); }}>
+            <Button onClick={() => { void handleResetFilters(); }}>
               <ClearIcon /> Clear
+            </Button>
+            <Button variant="text" onClick={handleSaveView}>
+              Save View
             </Button>
           </Box>
 
           {showColumnFilters && (
-            <Box sx={{ display: 'flex', gap: 2, mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-              <TextField label="Code" size="small" value={columnFilters.commonCode} onChange={e => setColumnFilters({ ...columnFilters, commonCode: e.target.value })} />
-              <TextField label="Description" size="small" value={columnFilters.description} onChange={e => setColumnFilters({ ...columnFilters, description: e.target.value })} />
-              <TextField label="Value" size="small" value={columnFilters.value} onChange={e => setColumnFilters({ ...columnFilters, value: e.target.value })} />
-              <TextField label="Created By" size="small" value={columnFilters.createdBy} onChange={e => setColumnFilters({ ...columnFilters, createdBy: e.target.value })} />
+            <Box sx={{ display: 'flex', gap: 2, rowGap: 1.5, flexWrap: 'wrap', mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1, minWidth: 0 }}>
+              <TextField sx={{ flex: '1 1 180px', minWidth: 0 }} label="Code" size="small" value={columnFilters.commonCode} onChange={e => { setColumnFilters({ ...columnFilters, commonCode: e.target.value }); setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize }); }} />
+              <TextField sx={{ flex: '1 1 220px', minWidth: 0 }} label="Description" size="small" value={columnFilters.description} onChange={e => { setColumnFilters({ ...columnFilters, description: e.target.value }); setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize }); }} />
+              <TextField sx={{ flex: '1 1 180px', minWidth: 0 }} label="Value" size="small" value={columnFilters.value} onChange={e => { setColumnFilters({ ...columnFilters, value: e.target.value }); setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize }); }} />
+              <TextField sx={{ flex: '1 1 180px', minWidth: 0 }} label="Created By" size="small" value={columnFilters.createdBy} onChange={e => { setColumnFilters({ ...columnFilters, createdBy: e.target.value }); setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize }); }} />
             </Box>
           )}
 
-          <Box sx={{ height: 600, width: '100%' }}>
+          <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
             <SafeDataGrid
-              rows={filteredData.slice(page * rowsPerPage, (page + 1) * rowsPerPage)}
+              rows={tableRows}
               columns={columns}
-              getRowId={(row) => row.pkid || row.ID || `${row.CommonCode}-${Math.random()}`}
+              responsiveMode="cards"
+              getRowId={(row) => row.pkid || row.ID || row.CommonCode}
               loading={loading}
               rowCount={totalCount}
-              hideFooterPagination
-              hideFooter
+              paginationMode="offset"
+              paginationModel={queryState.paginationModel}
+              onPaginationModelChange={setPaginationModel}
+              columnFilters={queryState.columnFilters}
+              onColumnFiltersChange={setEnterpriseColumnFilters}
+              sortModel={queryState.sort.map((item) => ({ field: item.field, sort: item.direction }))}
+              onSortModelChange={(model) => {
+                setSort(
+                  model
+                    .filter((item) => item.sort === 'asc' || item.sort === 'desc')
+                    .map((item) => ({ field: item.field, direction: item.sort as 'asc' | 'desc' }))
+                );
+              }}
+              columnVisibilityModel={queryState.columnVisibilityModel}
+              onColumnVisibilityModelChange={setColumnVisibilityModel}
+              density={queryState.density === 'dense' ? 'compact' : queryState.density}
+              onDensityChange={setDensity}
+              showEnterpriseControls
+              onSaveView={handleSaveView}
+              onResetView={handleResetFilters}
+              pageSizeOptions={[10, 25, 50, 100]}
               disableRowSelectionOnClick
               getDetailPanelContent={(params) => (
                 <ApplicationDetailPanel
@@ -729,24 +1030,13 @@ export default function ApplicationSettingPage() {
               )}
               getDetailPanelHeight={() => 'auto'}
               sx={{
+                minHeight: 400,
+                width: '100%',
+                maxWidth: '100%',
                 '& .MuiDataGrid-main': { minHeight: 400 },
               }}
             />
           </Box>
-          <TablePagination
-            rowsPerPageOptions={[10, 25, 50, 100]}
-            component="div"
-            count={totalCount}
-            rowsPerPage={rowsPerPage}
-            page={page}
-            onPageChange={(e, p) => setPage(p)}
-            onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-            labelDisplayedRows={({ from, to, count }) => `Showing ${from}–${to} of ${count} • Page ${page + 1}`}
-            sx={{
-              borderTop: '2px solid #e0e0e0',
-              bgcolor: '#fafafa',
-            }}
-          />
 
         </CardContent>
       </Card>
@@ -849,7 +1139,7 @@ export default function ApplicationSettingPage() {
           )}
 
           {!detailLoading && detailData.length > 0 && (
-            <TableContainer component={Paper} variant="outlined">
+            <TableContainer component={Paper} variant="outlined" sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto', overflowY: 'hidden' }}>
               <Table size="small">
                 <TableHead>
                   <TableRow>

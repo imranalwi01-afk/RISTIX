@@ -1,3 +1,6 @@
-import ECLMovementReportPage from '../../ifrs9-reports/ecl-movement/page';
+import { redirect } from 'next/navigation';
+import { canonicalRoutes } from '@/features/shared/routing/canonical-routes';
 
-export default ECLMovementReportPage;
+export default function LegacyEclMovementReportPage() {
+  redirect(canonicalRoutes.ifrs9Reports.eclMovement);
+}

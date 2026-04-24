@@ -1,0 +1,11 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8]
+  - alert [ref=e11]
+  - generic [ref=e14]:
+    - alert [ref=e15]:
+      - img [ref=e17]
+      - generic [ref=e19]:
+        - heading "Authentication Required" [level=6] [ref=e20]
+        - paragraph [ref=e21]: Redirecting to login. This banking route requires an authenticated session.
+    - button "Go to Login" [ref=e22] [cursor=pointer]
