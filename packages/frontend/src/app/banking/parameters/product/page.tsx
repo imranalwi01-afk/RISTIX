@@ -19,6 +19,7 @@ import { exportToXLSX, exportToCSV, exportToPDF } from '@/utils/exportUtils';
 import { useAuth } from '@/providers/AuthProvider';
 import { useEnterpriseTableQuery } from '@/hooks/useEnterpriseTableQuery';
 import { useSavedTableView } from '@/hooks/useSavedTableView';
+import type { EnterpriseColumnFilterValue, EnterpriseFilterDefinition } from '@/types/enterprise-table';
 
 // Modular Components
 import PageHeader from '@/components/banking/shared/PageHeader';
@@ -90,6 +91,49 @@ const toDropdownOptions = (items: OptionItem[], withCodePrefix = false) =>
     label: withCodePrefix ? `${item.id} - ${item.name}` : item.name,
   }));
 
+const normalizeColumnFilterValue = (value: EnterpriseColumnFilterValue): unknown => {
+  if (value === null || value === undefined) return undefined;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.length > 0 ? value : undefined;
+  }
+
+  const cleaned = Object.fromEntries(
+    Object.entries(value).filter(([, item]) => {
+      if (item === null || item === undefined) return false;
+      if (typeof item === 'string') return item.trim().length > 0;
+      return true;
+    }),
+  );
+
+  return Object.keys(cleaned).length > 0 ? cleaned : undefined;
+};
+
+const productColumnFilterDefinitions: Record<string, EnterpriseFilterDefinition> = {
+  prdCode: { field: 'prdCode', label: 'Product Code', type: 'text' },
+  prdDesc: { field: 'prdDesc', label: 'Description', type: 'text' },
+  prdGroup: { field: 'prdGroup', label: 'Group', type: 'text' },
+  prdType: { field: 'prdType', label: 'Type', type: 'text' },
+  currency: { field: 'currency', label: 'Currency', type: 'text' },
+  dataSource: { field: 'dataSource', label: 'Data Source', type: 'text' },
+  activeFlag: {
+    field: 'activeFlag',
+    label: 'Active',
+    type: 'enum',
+    options: [
+      { label: 'All', value: '' },
+      { label: 'Active', value: 'active' },
+      { label: 'Inactive', value: 'inactive' },
+    ],
+  },
+};
+
 export default function ProductParametersPage() {
   const { user } = useAuth();
   const { hasAnyPermission } = usePermission();
@@ -110,6 +154,7 @@ export default function ProductParametersPage() {
   const {
     queryState,
     setPaginationModel,
+    setColumnFilters,
     setColumnVisibilityModel,
     setDensity,
     applySavedView,
@@ -175,6 +220,12 @@ export default function ProductParametersPage() {
       if (filters.currency) requestFilters.currency = filters.currency;
       if (filters.dataSource) requestFilters.dataSource = filters.dataSource;
       if (filters.activeOnly !== 'all') requestFilters.activeFlag = filters.activeOnly === 'active';
+      Object.entries(queryState.columnFilters).forEach(([field, value]) => {
+        const normalized = normalizeColumnFilterValue(value);
+        if (normalized !== undefined) {
+          requestFilters[field] = normalized;
+        }
+      });
 
       return {
         page: page + 1,
@@ -189,7 +240,7 @@ export default function ProductParametersPage() {
         sort: queryState.sort.length > 0 ? JSON.stringify(queryState.sort) : undefined,
       };
     },
-    [filters.activeOnly, filters.currency, filters.dataSource, queryState.sort, searchTerm],
+    [filters.activeOnly, filters.currency, filters.dataSource, queryState.columnFilters, queryState.sort, searchTerm],
   );
 
   // Data Loading
@@ -238,13 +289,11 @@ export default function ProductParametersPage() {
         setError(result?.message || 'Failed to load products');
       }
     } catch (err) {
-      if (!showApprovalConflict(err, selectedProduct && !selectedProduct?._clone ? 'Update submitted for approval' : 'Creation submitted for approval')) {
-        setError(handleAPIError(err).message);
-      }
+      setError(handleAPIError(err).message);
     } finally {
       setLoading(false);
     }
-  }, [buildProductRequestParams, currentPage, currentPageSize, mode, selectedProduct, showApprovalConflict]);
+  }, [buildProductRequestParams, currentPage, currentPageSize, mode]);
 
   const loadOptions = useCallback(async () => {
     try {
@@ -507,6 +556,9 @@ export default function ProductParametersPage() {
           onPaginationModelChange={setPaginationModel}
           rowCount={rowCount}
           canManage={canManageProduct}
+          columnFilters={queryState.columnFilters}
+          onColumnFiltersChange={setColumnFilters}
+          filterDefinitions={productColumnFilterDefinitions}
           columnVisibilityModel={queryState.columnVisibilityModel}
           onColumnVisibilityModelChange={setColumnVisibilityModel}
           density={queryState.density}

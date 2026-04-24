@@ -778,8 +778,9 @@ usersRoutes.openapi(
     }),
     async (c: any) => {
         const { id } = c.req.valid('param')
+        const tenantId = c.get('tenantId')!
         const effect = pipe(
-            usersService.getUserById(id),
+            usersService.getUserById(id, tenantId),
             Effect.map((user) => ({
                 success: true,
                 data: {
@@ -847,10 +848,10 @@ usersRoutes.openapi(
         const userId = c.get('userId')!
         const userPermissions = (c.get('userPermissions') as string[]) || []
         const body = c.req.valid('json')
-        const currentUser = await Effect.runPromise(usersService.getUserById(id))
+        const currentUser = await Effect.runPromise(usersService.getUserById(id, tenantId))
 
         // Define the actual user update operation
-        const executeUpdate = () => usersService.updateUser(id, body)
+        const executeUpdate = () => usersService.updateUser(id, { ...body, tenantId })
 
         // Use approval interceptor
         const effect = pipe(
@@ -941,10 +942,10 @@ usersRoutes.openapi(
         const tenantId = c.get('tenantId')!
         const userId = c.get('userId')!
         const userPermissions = (c.get('userPermissions') as string[]) || []
-        const currentUser = await Effect.runPromise(usersService.getUserById(id))
+        const currentUser = await Effect.runPromise(usersService.getUserById(id, tenantId))
 
         // Define the actual user deletion operation
-        const executeDelete = () => usersService.deleteUser(id)
+        const executeDelete = () => usersService.deleteUser(id, tenantId)
 
         // Use approval interceptor
         const effect = pipe(
@@ -1021,7 +1022,7 @@ usersRoutes.openapi(
             const { id } = c.req.valid('param')
             const tenantId = c.get('tenantId')!
             const requestedBy = c.get('userId')!
-            const currentUser = await Effect.runPromise(usersService.getUserById(id))
+            const currentUser = await Effect.runPromise(usersService.getUserById(id, tenantId))
 
             const request = await Effect.runPromise(
                 createApprovalRequest({
@@ -1121,7 +1122,7 @@ usersRoutes.openapi(
             const { id } = c.req.valid('param')
             const tenantId = c.get('tenantId')!
             const requestedBy = c.get('userId')!
-            const currentUser = await Effect.runPromise(usersService.getUserById(id))
+            const currentUser = await Effect.runPromise(usersService.getUserById(id, tenantId))
 
             const request = await Effect.runPromise(
                 createApprovalRequest({
