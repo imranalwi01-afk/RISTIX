@@ -783,7 +783,7 @@ export function NativeTable<T = any>({
 
   // Desktop Table View (or mobile with horizontal scroll)
   return (
-    <Box sx={{ width: '100%', overflowX: 'auto', overflowY: 'hidden', ...sx }}>
+    <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflow: 'hidden', ...sx }}>
       {(showEnterpriseControls || activeFilterEntries.length > 0) && (
         <Stack
           direction="row"
@@ -853,17 +853,26 @@ export function NativeTable<T = any>({
         </Stack>
       )}
       <Paper sx={{
-        width: 'max-content',
-        minWidth: '100%',
+        width: '100%',
+        maxWidth: '100%',
+        minWidth: 0,
+        overflow: 'hidden',
       }}>
         {loading && <LinearProgress />}
         <TableContainer sx={{
           width: '100%',
+          maxWidth: '100%',
+          minWidth: 0,
           maxHeight: 600,
           overflowX: 'auto',
           overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
         }}>
-          <Table stickyHeader size={density === 'compact' || density === 'dense' ? 'small' : 'medium'} sx={{ minWidth: isMobile ? 800 : 'auto' }}>
+          <Table
+            stickyHeader
+            size={density === 'compact' || density === 'dense' ? 'small' : 'medium'}
+            sx={{ minWidth: isMobile ? 800 : 960 }}
+          >
             <TableHead>
               <TableRow>
                 {getDetailPanelContent && <TableCell />}

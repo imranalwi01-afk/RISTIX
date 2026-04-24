@@ -252,12 +252,18 @@ const DcfUploadListResponse = z.object({
 
 const DcfCashflowSchema = z.object({
     pkid: z.number().int(),
-    accountId: z.string(),
-    periodDate: z.string(),
-    cashflowAmount: z.number(),
-    discountRate: z.number(),
-    discountFactor: z.number().optional(),
-    presentValue: z.number().optional()
+    iaId: z.number().nullable().optional(),
+    prcDate: z.string().nullable().optional(),
+    accountId: z.number().nullable().optional(),
+    accountNumber: z.string().optional(),
+    mob: z.number().optional(),
+    periode: z.string().nullable().optional(),
+    principal: z.number(),
+    interest: z.number(),
+    collateral: z.number(),
+    status: z.string().nullable().optional(),
+    createdby: z.string().optional(),
+    createddate: z.string().nullable().optional()
 }).openapi('DcfCashflow')
 
 const DcfCashflowListResponse = z.object({
@@ -335,6 +341,7 @@ const IaResultDetailResponse = z.object({
     success: z.boolean(),
     data: z.object({
         header: IaResultHeaderSchema.nullable(),
+        cashflows: z.array(DcfCashflowSchema),
         details: z.array(IaResultDetailSchema)
     })
 }).openapi('IaResultDetailResponse')
@@ -343,10 +350,16 @@ const CreateBatchUploadSchema = z.object({
     fileName: z.string(),
     batchId: z.string().optional(),
     cashflows: z.array(z.object({
-        accountId: z.string(),
-        periodDate: z.string(),
-        cashflowAmount: z.number(),
-        discountRate: z.number().optional()
+        accountId: z.union([z.number(), z.string()]),
+        accountNumber: z.string().optional(),
+        prcDate: z.string().optional(),
+        periodDate: z.string().optional(),
+        periode: z.string().optional(),
+        mob: z.number().optional(),
+        principal: z.number().optional(),
+        interest: z.number().optional(),
+        collateral: z.number().optional(),
+        status: z.string().optional()
     }))
 }).openapi('CreateBatchUploadInput')
 

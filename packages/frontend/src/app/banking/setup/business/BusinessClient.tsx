@@ -535,7 +535,7 @@ export default function BusinessClient() {
     }, [categoryFilter, queryState.columnFilters, queryState.columnVisibilityModel, queryState.sort, searchTerm, tableRows]);
 
     return (
-        <Container maxWidth="xl">
+        <Container maxWidth="xl" sx={{ minWidth: 0, overflowX: 'hidden' }}>
             {!canViewBusiness && (
                 <Alert severity="warning" sx={{ mb: 2 }}>
                     You do not have permission to view business settings.

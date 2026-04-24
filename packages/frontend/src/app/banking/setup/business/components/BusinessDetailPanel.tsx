@@ -100,8 +100,8 @@ const BusinessDetailPanel = memo(function BusinessDetailPanel({
   }
 
   return (
-    <Box sx={{ p: 3, bgcolor: 'rgba(0, 0, 0, 0.02)', borderBottomLeftRadius: 8, borderBottomRightRadius: 8 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+    <Box sx={{ p: 3, bgcolor: 'rgba(0, 0, 0, 0.02)', borderBottomLeftRadius: 8, borderBottomRightRadius: 8, width: '100%', maxWidth: '100%', minWidth: 0 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5, minWidth: 0, mb: 2 }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.dark', display: 'flex', alignItems: 'center', gap: 1 }}>
           <DescriptionIcon fontSize="small" />
           Details for {row.param_code}
@@ -125,7 +125,7 @@ const BusinessDetailPanel = memo(function BusinessDetailPanel({
           description={`No parameters sequences defined for ${row.param_code}.`}
         />
       ) : (
-        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
+        <TableContainer component={Paper} elevation={0} sx={{ width: '100%', maxWidth: '100%', minWidth: 0, border: '1px solid', borderColor: 'divider', borderRadius: 2, overflowX: 'auto', overflowY: 'hidden' }}>
           <Table size="small">
             <TableHead sx={{ bgcolor: 'grey.100' }}>
               <TableRow>

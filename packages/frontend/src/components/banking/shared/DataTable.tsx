@@ -171,7 +171,18 @@ const DataTable: React.FC<DataTableProps> = ({
       )}
 
       {/* Data Table */}
-      <TableContainer component={Paper} sx={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+      <TableContainer
+        component={Paper}
+        sx={{
+          width: '100%',
+          maxWidth: '100%',
+          minWidth: 0,
+          overflowX: 'auto',
+          overflowY: 'hidden',
+          WebkitOverflowScrolling: 'touch',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        }}
+      >
         <Table
           sx={{ minWidth: 650 }}
           aria-label={ariaLabel}

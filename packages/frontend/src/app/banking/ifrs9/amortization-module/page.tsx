@@ -23,11 +23,13 @@ export default function AmortizationModulePage() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState('');
+  const [prcDate, setPrcDate] = useState('');
   const [selectedPkid, setSelectedPkid] = useState<string | null>(null);
 
   const resultsQuery = useAmortizationModuleResultsQuery({
     page: page + 1,
     limit: rowsPerPage,
+    prcDate: prcDate || undefined,
     search: search.trim() || undefined,
   });
 
@@ -71,7 +73,7 @@ export default function AmortizationModulePage() {
   );
 
   return (
-    <Container maxWidth="xl" sx={{ py: 3, overflowX: 'hidden' }}>
+    <Container maxWidth="xl" sx={{ py: 3, minWidth: 0, overflowX: 'hidden' }}>
       <Box mb={3}>
         <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
           <Link color="inherit" href="/banking">Banking Dashboard</Link>
@@ -124,9 +126,9 @@ export default function AmortizationModulePage() {
         </Alert>
       )}
 
-      <Stack spacing={3}>
-        <Card>
-          <CardContent sx={{ p: { xs: 2, md: 3 }, overflowX: 'hidden' }}>
+      <Stack spacing={3} sx={{ minWidth: 0 }}>
+        <Card sx={{ minWidth: 0, overflowX: 'hidden' }}>
+          <CardContent sx={{ p: { xs: 2, md: 3 }, minWidth: 0, overflowX: 'hidden' }}>
             <Stack
               direction={{ xs: 'column', lg: 'row' }}
               spacing={2}
@@ -141,6 +143,20 @@ export default function AmortizationModulePage() {
                   Query source follows the workbook contract query from `FRS9_MASTER_ACCOUNT`.
                 </Typography>
               </Box>
+              <TextField
+                size="small"
+                type="date"
+                label="Processing Date"
+                value={prcDate}
+                onChange={(event) => {
+                  setPrcDate(event.target.value);
+                  setPage(0);
+                }}
+                slotProps={{
+                  inputLabel: { shrink: true },
+                }}
+                sx={{ width: { xs: '100%', sm: 220 }, minWidth: 0, flexShrink: 0 }}
+              />
               <TextField
                 size="small"
                 label="Search contract"

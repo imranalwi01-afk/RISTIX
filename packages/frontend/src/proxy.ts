@@ -446,20 +446,15 @@ export function proxy(request: NextRequest) {
       return response;
     }
 
-    // Allow full-page refresh to boot the client and restore the access token from refresh token.
-    // Middleware cannot call localStorage, so redirecting here creates a false logout race.
-    if (hasRefreshTokenFromRequest(request) && request.headers.get('accept')?.includes('text/html')) {
+    // Allow full-page refresh / direct document navigation to boot the client auth flow.
+    // Proxy cannot read localStorage, so redirecting here creates a false logout race.
+    if (request.headers.get('accept')?.includes('text/html')) {
       const response = NextResponse.next();
       response.headers.set('x-session-restore-pending', 'true');
+      if (hasRefreshTokenFromRequest(request)) {
+        response.headers.set('x-refresh-token-present', 'true');
+      }
       return response;
-    }
-
-    // ✅ NORMAL FLOW: Redirect to login for regular unauthorized access
-    if (request.headers.get('accept')?.includes('text/html') && !isGoingToLogin) {
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('error', 'session_expired');
-      loginUrl.searchParams.set('from', pathname);
-      return NextResponse.redirect(loginUrl);
     }
 
     return NextResponse.next();
@@ -497,21 +492,16 @@ export function proxy(request: NextRequest) {
       return response;
     }
 
-    // If the access token is expired/invalid but a refresh token exists, let the client restore.
-    if (hasRefreshTokenFromRequest(request) && request.headers.get('accept')?.includes('text/html') && !isGoingToLogin) {
+    // Let the client auth flow decide what to do on full page refresh/direct document requests.
+    // Redirecting here causes false logout when cookies and localStorage are briefly out of sync.
+    if (request.headers.get('accept')?.includes('text/html') && !isGoingToLogin) {
       const response = NextResponse.next();
       response.headers.set('x-session-restore-pending', 'true');
       response.headers.set('x-invalid-access-token', 'true');
+      if (hasRefreshTokenFromRequest(request)) {
+        response.headers.set('x-refresh-token-present', 'true');
+      }
       return response;
-    }
-
-    // ✅ NORMAL FLOW: Redirect to login for invalid token access
-    if (request.headers.get('accept')?.includes('text/html') && !isGoingToLogin) {
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('error', 'session_expired');
-      loginUrl.searchParams.set('invalid_token', 'true');
-      loginUrl.searchParams.set('from', pathname);
-      return NextResponse.redirect(loginUrl);
     }
 
     return NextResponse.next();

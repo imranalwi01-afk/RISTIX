@@ -46,7 +46,27 @@ function formatValue(value: unknown) {
 
 function TabPanel({ value, index, children }: { value: number; index: number; children: React.ReactNode }) {
   if (value !== index) return null;
-  return <Box sx={{ pt: 3 }}>{children}</Box>;
+  return <Box sx={{ pt: 3, width: '100%', minWidth: 0, overflowX: 'hidden' }}>{children}</Box>;
+}
+
+function ScrollTable({
+  minWidth,
+  children,
+  sx,
+}: {
+  minWidth: number;
+  children: React.ReactNode;
+  sx?: object;
+}) {
+  return (
+    <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto', WebkitOverflowScrolling: 'touch', ...sx }}>
+      <TableContainer sx={{ width: '100%', maxWidth: '100%', overflowX: 'unset' }}>
+        <Table size="small" sx={{ minWidth }}>
+          {children}
+        </Table>
+      </TableContainer>
+    </Box>
+  );
 }
 
 function KeyValueGrid({ entries }: { entries: Array<{ label: string; value: unknown }> }) {
@@ -121,8 +141,8 @@ export function AmortizationModuleDetailsPanel({
   const costRows = detail?.feeCosts.filter((row) => row.transactionType === 'C') ?? [];
 
   return (
-    <Card>
-      <CardContent>
+    <Card sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
+      <CardContent sx={{ minWidth: 0, overflowX: 'hidden' }}>
         <Box mb={2}>
           <Typography variant="h6">Amortization Module Details</Typography>
           <Typography variant="body2" color="text.secondary">
@@ -180,8 +200,7 @@ export function AmortizationModuleDetailsPanel({
               {feeRows.length === 0 ? (
                 <Alert severity="info" sx={{ mb: 3 }}>No fee rows were found in `frs9_master_transaction_cost`.</Alert>
               ) : (
-                <TableContainer sx={{ mb: 3 }}>
-                  <Table size="small">
+                <ScrollTable minWidth={860} sx={{ mb: 3 }}>
                     <TableHead>
                       <TableRow>
                         <TableCell>Reporting Date</TableCell>
@@ -204,8 +223,7 @@ export function AmortizationModuleDetailsPanel({
                         </TableRow>
                       ))}
                     </TableBody>
-                  </Table>
-                </TableContainer>
+                </ScrollTable>
               )}
 
               <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
@@ -214,8 +232,7 @@ export function AmortizationModuleDetailsPanel({
               {costRows.length === 0 ? (
                 <Alert severity="info">No cost rows were found in `frs9_master_transaction_cost`.</Alert>
               ) : (
-                <TableContainer>
-                  <Table size="small">
+                <ScrollTable minWidth={860}>
                     <TableHead>
                       <TableRow>
                         <TableCell>Reporting Date</TableCell>
@@ -238,8 +255,7 @@ export function AmortizationModuleDetailsPanel({
                         </TableRow>
                       ))}
                     </TableBody>
-                  </Table>
-                </TableContainer>
+                </ScrollTable>
               )}
             </TabPanel>
 
@@ -250,8 +266,7 @@ export function AmortizationModuleDetailsPanel({
               {detail.amortizationSchedule.length === 0 ? (
                 <Alert severity="info" sx={{ mb: 3 }}>No amortization schedule row was found in `frs9_eir_ecf`.</Alert>
               ) : (
-                <TableContainer sx={{ mb: 3 }}>
-                  <Table size="small">
+                <ScrollTable minWidth={1180} sx={{ mb: 3 }}>
                     <TableHead>
                       <TableRow>
                         <TableCell>Counter</TableCell>
@@ -280,8 +295,7 @@ export function AmortizationModuleDetailsPanel({
                         </TableRow>
                       ))}
                     </TableBody>
-                  </Table>
-                </TableContainer>
+                </ScrollTable>
               )}
 
               <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
@@ -290,8 +304,7 @@ export function AmortizationModuleDetailsPanel({
               {detail.events.length === 0 ? (
                 <Alert severity="info">No event rows were found in `frs9_event_changes`.</Alert>
               ) : (
-                <TableContainer>
-                  <Table size="small">
+                <ScrollTable minWidth={1100}>
                     <TableHead>
                       <TableRow>
                         <TableCell>Event Date</TableCell>
@@ -316,8 +329,7 @@ export function AmortizationModuleDetailsPanel({
                         </TableRow>
                       ))}
                     </TableBody>
-                  </Table>
-                </TableContainer>
+                </ScrollTable>
               )}
             </TabPanel>
 

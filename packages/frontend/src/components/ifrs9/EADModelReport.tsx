@@ -388,22 +388,25 @@ const EADModelReport: React.FC = () => {
       <SummaryCards stats={summaryStats} />
       <EADCharts stats={summaryStats} />
 
-      <Card sx={{ mt: 4, borderRadius: 4, boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)' }}>
-        <CardContent sx={{ p: 4 }}>
+      <Card sx={{ mt: 4, borderRadius: 4, boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)', width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
+        <CardContent sx={{ p: 4, minWidth: 0, overflowX: 'hidden' }}>
           <Typography variant="h6" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
             Payment Average by Tenor (Pivoted)
           </Typography>
-          <TableContainer
-            component={Paper}
-            variant="outlined"
-            sx={{
-              borderRadius: 4,
-              overflowX: 'auto',
-              overflowY: 'hidden',
-              borderColor: alpha('#000', 0.08),
-            }}
-          >
-            <Table stickyHeader size="small" sx={{ minWidth: Math.max(900, 140 + (pivotMonths.length * 140)) }}>
+          <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <TableContainer
+              component={Paper}
+              variant="outlined"
+              sx={{
+                width: '100%',
+                maxWidth: '100%',
+                borderRadius: 4,
+                overflowX: 'unset',
+                overflowY: 'hidden',
+                borderColor: alpha('#000', 0.08),
+              }}
+            >
+              <Table stickyHeader size="small" sx={{ minWidth: Math.max(900, 140 + (pivotMonths.length * 140)) }}>
               <TableHead>
                 <TableRow>
                   <TableCell
@@ -467,8 +470,9 @@ const EADModelReport: React.FC = () => {
                   </TableRow>
                 )}
               </TableBody>
-            </Table>
-          </TableContainer>
+              </Table>
+            </TableContainer>
+          </Box>
           <Box sx={{ px: 1, pt: 2, color: 'text.secondary', fontSize: '0.95rem' }}>
             {pivotRows.length > 0 ? `1 - ${pivotRows.length} of ${pivotRows.length}` : '0 - 0 of 0'}
           </Box>

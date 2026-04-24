@@ -60,25 +60,29 @@ export const BankingBreadcrumbs: React.FC<BankingBreadcrumbsProps> = ({
         <Paper
             elevation={1}
             sx={{
-                width: { md: `calc(100% - ${drawerWidth}px)` },
-                ml: { md: `${drawerWidth}px` },
+                left: { md: `${drawerWidth}px` },
+                right: 0,
+                width: { md: 'auto' },
+                maxWidth: '100vw',
                 position: 'fixed',
                 top: appBarHeight,
                 zIndex: theme.zIndex.drawer,
                 bgcolor: 'background.paper',
                 borderBottom: `1px solid ${theme.palette.divider}`,
                 borderRadius: 0,
+                overflow: 'hidden',
                 transition: theme.transitions.create(['width', 'margin'], {
                     easing: theme.transitions.easing.sharp,
                     duration: theme.transitions.duration.leavingScreen,
                 }),
             }}
         >
-            <Box sx={{ px: 2, py: 0.4 }}>
+            <Box sx={{ px: 2, py: 0.4, minWidth: 0, overflow: 'hidden' }}>
                 <Breadcrumbs
                     separator={<ChevronRightIcon fontSize="small" />}
                     aria-label="breadcrumb"
                     sx={{
+                        overflow: 'hidden',
                         '& .MuiBreadcrumbs-separator': {
                             mx: 0.8,
                             color: 'text.secondary'

@@ -105,7 +105,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
 
   return (
     <NotificationProvider>
-      <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      <Box sx={{ display: 'flex', minHeight: '100vh', width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
         {/* AppBar */}
         <BankingAppBar
         drawerWidth={currentDrawerWidth}
@@ -129,6 +129,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
         sx={{
           width: { md: currentDrawerWidth },
           flexShrink: { md: 0 },
+          minWidth: 0,
           transition: theme.transitions.create('width', {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
@@ -197,8 +198,12 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
         component="main"
         sx={{
           flexGrow: 1,
+          width: '100%',
+          maxWidth: '100%',
+          minWidth: 0,
           minHeight: '100vh',
           bgcolor: 'background.default',
+          overflowX: 'hidden',
         }}
       >
         <Box sx={{
@@ -206,7 +211,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
           flexShrink: 0
         }} />
 
-        <Box sx={{ p: 2 }}>
+        <Box sx={{ p: 2, width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
           {children as any}
         </Box>
       </Box>
