@@ -73,7 +73,25 @@ function KeyValueGrid({ entries }: { entries: Array<{ label: string; value: unkn
 
 function TabPanel({ value, index, children }: { value: number; index: number; children: React.ReactNode }) {
   if (value !== index) return null;
-  return <Box sx={{ pt: 3 }}>{children}</Box>;
+  return <Box sx={{ pt: 3, width: '100%', minWidth: 0, overflowX: 'hidden' }}>{children}</Box>;
+}
+
+function ScrollTable({
+  minWidth,
+  children,
+}: {
+  minWidth: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+      <TableContainer sx={{ width: '100%', maxWidth: '100%', overflowX: 'unset' }}>
+        <Table size="small" sx={{ minWidth }}>
+          {children}
+        </Table>
+      </TableContainer>
+    </Box>
+  );
 }
 
 export function ImpairmentModuleDetailsPanel({
@@ -190,8 +208,8 @@ export function ImpairmentModuleDetailsPanel({
   }, [detail?.contractDetail?.currency, detail?.individualSummary]);
 
   return (
-    <Card>
-      <CardContent>
+    <Card sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
+      <CardContent sx={{ minWidth: 0, overflowX: 'hidden' }}>
         <Box mb={2}>
           <Typography variant="h6">
             Impairment Module Details
@@ -236,8 +254,7 @@ export function ImpairmentModuleDetailsPanel({
               {detail.collectiveDetails.length === 0 ? (
                 <Alert severity="info">No collective impairment detail row was found in `frs9_imp_ca_result_d`.</Alert>
               ) : (
-                <TableContainer>
-                  <Table size="small">
+                <ScrollTable minWidth={980}>
                     <TableHead>
                       <TableRow>
                         <TableCell>Scenario</TableCell>
@@ -264,8 +281,7 @@ export function ImpairmentModuleDetailsPanel({
                         </TableRow>
                       ))}
                     </TableBody>
-                  </Table>
-                </TableContainer>
+                </ScrollTable>
               )}
             </TabPanel>
 
@@ -286,8 +302,7 @@ export function ImpairmentModuleDetailsPanel({
               {detail.individualDetails.length === 0 ? (
                 <Alert severity="info">No individual impairment detail row was found in `frs9_imp_ia_result_d`.</Alert>
               ) : (
-                <TableContainer>
-                  <Table size="small">
+                <ScrollTable minWidth={980}>
                     <TableHead>
                       <TableRow>
                         <TableCell>MOB</TableCell>
@@ -314,8 +329,7 @@ export function ImpairmentModuleDetailsPanel({
                         </TableRow>
                       ))}
                     </TableBody>
-                  </Table>
-                </TableContainer>
+                </ScrollTable>
               )}
             </TabPanel>
 
@@ -323,8 +337,7 @@ export function ImpairmentModuleDetailsPanel({
               {detail.journalDetails.length === 0 ? (
                 <Alert severity="info">No journal row was found in `frs9_imp_journal_data`.</Alert>
               ) : (
-                <TableContainer>
-                  <Table size="small">
+                <ScrollTable minWidth={980}>
                     <TableHead>
                       <TableRow>
                         <TableCell>Journal Code</TableCell>
@@ -349,8 +362,7 @@ export function ImpairmentModuleDetailsPanel({
                         </TableRow>
                       ))}
                     </TableBody>
-                  </Table>
-                </TableContainer>
+                </ScrollTable>
               )}
             </TabPanel>
           </>

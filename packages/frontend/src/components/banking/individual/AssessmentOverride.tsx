@@ -80,6 +80,61 @@ interface ParsedDcfRow {
   collateral: number;
 }
 
+interface PersistedDcfRow extends ParsedDcfRow {
+  pkid: number;
+  mob?: number;
+}
+
+interface PersistedIaHeader {
+  effectiveDate?: string | null;
+  accountNumber?: string;
+  cifNumber?: string;
+  cifName?: string;
+  currency?: string;
+  dpd?: number;
+  collectability?: number;
+  ratingCode?: string;
+  interestRate?: number;
+  effInterestRate?: number;
+  outstanding?: number;
+  accruedInterest?: number;
+  carryingAmt?: number;
+  eadAmt?: number;
+  pvDcfAmt?: number;
+  eclIaAmt?: number;
+}
+
+interface PersistedIaDetailRow {
+  pkid: number;
+  mob: number;
+  periode: string | null;
+  principal: number;
+  interest: number;
+  installment: number;
+  collateral: number;
+  poRate1: number;
+  rrRate1: number;
+  default1: number;
+  poRate2: number;
+  rrRate2: number;
+  default2: number;
+  poRate3: number;
+  rrRate3: number;
+  default3: number;
+  pwAmt: number;
+  discountFactor: number;
+  pvAmt: number;
+  beginningBalance: number;
+  eirAmt: number;
+  endingBalance: number;
+}
+
+interface PersistedIaResultDetail {
+  header: PersistedIaHeader | null;
+  cashflows: PersistedDcfRow[];
+  details: PersistedIaDetailRow[];
+}
+
 const TEMPLATE_HEADERS = ['ACCOUNT_NUMBER', 'PERIODE', 'PRINCIPAL', 'INTEREST', 'COLLATERAL'];
 
 const toIsoDate = (value?: string | Date | null) => {
@@ -141,6 +196,7 @@ export const AssessmentOverride = () => {
   const [scenarioCount, setScenarioCount] = useState(2);
   const [scenarioRows, setScenarioRows] = useState<DcfScenarioRow[]>([]);
   const [parsedDcfRows, setParsedDcfRows] = useState<ParsedDcfRow[]>([]);
+  const [persistedDcfDetail, setPersistedDcfDetail] = useState<PersistedIaResultDetail | null>(null);
   const [selectedDcfFile, setSelectedDcfFile] = useState<File | null>(null);
   const [uploadingDcf, setUploadingDcf] = useState(false);
 
@@ -171,6 +227,31 @@ export const AssessmentOverride = () => {
     }
   };
 
+  const loadPersistedDcfDetail = async (scope?: { accountId?: string; accountNumber?: string }) => {
+    if (!scope?.accountId && !scope?.accountNumber) {
+      setPersistedDcfDetail(null);
+      return;
+    }
+
+    try {
+      const response = await individualImpairmentAPI.getIaResultDetail({
+        accountId: scope?.accountId,
+        accountNumber: scope?.accountNumber
+      });
+      if (response.success && response.data) {
+        setPersistedDcfDetail({
+          header: response.data.header ?? null,
+          cashflows: Array.isArray(response.data.cashflows) ? response.data.cashflows : [],
+          details: Array.isArray(response.data.details) ? response.data.details : []
+        });
+      } else {
+        setPersistedDcfDetail(null);
+      }
+    } catch {
+      setPersistedDcfDetail(null);
+    }
+  };
+
   const loadAssessmentData = async (accId: string) => {
     try {
       const response = await individualImpairmentAPI.getAssessment(accId);
@@ -194,6 +275,10 @@ export const AssessmentOverride = () => {
         await loadData({
           accountId: accId,
           accountNumber: resolvedAccountNumber || undefined,
+        })
+        await loadPersistedDcfDetail({
+          accountId: accId,
+          accountNumber: resolvedAccountNumber || undefined
         })
         setError(null);
         setSuccess(null);
@@ -391,6 +476,10 @@ export const AssessmentOverride = () => {
         }))
       });
       setSuccess(`DCF upload submitted with ${parsedDcfRows.length} rows`);
+      await loadPersistedDcfDetail({
+        accountId: String(assessmentData.account_id),
+        accountNumber: formData.accountNumber || assessmentData.account_number || undefined
+      });
     } catch (err: any) {
       setError(err?.response?.data?.message || err?.message || 'Failed to upload DCF rows');
     } finally {
@@ -417,6 +506,7 @@ export const AssessmentOverride = () => {
           await loadScenarioOptions(accountId);
         } else {
           setAssessmentData(null);
+          setPersistedDcfDetail(null);
           await loadData();
           await loadScenarioOptions(null);
         }
@@ -886,6 +976,156 @@ export const AssessmentOverride = () => {
                     </Button>
                   </Stack>
                 </Box>
+
+                {persistedDcfDetail && (
+                  <Stack spacing={3}>
+                    <Box>
+                      <Typography variant="h6" sx={{ mb: 2 }}>DCF Upload Report Detail</Typography>
+                      <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 320 }}>
+                        <Table size="small" stickyHeader>
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>Account Number</TableCell>
+                              <TableCell>Periode</TableCell>
+                              <TableCell align="right">Principal</TableCell>
+                              <TableCell align="right">Interest</TableCell>
+                              <TableCell align="right">Collateral</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {persistedDcfDetail.cashflows.length > 0 ? persistedDcfDetail.cashflows.map((row) => (
+                              <TableRow key={row.pkid}>
+                                <TableCell>{row.accountNumber}</TableCell>
+                                <TableCell>{formatDisplayDate(row.periode)}</TableCell>
+                                <TableCell align="right">{formatAmount(row.principal)}</TableCell>
+                                <TableCell align="right">{formatAmount(row.interest)}</TableCell>
+                                <TableCell align="right">{formatAmount(row.collateral)}</TableCell>
+                              </TableRow>
+                            )) : (
+                              <TableRow>
+                                <TableCell colSpan={5} align="center">No DCF upload data available.</TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Box>
+
+                    {persistedDcfDetail.header ? (
+                      <Box>
+                        <Typography variant="h6" sx={{ mb: 2 }}>IA Discounted Cash Flow Detail</Typography>
+                        <TableContainer component={Paper} variant="outlined">
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>Effective Date</TableCell>
+                                <TableCell>Account Number</TableCell>
+                                <TableCell>CIF Number</TableCell>
+                                <TableCell>Customer Name</TableCell>
+                                <TableCell>Currency</TableCell>
+                                <TableCell align="right">Day Past Due</TableCell>
+                                <TableCell align="right">Collectability</TableCell>
+                                <TableCell>Rating</TableCell>
+                                <TableCell align="right">Interest Rate</TableCell>
+                                <TableCell align="right">Effective Interest Rate</TableCell>
+                                <TableCell align="right">Outstanding</TableCell>
+                                <TableCell align="right">Accrued Interest</TableCell>
+                                <TableCell align="right">Carrying Amount</TableCell>
+                                <TableCell align="right">EAD Amount</TableCell>
+                                <TableCell align="right">PV DCF Amount</TableCell>
+                                <TableCell align="right">ECL IA Amount</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              <TableRow>
+                                <TableCell>{formatDisplayDate(persistedDcfDetail.header.effectiveDate)}</TableCell>
+                                <TableCell>{persistedDcfDetail.header.accountNumber || '-'}</TableCell>
+                                <TableCell>{persistedDcfDetail.header.cifNumber || '-'}</TableCell>
+                                <TableCell>{persistedDcfDetail.header.cifName || '-'}</TableCell>
+                                <TableCell>{persistedDcfDetail.header.currency || '-'}</TableCell>
+                                <TableCell align="right">{persistedDcfDetail.header.dpd ?? 0}</TableCell>
+                                <TableCell align="right">{persistedDcfDetail.header.collectability ?? 0}</TableCell>
+                                <TableCell>{persistedDcfDetail.header.ratingCode || '-'}</TableCell>
+                                <TableCell align="right">{formatAmount(persistedDcfDetail.header.interestRate)}</TableCell>
+                                <TableCell align="right">{formatAmount(persistedDcfDetail.header.effInterestRate)}</TableCell>
+                                <TableCell align="right">{formatAmount(persistedDcfDetail.header.outstanding)}</TableCell>
+                                <TableCell align="right">{formatAmount(persistedDcfDetail.header.accruedInterest)}</TableCell>
+                                <TableCell align="right">{formatAmount(persistedDcfDetail.header.carryingAmt)}</TableCell>
+                                <TableCell align="right">{formatAmount(persistedDcfDetail.header.eadAmt)}</TableCell>
+                                <TableCell align="right">{formatAmount(persistedDcfDetail.header.pvDcfAmt)}</TableCell>
+                                <TableCell align="right">{formatAmount(persistedDcfDetail.header.eclIaAmt)}</TableCell>
+                              </TableRow>
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      </Box>
+                    ) : null}
+
+                    <Box>
+                      <Typography variant="h6" sx={{ mb: 2 }}>IA Detail Cash Flow</Typography>
+                      <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 420 }}>
+                        <Table size="small" stickyHeader>
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>No.</TableCell>
+                              <TableCell>Estimated Date</TableCell>
+                              <TableCell align="right">Principal</TableCell>
+                              <TableCell align="right">Interest</TableCell>
+                              <TableCell align="right">Installment</TableCell>
+                              <TableCell align="right">Collateral</TableCell>
+                              <TableCell align="right">Pos Rate 1</TableCell>
+                              <TableCell align="right">Repayment Rate 1</TableCell>
+                              <TableCell align="right">Default 1</TableCell>
+                              <TableCell align="right">Pos Rate 2</TableCell>
+                              <TableCell align="right">Repayment Rate 2</TableCell>
+                              <TableCell align="right">Default 2</TableCell>
+                              <TableCell align="right">Pos Rate 3</TableCell>
+                              <TableCell align="right">Repayment Rate 3</TableCell>
+                              <TableCell align="right">Default 3</TableCell>
+                              <TableCell align="right">PW Amt</TableCell>
+                              <TableCell align="right">Discount Factor</TableCell>
+                              <TableCell align="right">PV Amt</TableCell>
+                              <TableCell align="right">Beginning Balance</TableCell>
+                              <TableCell align="right">EIR Amt</TableCell>
+                              <TableCell align="right">Ending Balance</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {persistedDcfDetail.details.length > 0 ? persistedDcfDetail.details.map((row) => (
+                              <TableRow key={row.pkid}>
+                                <TableCell>{row.mob}</TableCell>
+                                <TableCell>{formatDisplayDate(row.periode)}</TableCell>
+                                <TableCell align="right">{formatAmount(row.principal)}</TableCell>
+                                <TableCell align="right">{formatAmount(row.interest)}</TableCell>
+                                <TableCell align="right">{formatAmount(row.installment)}</TableCell>
+                                <TableCell align="right">{formatAmount(row.collateral)}</TableCell>
+                                <TableCell align="right">{formatAmount(row.poRate1)}</TableCell>
+                                <TableCell align="right">{formatAmount(row.rrRate1)}</TableCell>
+                                <TableCell align="right">{formatAmount(row.default1)}</TableCell>
+                                <TableCell align="right">{formatAmount(row.poRate2)}</TableCell>
+                                <TableCell align="right">{formatAmount(row.rrRate2)}</TableCell>
+                                <TableCell align="right">{formatAmount(row.default2)}</TableCell>
+                                <TableCell align="right">{formatAmount(row.poRate3)}</TableCell>
+                                <TableCell align="right">{formatAmount(row.rrRate3)}</TableCell>
+                                <TableCell align="right">{formatAmount(row.default3)}</TableCell>
+                                <TableCell align="right">{formatAmount(row.pwAmt)}</TableCell>
+                                <TableCell align="right">{formatAmount(row.discountFactor)}</TableCell>
+                                <TableCell align="right">{formatAmount(row.pvAmt)}</TableCell>
+                                <TableCell align="right">{formatAmount(row.beginningBalance)}</TableCell>
+                                <TableCell align="right">{formatAmount(row.eirAmt)}</TableCell>
+                                <TableCell align="right">{formatAmount(row.endingBalance)}</TableCell>
+                              </TableRow>
+                            )) : (
+                              <TableRow>
+                                <TableCell colSpan={21} align="center">No IA detailed cash flow data available.</TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Box>
+                  </Stack>
+                )}
               </Stack>
             </CardContent>
           </Card>

@@ -31,6 +31,10 @@ export const reportsAPI = {
         get: async (params?: any) => {
             const response = await apiClient.get('/ifrs9/reports/lifetime-lgd', { params });
             return response.data;
+        },
+        getSummary: async (params?: any) => {
+            const response = await apiClient.get('/ifrs9/reports/lifetime-lgd/summary', { params });
+            return response.data;
         }
     },
 

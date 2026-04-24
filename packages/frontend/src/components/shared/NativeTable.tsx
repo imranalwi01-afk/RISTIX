@@ -34,6 +34,7 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   LinearProgress,
+  Tooltip,
 } from '@mui/material';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
@@ -225,7 +226,7 @@ export function NativeTable<T = any>({
   loading = false,
   getRowId = (row: T) => (row as any).id,
   getRowSx,
-  pageSizeOptions = [5, 10, 25, 50],
+  pageSizeOptions = [10, 25, 50, 75, 100],
   initialState,
   checkboxSelection = false,
   onRowSelectionModelChange,
@@ -623,6 +624,7 @@ export function NativeTable<T = any>({
     }
 
     if (definition?.type === 'enum') {
+      const enumOptions = Array.isArray(definition.options) ? definition.options : [];
       return (
         <TextField
           select
@@ -633,7 +635,7 @@ export function NativeTable<T = any>({
           fullWidth
         >
           <MenuItem value="">All</MenuItem>
-          {(definition.options ?? []).map((option) => (
+          {enumOptions.map((option) => (
             <MenuItem key={String(option.value)} value={String(option.value)}>
               {option.label}
             </MenuItem>
@@ -715,9 +717,15 @@ export function NativeTable<T = any>({
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                   {getDetailPanelContent && (
-                    <IconButton size="small" onClick={() => handleToggleExpand(rowId)}>
-                      {isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-                    </IconButton>
+                    <Tooltip title={isExpanded ? 'Hide details' : 'Show details'}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleToggleExpand(rowId)}
+                        aria-label={isExpanded ? 'Hide details' : 'Show details'}
+                      >
+                        {isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                      </IconButton>
+                    </Tooltip>
                   )}
                   {checkboxSelection && (
                     <Checkbox
@@ -783,7 +791,7 @@ export function NativeTable<T = any>({
 
   // Desktop Table View (or mobile with horizontal scroll)
   return (
-    <Box sx={{ width: '100%', overflowX: 'auto', overflowY: 'hidden', ...sx }}>
+    <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflow: 'hidden', ...sx }}>
       {(showEnterpriseControls || activeFilterEntries.length > 0) && (
         <Stack
           direction="row"
@@ -853,20 +861,45 @@ export function NativeTable<T = any>({
         </Stack>
       )}
       <Paper sx={{
-        width: 'max-content',
-        minWidth: '100%',
+        width: '100%',
+        maxWidth: '100%',
+        minWidth: 0,
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
       }}>
         {loading && <LinearProgress />}
         <TableContainer sx={{
           width: '100%',
-          maxHeight: 600,
+          maxWidth: '100%',
+          minWidth: 0,
+          maxHeight: {
+            xs: 'min(52vh, 480px)',
+            md: 'min(56vh, 560px)',
+          },
           overflowX: 'auto',
           overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
         }}>
-          <Table stickyHeader size={density === 'compact' || density === 'dense' ? 'small' : 'medium'} sx={{ minWidth: isMobile ? 800 : 'auto' }}>
+          <Table
+            stickyHeader
+            size={density === 'compact' || density === 'dense' ? 'small' : 'medium'}
+            sx={{ minWidth: isMobile ? 800 : 960 }}
+          >
             <TableHead>
               <TableRow>
-                {getDetailPanelContent && <TableCell />}
+                {getDetailPanelContent && (
+                  <TableCell
+                    sx={{
+                      whiteSpace: 'nowrap',
+                      color: 'text.secondary',
+                      fontWeight: 600,
+                      minWidth: 88,
+                    }}
+                  >
+                    Details
+                  </TableCell>
+                )}
                 {checkboxSelection && (
                   <TableCell padding="checkbox">
                     <Checkbox
@@ -898,7 +931,16 @@ export function NativeTable<T = any>({
               </TableRow>
               {showColumnFilters && (
                 <TableRow>
-                  {getDetailPanelContent && <TableCell />}
+                  {getDetailPanelContent && (
+                    <TableCell
+                      sx={{
+                        bgcolor: 'background.paper',
+                        pt: 0.5,
+                        pb: 1,
+                        minWidth: 88,
+                      }}
+                    />
+                  )}
                   {checkboxSelection && <TableCell />}
                   {visibleColumns.map((column) => {
                     const field = String(column.field);
@@ -965,9 +1007,15 @@ export function NativeTable<T = any>({
                     >
                       {getDetailPanelContent && (
                         <TableCell>
-                          <IconButton size="small" onClick={() => handleToggleExpand(rowId)}>
-                            {isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-                          </IconButton>
+                          <Tooltip title={isExpanded ? 'Hide details' : 'Show details'}>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleToggleExpand(rowId)}
+                              aria-label={isExpanded ? 'Hide details' : 'Show details'}
+                            >
+                              {isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                            </IconButton>
+                          </Tooltip>
                         </TableCell>
                       )}
                       {checkboxSelection && (
@@ -1018,6 +1066,15 @@ export function NativeTable<T = any>({
             page={page}
             onPageChange={handleChangePage}
             onRowsPerPageChange={handleChangeRowsPerPage}
+            sx={{
+              flexShrink: 0,
+              borderTop: `1px solid ${theme.palette.divider}`,
+              '.MuiTablePagination-toolbar': {
+                flexWrap: 'wrap',
+                rowGap: 1,
+                minHeight: 60,
+              },
+            }}
           />
         )}
       </Paper>

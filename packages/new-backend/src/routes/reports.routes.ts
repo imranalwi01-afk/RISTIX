@@ -274,6 +274,24 @@ reportsRoutes.openapi(
     (c: any) => ifrs9ReportsController.getLifetimeLGD(c)
 )
 
+// GET /lifetime-lgd/summary
+reportsRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/lifetime-lgd/summary',
+        tags: ['Reports'],
+        summary: 'Get Lifetime LGD Summary',
+        request: {
+            query: LifetimeLGDQuerySchema
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: GenericListResponse(ReportDataSchema) } }, description: 'Report Data' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c: any) => ifrs9ReportsController.getLifetimeLGDSummary(c)
+)
+
 // GET /ead-model
 reportsRoutes.openapi(
     createRoute({

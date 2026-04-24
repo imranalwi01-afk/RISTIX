@@ -256,13 +256,14 @@ const LifetimeLGDReport: React.FC = () => {
     lgdDistribution: []
   });
 
-  const handleDataLoaded = React.useCallback((data: any[]) => {
-    if (data && data.length > 0) {
+  const handleDataLoaded = React.useCallback((data: any[], summary?: Record<string, unknown> | null) => {
+    const detailRows: any[] = Array.isArray((summary as any)?.detailRows) ? (summary as any).detailRows : data;
+    if (detailRows && detailRows.length > 0) {
       let totalEad = 0;
       let weightedLgsSum = 0;
       let totalRecoveryPv = 0;
 
-      const stats = data.reduce<{
+      const stats = detailRows.reduce<{
         totalAccounts: number;
         averageLGD: number;
         totalRecoveryAmount: number;
@@ -297,7 +298,7 @@ const LifetimeLGDReport: React.FC = () => {
         { range: '81-100%', min: 0.8, max: 1.1, count: 0, color: '#F44336' }
       ];
 
-      data.forEach(row => {
+      detailRows.forEach(row => {
         const lgd = parseFloat(row.lgd_rate as string) || 0;
         lgdRanges.forEach(range => {
           if (lgd >= range.min && lgd < range.max) {
@@ -312,13 +313,22 @@ const LifetimeLGDReport: React.FC = () => {
         totalRecoveryAmount: totalRecoveryPv,
         lgdDistribution: lgdRanges.filter(range => range.count > 0)
       });
+      return;
     }
+
+    setSummaryStats({
+      totalAccounts: 0,
+      averageLGD: 0,
+      totalRecoveryAmount: 0,
+      avgRecoveryRate: 0,
+      lgdDistribution: []
+    });
   }, []);
 
 
 
   const requiredParams = useMemo(() => ['prc_date'], []);
-  const optionalParams = useMemo(() => ['lgd_method', 'segment_id', 'fl_flag'], []);
+  const optionalParams = useMemo(() => ['lgd_config_id', 'lgd_method', 'segment_id', 'fl_flag'], []);
 
   return (
     <BaseIfrs9Report

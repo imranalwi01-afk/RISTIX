@@ -18,47 +18,48 @@ html, body {
 #__next {
   height: auto !important;
   min-height: 100vh;
-  overflow: visible !important;
+  overflow-x: hidden;
 }
 
 /* React Admin root container fixes */
 .RaLayout-root {
   height: auto !important;
   min-height: 100vh !important;
-  overflow: visible !important;
+  overflow-x: hidden;
 }
 
 .RaLayout-appFrame {
   height: auto !important;
   min-height: 100vh !important;
-  overflow: visible !important;
+  overflow-x: hidden;
 }
 
 .RaLayout-content {
   height: auto !important;
-  overflow: visible !important;
+  overflow-x: hidden !important;
 }
 
 .RaLayout-contentWithSidebar {
   height: auto !important;
-  overflow: visible !important;
+  overflow-x: hidden !important;
 }
 
 /* Material-UI container fixes */
 .MuiContainer-root {
   height: auto !important;
-  overflow: visible !important;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .MuiBox-root {
   height: auto !important;
-  overflow: visible !important;
+  min-width: 0;
 }
 
 /* React Admin main content area */
 main[role="main"] {
   height: auto !important;
-  overflow: visible !important;
+  overflow-x: hidden !important;
 }
 
 /* Sidebar should scroll independently */
@@ -73,7 +74,7 @@ main[role="main"] {
 .ra-login {
   height: auto !important;
   min-height: 100vh;
-  overflow: visible !important;
+  overflow-x: hidden !important;
 }
 
 /* Force scrollbars to appear when needed */
@@ -102,7 +103,7 @@ main[role="main"] {
 .dashboard-container {
   height: auto !important;
   min-height: 100vh;
-  overflow: visible !important;
+  overflow-x: hidden !important;
 }
 
 /* Fix for any fixed positioning issues */
@@ -120,38 +121,46 @@ main[role="main"] {
 .layout-background {
   height: auto !important;
   min-height: 100vh;
-  overflow: visible !important;
+  overflow-x: hidden !important;
 }
 
 /* Additional fixes for common scrolling issues */
 .MuiPaper-root {
   height: auto !important;
-  overflow: visible !important;
+  min-width: 0;
 }
 
 /* Ensure forms can scroll */
 .MuiFormControl-root {
   height: auto !important;
-  overflow: visible !important;
+  min-width: 0;
 }
 
 /* Table scroll fixes */
 .MuiTableContainer-root {
   height: auto !important;
   max-height: none !important;
+  max-width: 100% !important;
   overflow: auto !important;
 }
 
 /* Card content scroll fixes */
 .MuiCardContent-root {
   height: auto !important;
-  overflow: visible !important;
+  min-width: 0;
+}
+
+.MuiCard-root,
+.MuiContainer-root,
+.MuiGrid-root,
+.MuiStack-root {
+  min-width: 0;
 }
 
 /* Dialog scroll fixes */
 .MuiDialog-container {
   height: auto !important;
-  overflow: visible !important;
+  overflow-x: hidden !important;
 }
 
 .MuiDialogContent-root {
@@ -163,12 +172,12 @@ main[role="main"] {
 .banking-layout {
   height: auto !important;
   min-height: 100vh;
-  overflow: visible !important;
+  overflow-x: hidden !important;
 }
 
 .ifrs9-container {
   height: auto !important;
-  overflow: visible !important;
+  overflow-x: hidden !important;
 }
 
 /* Responsive fixes */

@@ -174,9 +174,9 @@ const BusinessParametersGrid = memo(function BusinessParametersGrid({
   );
 
   return (
-    <Card sx={{ mt: 2, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-      <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
-        <Box sx={{ p: 2, display: 'flex', gap: 2, alignItems: 'center', bgcolor: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(8px)', borderBottom: '1px solid', borderColor: 'divider' }}>
+    <Card sx={{ mt: 2, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden', width: '100%', maxWidth: '100%', minWidth: 0 }}>
+      <CardContent sx={{ p: 0, minWidth: 0, overflowX: 'hidden', '&:last-child': { pb: 0 } }}>
+        <Box sx={{ p: 2, display: 'flex', gap: 2, rowGap: 1.5, flexWrap: 'wrap', alignItems: 'center', minWidth: 0, bgcolor: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(8px)', borderBottom: '1px solid', borderColor: 'divider' }}>
           <TextField
             size="small"
             placeholder="Search parameters..."
@@ -187,9 +187,9 @@ const BusinessParametersGrid = memo(function BusinessParametersGrid({
               startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1, fontSize: 20 }} />,
               sx: { borderRadius: 2, bgcolor: 'background.paper' },
             }}
-            sx={{ flexGrow: 1, maxWidth: 400 }}
+            sx={{ flex: '1 1 280px', minWidth: 0, width: { xs: '100%', sm: 'auto' }, maxWidth: { xs: '100%', md: 400 } }}
           />
-          <FormControl size="small" sx={{ minWidth: 160 }}>
+          <FormControl size="small" sx={{ minWidth: 160, width: { xs: '100%', sm: 'auto' }, flex: { xs: '1 1 180px', sm: '0 0 auto' } }}>
             <InputLabel>Category</InputLabel>
             <Select value={categoryFilter} onChange={(e) => onCategoryChange(e.target.value)} label="Category" sx={{ borderRadius: 2, bgcolor: 'background.paper' }}>
               <MenuItem value="ALL">All</MenuItem>
@@ -203,10 +203,11 @@ const BusinessParametersGrid = memo(function BusinessParametersGrid({
           </Button>
         </Box>
 
-        <Box sx={{ width: '100%' }}>
+        <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
           <SafeDataGrid
             rows={rows}
             columns={columns}
+            responsiveMode="cards"
             getRowId={(row) => ((row as BusinessParameter).pkid && (row as BusinessParameter).pkid !== '0' ? (row as BusinessParameter).pkid : (row as BusinessParameter).param_code)}
             loading={loading}
             rowCount={totalCount}
@@ -245,6 +246,8 @@ const BusinessParametersGrid = memo(function BusinessParametersGrid({
             getDetailPanelHeight={() => 'auto'}
             sx={{
               minHeight: 400,
+              width: '100%',
+              maxWidth: '100%',
               '& .MuiDataGrid-main': { minHeight: 400 },
             }}
           />

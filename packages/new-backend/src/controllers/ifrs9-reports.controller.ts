@@ -321,10 +321,9 @@ const REPORT_DEBUG_CATALOG: Record<ReportKey, ReportDebugCatalogEntry> = {
     },
     'nominative-report': {
         title: 'Nominative Report',
-        sourceTables: ['public.frs9_nominative_output', 'public.frs9_master_account'],
-        joins: ['public.frs9_nominative_output.account_id -> public.frs9_master_account.account_id'],
-        filterKeys: ['prc_date', 'download_start_date', 'download_end_date', 'group_segment', 'segment', 'stage', 'branch_code', 'page', 'limit'],
-        sqlPreview: 'SELECT ... FROM public.frs9_nominative_output n LEFT JOIN public.frs9_master_account ma ON ... WHERE n.prc_date = :effectivePrcDate',
+        sourceTables: ['public.frs9_nominative_output'],
+        filterKeys: ['prc_date', 'download_start_date', 'download_end_date', 'segment', 'stage', 'branch_code', 'page', 'limit'],
+        sqlPreview: 'SELECT n.* FROM public.frs9_nominative_output n WHERE n.prc_date = :effectivePrcDate',
     },
 }
 
@@ -587,6 +586,48 @@ export const ifrs9ReportsController = {
             });
         } catch (error: any) {
             if (error instanceof ListQueryValidationError) return listQueryBadRequest(c, error)
+            return ifrs9ReportsController.handleError(c, error);
+        }
+    },
+
+    getLifetimeLGDSummary: async (c: Context) => {
+        try {
+            const startedAt = Date.now();
+            const tenantId = (c as any).get('tenantId');
+
+            const prc_date = c.req.query('prc_date') || '2023-12-31';
+            const lgd_config_id = c.req.query('lgd_config_id') ? Number(c.req.query('lgd_config_id')) : undefined;
+            const lgd_method = c.req.query('lgd_method') ? Number(c.req.query('lgd_method')) : undefined;
+            const model_id = c.req.query('model_id') ? Number(c.req.query('model_id')) : undefined;
+            const segment_id = c.req.query('segment_id') ? Number(c.req.query('segment_id')) : undefined;
+            const flFlagFilter = c.req.query('fl_flag');
+            const fl_flag = flFlagFilter === 'true' ? true : flFlagFilter === 'false' ? false : undefined;
+
+            const result = await ifrs9ReportsService.getLifetimeLGDSummary(
+                tenantId,
+                1,
+                200,
+                { prc_date, lgd_config_id, lgd_method, model_id, segment_id, fl_flag }
+            );
+
+            return c.json({
+                success: true,
+                data: result.data,
+                meta: await buildReportMeta(
+                    c,
+                    startedAt,
+                    'lifetime-lgd',
+                    { prc_date, lgd_config_id, lgd_method, model_id, segment_id, fl_flag },
+                    {
+                        effectivePrcDate: (result as any).effectivePrcDate ?? null,
+                        rowCount: Array.isArray(result.data) ? result.data.length : 0,
+                        variant: 'summary',
+                    }
+                ),
+                effectivePrcDate: (result as any).effectivePrcDate ?? null,
+                message: (!result.data || result.data.length === 0) ? 'No Lifetime LGD Summary Data available' : undefined
+            });
+        } catch (error: any) {
             return ifrs9ReportsController.handleError(c, error);
         }
     },

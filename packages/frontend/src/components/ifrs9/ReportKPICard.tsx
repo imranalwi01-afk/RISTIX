@@ -7,8 +7,11 @@ import {
   Typography,
   Chip,
   Skeleton,
-  alpha
+  alpha,
+  Tooltip,
+  IconButton
 } from '@mui/material';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { formatTerbilang } from '../../utils/banking';
 
 export interface ReportKPICardProps {
@@ -36,6 +39,12 @@ export interface ReportKPICardProps {
   bgGradient?: string;
   /** Label shown on the bottom chip. Defaults to "LIVE DATA". */
   chipLabel?: string;
+  /** Optional source table badge shown beside the chip. */
+  sourceBadgeLabel?: string;
+  /** Optional tooltip content for the source table badge. */
+  sourceBadgeTooltip?: React.ReactNode;
+  /** Optional tooltip content for the KPI title. */
+  titleTooltip?: React.ReactNode;
   /** Show skeleton instead of value (for loading states) */
   loading?: boolean;
 }
@@ -92,6 +101,9 @@ const ReportKPICard: React.FC<ReportKPICardProps> = ({
   mainColor,
   bgGradient,
   chipLabel = 'LIVE DATA',
+  sourceBadgeLabel,
+  sourceBadgeTooltip,
+  titleTooltip,
   loading = false
 }) => (
   <Card
@@ -116,18 +128,27 @@ const ReportKPICard: React.FC<ReportKPICardProps> = ({
     <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Header row: label + icon */}
       <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography
-          variant="caption"
-          sx={{
-            fontWeight: 800,
-            textTransform: titleTransform === 'uppercase' ? 'uppercase' : 'none',
-            letterSpacing: 1.5,
-            color: 'text.secondary',
-            opacity: 0.8
-          }}
-        >
-          {title}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 800,
+              textTransform: titleTransform === 'uppercase' ? 'uppercase' : 'none',
+              letterSpacing: 1.5,
+              color: 'text.secondary',
+              opacity: 0.8
+            }}
+          >
+            {title}
+          </Typography>
+          {titleTooltip ? (
+            <Tooltip title={titleTooltip} arrow placement="top">
+              <IconButton size="small" sx={{ p: 0.25, color: alpha(mainColor, 0.8) }}>
+                <InfoOutlinedIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+            </Tooltip>
+          ) : null}
+        </Box>
         <Box
           className="kpi-icon"
           sx={{
@@ -210,7 +231,7 @@ const ReportKPICard: React.FC<ReportKPICardProps> = ({
             )}
           </Box>
         )}
-        <Box sx={{ display: 'flex', alignItems: 'center', opacity: 0.7 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, opacity: 0.85, flexWrap: 'wrap' }}>
           <Chip
             size="small"
             label={chipLabel}
@@ -223,6 +244,22 @@ const ReportKPICard: React.FC<ReportKPICardProps> = ({
               color: mainColor
             }}
           />
+          {sourceBadgeLabel ? (
+            <Tooltip title={sourceBadgeTooltip || sourceBadgeLabel} arrow placement="top">
+              <Chip
+                size="small"
+                label={sourceBadgeLabel}
+                variant="filled"
+                sx={{
+                  height: 20,
+                  fontSize: '0.62rem',
+                  fontWeight: 700,
+                  bgcolor: alpha(mainColor, 0.1),
+                  color: mainColor,
+                }}
+              />
+            </Tooltip>
+          ) : null}
         </Box>
       </Box>
     </CardContent>

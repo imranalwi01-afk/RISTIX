@@ -1268,6 +1268,84 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
     }
   }, [bankingMode]);
 
+  const renderLifetimeLgdDetailPanel = useCallback((params: { row: any }) => {
+    const row = params.row || {};
+    const detailRows = Array.isArray(row._detail_rows) ? row._detail_rows : [];
+    const sequenceFieldSet = new Set<string>();
+
+    detailRows.forEach((detailRow: Record<string, unknown>) => {
+      Object.keys(detailRow || {}).forEach((key) => {
+        if (/^seq_\d+$/.test(key)) {
+          sequenceFieldSet.add(key);
+        }
+      });
+    });
+
+    const sequenceFields = Array.from(sequenceFieldSet).sort(
+      (left: string, right: string) => Number(left.replace('seq_', '')) - Number(right.replace('seq_', ''))
+    );
+
+    const detailColumns: GridColDef[] = [
+      { field: 'account_number', headerName: 'ACCOUNT_NUMBER', minWidth: 220, flex: 1 },
+      { field: 'cif_name', headerName: 'CIF_NAME', minWidth: 260, flex: 1.1 },
+      {
+        field: 'first_npl_date',
+        headerName: 'FIRST_NPL_DATE',
+        minWidth: 180,
+        valueFormatter: (value: string | null | undefined) => {
+          if (!value) return '';
+          const parsed = new Date(String(value));
+          return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        },
+      },
+      {
+        field: 'os_at_default',
+        headerName: 'OS_AT_DEFAULT',
+        minWidth: 180,
+        type: 'number',
+      },
+      ...sequenceFields.map((field: string): GridColDef => ({
+        field,
+        headerName: field.replace('seq_', ''),
+        minWidth: 180,
+        type: 'number' as const,
+      })),
+    ];
+
+    return (
+      <Box sx={{ p: 1, minWidth: 0 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2 }}>
+          Lifetime LGD Detail
+        </Typography>
+        {detailRows.length > 0 ? (
+          <SafeDataGrid
+            rows={detailRows}
+            columns={detailColumns}
+            getRowId={(detailRow) => detailRow.id || detailRow.account_id || detailRow.account_number || Math.random()}
+            pagination
+            paginationMode="client"
+            initialState={{
+              pagination: {
+                paginationModel: {
+                  page: 0,
+                  pageSize: 10,
+                },
+              },
+            }}
+            pageSizeOptions={[10, 25, 50, 75, 100]}
+            responsiveMode="scroll"
+            showEnterpriseControls
+            sx={{ width: '100%', maxWidth: '100%', minWidth: 0 }}
+          />
+        ) : (
+          <Alert severity="info" sx={{ borderRadius: 2 }}>
+            No account-level Lifetime LGD detail is available for this summary row.
+          </Alert>
+        )}
+      </Box>
+    );
+  }, []);
+
   const groupSegmentOptions = React.useMemo(
     () => {
       // Keep GCA Movement dropdown fixed to match legacy UI list/order exactly.
@@ -1449,6 +1527,15 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
       </Box>
     </Paper>
   ) : null;
+
+  const debugMeta = reportMeta?.debug ?? null;
+  const debugReportTitle = String(debugMeta?.reportTitle || title);
+  const debugRowCount = String(debugMeta?.rowCount ?? data.length);
+  const debugSourceTables = Array.isArray(debugMeta?.sourceTables) ? debugMeta.sourceTables : [];
+  const debugFiltersApplied = (debugMeta?.filtersApplied as Record<string, unknown>) || {};
+  const debugJoins = Array.isArray(debugMeta?.joins) ? debugMeta.joins : [];
+  const debugEmptyReason = debugMeta?.emptyReason ? String(debugMeta.emptyReason) : '';
+  const debugSqlPreview = debugMeta?.sqlPreview ? String(debugMeta.sqlPreview) : '';
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -1994,13 +2081,13 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
           </Card>
         )}
 
-        {reportMeta?.debug && (
+        {debugMeta && (
           <Accordion defaultExpanded sx={{ mb: 2, borderRadius: 3, overflow: 'hidden', '&:before': { display: 'none' } }}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Box>
                 <Typography fontWeight={700}>Report Query Debug</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {String(reportMeta.debug.reportTitle || title)} · {String(reportMeta.debug.rowCount ?? data.length)} rows
+                  {debugReportTitle} · {debugRowCount} rows
                 </Typography>
               </Box>
             </AccordionSummary>
@@ -2009,7 +2096,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="subtitle2" fontWeight={700} gutterBottom>Source Tables</Typography>
                   <List dense disablePadding>
-                    {(reportMeta.debug.sourceTables || []).map((table) => (
+                    {debugSourceTables.map((table) => (
                       <ListItem key={table} disableGutters sx={{ py: 0.25 }}>
                         <ListItemText primary={table} />
                       </ListItem>
@@ -2019,18 +2106,18 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="subtitle2" fontWeight={700} gutterBottom>Applied Filters</Typography>
                   <List dense disablePadding>
-                    {Object.entries((reportMeta.debug.filtersApplied as Record<string, unknown>) || {}).map(([key, value]) => (
+                    {Object.entries(debugFiltersApplied).map(([key, value]) => (
                       <ListItem key={key} disableGutters sx={{ py: 0.25 }}>
                         <ListItemText primary={key} secondary={Array.isArray(value) ? value.join(', ') : String(value)} />
                       </ListItem>
                     ))}
                   </List>
                 </Grid>
-                {Array.isArray(reportMeta.debug.joins) && reportMeta.debug.joins.length > 0 && (
+                {debugJoins.length > 0 && (
                   <Grid size={{ xs: 12 }}>
                     <Typography variant="subtitle2" fontWeight={700} gutterBottom>Join Path</Typography>
                     <List dense disablePadding>
-                      {reportMeta.debug.joins.map((joinPath) => (
+                      {debugJoins.map((joinPath) => (
                         <ListItem key={joinPath} disableGutters sx={{ py: 0.25 }}>
                           <ListItemText primary={joinPath} />
                         </ListItem>
@@ -2038,12 +2125,12 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                     </List>
                   </Grid>
                 )}
-                {reportMeta.debug.emptyReason && (
+                {debugEmptyReason && (
                   <Grid size={{ xs: 12 }}>
-                    <Alert severity="warning">{String(reportMeta.debug.emptyReason)}</Alert>
+                    <Alert severity="warning">{debugEmptyReason}</Alert>
                   </Grid>
                 )}
-                {reportMeta.debug.sqlPreview && (
+                {debugSqlPreview && (
                   <Grid size={{ xs: 12 }}>
                     <Typography variant="subtitle2" fontWeight={700} gutterBottom>Query Preview</Typography>
                     <Box
@@ -2059,7 +2146,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                         overflowX: 'auto',
                       }}
                     >
-                      {String(reportMeta.debug.sqlPreview)}
+                      {debugSqlPreview}
                     </Box>
                   </Grid>
                 )}
@@ -2073,11 +2160,24 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
         {/* Data Grid */}
         {columns.length > 0 && !hideDataGrid ? (
-          <Paper sx={{ height: 600, width: '100%' }}>
+          <Paper
+            sx={{
+              minHeight: 600,
+              height: 'auto',
+              width: '100%',
+              maxWidth: '100%',
+              minWidth: 0,
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
             <SafeDataGrid
               rows={filteredData}
               columns={columns}
               loading={loading}
+              getDetailPanelContent={reportType === 'lifetime-lgd' ? renderLifetimeLgdDetailPanel : undefined}
+              getDetailPanelHeight={reportType === 'lifetime-lgd' ? () => 'auto' : undefined}
               pagination
               paginationMode={supportsPagination ? 'server' : 'client'}
               {...(supportsPagination && pagination.total > 0 && { rowCount: pagination.total })}
@@ -2111,7 +2211,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
               onColumnVisibilityModelChange={supportsPagination ? setColumnVisibilityModel : undefined}
               density={gridDensity}
               onDensityChange={supportsPagination ? setDensity : undefined}
-              pageSizeOptions={supportsPagination ? [10, 20, 50, 100] : [100]}
+              pageSizeOptions={supportsPagination ? [10, 25, 50, 75, 100] : [100]}
               getRowId={(row) => row.id || row.account_id || row.pkid || Math.random()}
               filterDefinitions={filterDefinitions}
               showEnterpriseControls

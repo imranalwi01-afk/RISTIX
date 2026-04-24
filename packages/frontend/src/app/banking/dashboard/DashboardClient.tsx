@@ -40,7 +40,10 @@ import {
     Select,
     MenuItem,
     InputLabel,
-    ListSubheader
+    ListSubheader,
+    Accordion,
+    AccordionSummary,
+    AccordionDetails
 } from '@mui/material'
 import {
     AccountBalance,
@@ -63,9 +66,11 @@ import {
     Notifications,
     Download,
     Upload,
-    Save
+    Save,
+    ContentCopy
 } from '@mui/icons-material'
-import { useRouter } from 'next/navigation'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useSelector, useDispatch } from 'react-redux'
 import type { RootState } from '../../../store'
 import { api, handleAPIError } from '../../../services/api'
@@ -225,6 +230,16 @@ interface PortfolioMetrics {
     currency: string;
 }
 
+interface DashboardDebugMetadata {
+    endpoint: string;
+    sourceTables: string[];
+    selectedSource: string;
+    filtersApplied: Record<string, unknown>;
+    sqlPreview: string;
+    notes?: string[];
+    requestUrl?: string;
+}
+
 interface DashboardActivity {
     id: string;
     icon: React.ReactNode;
@@ -235,6 +250,7 @@ interface DashboardActivity {
 
 export default function DashboardClient() {
     const router = useRouter()
+    const searchParams = useSearchParams()
     const dispatch = useDispatch()
     const { hasAnyPermission } = usePermission()
 
@@ -267,6 +283,9 @@ export default function DashboardClient() {
     const [availableDateGroups, setAvailableDateGroups] = useState<Record<string, string[]> | null>(null)
     const [selectedDate, setSelectedDate] = useState<string>('')
     const [isLoadingDates, setIsLoadingDates] = useState<boolean>(true)
+    const [summaryDebug, setSummaryDebug] = useState<DashboardDebugMetadata | null>(null)
+    const [trendDebug, setTrendDebug] = useState<DashboardDebugMetadata | null>(null)
+    const [copiedDebugKey, setCopiedDebugKey] = useState<string | null>(null)
 
 
     // ✅ SURGICAL FIX: Determine banking context from real user data
@@ -325,6 +344,72 @@ export default function DashboardClient() {
     }
 
     const bankingContext = getBankingContext()
+    const dashboardMode = searchParams.get('mode') || user?.bankingType || undefined
+
+    const shortSourceName = useCallback((source?: string | null) => {
+        if (!source) return 'N/A'
+        return source.split('.').pop() || source
+    }, [])
+
+    const resolveSummarySourceChip = useCallback(() => {
+        const source = summaryDebug?.selectedSource
+        if (source === 'public.frs9_ecl_summary') {
+            return {
+                label: 'ECL Summary Source',
+                color: 'success' as const,
+                tooltip: 'Dashboard summary widgets are sourced from public.frs9_ecl_summary.',
+            }
+        }
+
+        return {
+            label: source ? `Source: ${shortSourceName(source)}` : 'No ECL Summary Data',
+            color: 'warning' as const,
+            tooltip: 'No matching rows were found in public.frs9_ecl_summary for the current filter scope.',
+        }
+    }, [shortSourceName, summaryDebug?.selectedSource])
+
+    const renderDebugTooltipContent = useCallback((title: string, debug: DashboardDebugMetadata | null) => {
+        if (!debug) return title
+        return (
+            <Box sx={{ maxWidth: 420 }}>
+                <Typography variant="subtitle2" sx={{ mb: 0.5 }}>{title}</Typography>
+                <Typography variant="caption" display="block">Source: {debug.selectedSource}</Typography>
+                <Typography variant="caption" display="block">Request: {debug.requestUrl || debug.endpoint}</Typography>
+                {Array.isArray(debug.notes) && debug.notes.length > 0 ? (
+                    <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+                        {debug.notes.join(' ')}
+                    </Typography>
+                ) : null}
+            </Box>
+        )
+    }, [])
+
+    const buildDebugRequestUrl = useCallback((endpoint: string, params: Record<string, string | undefined>) => {
+        const query = new URLSearchParams()
+        Object.entries(params).forEach(([key, value]) => {
+            if (value && value.trim()) query.set(key, value)
+        })
+        const queryString = query.toString()
+        return queryString ? `${endpoint}?${queryString}` : endpoint
+    }, [])
+
+    const handleCopyDebug = useCallback(async (title: string, debug: DashboardDebugMetadata | null) => {
+        if (!debug || typeof navigator === 'undefined' || !navigator.clipboard) return
+        const payload = JSON.stringify({
+            title,
+            requestUrl: debug.requestUrl,
+            endpoint: debug.endpoint,
+            selectedSource: debug.selectedSource,
+            sourceTables: debug.sourceTables,
+            filtersApplied: debug.filtersApplied,
+            sqlPreview: debug.sqlPreview,
+            notes: debug.notes || [],
+        }, null, 2)
+
+        await navigator.clipboard.writeText(payload)
+        setCopiedDebugKey(title)
+        window.setTimeout(() => setCopiedDebugKey((current) => current === title ? null : current), 2000)
+    }, [])
 
     const handleWidgetLayoutChange = (widgets: any[]) => {
         dispatch(setCurrentWidgets(widgets))
@@ -359,24 +444,38 @@ export default function DashboardClient() {
             const apiDate = date === 'all' ? 'all' : (date === '' ? undefined : date);
 
             const [summaryData, trendData] = await Promise.all([
-                api.ifrs9.getCalculationsSummary(apiDate),
-                api.ifrs9.getPortfolioTrend(apiDate)
+                api.ifrs9.getCalculationsSummary(apiDate, dashboardMode),
+                api.ifrs9.getPortfolioTrend(apiDate, dashboardMode)
             ])
 
             // Extract data from response if it follows success/data pattern
             const summary = summaryData?.success ? summaryData.data : summaryData;
             const trend = trendData?.success ? trendData.data : trendData;
+            const summaryMetaDebug = summaryData?.meta?.debug || null;
+            const trendMetaDebug = trendData?.meta?.debug || null;
+            const summaryRequestUrl = buildDebugRequestUrl('/api/v1/ifrs9/calculations/summary', {
+                date: apiDate,
+                mode: dashboardMode,
+            })
+            const trendRequestUrl = buildDebugRequestUrl('/api/v1/ifrs9/calculations/portfolio-trend', {
+                date: apiDate,
+                mode: dashboardMode,
+            })
 
             setEclSummary(summary)
             setPortfolioMetrics(summary) // Sync portfolio metrics
             setPortfolioTrend(trend || [])
+            setSummaryDebug(summaryMetaDebug ? { ...summaryMetaDebug, requestUrl: summaryRequestUrl } : null)
+            setTrendDebug(trendMetaDebug ? { ...trendMetaDebug, requestUrl: trendRequestUrl } : null)
         } catch (error: any) {
             console.error('❌ Error loading dashboard data:', error);
             setError(handleAPIError(error))
+            setSummaryDebug(null)
+            setTrendDebug(null)
         } finally {
             setIsLoading(false)
         }
-    }, []) // Stable identity
+    }, [buildDebugRequestUrl, dashboardMode]) // Stable identity
 
     const loadAvailableDates = useCallback(async () => {
         setIsLoadingDates(true);
@@ -401,9 +500,9 @@ export default function DashboardClient() {
 
             let datesResponse: unknown
             try {
-                datesResponse = await api.ifrs9.getAvailableDates(undefined, { groupBy: 'year' })
+                datesResponse = await api.ifrs9.getAvailableDates(dashboardMode, { groupBy: 'year' })
             } catch {
-                datesResponse = await api.ifrs9.getAvailableDates()
+                datesResponse = await api.ifrs9.getAvailableDates(dashboardMode)
             }
 
             const datesData = unwrapResponseData(datesResponse);
@@ -431,7 +530,7 @@ export default function DashboardClient() {
         } finally {
             setIsLoadingDates(false);
         }
-    }, [selectedDate]);
+    }, [dashboardMode, selectedDate]);
 
     // ✅ INITIALIZATION: Load data on component mount
     useEffect(() => {
@@ -501,7 +600,17 @@ export default function DashboardClient() {
                         Please log in to access the banking dashboard.
                     </Typography>
                 </Alert>
-                <Button variant="contained" onClick={() => router.push('/login')}>
+                <Button
+                    variant="contained"
+                    onClick={() => {
+                        if (typeof window !== 'undefined') {
+                            const redirectTarget = `${window.location.pathname}${window.location.search}`
+                            window.location.replace(`/login?logout=true&redirect=${encodeURIComponent(redirectTarget)}`)
+                            return
+                        }
+                        router.push('/login?logout=true')
+                    }}
+                >
                     Go to Login
                 </Button>
             </Box>
@@ -529,7 +638,10 @@ export default function DashboardClient() {
             icon: <Calculate sx={{ fontSize: 28 }} />,
             gradient: `linear-gradient(135deg, ${alpha(bankingContext.primary, 0.8)} 0%, ${bankingContext.primary} 100%)`,
             mainColor: bankingContext.primary,
-            chipLabel: `Rate: ${eclSummary?.eclRate ? eclSummary.eclRate.toFixed(2) : '0.00'}%`
+            chipLabel: `Rate: ${eclSummary?.eclRate ? eclSummary.eclRate.toFixed(2) : '0.00'}%`,
+            sourceBadgeLabel: shortSourceName(summaryDebug?.selectedSource),
+            sourceBadgeTooltip: renderDebugTooltipContent('Total ECL', summaryDebug),
+            titleTooltip: renderDebugTooltipContent('Total ECL', summaryDebug),
         },
         {
             title: 'Total Exposure',
@@ -538,16 +650,22 @@ export default function DashboardClient() {
             icon: <AccountBalance sx={{ fontSize: 28 }} />,
             gradient: `linear-gradient(135deg, ${alpha(bankingContext.secondary, 0.8)} 0%, ${bankingContext.secondary} 100%)`,
             mainColor: bankingContext.secondary,
-            chipLabel: 'Total Portfolio'
+            chipLabel: 'Total Portfolio',
+            sourceBadgeLabel: shortSourceName(summaryDebug?.selectedSource),
+            sourceBadgeTooltip: renderDebugTooltipContent('Total Exposure', summaryDebug),
+            titleTooltip: renderDebugTooltipContent('Total Exposure', summaryDebug),
         },
         {
             title: 'Active Accounts',
-            value: portfolioMetrics?.totalAccounts || 0,
+            value: portfolioMetrics?.activeAccounts || 0,
             format: 'count',
             icon: <Business sx={{ fontSize: 28 }} />,
             gradient: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.8)} 0%, ${theme.palette.info.main} 100%)`,
             mainColor: theme.palette.info.main,
-            chipLabel: 'Active Loans'
+            chipLabel: 'Active Loans',
+            sourceBadgeLabel: shortSourceName(summaryDebug?.selectedSource),
+            sourceBadgeTooltip: renderDebugTooltipContent('Active Accounts', summaryDebug),
+            titleTooltip: renderDebugTooltipContent('Active Accounts', summaryDebug),
         },
         {
             title: 'High Risk (Stage 3)',
@@ -556,9 +674,14 @@ export default function DashboardClient() {
             icon: <Warning sx={{ fontSize: 28 }} />,
             gradient: `linear-gradient(135deg, ${alpha(COLORS.stage3, 0.8)} 0%, ${COLORS.stage3} 100%)`,
             mainColor: COLORS.stage3,
-            chipLabel: 'Credit Impaired'
+            chipLabel: 'Credit Impaired',
+            sourceBadgeLabel: shortSourceName(summaryDebug?.selectedSource),
+            sourceBadgeTooltip: renderDebugTooltipContent('High Risk (Stage 3)', summaryDebug),
+            titleTooltip: renderDebugTooltipContent('High Risk (Stage 3)', summaryDebug),
         }
     ];
+    const canViewDashboardDebug = hasAnyPermission(['admin.super_admin', 'banking.dashboard.manage']);
+    const summarySourceChip = resolveSummarySourceChip();
 
     return (
         <Box sx={{ transition: 'background-color 0.3s ease', pt: 8, pb: 4 }}>
@@ -578,21 +701,16 @@ export default function DashboardClient() {
                         </Typography>
                         {eclSummary && (
                             <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
-                                <Chip
-                                    size="small"
-                                    icon={<CheckCircle sx={{ fontSize: '1rem !important' }} />}
-                                    label={eclSummary.isFallback ? "Master Account Source (Fallback)" : "Calc Result Source (Real)"}
-                                    color={eclSummary.isFallback ? "warning" : "success"}
-                                    variant="filled"
-                                    sx={{ fontWeight: 'bold' }}
-                                />
-                                {eclSummary.isFallback && (
-                                    <Tooltip title="Calculation results for this process date were not found. Data shown is from the raw master account table.">
-                                        <IconButton size="small" sx={{ p: 0, color: 'white' }}>
-                                            <Info sx={{ fontSize: '1rem' }} />
-                                        </IconButton>
-                                    </Tooltip>
-                                )}
+                                <Tooltip title={summarySourceChip.tooltip}>
+                                    <Chip
+                                        size="small"
+                                        icon={<CheckCircle sx={{ fontSize: '1rem !important' }} />}
+                                        label={summarySourceChip.label}
+                                        color={summarySourceChip.color}
+                                        variant="filled"
+                                        sx={{ fontWeight: 'bold' }}
+                                    />
+                                </Tooltip>
                             </Box>
                         )}
                     </Box>
@@ -719,6 +837,132 @@ export default function DashboardClient() {
                 </Box>
             </Paper>
 
+            {canViewDashboardDebug && (summaryDebug || trendDebug) && (
+                <Accordion sx={{ mb: 3, borderRadius: 3, overflow: 'hidden', '&:before': { display: 'none' } }}>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                        <Box>
+                            <Typography fontWeight={700}>Dashboard Query Debug</Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                Shows endpoint, source table, filters, and SQL preview used by current dashboard widgets.
+                            </Typography>
+                        </Box>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <Grid container spacing={2}>
+                            {[
+                                {
+                                    title: 'Summary Widgets',
+                                    widgets: 'Total ECL, Total Exposure, Active Accounts, High Risk, ECL Distribution',
+                                    debug: summaryDebug,
+                                },
+                                {
+                                    title: 'Portfolio Exposure Trend',
+                                    widgets: 'Portfolio Exposure Trend',
+                                    debug: trendDebug,
+                                },
+                            ].filter((item) => item.debug).map((item) => (
+                                <Grid key={item.title} size={{ xs: 12, md: 6 }}>
+                                    <Card variant="outlined" sx={{ height: '100%', borderRadius: 3 }}>
+                                        <CardContent>
+                                            <Typography variant="subtitle1" fontWeight={700} gutterBottom>
+                                                {item.title}
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                                {item.widgets}
+                                            </Typography>
+                                            <Stack spacing={1.5}>
+                                                <Box>
+                                                    <Typography variant="caption" color="text.secondary">Endpoint</Typography>
+                                                    <Typography variant="body2" fontWeight={600}>{item.debug?.endpoint}</Typography>
+                                                </Box>
+                                                <Box>
+                                                    <Typography variant="caption" color="text.secondary">Request URL</Typography>
+                                                    <Box
+                                                        component="pre"
+                                                        sx={{
+                                                            m: 0,
+                                                            mt: 0.5,
+                                                            p: 1,
+                                                            borderRadius: 2,
+                                                            bgcolor: alpha(theme.palette.primary.main, 0.04),
+                                                            whiteSpace: 'pre-wrap',
+                                                            wordBreak: 'break-word',
+                                                            overflowX: 'auto',
+                                                            fontSize: '0.8rem',
+                                                        }}
+                                                    >
+                                                        {item.debug?.requestUrl || item.debug?.endpoint}
+                                                    </Box>
+                                                </Box>
+                                                <Box>
+                                                    <Typography variant="caption" color="text.secondary">Selected Source</Typography>
+                                                    <Typography variant="body2" fontWeight={600}>{item.debug?.selectedSource}</Typography>
+                                                </Box>
+                                                <Box>
+                                                    <Typography variant="caption" color="text.secondary">Source Tables</Typography>
+                                                    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mt: 0.5 }}>
+                                                        {(item.debug?.sourceTables || []).map((table) => (
+                                                            <Chip key={table} label={table} size="small" variant="outlined" />
+                                                        ))}
+                                                    </Stack>
+                                                </Box>
+                                                <Box>
+                                                    <Typography variant="caption" color="text.secondary">Applied Filters</Typography>
+                                                    <List dense disablePadding>
+                                                        {Object.entries(item.debug?.filtersApplied || {}).map(([key, value]) => (
+                                                            <ListItem key={key} disableGutters sx={{ py: 0.25 }}>
+                                                                <ListItemText
+                                                                    primary={key}
+                                                                    secondary={Array.isArray(value) ? value.join(', ') : String(value)}
+                                                                />
+                                                            </ListItem>
+                                                        ))}
+                                                    </List>
+                                                </Box>
+                                                {Array.isArray(item.debug?.notes) && item.debug.notes.length > 0 && (
+                                                    <Alert severity="info">
+                                                        {item.debug.notes.join(' ')}
+                                                    </Alert>
+                                                )}
+                                                <Box>
+                                                    <Button
+                                                        size="small"
+                                                        variant="outlined"
+                                                        startIcon={<ContentCopy fontSize="small" />}
+                                                        onClick={() => void handleCopyDebug(item.title, item.debug || null)}
+                                                    >
+                                                        {copiedDebugKey === item.title ? 'Copied' : 'Copy Debug'}
+                                                    </Button>
+                                                </Box>
+                                                <Box>
+                                                    <Typography variant="caption" color="text.secondary">Query Preview</Typography>
+                                                    <Box
+                                                        component="pre"
+                                                        sx={{
+                                                            m: 0,
+                                                            mt: 0.5,
+                                                            p: 1.5,
+                                                            borderRadius: 2,
+                                                            bgcolor: alpha(theme.palette.primary.main, 0.04),
+                                                            whiteSpace: 'pre-wrap',
+                                                            wordBreak: 'break-word',
+                                                            overflowX: 'auto',
+                                                            fontSize: '0.8rem',
+                                                        }}
+                                                    >
+                                                        {item.debug?.sqlPreview}
+                                                    </Box>
+                                                </Box>
+                                            </Stack>
+                                        </CardContent>
+                                    </Card>
+                                </Grid>
+                            ))}
+                        </Grid>
+                    </AccordionDetails>
+                </Accordion>
+            )}
+
             {/* Error Alert */}
             {error && (
                 <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
@@ -812,7 +1056,14 @@ export default function DashboardClient() {
                         }}>
                             <CardContent sx={{ p: isMobile ? 2 : 3 }}>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3, alignItems: 'center' }}>
-                                    <Typography variant="h6" fontWeight="bold">Portfolio Exposure Trend</Typography>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                        <Tooltip title={renderDebugTooltipContent('Portfolio Exposure Trend', trendDebug)} arrow placement="top">
+                                            <Typography variant="h6" fontWeight="bold" sx={{ cursor: trendDebug ? 'help' : 'default' }}>
+                                                Portfolio Exposure Trend
+                                            </Typography>
+                                        </Tooltip>
+                                        <Chip label={shortSourceName(trendDebug?.selectedSource)} size="small" variant="outlined" sx={{ fontWeight: 700, borderRadius: 2 }} />
+                                    </Box>
                                     <Chip label="Historical" size="small" variant="outlined" sx={{ fontWeight: 600, borderRadius: 2 }} />
                                 </Box>
                                 {/* RENDER TREND CHART */}
@@ -830,7 +1081,14 @@ export default function DashboardClient() {
                             background: theme.palette.background.paper
                         }}>
                             <CardContent sx={{ p: isMobile ? 2 : 3 }}>
-                                <Typography variant="h6" fontWeight="bold" sx={{ mb: 3 }}>ECL Distribution</Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3, flexWrap: 'wrap' }}>
+                                    <Tooltip title={renderDebugTooltipContent('ECL Distribution', summaryDebug)} arrow placement="top">
+                                        <Typography variant="h6" fontWeight="bold" sx={{ cursor: summaryDebug ? 'help' : 'default' }}>
+                                            ECL Distribution
+                                        </Typography>
+                                    </Tooltip>
+                                    <Chip label={shortSourceName(summaryDebug?.selectedSource)} size="small" variant="outlined" sx={{ fontWeight: 700, borderRadius: 2 }} />
+                                </Box>
                                 {/* RENDER PIE CHART */}
                                 <Box sx={{ position: 'relative', height: 300 }}>
                                     <ECLDistributionChart data={eclSummary} />

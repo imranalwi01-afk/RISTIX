@@ -129,6 +129,10 @@ export const individualImpairmentAPI = {
     const response = await apiClient.post('/banking/individual/impairment/dcf-uploads', data);
     return response.data;
   },
+  getIaResultDetail: async (params: { accountId?: string | number; accountNumber?: string }) => {
+    const response = await apiClient.get('/banking/individual/impairment/ia-results/detail', { params });
+    return response.data;
+  },
   getDcfCalculations: async () => {
     const response = await apiClient.get('/banking/individual/impairment/dcf-calculations');
     return response.data;

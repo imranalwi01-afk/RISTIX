@@ -35,6 +35,7 @@ export interface SafeDataGridProps<T extends GridValidRowModel = any> extends Om
   rows: T[];
   columns: GridColDef<T>[];
   getRowSx?: (params: { row: T; id: string | number }) => any;
+  responsiveMode?: 'cards' | 'scroll';
   // Detail panel support (not in base DataGridProps)
   getDetailPanelContent?: (params: { row: T }) => any;
   getDetailPanelHeight?: (params: { row: T }) => number | 'auto';
@@ -124,6 +125,7 @@ export function SafeDataGrid<T extends GridValidRowModel = any>(props: SafeDataG
       sx={props.sx}
       getDetailPanelContent={props.getDetailPanelContent}
       getDetailPanelHeight={props.getDetailPanelHeight}
+      responsiveMode={props.responsiveMode}
       enableColumnFilters={props.enableColumnFilters ?? !props.disableColumnFilter}
       columnFilters={props.columnFilters}
       onColumnFiltersChange={props.onColumnFiltersChange}

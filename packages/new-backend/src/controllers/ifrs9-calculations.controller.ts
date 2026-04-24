@@ -46,7 +46,7 @@ export class Ifrs9CalculationsController {
             const date = c.req.query('date');
             const mode = c.req.query('mode');
             const summary = await ifrs9CalculationsService.getSummary(tenantId, date, mode);
-            return c.json({ success: true, data: summary });
+            return c.json({ success: true, data: summary.data, meta: { debug: summary.debug } });
         } catch (error: any) {
             console.error('❌ Controller error fetching calculation summary:', error);
             return this.handleError(c, error);
@@ -101,7 +101,7 @@ export class Ifrs9CalculationsController {
             const date = c.req.query('date');
             const mode = c.req.query('mode');
             const trend = await ifrs9CalculationsService.getPortfolioTrend(tenantId, date, mode);
-            return c.json({ success: true, data: trend || [] });
+            return c.json({ success: true, data: trend.data || [], meta: { debug: trend.debug } });
         } catch (error: any) {
             return this.handleError(c, error);
         }

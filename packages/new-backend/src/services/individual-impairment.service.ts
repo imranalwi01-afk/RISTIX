@@ -30,6 +30,270 @@ const STATUS_MAP_TO_INT: Record<string, number> = {
 };
 
 export class IndividualImpairmentService {
+    private toNumber(value: unknown) {
+        if (value == null || value === '') return 0;
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    private toDateString(value?: string | Date | null) {
+        if (!value) return new Date().toISOString().slice(0, 10);
+        const date = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(date.getTime())) {
+            return String(value).slice(0, 10);
+        }
+        return date.toISOString().slice(0, 10);
+    }
+
+    private mapDcfCashflowRow(row: any) {
+        return {
+            pkid: Number(row.pkid),
+            iaId: row.iaId ? Number(row.iaId) : null,
+            prcDate: row.prcDate || null,
+            accountId: row.accountId ? Number(row.accountId) : null,
+            accountNumber: row.accountNumber || '',
+            mob: Number(row.mob || 0),
+            periode: row.periode || null,
+            principal: this.toNumber(row.principal),
+            interest: this.toNumber(row.interest),
+            collateral: this.toNumber(row.collateral),
+            status: row.status || null,
+            createdby: row.createdby || '',
+            createddate: row.createddate || null
+        };
+    }
+
+    private mapIaResultHeaderRow(header: any) {
+        return {
+            pkid: Number(header.pkid),
+            iaId: header.iaId ? Number(header.iaId) : null,
+            prcDate: header.prcDate || null,
+            effectiveDate: header.effDate || header.prcDate || null,
+            accountId: header.accountId ? Number(header.accountId) : null,
+            accountNumber: header.accountNumber || '',
+            cifNumber: header.cifNumber || '',
+            cifName: header.cifName || '',
+            currency: header.currency || '',
+            dpd: this.toNumber(header.dpd),
+            collectability: this.toNumber(header.collectability),
+            ratingCode: header.ratingCode || '',
+            interestRate: this.toNumber(header.interestRate),
+            effInterestRate: this.toNumber(header.effInterestRate),
+            outstanding: this.toNumber(header.outstanding),
+            accruedInterest: this.toNumber(header.accruedInterest),
+            carryingAmt: this.toNumber(header.carryingAmt),
+            eadAmt: this.toNumber(header.eadAmt),
+            pvDcfAmt: this.toNumber(header.pvDcfAmt),
+            eclIaAmt: this.toNumber(header.eclIaAmt),
+            createdby: header.createdby || '',
+            createddate: header.createddate || null
+        };
+    }
+
+    private mapIaResultDetailRow(row: any) {
+        return {
+            pkid: Number(row.pkid),
+            iaId: row.iaId ? Number(row.iaId) : null,
+            prcDate: row.prcDate || null,
+            accountId: row.accountId ? Number(row.accountId) : null,
+            mob: this.toNumber(row.mob),
+            periode: row.periode || null,
+            principal: this.toNumber(row.principal),
+            interest: this.toNumber(row.interest),
+            installment: this.toNumber(row.installment),
+            collateral: this.toNumber(row.collateral),
+            poRate1: this.toNumber(row.poRate1),
+            rrRate1: this.toNumber(row.rrRate1),
+            default1: this.toNumber(row.default1),
+            poRate2: this.toNumber(row.poRate2),
+            rrRate2: this.toNumber(row.rrRate2),
+            default2: this.toNumber(row.default2),
+            poRate3: this.toNumber(row.poRate3),
+            rrRate3: this.toNumber(row.rrRate3),
+            default3: this.toNumber(row.default3),
+            pwAmt: this.toNumber(row.pwAmt),
+            discountFactor: this.toNumber(row.discountFactor),
+            pvAmt: this.toNumber(row.pvAmt),
+            beginningBalance: this.toNumber(row.beginningBalance),
+            eirAmt: this.toNumber(row.eirAmt),
+            endingBalance: this.toNumber(row.endingBalance)
+        };
+    }
+
+    private async ensureLegacyIaHeader(
+        tx: any,
+        accountId: number,
+        createdBy: string,
+        createdHost: string
+    ) {
+        const existing = await tx.select()
+            .from(frs9ImpIaHeader)
+            .where(eq(frs9ImpIaHeader.accountId, accountId))
+            .orderBy(desc(frs9ImpIaHeader.updateddate), desc(frs9ImpIaHeader.createddate))
+            .limit(1);
+
+        if (existing.length > 0) {
+            return existing[0];
+        }
+
+        const assessment = await this.getAssessment('legacy', accountId);
+        if (!assessment) {
+            throw new Error(`Assessment source for account ${accountId} not found`);
+        }
+
+        const iaId = await this.generateIaId();
+        const now = new Date().toISOString();
+        const prcDate = this.toDateString(assessment.prc_date || new Date());
+        const impairedFlag = String(assessment.impaired_flag || 'N').toUpperCase() === 'I' ? 'T' : 'F';
+
+        const [inserted] = await tx.insert(frs9ImpIaHeader).values({
+            iaId,
+            prcDate,
+            effDate: this.toDateString(assessment.eff_date || prcDate),
+            cifNumber: assessment.cif_number || 'UNKNOWN',
+            cifName: assessment.cif_name || 'UNKNOWN',
+            accountId,
+            accountNumber: assessment.account_number || String(accountId),
+            currency: assessment.currency || 'IDR',
+            effInterestRate: this.toNumber(assessment.eff_interest_rate),
+            interestRate: this.toNumber(assessment.interest_rate),
+            dpd: this.toNumber(assessment.dpd),
+            collectability: this.toNumber(assessment.collectability),
+            ratingCode: assessment.rating_code || null,
+            impairedFlag,
+            method: 'DCF',
+            plafond: String(this.toNumber(assessment.plafond || assessment.outstanding_balance)),
+            outstanding: String(this.toNumber(assessment.outstanding_balance)),
+            accruedInterest: String(this.toNumber(assessment.accrued_interest)),
+            carryingAmt: String(this.toNumber(assessment.carrying_amt || assessment.outstanding_balance)),
+            eadAmt: String(this.toNumber(assessment.ead_amt || assessment.outstanding_balance)),
+            pvDcfAmt: '0',
+            eclIaAmt: '0',
+            triggerRemarks: String(assessment.impairment_reason || assessment.analyst_comments || ''),
+            triggerFilename: assessment.supporting_documents?.[0] || null,
+            scenarioId: 1,
+            nOfScenario: 1,
+            poRate1: 100,
+            poRate2: 0,
+            poRate3: 0,
+            scName1: 'DEFAULT',
+            scName2: null,
+            scName3: null,
+            status: 1,
+            createdby: createdBy,
+            createddate: now,
+            createdhost: createdHost
+        }).returning();
+
+        return inserted;
+    }
+
+    private buildLegacyIaDetailRows(
+        header: any,
+        rrRows: any[],
+        dcfRows: any[],
+        createdBy: string,
+        createdHost: string
+    ) {
+        const poRate1 = this.toNumber(header.poRate1);
+        const poRate2 = this.toNumber(header.poRate2);
+        const poRate3 = this.toNumber(header.poRate3);
+        const effInterestRate = this.toNumber(header.effInterestRate);
+        const effectiveMonthlyRate = (effInterestRate > 0 ? effInterestRate : 12) / 100 / 12;
+        const now = new Date().toISOString();
+
+        const sortedDcfRows = [...dcfRows].sort((left, right) => {
+            const leftMob = this.toNumber(left.mob);
+            const rightMob = this.toNumber(right.mob);
+            if (leftMob !== rightMob) return leftMob - rightMob;
+            const leftDate = Date.parse(this.toDateString(left.periode));
+            const rightDate = Date.parse(this.toDateString(right.periode));
+            return leftDate - rightDate;
+        });
+
+        const normalizedRrRows = rrRows.length > 0
+            ? rrRows
+            : [{
+                periodStart: sortedDcfRows[0]?.periode || header.prcDate,
+                periodEnd: sortedDcfRows[sortedDcfRows.length - 1]?.periode || header.prcDate,
+                rrRate1: 0,
+                rrRate2: 0,
+                rrRate3: 0
+            }];
+
+        const detailRows = sortedDcfRows.map((row) => {
+            const periode = this.toDateString(row.periode);
+            const periodeTime = Date.parse(periode);
+            const matchedRr = normalizedRrRows.find((rr) => {
+                const start = Date.parse(this.toDateString(rr.periodStart));
+                const end = Date.parse(this.toDateString(rr.periodEnd));
+                return periodeTime >= start && periodeTime <= end;
+            }) || normalizedRrRows[0];
+
+            const principal = this.toNumber(row.principal);
+            const interest = this.toNumber(row.interest);
+            const collateral = this.toNumber(row.collateral);
+            const installment = principal + interest;
+            const exposure = principal + interest + collateral;
+            const rrRate1 = this.toNumber(matchedRr.rrRate1);
+            const rrRate2 = this.toNumber(matchedRr.rrRate2);
+            const rrRate3 = this.toNumber(matchedRr.rrRate3);
+            const default1 = exposure * poRate1 / 100 * rrRate1 / 100;
+            const default2 = exposure * poRate2 / 100 * rrRate2 / 100;
+            const default3 = exposure * poRate3 / 100 * rrRate3 / 100;
+            const pwAmt = default1 + default2 + default3;
+            const mob = this.toNumber(row.mob);
+            const discountFactor = Math.pow(1 / (1 + effectiveMonthlyRate), mob);
+            const pvAmt = Number((pwAmt * discountFactor).toFixed(6));
+
+            return {
+                iaId: Number(header.iaId),
+                accountId: Number(header.accountId),
+                effInterestRate,
+                mob,
+                periode,
+                principal,
+                interest,
+                installment,
+                collateral,
+                poRate1,
+                rrRate1,
+                default1,
+                poRate2,
+                rrRate2,
+                default2,
+                poRate3,
+                rrRate3,
+                default3,
+                pwAmt,
+                discountFactor,
+                pvAmt,
+                beginningBalance: 0,
+                eirAmt: 0,
+                endingBalance: 0,
+                createdby: createdBy,
+                createddate: now,
+                createdhost: createdHost
+            };
+        });
+
+        const npv = detailRows.reduce((sum, row) => sum + this.toNumber(row.pvAmt), 0);
+        let previousEndingBalance = 0;
+
+        detailRows.forEach((row, index) => {
+            const beginningBalance = index === 0 ? npv : previousEndingBalance;
+            const eirAmt = beginningBalance * effectiveMonthlyRate;
+            const endingBalance = beginningBalance + eirAmt - this.toNumber(row.pwAmt);
+
+            row.beginningBalance = Number(beginningBalance.toFixed(6));
+            row.eirAmt = Number(eirAmt.toFixed(6));
+            row.endingBalance = Number(endingBalance.toFixed(6));
+            previousEndingBalance = row.endingBalance;
+        });
+
+        return detailRows;
+    }
+
     private getScenarioMethodTemplates() {
         return [
             {
@@ -555,10 +819,12 @@ export class IndividualImpairmentService {
     }
 
     async getDcfCashflows(tenantId: string, uploadId: string) {
-        return legacyDb.select()
+        const rows = await legacyDb.select()
             .from(frs9ImpIaDcf)
             .where(eq(frs9ImpIaDcf.iaId, Number(uploadId)))
             .orderBy(frs9ImpIaDcf.periode);
+
+        return rows.map((row) => this.mapDcfCashflowRow(row));
     }
 
     async getDcfCalculations(tenantId: string) {
@@ -582,22 +848,23 @@ export class IndividualImpairmentService {
         const headerConditions = [];
 
         if (accountId) {
-            headerConditions.push(eq(frs9ImpIaResultH.accountId, Number(accountId)));
+            headerConditions.push(eq(frs9ImpIaHeader.accountId, Number(accountId)));
         }
 
         if (!accountId && accountNumber) {
-            headerConditions.push(eq(frs9ImpIaResultH.accountNumber, accountNumber));
+            headerConditions.push(eq(frs9ImpIaHeader.accountNumber, accountNumber));
         }
 
         const headers = await legacyDb.select()
-            .from(frs9ImpIaResultH)
+            .from(frs9ImpIaHeader)
             .where(and(...headerConditions))
-            .orderBy(desc(frs9ImpIaResultH.createddate), desc(frs9ImpIaResultH.prcDate))
+            .orderBy(desc(frs9ImpIaHeader.updateddate), desc(frs9ImpIaHeader.createddate), desc(frs9ImpIaHeader.prcDate))
             .limit(1);
 
         if (!headers.length) {
             return {
                 header: null,
+                cashflows: [],
                 details: []
             };
         }
@@ -607,79 +874,36 @@ export class IndividualImpairmentService {
         const detailConditions = [];
 
         if (header.iaId != null) {
-            detailConditions.push(eq(frs9ImpIaResultD.iaId, Number(header.iaId)));
+            detailConditions.push(eq(frs9ImpIaDetail.iaId, Number(header.iaId)));
         } else if (header.accountId != null) {
-            detailConditions.push(eq(frs9ImpIaResultD.accountId, Number(header.accountId)));
-            if (header.prcDate) {
-                detailConditions.push(eq(frs9ImpIaResultD.prcDate, header.prcDate));
-            }
+            detailConditions.push(eq(frs9ImpIaDetail.accountId, Number(header.accountId)));
         }
 
         const details = detailConditions.length > 0
             ? await legacyDb.select()
-                .from(frs9ImpIaResultD)
+                .from(frs9ImpIaDetail)
                 .where(and(...detailConditions))
-                .orderBy(frs9ImpIaResultD.mob, frs9ImpIaResultD.periode)
+                .orderBy(frs9ImpIaDetail.mob, frs9ImpIaDetail.periode)
             : [];
 
-        const toNumber = (value: unknown) => {
-            if (value == null || value === '') return 0;
-            const parsed = Number(value);
-            return Number.isFinite(parsed) ? parsed : 0;
-        };
+        const cashflowConditions = [];
+        if (header.iaId != null) {
+            cashflowConditions.push(eq(frs9ImpIaDcf.iaId, Number(header.iaId)));
+        } else if (header.accountId != null) {
+            cashflowConditions.push(eq(frs9ImpIaDcf.accountId, Number(header.accountId)));
+        }
+
+        const cashflows = cashflowConditions.length > 0
+            ? await legacyDb.select()
+                .from(frs9ImpIaDcf)
+                .where(and(...cashflowConditions))
+                .orderBy(frs9ImpIaDcf.mob, frs9ImpIaDcf.periode)
+            : [];
 
         return {
-            header: {
-                pkid: Number(header.pkid),
-                iaId: header.iaId ? Number(header.iaId) : null,
-                prcDate: header.prcDate || null,
-                effectiveDate: header.prcDate || null,
-                accountId: header.accountId ? Number(header.accountId) : null,
-                accountNumber: header.accountNumber || '',
-                cifNumber: header.cifNumber || '',
-                cifName: header.cifName || '',
-                currency: header.currency || '',
-                dpd: header.dpd || 0,
-                collectability: header.collectability || 0,
-                ratingCode: header.ratingCode || '',
-                interestRate: toNumber(header.interestRate),
-                effInterestRate: toNumber(header.effInterestRate),
-                outstanding: toNumber(header.outstanding),
-                accruedInterest: toNumber(header.accruedInterest),
-                carryingAmt: toNumber(header.carryingAmt),
-                eadAmt: toNumber(header.eadAmt),
-                pvDcfAmt: toNumber(header.pvDcfAmt),
-                eclIaAmt: toNumber(header.eclIaAmt),
-                createdby: header.createdby || '',
-                createddate: header.createddate || null
-            },
-            details: details.map((row) => ({
-                pkid: Number(row.pkid),
-                iaId: row.iaId ? Number(row.iaId) : null,
-                prcDate: row.prcDate || null,
-                accountId: row.accountId ? Number(row.accountId) : null,
-                mob: row.mob || 0,
-                periode: row.periode || null,
-                principal: toNumber(row.principal),
-                interest: toNumber(row.interest),
-                installment: toNumber(row.installment),
-                collateral: toNumber(row.collateral),
-                poRate1: toNumber(row.poRate1),
-                rrRate1: toNumber(row.rrRate1),
-                default1: toNumber(row.default1),
-                poRate2: toNumber(row.poRate2),
-                rrRate2: toNumber(row.rrRate2),
-                default2: toNumber(row.default2),
-                poRate3: toNumber(row.poRate3),
-                rrRate3: toNumber(row.rrRate3),
-                default3: toNumber(row.default3),
-                pwAmt: toNumber(row.pwAmt),
-                discountFactor: toNumber(row.discountFactor),
-                pvAmt: toNumber(row.pvAmt),
-                beginningBalance: toNumber(row.beginningBalance),
-                eirAmt: toNumber(row.eirAmt),
-                endingBalance: toNumber(row.endingBalance)
-            }))
+            header: this.mapIaResultHeaderRow(header),
+            cashflows: cashflows.map((row) => this.mapDcfCashflowRow(row)),
+            details: details.map((row) => this.mapIaResultDetailRow(row))
         };
     }
 
@@ -688,26 +912,84 @@ export class IndividualImpairmentService {
             return [];
         }
 
-        const iaId = await this.generateIaId();
-        const createdAt = new Date().toISOString();
+        const sample = data[0];
+        const accountId = Number(sample.accountId || sample.account_id || 0);
+        if (!accountId) {
+            throw new Error('Account ID is required for DCF upload');
+        }
 
-        const rows = data.map((row: any, index: number) => ({
-            iaId,
-            prcDate: row.prcDate || createdAt.slice(0, 10),
-            accountId: Number(row.accountId),
-            accountNumber: String(row.accountNumber || ''),
-            mob: Number(row.mob || index + 1),
-            periode: row.periodDate || row.periode || createdAt.slice(0, 10),
-            principal: String(Number(row.principal || 0)),
-            interest: String(Number(row.interest || 0)),
-            collateral: String(Number(row.collateral || 0)),
-            status: String(row.status || '0').slice(0, 1) || '0',
-            createdby: String(row.createdBy || 'SYSTEM').slice(0, 36) || 'SYSTEM',
-            createddate: createdAt,
-            createdhost: String(row.createdHost || 'localhost').slice(0, 36) || 'localhost'
-        }));
+        const createdBy = String(sample.createdBy || 'SYSTEM').slice(0, 36) || 'SYSTEM';
+        const createdHost = String(sample.createdHost || 'localhost').slice(0, 36) || 'localhost';
 
-        return legacyDb.insert(frs9ImpIaDcf).values(rows).returning();
+        return legacyDb.transaction(async (tx) => {
+            const existingHeader = await this.ensureLegacyIaHeader(tx, accountId, createdBy, createdHost);
+            const iaId = Number(existingHeader.iaId);
+            const prcDate = this.toDateString(sample.prcDate || existingHeader.prcDate || new Date());
+            const createdAt = new Date().toISOString();
+
+            await tx.delete(frs9ImpIaDcf).where(eq(frs9ImpIaDcf.accountId, accountId));
+            await tx.delete(frs9ImpIaDetail).where(eq(frs9ImpIaDetail.accountId, accountId));
+
+            const rows = data.map((row: any, index: number) => ({
+                iaId,
+                prcDate,
+                accountId,
+                accountNumber: String(row.accountNumber || existingHeader.accountNumber || ''),
+                mob: Number(row.mob || index + 1),
+                periode: this.toDateString(row.periodDate || row.periode || createdAt.slice(0, 10)),
+                principal: String(this.toNumber(row.principal)),
+                interest: String(this.toNumber(row.interest)),
+                collateral: String(this.toNumber(row.collateral)),
+                status: String(row.status || '0').slice(0, 1) || '0',
+                createdby: createdBy,
+                createddate: createdAt,
+                createdhost: createdHost
+            }));
+
+            const inserted = await tx.insert(frs9ImpIaDcf).values(rows).returning();
+
+            const rrRows = await tx.select()
+                .from(frs9ImpIaRr)
+                .where(eq(frs9ImpIaRr.iaId, iaId))
+                .orderBy(frs9ImpIaRr.periodStart, frs9ImpIaRr.periodEnd);
+
+            const detailRows = this.buildLegacyIaDetailRows(existingHeader, rrRows, inserted, createdBy, createdHost);
+            const npv = detailRows.reduce((sum, row) => sum + this.toNumber(row.pvAmt), 0);
+            const eadAmt = this.toNumber(existingHeader.eadAmt);
+
+            await tx.update(frs9ImpIaHeader)
+                .set({
+                    prcDate,
+                    pvDcfAmt: String(Number(npv.toFixed(6))),
+                    eclIaAmt: String(Number((eadAmt - npv).toFixed(6))),
+                    updatedby: createdBy,
+                    updateddate: createdAt,
+                    updatedhost: createdHost
+                })
+                .where(eq(frs9ImpIaHeader.pkid, Number(existingHeader.pkid)));
+
+            if (detailRows.length > 0) {
+                await tx.insert(frs9ImpIaDetail).values(
+                    detailRows.map((row) => ({
+                        ...row,
+                        principal: String(Number(row.principal.toFixed(6))),
+                        interest: String(Number(row.interest.toFixed(6))),
+                        installment: String(Number(row.installment.toFixed(6))),
+                        collateral: String(Number(row.collateral.toFixed(6))),
+                        default1: String(Number(row.default1.toFixed(6))),
+                        default2: String(Number(row.default2.toFixed(6))),
+                        default3: String(Number(row.default3.toFixed(6))),
+                        pwAmt: String(Number(row.pwAmt.toFixed(6))),
+                        pvAmt: String(Number(row.pvAmt.toFixed(6))),
+                        beginningBalance: String(Number(row.beginningBalance.toFixed(6))),
+                        eirAmt: String(Number(row.eirAmt.toFixed(6))),
+                        endingBalance: String(Number(row.endingBalance.toFixed(6)))
+                    }))
+                );
+            }
+
+            return inserted.map((row) => this.mapDcfCashflowRow(row));
+        });
     }
 
     async calculateDcf(tenantId: string, params: any) {

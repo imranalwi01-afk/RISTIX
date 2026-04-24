@@ -333,7 +333,7 @@ export async function fetchImpairmentModuleDetail(pkid: string) {
   return data;
 }
 
-export async function fetchAmortizationModuleResults(params: { page: number; limit: number }) {
+export async function fetchAmortizationModuleResults(params: { page: number; limit: number; prcDate?: string; search?: string }) {
   const { data } = await apiClient.get<ModuleListResponse<AmortizationModuleRow>>(
     '/banking/ifrs9/amortization-module',
     { params },

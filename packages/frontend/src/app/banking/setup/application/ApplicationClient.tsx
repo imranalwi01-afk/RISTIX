@@ -229,8 +229,8 @@ const ApplicationDetailPanel = ({ row, onEditDetail, onDeleteDetail, onAddDetail
   if (loading) return <Box sx={{ p: 2, textAlign: 'center' }}><CircularProgress size={20} /></Box>;
 
   return (
-    <Box sx={{ p: 2, bgcolor: 'grey.50' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+    <Box sx={{ p: 2, bgcolor: 'grey.50', width: '100%', maxWidth: '100%', minWidth: 0 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5, mb: 1 }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
           Parameter Details for {row.CommonCode}
         </Typography>
@@ -249,7 +249,7 @@ const ApplicationDetailPanel = ({ row, onEditDetail, onDeleteDetail, onAddDetail
       {details.length === 0 ? (
         <Typography variant="body2" color="text.secondary">No details found.</Typography>
       ) : (
-        <TableContainer component={Paper} variant="outlined">
+        <TableContainer component={Paper} variant="outlined" sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto', overflowY: 'hidden' }}>
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -905,7 +905,7 @@ export default function ApplicationSettingPage() {
   ];
 
   return (
-    <Container maxWidth="xl">
+    <Container maxWidth="xl" sx={{ minWidth: 0 }}>
       {!canViewApplication && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           You do not have permission to view application settings.
@@ -921,10 +921,10 @@ export default function ApplicationSettingPage() {
         Application Setting
       </Typography>
 
-      <Card sx={{ mb: 2 }}>
+      <Card sx={{ mb: 2, width: '100%', maxWidth: '100%', minWidth: 0, overflow: 'hidden' }}>
         <CardContent>
           {/* Toolbar */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5, mb: 2 }}>
             <Button
               variant="outlined"
               startIcon={<DownloadIcon />}
@@ -952,7 +952,7 @@ export default function ApplicationSettingPage() {
             </MenuItem>
           </Menu>
 
-          <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2, rowGap: 1.5, flexWrap: 'wrap', alignItems: 'center', minWidth: 0, mb: 2 }}>
             <TextField
               placeholder="Search..."
               size="small"
@@ -962,6 +962,7 @@ export default function ApplicationSettingPage() {
                 setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
               }}
               InputProps={{ startAdornment: <SearchIcon color="action" /> }}
+              sx={{ flex: '1 1 260px', minWidth: 0, width: { xs: '100%', sm: 'auto' } }}
             />
             <Button
               variant={showColumnFilters ? 'contained' : 'outlined'}
@@ -979,18 +980,19 @@ export default function ApplicationSettingPage() {
           </Box>
 
           {showColumnFilters && (
-            <Box sx={{ display: 'flex', gap: 2, mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-              <TextField label="Code" size="small" value={columnFilters.commonCode} onChange={e => { setColumnFilters({ ...columnFilters, commonCode: e.target.value }); setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize }); }} />
-              <TextField label="Description" size="small" value={columnFilters.description} onChange={e => { setColumnFilters({ ...columnFilters, description: e.target.value }); setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize }); }} />
-              <TextField label="Value" size="small" value={columnFilters.value} onChange={e => { setColumnFilters({ ...columnFilters, value: e.target.value }); setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize }); }} />
-              <TextField label="Created By" size="small" value={columnFilters.createdBy} onChange={e => { setColumnFilters({ ...columnFilters, createdBy: e.target.value }); setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize }); }} />
+            <Box sx={{ display: 'flex', gap: 2, rowGap: 1.5, flexWrap: 'wrap', mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1, minWidth: 0 }}>
+              <TextField sx={{ flex: '1 1 180px', minWidth: 0 }} label="Code" size="small" value={columnFilters.commonCode} onChange={e => { setColumnFilters({ ...columnFilters, commonCode: e.target.value }); setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize }); }} />
+              <TextField sx={{ flex: '1 1 220px', minWidth: 0 }} label="Description" size="small" value={columnFilters.description} onChange={e => { setColumnFilters({ ...columnFilters, description: e.target.value }); setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize }); }} />
+              <TextField sx={{ flex: '1 1 180px', minWidth: 0 }} label="Value" size="small" value={columnFilters.value} onChange={e => { setColumnFilters({ ...columnFilters, value: e.target.value }); setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize }); }} />
+              <TextField sx={{ flex: '1 1 180px', minWidth: 0 }} label="Created By" size="small" value={columnFilters.createdBy} onChange={e => { setColumnFilters({ ...columnFilters, createdBy: e.target.value }); setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize }); }} />
             </Box>
           )}
 
-          <Box sx={{ width: '100%' }}>
+          <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
             <SafeDataGrid
               rows={tableRows}
               columns={columns}
+              responsiveMode="cards"
               getRowId={(row) => row.pkid || row.ID || row.CommonCode}
               loading={loading}
               rowCount={totalCount}
@@ -1029,6 +1031,8 @@ export default function ApplicationSettingPage() {
               getDetailPanelHeight={() => 'auto'}
               sx={{
                 minHeight: 400,
+                width: '100%',
+                maxWidth: '100%',
                 '& .MuiDataGrid-main': { minHeight: 400 },
               }}
             />
@@ -1135,7 +1139,7 @@ export default function ApplicationSettingPage() {
           )}
 
           {!detailLoading && detailData.length > 0 && (
-            <TableContainer component={Paper} variant="outlined">
+            <TableContainer component={Paper} variant="outlined" sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto', overflowY: 'hidden' }}>
               <Table size="small">
                 <TableHead>
                   <TableRow>

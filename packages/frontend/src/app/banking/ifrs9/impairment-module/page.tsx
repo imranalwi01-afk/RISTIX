@@ -26,11 +26,13 @@ export default function ImpairmentModulePage() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState('');
+  const [prcDate, setPrcDate] = useState('');
   const [selectedPkid, setSelectedPkid] = useState<string | null>(null);
 
   const resultsQuery = useImpairmentModuleResultsQuery({
     page: page + 1,
     limit: rowsPerPage,
+    prcDate: prcDate || undefined,
     search: search.trim() || undefined,
   });
 
@@ -73,7 +75,7 @@ export default function ImpairmentModulePage() {
     : null;
 
   return (
-    <Container maxWidth="xl" sx={{ py: 3 }}>
+    <Container maxWidth="xl" sx={{ py: 3, minWidth: 0, overflowX: 'hidden' }}>
       <Box mb={3}>
         <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
           <Link color="inherit" href="/banking">Banking Dashboard</Link>
@@ -81,8 +83,15 @@ export default function ImpairmentModulePage() {
           <Typography color="text.primary">Impairment Module</Typography>
         </Breadcrumbs>
 
-        <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'center' }} spacing={2}>
-          <Box>
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          justifyContent="space-between"
+          alignItems={{ xs: 'stretch', md: 'center' }}
+          spacing={2}
+          useFlexGap
+          sx={{ flexWrap: 'wrap' }}
+        >
+          <Box sx={{ minWidth: 0, flex: '1 1 560px' }}>
             <Typography variant="h4" component="h1" gutterBottom>
               Impairment Module
             </Typography>
@@ -118,16 +127,37 @@ export default function ImpairmentModulePage() {
         </Alert>
       )}
 
-      <Stack spacing={3}>
-        <Card>
-          <CardContent>
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'center' }} sx={{ mb: 2 }}>
-              <Box>
+      <Stack spacing={3} sx={{ minWidth: 0 }}>
+        <Card sx={{ minWidth: 0, overflowX: 'hidden' }}>
+          <CardContent sx={{ minWidth: 0, overflowX: 'hidden' }}>
+            <Stack
+              direction={{ xs: 'column', lg: 'row' }}
+              spacing={2}
+              justifyContent="space-between"
+              alignItems={{ xs: 'stretch', lg: 'center' }}
+              useFlexGap
+              sx={{ mb: 2, flexWrap: 'wrap' }}
+            >
+              <Box sx={{ minWidth: 0, flex: '1 1 420px' }}>
                 <Typography variant="h6">Impairment Contract List</Typography>
                 <Typography variant="body2" color="text.secondary">
                   Query source follows the tech spec list from `FRS9_MASTER_ACCOUNT`.
                 </Typography>
               </Box>
+              <TextField
+                size="small"
+                type="date"
+                label="Processing Date"
+                value={prcDate}
+                onChange={(event) => {
+                  setPrcDate(event.target.value);
+                  setPage(0);
+                }}
+                slotProps={{
+                  inputLabel: { shrink: true },
+                }}
+                sx={{ width: { xs: '100%', sm: 220 }, minWidth: 0, flexShrink: 0 }}
+              />
               <TextField
                 size="small"
                 label="Search contract"
@@ -137,7 +167,7 @@ export default function ImpairmentModulePage() {
                   setSearch(event.target.value);
                   setPage(0);
                 }}
-                sx={{ width: { xs: '100%', md: 360 } }}
+                sx={{ width: { xs: '100%', lg: 360 }, minWidth: 0, flexShrink: 0 }}
               />
             </Stack>
 
