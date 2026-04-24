@@ -21,6 +21,27 @@ function toNumeric(value: unknown): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function isNotFoundError(error: unknown): boolean {
+  if (axios.isAxiosError(error)) {
+    return error.response?.status === 404;
+  }
+
+  if (typeof error === 'object' && error !== null) {
+    const maybeStatus = (error as { status?: unknown; response?: { status?: unknown } }).status;
+    const maybeResponseStatus = (error as { response?: { status?: unknown } }).response?.status;
+    if (maybeStatus === 404 || maybeResponseStatus === 404) return true;
+  }
+
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === 'string'
+        ? error
+        : '';
+
+  return /\bnot found\b/i.test(message);
+}
+
 export type Ifrs9ReportQueryInput = {
   reportType: BaseIfrs9ReportProps['reportType'];
   filters: ReportFilters;
@@ -83,7 +104,7 @@ export async function fetchIfrs9Report(input: Ifrs9ReportQueryInput): Promise<Re
           api.banking.ifrs9Reports.lifetimeLGD.getSummary(params)
             .then((response) => ({ response, missing: false }))
             .catch((error: unknown) => {
-              if (axios.isAxiosError(error) && error.response?.status === 404) {
+              if (isNotFoundError(error)) {
                 return { response: null, missing: true };
               }
 

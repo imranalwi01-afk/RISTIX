@@ -3,6 +3,7 @@ import { JournalParametersRepository } from '../repositories/journal-parameters.
 import { ParametersRepository } from '../repositories/parameters.repository'
 import { NotFoundError } from '../lib/errors'
 import { frs9ParamJournal } from '../db/schema'
+import type { ListQuery } from '../lib/http/list-query'
 
 export const JournalParametersService = {
     // CRUD Operations
@@ -17,6 +18,30 @@ export const JournalParametersService = {
         return pipe(
             JournalParametersRepository.findAll(),
             Effect.map(journals => journals.map(transformJournal))
+        )
+    },
+
+    listPage: (query: ListQuery) => {
+        console.log('📋 Listing paged journal parameters', query)
+        return pipe(
+            JournalParametersRepository.findMany({
+                page: query.page,
+                offset: query.offset,
+                limit: query.limit,
+                search: query.search,
+                glGroup: typeof query.filters.glGroup === 'string' ? query.filters.glGroup : undefined,
+                currency: typeof query.filters.currency === 'string' ? query.filters.currency : undefined,
+                activeFlag:
+                    typeof query.filters.activeFlag === 'boolean' || typeof query.filters.activeFlag === 'string'
+                        ? query.filters.activeFlag
+                        : undefined,
+                filters: query.filters,
+                sort: query.sort,
+            }),
+            Effect.map(({ journals, total }) => ({
+                rows: journals.map(transformJournal),
+                total,
+            })),
         )
     },
 

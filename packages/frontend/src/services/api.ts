@@ -676,14 +676,17 @@ export const bankingAPI = {
   productParameters: {
     getAll: async (mode: string, params?: {
       page?: number;
+      offset?: number;
       limit?: number;
+      paginationMode?: 'offset' | 'cursor';
       search?: string;
-      sortBy?: string;
-      sortOrder?: 'ASC' | 'DESC';
+      sort?: string;
       prdGroup?: string;
       prdType?: string;
       currency?: string;
+      dataSource?: string;
       activeOnly?: boolean | string;
+      filters?: string;
     }) => {
       console.log(`🏦 Fetching product parameters for ${mode} from DS2 database`, params);
       const response = await apiClient.get('/banking/parameters/product', { params: { ...params, mode } });
@@ -828,9 +831,20 @@ export const bankingAPI = {
   // JOURNAL PARAMETER API (frs9_param_journal)
   // ==========================================
   journalParameters: {
-    getAll: async () => {
-      console.log('📋 Fetching journal parameters');
-      const response = await apiClient.get('/banking/parameters/journal');
+    getAll: async (params?: {
+      page?: number;
+      offset?: number;
+      limit?: number;
+      paginationMode?: 'offset' | 'cursor';
+      search?: string;
+      filters?: string;
+      sort?: string;
+      glGroup?: string;
+      currency?: string;
+      activeFlag?: boolean | string;
+    }) => {
+      console.log('📋 Fetching journal parameters', params);
+      const response = await apiClient.get('/banking/parameters/journal', { params });
       return response.data;
     },
     getById: async (id: number) => {

@@ -30,8 +30,10 @@ export function useApprovalRequestsQuery(params: ApprovalRequestQueryInput) {
 }
 
 export function useApprovalUniverseQuery(params: Omit<ApprovalRequestQueryInput, 'page' | 'columnFilters' | 'sort'> & { enabled?: boolean }) {
+  const { enabled = true, ...requestParams } = params;
+
   return useQuery({
-    queryKey: businessQueryKeys.meta('approval-requests', 'universe', params),
+    queryKey: businessQueryKeys.meta('approval-requests', 'universe', requestParams),
     queryFn: async () => {
       const pageSize = 200;
       let page = 1;
@@ -40,7 +42,7 @@ export function useApprovalUniverseQuery(params: Omit<ApprovalRequestQueryInput,
 
       do {
         const response = await fetchApprovalRequestHistory({
-          ...params,
+          ...requestParams,
           page,
           limit: pageSize,
         });
@@ -59,7 +61,7 @@ export function useApprovalUniverseQuery(params: Omit<ApprovalRequestQueryInput,
 
       return rows;
     },
-    enabled: params.enabled ?? true,
+    enabled,
     staleTime: 30 * 1000,
   });
 }
