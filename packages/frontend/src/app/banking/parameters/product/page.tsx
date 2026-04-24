@@ -166,27 +166,49 @@ export default function ProductParametersPage() {
     amortizationTypes: [] as OptionItem[],
     instrumentClasses: [] as OptionItem[],
   });
+  const currentPage = queryState.paginationModel.page;
+  const currentPageSize = queryState.paginationModel.pageSize;
+
+  const buildProductRequestParams = useCallback(
+    (page: number, pageSize: number) => {
+      const requestFilters: Record<string, unknown> = {};
+      if (filters.currency) requestFilters.currency = filters.currency;
+      if (filters.dataSource) requestFilters.dataSource = filters.dataSource;
+      if (filters.activeOnly !== 'all') requestFilters.activeFlag = filters.activeOnly === 'active';
+
+      return {
+        page: page + 1,
+        offset: page * pageSize,
+        limit: pageSize,
+        paginationMode: 'offset' as const,
+        search: searchTerm || undefined,
+        currency: filters.currency || undefined,
+        dataSource: filters.dataSource || undefined,
+        activeOnly: filters.activeOnly === 'all' ? undefined : (filters.activeOnly === 'active'),
+        filters: Object.keys(requestFilters).length > 0 ? JSON.stringify(requestFilters) : undefined,
+        sort: queryState.sort.length > 0 ? JSON.stringify(queryState.sort) : undefined,
+      };
+    },
+    [filters.activeOnly, filters.currency, filters.dataSource, queryState.sort, searchTerm],
+  );
 
   // Data Loading
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await api.banking.productParameters.getAll(mode, {
-        page: queryState.paginationModel.page + 1,
-        limit: queryState.paginationModel.pageSize,
-        search: searchTerm || undefined,
-        currency: filters.currency || undefined,
-        activeOnly: filters.activeOnly === 'all' ? undefined : (filters.activeOnly === 'active')
-      });
+      const result = await api.banking.productParameters.getAll(
+        mode,
+        buildProductRequestParams(currentPage, currentPageSize),
+      );
 
       // Support both payload styles:
       // 1) { success: true, products, pagination }
       // 2) { success: true, data: { products, pagination } }
       const listPayload = result?.data && typeof result.data === 'object' ? result.data : result;
-      const products = Array.isArray(listPayload?.products)
-        ? listPayload.products
-        : Array.isArray(listPayload?.data)
-          ? listPayload.data
+      const products = Array.isArray(listPayload?.data)
+        ? listPayload.data
+        : Array.isArray(listPayload?.products)
+          ? listPayload.products
           : [];
       const pagination = listPayload?.pagination ?? {};
 
@@ -222,7 +244,7 @@ export default function ProductParametersPage() {
     } finally {
       setLoading(false);
     }
-  }, [filters, mode, queryState.paginationModel.page, queryState.paginationModel.pageSize, searchTerm]);
+  }, [buildProductRequestParams, currentPage, currentPageSize, mode, selectedProduct, showApprovalConflict]);
 
   const loadOptions = useCallback(async () => {
     try {
@@ -377,32 +399,27 @@ export default function ProductParametersPage() {
 
     const fetchAllRows = async () => {
       const limit = 1000;
-      const firstPage = await api.banking.productParameters.getAll(mode, {
-        page: 1,
-        limit,
-        search: searchTerm || undefined,
-        currency: filters.currency || undefined,
-        activeOnly: filters.activeOnly === 'all' ? undefined : (filters.activeOnly === 'active'),
-      });
+      const firstPage = await api.banking.productParameters.getAll(mode, buildProductRequestParams(0, limit));
       const firstPayload = firstPage?.data && typeof firstPage.data === 'object' ? firstPage.data : firstPage;
-      const firstRows = Array.isArray(firstPayload?.products) ? firstPayload.products : [];
+      const firstRows = Array.isArray(firstPayload?.data)
+        ? firstPayload.data
+        : Array.isArray(firstPayload?.products)
+          ? firstPayload.products
+          : [];
       const totalPages = Math.max(1, Number(firstPayload?.pagination?.totalPages ?? 1));
       if (totalPages === 1) return firstRows;
 
       const restPages = await Promise.all(
-        Array.from({ length: totalPages - 1 }, (_, index) => api.banking.productParameters.getAll(mode, {
-          page: index + 2,
-          limit,
-          search: searchTerm || undefined,
-          currency: filters.currency || undefined,
-          activeOnly: filters.activeOnly === 'all' ? undefined : (filters.activeOnly === 'active'),
-        }))
+        Array.from({ length: totalPages - 1 }, (_, index) =>
+          api.banking.productParameters.getAll(mode, buildProductRequestParams(index + 1, limit))
+        )
       );
 
       return [
         ...firstRows,
         ...restPages.flatMap((pageResult: any) => {
           const payload = pageResult?.data && typeof pageResult.data === 'object' ? pageResult.data : pageResult;
+          if (Array.isArray(payload?.data)) return payload.data;
           return Array.isArray(payload?.products) ? payload.products : [];
         }),
       ];
@@ -465,7 +482,10 @@ export default function ProductParametersPage() {
 
       <ProductToolbar
         searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
+        onSearchChange={(value) => {
+          setSearchTerm(value);
+          setPaginationModel({ page: 0, pageSize: currentPageSize });
+        }}
         onFilterClick={() => setFilterDrawerOpen(true)}
         onExportClick={(e) => setExportMenuAnchor(e.currentTarget)}
         onAddClick={() => { setSelectedProduct(null); setFormOpen(true); }}
@@ -530,8 +550,14 @@ export default function ProductParametersPage() {
       <ProductFilterDrawer
         open={filterDrawerOpen}
         onClose={() => setFilterDrawerOpen(false)}
-        onApply={setFilters}
-        onClear={() => setFilters({ currency: '', activeOnly: 'all', dataSource: '' })}
+        onApply={(nextFilters) => {
+          setFilters(nextFilters);
+          setPaginationModel({ page: 0, pageSize: currentPageSize });
+        }}
+        onClear={() => {
+          setFilters({ currency: '', activeOnly: 'all', dataSource: '' });
+          setPaginationModel({ page: 0, pageSize: currentPageSize });
+        }}
         currentFilters={filters}
         options={{ currencies: options.currencies, dataSources: options.dataSources }}
       />

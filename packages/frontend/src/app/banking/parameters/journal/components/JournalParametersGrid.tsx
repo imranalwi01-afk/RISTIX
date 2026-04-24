@@ -158,7 +158,7 @@ const JournalParametersGrid = memo(function JournalParametersGrid({
                 rows={rows}
                 columns={columns}
                 getRowId={(row) => (row as JournalParameter)?.pkid || (row as JournalParameter)?.glCode || `row_${Math.random()}`}
-                paginationMode="client"
+                paginationMode="server"
                 rowCount={rowCount}
                 paginationModel={paginationModel}
                 onPaginationModelChange={onPaginationModelChange}
@@ -182,7 +182,7 @@ const JournalParametersGrid = memo(function JournalParametersGrid({
                 showEnterpriseControls
                 onSaveView={onSaveView}
                 onResetView={onResetView}
-                pageSizeOptions={[10, 25, 50, 100]}
+                pageSizeOptions={[10, 25, 50, 75, 100]}
                 disableRowSelectionOnClick
                 loading={loading}
                 slotProps={{

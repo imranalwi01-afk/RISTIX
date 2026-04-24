@@ -213,7 +213,7 @@ export default function ProductTable({
         showEnterpriseControls
         onSaveView={onSaveView}
         onResetView={onResetView}
-        pageSizeOptions={[10, 25, 50, 100]}
+        pageSizeOptions={[10, 25, 50, 75, 100]}
         disableRowSelectionOnClick
         sx={{
           '& .MuiDataGrid-row:hover': {

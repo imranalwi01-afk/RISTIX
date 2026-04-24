@@ -8,6 +8,7 @@ import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware
 import type { ApprovalResponse } from '../lib/approval-helpers'
 import { buildErrorResponse } from '../lib/http/error-response'
 import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
+import { buildListResponse, buildOffsetPagination, ListQueryValidationError, parseListQuery } from '../lib/http/list-query'
 
 const app = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
@@ -69,6 +70,51 @@ const ProductListResponse = z.object({
     mode: ProductModeSchema,
     timestamp: z.string()
 }).openapi('ProductListResponse')
+
+const ProductListContractResponse = z.object({
+    success: z.boolean(),
+    data: z.array(ProductParamResponse),
+    pagination: z.object({
+        mode: z.literal('offset'),
+        limit: z.number(),
+        total: z.number(),
+        page: z.number(),
+        offset: z.number(),
+        totalPages: z.number(),
+        hasNextPage: z.boolean(),
+        hasPreviousPage: z.boolean(),
+        nextCursor: z.null(),
+        previousCursor: z.null(),
+    }).optional(),
+    appliedQuery: z.object({
+        search: z.string().optional(),
+        filters: z.record(z.string(), z.unknown()).optional(),
+        sort: z.array(z.object({
+            field: z.string(),
+            direction: z.enum(['asc', 'desc']),
+        })).optional(),
+    }).optional(),
+}).openapi('ProductListContractResponse')
+
+const productFilterDefinitions = {
+    prdCode: { field: 'prdCode', label: 'Product Code', type: 'text' as const },
+    prdDesc: { field: 'prdDesc', label: 'Description', type: 'text' as const },
+    prdGroup: { field: 'prdGroup', label: 'Group', type: 'text' as const },
+    prdType: { field: 'prdType', label: 'Type', type: 'text' as const },
+    currency: { field: 'currency', label: 'Currency', type: 'text' as const },
+    dataSource: { field: 'dataSource', label: 'Data Source', type: 'text' as const },
+    activeFlag: {
+        field: 'activeFlag',
+        label: 'Active',
+        type: 'enum' as const,
+        options: [
+            { label: 'Active', value: 'active' },
+            { label: 'Inactive', value: 'inactive' },
+            { label: 'True', value: 'true' },
+            { label: 'False', value: 'false' },
+        ],
+    },
+}
 
 const ProductDetailResponse = z.object({
     success: z.boolean(),
@@ -145,22 +191,22 @@ app.openapi(
             query: z.object({
                 mode: ProductModeSchema,
                 page: z.string().optional().transform(v => v ? parseInt(v) : 1),
+                offset: z.string().optional(),
                 limit: z.string().optional().transform(v => v ? parseInt(v) : 10),
-                search: z.string().optional()
+                search: z.string().optional(),
+                filters: z.string().optional(),
+                sort: z.string().optional(),
+                paginationMode: z.string().optional(),
+                currency: z.string().optional(),
+                dataSource: z.string().optional(),
+                activeOnly: z.string().optional(),
             })
         },
         responses: {
             200: {
                 content: {
                     'application/json': {
-                        schema: ProductListResponse.extend({
-                            pagination: z.object({
-                                total: z.number(),
-                                page: z.number(),
-                                limit: z.number(),
-                                pages: z.number()
-                            })
-                        })
+                        schema: ProductListContractResponse
                     }
                 }, description: 'List Products'
             },
@@ -170,9 +216,50 @@ app.openapi(
     }),
     async (c) => {
         const { mode, page, limit, search } = c.req.valid('query')
+        const rawQuery = c.req.query()
+        const usesListContract = ['page', 'offset', 'limit', 'search', 'filters', 'sort', 'paginationMode', 'currency', 'dataSource', 'activeOnly'].some((key) => rawQuery[key] !== undefined)
+
         console.log(`📡 [PROD-ROUTES] Listing products for mode: ${mode}, page: ${page}, limit: ${limit}, search: ${search}`);
 
-        return runEffect(c, ProductParametersService.list(mode, { page, limit, search }) as any) as any
+        if (!usesListContract) {
+            return runEffect(c, ProductParametersService.list(mode, { page, limit, search }) as any) as any
+        }
+
+        try {
+            const query = parseListQuery(c, {
+                paginationMode: 'offset',
+                defaultLimit: 10,
+                maxLimit: 100,
+                defaultSort: [{ field: 'prdCode', direction: 'asc' }],
+                sortableColumns: ['prdCode', 'prdDesc', 'prdGroup', 'prdType', 'currency', 'dataSource', 'alFlag', 'activeFlag', 'createddate', 'updateddate'],
+                filterableColumns: ['prdCode', 'prdDesc', 'prdGroup', 'prdType', 'currency', 'dataSource', 'activeFlag'],
+                filterDefinitions: productFilterDefinitions,
+                filterAliases: {
+                    activeOnly: 'activeFlag',
+                },
+            })
+
+            const result = await Effect.runPromise(ProductParametersService.listPage(mode, query) as any) as { rows: unknown[]; total: number }
+
+            return c.json(
+                buildListResponse(
+                    result.rows,
+                    query,
+                    buildOffsetPagination(query, result.total),
+                    { filterDefinitions: productFilterDefinitions },
+                ),
+            )
+        } catch (error) {
+            if (error instanceof ListQueryValidationError) {
+                return c.json(buildErrorResponse(c, {
+                    error: 'Invalid list query',
+                    message: error.message,
+                    code: 'BAD_REQUEST',
+                    details: error.details,
+                }) as any, 400)
+            }
+            throw error
+        }
     }
 )
 
