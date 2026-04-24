@@ -1309,7 +1309,6 @@ export class Ifrs9ReportsService {
             const requestedPrcDate = params?.prc_date || new Date().toISOString().slice(0, 10);
             const downloadStartDate = params?.download_start_date;
             const downloadEndDate = params?.download_end_date;
-            const groupSegmentValues = this.normalizeTextFilter(params?.group_segment);
             const segmentValues = this.normalizeTextFilter(params?.segment);
             const stageValues = this.normalizeStageFilter(params?.stage);
             const branchValues = this.normalizeTextFilter(params?.branch_code);
@@ -1325,7 +1324,6 @@ export class Ifrs9ReportsService {
                 effectivePrcDate,
                 downloadStartDate,
                 downloadEndDate,
-                groupSegmentValues,
                 segmentValues,
                 stageValues,
                 branchValues
@@ -1345,33 +1343,14 @@ export class Ifrs9ReportsService {
                 };
             }
 
-            const stageNumericExpression = `COALESCE(NULLIF(regexp_replace(lower(COALESCE(n.stage::text, m.stage::text, '')), '[^0-9]', '', 'g'), '')::int, 1)`;
-            const groupSegmentExpression = `COALESCE(NULLIF(m.group_segment, ''), NULLIF(n.segment, ''), '')`;
-            const segmentExpression = `COALESCE(NULLIF(n.segment, ''), NULLIF(m.segment, ''), '')`;
-            const branchExpression = `COALESCE(NULLIF(n.branch_code, ''), NULLIF(m.branch_code, ''), '')`;
-            const interestRateExpression = `COALESCE(n.interest_rate, m.interest_rate)`;
-            const startDateExpression = `COALESCE(n.start_date, m.start_date)`;
-            const maturityDateExpression = `COALESCE(n.maturity_date, m.maturity_date)`;
-            const bucketExpression = `COALESCE(n.bucket_id, m.bucket_id)`;
-            const watchlistExpression = `CASE WHEN COALESCE(m.sicr_flag, false) THEN 'Yes' ELSE 'No' END`;
-            const sicrExpression = `COALESCE(m.sicr_flag, false)`;
-
-            // Nominative source now uses the dedicated frs9_nominative_output table,
-            // with master-account join only for compatibility/enrichment fields.
+            const stageNumericExpression = `COALESCE(NULLIF(regexp_replace(lower(COALESCE(n.stage::text, '')), '[^0-9]', '', 'g'), '')::int, 1)`;
             let whereClause = `n.prc_date = '${this.escapeSqlLiteral(effectivePrcDate)}'`;
-
-            if (groupSegmentValues) {
-                const groupSegmentList = groupSegmentValues
-                    .map((value) => `'${this.escapeSqlLiteral(value)}'`)
-                    .join(',');
-                whereClause += ` AND ${groupSegmentExpression} IN (${groupSegmentList})`;
-            }
 
             if (segmentValues) {
                 const segmentList = segmentValues
                     .map((value) => `'${this.escapeSqlLiteral(value)}'`)
                     .join(',');
-                whereClause += ` AND ${segmentExpression} IN (${segmentList})`;
+                whereClause += ` AND COALESCE(NULLIF(n.segment, ''), '') IN (${segmentList})`;
             }
 
             if (stageValues) {
@@ -1383,18 +1362,34 @@ export class Ifrs9ReportsService {
                 const branchList = branchValues
                     .map((value) => `'${this.escapeSqlLiteral(value)}'`)
                     .join(',');
-                whereClause += ` AND ${branchExpression} IN (${branchList})`;
+                whereClause += ` AND COALESCE(NULLIF(n.branch_code, ''), '') IN (${branchList})`;
             }
 
             const sort = params?.sort?.[0] ?? { field: 'account_number', direction: 'asc' };
             const sortMap: Record<string, { expression: string, resultKey: string, numeric?: boolean }> = {
+                pkid: { expression: 'COALESCE(n.pkid, 0)', resultKey: 'pkid', numeric: true },
+                prc_date: { expression: 'n.prc_date', resultKey: 'prc_date' },
+                account_id: { expression: 'COALESCE(n.account_id, 0)', resultKey: 'account_id', numeric: true },
                 account_number: { expression: 'n.account_number', resultKey: 'account_number' },
+                facility_number: { expression: `COALESCE(n.facility_number, '')`, resultKey: 'facility_number' },
+                cif_number: { expression: `COALESCE(n.cif_number, '')`, resultKey: 'cif_number' },
                 cif_name: { expression: 'n.cif_name', resultKey: 'cif_name' },
-                branch_code: { expression: branchExpression, resultKey: 'branch_code' },
+                account_status: { expression: `COALESCE(n.account_status, '')`, resultKey: 'account_status' },
+                branch_code: { expression: `COALESCE(n.branch_code, '')`, resultKey: 'branch_code' },
+                prd_code: { expression: `COALESCE(n.prd_code, '')`, resultKey: 'prd_code' },
+                start_date: { expression: 'n.start_date', resultKey: 'start_date' },
+                maturity_date: { expression: 'n.maturity_date', resultKey: 'maturity_date' },
+                currency: { expression: `COALESCE(n.currency, '')`, resultKey: 'currency' },
+                interest_rate: { expression: 'COALESCE(n.interest_rate, 0)', resultKey: 'interest_rate', numeric: true },
+                eff_interest_rate: { expression: 'COALESCE(n.eff_interest_rate, 0)', resultKey: 'eff_interest_rate', numeric: true },
+                dpd: { expression: 'COALESCE(n.dpd, 0)', resultKey: 'dpd', numeric: true },
+                impaired_status: { expression: `COALESCE(n.impaired_status::text, '')`, resultKey: 'impaired_status' },
+                segment: { expression: `COALESCE(n.segment, '')`, resultKey: 'segment' },
                 stage: { expression: stageNumericExpression, resultKey: 'stage', numeric: true },
+                bucket_id: { expression: 'COALESCE(n.bucket_id, 0)', resultKey: 'bucket_id', numeric: true },
                 outstanding: { expression: 'CAST(n.outstanding AS DECIMAL)', resultKey: 'outstanding', numeric: true },
                 ecl_final_amt: { expression: 'CAST(n.ecl_final_amt AS DECIMAL)', resultKey: 'ecl_final_amt', numeric: true },
-                prc_date: { expression: 'n.prc_date', resultKey: 'prc_date' },
+                ecl_coverage: { expression: 'COALESCE(n.ecl_coverage, 0)', resultKey: 'ecl_coverage', numeric: true },
             };
             const sortConfig = sortMap[sort.field] ?? sortMap.account_number;
             const sortDirection = sort.direction === 'desc' ? 'DESC' : 'ASC';
@@ -1432,34 +1427,30 @@ export class Ifrs9ReportsService {
 
             const rawData = await legacyDb.execute(sql.raw(`
                 SELECT 
+                    n.pkid,
+                    n.prc_date,
                     n.account_id,
                     n.account_number,
                     n.facility_number,
                     n.cif_number,
                     n.cif_name,
-                    n.prc_date AS download_date,
-                    ${branchExpression} AS branch_code,
-                    ${startDateExpression} AS loan_start_date,
-                    ${maturityDateExpression} AS loan_maturity_date,
-                    ${groupSegmentExpression} AS group_segment,
-                    ${segmentExpression} AS segment,
-                    COALESCE(NULLIF(m.sub_segment, ''), '') AS sub_segment,
-                    ${stageNumericExpression} AS stage,
+                    n.account_status,
+                    n.branch_code,
+                    n.prd_code,
+                    n.start_date,
+                    n.maturity_date,
                     n.currency,
-                    ${interestRateExpression} AS interest_rate,
+                    n.interest_rate,
+                    n.eff_interest_rate,
+                    n.dpd,
+                    n.impaired_status,
+                    n.segment,
+                    ${stageNumericExpression} AS stage,
+                    n.bucket_id,
                     CAST(n.outstanding AS DECIMAL) AS outstanding,
                     CAST(n.ecl_final_amt AS DECIMAL) AS ecl_final_amt,
-                    CAST(n.ecl_coverage AS DECIMAL) AS ecl_coverage,
-                    n.dpd,
-                    COALESCE(m.internal_rating_code, '') AS internal_rating_code,
-                    ${bucketExpression} AS rating_bucket,
-                    ${sicrExpression} AS sicr_flag,
-                    ${watchlistExpression} AS watchlist,
-                    n.prc_date
+                    CAST(n.ecl_coverage AS DOUBLE PRECISION) AS ecl_coverage
                 FROM public.frs9_nominative_output n
-                LEFT JOIN public.frs9_master_account m
-                    ON m.account_id = n.account_id
-                   AND m.prc_date = n.prc_date
                 WHERE ${whereClause}
                 ${cursorClause}
                 ORDER BY ${sortConfig.expression} ${sortDirection}, n.account_id ${sortDirection}, COALESCE(n.facility_number, '') ${sortDirection}
@@ -1475,7 +1466,7 @@ export class Ifrs9ReportsService {
             // Add id field for DataGrid
             const data = rows.map((row, index) => ({
                 id: params?.paginationMode === 'cursor' || params?.cursor
-                    ? `${row.account_id}-${row.facility_number ?? index}`
+                    ? `${row.pkid ?? row.account_id}-${row.facility_number ?? index}`
                     : offset + index + 1,
                 ...row
             }));
@@ -1487,9 +1478,6 @@ export class Ifrs9ReportsService {
                     COALESCE(SUM(CAST(n.outstanding AS DECIMAL)), 0) as total_outstanding,
                     COALESCE(SUM(CAST(n.ecl_final_amt AS DECIMAL)), 0) as total_ecl
                 FROM public.frs9_nominative_output n
-                LEFT JOIN public.frs9_master_account m
-                    ON m.account_id = n.account_id
-                   AND m.prc_date = n.prc_date
                 WHERE ${whereClause}
             `));
 

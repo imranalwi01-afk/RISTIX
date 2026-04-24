@@ -351,6 +351,23 @@ export default function DashboardClient() {
         return source.split('.').pop() || source
     }, [])
 
+    const resolveSummarySourceChip = useCallback(() => {
+        const source = summaryDebug?.selectedSource
+        if (source === 'public.frs9_ecl_summary') {
+            return {
+                label: 'ECL Summary Source',
+                color: 'success' as const,
+                tooltip: 'Dashboard summary widgets are sourced from public.frs9_ecl_summary.',
+            }
+        }
+
+        return {
+            label: source ? `Source: ${shortSourceName(source)}` : 'No ECL Summary Data',
+            color: 'warning' as const,
+            tooltip: 'No matching rows were found in public.frs9_ecl_summary for the current filter scope.',
+        }
+    }, [shortSourceName, summaryDebug?.selectedSource])
+
     const renderDebugTooltipContent = useCallback((title: string, debug: DashboardDebugMetadata | null) => {
         if (!debug) return title
         return (
@@ -640,7 +657,7 @@ export default function DashboardClient() {
         },
         {
             title: 'Active Accounts',
-            value: portfolioMetrics?.totalAccounts || 0,
+            value: portfolioMetrics?.activeAccounts || 0,
             format: 'count',
             icon: <Business sx={{ fontSize: 28 }} />,
             gradient: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.8)} 0%, ${theme.palette.info.main} 100%)`,
@@ -664,6 +681,7 @@ export default function DashboardClient() {
         }
     ];
     const canViewDashboardDebug = hasAnyPermission(['admin.super_admin', 'banking.dashboard.manage']);
+    const summarySourceChip = resolveSummarySourceChip();
 
     return (
         <Box sx={{ transition: 'background-color 0.3s ease', pt: 8, pb: 4 }}>
@@ -683,21 +701,16 @@ export default function DashboardClient() {
                         </Typography>
                         {eclSummary && (
                             <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
-                                <Chip
-                                    size="small"
-                                    icon={<CheckCircle sx={{ fontSize: '1rem !important' }} />}
-                                    label={eclSummary.isFallback ? "Master Account Source (Fallback)" : "Calc Result Source (Real)"}
-                                    color={eclSummary.isFallback ? "warning" : "success"}
-                                    variant="filled"
-                                    sx={{ fontWeight: 'bold' }}
-                                />
-                                {eclSummary.isFallback && (
-                                    <Tooltip title="Calculation results for this process date were not found. Data shown is from the raw master account table.">
-                                        <IconButton size="small" sx={{ p: 0, color: 'white' }}>
-                                            <Info sx={{ fontSize: '1rem' }} />
-                                        </IconButton>
-                                    </Tooltip>
-                                )}
+                                <Tooltip title={summarySourceChip.tooltip}>
+                                    <Chip
+                                        size="small"
+                                        icon={<CheckCircle sx={{ fontSize: '1rem !important' }} />}
+                                        label={summarySourceChip.label}
+                                        color={summarySourceChip.color}
+                                        variant="filled"
+                                        sx={{ fontWeight: 'bold' }}
+                                    />
+                                </Tooltip>
                             </Box>
                         )}
                     </Box>

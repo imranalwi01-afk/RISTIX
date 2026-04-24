@@ -52,25 +52,29 @@ interface FilterState {
 }
 
 interface NominativeReportRow {
-  download_date?: string;
+  pkid?: number | string;
+  prc_date?: string;
+  account_id?: number | string;
+  account_number?: string;
   facility_number?: string;
+  cif_number?: string;
   cif_name?: string;
-  account_number: string;
-  loan_start_date?: string;
-  loan_maturity_date?: string;
-  outstanding?: number | string;
-  ecl_final_amt?: number | string;
-  ecl_final?: number | string; // from eclResult
-  ecl_coverage?: number | string;
-  stage?: number | string;
-  group_segment?: string;
-  segment?: string;
-  sub_segment?: string;
+  account_status?: string;
   branch_code?: string;
+  prd_code?: string;
+  start_date?: string;
+  maturity_date?: string;
   currency?: string;
   interest_rate?: number | string;
-  rating_bucket?: number | string;
-  watchlist?: string;
+  eff_interest_rate?: number | string;
+  dpd?: number | string;
+  impaired_status?: string;
+  segment?: string;
+  stage?: number | string;
+  bucket_id?: number | string;
+  outstanding?: number | string;
+  ecl_final_amt?: number | string;
+  ecl_coverage?: number | string;
   [key: string]: string | number | boolean | null | undefined;
 }
 
@@ -81,6 +85,15 @@ interface NominativeAvailableDateRow {
   total_ecl: number
 }
 
+type NominativeColumnConfig = {
+  key: Extract<keyof NominativeReportRow, string>
+  label: string
+  width: number
+  align?: 'left' | 'center' | 'right'
+  headerAlign?: 'left' | 'center' | 'right'
+  type?: 'currency' | 'date' | 'number' | 'percentage' | 'stage'
+}
+
 const getDefaultFilters = (): FilterState => ({
   asOfDate: new Date().toISOString().split('T')[0],
   downloadDateStart: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -89,6 +102,32 @@ const getDefaultFilters = (): FilterState => ({
   branches: [],
   stages: [1, 2, 3]
 });
+
+const NOMINATIVE_OUTPUT_COLUMNS: NominativeColumnConfig[] = [
+  { key: 'pkid', label: 'PKID', width: 110, type: 'number' as const },
+  { key: 'prc_date', label: 'PRC Date', width: 130, type: 'date' as const },
+  { key: 'account_id', label: 'Account ID', width: 120, type: 'number' as const },
+  { key: 'account_number', label: 'Account Number', width: 160 },
+  { key: 'facility_number', label: 'Facility Number', width: 160 },
+  { key: 'cif_number', label: 'CIF Number', width: 140 },
+  { key: 'cif_name', label: 'CIF Name', width: 220 },
+  { key: 'account_status', label: 'Account Status', width: 130 },
+  { key: 'branch_code', label: 'Branch Code', width: 130 },
+  { key: 'prd_code', label: 'Product Code', width: 130 },
+  { key: 'start_date', label: 'Start Date', width: 130, type: 'date' as const },
+  { key: 'maturity_date', label: 'Maturity Date', width: 130, type: 'date' as const },
+  { key: 'currency', label: 'Currency', width: 100 },
+  { key: 'interest_rate', label: 'Interest Rate', width: 130, align: 'right' as const, headerAlign: 'right' as const, type: 'percentage' as const },
+  { key: 'eff_interest_rate', label: 'Effective Interest Rate', width: 170, align: 'right' as const, headerAlign: 'right' as const, type: 'percentage' as const },
+  { key: 'dpd', label: 'DPD', width: 100, align: 'right' as const, headerAlign: 'right' as const, type: 'number' as const },
+  { key: 'impaired_status', label: 'Impaired Status', width: 140 },
+  { key: 'segment', label: 'Segment', width: 160 },
+  { key: 'stage', label: 'Stage', width: 110, align: 'center' as const, headerAlign: 'center' as const, type: 'stage' as const },
+  { key: 'bucket_id', label: 'Bucket ID', width: 120, align: 'center' as const, headerAlign: 'center' as const, type: 'number' as const },
+  { key: 'outstanding', label: 'Outstanding', width: 180, align: 'right' as const, headerAlign: 'right' as const, type: 'currency' as const },
+  { key: 'ecl_final_amt', label: 'ECL Final Amount', width: 180, align: 'right' as const, headerAlign: 'right' as const, type: 'currency' as const },
+  { key: 'ecl_coverage', label: 'ECL Coverage', width: 140, align: 'right' as const, headerAlign: 'right' as const, type: 'percentage' as const },
+];
 
 const NominativeReport: React.FC = () => {
   // Summary statistics state
@@ -172,32 +211,12 @@ const NominativeReport: React.FC = () => {
       .sort((a, b) => b.year - a.year)
   }, [availableDates, monthLabels])
 
-  // Column Definitions
-  const columns = [
-    { key: 'download_date', label: 'Download Date', width: 130 },
-    { key: 'facility_number', label: 'Contract No', width: 150 },
-    { key: 'cif_name', label: 'Customer', width: 200 },
-    { key: 'account_number', label: 'Account No', width: 150 },
-    { key: 'loan_start_date', label: 'Loan Start Date', width: 140 },
-    { key: 'loan_maturity_date', label: 'Loan Maturity Date', width: 150 },
-    { key: 'currency', label: 'Currency', width: 100 },
-    { key: 'interest_rate', label: 'Interest Rate', width: 120, align: 'right' as const, headerAlign: 'right' as const },
-    { key: 'outstanding', label: 'Outstanding', width: 180, align: 'right' as const, headerAlign: 'right' as const, type: 'currency' },
-    { key: 'ecl_final_amt', label: 'ECL Amount', width: 180, align: 'right' as const, headerAlign: 'right' as const, type: 'currency' },
-    { key: 'ecl_coverage', label: 'ECL Coverage', width: 130, align: 'right' as const, headerAlign: 'right' as const },
-    { key: 'stage', label: 'Stage', width: 100, align: 'center' as const, headerAlign: 'center' as const },
-    { key: 'group_segment', label: 'Group Segment', width: 160 },
-    { key: 'segment', label: 'Segment', width: 150 },
-    { key: 'sub_segment', label: 'Sub Segment', width: 150 },
-    { key: 'rating_bucket', label: 'Rating Bucket', width: 120, align: 'center' as const, headerAlign: 'center' as const },
-    { key: 'watchlist', label: 'Watchlist', width: 110, align: 'center' as const, headerAlign: 'center' as const },
-    { key: 'branch_code', label: 'Branch', width: 120 }
-  ];
+  const columns = NOMINATIVE_OUTPUT_COLUMNS;
 
   const profitCenterOptions = useMemo(
     () => Array.from(new Set(
       data
-        .map((row) => row.group_segment || row.segment)
+        .map((row) => row.segment)
         .filter((value): value is string => typeof value === 'string' && value.length > 0)
     )).sort(),
     [data],
@@ -223,7 +242,7 @@ const NominativeReport: React.FC = () => {
         download_end_date: nextFilters.downloadDateEnd,
         page: nextPaginationModel.page + 1,
         limit: nextPaginationModel.pageSize,
-        group_segment: nextFilters.profitCenters.length > 0 ? nextFilters.profitCenters : undefined,
+        segment: nextFilters.profitCenters.length > 0 ? nextFilters.profitCenters : undefined,
         branch_code: nextFilters.branches.length > 0 ? nextFilters.branches : undefined
       };
       
@@ -448,26 +467,11 @@ const NominativeReport: React.FC = () => {
   // Handle Export to Excel
   const handleExportExcel = useCallback(async () => {
     const exportClientSide = () => {
-      const exportData = data.map(row => ({
-        'Download Date': row.download_date,
-        'Contract No': row.facility_number,
-        'Customer': row.cif_name,
-        'Account No': row.account_number,
-        'Loan Start Date': row.loan_start_date,
-        'Loan Maturity Date': row.loan_maturity_date,
-        'Currency': row.currency,
-        'Interest Rate': row.interest_rate,
-        'Outstanding (IDR)': row.outstanding,
-        'ECL Amount (IDR)': row.ecl_final_amt,
-        'ECL Coverage': row.ecl_coverage,
-        'Stage': row.stage,
-        'Group Segment': row.group_segment,
-        'Segment': row.segment,
-        'Sub Segment': row.sub_segment,
-        'Rating Bucket': row.rating_bucket,
-        'Watchlist': row.watchlist,
-        'Branch': row.branch_code
-      }));
+      const exportData = data.map((row) =>
+        Object.fromEntries(
+          columns.map((col) => [col.label, row[col.key]])
+        )
+      );
 
       const ws = XLSX.utils.json_to_sheet(exportData);
       const wb = XLSX.utils.book_new();
@@ -481,7 +485,7 @@ const NominativeReport: React.FC = () => {
           prc_date: effectivePrcDate ?? appliedFilters.asOfDate,
           download_start_date: appliedFilters.downloadDateStart,
           download_end_date: appliedFilters.downloadDateEnd,
-          group_segment: appliedFilters.profitCenters.length > 0 ? appliedFilters.profitCenters : undefined,
+          segment: appliedFilters.profitCenters.length > 0 ? appliedFilters.profitCenters : undefined,
           branch_code: appliedFilters.branches.length > 0 ? appliedFilters.branches : undefined,
           stage: appliedFilters.stages.length > 0 ? appliedFilters.stages.map((s) => String(s)) : undefined,
           format: 'xlsx',
@@ -532,7 +536,7 @@ const NominativeReport: React.FC = () => {
         download_end_date: appliedFilters.downloadDateEnd,
         page: 1,
         limit: pageSize,
-        group_segment: appliedFilters.profitCenters.length > 0 ? appliedFilters.profitCenters : undefined,
+        segment: appliedFilters.profitCenters.length > 0 ? appliedFilters.profitCenters : undefined,
         branch_code: appliedFilters.branches.length > 0 ? appliedFilters.branches : undefined,
         stage: appliedFilters.stages.length > 0 ? appliedFilters.stages.map((s) => String(s)) : undefined,
       }
@@ -555,7 +559,7 @@ const NominativeReport: React.FC = () => {
         `As of: ${reportDate}`,
         `Download: ${appliedFilters.downloadDateStart} to ${appliedFilters.downloadDateEnd}`,
         appliedFilters.stages?.length ? `Stages: ${appliedFilters.stages.join(', ')}` : undefined,
-        appliedFilters.profitCenters?.length ? `Profit Center: ${appliedFilters.profitCenters.join(', ')}` : undefined,
+        appliedFilters.profitCenters?.length ? `Segment: ${appliedFilters.profitCenters.join(', ')}` : undefined,
         appliedFilters.branches?.length ? `Branch: ${appliedFilters.branches.join(', ')}` : undefined,
       ].filter(Boolean)
 
@@ -572,47 +576,11 @@ const NominativeReport: React.FC = () => {
         totalRows > maxRows ? `Rows: first ${maxRows.toLocaleString('id-ID')} of ${Number(totalRows).toLocaleString('id-ID')}` : `Rows: ${rows.length.toLocaleString('id-ID')}`,
       ]
 
-      const head = [[
-        'Download Date',
-        'Contract No',
-        'Customer',
-        'Account No',
-        'Start Date',
-        'Maturity Date',
-        'CCY',
-        'Interest',
-        'Outstanding',
-        'ECL Amount',
-        'ECL Coverage',
-        'Stage',
-        'Group Segment',
-        'Segment',
-        'Sub Segment',
-        'Rating',
-        'Watchlist',
-        'Branch',
-      ]]
+      const head = [columns.map((col) => col.label)]
 
-      const body = rows.map((row) => ([
-        row.download_date ?? '',
-        row.facility_number ?? '',
-        row.cif_name ?? '',
-        row.account_number ?? '',
-        row.loan_start_date ?? '',
-        row.loan_maturity_date ?? '',
-        row.currency ?? '',
-        row.interest_rate ?? '',
-        row.outstanding ?? '',
-        row.ecl_final_amt ?? '',
-        row.ecl_coverage ?? '',
-        row.stage ?? '',
-        row.group_segment ?? '',
-        row.segment ?? '',
-        row.sub_segment ?? '',
-        row.rating_bucket ?? '',
-        row.watchlist ?? '',
-        row.branch_code ?? '',
-      ]))
+      const body = rows.map((row) =>
+        columns.map((col) => row[col.key] ?? '')
+      )
 
       autoTable(doc, {
         head,
@@ -622,15 +590,14 @@ const NominativeReport: React.FC = () => {
         styles: { fontSize: 7, cellPadding: 3, overflow: 'linebreak' },
         headStyles: { fillColor: [25, 118, 210], textColor: 255, fontStyle: 'bold' },
         alternateRowStyles: { fillColor: [248, 250, 252] },
-        columnStyles: {
-          7: { halign: 'right' },
-          8: { halign: 'right' },
-          9: { halign: 'right' },
-          10: { halign: 'right' },
-          11: { halign: 'center' },
-          15: { halign: 'center' },
-          16: { halign: 'center' },
-        },
+        columnStyles: Object.fromEntries(
+          columns.map((col, index) => [
+            index,
+            {
+              halign: col.align ?? 'left',
+            },
+          ])
+        ),
         didDrawPage: (dataArg: any) => {
           const pageWidth = doc.internal.pageSize.getWidth()
 
@@ -699,16 +666,9 @@ const NominativeReport: React.FC = () => {
 
     const searchTerm = quickSearch.toLowerCase().trim();
     return data.filter(row => 
-      row.download_date?.toLowerCase().includes(searchTerm) ||
-      row.facility_number?.toLowerCase().includes(searchTerm) ||
-      row.cif_name?.toLowerCase().includes(searchTerm) ||
-      row.account_number?.toLowerCase().includes(searchTerm) ||
-      row.group_segment?.toLowerCase().includes(searchTerm) ||
-      row.segment?.toLowerCase().includes(searchTerm) ||
-      row.sub_segment?.toLowerCase().includes(searchTerm) ||
-      row.currency?.toLowerCase().includes(searchTerm) ||
-      row.watchlist?.toLowerCase().includes(searchTerm) ||
-      row.branch_code?.toLowerCase().includes(searchTerm)
+      Object.values(row).some((value) =>
+        String(value ?? '').toLowerCase().includes(searchTerm)
+      )
     );
   }, [data, quickSearch]);
 
@@ -1214,7 +1174,7 @@ const NominativeReport: React.FC = () => {
                       renderInput={(params: AutocompleteRenderInputParams) => (
                         <TextField
                           {...params}
-                          label="Group Segment"
+                          label="Segment"
                           placeholder={filters.profitCenters.length === 0 ? 'Select or type...' : ''}
                         />
                       )}
@@ -1330,7 +1290,7 @@ const NominativeReport: React.FC = () => {
                   {filters.profitCenters.map((pc) => (
                     <Chip
                       key={`pc-${pc}`}
-                      label={`PC: ${pc}`}
+                      label={`Segment: ${pc}`}
                       size="small"
                       onDelete={() => setFilters(prev => ({
                         ...prev,
@@ -1461,7 +1421,7 @@ const NominativeReport: React.FC = () => {
         <Box sx={{ width: '100%' }}>
           <ReportDataGrid
             rows={filteredData}
-            getRowId={(row) => row.account_number}
+            getRowId={(row) => row.pkid ?? row.id ?? `${row.account_id ?? 'row'}-${row.account_number ?? ''}-${row.facility_number ?? ''}`}
             columns={columns
               .map(col => {
                 const baseCol: GridColDef = {
@@ -1488,7 +1448,7 @@ const NominativeReport: React.FC = () => {
                   };
                 }
 
-                if (col.key === 'ecl_coverage' || col.key === 'interest_rate') {
+                if (col.type === 'percentage') {
                   return {
                     ...baseCol,
                     valueFormatter: (value: number | string | null | undefined) => {
@@ -1499,7 +1459,7 @@ const NominativeReport: React.FC = () => {
                   };
                 }
 
-                if (col.key === 'stage') {
+                if (col.type === 'stage') {
                   return {
                     ...baseCol,
                     width: 100,
@@ -1513,20 +1473,7 @@ const NominativeReport: React.FC = () => {
                   };
                 }
 
-                if (col.key === 'watchlist') {
-                  return {
-                    ...baseCol,
-                    renderCell: (params: GridRenderCellParams<NominativeReportRow, string>) => (
-                      <Chip
-                        label={params.value || 'No'}
-                        size="small"
-                        color={params.value === 'Yes' ? 'warning' : 'default'}
-                      />
-                    )
-                  };
-                }
-
-                if (col.key.includes('date')) {
+                if (col.type === 'date' || col.key.includes('date')) {
                   return {
                     ...baseCol,
                     valueFormatter: (value: string | null | undefined) => {
