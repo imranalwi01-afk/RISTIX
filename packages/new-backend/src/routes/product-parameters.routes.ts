@@ -246,7 +246,30 @@ app.openapi(
                     result.rows,
                     query,
                     buildOffsetPagination(query, result.total),
-                    { filterDefinitions: productFilterDefinitions },
+                    {
+                        filterDefinitions: productFilterDefinitions,
+                        debug: {
+                            endpoint: '/api/v1/banking/parameters/product',
+                            requestUrl: c.req.url,
+                            selectedSource: 'public.frs9_param_product',
+                            sourceTables: ['public.frs9_param_product'],
+                            filtersApplied: {
+                                mode,
+                                search: query.search,
+                                ...query.filters,
+                                sort: query.sort,
+                                paginationMode: query.paginationMode,
+                                page: query.page,
+                                offset: query.offset,
+                                limit: query.limit,
+                            },
+                            sqlPreview: 'SELECT * FROM public.frs9_param_product WHERE (:search IS NULL OR prd_code ILIKE :search OR prd_desc ILIKE :search OR prd_group ILIKE :search OR prd_type ILIKE :search) ORDER BY createddate DESC LIMIT :limit OFFSET :offset',
+                            notes: [
+                                'Product parameter list currently reads directly from public.frs9_param_product.',
+                                'Mode is accepted by the API contract but is not applied as a database filter in the current repository implementation.',
+                            ],
+                        },
+                    },
                 ),
             )
         } catch (error) {

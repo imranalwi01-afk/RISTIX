@@ -6,13 +6,18 @@ import {
   Container,
   Snackbar,
   Alert,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Typography,
+  Chip,
   Menu,
   MenuItem,
   ListItemIcon,
   ListItemText,
   Divider
 } from '@mui/material';
-import { Download as DownloadIcon } from '@mui/icons-material';
+import { Download as DownloadIcon, ExpandMore as ExpandMoreIcon, ContentCopy as ContentCopyIcon } from '@mui/icons-material';
 import { useSearchParams } from 'next/navigation';
 import { api, handleAPIError, bankingAPI } from '@/services/api';
 import { exportToXLSX, exportToCSV, exportToPDF } from '@/utils/exportUtils';
@@ -56,6 +61,28 @@ const PRODUCT_SETTING_LOCATORS: Record<
 } as const;
 
 type OptionItem = { id: string; name: string };
+type ProductListDebug = {
+  endpoint?: string;
+  requestUrl?: string;
+  selectedSource?: string;
+  sourceTables?: string[];
+  filtersApplied?: Record<string, unknown>;
+  sqlPreview?: string;
+  notes?: string[];
+};
+
+const getProductListPayload = (result: any) => {
+  if (Array.isArray(result?.data)) return result;
+  if (result?.data && typeof result.data === 'object') return result.data;
+  return result;
+};
+
+const getProductRows = (payload: any) => {
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.products)) return payload.products;
+  if (Array.isArray(payload)) return payload;
+  return [];
+};
 
 const normalizeCode = (value: unknown) => String(value ?? '').trim().toUpperCase();
 
@@ -188,6 +215,7 @@ export default function ProductParametersPage() {
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [listDebug, setListDebug] = useState<ProductListDebug | null>(null);
   const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
   const showApprovalConflict = (error: unknown, fallbackMessage: string) => {
     const notification = buildApprovalConflictNotification(error, fallbackMessage);
@@ -252,16 +280,11 @@ export default function ProductParametersPage() {
         buildProductRequestParams(currentPage, currentPageSize),
       );
 
-      // Support both payload styles:
-      // 1) { success: true, products, pagination }
-      // 2) { success: true, data: { products, pagination } }
-      const listPayload = result?.data && typeof result.data === 'object' ? result.data : result;
-      const products = Array.isArray(listPayload?.data)
-        ? listPayload.data
-        : Array.isArray(listPayload?.products)
-          ? listPayload.products
-          : [];
+      // Support legacy, nested, and list-contract payload styles.
+      const listPayload = getProductListPayload(result);
+      const products = getProductRows(listPayload);
       const pagination = listPayload?.pagination ?? {};
+      const debug = listPayload?.meta?.debug ?? result?.meta?.debug ?? null;
 
       if (result?.success) {
         // Fetch pending approvals for product parameters
@@ -280,16 +303,19 @@ export default function ProductParametersPage() {
 
           setData(mappedProducts);
           setRowCount(Number(pagination.total ?? products.length ?? 0));
+          setListDebug(debug);
         } catch (e) {
           console.warn('Failed to load pending approvals:', e);
           setData(products);
           setRowCount(Number(pagination.total ?? products.length ?? 0));
+          setListDebug(debug);
         }
       } else {
         setError(result?.message || 'Failed to load products');
       }
     } catch (err) {
       setError(handleAPIError(err).message);
+      setListDebug(null);
     } finally {
       setLoading(false);
     }
@@ -449,12 +475,8 @@ export default function ProductParametersPage() {
     const fetchAllRows = async () => {
       const limit = 1000;
       const firstPage = await api.banking.productParameters.getAll(mode, buildProductRequestParams(0, limit));
-      const firstPayload = firstPage?.data && typeof firstPage.data === 'object' ? firstPage.data : firstPage;
-      const firstRows = Array.isArray(firstPayload?.data)
-        ? firstPayload.data
-        : Array.isArray(firstPayload?.products)
-          ? firstPayload.products
-          : [];
+      const firstPayload = getProductListPayload(firstPage);
+      const firstRows = getProductRows(firstPayload);
       const totalPages = Math.max(1, Number(firstPayload?.pagination?.totalPages ?? 1));
       if (totalPages === 1) return firstRows;
 
@@ -467,9 +489,8 @@ export default function ProductParametersPage() {
       return [
         ...firstRows,
         ...restPages.flatMap((pageResult: any) => {
-          const payload = pageResult?.data && typeof pageResult.data === 'object' ? pageResult.data : pageResult;
-          if (Array.isArray(payload?.data)) return payload.data;
-          return Array.isArray(payload?.products) ? payload.products : [];
+          const payload = getProductListPayload(pageResult);
+          return getProductRows(payload);
         }),
       ];
     };
@@ -512,6 +533,13 @@ export default function ProductParametersPage() {
 
   // State calculations
   const activeFilterCount = Object.values(filters).filter(v => v !== '' && v !== 'all').length;
+  const canSeeDebug = hasAnyPermission(['admin.super_admin']);
+
+  const handleCopyDebug = useCallback(async () => {
+    if (!listDebug || typeof navigator === 'undefined' || !navigator.clipboard) return;
+    await navigator.clipboard.writeText(JSON.stringify(listDebug, null, 2));
+    setSuccess('Product debug copied.');
+  }, [listDebug]);
 
   return (
     <Container maxWidth="xl" sx={{ py: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -521,6 +549,37 @@ export default function ProductParametersPage() {
         <Alert severity="warning" sx={{ mb: 2 }}>
           You do not have permission to view product parameters.
         </Alert>
+      )}
+
+      {canSeeDebug && listDebug && (
+        <Accordion sx={{ mb: 2, borderRadius: 3, '&:before': { display: 'none' } }}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+              <Typography variant="subtitle1" fontWeight={700}>Product Query Debug</Typography>
+              {listDebug.selectedSource ? (
+                <Chip size="small" variant="outlined" label={String(listDebug.selectedSource).replace(/^public\./, '')} />
+              ) : null}
+            </Box>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Box sx={{ display: 'grid', gap: 1.5 }}>
+              <Typography variant="body2"><strong>Endpoint:</strong> {listDebug.endpoint || '-'}</Typography>
+              <Typography variant="body2" sx={{ wordBreak: 'break-all' }}><strong>Request URL:</strong> {listDebug.requestUrl || '-'}</Typography>
+              <Typography variant="body2"><strong>Source Tables:</strong> {(listDebug.sourceTables || []).join(', ') || '-'}</Typography>
+              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}><strong>Filters Applied:</strong> {JSON.stringify(listDebug.filtersApplied || {}, null, 2)}</Typography>
+              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}><strong>SQL Preview:</strong> {listDebug.sqlPreview || '-'}</Typography>
+              {Array.isArray(listDebug.notes) && listDebug.notes.length > 0 ? (
+                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}><strong>Notes:</strong> {listDebug.notes.join(' ')}</Typography>
+              ) : null}
+              <Box>
+                <MenuItem onClick={() => void handleCopyDebug()} sx={{ width: 'fit-content', pl: 0 }}>
+                  <ListItemIcon><ContentCopyIcon fontSize="small" /></ListItemIcon>
+                  <ListItemText>Copy Debug</ListItemText>
+                </MenuItem>
+              </Box>
+            </Box>
+          </AccordionDetails>
+        </Accordion>
       )}
 
       <PageHeader
