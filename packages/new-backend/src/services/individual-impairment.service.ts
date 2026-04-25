@@ -11,7 +11,7 @@ import {
     frs9ImpIaRr
 } from '../db/schema/legacy';
 import { frs9MasterAccount, users } from '../db/schema';
-import { and, eq, desc, sql, inArray, ilike, or } from 'drizzle-orm';
+import { and, eq, desc, asc, sql, inArray, ilike, or } from 'drizzle-orm';
 import { MasterAccountRepository } from '@/repositories/master-account.repository';
 import { decodeCursor, encodeCursor } from '@/lib/http/list-query';
 
@@ -515,23 +515,130 @@ export class IndividualImpairmentService {
     }
 
     // =========================================================================
-    // LIST OF INDIVIDUAL REPORT (1.4.2) -> frs9_imp_ia_result_h
+    // LIST OF INDIVIDUAL REPORT (1.4.2) -> frs9_imp_ia_header
     // =========================================================================
 
-    async getReports(tenantId: string, filters: { reportPeriod?: string; limit?: number; offset?: number }) {
-        const { reportPeriod, limit = 50, offset = 0 } = filters;
-        const conditions = [];
+    async getReports(tenantId: string, filters: {
+        reportPeriod?: string;
+        search?: string;
+        status?: string;
+        impaired_flag?: string;
+        dateFrom?: string;
+        dateTo?: string;
+        limit?: number;
+        offset?: number;
+        sort?: Array<{ field: string; direction: 'asc' | 'desc' }>;
+    }) {
+        const { reportPeriod, search, status, impaired_flag, dateFrom, dateTo, limit = 50, offset = 0 } = filters;
+        const conditions = [
+            // Techspec uses IMPAIRED_FLAG = 'I'. Keep T compatibility because existing override flow writes T/F.
+            sql`(${frs9ImpIaHeader.impairedFlag} = 'I' OR ${frs9ImpIaHeader.impairedFlag} = 'T')`,
+        ];
 
         if (reportPeriod) {
-            conditions.push(sql`TO_CHAR(${frs9ImpIaResultH.prcDate}, 'YYYY-MM') = ${reportPeriod}`);
+            conditions.push(sql`TO_CHAR(${frs9ImpIaHeader.prcDate}, 'YYYY-MM') = ${reportPeriod}`);
         }
 
-        return legacyDb.select()
-            .from(frs9ImpIaResultH)
-            .where(and(...conditions))
-            .orderBy(desc(frs9ImpIaResultH.createddate))
+        if (dateFrom) {
+            conditions.push(sql`${frs9ImpIaHeader.prcDate} >= ${dateFrom}`);
+        }
+
+        if (dateTo) {
+            conditions.push(sql`${frs9ImpIaHeader.prcDate} <= ${dateTo}`);
+        }
+
+        if (search) {
+            conditions.push(or(
+                ilike(frs9ImpIaHeader.accountNumber, `%${search}%`),
+                ilike(frs9ImpIaHeader.cifName, `%${search}%`),
+                ilike(frs9ImpIaHeader.cifNumber, `%${search}%`)
+            ));
+        }
+
+        if (status) {
+            const statusInt = STATUS_MAP_TO_INT[String(status).toUpperCase()];
+            if (statusInt !== undefined) {
+                conditions.push(eq(frs9ImpIaHeader.status, statusInt));
+            }
+        }
+
+        if (impaired_flag) {
+            conditions.push(eq(frs9ImpIaHeader.impairedFlag, impaired_flag));
+        }
+
+        const whereClause = and(...conditions);
+        const countResult = await legacyDb.select({ count: sql<number>`count(*)` })
+            .from(frs9ImpIaHeader)
+            .where(whereClause);
+        const total = Number(countResult[0]?.count || 0);
+
+        const reportSortColumns = {
+            pkid: frs9ImpIaHeader.pkid,
+            downloadDate: frs9ImpIaHeader.prcDate,
+            prc_date: frs9ImpIaHeader.prcDate,
+            accountNumber: frs9ImpIaHeader.accountNumber,
+            account_number: frs9ImpIaHeader.accountNumber,
+            cifName: frs9ImpIaHeader.cifName,
+            cif_name: frs9ImpIaHeader.cifName,
+            outstanding: frs9ImpIaHeader.outstanding,
+            dpd: frs9ImpIaHeader.dpd,
+            collectability: frs9ImpIaHeader.collectability,
+            eadAmt: frs9ImpIaHeader.eadAmt,
+            pvDcfAmt: frs9ImpIaHeader.pvDcfAmt,
+            eclIaAmt: frs9ImpIaHeader.eclIaAmt,
+            status: frs9ImpIaHeader.status,
+        };
+
+        const sortExpressions = (filters.sort || [])
+            .map((sort) => {
+                const column = reportSortColumns[sort.field];
+                if (!column) return null;
+                return sort.direction === 'asc' ? asc(column) : desc(column);
+            })
+            .filter(Boolean);
+
+        const rows = await legacyDb.select()
+            .from(frs9ImpIaHeader)
+            .where(whereClause)
+            .orderBy(...(sortExpressions.length > 0
+                ? [...sortExpressions, desc(frs9ImpIaHeader.pkid)]
+                : [desc(frs9ImpIaHeader.prcDate), desc(frs9ImpIaHeader.createddate), desc(frs9ImpIaHeader.pkid)]))
             .limit(limit)
             .offset(offset);
+
+        return {
+            data: rows.map((row) => ({
+                pkid: Number(row.pkid),
+                ia_id: row.iaId ? Number(row.iaId) : null,
+                download_date: row.prcDate,
+                prc_date: row.prcDate,
+                customer_number: row.cifNumber,
+                cif_number: row.cifNumber,
+                customer_name: row.cifName,
+                cif_name: row.cifName,
+                account_id: row.accountId ? Number(row.accountId) : null,
+                account_number: row.accountNumber,
+                currency: row.currency,
+                outstanding: Number(row.outstanding || 0),
+                day_past_due: Number(row.dpd || 0),
+                dpd: Number(row.dpd || 0),
+                collectability: row.collectability ?? null,
+                rating: row.ratingCode,
+                rating_code: row.ratingCode,
+                ead_amt: Number(row.eadAmt || 0),
+                pv_dcf_amt: Number(row.pvDcfAmt || 0),
+                ecl_ia_amt: Number(row.eclIaAmt || 0),
+                status: STATUS_MAP_TO_STRING[row.status] || String(row.status ?? ''),
+                raw_status: row.status,
+                trigger_remarks: row.triggerRemarks,
+                trigger_filename: row.triggerFilename,
+                createdby: row.createdby,
+                createddate: row.createddate,
+                updatedby: row.updatedby,
+                updateddate: row.updateddate,
+            })),
+            total,
+        };
     }
 
     async createReport(data: any) {
@@ -1166,8 +1273,19 @@ export class IndividualImpairmentService {
                 };
             }
 
-            // 1. Build Query Conditions for Master Account (Source Data)
-            const conditions = [];
+            // Techspec Individual Watchlist source:
+            // FRS9_MASTER_ACCOUNT candidates with DPD > 30, OUTSTANDING >= 1,000,000,
+            // excluding accounts already marked individual in IA header.
+            const conditions = [
+                sql`${frs9MasterAccount.dpd} > 30`,
+                sql`${frs9MasterAccount.outstanding} >= 1000000`,
+                sql`NOT EXISTS (
+                    SELECT 1
+                    FROM frs9_imp_ia_header h
+                    WHERE h.account_id = ${frs9MasterAccount.accountId}
+                    AND (h.impaired_flag = 'I' OR h.impaired_flag = 'T')
+                )`,
+            ];
 
             if (search) {
                 conditions.push(or(

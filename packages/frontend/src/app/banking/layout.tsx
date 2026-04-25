@@ -30,6 +30,7 @@ import { useBankingTheme } from '../../providers/BankingThemeProvider';
 import { BankingAppBar } from '../../components/banking/layout/BankingAppBar';
 import { BankingBreadcrumbs } from '../../components/banking/layout/BankingBreadcrumbs';
 import { NotificationProvider } from '../../providers/NotificationProvider';
+import { clearAuthTokens } from '../../utils/auth-token';
 
 const DRAWER_WIDTH = 280;
 const DRAWER_WIDTH_COLLAPSED = 60;
@@ -117,6 +118,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
     const hasStoredSession = Boolean(storedToken || storedRefreshToken);
 
     if (!hasStoredSession) {
+      clearAuthTokens();
       localStorage.removeItem('user_data');
     }
 
@@ -153,6 +155,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
             onClick={() => {
               if (typeof window !== 'undefined') {
                 const redirectTarget = `${window.location.pathname}${window.location.search}`;
+                clearAuthTokens();
                 window.location.replace(`/login?logout=true&redirect=${encodeURIComponent(redirectTarget)}`);
               }
             }}

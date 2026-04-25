@@ -158,6 +158,11 @@ const formatAmount = (value?: number | string | null) => {
     : '0.00';
 };
 
+const readHeaderNumber = (header: PersistedIaHeader, field: keyof PersistedIaHeader) => {
+  const value = header[field];
+  return value === null || value === undefined ? 0 : value;
+};
+
 const buildScenarioRows = (count: number, baseDate: string, seedName?: string, baseRate = 0): DcfScenarioRow[] => {
   const safeCount = Math.max(1, Math.min(5, count || 1));
   const start = baseDate ? new Date(baseDate) : new Date();
@@ -653,6 +658,10 @@ export const AssessmentOverride = () => {
     }
   ];
 
+  const persistedHeader = persistedDcfDetail?.header || null;
+  const persistedCashflows = persistedDcfDetail?.cashflows || [];
+  const persistedIaDetails = persistedDcfDetail?.details || [];
+
   return (
     <Container
       maxWidth="xl"
@@ -687,13 +696,15 @@ export const AssessmentOverride = () => {
               variant="outlined"
             />
           ) : null}
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleOpenOverrideDialog}
-          >
-            New Override Request
-          </Button>
+          {!accountId ? (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleOpenOverrideDialog}
+            >
+              New Override Request
+            </Button>
+          ) : null}
         </Box>
       </Box>
 
@@ -783,7 +794,7 @@ export const AssessmentOverride = () => {
                       </Button>
                     ) : null}
                     <Button variant="contained" onClick={handleOpenOverrideDialog}>
-                      Submit Override Request
+                      Review & Submit Override
                     </Button>
                     <Button variant="outlined" onClick={() => router.push(`/banking/individual/assessment?mode=${mode}&tab=watchlist`)}>
                       Back
@@ -993,7 +1004,7 @@ export const AssessmentOverride = () => {
                             </TableRow>
                           </TableHead>
                           <TableBody>
-                            {persistedDcfDetail.cashflows.length > 0 ? persistedDcfDetail.cashflows.map((row) => (
+                            {persistedCashflows.length > 0 ? persistedCashflows.map((row) => (
                               <TableRow key={row.pkid}>
                                 <TableCell>{row.accountNumber}</TableCell>
                                 <TableCell>{formatDisplayDate(row.periode)}</TableCell>
@@ -1011,7 +1022,7 @@ export const AssessmentOverride = () => {
                       </TableContainer>
                     </Box>
 
-                    {persistedDcfDetail.header ? (
+                    {persistedHeader ? (
                       <Box>
                         <Typography variant="h6" sx={{ mb: 2 }}>IA Discounted Cash Flow Detail</Typography>
                         <TableContainer component={Paper} variant="outlined">
@@ -1038,22 +1049,22 @@ export const AssessmentOverride = () => {
                             </TableHead>
                             <TableBody>
                               <TableRow>
-                                <TableCell>{formatDisplayDate(persistedDcfDetail.header.effectiveDate)}</TableCell>
-                                <TableCell>{persistedDcfDetail.header.accountNumber || '-'}</TableCell>
-                                <TableCell>{persistedDcfDetail.header.cifNumber || '-'}</TableCell>
-                                <TableCell>{persistedDcfDetail.header.cifName || '-'}</TableCell>
-                                <TableCell>{persistedDcfDetail.header.currency || '-'}</TableCell>
-                                <TableCell align="right">{persistedDcfDetail.header.dpd ?? 0}</TableCell>
-                                <TableCell align="right">{persistedDcfDetail.header.collectability ?? 0}</TableCell>
-                                <TableCell>{persistedDcfDetail.header.ratingCode || '-'}</TableCell>
-                                <TableCell align="right">{formatAmount(persistedDcfDetail.header.interestRate)}</TableCell>
-                                <TableCell align="right">{formatAmount(persistedDcfDetail.header.effInterestRate)}</TableCell>
-                                <TableCell align="right">{formatAmount(persistedDcfDetail.header.outstanding)}</TableCell>
-                                <TableCell align="right">{formatAmount(persistedDcfDetail.header.accruedInterest)}</TableCell>
-                                <TableCell align="right">{formatAmount(persistedDcfDetail.header.carryingAmt)}</TableCell>
-                                <TableCell align="right">{formatAmount(persistedDcfDetail.header.eadAmt)}</TableCell>
-                                <TableCell align="right">{formatAmount(persistedDcfDetail.header.pvDcfAmt)}</TableCell>
-                                <TableCell align="right">{formatAmount(persistedDcfDetail.header.eclIaAmt)}</TableCell>
+                                <TableCell>{formatDisplayDate(persistedHeader.effectiveDate)}</TableCell>
+                                <TableCell>{persistedHeader.accountNumber || '-'}</TableCell>
+                                <TableCell>{persistedHeader.cifNumber || '-'}</TableCell>
+                                <TableCell>{persistedHeader.cifName || '-'}</TableCell>
+                                <TableCell>{persistedHeader.currency || '-'}</TableCell>
+                                <TableCell align="right">{readHeaderNumber(persistedHeader, 'dpd')}</TableCell>
+                                <TableCell align="right">{readHeaderNumber(persistedHeader, 'collectability')}</TableCell>
+                                <TableCell>{persistedHeader.ratingCode || '-'}</TableCell>
+                                <TableCell align="right">{formatAmount(persistedHeader.interestRate)}</TableCell>
+                                <TableCell align="right">{formatAmount(persistedHeader.effInterestRate)}</TableCell>
+                                <TableCell align="right">{formatAmount(persistedHeader.outstanding)}</TableCell>
+                                <TableCell align="right">{formatAmount(persistedHeader.accruedInterest)}</TableCell>
+                                <TableCell align="right">{formatAmount(persistedHeader.carryingAmt)}</TableCell>
+                                <TableCell align="right">{formatAmount(persistedHeader.eadAmt)}</TableCell>
+                                <TableCell align="right">{formatAmount(persistedHeader.pvDcfAmt)}</TableCell>
+                                <TableCell align="right">{formatAmount(persistedHeader.eclIaAmt)}</TableCell>
                               </TableRow>
                             </TableBody>
                           </Table>
@@ -1091,7 +1102,7 @@ export const AssessmentOverride = () => {
                             </TableRow>
                           </TableHead>
                           <TableBody>
-                            {persistedDcfDetail.details.length > 0 ? persistedDcfDetail.details.map((row) => (
+                            {persistedIaDetails.length > 0 ? persistedIaDetails.map((row) => (
                               <TableRow key={row.pkid}>
                                 <TableCell>{row.mob}</TableCell>
                                 <TableCell>{formatDisplayDate(row.periode)}</TableCell>
@@ -1187,7 +1198,7 @@ export const AssessmentOverride = () => {
 
       {/* Create Dialog */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>New Override Request</DialogTitle>
+        <DialogTitle>Review Override Request</DialogTitle>
         <DialogContent dividers>
           <Box component="form" sx={{ mt: 1 }}>
             <TextField
@@ -1294,7 +1305,7 @@ export const AssessmentOverride = () => {
               || (!(existingDocumentName || (formData.supportingDocumentName && formData.supportingDocumentContent)))
             }
           >
-            Submit Request
+            Submit Override Request
           </Button>
         </DialogActions>
       </Dialog>

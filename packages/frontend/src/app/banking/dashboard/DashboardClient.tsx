@@ -87,6 +87,7 @@ import WidgetManager from '../../../components/dashboard/WidgetManager'
 import PersonalizedWidget from '../../../components/dashboard/widgets/PersonalizedWidget'
 import EmptyState from '../../../components/common/EmptyState'
 import ErrorState from '../../../components/common/ErrorState'
+import { clearAuthTokens } from '../../../utils/auth-token'
 import ReportSummaryGrid, { KPIItem } from '@/components/ifrs9/ReportSummaryGrid'
 import { usePermission } from '@/hooks/usePermission'
 import {
@@ -605,6 +606,7 @@ export default function DashboardClient() {
                     onClick={() => {
                         if (typeof window !== 'undefined') {
                             const redirectTarget = `${window.location.pathname}${window.location.search}`
+                            clearAuthTokens()
                             window.location.replace(`/login?logout=true&redirect=${encodeURIComponent(redirectTarget)}`)
                             return
                         }

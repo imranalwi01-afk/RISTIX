@@ -71,6 +71,26 @@ export async function fetchAssessmentSummary(downloadDate: string | undefined, m
 }
 
 export async function fetchAssessmentAccountBySearch(accountId: string, accountNumber: string, mode: string) {
+  const numericAccountId = Number(accountId);
+  if (Number.isFinite(numericAccountId) && numericAccountId > 0) {
+    try {
+      const response = await individualImpairmentAPI.watchlist.getById(numericAccountId);
+      if (response?.success && response.data) {
+        return {
+          ...response.data,
+          assessment_status: response.data.assessment_status ?? response.data.approval_status ?? 'PENDING',
+          priority_level: response.data.priority_level ?? 'MEDIUM',
+          provision_amount: response.data.provision_amount ?? response.data.ecl_amount ?? 0,
+          ecl_amount: response.data.ecl_amount ?? response.data.provision_amount ?? 0,
+          last_review_date: response.data.last_review_date ?? response.data.updateddate ?? response.data.prc_date,
+          next_review_date: response.data.next_review_date ?? response.data.prc_date,
+        };
+      }
+    } catch {
+      // Fallback below keeps older watchlist-only environments working.
+    }
+  }
+
   const response = await individualImpairmentAPI.watchlist.getAll({
     page: 1,
     limit: 1,
@@ -123,10 +143,16 @@ export async function fetchIndividualReportAssessmentList(params: {
   limit: number;
   search?: string;
   mode: string;
+  downloadDate?: string;
+  status?: string;
 }) {
-  return individualImpairmentAPI.watchlist.getAll({
+  return individualImpairmentFlatAPI.getReports({
     page: params.page,
     limit: params.limit,
     search: params.search,
+    dateFrom: params.downloadDate,
+    dateTo: params.downloadDate,
+    status: params.status,
+    paginationMode: 'offset',
   });
 }

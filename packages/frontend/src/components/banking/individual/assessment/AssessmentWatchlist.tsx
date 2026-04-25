@@ -41,8 +41,7 @@ import {
   formatCurrency,
   renderStageChip,
   renderAssessmentStatus,
-  renderPriorityChip,
-  renderImpairedFlag
+  renderPriorityChip
 } from '@/app/banking/individual/assessment/utils';
 
 interface AssessmentWatchlistProps {
@@ -91,6 +90,38 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
     if (typeof window === 'undefined') return ''
     return window.location.origin
   }, [])
+
+  const headerCellSx = {
+    backgroundColor: '#f8f9fa',
+    borderBottom: '2px solid',
+    borderColor: 'primary.main',
+    fontWeight: 700,
+    fontSize: '0.7rem',
+    textTransform: 'uppercase',
+    letterSpacing: '0.2px',
+    color: 'text.primary',
+    p: 1,
+    whiteSpace: 'nowrap',
+  }
+
+  const bodyCellSx = {
+    py: 0.75,
+    px: 1,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  }
+
+  const formatDate = (value?: string | null) => {
+    if (!value) return '-'
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return String(value)
+    return new Intl.DateTimeFormat('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    }).format(date)
+  }
 
   const buildAssessmentUrl = (account: IndividualImpairmentWatchlistItem) => {
     const params = new URLSearchParams()
@@ -185,13 +216,13 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell colSpan={9}><Skeleton animation="wave" /></TableCell>
+              <TableCell colSpan={12}><Skeleton animation="wave" /></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
              {[...Array(5)].map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell colSpan={9}><Skeleton animation="wave" height={50} /></TableCell>
+                  <TableCell colSpan={12}><Skeleton animation="wave" height={50} /></TableCell>
                 </TableRow>
              ))}
           </TableBody>
@@ -218,7 +249,7 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
       </Box>
       <TableContainer 
         sx={{ 
-          maxHeight: 'calc(100vh - 420px)',
+          maxHeight: { xs: '56vh', md: 'min(62vh, 680px)' },
           minHeight: '300px',
           overflow: 'auto',
           borderRadius: 1,
@@ -227,126 +258,30 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
           width: '100%'
         }}
       >
-        <Table stickyHeader size="small" sx={{ tableLayout: 'fixed', width: '100%', maxWidth: '100%' }} aria-label="Individual Assessment Watchlist">
+        <Table
+          stickyHeader
+          size="small"
+          sx={{
+            tableLayout: 'fixed',
+            minWidth: 1660,
+            width: '100%',
+          }}
+          aria-label="Individual Assessment Watchlist"
+        >
           <TableHead>
             <TableRow>
-              <TableCell sx={{
-                backgroundColor: '#f8f9fa',
-                borderBottom: '2px solid',
-                borderColor: 'primary.main',
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2px',
-                color: 'text.primary',
-                width: '100px',
-                minWidth: '100px',
-                p: 1
-              }}>Account</TableCell>
-              <TableCell sx={{
-                backgroundColor: '#f8f9fa',
-                borderBottom: '2px solid',
-                borderColor: 'primary.main',
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2px',
-                color: 'text.primary',
-                width: '110px',
-                minWidth: '110px',
-                p: 1
-              }}>Customer</TableCell>
-              <TableCell sx={{
-                backgroundColor: '#f8f9fa',
-                borderBottom: '2px solid',
-                borderColor: 'primary.main',
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2px',
-                color: 'text.primary',
-                width: '95px',
-                minWidth: '95px',
-                p: 1
-              }}>Balance</TableCell>
-              <TableCell sx={{
-                backgroundColor: '#f8f9fa',
-                borderBottom: '2px solid',
-                borderColor: 'primary.main',
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2px',
-                color: 'text.primary',
-                width: '70px',
-                minWidth: '70px',
-                p: 1
-              }}>Stage</TableCell>
-              <TableCell sx={{
-                backgroundColor: '#f8f9fa',
-                borderBottom: '2px solid',
-                borderColor: 'primary.main',
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2px',
-                color: 'text.primary',
-                width: '85px',
-                minWidth: '85px',
-                p: 1
-              }}>Status</TableCell>
-              <TableCell sx={{ 
-                backgroundColor: '#f8f9fa',
-                borderBottom: '2px solid',
-                borderColor: 'primary.main',
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2px',
-                color: 'text.primary',
-                width: '75px',
-                minWidth: '75px',
-                p: 1
-              }}>Priority</TableCell>
-              <TableCell sx={{
-                backgroundColor: '#f8f9fa',
-                borderBottom: '2px solid',
-                borderColor: 'primary.main',
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2px',
-                color: 'text.primary',
-                width: '70px',
-                minWidth: '70px',
-                p: 1
-              }}>Impaired</TableCell>
-              <TableCell sx={{
-                backgroundColor: '#f8f9fa',
-                borderBottom: '2px solid',
-                borderColor: 'primary.main',
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2px',
-                color: 'text.primary',
-                width: '95px',
-                minWidth: '95px',
-                p: 1
-              }}>Provision</TableCell>
-              <TableCell sx={{
-                backgroundColor: '#f8f9fa',
-                borderBottom: '2px solid',
-                borderColor: 'primary.main',
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2px',
-                color: 'text.primary',
-                width: '95px',
-                minWidth: '95px',
-                p: 1
-              }}>Actions</TableCell>
+              <TableCell sx={{ ...headerCellSx, width: 118 }}>Download Date</TableCell>
+              <TableCell sx={{ ...headerCellSx, width: 150 }}>Customer Number</TableCell>
+              <TableCell sx={{ ...headerCellSx, width: 220 }}>Customer Name</TableCell>
+              <TableCell sx={{ ...headerCellSx, width: 150 }}>Account Number</TableCell>
+              <TableCell sx={{ ...headerCellSx, width: 92 }}>Currency</TableCell>
+              <TableCell sx={{ ...headerCellSx, width: 160 }}>Outstanding</TableCell>
+              <TableCell sx={{ ...headerCellSx, width: 82 }}>DPD</TableCell>
+              <TableCell sx={{ ...headerCellSx, width: 118 }}>Collectability</TableCell>
+              <TableCell sx={{ ...headerCellSx, width: 120 }}>Rating</TableCell>
+              <TableCell sx={{ ...headerCellSx, width: 120 }}>Stage</TableCell>
+              <TableCell sx={{ ...headerCellSx, width: 132 }}>Status</TableCell>
+              <TableCell sx={{ ...headerCellSx, width: 150 }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -382,7 +317,22 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
                 }}
                 onClick={handleOpen}
               >
-                <TableCell sx={{ py: 0.75, px: 1 }}>
+                <TableCell sx={bodyCellSx}>
+                  <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                    {formatDate(account.prc_date)}
+                  </Typography>
+                </TableCell>
+                <TableCell sx={bodyCellSx}>
+                  <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                    {account.cif_number}
+                  </Typography>
+                </TableCell>
+                <TableCell sx={bodyCellSx}>
+                  <Typography variant="body2" sx={{ fontSize: '0.75rem', lineHeight: 1.2 }} title={account.cif_name}>
+                    {account.cif_name}
+                  </Typography>
+                </TableCell>
+                <TableCell sx={bodyCellSx}>
                   <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.75rem', lineHeight: 1.2 }}>
                     {account.account_number}
                   </Typography>
@@ -390,33 +340,39 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
                     {account.account_id}
                   </Typography>
                 </TableCell>
-                <TableCell sx={{ py: 0.75, px: 1 }}>
-                  <Typography variant="body2" sx={{ fontSize: '0.75rem', lineHeight: 1.2 }}>{account.cif_name}</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                    {account.cif_number}
+                <TableCell sx={bodyCellSx}>
+                  <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                    {account.currency || '-'}
                   </Typography>
                 </TableCell>
-                <TableCell sx={{ py: 0.75, px: 1 }}>
+                <TableCell sx={bodyCellSx}>
                   <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
                     {formatCurrency(account.outstanding_balance)}
                   </Typography>
                 </TableCell>
-                <TableCell sx={{ py: 0.75, px: 1 }}>
+                <TableCell sx={bodyCellSx}>
+                  <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                    {account.dpd ?? '-'}
+                  </Typography>
+                </TableCell>
+                <TableCell sx={bodyCellSx}>
+                  <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                    {account.collectability ?? '-'}
+                  </Typography>
+                </TableCell>
+                <TableCell sx={bodyCellSx}>
+                  <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                    {account.rating_code || '-'}
+                  </Typography>
+                </TableCell>
+                <TableCell sx={bodyCellSx}>
                   {renderStageChip(account.stage)}
                 </TableCell>
-                <TableCell sx={{ py: 0.75, px: 1 }}>
-                  {renderAssessmentStatus(account.assessment_status)}
-                </TableCell>
-                <TableCell sx={{ py: 0.75, px: 1 }}>
-                  {renderPriorityChip(account.priority_level)}
-                </TableCell>
-                <TableCell sx={{ py: 0.75, px: 1 }}>
-                  {renderImpairedFlag(account.impaired_flag)}
-                </TableCell>
-                <TableCell sx={{ py: 0.75, px: 1 }}>
-                  <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
-                    {formatCurrency(account.provision_amount)}
-                  </Typography>
+                <TableCell sx={bodyCellSx}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, alignItems: 'flex-start' }}>
+                    {renderAssessmentStatus(account.assessment_status)}
+                    {renderPriorityChip(account.priority_level)}
+                  </Box>
                 </TableCell>
                 <TableCell sx={{ py: 0.75, px: 0.5 }}>
                   <Box sx={{ display: 'flex', gap: 1 }}>
@@ -474,7 +430,7 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
             })}
             {watchlist.length === 0 && (
                <TableRow>
-                 <TableCell colSpan={9} align="center" sx={{ py: 3 }}>
+                 <TableCell colSpan={12} align="center" sx={{ py: 3 }}>
                    <Typography variant="body1" color="text.secondary">
                      No accounts found matching current filters.
                    </Typography>
@@ -486,7 +442,7 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
       </TableContainer>
 
       <TablePagination
-        rowsPerPageOptions={[10, 25, 50, 100, 200, 500]}
+        rowsPerPageOptions={[10, 25, 50, 75, 100]}
         component="div"
         count={pagination.total}
         rowsPerPage={pagination.limit}
