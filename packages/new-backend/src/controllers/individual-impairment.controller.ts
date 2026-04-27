@@ -666,7 +666,7 @@ export class IndividualImpairmentController {
             if (!user?.tenantId) return this.unauthorized(c);
 
             const body = await c.req.json();
-            const { fileName, batchId, cashflows } = body;
+            const { fileName, batchId, cashflows, scenario } = body;
 
             // Basic validation
             if (!fileName || !cashflows || !Array.isArray(cashflows)) {
@@ -680,7 +680,10 @@ export class IndividualImpairmentController {
                 createdBy: user.id,
                 createdHost: c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'web',
             }));
-            const inserted = await individualImpairmentService.createDcfCashflows(cashflowData);
+            const inserted = await individualImpairmentService.createDcfCashflows({
+                cashflows: cashflowData,
+                scenario
+            });
 
             return c.json({
                 success: true,

@@ -418,6 +418,89 @@ export class IndividualImpairmentService {
         };
     }
 
+    private async syncLegacyScenarioForHeader(
+        tx: any,
+        header: any,
+        accountId: number,
+        scenarioInput: any,
+        createdBy: string,
+        createdHost: string
+    ) {
+        const scenarioMethodId = this.normalizeScenarioMethodId(
+            scenarioInput?.scenarioId
+            || scenarioInput?.scenarioCode
+            || scenarioInput?.scenarioName
+        );
+
+        const inputRows = Array.isArray(scenarioInput?.scenarioRows)
+            ? scenarioInput.scenarioRows
+            : [];
+
+        const boundedRows = (inputRows.length > 0 ? inputRows : [{
+            possibleOutcomeRate: Number(scenarioInput?.recoveryRate || header?.poRate1 || 100),
+            scenarioName: scenarioInput?.scenarioName || header?.scName1 || 'Scenario 1',
+            periodStart: scenarioInput?.periodStart || header?.prcDate || new Date().toISOString().slice(0, 10),
+            periodEnd: scenarioInput?.periodEnd || header?.prcDate || new Date().toISOString().slice(0, 10),
+            repaymentRate: Number(scenarioInput?.discountRate || 0)
+        }]).slice(0, 3);
+
+        const scenarioCount = Math.max(
+            1,
+            Math.min(3, Number(scenarioInput?.nOfScenario || boundedRows.length || 1))
+        );
+        const poRates = [0, 0, 0];
+        const scNames = [null, null, null];
+
+        boundedRows.forEach((row, index) => {
+            poRates[index] = Number(row.possibleOutcomeRate || 0);
+            scNames[index] = String(row.scenarioName || `Scenario ${index + 1}`).slice(0, 20);
+        });
+
+        const now = new Date().toISOString();
+        const [updatedHeader] = await tx.update(frs9ImpIaHeader)
+            .set({
+                scenarioId: scenarioMethodId,
+                nOfScenario: scenarioCount,
+                poRate1: poRates[0] || 0,
+                poRate2: poRates[1] || 0,
+                poRate3: poRates[2] || 0,
+                scName1: scNames[0],
+                scName2: scNames[1],
+                scName3: scNames[2],
+                triggerRemarks: String(scenarioInput?.description || header?.triggerRemarks || ''),
+                updatedby: createdBy,
+                updateddate: now,
+                updatedhost: createdHost
+            })
+            .where(eq(frs9ImpIaHeader.pkid, Number(header.pkid)))
+            .returning();
+
+        await tx.delete(frs9ImpIaRr)
+            .where(eq(frs9ImpIaRr.iaId, Number(header.iaId)));
+
+        const rrRowsPayload = boundedRows.map((row, index) => ({
+            iaId: Number(header.iaId),
+            accountId,
+            periodStart: this.toDateString(row.periodStart || updatedHeader?.prcDate || header?.prcDate || new Date()),
+            periodEnd: this.toDateString(row.periodEnd || row.periodStart || updatedHeader?.prcDate || header?.prcDate || new Date()),
+            rrRate1: index === 0 ? Number(row.repaymentRate || 0) : 0,
+            rrRate2: index === 1 ? Number(row.repaymentRate || 0) : 0,
+            rrRate3: index === 2 ? Number(row.repaymentRate || 0) : 0,
+            createdby: createdBy,
+            createddate: now,
+            createdhost: createdHost
+        }));
+
+        if (rrRowsPayload.length > 0) {
+            await tx.insert(frs9ImpIaRr).values(rrRowsPayload);
+        }
+
+        return {
+            header: updatedHeader || header,
+            rrRows: rrRowsPayload
+        };
+    }
+
     // =========================================================================
     // AUDIT TRAIL / HISTORY
     // =========================================================================
@@ -1014,8 +1097,9 @@ export class IndividualImpairmentService {
         };
     }
 
-    async createDcfCashflows(data: any[]) {
-        if (!Array.isArray(data) || data.length === 0) {
+    async createDcfCashflows(payload: { cashflows: any[]; scenario?: any }) {
+        const data = Array.isArray(payload?.cashflows) ? payload.cashflows : [];
+        if (data.length === 0) {
             return [];
         }
 
@@ -1030,8 +1114,29 @@ export class IndividualImpairmentService {
 
         return legacyDb.transaction(async (tx) => {
             const existingHeader = await this.ensureLegacyIaHeader(tx, accountId, createdBy, createdHost);
-            const iaId = Number(existingHeader.iaId);
-            const prcDate = this.toDateString(sample.prcDate || existingHeader.prcDate || new Date());
+            let activeHeader = existingHeader;
+            let rrRows: any[] = [];
+
+            if (payload?.scenario) {
+                const syncedScenario = await this.syncLegacyScenarioForHeader(
+                    tx,
+                    existingHeader,
+                    accountId,
+                    payload.scenario,
+                    createdBy,
+                    createdHost
+                );
+                activeHeader = syncedScenario.header;
+                rrRows = syncedScenario.rrRows;
+            } else {
+                rrRows = await tx.select()
+                    .from(frs9ImpIaRr)
+                    .where(eq(frs9ImpIaRr.iaId, Number(existingHeader.iaId)))
+                    .orderBy(frs9ImpIaRr.periodStart, frs9ImpIaRr.periodEnd);
+            }
+
+            const iaId = Number(activeHeader.iaId);
+            const prcDate = this.toDateString(sample.prcDate || activeHeader.prcDate || new Date());
             const createdAt = new Date().toISOString();
 
             await tx.delete(frs9ImpIaDcf).where(eq(frs9ImpIaDcf.accountId, accountId));
@@ -1041,7 +1146,7 @@ export class IndividualImpairmentService {
                 iaId,
                 prcDate,
                 accountId,
-                accountNumber: String(row.accountNumber || existingHeader.accountNumber || ''),
+                accountNumber: String(row.accountNumber || activeHeader.accountNumber || ''),
                 mob: Number(row.mob || index + 1),
                 periode: this.toDateString(row.periodDate || row.periode || createdAt.slice(0, 10)),
                 principal: String(this.toNumber(row.principal)),
@@ -1055,14 +1160,9 @@ export class IndividualImpairmentService {
 
             const inserted = await tx.insert(frs9ImpIaDcf).values(rows).returning();
 
-            const rrRows = await tx.select()
-                .from(frs9ImpIaRr)
-                .where(eq(frs9ImpIaRr.iaId, iaId))
-                .orderBy(frs9ImpIaRr.periodStart, frs9ImpIaRr.periodEnd);
-
-            const detailRows = this.buildLegacyIaDetailRows(existingHeader, rrRows, inserted, createdBy, createdHost);
+            const detailRows = this.buildLegacyIaDetailRows(activeHeader, rrRows, inserted, createdBy, createdHost);
             const npv = detailRows.reduce((sum, row) => sum + this.toNumber(row.pvAmt), 0);
-            const eadAmt = this.toNumber(existingHeader.eadAmt);
+            const eadAmt = this.toNumber(activeHeader.eadAmt);
 
             await tx.update(frs9ImpIaHeader)
                 .set({
@@ -1073,7 +1173,7 @@ export class IndividualImpairmentService {
                     updateddate: createdAt,
                     updatedhost: createdHost
                 })
-                .where(eq(frs9ImpIaHeader.pkid, Number(existingHeader.pkid)));
+                .where(eq(frs9ImpIaHeader.pkid, Number(activeHeader.pkid)));
 
             if (detailRows.length > 0) {
                 await tx.insert(frs9ImpIaDetail).values(
