@@ -16,6 +16,7 @@ import Cookies from 'js-cookie'
 import { useRouter, usePathname } from 'next/navigation'
 import { useDispatch, useSelector } from 'react-redux'
 import { getCookieConfig } from '../utils/cookie-domain'
+import { clearAuthTokens } from '../utils/auth-token'
 import type { RootState, AppDispatch } from '../store'
 import {
   loginStart,
@@ -702,26 +703,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // LOGOUT WITH CENTRALIZED SESSION CONTROL
   // ============================================================================
   const logout = useCallback(async (reason?: string): Promise<void> => {
-    console.log('🚪 Starting logout through centralized session control...', { reason });
+    const logoutReason = reason || 'user_initiated';
+    const redirectUrl = `/login?logout=true&reason=${encodeURIComponent(logoutReason)}&ts=${Date.now()}`;
+    console.log('🚪 Starting logout through centralized session control...', { reason: logoutReason });
 
     try {
-      // Use centralized session control service for all logout operations
-      await sessionControlService.logout(reason || 'user_initiated');
+      // Try server-side revocation, but do not let an expired token block local logout.
+      await Promise.race([
+        sessionControlService.logout(logoutReason),
+        new Promise<void>((resolve) => window.setTimeout(resolve, 2000))
+      ]);
       console.log('✅ Centralized logout completed successfully');
     } catch (error) {
       console.error('❌ Centralized logout failed:', error);
-
-      // Fallback to basic cleanup if centralized service fails
-      console.log('🔄 Using fallback logout...');
+    } finally {
       try {
         handleLogoutCleanup();
+        clearAuthTokens();
         dispatch(logoutAction());
-        window.location.replace('/login?logout=true&error=true&ts=' + Date.now());
-      } catch (fallbackError) {
-        console.error('❌ Fallback logout failed:', fallbackError);
+      } catch (cleanupError) {
+        console.error('❌ Logout cleanup failed:', cleanupError);
+      }
+
+      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+        window.location.replace(redirectUrl);
       }
     }
-  }, [dispatch, router])
+  }, [dispatch])
 
   // ============================================================================
   // HELPER FUNCTIONS
@@ -730,6 +738,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Helper function for logout cleanup (NOT useCallback to avoid circular dependency)
   const handleLogoutCleanup = () => {
     console.log('🧹 Starting comprehensive logout cleanup...');
+
+    try {
+      clearAuthTokens();
+    } catch (error) {
+      console.warn('⚠️ Shared auth token cleanup failed:', error);
+    }
 
     // ✅ ENHANCED FIX: Clear ALL possible auth storage from localStorage
     const localStorageKeys = [

@@ -11,7 +11,7 @@ import {
     frs9ImpIaRr
 } from '../db/schema/legacy';
 import { frs9MasterAccount, users } from '../db/schema';
-import { and, eq, desc, sql, inArray, ilike, or } from 'drizzle-orm';
+import { and, eq, desc, asc, sql, inArray, ilike, or } from 'drizzle-orm';
 import { MasterAccountRepository } from '@/repositories/master-account.repository';
 import { decodeCursor, encodeCursor } from '@/lib/http/list-query';
 
@@ -418,6 +418,89 @@ export class IndividualImpairmentService {
         };
     }
 
+    private async syncLegacyScenarioForHeader(
+        tx: any,
+        header: any,
+        accountId: number,
+        scenarioInput: any,
+        createdBy: string,
+        createdHost: string
+    ) {
+        const scenarioMethodId = this.normalizeScenarioMethodId(
+            scenarioInput?.scenarioId
+            || scenarioInput?.scenarioCode
+            || scenarioInput?.scenarioName
+        );
+
+        const inputRows = Array.isArray(scenarioInput?.scenarioRows)
+            ? scenarioInput.scenarioRows
+            : [];
+
+        const boundedRows = (inputRows.length > 0 ? inputRows : [{
+            possibleOutcomeRate: Number(scenarioInput?.recoveryRate || header?.poRate1 || 100),
+            scenarioName: scenarioInput?.scenarioName || header?.scName1 || 'Scenario 1',
+            periodStart: scenarioInput?.periodStart || header?.prcDate || new Date().toISOString().slice(0, 10),
+            periodEnd: scenarioInput?.periodEnd || header?.prcDate || new Date().toISOString().slice(0, 10),
+            repaymentRate: Number(scenarioInput?.discountRate || 0)
+        }]).slice(0, 3);
+
+        const scenarioCount = Math.max(
+            1,
+            Math.min(3, Number(scenarioInput?.nOfScenario || boundedRows.length || 1))
+        );
+        const poRates = [0, 0, 0];
+        const scNames = [null, null, null];
+
+        boundedRows.forEach((row, index) => {
+            poRates[index] = Number(row.possibleOutcomeRate || 0);
+            scNames[index] = String(row.scenarioName || `Scenario ${index + 1}`).slice(0, 20);
+        });
+
+        const now = new Date().toISOString();
+        const [updatedHeader] = await tx.update(frs9ImpIaHeader)
+            .set({
+                scenarioId: scenarioMethodId,
+                nOfScenario: scenarioCount,
+                poRate1: poRates[0] || 0,
+                poRate2: poRates[1] || 0,
+                poRate3: poRates[2] || 0,
+                scName1: scNames[0],
+                scName2: scNames[1],
+                scName3: scNames[2],
+                triggerRemarks: String(scenarioInput?.description || header?.triggerRemarks || ''),
+                updatedby: createdBy,
+                updateddate: now,
+                updatedhost: createdHost
+            })
+            .where(eq(frs9ImpIaHeader.pkid, Number(header.pkid)))
+            .returning();
+
+        await tx.delete(frs9ImpIaRr)
+            .where(eq(frs9ImpIaRr.iaId, Number(header.iaId)));
+
+        const rrRowsPayload = boundedRows.map((row, index) => ({
+            iaId: Number(header.iaId),
+            accountId,
+            periodStart: this.toDateString(row.periodStart || updatedHeader?.prcDate || header?.prcDate || new Date()),
+            periodEnd: this.toDateString(row.periodEnd || row.periodStart || updatedHeader?.prcDate || header?.prcDate || new Date()),
+            rrRate1: index === 0 ? Number(row.repaymentRate || 0) : 0,
+            rrRate2: index === 1 ? Number(row.repaymentRate || 0) : 0,
+            rrRate3: index === 2 ? Number(row.repaymentRate || 0) : 0,
+            createdby: createdBy,
+            createddate: now,
+            createdhost: createdHost
+        }));
+
+        if (rrRowsPayload.length > 0) {
+            await tx.insert(frs9ImpIaRr).values(rrRowsPayload);
+        }
+
+        return {
+            header: updatedHeader || header,
+            rrRows: rrRowsPayload
+        };
+    }
+
     // =========================================================================
     // AUDIT TRAIL / HISTORY
     // =========================================================================
@@ -515,23 +598,130 @@ export class IndividualImpairmentService {
     }
 
     // =========================================================================
-    // LIST OF INDIVIDUAL REPORT (1.4.2) -> frs9_imp_ia_result_h
+    // LIST OF INDIVIDUAL REPORT (1.4.2) -> frs9_imp_ia_header
     // =========================================================================
 
-    async getReports(tenantId: string, filters: { reportPeriod?: string; limit?: number; offset?: number }) {
-        const { reportPeriod, limit = 50, offset = 0 } = filters;
-        const conditions = [];
+    async getReports(tenantId: string, filters: {
+        reportPeriod?: string;
+        search?: string;
+        status?: string;
+        impaired_flag?: string;
+        dateFrom?: string;
+        dateTo?: string;
+        limit?: number;
+        offset?: number;
+        sort?: Array<{ field: string; direction: 'asc' | 'desc' }>;
+    }) {
+        const { reportPeriod, search, status, impaired_flag, dateFrom, dateTo, limit = 50, offset = 0 } = filters;
+        const conditions = [
+            // Techspec uses IMPAIRED_FLAG = 'I'. Keep T compatibility because existing override flow writes T/F.
+            sql`(${frs9ImpIaHeader.impairedFlag} = 'I' OR ${frs9ImpIaHeader.impairedFlag} = 'T')`,
+        ];
 
         if (reportPeriod) {
-            conditions.push(sql`TO_CHAR(${frs9ImpIaResultH.prcDate}, 'YYYY-MM') = ${reportPeriod}`);
+            conditions.push(sql`TO_CHAR(${frs9ImpIaHeader.prcDate}, 'YYYY-MM') = ${reportPeriod}`);
         }
 
-        return legacyDb.select()
-            .from(frs9ImpIaResultH)
-            .where(and(...conditions))
-            .orderBy(desc(frs9ImpIaResultH.createddate))
+        if (dateFrom) {
+            conditions.push(sql`${frs9ImpIaHeader.prcDate} >= ${dateFrom}`);
+        }
+
+        if (dateTo) {
+            conditions.push(sql`${frs9ImpIaHeader.prcDate} <= ${dateTo}`);
+        }
+
+        if (search) {
+            conditions.push(or(
+                ilike(frs9ImpIaHeader.accountNumber, `%${search}%`),
+                ilike(frs9ImpIaHeader.cifName, `%${search}%`),
+                ilike(frs9ImpIaHeader.cifNumber, `%${search}%`)
+            ));
+        }
+
+        if (status) {
+            const statusInt = STATUS_MAP_TO_INT[String(status).toUpperCase()];
+            if (statusInt !== undefined) {
+                conditions.push(eq(frs9ImpIaHeader.status, statusInt));
+            }
+        }
+
+        if (impaired_flag) {
+            conditions.push(eq(frs9ImpIaHeader.impairedFlag, impaired_flag));
+        }
+
+        const whereClause = and(...conditions);
+        const countResult = await legacyDb.select({ count: sql<number>`count(*)` })
+            .from(frs9ImpIaHeader)
+            .where(whereClause);
+        const total = Number(countResult[0]?.count || 0);
+
+        const reportSortColumns = {
+            pkid: frs9ImpIaHeader.pkid,
+            downloadDate: frs9ImpIaHeader.prcDate,
+            prc_date: frs9ImpIaHeader.prcDate,
+            accountNumber: frs9ImpIaHeader.accountNumber,
+            account_number: frs9ImpIaHeader.accountNumber,
+            cifName: frs9ImpIaHeader.cifName,
+            cif_name: frs9ImpIaHeader.cifName,
+            outstanding: frs9ImpIaHeader.outstanding,
+            dpd: frs9ImpIaHeader.dpd,
+            collectability: frs9ImpIaHeader.collectability,
+            eadAmt: frs9ImpIaHeader.eadAmt,
+            pvDcfAmt: frs9ImpIaHeader.pvDcfAmt,
+            eclIaAmt: frs9ImpIaHeader.eclIaAmt,
+            status: frs9ImpIaHeader.status,
+        };
+
+        const sortExpressions = (filters.sort || [])
+            .map((sort) => {
+                const column = reportSortColumns[sort.field];
+                if (!column) return null;
+                return sort.direction === 'asc' ? asc(column) : desc(column);
+            })
+            .filter(Boolean);
+
+        const rows = await legacyDb.select()
+            .from(frs9ImpIaHeader)
+            .where(whereClause)
+            .orderBy(...(sortExpressions.length > 0
+                ? [...sortExpressions, desc(frs9ImpIaHeader.pkid)]
+                : [desc(frs9ImpIaHeader.prcDate), desc(frs9ImpIaHeader.createddate), desc(frs9ImpIaHeader.pkid)]))
             .limit(limit)
             .offset(offset);
+
+        return {
+            data: rows.map((row) => ({
+                pkid: Number(row.pkid),
+                ia_id: row.iaId ? Number(row.iaId) : null,
+                download_date: row.prcDate,
+                prc_date: row.prcDate,
+                customer_number: row.cifNumber,
+                cif_number: row.cifNumber,
+                customer_name: row.cifName,
+                cif_name: row.cifName,
+                account_id: row.accountId ? Number(row.accountId) : null,
+                account_number: row.accountNumber,
+                currency: row.currency,
+                outstanding: Number(row.outstanding || 0),
+                day_past_due: Number(row.dpd || 0),
+                dpd: Number(row.dpd || 0),
+                collectability: row.collectability ?? null,
+                rating: row.ratingCode,
+                rating_code: row.ratingCode,
+                ead_amt: Number(row.eadAmt || 0),
+                pv_dcf_amt: Number(row.pvDcfAmt || 0),
+                ecl_ia_amt: Number(row.eclIaAmt || 0),
+                status: STATUS_MAP_TO_STRING[row.status] || String(row.status ?? ''),
+                raw_status: row.status,
+                trigger_remarks: row.triggerRemarks,
+                trigger_filename: row.triggerFilename,
+                createdby: row.createdby,
+                createddate: row.createddate,
+                updatedby: row.updatedby,
+                updateddate: row.updateddate,
+            })),
+            total,
+        };
     }
 
     async createReport(data: any) {
@@ -907,8 +1097,9 @@ export class IndividualImpairmentService {
         };
     }
 
-    async createDcfCashflows(data: any[]) {
-        if (!Array.isArray(data) || data.length === 0) {
+    async createDcfCashflows(payload: { cashflows: any[]; scenario?: any }) {
+        const data = Array.isArray(payload?.cashflows) ? payload.cashflows : [];
+        if (data.length === 0) {
             return [];
         }
 
@@ -923,8 +1114,29 @@ export class IndividualImpairmentService {
 
         return legacyDb.transaction(async (tx) => {
             const existingHeader = await this.ensureLegacyIaHeader(tx, accountId, createdBy, createdHost);
-            const iaId = Number(existingHeader.iaId);
-            const prcDate = this.toDateString(sample.prcDate || existingHeader.prcDate || new Date());
+            let activeHeader = existingHeader;
+            let rrRows: any[] = [];
+
+            if (payload?.scenario) {
+                const syncedScenario = await this.syncLegacyScenarioForHeader(
+                    tx,
+                    existingHeader,
+                    accountId,
+                    payload.scenario,
+                    createdBy,
+                    createdHost
+                );
+                activeHeader = syncedScenario.header;
+                rrRows = syncedScenario.rrRows;
+            } else {
+                rrRows = await tx.select()
+                    .from(frs9ImpIaRr)
+                    .where(eq(frs9ImpIaRr.iaId, Number(existingHeader.iaId)))
+                    .orderBy(frs9ImpIaRr.periodStart, frs9ImpIaRr.periodEnd);
+            }
+
+            const iaId = Number(activeHeader.iaId);
+            const prcDate = this.toDateString(sample.prcDate || activeHeader.prcDate || new Date());
             const createdAt = new Date().toISOString();
 
             await tx.delete(frs9ImpIaDcf).where(eq(frs9ImpIaDcf.accountId, accountId));
@@ -934,7 +1146,7 @@ export class IndividualImpairmentService {
                 iaId,
                 prcDate,
                 accountId,
-                accountNumber: String(row.accountNumber || existingHeader.accountNumber || ''),
+                accountNumber: String(row.accountNumber || activeHeader.accountNumber || ''),
                 mob: Number(row.mob || index + 1),
                 periode: this.toDateString(row.periodDate || row.periode || createdAt.slice(0, 10)),
                 principal: String(this.toNumber(row.principal)),
@@ -948,14 +1160,9 @@ export class IndividualImpairmentService {
 
             const inserted = await tx.insert(frs9ImpIaDcf).values(rows).returning();
 
-            const rrRows = await tx.select()
-                .from(frs9ImpIaRr)
-                .where(eq(frs9ImpIaRr.iaId, iaId))
-                .orderBy(frs9ImpIaRr.periodStart, frs9ImpIaRr.periodEnd);
-
-            const detailRows = this.buildLegacyIaDetailRows(existingHeader, rrRows, inserted, createdBy, createdHost);
+            const detailRows = this.buildLegacyIaDetailRows(activeHeader, rrRows, inserted, createdBy, createdHost);
             const npv = detailRows.reduce((sum, row) => sum + this.toNumber(row.pvAmt), 0);
-            const eadAmt = this.toNumber(existingHeader.eadAmt);
+            const eadAmt = this.toNumber(activeHeader.eadAmt);
 
             await tx.update(frs9ImpIaHeader)
                 .set({
@@ -966,7 +1173,7 @@ export class IndividualImpairmentService {
                     updateddate: createdAt,
                     updatedhost: createdHost
                 })
-                .where(eq(frs9ImpIaHeader.pkid, Number(existingHeader.pkid)));
+                .where(eq(frs9ImpIaHeader.pkid, Number(activeHeader.pkid)));
 
             if (detailRows.length > 0) {
                 await tx.insert(frs9ImpIaDetail).values(
@@ -1166,8 +1373,19 @@ export class IndividualImpairmentService {
                 };
             }
 
-            // 1. Build Query Conditions for Master Account (Source Data)
-            const conditions = [];
+            // Techspec Individual Watchlist source:
+            // FRS9_MASTER_ACCOUNT candidates with DPD > 30, OUTSTANDING >= 1,000,000,
+            // excluding accounts already marked individual in IA header.
+            const conditions = [
+                sql`${frs9MasterAccount.dpd} > 30`,
+                sql`${frs9MasterAccount.outstanding} >= 1000000`,
+                sql`NOT EXISTS (
+                    SELECT 1
+                    FROM frs9_imp_ia_header h
+                    WHERE h.account_id = ${frs9MasterAccount.accountId}
+                    AND (h.impaired_flag = 'I' OR h.impaired_flag = 'T')
+                )`,
+            ];
 
             if (search) {
                 conditions.push(or(

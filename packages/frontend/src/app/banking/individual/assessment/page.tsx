@@ -5,6 +5,9 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {
   Alert,
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Box,
   Chip,
   Container,
@@ -28,7 +31,9 @@ import {
   Calculate as CalculateIcon,
   MonetizationOn as MoneyIcon,
   History as HistoryIcon,
-  Description as DescriptionIcon
+  Description as DescriptionIcon,
+  Summarize as SummarizeIcon,
+  ExpandMore as ExpandMoreIcon
 } from '@mui/icons-material';
 import PageHeader from '@/components/banking/shared/PageHeader';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
@@ -49,6 +54,7 @@ import {
 } from '@/features/individual-impairment/hooks/useAssessmentDashboardQuery';
 
 const OverrideTriggerSection = dynamic(() => import('../override-trigger/page'));
+const IndividualReportsSection = dynamic(() => import('../reports/page'));
 
 interface SectionDef {
   key: string;
@@ -59,14 +65,26 @@ interface SectionDef {
   render: () => React.ReactNode;
 }
 
+type QueryDebugMetadata = {
+  endpoint?: string;
+  selectedSource?: string;
+  sourceTables?: string[];
+  filtersApplied?: Record<string, unknown>;
+  sqlPreview?: string;
+  notes?: string[];
+};
+
 const SECTION_KEYS = [
   'watchlist',
+  'individual-reports',
   'assessment-details',
   'dcf-analysis',
   'provision-calculation',
   'history',
   'documents',
 ] as const;
+
+const ACCOUNT_OPTIONAL_SECTIONS = new Set<string>(['watchlist', 'individual-reports']);
 
 export default function IndividualAssessmentWizardPage() {
   const [activeTab, setActiveTab] = useState(0);
@@ -205,6 +223,7 @@ export default function IndividualAssessmentWizardPage() {
     () => watchlistQuery.data?.rows ?? [],
     [watchlistQuery.data],
   );
+  const watchlistDebug = watchlistQuery.data?.debug as QueryDebugMetadata | undefined;
   const summary = useMemo(
     () => summaryQuery.data ?? undefined,
     [summaryQuery.data],
@@ -270,7 +289,7 @@ export default function IndividualAssessmentWizardPage() {
     if (!accountId) {
       setSelectedAccount(null);
       setDcfCalculation(null);
-      if (activeTab !== 0) {
+      if (!ACCOUNT_OPTIONAL_SECTIONS.has(SECTION_KEYS[activeTab] ?? '')) {
         skipTabUrlSyncRef.current = true;
         setActiveTab(0);
       }
@@ -394,6 +413,11 @@ export default function IndividualAssessmentWizardPage() {
               size="small"
               sx={{ fontWeight: 600 }}
             />
+            <Chip
+              label="Source: FRS9_MASTER_ACCOUNT"
+              variant="outlined"
+              size="small"
+            />
             {filters.search ? (
               <Chip
                 label={`Search: ${filters.search}`}
@@ -431,6 +455,41 @@ export default function IndividualAssessmentWizardPage() {
             ) : null}
           </Stack>
 
+          {watchlistDebug ? (
+            <Accordion disableGutters sx={{ mb: 2, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'flex-start', sm: 'center' }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                    Watchlist Debug Query
+                  </Typography>
+                  <Chip label={watchlistDebug.selectedSource || 'FRS9_MASTER_ACCOUNT'} size="small" variant="outlined" />
+                  <Chip label={watchlistDebug.endpoint || '/watchlist'} size="small" variant="outlined" />
+                </Stack>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Box
+                  component="pre"
+                  sx={{
+                    m: 0,
+                    p: 1.5,
+                    borderRadius: 1,
+                    bgcolor: 'grey.100',
+                    overflow: 'auto',
+                    fontSize: '0.75rem',
+                    whiteSpace: 'pre-wrap',
+                  }}
+                >
+{JSON.stringify({
+  sourceTables: watchlistDebug.sourceTables,
+  filtersApplied: watchlistDebug.filtersApplied,
+  sqlPreview: watchlistDebug.sqlPreview,
+  notes: watchlistDebug.notes,
+}, null, 2)}
+                </Box>
+              </AccordionDetails>
+            </Accordion>
+          ) : null}
+
           <AssessmentWatchlist
             watchlist={watchlist}
             loading={loading}
@@ -458,6 +517,14 @@ export default function IndividualAssessmentWizardPage() {
         icon: <AssignmentIcon />,
         helper: 'Melihat daftar debitur yang memerlukan penilaian individu, termasuk filter dan pencarian.',
         render: () => watchlistContent
+      },
+      {
+        key: 'individual-reports',
+        label: 'Individual Reports',
+        section: '17',
+        icon: <SummarizeIcon />,
+        helper: 'Melihat hasil individual impairment yang sudah masuk ke FRS9_IMP_IA_HEADER, termasuk Review, History, dan DCF.',
+        render: () => <IndividualReportsSection />
       },
       {
         key: 'assessment-details',
@@ -519,6 +586,15 @@ export default function IndividualAssessmentWizardPage() {
   );
 
   useEffect(() => {
+    if (accountId || !tabParam || !ACCOUNT_OPTIONAL_SECTIONS.has(tabParam)) return;
+
+    const tabIndex = SECTION_KEYS.indexOf(tabParam as typeof SECTION_KEYS[number]);
+    if (tabIndex !== -1) {
+      setActiveTab((current) => current === tabIndex ? current : tabIndex);
+    }
+  }, [accountId, tabParam]);
+
+  useEffect(() => {
     if (!accountId) return;
 
     if (tabParam) {
@@ -530,9 +606,11 @@ export default function IndividualAssessmentWizardPage() {
       }
     }
 
-    // Default to Assessment Details (index 1) if no tab specified.
+    const assessmentDetailsIndex = SECTION_KEYS.indexOf('assessment-details');
+
+    // Default to Assessment Details when an account is opened from the watchlist.
     skipTabUrlSyncRef.current = true;
-    setActiveTab((current) => current === 1 ? current : 1);
+    setActiveTab((current) => current === assessmentDetailsIndex ? current : assessmentDetailsIndex);
   }, [accountId, tabParam]);
 
   useEffect(() => {
@@ -675,7 +753,7 @@ export default function IndividualAssessmentWizardPage() {
               icon={section.icon}
               iconPosition="start"
               disabled={
-                (!accountId && section.key !== 'watchlist')
+                (!accountId && !ACCOUNT_OPTIONAL_SECTIONS.has(section.key))
               }
             />
           ))}

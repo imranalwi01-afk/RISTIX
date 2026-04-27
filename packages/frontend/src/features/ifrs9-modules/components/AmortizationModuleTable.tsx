@@ -29,13 +29,28 @@ interface AmortizationModuleTableProps {
   onRowsPerPageChange: (rowsPerPage: number) => void;
 }
 
+function normalizeCurrencyCode(currency: string | null | undefined) {
+  const normalized = String(currency ?? 'IDR').trim().toUpperCase();
+  return /^[A-Z]{3}$/.test(normalized) ? normalized : 'IDR';
+}
+
 function formatCurrency(amount: number | null | undefined, currency = 'IDR') {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(Number.isFinite(Number(amount)) ? Number(amount) : 0);
+  const safeCurrency = normalizeCurrencyCode(currency);
+  const safeAmount = Number.isFinite(Number(amount)) ? Number(amount) : 0;
+
+  try {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: safeCurrency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(safeAmount);
+  } catch {
+    return new Intl.NumberFormat('id-ID', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(safeAmount);
+  }
 }
 
 export function AmortizationModuleTable({

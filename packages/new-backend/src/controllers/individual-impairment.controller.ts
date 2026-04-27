@@ -55,6 +55,38 @@ const CUSTOMER_LIST_QUERY_CONFIG: ListQueryConfig = {
     filterableColumns: ['dateFrom', 'dateTo'],
 }
 
+const INDIVIDUAL_REPORT_LIST_QUERY_CONFIG: ListQueryConfig = {
+    defaultLimit: 25,
+    maxLimit: 200,
+    defaultSort: [{ field: 'downloadDate', direction: 'desc' }],
+    searchableColumns: ['accountNumber', 'cifName', 'cifNumber'],
+    filterableColumns: ['reportPeriod', 'dateFrom', 'dateTo', 'status', 'impaired_flag'],
+    sortableColumns: [
+        'pkid',
+        'downloadDate',
+        'prc_date',
+        'accountNumber',
+        'account_number',
+        'cifName',
+        'cif_name',
+        'outstanding',
+        'dpd',
+        'collectability',
+        'eadAmt',
+        'pvDcfAmt',
+        'eclIaAmt',
+        'status',
+    ],
+    filterAliases: {
+        reportPeriod: 'reportPeriod',
+        downloadDate: 'dateFrom',
+        'date_range.start': 'dateFrom',
+        'date_range.from': 'dateFrom',
+        'date_range.end': 'dateTo',
+        'date_range.to': 'dateTo',
+    },
+}
+
 const stringFilter = (value: unknown): string | undefined => {
     if (value === undefined || value === null) return undefined
     if (Array.isArray(value)) return value[0] === undefined ? undefined : String(value[0])
@@ -126,7 +158,24 @@ export class IndividualImpairmentController {
                 })
                 : buildOffsetPagination(query, result.total ?? 0);
 
-            return c.json(buildListResponse(result.data, query, pagination));
+            return c.json(buildListResponse(
+                result.data,
+                query,
+                pagination,
+                {
+                    debug: {
+                        endpoint: 'GET /api/v1/banking/individual/impairment/watchlist',
+                        selectedSource: 'FRS9_MASTER_ACCOUNT',
+                        sourceTables: ['public.frs9_master_account', 'public.frs9_imp_ia_header'],
+                        filtersApplied: {
+                            search: query.search,
+                            ...filters,
+                        },
+                        sqlPreview: `SELECT A.PRC_DATE AS DOWNLOAD_DATE, A.CIF_NUMBER AS CUSTOMER_NUMBER, A.CIF_NAME AS CUSTOMER_NAME, A.ACCOUNT_NUMBER, A.CURRENCY, A.OUTSTANDING, A.DPD AS DAY_PAST_DUE, A.COLLECTABILITY, A.EXT_RATING_CODE AS RATING FROM FRS9_MASTER_ACCOUNT A WHERE A.DPD > 30 AND A.OUTSTANDING >= 1000000 AND NOT EXISTS (SELECT 1 FROM FRS9_IMP_IA_HEADER B WHERE A.ACCOUNT_ID = B.ACCOUNT_ID AND B.IMPAIRED_FLAG = 'I')`,
+                        notes: ['Matches techspec Individual Watchlist. Existing T impaired flag rows are also excluded for compatibility with the current override flow.'],
+                    },
+                },
+            ));
         } catch (error: any) {
             if (error instanceof ListQueryValidationError) return this.listQueryBadRequest(c, error);
             return this.handleError(c, error);
@@ -429,13 +478,41 @@ export class IndividualImpairmentController {
             const user = c.get('user');
             if (!user?.tenantId) return this.unauthorized(c);
 
-            const reportPeriod = c.req.query('reportPeriod');
-            const limit = Number(c.req.query('limit')) || 50;
-            const offset = Number(c.req.query('offset')) || 0;
+            const query = parseListQuery(c, INDIVIDUAL_REPORT_LIST_QUERY_CONFIG);
+            const filters = query.filters;
 
-            const data = await individualImpairmentService.getReports(user.tenantId, { reportPeriod, limit, offset });
-            return c.json({ success: true, data });
+            const result = await individualImpairmentService.getReports(user.tenantId, {
+                search: query.search,
+                reportPeriod: stringFilter(filters.reportPeriod),
+                dateFrom: stringFilter(filters.dateFrom),
+                dateTo: stringFilter(filters.dateTo),
+                status: stringFilter(filters.status),
+                impaired_flag: stringFilter(filters.impaired_flag),
+                limit: query.limit,
+                offset: query.offset,
+                sort: query.sort,
+            });
+
+            return c.json(buildListResponse(
+                result.data,
+                query,
+                buildOffsetPagination(query, result.total ?? 0),
+                {
+                    debug: {
+                        endpoint: 'GET /api/v1/banking/individual/impairment/reports',
+                        selectedSource: 'FRS9_IMP_IA_HEADER',
+                        sourceTables: ['public.frs9_imp_ia_header'],
+                        filtersApplied: {
+                            search: query.search,
+                            ...filters,
+                        },
+                        sqlPreview: `SELECT PRC_DATE AS DOWNLOAD_DATE, CIF_NUMBER AS CUSTOMER_NUMBER, CIF_NAME AS CUSTOMER_NAME, ACCOUNT_NUMBER, CURRENCY, OUTSTANDING, DPD AS DAY_PAST_DUE, COLLECTABILITY, RATING_CODE AS RATING, EAD_AMT, PV_DCF_AMT, ECL_IA_AMT, STATUS FROM FRS9_IMP_IA_HEADER WHERE IMPAIRED_FLAG = 'I'`,
+                        notes: ['Matches techspec List of Individual Report. Compatibility also includes legacy T impaired flag rows.'],
+                    },
+                },
+            ));
         } catch (error: any) {
+            if (error instanceof ListQueryValidationError) return this.listQueryBadRequest(c, error);
             return this.handleError(c, error);
         }
     }
@@ -589,7 +666,7 @@ export class IndividualImpairmentController {
             if (!user?.tenantId) return this.unauthorized(c);
 
             const body = await c.req.json();
-            const { fileName, batchId, cashflows } = body;
+            const { fileName, batchId, cashflows, scenario } = body;
 
             // Basic validation
             if (!fileName || !cashflows || !Array.isArray(cashflows)) {
@@ -603,7 +680,10 @@ export class IndividualImpairmentController {
                 createdBy: user.id,
                 createdHost: c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'web',
             }));
-            const inserted = await individualImpairmentService.createDcfCashflows(cashflowData);
+            const inserted = await individualImpairmentService.createDcfCashflows({
+                cashflows: cashflowData,
+                scenario
+            });
 
             return c.json({
                 success: true,
