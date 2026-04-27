@@ -389,10 +389,7 @@ amortizationRoutes.openapi(
                 } as any)
                     .from(frs9EirEcf)
                     .innerJoin(frs9AccountId, eq(frs9EirEcf.accountId, frs9AccountId.accountId as any))
-                    .where(and(
-                        eq(frs9EirEcf.accountId, contractDetail.accountId),
-                        eq(frs9EirEcf.prcDate, contractDetail.prcDate),
-                    ))
+                    .where(eq(frs9EirEcf.accountId, contractDetail.accountId))
                     .orderBy(asc(frs9EirEcf.prcDate), asc(frs9EirEcf.counter)),
                 db.select({
                     eventDate: frs9EventChanges.prcDate,
