@@ -3,9 +3,15 @@ import { apiClient } from '../api-setup';
 import { isIndividualAssessmentV2Path } from '@/features/individual-impairment/routing';
 import { individualImpairmentV2Client } from './individual-impairment-v2-client';
 
+export type IndividualImpairmentApiMode = 'v1' | 'v2';
+
+export function resolveIndividualImpairmentApiMode(pathname?: string | null): IndividualImpairmentApiMode {
+  return isIndividualAssessmentV2Path(pathname) ? 'v2' : 'v1';
+}
+
 function shouldUseIndividualImpairmentV2(): boolean {
   if (typeof window === 'undefined') return false;
-  return isIndividualAssessmentV2Path(window.location.pathname);
+  return resolveIndividualImpairmentApiMode(window.location.pathname) === 'v2';
 }
 
 export const individualImpairmentScopedClient = {

@@ -6,6 +6,7 @@ import {
   INDIVIDUAL_ASSESSMENT_V2_ROUTE,
   isIndividualAssessmentV2Path,
 } from './routing';
+import { resolveIndividualImpairmentApiMode } from '@/services/api/individual-impairment-scoped-client';
 
 describe('individual impairment frontend routing', () => {
   test('keeps legacy assessment route on v1 by default', () => {
@@ -24,5 +25,11 @@ describe('individual impairment frontend routing', () => {
     expect(buildIndividualAssessmentUrl(params, '/banking/individual/assessment-new')).toBe(
       `${INDIVIDUAL_ASSESSMENT_V2_ROUTE}?mode=conventional&accountNumber=000131210158&tab=assessment-details`,
     );
+  });
+
+  test('maps canonical UI routes to the correct backend API generation', () => {
+    expect(resolveIndividualImpairmentApiMode('/banking/individual/assessment')).toBe('v1');
+    expect(resolveIndividualImpairmentApiMode('/banking/individual/assessment-new')).toBe('v2');
+    expect(resolveIndividualImpairmentApiMode('/banking/individual/assessment-new?tab=watchlist')).toBe('v2');
   });
 });
