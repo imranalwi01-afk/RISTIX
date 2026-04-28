@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {
   Alert,
@@ -52,6 +52,7 @@ import {
   useAssessmentSummaryQuery,
   useAssessmentWatchlistQuery,
 } from '@/features/individual-impairment/hooks/useAssessmentDashboardQuery';
+import { buildIndividualAssessmentUrl } from '@/features/individual-impairment/routing';
 
 const OverrideTriggerSection = dynamic(() => import('../override-trigger/page'));
 const IndividualReportsSection = dynamic(() => import('../reports/page'));
@@ -88,6 +89,7 @@ const ACCOUNT_OPTIONAL_SECTIONS = new Set<string>(['watchlist', 'individual-repo
 
 export default function IndividualAssessmentWizardPage() {
   const [activeTab, setActiveTab] = useState(0);
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
   const searchKey = searchParams.toString();
@@ -114,8 +116,8 @@ export default function IndividualAssessmentWizardPage() {
       params.set('accountNumber', next.accountNumber);
     }
     if (next.tab) params.set('tab', next.tab);
-    return `/banking/individual/assessment?${params.toString()}`;
-  }, [mode]);
+    return buildIndividualAssessmentUrl(params, pathname);
+  }, [mode, pathname]);
 
   const copyToClipboard = useCallback(async (text: string, message: string) => {
     try {
@@ -194,8 +196,8 @@ export default function IndividualAssessmentWizardPage() {
     if (page > 0) params.set('page', String(page + 1));
     if (limit !== 10) params.set('limit', String(limit));
 
-    return `/banking/individual/assessment?${params.toString()}`;
-  }, [filters.downloadDate, filters.impairedFlag, filters.priorityLevel, filters.search, filters.stage, mode, pagination.limit, pagination.page]);
+    return buildIndividualAssessmentUrl(params, pathname);
+  }, [filters.downloadDate, filters.impairedFlag, filters.priorityLevel, filters.search, filters.stage, mode, pagination.limit, pagination.page, pathname]);
 
   const [selectedAccount, setSelectedAccount] = useState<IndividualImpairmentWatchlistItem | null>(null);
   const [dcfLoading, setDcfLoading] = useState(false);

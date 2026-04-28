@@ -28,6 +28,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import { useApi } from '@/hooks/useApi';
+import { INDIVIDUAL_IMPAIRMENT_V2_API_BASE } from '@/services/api/individual-impairment-v2-client';
 
 interface WatchlistItem {
     pkid: number;
@@ -78,7 +79,7 @@ export default function IndividualImpairmentPage() {
                 params.append('search', searchTerm);
             }
 
-            const response = await apiCall(`/api/v1/banking/individual/impairment/watchlist?${params}`) as ApiResponse<WatchlistItem>;
+            const response = await apiCall(`${INDIVIDUAL_IMPAIRMENT_V2_API_BASE}/watchlist?${params}`) as ApiResponse<WatchlistItem>;
 
             if (response.success) {
                 setData(response.data);

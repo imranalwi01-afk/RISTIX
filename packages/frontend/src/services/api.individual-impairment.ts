@@ -3,11 +3,13 @@
 // IFRS9 INDIVIDUAL IMPAIRMENT ASSESSMENT OVERRIDE API SERVICE
 // ============================================================================
 // Purpose: Individual account impairment assessment and DCF analysis
-// API Endpoints: /api/v1/banking/individual/impairment/*
+// API Endpoints:
+// - /banking/individual/assessment uses legacy /api/v1/banking/individual/impairment/*
+// - /banking/individual/assessment-new uses /api/v2/individual-impairment/*
 // Database Integration: FRS9PRO database with real-time calculations
 // ============================================================================
 
-import { apiClient } from './api-client';
+import { individualImpairmentScopedClient as apiClient } from './api/individual-impairment-scoped-client';
 
 // ============================================================================
 // TYPESCRIPT INTERFACES FOR INDIVIDUAL IMPAIRMENT

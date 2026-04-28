@@ -385,7 +385,14 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 label: 'Assessment Workspace',
                 href: '/banking/individual/assessment',
                 icon: <Assessment />,
-                description: 'End-to-end impairment assessment',
+                description: 'Current impairment assessment',
+            },
+            {
+                id: 'assessment-workspace-v2',
+                label: 'Assessment Workspace V2',
+                href: '/banking/individual/assessment-new',
+                icon: <Assessment />,
+                description: 'V2 impairment assessment isolated from legacy API',
                 isNew: true
             }
         ]

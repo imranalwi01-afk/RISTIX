@@ -1,5 +1,5 @@
 
-import { apiClient } from '../api-client';
+import { individualImpairmentScopedClient as apiClient } from './individual-impairment-scoped-client';
 
 export interface AuditTrail {
   id: string;

@@ -2,7 +2,15 @@ import { individualImpairmentService } from '@/services/individual-impairment.se
 import { Context } from 'hono';
 import path from 'path'
 import { promises as fs } from 'fs'
+import { Effect } from 'effect';
+import { createApprovalRequest } from '@/services/approval.service';
+import { formatApprovalRequiredResponse } from '@/lib/approval-helpers';
 import { buildErrorResponse } from '@/lib/http/error-response';
+import {
+    INDIVIDUAL_IMPAIRMENT_V2_ENTITY_TYPE,
+    INDIVIDUAL_IMPAIRMENT_V2_SUBTYPES,
+    isIndividualImpairmentV2Path,
+} from '@/lib/individual-impairment-approval';
 import {
     ListQueryValidationError,
     buildCursorPagination,
@@ -87,6 +95,12 @@ const INDIVIDUAL_REPORT_LIST_QUERY_CONFIG: ListQueryConfig = {
     },
 }
 
+function getIndividualImpairmentApiBase(c: Context): string {
+    return c.req.path.startsWith('/api/v2/')
+        ? '/api/v2/individual-impairment'
+        : '/api/v1/banking/individual/impairment'
+}
+
 const stringFilter = (value: unknown): string | undefined => {
     if (value === undefined || value === null) return undefined
     if (Array.isArray(value)) return value[0] === undefined ? undefined : String(value[0])
@@ -164,7 +178,7 @@ export class IndividualImpairmentController {
                 pagination,
                 {
                     debug: {
-                        endpoint: 'GET /api/v1/banking/individual/impairment/watchlist',
+                        endpoint: `GET ${getIndividualImpairmentApiBase(c)}/watchlist`,
                         selectedSource: 'FRS9_MASTER_ACCOUNT',
                         sourceTables: ['public.frs9_master_account', 'public.frs9_imp_ia_header'],
                         filtersApplied: {
@@ -387,10 +401,43 @@ export class IndividualImpairmentController {
                 body.supportingDocument = storedName
             }
 
+            if (isIndividualImpairmentV2Path(c.req.path)) {
+                const accountNumber = String(body?.accountNumber || body?.account_number || '').trim()
+                const customerName = String(body?.customerName || body?.customer_name || '').trim()
+                const approvalPayload = {
+                    ...body,
+                    tenantId: user.tenantId,
+                    requestedBy: user.id,
+                    createdBy: user.id,
+                }
+
+                const approvalRequest = await Effect.runPromise(createApprovalRequest({
+                    tenantId: user.tenantId,
+                    entityType: INDIVIDUAL_IMPAIRMENT_V2_ENTITY_TYPE,
+                    entityId: accountNumber || undefined,
+                    title: `Individual impairment override${accountNumber ? ` - ${accountNumber}` : ''}`,
+                    description: `Request override${customerName ? ` for ${customerName}` : ''}${accountNumber ? ` (${accountNumber})` : ''}`,
+                    requestData: {
+                        operation: 'create',
+                        entityType: INDIVIDUAL_IMPAIRMENT_V2_ENTITY_TYPE,
+                        subtype: INDIVIDUAL_IMPAIRMENT_V2_SUBTYPES.OVERRIDE,
+                        apiVersion: 'v2',
+                        sourceApi: getIndividualImpairmentApiBase(c),
+                        data: approvalPayload,
+                    },
+                    requestedBy: user.id,
+                    impactLevel: 'high',
+                    bankingMode: c.req.query('mode') || c.req.header('x-banking-mode') || undefined,
+                }))
+
+                return c.json(formatApprovalRequiredResponse(approvalRequest), 202)
+            }
+
             const data = await individualImpairmentService.createOverride({
                 ...body,
                 tenantId: user.tenantId,
-                requestedBy: user.id
+                requestedBy: user.id,
+                createdBy: user.id,
             });
             return c.json({ success: true, data: data[0] });
         } catch (error: any) {
@@ -499,7 +546,7 @@ export class IndividualImpairmentController {
                 buildOffsetPagination(query, result.total ?? 0),
                 {
                     debug: {
-                        endpoint: 'GET /api/v1/banking/individual/impairment/reports',
+                        endpoint: `GET ${getIndividualImpairmentApiBase(c)}/reports`,
                         selectedSource: 'FRS9_IMP_IA_HEADER',
                         sourceTables: ['public.frs9_imp_ia_header'],
                         filtersApplied: {
