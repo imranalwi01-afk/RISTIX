@@ -37,11 +37,42 @@ const getRequestedByDisplay = (req: any): string => {
   return fallbackCandidates[0] || 'Unknown User';
 };
 
+export function getApprovalRequestTypeLabel(requestType: unknown): string {
+  const value = String(requestType || 'unknown').trim();
+
+  if (value === 'individual_impairment_v2') {
+    return 'Individual Impairment V2';
+  }
+
+  return value.replace(/_/g, ' ').toUpperCase();
+}
+
+export function getApprovalRequestTitle(req: any): string {
+  const requestData = (req?.requestData ?? req?.request_data ?? {}) as Record<string, any>;
+
+  if (req?.title || req?.requestTitle) {
+    return req.title || req.requestTitle;
+  }
+
+  if (req?.entityType === 'individual_impairment_v2' || requestData?.entityType === 'individual_impairment_v2') {
+    const subtype = requestData?.subtype === 'override' ? 'Override' : 'Request';
+    const accountNumber = req?.entityId || requestData?.data?.accountNumber;
+    return accountNumber
+      ? `Individual Impairment V2 ${subtype} - ${accountNumber}`
+      : `Individual Impairment V2 ${subtype}`;
+  }
+
+  return 'Untitled Request';
+}
+
 export function transformApprovalRequest(req: any) {
+  const requestType = req.entityType || req.requestType || 'unknown';
+
   return {
     ...req,
-    requestTitle: req.title || req.requestTitle || 'Untitled Request',
-    requestType: req.entityType || req.requestType || 'unknown',
+    requestTitle: getApprovalRequestTitle(req),
+    requestType,
+    requestTypeLabel: getApprovalRequestTypeLabel(requestType),
     priority: req.impactLevel || req.priority || 'medium',
     dueDate: req.expiresAt || req.dueDate,
     requestedAt: req.createdAt || req.requestedAt || new Date().toISOString(),

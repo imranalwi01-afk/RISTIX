@@ -5,7 +5,7 @@ const LEGACY_INDIVIDUAL_IMPAIRMENT_BASE = '/banking/individual/impairment';
 
 export const INDIVIDUAL_IMPAIRMENT_V2_API_BASE = '/api/v2/individual-impairment';
 
-function resolveIndividualImpairmentV2BaseUrl(): string {
+export function resolveIndividualImpairmentV2BaseUrl(): string {
   const configuredBase = String(apiClient.defaults.baseURL || '/api/v1').replace(/\/+$/, '');
 
   if (configuredBase.endsWith('/api/v1')) {
@@ -27,7 +27,7 @@ function resolveIndividualImpairmentV2BaseUrl(): string {
   return INDIVIDUAL_IMPAIRMENT_V2_API_BASE;
 }
 
-function normalizeV2Url(url: string): string {
+export function normalizeIndividualImpairmentV2Url(url: string): string {
   if (url === LEGACY_INDIVIDUAL_IMPAIRMENT_BASE) return '/';
   if (url.startsWith(`${LEGACY_INDIVIDUAL_IMPAIRMENT_BASE}/`)) {
     return url.slice(LEGACY_INDIVIDUAL_IMPAIRMENT_BASE.length);
@@ -49,14 +49,14 @@ function withIndividualImpairmentV2Base(config?: AxiosRequestConfig): AxiosReque
 
 export const individualImpairmentV2Client = {
   get: <T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> =>
-    apiClient.get<T>(normalizeV2Url(url), withIndividualImpairmentV2Base(config)),
+    apiClient.get<T>(normalizeIndividualImpairmentV2Url(url), withIndividualImpairmentV2Base(config)),
 
   post: <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> =>
-    apiClient.post<T>(normalizeV2Url(url), data, withIndividualImpairmentV2Base(config)),
+    apiClient.post<T>(normalizeIndividualImpairmentV2Url(url), data, withIndividualImpairmentV2Base(config)),
 
   put: <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> =>
-    apiClient.put<T>(normalizeV2Url(url), data, withIndividualImpairmentV2Base(config)),
+    apiClient.put<T>(normalizeIndividualImpairmentV2Url(url), data, withIndividualImpairmentV2Base(config)),
 
   delete: <T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> =>
-    apiClient.delete<T>(normalizeV2Url(url), withIndividualImpairmentV2Base(config)),
+    apiClient.delete<T>(normalizeIndividualImpairmentV2Url(url), withIndividualImpairmentV2Base(config)),
 };

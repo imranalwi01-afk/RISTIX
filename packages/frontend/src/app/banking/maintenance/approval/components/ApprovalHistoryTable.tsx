@@ -62,7 +62,7 @@ export const ApprovalHistoryTable = memo(function ApprovalHistoryTable({
         headerName: 'Type',
         width: 150,
         renderCell: (params) => (
-          <Chip label={params.value.replace('_', ' ').toUpperCase()} size="small" variant="outlined" />
+          <Chip label={params.row.requestTypeLabel || params.value.replace(/_/g, ' ').toUpperCase()} size="small" variant="outlined" />
         ),
       },
       {
