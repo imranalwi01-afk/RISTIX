@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 import { OpenAPIHono } from '@hono/zod-openapi'
+import { Effect } from 'effect'
 
 const watchlistMock = mock(() =>
   Promise.resolve({
@@ -51,6 +52,21 @@ const reportsMock = mock(() =>
   })
 )
 
+const createOverrideMock = mock((input: any) =>
+  Promise.resolve([{ pkid: 3001, accountNumber: input.accountNumber, status: 0 }])
+)
+
+const createApprovalRequestMock = mock((input: any) =>
+  Effect.succeed({
+    id: 'approval-v2-override-1',
+    status: 'pending',
+    currentLevel: 1,
+    approvalsRequired: 2,
+    approvalsReceived: 0,
+    ...input,
+  })
+)
+
 const passthroughMiddleware = async (c: any, next: any) => {
   c.set('user', {
     id: 'user-individual-1',
@@ -66,6 +82,7 @@ mock.module('@/services/individual-impairment.service', () => ({
   individualImpairmentService: {
     getWatchlist: watchlistMock,
     getReports: reportsMock,
+    createOverride: createOverrideMock,
   },
 }))
 
@@ -73,7 +90,16 @@ mock.module('../../services/individual-impairment.service', () => ({
   individualImpairmentService: {
     getWatchlist: watchlistMock,
     getReports: reportsMock,
+    createOverride: createOverrideMock,
   },
+}))
+
+mock.module('@/services/approval.service', () => ({
+  createApprovalRequest: createApprovalRequestMock,
+}))
+
+mock.module('../../services/approval.service', () => ({
+  createApprovalRequest: createApprovalRequestMock,
 }))
 
 mock.module('@/middleware', () => ({
@@ -92,20 +118,22 @@ mock.module('../../middleware', () => ({
   auditMiddleware: passthroughMiddleware,
 }))
 
-const { individualImpairmentRoutes } = await import('@/routes/individual-impairment.routes')
+const { individualImpairmentRoutes, individualImpairmentV2Routes } = await import('@/routes/individual-impairment.routes')
 
 describe('individual impairment route response contracts', () => {
   beforeEach(() => {
     watchlistMock.mockClear()
     reportsMock.mockClear()
+    createOverrideMock.mockClear()
+    createApprovalRequestMock.mockClear()
   })
 
   test('GET /watchlist returns master-account list contract with debug source metadata', async () => {
     const app = new OpenAPIHono()
-    app.route('/api/v1/banking/individual/impairment', individualImpairmentRoutes)
+    app.route('/api/v2/individual-impairment', individualImpairmentV2Routes)
 
     const response = await app.request(
-      '/api/v1/banking/individual/impairment/watchlist?page=2&limit=25&search=ACC&dateFrom=2023-12-31&dateTo=2023-12-31&sortField=outstanding&sortOrder=desc'
+      '/api/v2/individual-impairment/watchlist?page=2&limit=25&search=ACC&dateFrom=2023-12-31&dateTo=2023-12-31&sortField=outstanding&sortOrder=desc'
     )
     const body = await response.json()
 
@@ -150,10 +178,10 @@ describe('individual impairment route response contracts', () => {
 
   test('GET /reports returns IA header list contract with techspec debug metadata', async () => {
     const app = new OpenAPIHono()
-    app.route('/api/v1/banking/individual/impairment', individualImpairmentRoutes)
+    app.route('/api/v2/individual-impairment', individualImpairmentV2Routes)
 
     const response = await app.request(
-      '/api/v1/banking/individual/impairment/reports?page=1&limit=10&search=Customer&dateFrom=2023-12-31&dateTo=2023-12-31&sortField=accountNumber&sortOrder=asc'
+      '/api/v2/individual-impairment/reports?page=1&limit=10&search=Customer&dateFrom=2023-12-31&dateTo=2023-12-31&sortField=accountNumber&sortOrder=asc'
     )
     const body = await response.json()
 
@@ -190,9 +218,9 @@ describe('individual impairment route response contracts', () => {
 
   test('GET /reports rejects invalid sort field with detailed list-query 400', async () => {
     const app = new OpenAPIHono()
-    app.route('/api/v1/banking/individual/impairment', individualImpairmentRoutes)
+    app.route('/api/v2/individual-impairment', individualImpairmentV2Routes)
 
-    const response = await app.request('/api/v1/banking/individual/impairment/reports?sortField=unsafe')
+    const response = await app.request('/api/v2/individual-impairment/reports?sortField=unsafe')
     const body = await response.json()
 
     expect(response.status).toBe(400)
@@ -202,5 +230,100 @@ describe('individual impairment route response contracts', () => {
       details: [expect.objectContaining({ field: 'sort.unsafe' })],
     })
     expect(reportsMock).toHaveBeenCalledTimes(0)
+  })
+
+  test('legacy v1 individual impairment path remains mounted for compatibility', async () => {
+    const app = new OpenAPIHono()
+    app.route('/api/v1/banking/individual/impairment', individualImpairmentRoutes)
+
+    const response = await app.request('/api/v1/banking/individual/impairment/watchlist?page=1&limit=10')
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body).toMatchObject({
+      success: true,
+      meta: {
+        debug: {
+          endpoint: 'GET /api/v1/banking/individual/impairment/watchlist',
+          selectedSource: 'FRS9_MASTER_ACCOUNT',
+        },
+      },
+    })
+  })
+
+  test('POST /api/v2/individual-impairment/overrides creates approval request instead of live override', async () => {
+    const app = new OpenAPIHono()
+    app.route('/api/v2/individual-impairment', individualImpairmentV2Routes)
+
+    const response = await app.request('/api/v2/individual-impairment/overrides', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        accountNumber: 'ACC-501',
+        customerName: 'Customer One',
+        overrideStage: 2,
+        justification: 'Needs manual v2 review',
+      }),
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(202)
+    expect(body).toMatchObject({
+      success: true,
+      approvalRequired: true,
+      requestId: 'approval-v2-override-1',
+    })
+    expect(createOverrideMock).toHaveBeenCalledTimes(0)
+    expect(createApprovalRequestMock).toHaveBeenCalledWith(expect.objectContaining({
+      tenantId: 'tenant-individual-1',
+      entityType: 'individual_impairment_v2',
+      entityId: 'ACC-501',
+      requestedBy: 'user-individual-1',
+      impactLevel: 'high',
+      requestData: expect.objectContaining({
+        operation: 'create',
+        entityType: 'individual_impairment_v2',
+        subtype: 'override',
+        apiVersion: 'v2',
+        sourceApi: '/api/v2/individual-impairment',
+        data: expect.objectContaining({
+          accountNumber: 'ACC-501',
+          requestedBy: 'user-individual-1',
+          createdBy: 'user-individual-1',
+        }),
+      }),
+    }))
+  })
+
+  test('POST legacy v1 /overrides still executes live override directly', async () => {
+    const app = new OpenAPIHono()
+    app.route('/api/v1/banking/individual/impairment', individualImpairmentRoutes)
+
+    const response = await app.request('/api/v1/banking/individual/impairment/overrides', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        accountNumber: 'ACC-501',
+        customerName: 'Customer One',
+        overrideStage: 2,
+        justification: 'Legacy direct override',
+      }),
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body).toMatchObject({
+      success: true,
+      data: {
+        accountNumber: 'ACC-501',
+      },
+    })
+    expect(createApprovalRequestMock).toHaveBeenCalledTimes(0)
+    expect(createOverrideMock).toHaveBeenCalledWith(expect.objectContaining({
+      accountNumber: 'ACC-501',
+      tenantId: 'tenant-individual-1',
+      requestedBy: 'user-individual-1',
+      createdBy: 'user-individual-1',
+    }))
   })
 })

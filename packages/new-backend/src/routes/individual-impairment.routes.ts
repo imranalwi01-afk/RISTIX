@@ -5,6 +5,7 @@ import { individualImpairmentController } from '../controllers/individual-impair
 import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
 export const individualImpairmentRoutes: any = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
+export const individualImpairmentV2Routes = individualImpairmentRoutes
 
 individualImpairmentRoutes.use('*', authMiddleware)
 

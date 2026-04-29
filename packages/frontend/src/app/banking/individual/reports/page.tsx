@@ -12,6 +12,7 @@ import { StatCard } from '@/components/common/StatCard';
 import { useAssessmentWorkspaceEmbedded } from '../assessment/embedded-context';
 import { useIndividualReportAssessmentListQuery, useIndividualReportHistoryQuery } from '@/features/individual-impairment/hooks/useIndividualReportsQueries';
 import type { IndividualReportHistoryRowViewModel, IndividualReportListRowViewModel } from '@/features/individual-impairment/domain/individual-impairment.models';
+import { buildIndividualAssessmentUrl } from '@/features/individual-impairment/routing';
 import {
   Assessment as ReportIcon,
   CheckCircle as ReadyIcon,
@@ -196,7 +197,13 @@ export default function IndividualReportsPage() {
         filterable: false,
         renderCell: (params) => {
           const accountId = params.row.accountId;
-          const href = `/banking/individual/assessment?mode=${encodeURIComponent(mode)}&accountId=${encodeURIComponent(String(accountId ?? ''))}&accountNumber=${encodeURIComponent(params.row.accountNumber)}&tab=assessment-details`;
+          const query = new URLSearchParams({
+            mode,
+            accountId: String(accountId ?? ''),
+            accountNumber: params.row.accountNumber,
+            tab: 'assessment-details',
+          });
+          const href = buildIndividualAssessmentUrl(query, pathname);
           return (
             <Tooltip title={accountId ? 'Open assessment review' : 'Account ID missing'}>
               <span>
@@ -223,7 +230,13 @@ export default function IndividualReportsPage() {
         filterable: false,
         renderCell: (params) => {
           const accountId = params.row.accountId;
-          const href = `/banking/individual/assessment?mode=${encodeURIComponent(mode)}&accountId=${encodeURIComponent(String(accountId ?? ''))}&accountNumber=${encodeURIComponent(params.row.accountNumber)}&tab=history`;
+          const query = new URLSearchParams({
+            mode,
+            accountId: String(accountId ?? ''),
+            accountNumber: params.row.accountNumber,
+            tab: 'history',
+          });
+          const href = buildIndividualAssessmentUrl(query, pathname);
           return (
             <Tooltip title={accountId ? 'Open assessment history' : 'Account ID missing'}>
               <span>

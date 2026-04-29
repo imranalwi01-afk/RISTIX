@@ -20,6 +20,7 @@ import {
   Forward as DelegateIcon,
 } from '@mui/icons-material';
 import { ApprovalStatistics } from '../types';
+import { getApprovalRequestTypeLabel } from '@/features/approval/domain/approval.models';
 
 interface ApprovalStatisticsPanelProps {
   statistics: ApprovalStatistics | null;
@@ -254,7 +255,7 @@ export const ApprovalStatisticsPanel = memo(function ApprovalStatisticsPanel({
                   <Chip
                     key={entry.requestType}
                     variant="outlined"
-                    label={`${entry.requestType.replace(/_/g, ' ')}: ${entry.count}`}
+                    label={`${getApprovalRequestTypeLabel(entry.requestType)}: ${entry.count}`}
                   />
                 ))}
               </Box>

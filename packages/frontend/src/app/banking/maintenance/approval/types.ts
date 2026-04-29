@@ -1,6 +1,7 @@
 export interface ApprovalRequest {
   id: string;
   requestType: string;
+  requestTypeLabel?: string;
   requestTitle: string;
   priority: 'low' | 'medium' | 'high' | 'critical';
   dueDate?: string;

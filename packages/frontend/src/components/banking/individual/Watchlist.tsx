@@ -38,16 +38,18 @@ import {
   Warning as WarningIcon,
   CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import { StatCard } from '@/components/common/StatCard';
 import { useAssessmentWorkspaceEmbedded } from '@/app/banking/individual/assessment/embedded-context';
 import { useCreateWatchlistMutation, useRemoveWatchlistMutation, useStandaloneWatchlistQuery } from '@/features/individual-impairment/hooks/useWatchlistQueries';
 import type { StandaloneWatchlistRowViewModel } from '@/features/individual-impairment/domain/individual-impairment.models';
+import { buildIndividualAssessmentUrl } from '@/features/individual-impairment/routing';
 
 export const Watchlist = () => {
   const embedded = useAssessmentWorkspaceEmbedded();
   const router = useRouter();
+  const pathname = usePathname();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [searchDraft, setSearchDraft] = useState('');
@@ -163,7 +165,8 @@ export const Watchlist = () => {
           onClick={() => {
             // Navigate to assessment or open dialog
             const accountNo = params.row.accountNumber || params.row.account_number;
-            router.push(`/banking/individual/assessment?accountId=${accountNo}`);
+            const query = new URLSearchParams({ accountId: String(accountNo ?? '') });
+            router.push(buildIndividualAssessmentUrl(query, pathname));
           }}
           showInMenu={false}
         />,

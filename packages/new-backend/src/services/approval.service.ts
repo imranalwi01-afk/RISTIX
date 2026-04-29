@@ -15,6 +15,7 @@ import { dbOperation } from '@/lib/effect'
 import { userRolesRepository } from '@/repositories/rbac.repository'
 import { getDatabase } from '@/config/database'
 import { buildDefaultFourEyesRouting } from '@/lib/approval-helpers'
+import { INDIVIDUAL_IMPAIRMENT_V2_ENTITY_TYPE, INDIVIDUAL_IMPAIRMENT_V2_SUBTYPES } from '@/lib/individual-impairment-approval'
 import { getNotificationSocket, type NotificationPayload } from '@/socket/notification.socket'
 import { NotificationRepository } from '@/repositories/notification.repository'
 import { deriveNotificationCategory, filterNotificationRecipientsByPreferences } from '@/services/notifications.service'
@@ -740,6 +741,10 @@ async function executeApprovedAction(request: any, approvedBy?: string): Promise
 
             case 'journal_parameter':
                 await executeJournalParameterAction(operation, data, tenantId, request.entityId, request.requestedBy ?? approvedBy)
+                break
+
+            case INDIVIDUAL_IMPAIRMENT_V2_ENTITY_TYPE:
+                await executeIndividualImpairmentV2Action(operation, requestData, data, tenantId, request.requestedBy ?? approvedBy)
                 break
 
             case 'role_permission':
@@ -1529,6 +1534,37 @@ async function executeJournalParameterAction(
             await Effect.runPromise(JournalParametersService.delete(numericEntityId) as any)
             return
     }
+}
+
+async function executeIndividualImpairmentV2Action(
+    operation: 'create' | 'update' | 'delete',
+    requestData: any,
+    data: any,
+    tenantId: string,
+    actorId?: string
+): Promise<void> {
+    const subtype = String(requestData?.subtype || '').trim()
+
+    if (subtype !== INDIVIDUAL_IMPAIRMENT_V2_SUBTYPES.OVERRIDE) {
+        console.warn(`[ApprovalService] Unsupported individual impairment v2 subtype: ${subtype || '(empty)'}`)
+        return
+    }
+
+    if (operation !== 'create' && operation !== 'update') {
+        console.warn(`[ApprovalService] Unsupported individual impairment v2 operation: ${operation}`)
+        return
+    }
+
+    const { individualImpairmentService } = await import('./individual-impairment.service')
+    const effectiveActorId = actorId || data?.requestedBy || data?.createdBy || 'system'
+
+    await individualImpairmentService.createOverride({
+        ...data,
+        tenantId,
+        requestedBy: effectiveActorId,
+        createdBy: effectiveActorId,
+        status: data?.status || 'PENDING',
+    })
 }
 
 /**

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Box,
   Typography,
@@ -32,8 +32,9 @@ import {
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
 } from '@mui/icons-material';
-import { useRouter } from 'next/navigation';
 import { individualImpairmentAPI } from '../../../services/api/individual-impairment.api';
+import { INDIVIDUAL_IMPAIRMENT_V2_API_BASE } from '../../../services/api/individual-impairment-v2-client';
+import { buildIndividualAssessmentUrl, isIndividualAssessmentV2Path } from '@/features/individual-impairment/routing';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import ModernLoader from '@/components/common/ModernLoader';
 import { StatCard } from '@/components/common/StatCard';
@@ -77,6 +78,7 @@ const buildScenarioRows = (count: number, baseDate: string, seedName?: string, b
 export const AssessmentOverride = () => {
   const embedded = useAssessmentWorkspaceEmbedded();
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const accountId = searchParams.get('accountId');
   const accountNumber = searchParams.get('accountNumber');
@@ -440,7 +442,7 @@ export const AssessmentOverride = () => {
 
     try {
       setLoading(true);
-      await individualImpairmentAPI.createOverride({
+      const response = await individualImpairmentAPI.createOverride({
         customerName: formData.customerName,
         accountNumber: formData.accountNumber,
         overrideStage: String(formData.overrideStage),
@@ -448,7 +450,11 @@ export const AssessmentOverride = () => {
         supportingDocumentName: formData.supportingDocumentName || undefined,
         supportingDocumentContent: formData.supportingDocumentContent || undefined,
       });
-      setSuccess('Override request submitted successfully');
+      if (response?.approvalRequired) {
+        setSuccess(response?.message || `Override approval request created${response?.requestId ? ` (${response.requestId})` : ''}`);
+      } else {
+        setSuccess('Override request submitted successfully');
+      }
       setOpenDialog(false);
       if (accountId) {
         await loadAssessmentData(accountId);
@@ -507,7 +513,10 @@ export const AssessmentOverride = () => {
 
   const handleDownloadExisting = () => {
     if (!existingDocumentName) return
-    window.open(`/api/v1/banking/individual/impairment/overrides/documents/${encodeURIComponent(existingDocumentName)}`, '_blank', 'noopener,noreferrer')
+    const base = isIndividualAssessmentV2Path(pathname)
+      ? INDIVIDUAL_IMPAIRMENT_V2_API_BASE
+      : '/api/v1/banking/individual/impairment';
+    window.open(`${base}/overrides/documents/${encodeURIComponent(existingDocumentName)}`, '_blank', 'noopener,noreferrer')
   }
 
   const columns: GridColDef[] = [
@@ -622,7 +631,10 @@ export const AssessmentOverride = () => {
             existingDocumentName={existingDocumentName}
             onDownloadExisting={handleDownloadExisting}
             onOpenOverrideDialog={handleOpenOverrideDialog}
-            onBack={() => router.push(`/banking/individual/assessment?mode=${mode}&tab=watchlist`)}
+            onBack={() => {
+              const params = new URLSearchParams({ mode, tab: 'watchlist' });
+              router.push(buildIndividualAssessmentUrl(params, pathname));
+            }}
           />
 
           <DcfScenarioUploadCard

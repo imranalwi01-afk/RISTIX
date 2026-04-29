@@ -151,7 +151,7 @@ export const ApprovalRequestList = memo(function ApprovalRequestList({
               {params.row.requestTitle}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              {params.row.requestType.replace('_', ' ').toUpperCase()}
+              {params.row.requestTypeLabel || params.row.requestType.replace(/_/g, ' ').toUpperCase()}
             </Typography>
           </Box>
         ),

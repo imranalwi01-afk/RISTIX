@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import {
   Box,
   Table,
@@ -43,6 +44,7 @@ import {
   renderAssessmentStatus,
   renderPriorityChip
 } from '@/app/banking/individual/assessment/utils';
+import { buildIndividualAssessmentUrl } from '@/features/individual-impairment/routing';
 
 interface AssessmentWatchlistProps {
   watchlist: IndividualImpairmentWatchlistItem[];
@@ -75,6 +77,7 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
   selectedAccountId,
   mode
 }) => {
+  const pathname = usePathname();
   const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLElement | null>(null)
   const [menuAccount, setMenuAccount] = useState<IndividualImpairmentWatchlistItem | null>(null)
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
@@ -129,7 +132,7 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
     params.set('accountId', String(account.account_id))
     if (account.account_number) params.set('accountNumber', account.account_number)
     params.set('tab', 'assessment-details')
-    return `/banking/individual/assessment?${params.toString()}`
+    return buildIndividualAssessmentUrl(params, pathname)
   }
 
   const openMenu = (event: React.MouseEvent<HTMLElement>, account: IndividualImpairmentWatchlistItem) => {

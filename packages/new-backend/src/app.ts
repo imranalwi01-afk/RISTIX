@@ -23,6 +23,7 @@ import { env, isProduction } from './config'
 }
 import { routes } from './routes'
 import { businessSettingsRoutes } from './routes/business-settings.routes'
+import { individualImpairmentV2Routes } from './routes/individual-impairment.routes'
 import { auditMiddleware } from './middleware'
 import { errorHandler } from './middleware/error-handler'
 import { platformDb } from './config/database'
@@ -186,8 +187,10 @@ export function createApp() {
 
     // Audit all write API requests after downstream auth/tenant middleware resolve user context.
     app.use('/api/v1/*', auditMiddleware)
+    app.use('/api/v2/*', auditMiddleware)
 
     // API routes
+    app.route('/api/v2/individual-impairment', individualImpairmentV2Routes)
     app.route('/api/v1/banking/business-settings', businessSettingsRoutes) // Explicit mount for business settings
     app.route('/api/v1', routes)
 

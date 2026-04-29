@@ -64,8 +64,20 @@ export const ApprovalRequestDetailDialog = memo(function ApprovalRequestDetailDi
               </Grid>
               <Grid size={6}>
                 <Typography variant="subtitle2">Request Type:</Typography>
-                <Typography variant="body2">{request.requestType.replace('_', ' ').toUpperCase()}</Typography>
+                <Typography variant="body2">{request.requestTypeLabel || request.requestType.replace(/_/g, ' ').toUpperCase()}</Typography>
               </Grid>
+              {request.requestData?.sourceApi && (
+                <Grid size={6}>
+                  <Typography variant="subtitle2">Source API:</Typography>
+                  <Typography variant="body2">{request.requestData.sourceApi}</Typography>
+                </Grid>
+              )}
+              {request.requestData?.apiVersion && (
+                <Grid size={6}>
+                  <Typography variant="subtitle2">API Version:</Typography>
+                  <Chip label={String(request.requestData.apiVersion).toUpperCase()} size="small" variant="outlined" sx={{ mt: 0.5 }} />
+                </Grid>
+              )}
               <Grid size={6}>
                 <Typography variant="subtitle2">Requested By:</Typography>
                 <Typography variant="body2">{request.requestedByName}</Typography>
