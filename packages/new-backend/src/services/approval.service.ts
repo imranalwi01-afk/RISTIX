@@ -17,8 +17,7 @@ import { getDatabase } from '@/config/database'
 import { buildDefaultFourEyesRouting } from '@/lib/approval-helpers'
 import { INDIVIDUAL_IMPAIRMENT_V2_ENTITY_TYPE, INDIVIDUAL_IMPAIRMENT_V2_SUBTYPES } from '@/lib/individual-impairment-approval'
 import { getNotificationSocket, type NotificationPayload } from '@/socket/notification.socket'
-import { NotificationRepository } from '@/repositories/notification.repository'
-import { deriveNotificationCategory, filterNotificationRecipientsByPreferences } from '@/services/notifications.service'
+import { deriveNotificationCategory, filterNotificationRecipientsByPreferences, createNotification } from '@/services/notifications.service'
 
 // =============================================================================
 // TYPES
@@ -526,7 +525,7 @@ export const processApprovalAction = (
                     if (isComplete) {
                         // Execute the approved action (e.g., create user, update config)
                         await executeApprovedAction(request, input.approverId)
-                        await notifyApprovalCompletion(request, 'approved')
+                        await notifyApprovalCompletion(request, 'approved', input.approverId)
                     } else if (currentLevelComplete) {
                         // Only notify next level when current level has collected enough approvers.
                         await notifyNextLevelApprovers({ ...request, currentLevel: nextLevel?.level ?? request.currentLevel })
@@ -551,7 +550,7 @@ export const processApprovalAction = (
 
                 if (isComplete) {
                     await executeApprovedAction(request, input.approverId)
-                    await notifyApprovalCompletion(request, 'approved')
+                    await notifyApprovalCompletion(request, 'approved', input.approverId)
                 } else {
                     await notifyNextLevelApprovers(request)
                 }
@@ -566,7 +565,7 @@ export const processApprovalAction = (
                     completedBy: input.approverId,
                 })
 
-                await notifyApprovalCompletion(request, 'rejected')
+                await notifyApprovalCompletion(request, 'rejected', input.approverId)
                 return { completed: true, status: 'rejected' }
             }
 
@@ -1616,10 +1615,29 @@ async function executeRolePermissionAction(
 /**
  * Notify the completion of the entire approval process
  */
-async function notifyApprovalCompletion(request: any, outcome: 'approved' | 'rejected'): Promise<void> {
+function getApprovalNotificationTitle(request: any): string {
+    const requestData = request?.requestData && typeof request.requestData === 'object' ? request.requestData : {}
+    const candidates = [
+        request?.title,
+        request?.requestTitle,
+        requestData.title,
+        requestData.requestTitle,
+        requestData.customerName && requestData.accountNumber
+            ? `${requestData.customerName} (${requestData.accountNumber})`
+            : undefined,
+        requestData.accountNumber ? `Account ${requestData.accountNumber}` : undefined,
+        request?.entityType && request?.entityId ? `${request.entityType} ${request.entityId}` : undefined,
+    ]
+
+    const value = candidates.find((candidate) => typeof candidate === 'string' && candidate.trim().length > 0)
+    return typeof value === 'string' ? value.trim() : 'Approval request'
+}
+
+async function notifyApprovalCompletion(request: any, outcome: 'approved' | 'rejected', actorUserId?: string): Promise<void> {
     const type = outcome === 'approved' ? 'APPROVAL_APPROVED' : 'APPROVAL_REJECTED'
     const severity = outcome === 'approved' ? 'success' : 'warning'
     const title = outcome === 'approved' ? 'Approval Completed' : 'Approval Rejected'
+    const requestTitle = getApprovalNotificationTitle(request)
 
     const notification: NotificationPayload = {
         id: `approval-${request.id}-${outcome}-${Date.now()}`,
@@ -1627,13 +1645,15 @@ async function notifyApprovalCompletion(request: any, outcome: 'approved' | 'rej
         workflowId: request.id,
         tenantId: request.tenantId,
         title,
-        message: `${request.title} was ${outcome}.`,
+        message: `${requestTitle} was ${outcome}.`,
         severity,
         timestamp: new Date().toISOString(),
         data: {
+            requestId: request.id,
             entityType: request.entityType,
             entityId: request.entityId,
             status: outcome,
+            title: requestTitle,
         },
         actionUrl: `/banking/maintenance/approval?requestId=${request.id}`,
     }
@@ -1641,6 +1661,7 @@ async function notifyApprovalCompletion(request: any, outcome: 'approved' | 'rej
     await safeEmitNotification(request.tenantId, notification, {
         userIds: [request.requestedBy],
         roleRooms: ['CHECKER', 'APPROVER', 'SUPER_ADMIN'],
+        excludeUserId: actorUserId,
     })
 }
 
@@ -1663,7 +1684,7 @@ async function notifyNextLevelApprovers(request: any): Promise<void> {
         type: 'APPROVAL_PENDING',
         workflowId: request.id,
         tenantId: request.tenantId,
-        title: `Approval Needed: ${request.title}`,
+        title: `Approval Needed: ${getApprovalNotificationTitle(request)}`,
         message: `Request is waiting for level ${request.currentLevel} (${currentLevel.name}) approval.`,
         severity: 'info',
         timestamp: new Date().toISOString(),
@@ -1707,13 +1728,14 @@ async function notifyApprover(userId: string, request: any, type: 'new' | 'deleg
  * Notify the original requester
  */
 async function notifyRequester(request: any, type: string, comment?: string): Promise<void> {
+    const requestTitle = getApprovalNotificationTitle(request)
     const notification: NotificationPayload = {
         id: `approval-${request.id}-${type}-${Date.now()}`,
         type: 'APPROVAL_PENDING',
         workflowId: request.id,
         tenantId: request.tenantId,
         title: 'Approval Update',
-        message: comment ? `Update on ${request.title}: ${comment}` : `Update on ${request.title}`,
+        message: comment ? `Update on ${requestTitle}: ${comment}` : `Update on ${requestTitle}`,
         severity: 'info',
         timestamp: new Date().toISOString(),
         actionUrl: `/banking/maintenance/approval?requestId=${request.id}`,
@@ -2002,7 +2024,7 @@ async function autoApproveCreatedRequest(request: any, approverId: string): Prom
     const finalized = await ApprovalRepository.findRequestById(String(request.id))
     if (finalized) {
         await executeApprovedAction(finalized, approverId)
-        await notifyApprovalCompletion(finalized, 'approved')
+        await notifyApprovalCompletion(finalized, 'approved', approverId)
         return finalized
     }
 
@@ -2194,6 +2216,7 @@ async function persistNotificationRecord(
     options: {
         roleRooms: string[]
         userIds: string[]
+        excludeUserId?: string
     },
     deliveryStatus: 'pending' | 'sent' | 'failed' | 'read',
     errorMessage?: string
@@ -2211,9 +2234,9 @@ async function persistNotificationRecord(
     const userTargets = Array.from(new Set([
         ...options.userIds,
         ...roleCandidateUserIds,
-    ]))
+    ])).filter((userId) => userId !== options.excludeUserId)
 
-    await NotificationRepository.createWithDeliveries({
+    await Effect.runPromise(createNotification({
         tenantId,
         approvalRequestId: typeof notification.workflowId === 'string' && UUID_PATTERN.test(notification.workflowId)
             ? notification.workflowId
@@ -2234,7 +2257,7 @@ async function persistNotificationRecord(
         deliveryStatus,
         deliveredAt: new Date(),
         errorMessage,
-    })
+    }))
 }
 
 async function safeEmitNotification(
@@ -2243,6 +2266,7 @@ async function safeEmitNotification(
     options?: {
         roleRooms?: string[]
         userIds?: string[]
+        excludeUserId?: string
     }
 ): Promise<void> {
     const roleRooms = Array.isArray(options?.roleRooms)
@@ -2251,6 +2275,9 @@ async function safeEmitNotification(
     const userIds = Array.isArray(options?.userIds)
         ? options!.userIds!.filter((userId): userId is string => typeof userId === 'string' && userId.trim().length > 0)
         : []
+    const excludeUserId = typeof options?.excludeUserId === 'string' && options.excludeUserId.trim().length > 0
+        ? options.excludeUserId.trim()
+        : undefined
     let resolvedUserIds = userIds
 
     try {
@@ -2271,8 +2298,9 @@ async function safeEmitNotification(
             ).map((candidate) => candidate.userId)
             : []
 
+        const hasExplicitTargets = roleRooms.length > 0 || userIds.length > 0
         const targetUserIds = Array.from(new Set([...userIds, ...roleCandidateUserIds]))
-        const hasExplicitTargets = roleRooms.length > 0 || targetUserIds.length > 0
+            .filter((userId) => userId !== excludeUserId)
 
         const eligibleUserIds = await filterNotificationRecipientsByPreferences({
             tenantId,
@@ -2287,12 +2315,14 @@ async function safeEmitNotification(
         } else if (!hasExplicitTargets) {
             // Fallback broadcast only when there are no explicit targets.
             socket.broadcastApprovalNotification(tenantId, notificationWithCategory)
+        } else {
+            return
         }
 
         await persistNotificationRecord(
             tenantId,
             notificationWithCategory,
-            { roleRooms: [], userIds: eligibleUserIds },
+            { roleRooms: [], userIds: eligibleUserIds, excludeUserId },
             'sent'
         )
     } catch (error) {
@@ -2300,7 +2330,7 @@ async function safeEmitNotification(
             await persistNotificationRecord(
                 tenantId,
                 notification,
-                { roleRooms: [], userIds: resolvedUserIds },
+                { roleRooms: [], userIds: resolvedUserIds, excludeUserId },
                 'failed',
                 error instanceof Error ? error.message : String(error)
             )

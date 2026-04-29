@@ -119,9 +119,6 @@ const buildApprovalSubmissionResponse = (request: { id: string; status?: string 
     }
 }
 
-const getApprovalSubmissionStatus = (request: { status?: string }): number =>
-    isPendingApprovalRequest(request) ? 202 : 200
-
 // =============================================================================
 // ROUTES
 // =============================================================================
@@ -1018,70 +1015,77 @@ usersRoutes.openapi(
         },
     }),
     async (c: any) => {
-        try {
-            const { id } = c.req.valid('param')
-            const tenantId = c.get('tenantId')!
-            const requestedBy = c.get('userId')!
-            const currentUser = await Effect.runPromise(usersService.getUserById(id, tenantId))
+        const { id } = c.req.valid('param')
+        const tenantId = c.get('tenantId')!
+        const requestedBy = c.get('userId')!
 
-            const request = await Effect.runPromise(
-                createApprovalRequest({
-                    tenantId,
-                    entityType: 'user_status',
-                    entityId: id,
-                    title: `Enable user: ${id}`,
-                    description: `User activation requested for user ${id}.`,
-                    requestData: {
-                        operation: 'update',
+        const effect = pipe(
+            usersService.getUserById(id, tenantId),
+            Effect.flatMap((currentUser) =>
+                pipe(
+                    createApprovalRequest({
+                        tenantId,
                         entityType: 'user_status',
-                        oldValues: {
-                            id: currentUser.id,
-                            isActive: currentUser.isActive ?? false,
+                        entityId: id,
+                        title: `Enable user: ${id}`,
+                        description: `User activation requested for user ${id}.`,
+                        requestData: {
+                            operation: 'update',
+                            entityType: 'user_status',
+                            oldValues: {
+                                id: currentUser.id,
+                                isActive: currentUser.isActive ?? false,
+                            },
+                            data: {
+                                id,
+                                isActive: true,
+                                tenantId,
+                            },
+                            approvalRouting: { levels: buildDefaultFourEyesRouting('user_status') },
                         },
-                        data: {
-                            id,
-                            isActive: true,
-                            tenantId,
-                        },
-                        approvalRouting: { levels: buildDefaultFourEyesRouting('user_status') },
-                    },
-                    requestedBy,
-                    impactLevel: 'high',
-                })
+                        requestedBy,
+                        impactLevel: 'high',
+                    }),
+                    Effect.tap((request) =>
+                        Effect.sync(() => {
+                            auditService.runAuditSafely(
+                                auditService.logApproval.requested(
+                                    request.id,
+                                    request.title,
+                                    requestedBy,
+                                    tenantId,
+                                    {
+                                        entityType: 'user_status',
+                                        oldValues: {
+                                            id: currentUser.id,
+                                            isActive: currentUser.isActive ?? false,
+                                        },
+                                        newValues: {
+                                            id,
+                                            isActive: true,
+                                            tenantId,
+                                        },
+                                    }
+                                ),
+                                `approval request logging for enable user ${id}`
+                            )
+                        })
+                    ),
+                    Effect.map((request) =>
+                        buildApprovalSubmissionResponse(
+                            request,
+                            'User enable request submitted for approval.'
+                        )
+                    )
+                )
             )
+        )
 
-            auditService.runAuditSafely(
-                auditService.logApproval.requested(
-                    request.id,
-                    request.title,
-                    requestedBy,
-                    tenantId,
-                    {
-                        entityType: 'user_status',
-                        oldValues: {
-                            id: currentUser.id,
-                            isActive: currentUser.isActive ?? false,
-                        },
-                        newValues: {
-                            id,
-                            isActive: true,
-                            tenantId,
-                        },
-                    }
-                ),
-                `approval request logging for enable user ${id}`
-            )
-
-            return c.json(
-                buildApprovalSubmissionResponse(
-                    request,
-                    'User enable request submitted for approval.'
-                ),
-                getApprovalSubmissionStatus(request)
-            )
-        } catch (error) {
-            return runEffect(c, Effect.fail(error as any))
-        }
+        return runEffect(
+            c,
+            effect,
+            (response: ApprovalResponse) => response.approvalRequired ? 202 : 200
+        )
     }
 )
 
@@ -1118,69 +1122,76 @@ usersRoutes.openapi(
         },
     }),
     async (c: any) => {
-        try {
-            const { id } = c.req.valid('param')
-            const tenantId = c.get('tenantId')!
-            const requestedBy = c.get('userId')!
-            const currentUser = await Effect.runPromise(usersService.getUserById(id, tenantId))
+        const { id } = c.req.valid('param')
+        const tenantId = c.get('tenantId')!
+        const requestedBy = c.get('userId')!
 
-            const request = await Effect.runPromise(
-                createApprovalRequest({
-                    tenantId,
-                    entityType: 'user_status',
-                    entityId: id,
-                    title: `Disable user: ${id}`,
-                    description: `User deactivation requested for user ${id}.`,
-                    requestData: {
-                        operation: 'update',
+        const effect = pipe(
+            usersService.getUserById(id, tenantId),
+            Effect.flatMap((currentUser) =>
+                pipe(
+                    createApprovalRequest({
+                        tenantId,
                         entityType: 'user_status',
-                        oldValues: {
-                            id: currentUser.id,
-                            isActive: currentUser.isActive ?? false,
+                        entityId: id,
+                        title: `Disable user: ${id}`,
+                        description: `User deactivation requested for user ${id}.`,
+                        requestData: {
+                            operation: 'update',
+                            entityType: 'user_status',
+                            oldValues: {
+                                id: currentUser.id,
+                                isActive: currentUser.isActive ?? false,
+                            },
+                            data: {
+                                id,
+                                isActive: false,
+                                tenantId,
+                            },
+                            approvalRouting: { levels: buildDefaultFourEyesRouting('user_status') },
                         },
-                        data: {
-                            id,
-                            isActive: false,
-                            tenantId,
-                        },
-                        approvalRouting: { levels: buildDefaultFourEyesRouting('user_status') },
-                    },
-                    requestedBy,
-                    impactLevel: 'high',
-                })
+                        requestedBy,
+                        impactLevel: 'high',
+                    }),
+                    Effect.tap((request) =>
+                        Effect.sync(() => {
+                            auditService.runAuditSafely(
+                                auditService.logApproval.requested(
+                                    request.id,
+                                    request.title,
+                                    requestedBy,
+                                    tenantId,
+                                    {
+                                        entityType: 'user_status',
+                                        oldValues: {
+                                            id: currentUser.id,
+                                            isActive: currentUser.isActive ?? false,
+                                        },
+                                        newValues: {
+                                            id,
+                                            isActive: false,
+                                            tenantId,
+                                        },
+                                    }
+                                ),
+                                `approval request logging for disable user ${id}`
+                            )
+                        })
+                    ),
+                    Effect.map((request) =>
+                        buildApprovalSubmissionResponse(
+                            request,
+                            'User disable request submitted for approval.'
+                        )
+                    )
+                )
             )
+        )
 
-            auditService.runAuditSafely(
-                auditService.logApproval.requested(
-                    request.id,
-                    request.title,
-                    requestedBy,
-                    tenantId,
-                    {
-                        entityType: 'user_status',
-                        oldValues: {
-                            id: currentUser.id,
-                            isActive: currentUser.isActive ?? false,
-                        },
-                        newValues: {
-                            id,
-                            isActive: false,
-                            tenantId,
-                        },
-                    }
-                ),
-                `approval request logging for disable user ${id}`
-            )
-
-            return c.json(
-                buildApprovalSubmissionResponse(
-                    request,
-                    'User disable request submitted for approval.'
-                ),
-                getApprovalSubmissionStatus(request)
-            )
-        } catch (error) {
-            return runEffect(c, Effect.fail(error as any))
-        }
+        return runEffect(
+            c,
+            effect,
+            (response: ApprovalResponse) => response.approvalRequired ? 202 : 200
+        )
     }
 )

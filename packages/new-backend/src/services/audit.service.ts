@@ -8,6 +8,22 @@ export const runAuditSafely = (operation: Promise<void>, context: string): void 
     })
 }
 
+const normalizeAuditIpAddress = (value: unknown): string | undefined => {
+    if (typeof value !== 'string') return undefined
+    const firstValue = value.split(',')[0]?.trim()
+    if (!firstValue || firstValue.toLowerCase() === 'unknown') return undefined
+
+    const unbracketed = firstValue.startsWith('[') && firstValue.includes(']')
+        ? firstValue.slice(1, firstValue.indexOf(']'))
+        : firstValue
+
+    if (/^\d{1,3}(?:\.\d{1,3}){3}:\d+$/.test(unbracketed)) {
+        return unbracketed.slice(0, unbracketed.lastIndexOf(':'))
+    }
+
+    return unbracketed
+}
+
 /**
  * Core audit logging function.
  * Uses tenantDb since audit schema exists in tenant database.
@@ -17,10 +33,12 @@ export const runAuditSafely = (operation: Promise<void>, context: string): void 
  */
 export const logAuditEvent = async (params: Partial<NewAuditLog>): Promise<void> => {
     try {
+        const ipAddress = normalizeAuditIpAddress(params.ipAddress)
         await tenantDb.insert(auditLogs).values({
             eventType: params.eventType || 'unknown',
             action: params.action || 'unknown',
-            ...params
+            ...params,
+            ipAddress,
         })
     } catch (error) {
         // Don't throw - audit logging should never break the main flow
