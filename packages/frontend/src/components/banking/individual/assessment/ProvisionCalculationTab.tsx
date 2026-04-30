@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -46,23 +46,49 @@ export function ProvisionCalculationTab({
     onFinalSubmit,
     submitting
 }: ProvisionCalculationTabProps) {
-  // Local helper function for formatting currency
-  const formatCurrency = (amount: number) => {
+  const toFiniteNumber = (value: unknown, fallback = 0) => {
+    const normalized = typeof value === 'string' ? value.replace(/[^\d.-]/g, '') : value;
+    const numeric = Number(normalized);
+    return Number.isFinite(numeric) ? numeric : fallback;
+  };
+
+  const formatCurrency = (amount: unknown) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const calculateProvision = (amount: number, stage: number) => {
-    // Basic example logic - in real app this comes from backend or complex rules
-    const rate = stage === 1 ? 0.01 : stage === 2 ? 0.15 : 1.0;
-    return amount * rate;
+    }).format(toFiniteNumber(amount));
   };
 
   const isReadyToSubmit = isStagedOverrideReady && isStagedDCFReady;
+  const normalizedCalculation = useMemo(() => {
+    if (!calculation) return null;
+
+    const outstanding =
+      calculation.outstanding ??
+      calculation.outstandingBalance ??
+      account?.outstanding_balance ??
+      account?.outstanding ??
+      0;
+    const details = Array.isArray(calculation.details) ? calculation.details : [];
+
+    return {
+      ...calculation,
+      presentValue: toFiniteNumber(calculation.presentValue ?? calculation.pvDcfAmt),
+      outstanding: toFiniteNumber(outstanding),
+      lgd: toFiniteNumber(calculation.lgd ?? calculation.impairmentLoss),
+      recommendedProvision: toFiniteNumber(calculation.recommendedProvision ?? calculation.eclIaAmt),
+      assumptions: calculation.assumptions || {},
+      details: details.map((row: any) => ({
+        ...row,
+        beginningBalance: toFiniteNumber(row.beginningBalance),
+        interestAccrual: toFiniteNumber(row.interestAccrual),
+        weightedFlow: toFiniteNumber(row.weightedFlow ?? row.cashflow),
+        endingBalance: toFiniteNumber(row.endingBalance),
+      })),
+    };
+  }, [account, calculation]);
 
   return (
     <Box>
@@ -72,7 +98,7 @@ export function ProvisionCalculationTab({
             Provision Calculation - {account?.account_number}
         </Typography>
 
-        {calculation && (
+        {normalizedCalculation && (
             <Stack direction="row" spacing={1}>
                 <Chip
                     icon={isStagedOverrideReady ? <CheckCircleIcon /> : <WarningIcon />}
@@ -92,7 +118,7 @@ export function ProvisionCalculationTab({
         )}
       </Box>
 
-      {calculation ? (
+      {normalizedCalculation ? (
         <Grid container spacing={3}>
           {/* Summary Cards */}
           <Grid size={{ xs: 12, md: 4 }}>
@@ -100,7 +126,7 @@ export function ProvisionCalculationTab({
               <CardContent>
                 <Typography variant="subtitle2" color="primary.dark" fontWeight={600}>Present Value (DCF)</Typography>
                 <Typography variant="h5" fontWeight="bold" color="primary.main" sx={{ mt: 1 }}>
-                  {formatCurrency(calculation.presentValue || 0)}
+                  {formatCurrency(normalizedCalculation.presentValue)}
                 </Typography>
               </CardContent>
             </Card>
@@ -110,7 +136,7 @@ export function ProvisionCalculationTab({
               <CardContent>
                 <Typography variant="subtitle2" color="error.dark" fontWeight={600}>Loss Given Default (LGD)</Typography>
                 <Typography variant="h5" fontWeight="bold" color="error.main" sx={{ mt: 1 }}>
-                  {formatCurrency(calculation.lgd || 0)}
+                  {formatCurrency(normalizedCalculation.lgd)}
                 </Typography>
               </CardContent>
             </Card>
@@ -120,7 +146,7 @@ export function ProvisionCalculationTab({
               <CardContent>
                 <Typography variant="subtitle2" color="success.dark" fontWeight={600}>Final Provision (ECL)</Typography>
                 <Typography variant="h5" fontWeight="bold" color="success.main" sx={{ mt: 1 }}>
-                  {formatCurrency(calculation.recommendedProvision || 0)}
+                  {formatCurrency(normalizedCalculation.recommendedProvision)}
                 </Typography>
               </CardContent>
             </Card>
@@ -143,27 +169,27 @@ export function ProvisionCalculationTab({
                         <TableBody>
                             <TableRow hover>
                                 <TableCell>Outstanding Balance</TableCell>
-                                <TableCell align="right">{formatCurrency(account?.outstanding_balance || 0)}</TableCell>
+                                <TableCell align="right">{formatCurrency(normalizedCalculation.outstanding)}</TableCell>
                                 <TableCell color="text.secondary">Total exposure at default</TableCell>
                             </TableRow>
                             <TableRow hover>
                                 <TableCell>Discount Rate (EIR)</TableCell>
-                                <TableCell align="right">{(calculation.assumptions?.discountRate || calculation.assumptions?.effectiveInterestRate || 0).toFixed(2)}%</TableCell>
+                                <TableCell align="right">{toFiniteNumber(normalizedCalculation.assumptions?.discountRate ?? normalizedCalculation.assumptions?.effectiveInterestRate ?? normalizedCalculation.assumptions?.eir).toFixed(2)}%</TableCell>
                                 <TableCell color="text.secondary">Effective Interest Rate used for discounting</TableCell>
                             </TableRow>
                             <TableRow hover>
                                 <TableCell>Scenario Method</TableCell>
-                                <TableCell align="right">{calculation.scenario || 'Multi-Scenario Weighted'}</TableCell>
+                                <TableCell align="right">{normalizedCalculation.scenario || 'Multi-Scenario Weighted'}</TableCell>
                                 <TableCell color="text.secondary">Economic scenario probability model applied</TableCell>
                             </TableRow>
                              <TableRow sx={{ bgcolor: 'primary.50' }}>
                                 <TableCell sx={{ fontWeight: 700 }}>Calculated PV</TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 700 }}>{formatCurrency(calculation.presentValue || 0)}</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 700 }}>{formatCurrency(normalizedCalculation.presentValue)}</TableCell>
                                 <TableCell sx={{ fontSize: '0.75rem' }}>Sum of all discounted recovery cash flows</TableCell>
                             </TableRow>
                              <TableRow sx={{ bgcolor: 'error.50' }}>
                                 <TableCell sx={{ fontWeight: 700 }}>Impairment Loss (LGD)</TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 700 }}>{formatCurrency(calculation.lgd || 0)}</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 700 }}>{formatCurrency(normalizedCalculation.lgd)}</TableCell>
                                 <TableCell sx={{ fontSize: '0.75rem' }}>Exposure - Recoverable Amount</TableCell>
                             </TableRow>
                         </TableBody>
@@ -179,7 +205,7 @@ export function ProvisionCalculationTab({
                 <Typography variant="subtitle1" fontWeight={700}>
                   Amortization & Unwinding Schedule
                 </Typography>
-                <Chip label={`${calculation.details?.length || 0} Periods`} size="small" variant="outlined" />
+                <Chip label={`${normalizedCalculation.details.length || 0} Periods`} size="small" variant="outlined" />
               </Box>
               <CardContent sx={{ p: 0 }}>
                 <TableContainer sx={{ maxHeight: 350 }}>
@@ -194,15 +220,23 @@ export function ProvisionCalculationTab({
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {calculation.details?.map((row: any, idx: number) => (
-                        <TableRow key={idx} hover>
-                          <TableCell sx={{ fontSize: '0.75rem' }}>{row.period}</TableCell>
+                      {normalizedCalculation.details.length > 0 ? normalizedCalculation.details.map((row: any, idx: number) => (
+                        <TableRow key={`${row.period || 'period'}-${idx}`} hover>
+                          <TableCell sx={{ fontSize: '0.75rem' }}>{row.period || '-'}</TableCell>
                           <TableCell sx={{ fontSize: '0.75rem' }}>{formatCurrency(row.beginningBalance)}</TableCell>
                           <TableCell sx={{ fontSize: '0.75rem', color: 'success.main' }}>+{formatCurrency(row.interestAccrual)}</TableCell>
-                          <TableCell sx={{ fontSize: '0.75rem', color: 'error.main' }}>-{formatCurrency(row.weightedFlow || row.cashflow)}</TableCell>
+                          <TableCell sx={{ fontSize: '0.75rem', color: 'error.main' }}>-{formatCurrency(row.weightedFlow)}</TableCell>
                           <TableCell sx={{ fontSize: '0.75rem', fontWeight: 700 }}>{formatCurrency(row.endingBalance)}</TableCell>
                         </TableRow>
-                      ))}
+                      )) : (
+                        <TableRow>
+                          <TableCell colSpan={5}>
+                            <Alert severity="info" sx={{ my: 1 }}>
+                              No amortization schedule rows returned for this staged DCF.
+                            </Alert>
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </TableContainer>
@@ -215,7 +249,7 @@ export function ProvisionCalculationTab({
                 <Grid container spacing={2} alignItems="center">
                     <Grid size={{ xs: 12, md: 8 }}>
                         <Typography variant="subtitle1" fontWeight={700} color={isReadyToSubmit ? 'success.main' : 'text.primary'}>
-                            {isReadyToSubmit ? 'Ready for Final Submission' : 'Incomplete Assessment Package'}
+                            {isReadyToSubmit ? 'Ready to Submit to Approval' : 'Incomplete Assessment Package'}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                             {isReadyToSubmit
@@ -234,7 +268,7 @@ export function ProvisionCalculationTab({
                             onClick={onFinalSubmit}
                             sx={{ px: 4, py: 1.5, borderRadius: 2, fontWeight: 700, textTransform: 'none' }}
                         >
-                            Submit Assessment Package
+                            Submit to Approval
                         </LoadingButton>
                     </Grid>
                 </Grid>

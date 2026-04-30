@@ -830,7 +830,24 @@ export default function IndividualAssessmentWizardPage() {
         )
       }
     ],
-    [accountId, accountNumber, buildAssessmentUrl, dcfCalculation, dcfLoading, handleTabChangeByKey, router, selectedAccount]
+    [
+      accountId,
+      accountNumber,
+      assessmentData,
+      buildAssessmentUrl,
+      dcfCalculation,
+      dcfLoading,
+      handleCalculateDcf,
+      handleFinalPackageSubmit,
+      handleTabChangeByKey,
+      historyData,
+      historyRefreshKey,
+      router,
+      selectedAccount,
+      stagedDCF,
+      stagedOverride,
+      submittingPackage
+    ]
   );
 
   const handleTabChange = useCallback((nextIndex: number) => {

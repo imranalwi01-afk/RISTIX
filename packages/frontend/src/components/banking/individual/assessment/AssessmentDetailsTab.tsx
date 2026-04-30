@@ -77,10 +77,10 @@ export function AssessmentDetailsTab({ account, assessment, onUpdateAssessment, 
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const assessmentData = propAssessmentData || internalAssessmentData;
-  const historyData = propHistoryData || internalHistoryData;
   const [internalAssessmentData, setInternalAssessmentData] = useState<any>(null);
   const [internalHistoryData, setInternalHistoryData] = useState<any[]>([]);
+  const assessmentData = propAssessmentData || internalAssessmentData;
+  const historyData = propHistoryData || internalHistoryData;
   const router = useRouter();
 
   const [overrideDialogOpen, setOverrideDialogOpen] = useState(false);
@@ -240,13 +240,19 @@ export function AssessmentDetailsTab({ account, assessment, onUpdateAssessment, 
     }
   };
 
-  const formatCurrency = (amount: number) => {
+  const toFiniteNumber = (value: unknown, fallback = 0) => {
+    const normalized = typeof value === 'string' ? value.replace(/[^\d.-]/g, '') : value;
+    const numeric = Number(normalized);
+    return Number.isFinite(numeric) ? numeric : fallback;
+  };
+
+  const formatCurrency = (amount: unknown) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
-    }).format(amount);
+    }).format(toFiniteNumber(amount));
   };
 
   const renderStageChip = (stage: number) => {
@@ -307,7 +313,7 @@ export function AssessmentDetailsTab({ account, assessment, onUpdateAssessment, 
             startIcon={<EditIcon />}
             sx={{ textTransform: 'none', fontWeight: 600 }}
           >
-            {currentStatus === 'APPROVED' ? 'Revise Assessment' : 'New Override'}
+            {currentStatus === 'APPROVED' ? 'Revise Assessment' : 'Stage Adjustment'}
           </Button>
         </Box>
       </Box>
@@ -535,7 +541,7 @@ export function AssessmentDetailsTab({ account, assessment, onUpdateAssessment, 
         fullWidth
       >
         <DialogTitle sx={{ fontWeight: 700, bgcolor: currentStatus === 'APPROVED' ? 'warning.50' : 'primary.50' }}>
-          {currentStatus === 'APPROVED' ? 'Revise Approved Assessment' : 'New Override Request'}
+          {currentStatus === 'APPROVED' ? 'Revise Approved Assessment' : 'Stage Assessment Adjustment'}
         </DialogTitle>
         <DialogContent sx={{ px: 3, pb: 3 }}>
           {/* Enhanced Customer Context Section */}
@@ -651,7 +657,7 @@ export function AssessmentDetailsTab({ account, assessment, onUpdateAssessment, 
             disabled={loading || !overrideForm.justification || !overrideForm.supportingDocumentName}
             sx={{ fontWeight: 700, borderRadius: 2 }}
           >
-            {loading ? 'Processing...' : 'Confirm & Stage Adjustment'}
+            {loading ? 'Processing...' : 'Stage Adjustment'}
           </Button>
         </DialogActions>
       </Dialog>
