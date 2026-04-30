@@ -1554,10 +1554,10 @@ async function executeIndividualImpairmentV2Action(
         return
     }
 
-    const { individualImpairmentService } = await import('./individual-impairment.service')
+    const { individualImpairmentV2Service } = await import('./individual-impairment-v2.service')
     const effectiveActorId = actorId || data?.requestedBy || data?.createdBy || 'system'
 
-    await individualImpairmentService.createOverride({
+    await individualImpairmentV2Service.createOverride({
         ...data,
         tenantId,
         requestedBy: effectiveActorId,
