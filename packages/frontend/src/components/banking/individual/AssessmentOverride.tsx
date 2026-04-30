@@ -33,13 +33,10 @@ import {
   Cancel as CancelIcon,
 } from '@mui/icons-material';
 import { individualImpairmentAPI } from '../../../services/api/individual-impairment.api';
-import { INDIVIDUAL_IMPAIRMENT_V2_API_BASE } from '../../../services/api/individual-impairment-v2-client';
-import { buildIndividualAssessmentUrl, isIndividualAssessmentV2Path } from '@/features/individual-impairment/routing';
+import { buildIndividualAssessmentUrl } from '@/features/individual-impairment/routing';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import ModernLoader from '@/components/common/ModernLoader';
 import { StatCard } from '@/components/common/StatCard';
-import { useAssessmentWorkspaceEmbedded as useAssessmentWorkspaceEmbeddedV1 } from '@/app/banking/individual/assessment/embedded-context';
-import { useAssessmentWorkspaceEmbedded as useAssessmentWorkspaceEmbeddedV2 } from '@/components/banking/individual/assessment-v2/embedded-context';
 import * as XLSX from 'xlsx';
 import { AssessmentTriggerCard } from './assessment-override/AssessmentTriggerCard';
 import { DcfScenarioUploadCard } from './assessment-override/DcfScenarioUploadCard';
@@ -49,6 +46,13 @@ import { DcfScenarioRow, OverrideRequestFormData, ParsedDcfRow, PersistedIaResul
 import { formatDisplayDate } from './assessment-override/utils';
 
 const TEMPLATE_HEADERS = ['ACCOUNT_NUMBER', 'PERIODE', 'PRINCIPAL', 'INTEREST', 'COLLATERAL'];
+const INDIVIDUAL_IMPAIRMENT_V1_API_BASE = '/api/v1/banking/individual/impairment';
+
+export interface AssessmentOverrideProps {
+  embedded?: boolean;
+  apiBase?: string;
+  routePath?: string;
+}
 
 const toIsoDate = (value?: string | Date | null) => {
   if (!value) return '';
@@ -76,12 +80,14 @@ const buildScenarioRows = (count: number, baseDate: string, seedName?: string, b
   });
 };
 
-export const AssessmentOverride = () => {
+export const AssessmentOverride = ({
+  embedded = false,
+  apiBase = INDIVIDUAL_IMPAIRMENT_V1_API_BASE,
+  routePath,
+}: AssessmentOverrideProps = {}) => {
   const router = useRouter();
   const pathname = usePathname();
-  const embeddedV1 = useAssessmentWorkspaceEmbeddedV1();
-  const embeddedV2 = useAssessmentWorkspaceEmbeddedV2();
-  const embedded = isIndividualAssessmentV2Path(pathname) ? embeddedV2 : embeddedV1;
+  const activeRoutePath = routePath || pathname;
   const searchParams = useSearchParams();
   const accountId = searchParams.get('accountId');
   const accountNumber = searchParams.get('accountNumber');
@@ -516,10 +522,7 @@ export const AssessmentOverride = () => {
 
   const handleDownloadExisting = () => {
     if (!existingDocumentName) return
-    const base = isIndividualAssessmentV2Path(pathname)
-      ? INDIVIDUAL_IMPAIRMENT_V2_API_BASE
-      : '/api/v1/banking/individual/impairment';
-    window.open(`${base}/overrides/documents/${encodeURIComponent(existingDocumentName)}`, '_blank', 'noopener,noreferrer')
+    window.open(`${apiBase}/overrides/documents/${encodeURIComponent(existingDocumentName)}`, '_blank', 'noopener,noreferrer')
   }
 
   const columns: GridColDef[] = [
@@ -636,7 +639,7 @@ export const AssessmentOverride = () => {
             onOpenOverrideDialog={handleOpenOverrideDialog}
             onBack={() => {
               const params = new URLSearchParams({ mode, tab: 'watchlist' });
-              router.push(buildIndividualAssessmentUrl(params, pathname));
+              router.push(buildIndividualAssessmentUrl(params, activeRoutePath));
             }}
           />
 
