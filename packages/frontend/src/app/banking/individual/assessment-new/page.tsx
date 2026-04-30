@@ -2,7 +2,6 @@
 
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
 import {
   Alert,
   Accordion,
@@ -48,6 +47,8 @@ import { DCFAnalysisTab } from '@/components/banking/individual/assessment-v2/DC
 import { ProvisionCalculationTab } from '@/components/banking/individual/assessment-v2/ProvisionCalculationTab';
 import { AssessmentHistoryTab } from '@/components/banking/individual/assessment-v2/AssessmentHistoryTab';
 import { AssessmentDocumentsTab } from '@/components/banking/individual/assessment-v2/AssessmentDocumentsTab';
+import { AssessmentOverrideSection } from '@/components/banking/individual/assessment-v2/AssessmentOverrideSection';
+import { IndividualReportsSection } from '@/components/banking/individual/assessment-v2/IndividualReportsSection';
 import {
   useAssessmentAccountLookupQuery,
   useAssessmentSummaryQuery,
@@ -59,9 +60,6 @@ import {
   INDIVIDUAL_ASSESSMENT_V2_ROUTE,
 } from '@/features/individual-impairment/routing';
 import { useNotifications } from '@/providers/NotificationProvider';
-
-const OverrideTriggerSection = dynamic(() => import('../override-trigger/page'));
-const IndividualReportsSection = dynamic(() => import('../reports/page'));
 
 interface SectionDef {
   key: string;
@@ -564,7 +562,7 @@ export default function IndividualAssessmentWizardPage() {
         section: '18',
         icon: <AssessmentIcon />,
         helper: 'Melihat status detail dan melakukan override penilaian manual jika diperlukan.',
-        render: () => <OverrideTriggerSection />
+        render: () => <AssessmentOverrideSection />
       },
       {
         key: 'dcf-analysis',

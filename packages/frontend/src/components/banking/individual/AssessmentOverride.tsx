@@ -38,7 +38,8 @@ import { buildIndividualAssessmentUrl, isIndividualAssessmentV2Path } from '@/fe
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import ModernLoader from '@/components/common/ModernLoader';
 import { StatCard } from '@/components/common/StatCard';
-import { useAssessmentWorkspaceEmbedded } from '@/app/banking/individual/assessment/embedded-context';
+import { useAssessmentWorkspaceEmbedded as useAssessmentWorkspaceEmbeddedV1 } from '@/app/banking/individual/assessment/embedded-context';
+import { useAssessmentWorkspaceEmbedded as useAssessmentWorkspaceEmbeddedV2 } from '@/components/banking/individual/assessment-v2/embedded-context';
 import * as XLSX from 'xlsx';
 import { AssessmentTriggerCard } from './assessment-override/AssessmentTriggerCard';
 import { DcfScenarioUploadCard } from './assessment-override/DcfScenarioUploadCard';
@@ -76,9 +77,11 @@ const buildScenarioRows = (count: number, baseDate: string, seedName?: string, b
 };
 
 export const AssessmentOverride = () => {
-  const embedded = useAssessmentWorkspaceEmbedded();
   const router = useRouter();
   const pathname = usePathname();
+  const embeddedV1 = useAssessmentWorkspaceEmbeddedV1();
+  const embeddedV2 = useAssessmentWorkspaceEmbeddedV2();
+  const embedded = isIndividualAssessmentV2Path(pathname) ? embeddedV2 : embeddedV1;
   const searchParams = useSearchParams();
   const accountId = searchParams.get('accountId');
   const accountNumber = searchParams.get('accountNumber');
