@@ -52,7 +52,13 @@ import {
   useAssessmentSummaryQuery,
   useAssessmentWatchlistQuery,
 } from '@/features/individual-impairment/hooks/useAssessmentDashboardQuery';
-import { buildIndividualAssessmentUrl } from '@/features/individual-impairment/routing';
+import {
+  buildIndividualAssessmentUrl,
+  INDIVIDUAL_ASSESSMENT_ROUTE,
+  INDIVIDUAL_ASSESSMENT_V2_ROUTE,
+  isIndividualAssessmentV2Path,
+} from '@/features/individual-impairment/routing';
+import { useNotifications } from '@/providers/NotificationProvider';
 
 const OverrideTriggerSection = dynamic(() => import('../override-trigger/page'));
 const IndividualReportsSection = dynamic(() => import('../reports/page'));
@@ -97,9 +103,35 @@ export default function IndividualAssessmentWizardPage() {
   const accountNumber = searchParams.get('accountNumber');
   const tabParam = searchParams.get('tab');
   const mode = searchParams.get('mode') || 'conventional';
+  const isV2Workspace = isIndividualAssessmentV2Path(pathname);
+  const workspaceVersion = isV2Workspace ? 'V2' : 'V1';
+  const workspaceApiBase = isV2Workspace
+    ? '/api/v2/individual-impairment'
+    : '/api/v1/banking/individual/impairment';
+  const switchWorkspaceUrl = useMemo(() => {
+    const params = new URLSearchParams(searchKey);
+    if (!params.get('mode')) params.set('mode', mode);
+    const route = isV2Workspace ? INDIVIDUAL_ASSESSMENT_ROUTE : INDIVIDUAL_ASSESSMENT_V2_ROUTE;
+    return `${route}?${params.toString()}`;
+  }, [isV2Workspace, mode, searchKey]);
   const skipTabUrlSyncRef = useRef(false);
   const watchlistUrlInitializedRef = useRef(false);
   const skipNextWatchlistUrlSyncRef = useRef(false);
+  const { notifications, unreadCount } = useNotifications();
+  const individualNotificationCount = useMemo(() => {
+    return notifications.filter((notification) => {
+      if (notification.readAt) return false;
+      const haystack = [
+        notification.title,
+        notification.message,
+        notification.actionUrl,
+        String(notification.data?.module ?? ''),
+        String(notification.data?.entityType ?? ''),
+      ].join(' ').toLowerCase();
+      return notification.category === 'approval'
+        && (haystack.includes('individual') || haystack.includes('impairment') || haystack.includes('override'));
+    }).length;
+  }, [notifications]);
   const [headerSnackbar, setHeaderSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({
     open: false,
     message: '',
@@ -636,12 +668,45 @@ export default function IndividualAssessmentWizardPage() {
     <Container maxWidth="xl" sx={{ py: 2 }}>
       <FullstackIndicator />
       <PageHeader
-        title="Assessment Workspace"
+        title={`Assessment Workspace ${workspaceVersion}`}
         subtitle={`Individual Impairment workflow (SOP) - ${mode.toUpperCase()} Mode`}
         onRefresh={activeSection.key === 'watchlist' ? handleRefreshDashboard : undefined}
         loading={activeSection.key === 'watchlist' ? loading : false}
         extraActions={
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Tooltip title={`Active API: ${workspaceApiBase}`}>
+              <Chip
+                label={`${workspaceVersion} API`}
+                color={isV2Workspace ? 'success' : 'default'}
+                variant={isV2Workspace ? 'filled' : 'outlined'}
+                size="small"
+              />
+            </Tooltip>
+            {individualNotificationCount > 0 ? (
+              <Tooltip title={`${individualNotificationCount} unread individual impairment approval notification(s)`}>
+                <Chip
+                  label={`${individualNotificationCount} IA notif`}
+                  color="warning"
+                  size="small"
+                />
+              </Tooltip>
+            ) : unreadCount > 0 ? (
+              <Tooltip title={`${unreadCount} unread notification(s) across modules`}>
+                <Chip
+                  label={`${unreadCount} notif`}
+                  color="info"
+                  size="small"
+                  variant="outlined"
+                />
+              </Tooltip>
+            ) : null}
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => router.push(switchWorkspaceUrl)}
+            >
+              {isV2Workspace ? 'Open V1' : 'Open V2'}
+            </Button>
             {accountId && activeSection.key !== 'watchlist' ? (
               <Button
                 variant="outlined"
@@ -675,6 +740,17 @@ export default function IndividualAssessmentWizardPage() {
           </Box>
         }
       />
+
+      <Alert severity={isV2Workspace ? 'success' : 'info'} sx={{ mb: 2 }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'flex-start', sm: 'center' }}>
+          <Typography variant="body2">
+            {isV2Workspace
+              ? 'V2 workspace aktif. Flow ini terisolasi dari API legacy dan memakai endpoint V2 untuk fitur assessment baru.'
+              : 'V1 legacy workspace aktif. Flow ini tetap memakai API legacy supaya perubahan Imran/legacy bisa hidup berdampingan.'}
+          </Typography>
+          <Chip label={workspaceApiBase} size="small" variant="outlined" />
+        </Stack>
+      </Alert>
 
       {accountId && !selectedAccount && (
         <Alert severity="info" sx={{ mb: 2 }}>
