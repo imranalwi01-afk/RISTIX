@@ -16,7 +16,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { Search as SearchIcon, Clear as ClearIcon, CalendarMonth as CalendarIcon } from '@mui/icons-material';
-import { FILTER_DEFAULTS } from '@/app/banking/individual/assessment/constants';
+import { FILTER_DEFAULTS } from './constants';
 // import { useDebounce } from '@/hooks/useDebounce'; // Removed invalid import
 
 // Simplistic debounce hook if not available globally

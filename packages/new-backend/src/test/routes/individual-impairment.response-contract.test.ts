@@ -94,6 +94,22 @@ mock.module('../../services/individual-impairment.service', () => ({
   },
 }))
 
+mock.module('@/services/individual-impairment-v2.service', () => ({
+  individualImpairmentV2Service: {
+    getWatchlist: watchlistMock,
+    getReports: reportsMock,
+    createOverride: createOverrideMock,
+  },
+}))
+
+mock.module('../../services/individual-impairment-v2.service', () => ({
+  individualImpairmentV2Service: {
+    getWatchlist: watchlistMock,
+    getReports: reportsMock,
+    createOverride: createOverrideMock,
+  },
+}))
+
 mock.module('@/services/approval.service', () => ({
   createApprovalRequest: createApprovalRequestMock,
 }))
@@ -118,7 +134,8 @@ mock.module('../../middleware', () => ({
   auditMiddleware: passthroughMiddleware,
 }))
 
-const { individualImpairmentRoutes, individualImpairmentV2Routes } = await import('@/routes/individual-impairment.routes')
+const { individualImpairmentRoutes } = await import('@/routes/individual-impairment.routes')
+const { individualImpairmentV2Routes } = await import('@/routes/individual-impairment-v2.routes')
 
 describe('individual impairment route response contracts', () => {
   beforeEach(() => {
@@ -126,6 +143,10 @@ describe('individual impairment route response contracts', () => {
     reportsMock.mockClear()
     createOverrideMock.mockClear()
     createApprovalRequestMock.mockClear()
+  })
+
+  test('v1 and v2 route instances are separate objects', () => {
+    expect(individualImpairmentV2Routes).not.toBe(individualImpairmentRoutes)
   })
 
   test('GET /watchlist returns master-account list contract with debug source metadata', async () => {

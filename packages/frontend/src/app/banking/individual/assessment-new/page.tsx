@@ -37,12 +37,13 @@ import {
 } from '@mui/icons-material';
 import PageHeader from '@/components/banking/shared/PageHeader';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
-import { AssessmentWorkspaceEmbeddedProvider } from '../assessment/embedded-context';
+import { AssessmentWorkspaceEmbeddedProvider } from '@/components/banking/individual/assessment-v2/embedded-context';
 import { AssessmentKPI } from '@/components/banking/individual/assessment-v2/AssessmentKPI';
 import { AssessmentWatchlist } from '@/components/banking/individual/assessment-v2/AssessmentWatchlist';
 import { AssessmentFilters } from '@/components/banking/individual/assessment-v2/AssessmentFilters';
-import { FILTER_DEFAULTS } from '../assessment/constants';
+import { FILTER_DEFAULTS } from '@/components/banking/individual/assessment-v2/constants';
 import { individualImpairmentAPI, IndividualImpairmentWatchlistItem } from '@/services/api.individual-impairment';
+import { INDIVIDUAL_IMPAIRMENT_V2_API_BASE } from '@/services/api/individual-impairment-v2-client';
 import { DCFAnalysisTab } from '@/components/banking/individual/assessment-v2/DCFAnalysisTab';
 import { ProvisionCalculationTab } from '@/components/banking/individual/assessment-v2/ProvisionCalculationTab';
 import { AssessmentHistoryTab } from '@/components/banking/individual/assessment-v2/AssessmentHistoryTab';
@@ -56,7 +57,6 @@ import {
   buildIndividualAssessmentUrl,
   INDIVIDUAL_ASSESSMENT_ROUTE,
   INDIVIDUAL_ASSESSMENT_V2_ROUTE,
-  isIndividualAssessmentV2Path,
 } from '@/features/individual-impairment/routing';
 import { useNotifications } from '@/providers/NotificationProvider';
 
@@ -103,11 +103,9 @@ export default function IndividualAssessmentWizardPage() {
   const accountNumber = searchParams.get('accountNumber');
   const tabParam = searchParams.get('tab');
   const mode = searchParams.get('mode') || 'conventional';
-  const isV2Workspace = isIndividualAssessmentV2Path(pathname);
-  const workspaceVersion = isV2Workspace ? 'V2' : 'V1';
-  const workspaceApiBase = isV2Workspace
-    ? '/api/v2/individual-impairment'
-    : '/api/v1/banking/individual/impairment';
+  const isV2Workspace = true;
+  const workspaceVersion = 'V2';
+  const workspaceApiBase = INDIVIDUAL_IMPAIRMENT_V2_API_BASE;
   const switchWorkspaceUrl = useMemo(() => {
     const params = new URLSearchParams(searchKey);
     if (!params.get('mode')) params.set('mode', mode);

@@ -1,12 +1,12 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
-import { individualImpairmentController } from '../controllers/individual-impairment.controller'
+import { individualImpairmentV2Controller as individualImpairmentController } from '../controllers/individual-impairment-v2.controller'
 import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
-export const individualImpairmentRoutes: any = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
+export const individualImpairmentV2Routes: any = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
-individualImpairmentRoutes.use('*', authMiddleware)
+individualImpairmentV2Routes.use('*', authMiddleware)
 
 // ============================================================================
 // SCHEMAS
@@ -369,11 +369,11 @@ const CreateBatchUploadSchema = z.object({
 
 // --- WATCHLIST ---
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'get',
         path: '/watchlist',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Get Watchlist',
         request: {
             query: z.object({
@@ -408,11 +408,11 @@ individualImpairmentRoutes.openapi(
     (c: any) => individualImpairmentController.getWatchlist(c)
 )
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'get',
         path: '/watchlist/summary',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Get watchlist summary statistics',
         description: 'Returns aggregated statistics for the watchlist (Total Accounts, Impaired, Pending, Provisions)',
         responses: {
@@ -437,11 +437,11 @@ individualImpairmentRoutes.openapi(
     (c: any) => individualImpairmentController.getWatchlistSummary(c)
 )
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'get',
         path: '/watchlist/customers',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Get Customer List',
         description: 'Returns one latest row per account (distinct account/customer list) with optional date range and search.',
         request: {
@@ -471,11 +471,11 @@ individualImpairmentRoutes.openapi(
     (c: any) => individualImpairmentController.getCustomerList(c)
 )
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'post',
         path: '/watchlist',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Add to Watchlist',
         request: {
             body: { content: { 'application/json': { schema: AddWatchlistSchema } } }
@@ -489,11 +489,11 @@ individualImpairmentRoutes.openapi(
     (c: any) => individualImpairmentController.addToWatchlist(c)
 )
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'delete',
         path: '/watchlist/{id}',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Remove from Watchlist',
         request: {
             params: z.object({ id: z.string() })
@@ -509,11 +509,11 @@ individualImpairmentRoutes.openapi(
 
 // --- STAGING ANALYSIS & SUMMARY ---
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'get',
         path: '/staging-analysis',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Get Staging Analysis',
         request: {
             query: z.object({
@@ -532,11 +532,11 @@ individualImpairmentRoutes.openapi(
     (c: any) => individualImpairmentController.getStagingAnalysis(c)
 )
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'get',
         path: '/staging-summary',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Get Staging Summary',
         responses: {
             200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: z.any() }) } }, description: 'Staging Summary' },
@@ -549,11 +549,11 @@ individualImpairmentRoutes.openapi(
 
 // --- ASSESSMENT ---
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'post',
         path: '/assessment',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Create Assessment',
         request: {
             body: { content: { 'application/json': { schema: CreateAssessmentSchema } } }
@@ -567,11 +567,11 @@ individualImpairmentRoutes.openapi(
     (c: any) => individualImpairmentController.createAssessment(c)
 )
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'post',
         path: '/assessment/{id}/submit',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Submit Assessment',
         request: {
             params: z.object({ id: z.string() }),
@@ -586,11 +586,11 @@ individualImpairmentRoutes.openapi(
     (c: any) => individualImpairmentController.submitAssessment(c)
 )
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'post',
         path: '/assessment/{id}/approve',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Approve Assessment',
         request: {
             params: z.object({ id: z.string() }),
@@ -605,11 +605,11 @@ individualImpairmentRoutes.openapi(
     (c: any) => individualImpairmentController.approveAssessment(c)
 )
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'post',
         path: '/assessment/{id}/reject',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Reject Assessment',
         request: {
             params: z.object({ id: z.string() }),
@@ -626,11 +626,11 @@ individualImpairmentRoutes.openapi(
 
 // --- OVERRIDES ---
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'get',
         path: '/overrides',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Get Overrides',
         request: {
             query: z.object({
@@ -650,11 +650,11 @@ individualImpairmentRoutes.openapi(
     (c: any) => individualImpairmentController.getOverrides(c)
 )
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'post',
         path: '/overrides',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Create Override',
         request: {
             body: { content: { 'application/json': { schema: AddOverrideSchema } } }
@@ -668,11 +668,11 @@ individualImpairmentRoutes.openapi(
     (c: any) => individualImpairmentController.createOverride(c)
 )
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'get',
         path: '/overrides/documents/{fileName}',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Download override supporting document',
         request: {
             params: OverrideDocumentParamSchema
@@ -689,11 +689,11 @@ individualImpairmentRoutes.openapi(
 
 // --- HISTORY ---
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'get',
         path: '/history',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Get History',
         request: {
             query: z.object({
@@ -711,11 +711,11 @@ individualImpairmentRoutes.openapi(
     (c: any) => individualImpairmentController.getHistory(c)
 )
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'get',
         path: '/assessment/{accountId}/history',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Get Assessment History',
         request: {
             params: z.object({ accountId: z.string() })
@@ -731,11 +731,11 @@ individualImpairmentRoutes.openapi(
 
 // --- REPORTS ---
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'get',
         path: '/reports',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Get Reports',
         request: {
             query: z.object({
@@ -765,11 +765,11 @@ individualImpairmentRoutes.openapi(
     (c: any) => individualImpairmentController.getReports(c)
 )
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'post',
         path: '/reports',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Create Report',
         request: {
             body: { content: { 'application/json': { schema: CreateReportSchema } } }
@@ -785,11 +785,11 @@ individualImpairmentRoutes.openapi(
 
 // --- SCENARIOS ---
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'get',
         path: '/scenarios',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Get Scenarios',
         request: {
             query: z.object({ status: z.string().optional() })
@@ -803,11 +803,11 @@ individualImpairmentRoutes.openapi(
     (c: any) => individualImpairmentController.getScenarios(c)
 )
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'post',
         path: '/scenarios',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Create Scenario',
         request: {
             body: { content: { 'application/json': { schema: CreateScenarioSchema } } }
@@ -821,11 +821,11 @@ individualImpairmentRoutes.openapi(
     (c: any) => individualImpairmentController.createScenario(c)
 )
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'put',
         path: '/scenarios/{id}/status',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Update Scenario Status',
         request: {
             params: z.object({ id: z.string() }),
@@ -842,11 +842,11 @@ individualImpairmentRoutes.openapi(
 
 // --- DCF ---
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'get',
         path: '/dcf-uploads',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Get DCF Uploads',
         responses: {
             200: { content: { 'application/json': { schema: DcfUploadListResponse } }, description: 'Uploads' },
@@ -857,11 +857,11 @@ individualImpairmentRoutes.openapi(
     (c: any) => individualImpairmentController.getDcfUploads(c)
 )
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'post',
         path: '/dcf/calculate',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Get DCF Calculations',
         responses: {
             200: { content: { 'application/json': { schema: DcfCalculationListResponse } }, description: 'Calculations' },
@@ -872,11 +872,11 @@ individualImpairmentRoutes.openapi(
     (c: any) => individualImpairmentController.calculateDcf(c)
 )
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'get',
         path: '/dcf-calculations',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Get DCF Calculations',
         responses: {
             200: { content: { 'application/json': { schema: DcfCalculationListResponse } }, description: 'Calculations' },
@@ -887,11 +887,11 @@ individualImpairmentRoutes.openapi(
     (c: any) => individualImpairmentController.getDcfCalculations(c)
 )
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'get',
         path: '/ia-results/detail',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Get latest individual impairment result detail',
         request: {
             query: z.object({
@@ -908,11 +908,11 @@ individualImpairmentRoutes.openapi(
     (c: any) => individualImpairmentController.getIaResultDetail(c)
 )
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'post',
         path: '/dcf-uploads',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Create Batch Upload',
         request: {
             body: { content: { 'application/json': { schema: CreateBatchUploadSchema } } }
@@ -926,11 +926,11 @@ individualImpairmentRoutes.openapi(
     (c: any) => individualImpairmentController.createBatchUpload(c)
 )
 
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'get',
         path: '/dcf-uploads/{uploadId}/cashflows',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Get DCF Cashflows',
         request: {
             params: z.object({ uploadId: z.string() })
@@ -945,11 +945,11 @@ individualImpairmentRoutes.openapi(
 )
 
 // Keep generic accountId route last so it doesn't shadow static routes like /scenarios.
-individualImpairmentRoutes.openapi(
+individualImpairmentV2Routes.openapi(
     createRoute({
         method: 'get',
         path: '/{accountId}',
-        tags: ['Individual Impairment'],
+        tags: ['Individual Impairment V2'],
         summary: 'Get Assessment',
         request: {
             params: z.object({ accountId: z.string() })

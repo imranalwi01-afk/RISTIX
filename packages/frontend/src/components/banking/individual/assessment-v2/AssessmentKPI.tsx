@@ -7,7 +7,7 @@ import {
   MonetizationOn as ProvisionIcon
 } from '@mui/icons-material';
 import { IndividualImpairmentWatchlistItem } from '@/services/api.individual-impairment';
-import { formatCurrency } from '@/app/banking/individual/assessment/utils';
+import { formatCurrency } from './utils';
 
 interface AssessmentKPIProps {
   watchlist: IndividualImpairmentWatchlistItem[];

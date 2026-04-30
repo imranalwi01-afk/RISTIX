@@ -43,7 +43,7 @@ import {
   renderStageChip,
   renderAssessmentStatus,
   renderPriorityChip
-} from '@/app/banking/individual/assessment/utils';
+} from './utils';
 import { buildIndividualAssessmentUrl } from '@/features/individual-impairment/routing';
 
 interface AssessmentWatchlistProps {
