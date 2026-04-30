@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Box,
   Typography,
@@ -67,6 +67,21 @@ interface DCFAnalysisTabProps {
   onStagedDCF?: (data: any) => void;
 }
 
+function toFiniteNumber(value: unknown, fallback = 0) {
+  const normalized = typeof value === 'string' ? value.replace(/[^\d.-]/g, '') : value;
+  const numeric = Number(normalized);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function formatCurrency(amount: unknown) {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(toFiniteNumber(amount));
+}
+
 export function DCFAnalysisTab({
   account,
   assessment,
@@ -77,6 +92,40 @@ export function DCFAnalysisTab({
   onStagedDCF
 }: DCFAnalysisTabProps) {
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [assumptions, setAssumptions] = useState({
+    poRate1: 50, rrRate1: 100,
+    poRate2: 30, rrRate2: 80,
+    poRate3: 20, rrRate3: 50,
+    timeHorizon: 60
+  });
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const normalizedResults = useMemo(() => {
+    if (!calculationResults) return null;
+
+    const rawDetails = Array.isArray(calculationResults.details) ? calculationResults.details : [];
+    const outstanding =
+      calculationResults.outstanding ??
+      calculationResults.outstandingBalance ??
+      account?.outstanding_balance ??
+      account?.outstanding ??
+      0;
+
+    return {
+      ...calculationResults,
+      presentValue: toFiniteNumber(calculationResults.presentValue ?? calculationResults.pvDcfAmt),
+      outstanding: toFiniteNumber(outstanding),
+      lgd: toFiniteNumber(calculationResults.lgd ?? calculationResults.impairmentLoss),
+      recommendedProvision: toFiniteNumber(calculationResults.recommendedProvision ?? calculationResults.eclIaAmt),
+      details: rawDetails.map((row: any) => ({
+        ...row,
+        beginningBalance: toFiniteNumber(row.beginningBalance),
+        interestAccrual: toFiniteNumber(row.interestAccrual),
+        weightedFlow: toFiniteNumber(row.weightedFlow ?? row.cashflow),
+        endingBalance: toFiniteNumber(row.endingBalance),
+      })),
+    };
+  }, [calculationResults, account]);
 
   if (!account) {
     return (
@@ -87,24 +136,6 @@ export function DCFAnalysisTab({
       </Box>
     );
   }
-
-  // Helper for formatting currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const [assumptions, setAssumptions] = useState({
-    poRate1: 50, rrRate1: 100,
-    poRate2: 30, rrRate2: 80,
-    poRate3: 20, rrRate3: 50,
-    timeHorizon: 60
-  });
-  const [validationError, setValidationError] = useState<string | null>(null);
 
   const handleCalculate = () => {
     setValidationError(null);
@@ -298,7 +329,7 @@ export function DCFAnalysisTab({
         </Dialog>
 
         {/* DCF Results & Amortization Schedule */}
-        {calculationResults && (
+        {normalizedResults && (
           <Grid size={12}>
             <Card sx={{ boxShadow: 5, borderRadius: 3 }}>
               <CardContent>
@@ -309,10 +340,10 @@ export function DCFAnalysisTab({
 
                 <Grid container spacing={2} sx={{ mb: 4 }}>
                    {[
-                    { label: 'Present Value (NPV)', value: calculationResults.presentValue, color: 'primary.main', bg: '#e3f2fd' },
-                    { label: 'Outstanding Balance', value: calculationResults.outstanding, color: 'text.primary', bg: '#f5f5f5' },
-                    { label: 'Impairment Loss (LGD)', value: calculationResults.lgd, color: 'error.main', bg: '#ffebee' },
-                    { label: 'Recommended Provision', value: calculationResults.recommendedProvision, color: 'warning.dark', bg: '#fffde7' }
+                    { label: 'Present Value (NPV)', value: normalizedResults.presentValue, color: 'primary.main', bg: '#e3f2fd' },
+                    { label: 'Outstanding Balance', value: normalizedResults.outstanding, color: 'text.primary', bg: '#f5f5f5' },
+                    { label: 'Impairment Loss (LGD)', value: normalizedResults.lgd, color: 'error.main', bg: '#ffebee' },
+                    { label: 'Recommended Provision', value: normalizedResults.recommendedProvision, color: 'warning.dark', bg: '#fffde7' }
                    ].map((item, i) => (
                     <Grid size={{ xs: 12, sm: 6, md: 3 }} key={i}>
                       <Box sx={{ p: 2, bgcolor: item.bg, borderRadius: 2, textAlign: 'center', height: '100%', border: '1px solid rgba(0,0,0,0.05)' }}>
@@ -341,15 +372,23 @@ export function DCFAnalysisTab({
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {calculationResults.details.map((row: any, idx: number) => (
-                        <TableRow key={idx} hover>
-                          <TableCell>{row.period}</TableCell>
+                      {normalizedResults.details.length > 0 ? normalizedResults.details.map((row: any, idx: number) => (
+                        <TableRow key={`${row.period || 'period'}-${idx}`} hover>
+                          <TableCell>{row.period || '-'}</TableCell>
                           <TableCell>{formatCurrency(row.beginningBalance)}</TableCell>
                           <TableCell sx={{ color: 'success.main' }}>+{formatCurrency(row.interestAccrual)}</TableCell>
                           <TableCell sx={{ color: 'error.main' }}>-{formatCurrency(row.weightedFlow)}</TableCell>
                           <TableCell sx={{ fontWeight: 'bold' }}>{formatCurrency(row.endingBalance)}</TableCell>
                         </TableRow>
-                      ))}
+                      )) : (
+                        <TableRow>
+                          <TableCell colSpan={5}>
+                            <Alert severity="info" sx={{ my: 1 }}>
+                              No amortization schedule rows returned for this DCF calculation.
+                            </Alert>
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </TableContainer>
@@ -362,7 +401,7 @@ export function DCFAnalysisTab({
 
                 <Box sx={{ height: 350, width: '100%', mt: 2 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={calculationResults.details}>
+                    <AreaChart data={normalizedResults.details}>
                       <defs>
                         <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#2196f3" stopOpacity={0.1}/>
@@ -421,7 +460,7 @@ export function DCFAnalysisTab({
 
                 <Box sx={{ mt: 2, textAlign: 'right' }}>
                   <Typography variant="caption" color="text.secondary">
-                    * Calculation based on EIR: <strong>{calculationResults.assumptions?.eir?.toFixed(2)}%</strong>
+                    * Calculation based on EIR: <strong>{toFiniteNumber(normalizedResults.assumptions?.eir).toFixed(2)}%</strong>
                   </Typography>
                 </Box>
               </CardContent>

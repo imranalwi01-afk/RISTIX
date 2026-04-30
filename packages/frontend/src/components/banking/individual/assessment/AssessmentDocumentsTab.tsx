@@ -268,7 +268,7 @@ export function AssessmentDocumentsTab({
                 </List>
                 <Box sx={{ p: 2, bgcolor: 'rgba(25, 118, 210, 0.04)' }}>
                     <Alert severity="info" variant="standard" sx={{ bgcolor: 'transparent', p: 0 }}>
-                        These documents will be automatically attached when you click <strong>"Submit Assessment"</strong> in the Provision tab.
+                        These documents will be automatically attached when you click <strong>"Submit to Approval"</strong> in the Provision tab.
                     </Alert>
                 </Box>
               </CardContent>
