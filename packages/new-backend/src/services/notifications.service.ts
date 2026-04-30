@@ -1,5 +1,5 @@
 import { Effect } from 'effect'
-import { NotificationRepository } from '@/repositories/notification.repository'
+import { NotificationRepository, type CreateNotificationInput } from '@/repositories/notification.repository'
 import { NotificationPreferencesRepository } from '@/repositories/notification-preferences.repository'
 import { DatabaseError } from '@/lib/errors'
 import { dbOperation } from '@/lib/effect'
@@ -26,6 +26,11 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferencesShape = {
 }
 
 const ALLOWED_CATEGORIES = new Set<NotificationCategory>(['approval', 'workflow', 'analytics', 'system'])
+
+export const createNotification = (
+    input: CreateNotificationInput
+): Effect.Effect<Awaited<ReturnType<typeof NotificationRepository.createWithDeliveries>>, DatabaseError> =>
+    dbOperation('insert', async () => NotificationRepository.createWithDeliveries(input))
 
 const parseTimeToMinutes = (value: string): number => {
     const match = /^([01][0-9]|2[0-3]):([0-5][0-9])$/.exec(value)

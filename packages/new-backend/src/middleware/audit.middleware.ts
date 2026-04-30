@@ -13,7 +13,7 @@ export const auditMiddleware = async (c: Context<AppContext>, next: Next) => {
     // Get request details
     const method = c.req.method
     const path = c.req.path
-    const ipAddress = c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'unknown'
+    const ipAddress = normalizeIpAddress(c.req.header('x-forwarded-for')) ?? normalizeIpAddress(c.req.header('x-real-ip'))
     const userAgent = c.req.header('user-agent')
     const requestBody = await captureRequestBody(c)
 
@@ -86,6 +86,22 @@ export const auditMiddleware = async (c: Context<AppContext>, next: Next) => {
         // Re-throw the error
         throw error
     }
+}
+
+function normalizeIpAddress(value: string | null | undefined): string | undefined {
+    const firstValue = value?.split(',')[0]?.trim()
+    if (!firstValue || firstValue.toLowerCase() === 'unknown') return undefined
+
+    // PostgreSQL inet rejects "unknown" and host:port values; keep only a plain IP.
+    const unbracketed = firstValue.startsWith('[') && firstValue.includes(']')
+        ? firstValue.slice(1, firstValue.indexOf(']'))
+        : firstValue
+
+    if (/^\d{1,3}(?:\.\d{1,3}){3}:\d+$/.test(unbracketed)) {
+        return unbracketed.slice(0, unbracketed.lastIndexOf(':'))
+    }
+
+    return unbracketed
 }
 
 /**

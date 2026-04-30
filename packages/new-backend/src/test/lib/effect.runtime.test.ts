@@ -258,6 +258,36 @@ describe('effect runtime helpers', () => {
     })
   })
 
+  test('handleEffectError unwraps FiberFailure conflict errors', async () => {
+    const c = createMockContext()
+
+    let thrown: unknown
+    try {
+      await Effect.runPromise(
+        Effect.fail(
+          new ConflictError({
+            message: 'A similar approval request is already pending for user_status "Disable user: u-1"',
+            resource: 'approval_request',
+            field: 'entity_id',
+            value: 'u-1',
+          })
+        )
+      )
+    } catch (error) {
+      thrown = error
+    }
+
+    const response = handleEffectError(c, thrown)
+    const payload = await readJson(response)
+
+    expect(response.status).toBe(409)
+    expect(payload).toMatchObject({
+      success: false,
+      code: 'CONFLICT',
+      error: 'A similar approval request is already pending for user_status "Disable user: u-1"',
+    })
+  })
+
   test('dbOperation returns success and wraps thrown errors', async () => {
     const success = await Effect.runPromise(dbOperation('query', async () => 42))
     expect(success).toBe(42)
