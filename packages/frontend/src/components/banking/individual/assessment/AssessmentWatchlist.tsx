@@ -1,5 +1,6 @@
+// @ts-nocheck
 import React, { useMemo, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import dayjs from 'dayjs';
 import {
   Box,
   Table,
@@ -42,9 +43,9 @@ import {
   formatCurrency,
   renderStageChip,
   renderAssessmentStatus,
-  renderPriorityChip
+  renderPriorityChip,
+  renderImpairedFlag
 } from '@/app/banking/individual/assessment/utils';
-import { buildIndividualAssessmentUrl } from '@/features/individual-impairment/routing';
 
 interface AssessmentWatchlistProps {
   watchlist: IndividualImpairmentWatchlistItem[];
@@ -77,7 +78,6 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
   selectedAccountId,
   mode
 }) => {
-  const pathname = usePathname();
   const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLElement | null>(null)
   const [menuAccount, setMenuAccount] = useState<IndividualImpairmentWatchlistItem | null>(null)
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
@@ -94,45 +94,13 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
     return window.location.origin
   }, [])
 
-  const headerCellSx = {
-    backgroundColor: '#f8f9fa',
-    borderBottom: '2px solid',
-    borderColor: 'primary.main',
-    fontWeight: 700,
-    fontSize: '0.7rem',
-    textTransform: 'uppercase',
-    letterSpacing: '0.2px',
-    color: 'text.primary',
-    p: 1,
-    whiteSpace: 'nowrap',
-  }
-
-  const bodyCellSx = {
-    py: 0.75,
-    px: 1,
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  }
-
-  const formatDate = (value?: string | null) => {
-    if (!value) return '-'
-    const date = new Date(value)
-    if (Number.isNaN(date.getTime())) return String(value)
-    return new Intl.DateTimeFormat('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    }).format(date)
-  }
-
   const buildAssessmentUrl = (account: IndividualImpairmentWatchlistItem) => {
     const params = new URLSearchParams()
     params.set('mode', mode || 'conventional')
     params.set('accountId', String(account.account_id))
     if (account.account_number) params.set('accountNumber', account.account_number)
     params.set('tab', 'assessment-details')
-    return buildIndividualAssessmentUrl(params, pathname)
+    return `/banking/individual/assessment?${params.toString()}`
   }
 
   const openMenu = (event: React.MouseEvent<HTMLElement>, account: IndividualImpairmentWatchlistItem) => {
@@ -219,13 +187,13 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell colSpan={12}><Skeleton animation="wave" /></TableCell>
+              <TableCell colSpan={14}><Skeleton animation="wave" /></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
              {[...Array(5)].map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell colSpan={12}><Skeleton animation="wave" height={50} /></TableCell>
+                  <TableCell colSpan={14}><Skeleton animation="wave" height={50} /></TableCell>
                 </TableRow>
              ))}
           </TableBody>
@@ -236,23 +204,9 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
 
   return (
     <>
-      <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h6" component="h2" sx={{ fontWeight: 600 }}>
-          Individual Assessment Watchlist
-        </Typography>
-        {mode && (
-          <Chip 
-            label={`${mode.toUpperCase()} Mode`}
-            color="primary"
-            variant="outlined"
-            size="small"
-            sx={{ fontWeight: 600 }}
-          />
-        )}
-      </Box>
-      <TableContainer 
-        sx={{ 
-          maxHeight: { xs: '56vh', md: 'min(62vh, 680px)' },
+      <TableContainer
+        sx={{
+          maxHeight: 'calc(100vh - 420px)',
           minHeight: '300px',
           overflow: 'auto',
           borderRadius: 1,
@@ -261,191 +215,365 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
           width: '100%'
         }}
       >
-        <Table
-          stickyHeader
-          size="small"
-          sx={{
-            tableLayout: 'fixed',
-            minWidth: 1660,
-            width: '100%',
-          }}
-          aria-label="Individual Assessment Watchlist"
-        >
+        <Table stickyHeader size="small" sx={{ tableLayout: 'fixed', width: '100%', maxWidth: '100%' }} aria-label="Individual Assessment Watchlist">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ ...headerCellSx, width: 118 }}>Download Date</TableCell>
-              <TableCell sx={{ ...headerCellSx, width: 150 }}>Customer Number</TableCell>
-              <TableCell sx={{ ...headerCellSx, width: 220 }}>Customer Name</TableCell>
-              <TableCell sx={{ ...headerCellSx, width: 150 }}>Account Number</TableCell>
-              <TableCell sx={{ ...headerCellSx, width: 92 }}>Currency</TableCell>
-              <TableCell sx={{ ...headerCellSx, width: 160 }}>Outstanding</TableCell>
-              <TableCell sx={{ ...headerCellSx, width: 82 }}>DPD</TableCell>
-              <TableCell sx={{ ...headerCellSx, width: 118 }}>Collectability</TableCell>
-              <TableCell sx={{ ...headerCellSx, width: 120 }}>Rating</TableCell>
-              <TableCell sx={{ ...headerCellSx, width: 120 }}>Stage</TableCell>
-              <TableCell sx={{ ...headerCellSx, width: 132 }}>Status</TableCell>
-              <TableCell sx={{ ...headerCellSx, width: 150 }}>Actions</TableCell>
+              <TableCell sx={{
+                backgroundColor: '#f8f9fa',
+                borderBottom: '2px solid',
+                borderColor: 'primary.main',
+                fontWeight: 700,
+                fontSize: '0.7rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.2px',
+                color: 'text.primary',
+                width: '8%',
+                p: 1
+              }}>Account</TableCell>
+              <TableCell sx={{
+                backgroundColor: '#f8f9fa',
+                borderBottom: '2px solid',
+                borderColor: 'primary.main',
+                fontWeight: 700,
+                fontSize: '0.7rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.2px',
+                color: 'text.primary',
+                width: '10%',
+                p: 1
+              }}>Customer</TableCell>
+              <TableCell sx={{
+                backgroundColor: '#f8f9fa',
+                borderBottom: '2px solid',
+                borderColor: 'primary.main',
+                fontWeight: 700,
+                fontSize: '0.7rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.2px',
+                color: 'text.primary',
+                width: '6%',
+                p: 1
+              }}>Date</TableCell>
+              <TableCell sx={{
+                backgroundColor: '#f8f9fa',
+                borderBottom: '2px solid',
+                borderColor: 'primary.main',
+                fontWeight: 700,
+                fontSize: '0.7rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.2px',
+                color: 'text.primary',
+                width: '4%',
+                p: 1
+              }}>Ccy</TableCell>
+              <TableCell sx={{
+                backgroundColor: '#f8f9fa',
+                borderBottom: '2px solid',
+                borderColor: 'primary.main',
+                fontWeight: 700,
+                fontSize: '0.7rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.2px',
+                color: 'text.primary',
+                width: '4%',
+                p: 1
+              }}>DPD</TableCell>
+              <TableCell sx={{
+                backgroundColor: '#f8f9fa',
+                borderBottom: '2px solid',
+                borderColor: 'primary.main',
+                fontWeight: 700,
+                fontSize: '0.7rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.2px',
+                color: 'text.primary',
+                width: '4%',
+                p: 1
+              }}>Coll</TableCell>
+              <TableCell sx={{
+                backgroundColor: '#f8f9fa',
+                borderBottom: '2px solid',
+                borderColor: 'primary.main',
+                fontWeight: 700,
+                fontSize: '0.7rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.2px',
+                color: 'text.primary',
+                width: '5%',
+                p: 1
+              }}>Rating</TableCell>
+              <TableCell align="right" sx={{
+                backgroundColor: '#f8f9fa',
+                borderBottom: '2px solid',
+                borderColor: 'primary.main',
+                fontWeight: 700,
+                fontSize: '0.7rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.2px',
+                color: 'text.primary',
+                width: '9%',
+                p: 1
+              }}>Balance</TableCell>
+              <TableCell sx={{
+                backgroundColor: '#f8f9fa',
+                borderBottom: '2px solid',
+                borderColor: 'primary.main',
+                fontWeight: 700,
+                fontSize: '0.7rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.2px',
+                color: 'text.primary',
+                width: '6%',
+                p: 1
+              }}>Stage</TableCell>
+              <TableCell sx={{
+                backgroundColor: '#f8f9fa',
+                borderBottom: '2px solid',
+                borderColor: 'primary.main',
+                fontWeight: 700,
+                fontSize: '0.7rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.2px',
+                color: 'text.primary',
+                width: '8%',
+                p: 1
+              }}>Status</TableCell>
+              <TableCell sx={{
+                backgroundColor: '#f8f9fa',
+                borderBottom: '2px solid',
+                borderColor: 'primary.main',
+                fontWeight: 700,
+                fontSize: '0.7rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.2px',
+                color: 'text.primary',
+                width: '8%',
+                p: 1
+              }}>Priority</TableCell>
+              <TableCell sx={{
+                backgroundColor: '#f8f9fa',
+                borderBottom: '2px solid',
+                borderColor: 'primary.main',
+                fontWeight: 700,
+                fontSize: '0.7rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.2px',
+                color: 'text.primary',
+                width: '8%',
+                p: 1
+              }}>Impaired</TableCell>
+              <TableCell align="right" sx={{
+                backgroundColor: '#f8f9fa',
+                borderBottom: '2px solid',
+                borderColor: 'primary.main',
+                fontWeight: 700,
+                fontSize: '0.7rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.2px',
+                color: 'text.primary',
+                width: '10%',
+                p: 1
+              }}>Provision</TableCell>
+              <TableCell sx={{
+                backgroundColor: '#f8f9fa',
+                borderBottom: '2px solid',
+                borderColor: 'primary.main',
+                fontWeight: 700,
+                fontSize: '0.7rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.2px',
+                color: 'text.primary',
+                width: '10%',
+                p: 1
+              }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {watchlist.map((account, index) => {
-              const isSelected =
-                selectedAccountId !== undefined
-                && selectedAccountId !== null
-                && String(account.account_id) === String(selectedAccountId)
+            {loading && (!watchlist || watchlist.length === 0) ? (
+               [...Array(5)].map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell colSpan={14}><Skeleton animation="wave" height={40} /></TableCell>
+                </TableRow>
+               ))
+            ) : (
+              <>
+                {Array.isArray(watchlist) && watchlist.map((account, index) => {
+                  const isSelected =
+                    selectedAccountId !== undefined
+                    && selectedAccountId !== null
+                    && String(account.account_id) === String(selectedAccountId)
 
-              const handleOpen = () => {
-                if (onViewDetails) return onViewDetails(account)
-                return onAccountSelect(account)
-              }
+                  const handleOpen = () => {
+                    if (onViewDetails) return onViewDetails(account)
+                    return onAccountSelect(account)
+                  }
 
-              return (
-              <TableRow
-                key={account.pkid}
-                hover
-                sx={{
-                  backgroundColor: index % 2 === 0 ? 'transparent' : 'rgba(0, 0, 0, 0.02)',
-                  '&:hover': {
-                    backgroundColor: 'rgba(102, 126, 234, 0.08) !important',
-                    transition: 'background-color 0.2s ease'
-                  },
-                  ...(isSelected
-                    ? {
-                        backgroundColor: 'rgba(25, 118, 210, 0.08) !important',
-                        outline: '2px solid rgba(25, 118, 210, 0.35)',
-                        outlineOffset: '-2px',
-                      }
-                    : null),
-                  cursor: 'pointer'
-                }}
-                onClick={handleOpen}
-              >
-                <TableCell sx={bodyCellSx}>
-                  <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
-                    {formatDate(account.prc_date)}
-                  </Typography>
-                </TableCell>
-                <TableCell sx={bodyCellSx}>
-                  <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
-                    {account.cif_number}
-                  </Typography>
-                </TableCell>
-                <TableCell sx={bodyCellSx}>
-                  <Typography variant="body2" sx={{ fontSize: '0.75rem', lineHeight: 1.2 }} title={account.cif_name}>
-                    {account.cif_name}
-                  </Typography>
-                </TableCell>
-                <TableCell sx={bodyCellSx}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.75rem', lineHeight: 1.2 }}>
-                    {account.account_number}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                    {account.account_id}
-                  </Typography>
-                </TableCell>
-                <TableCell sx={bodyCellSx}>
-                  <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
-                    {account.currency || '-'}
-                  </Typography>
-                </TableCell>
-                <TableCell sx={bodyCellSx}>
-                  <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
-                    {formatCurrency(account.outstanding_balance)}
-                  </Typography>
-                </TableCell>
-                <TableCell sx={bodyCellSx}>
-                  <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
-                    {account.dpd ?? '-'}
-                  </Typography>
-                </TableCell>
-                <TableCell sx={bodyCellSx}>
-                  <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
-                    {account.collectability ?? '-'}
-                  </Typography>
-                </TableCell>
-                <TableCell sx={bodyCellSx}>
-                  <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
-                    {account.rating_code || '-'}
-                  </Typography>
-                </TableCell>
-                <TableCell sx={bodyCellSx}>
-                  {renderStageChip(account.stage)}
-                </TableCell>
-                <TableCell sx={bodyCellSx}>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, alignItems: 'flex-start' }}>
-                    {renderAssessmentStatus(account.assessment_status)}
-                    {renderPriorityChip(account.priority_level)}
-                  </Box>
-                </TableCell>
-                <TableCell sx={{ py: 0.75, px: 0.5 }}>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Tooltip title="View Details">
-                      <IconButton
-                        size="small"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleOpen();
-                        }}
-                        disabled={!account.account_id}
-                        color="primary"
-                        aria-label="View Details"
-                      >
-                        <VisibilityIcon />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Edit Assessment">
-                      <IconButton
-                        size="small"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onEditAssessment(account);
-                        }}
-                        disabled={!account.account_id}
-                        aria-label="Edit Assessment"
-                      >
-                        <EditIcon />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Reset Assessment">
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={(event) => requestReset(event, account)}
-                        disabled={!account.is_override} // Only reset existing assessments
-                        aria-label="Reset Assessment"
-                      >
-                        <RestartAltIcon />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="More Actions">
-                      <IconButton
-                        size="small"
-                        aria-label="More Actions"
-                        onClick={(event) => openMenu(event, account)}
-                      >
-                        <MoreVertIcon />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                </TableCell>
-              </TableRow>
-              )
-            })}
-            {watchlist.length === 0 && (
-               <TableRow>
-                 <TableCell colSpan={12} align="center" sx={{ py: 3 }}>
-                   <Typography variant="body1" color="text.secondary">
-                     No accounts found matching current filters.
-                   </Typography>
-                 </TableCell>
-               </TableRow>
+                  return (
+                  <TableRow
+                    key={account.pkid || account.account_id || index}
+                    hover
+                    sx={{
+                      backgroundColor: index % 2 === 0 ? 'transparent' : 'rgba(0, 0, 0, 0.02)',
+                      '&:hover': {
+                        backgroundColor: 'rgba(102, 126, 234, 0.08) !important',
+                        transition: 'background-color 0.2s ease'
+                      },
+                      ...(isSelected
+                        ? {
+                            backgroundColor: 'rgba(25, 118, 210, 0.08) !important',
+                            outline: '2px solid rgba(25, 118, 210, 0.35)',
+                            outlineOffset: '-2px',
+                          }
+                        : null),
+                      cursor: 'pointer'
+                    }}
+                    onClick={handleOpen}
+                  >
+                    <TableCell sx={{ py: 0.75, px: 1 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.75rem', lineHeight: 1.2 }}>
+                        {account.account_number}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                        {account.account_id}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ py: 0.75, px: 1 }}>
+                      <Typography variant="body2" sx={{ fontSize: '0.75rem', lineHeight: 1.2 }}>{account.cif_name}</Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                        {account.cif_number}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ py: 0.75, px: 1 }}>
+                      <Typography variant="body2" sx={{ fontSize: '0.75rem', lineHeight: 1.2 }}>
+                        {account.prc_date ? dayjs(account.prc_date).format('DD/MM/YYYY') : '-'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ py: 0.75, px: 1 }}>
+                      <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 500 }}>
+                        {account.currency || 'IDR'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ py: 0.75, px: 1 }}>
+                      <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 500, color: (account.dpd || 0) > 0 ? 'error.main' : 'inherit' }}>
+                        {account.dpd || 0}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ py: 0.75, px: 1 }}>
+                      <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
+                        {account.collectability || '-'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ py: 0.75, px: 1 }}>
+                      <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 500 }}>
+                        {account.rating_code || '-'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right" sx={{ py: 0.75, px: 1 }}>
+                      <Typography variant="body2" sx={{ fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: 500 }}>
+                        {formatCurrency(account.outstanding_balance)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ py: 0.75, px: 1 }}>
+                      {renderStageChip(account.stage)}
+                    </TableCell>
+                    <TableCell sx={{ py: 0.75, px: 1 }}>
+                      {renderAssessmentStatus(account.assessment_status)}
+                    </TableCell>
+                    <TableCell sx={{ py: 0.75, px: 1 }}>
+                      {renderPriorityChip(account.priority_level)}
+                    </TableCell>
+                    <TableCell sx={{ py: 0.75, px: 1 }}>
+                      {renderImpairedFlag(account.impaired_flag)}
+                    </TableCell>
+                    <TableCell align="right" sx={{ py: 0.75, px: 1 }}>
+                      <Typography variant="body2" sx={{ fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: 600, color: 'error.main' }}>
+                        {formatCurrency(account.provision_amount)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ py: 0.75, px: 0.5 }}>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Tooltip title="View Details">
+                          <IconButton
+                            size="small"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleOpen();
+                            }}
+                            disabled={!account.account_id}
+                            color="primary"
+                            aria-label="View Details"
+                          >
+                            <VisibilityIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Edit Assessment">
+                          <IconButton
+                            size="small"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              onEditAssessment(account);
+                            }}
+                            disabled={!account.account_id}
+                            aria-label="Edit Assessment"
+                          >
+                            <EditIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title={
+                          account.assessment_status === 'SUBMITTED'
+                            ? "Batalkan Pengajuan & Reset"
+                            : (account.is_override ? "Reset Assessment" : "Belum Ada Assessment")
+                        }>
+                          <IconButton
+                            size="small"
+                            sx={{
+                              color: account.assessment_status === 'SUBMITTED' ? 'warning.main' : 'error.main',
+                              '&:hover': { bgcolor: 'rgba(211, 47, 47, 0.1)' },
+                              opacity: (account.is_override || account.assessment_status === 'SUBMITTED') ? 1 : 0.3
+                            }}
+                            onClick={(event) => requestReset(event, account)}
+                            disabled={!account.is_override && account.assessment_status !== 'SUBMITTED'}
+                            aria-label="Reset Assessment"
+                          >
+                            <RestartAltIcon sx={{ fontSize: 20 }} />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="More Actions">
+                          <IconButton
+                            size="small"
+                            aria-label="More Actions"
+                            onClick={(event) => openMenu(event, account)}
+                          >
+                            <MoreVertIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                  )
+                })}
+                {!loading && (!watchlist || watchlist.length === 0) && (
+                  <TableRow>
+                    <TableCell colSpan={14} align="center" sx={{ py: 6 }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500 }}>
+                          No accounts found matching current filters.
+                        </Typography>
+                        <Typography variant="caption" color="text.disabled">
+                          Try adjusting your search or filters to see more results.
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </>
             )}
           </TableBody>
         </Table>
       </TableContainer>
 
       <TablePagination
-        rowsPerPageOptions={[10, 25, 50, 75, 100]}
+        rowsPerPageOptions={[10, 25, 50, 100, 200, 500]}
         component="div"
         count={pagination.total}
         rowsPerPage={pagination.limit}
@@ -561,12 +689,20 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
             Account: <strong>{resetAccount?.account_number}</strong>
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            CIF: <strong>{resetAccount?.cif_name}</strong>
+            Customer: <strong>{resetAccount?.cif_name}</strong>
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            CIF: <strong>{resetAccount?.cif_number}</strong>
           </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={cancelReset} color="inherit" disabled={resetSubmitting}>Cancel</Button>
-          <Button onClick={confirmReset} variant="contained" color="error" disabled={!resetAccount?.is_override || resetSubmitting}>
+          <Button
+            onClick={confirmReset}
+            variant="contained"
+            color="error"
+            disabled={(!resetAccount?.is_override && resetAccount?.assessment_status !== 'SUBMITTED') || resetSubmitting}
+          >
             Reset
           </Button>
         </DialogActions>

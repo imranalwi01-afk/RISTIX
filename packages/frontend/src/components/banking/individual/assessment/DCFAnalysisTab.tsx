@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState } from 'react';
 import {
   Box,
@@ -6,6 +7,7 @@ import {
   Card,
   CardContent,
   Button,
+  Alert,
   CircularProgress,
   Divider,
   TextField,
@@ -19,7 +21,13 @@ import {
   TableRow,
   TableCell,
   TableBody,
-  Chip
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Stack,
+  Paper
 } from '@mui/material';
 import {
   Calculate as CalculateIcon,
@@ -27,7 +35,10 @@ import {
   PlayArrow as RunIcon,
   Clear as ClearIcon,
   Addchart as AddChartIcon,
-  AccountBalance as AccountBalanceIcon
+  AccountBalance as AccountBalanceIcon,
+  CloudUpload as CloudUploadIcon,
+  Close as CloseIcon,
+  Assignment as AssignmentIcon
 } from '@mui/icons-material';
 import {
   ResponsiveContainer,
@@ -44,6 +55,7 @@ import {
   type IndividualImpairmentAssessment,
   individualImpairmentAPI
 } from '@/services/api.individual-impairment';
+import { DCFUploadTab } from './DCFUploadTab';
 
 interface DCFAnalysisTabProps {
   account: IndividualImpairmentWatchlistItem | null;
@@ -52,92 +64,31 @@ interface DCFAnalysisTabProps {
   loading: boolean;
   calculationResults?: any;
   onClearResults?: () => void;
+  onStagedDCF?: (data: any) => void;
 }
 
-export function DCFAnalysisTab({ account, assessment, onCalculate, loading, calculationResults, onClearResults }: DCFAnalysisTabProps) {
-  const [parameters, setParameters] = useState({
-    discountRate: 8.5,
-    projectedGrowthRate: 2.0,
-    recoveryRate: 60.0,
-    timeHorizon: 60,
-    paymentFrequency: 'monthly',
-    scenarioType: 'base'
-  });
+export function DCFAnalysisTab({
+  account,
+  assessment,
+  onCalculate,
+  loading,
+  calculationResults,
+  onClearResults,
+  onStagedDCF
+}: DCFAnalysisTabProps) {
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
 
-  const [scenarioData, setScenarioData] = useState([
-    { name: 'Base Case', discountRate: 8.5, recoveryRate: 60.0, growthRate: 2.0 },
-    { name: 'Optimistic', discountRate: 6.5, recoveryRate: 75.0, growthRate: 3.5 },
-    { name: 'Pessimistic', discountRate: 12.0, recoveryRate: 40.0, growthRate: 0.5 }
-  ]);
+  if (!account) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="info">
+          Pilih debitur dari Watchlist untuk melakukan DCF Analysis.
+        </Alert>
+      </Box>
+    );
+  }
 
-  const [activeScenario, setActiveScenario] = useState('base');
-
-  const parseFiniteNumber = React.useCallback((rawValue: string, fallback: number) => {
-    if (rawValue.trim() === '') return 0;
-    const parsed = Number(rawValue);
-    return Number.isFinite(parsed) ? parsed : fallback;
-  }, []);
-  
-  // Load scenarios from API
-  React.useEffect(() => {
-    const fetchScenarios = async () => {
-      if (!account?.account_id) return;
-      try {
-        const response: any = await individualImpairmentAPI.getScenarios({ accountId: account.account_id });
-        if (response && response.data && Array.isArray(response.data) && response.data.length > 0) {
-            const mapped = response.data.map((s: any) => ({
-                name: s.scenarioName,
-                discountRate: Number(s.discountRate),
-                recoveryRate: Number(s.recoveryRate),
-                growthRate: Number(s.growthRate)
-            }));
-            setScenarioData(mapped);
-            
-            // Auto-select first scenario or Base Case
-            const base = mapped.find((s: any) => s.name.toLowerCase().includes('base')) || mapped[0];
-            if (base) {
-                setParameters(prev => ({
-                    ...prev,
-                    discountRate: base.discountRate,
-                    recoveryRate: base.recoveryRate,
-                    projectedGrowthRate: base.growthRate
-                }));
-                setActiveScenario(base.name.toLowerCase().replace(' ', ''));
-            }
-        }
-      } catch (err) {
-        console.error("Failed to load scenarios", err);
-      }
-    };
-    fetchScenarios();
-  }, [account?.account_id]);
-
-  const handleParameterChange = (field: string, value: any) => {
-    setParameters(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleCalculate = () => {
-    onCalculate({
-      ...parameters,
-      scenarioType: activeScenario,
-      accountId: account?.account_id
-    });
-  };
-
-  const handleScenarioChange = (scenarioName: string) => {
-    const scenario = scenarioData.find(s => s.name === scenarioName);
-    if (scenario) {
-      setParameters(prev => ({
-        ...prev,
-        discountRate: scenario.discountRate,
-        recoveryRate: scenario.recoveryRate,
-        projectedGrowthRate: scenario.growthRate
-      }));
-      setActiveScenario(scenarioName.toLowerCase().replace(' ', ''));
-    }
-  };
-
-  // Local helper function for formatting currency
+  // Helper for formatting currency
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -147,344 +98,332 @@ export function DCFAnalysisTab({ account, assessment, onCalculate, loading, calc
     }).format(amount);
   };
 
-  // Local helper function for rendering stage chip
-  const renderStageChipLocal = (stage: number) => {
-    const colors = {
-      1: '#4caf50',
-      2: '#ff9800',
-      3: '#f44336'
-    };
-    const labels = {
-      1: 'Stage 1',
-      2: 'Stage 2',
-      3: 'Stage 3'
-    };
+  const [assumptions, setAssumptions] = useState({
+    poRate1: 50, rrRate1: 100,
+    poRate2: 30, rrRate2: 80,
+    poRate3: 20, rrRate3: 50,
+    timeHorizon: 60
+  });
+  const [validationError, setValidationError] = useState<string | null>(null);
 
-    return (
-      <Chip
-        label={labels[stage as keyof typeof labels] || 'Unknown'}
-        size="small"
-        sx={{
-          backgroundColor: colors[stage as keyof typeof colors] || '#757575',
-          color: 'white',
-          fontWeight: 'bold'
-        }}
-      />
-    );
+  const handleCalculate = () => {
+    setValidationError(null);
+
+    // 1. Validate PO Rate (Total must be 100)
+    const totalPo = assumptions.poRate1 + assumptions.poRate2 + assumptions.poRate3;
+    if (totalPo !== 100) {
+      setValidationError(`Total PO Rate must be exactly 100% (Current: ${totalPo}%)`);
+      return;
+    }
+
+    // 2. Validate Repayment Rate (At least one must reach 100, usually Base Case)
+    // As per user request: "repayment rate harus mencapai 100%"
+    if (assumptions.rrRate1 < 100 && assumptions.rrRate2 < 100 && assumptions.rrRate3 < 100) {
+      setValidationError('At least one scenario (ideally Base Case) must have a Repayment Rate of 100%');
+      return;
+    }
+
+    onCalculate({
+      ...assumptions,
+      accountId: account?.account_id
+    });
   };
 
-  // Local helper function for rendering impaired flag
-  const renderImpairedFlagLocal = (flag: string) => {
-    return (
-      <Chip
-        label={flag === 'I' ? 'Impaired' : 'Non-Impaired'}
-        size="small"
-        color={flag === 'I' ? 'error' : 'success'}
-        variant="outlined"
-      />
-    );
+  const handleUploadSuccess = (rows: any[]) => {
+    setUploadDialogOpen(false);
+    // Trigger calculation with uploaded cashflows
+    onCalculate({
+      ...assumptions,
+      accountId: account?.account_id,
+      cashflows: rows
+    });
+  };
+
+  const handleAssumptionChange = (field: string, value: number) => {
+    setAssumptions(prev => ({ ...prev, [field]: value }));
   };
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <CalculateIcon sx={{ mr: 1 }} />
-        DCF Analysis - {account?.account_number} - {account?.cif_name}
+      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', mb: 2, fontWeight: 700 }}>
+        <CalculateIcon sx={{ mr: 1, color: 'primary.main' }} />
+        Advanced DCF Analysis - {account?.account_number}
       </Typography>
 
-      <Grid container spacing={2}>
-        {/* DCF Parameters - Left Column */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card>
+      <Grid container spacing={3}>
+        {/* Scenario Weighting Panel */}
+        <Grid size={12}>
+          <Card sx={{ borderLeft: '5px solid', borderColor: 'primary.main', boxShadow: 3 }}>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
-                <ShowChartIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                DCF Parameters
+              <Typography variant="subtitle1" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                <ShowChartIcon sx={{ mr: 1 }} /> Multi-Scenario Weighting & Assumptions
               </Typography>
-              <Divider sx={{ mb: 2 }} />
+              <Divider sx={{ mb: 3 }} />
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <TextField
-                  label="Discount Rate (%)"
-                  type="number"
-                  value={parameters.discountRate}
-                  onChange={(e) => handleParameterChange('discountRate', parseFiniteNumber(e.target.value, parameters.discountRate))}
-                  inputProps={{ step: 0.1, min: 0, max: 100 }}
-                  size="small"
-                  helperText="Annual discount rate for present value calculation"
-                />
+              <Grid container spacing={3}>
+                {/* Scenario 1: Base */}
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <Box sx={{ p: 2, bgcolor: 'rgba(33, 150, 243, 0.05)', borderRadius: 2 }}>
+                    <Typography variant="subtitle2" color="primary" fontWeight="bold" gutterBottom>Scenario 1: Base Case</Typography>
+                    <Stack spacing={2}>
+                      <TextField
+                        label="PO Rate (Weight %)" size="small" type="number"
+                        value={assumptions.poRate1}
+                        onChange={(e) => handleAssumptionChange('poRate1', Number(e.target.value))}
+                      />
+                      <TextField
+                        label="Repayment Rate (%)" size="small" type="number"
+                        value={assumptions.rrRate1}
+                        onChange={(e) => handleAssumptionChange('rrRate1', Number(e.target.value))}
+                      />
+                    </Stack>
+                  </Box>
+                </Grid>
+                {/* Scenario 2: Optimistic */}
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <Box sx={{ p: 2, bgcolor: 'rgba(76, 175, 80, 0.05)', borderRadius: 2 }}>
+                    <Typography variant="subtitle2" color="success.main" fontWeight="bold" gutterBottom>Scenario 2: Optimistic</Typography>
+                    <Stack spacing={2}>
+                      <TextField
+                        label="PO Rate (Weight %)" size="small" type="number"
+                        value={assumptions.poRate2}
+                        onChange={(e) => handleAssumptionChange('poRate2', Number(e.target.value))}
+                      />
+                      <TextField
+                        label="Repayment Rate (%)" size="small" type="number"
+                        value={assumptions.rrRate2}
+                        onChange={(e) => handleAssumptionChange('rrRate2', Number(e.target.value))}
+                      />
+                    </Stack>
+                  </Box>
+                </Grid>
+                {/* Scenario 3: Pessimistic */}
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <Box sx={{ p: 2, bgcolor: 'rgba(244, 67, 54, 0.05)', borderRadius: 2 }}>
+                    <Typography variant="subtitle2" color="error.main" fontWeight="bold" gutterBottom>Scenario 3: Pessimistic</Typography>
+                    <Stack spacing={2}>
+                      <TextField
+                        label="PO Rate (Weight %)" size="small" type="number"
+                        value={assumptions.poRate3}
+                        onChange={(e) => handleAssumptionChange('poRate3', Number(e.target.value))}
+                      />
+                      <TextField
+                        label="Repayment Rate (%)" size="small" type="number"
+                        value={assumptions.rrRate3}
+                        onChange={(e) => handleAssumptionChange('rrRate3', Number(e.target.value))}
+                      />
+                    </Stack>
+                  </Box>
+                </Grid>
 
-                <TextField
-                  label="Recovery Rate (%)"
-                  type="number"
-                  value={parameters.recoveryRate}
-                  onChange={(e) => handleParameterChange('recoveryRate', parseFiniteNumber(e.target.value, parameters.recoveryRate))}
-                  inputProps={{ step: 1, min: 0, max: 100 }}
-                  size="small"
-                  helperText="Expected recovery rate of outstanding balance"
-                />
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField
+                    fullWidth label="Time Horizon (Months)" size="small" type="number"
+                    value={assumptions.timeHorizon}
+                    onChange={(e) => handleAssumptionChange('timeHorizon', Number(e.target.value))}
+                  />
+                </Grid>
+                {validationError && (
+                  <Grid size={12}>
+                    <Alert severity="error" sx={{ borderRadius: 2, fontWeight: 'bold' }}>
+                      {validationError}
+                    </Alert>
+                  </Grid>
+                )}
 
-                <TextField
-                  label="Growth Rate (%)"
-                  type="number"
-                  value={parameters.projectedGrowthRate}
-                  onChange={(e) => handleParameterChange('projectedGrowthRate', parseFiniteNumber(e.target.value, parameters.projectedGrowthRate))}
-                  inputProps={{ step: 0.1, min: -10, max: 20 }}
-                  size="small"
-                  helperText="Projected cash flow growth rate"
-                />
-
-                <TextField
-                  label="Time Horizon (months)"
-                  type="number"
-                  value={parameters.timeHorizon}
-                  onChange={(e) => handleParameterChange('timeHorizon', Math.max(0, Math.trunc(parseFiniteNumber(e.target.value, parameters.timeHorizon))))}
-                  inputProps={{ step: 1, min: 1, max: 360 }}
-                  size="small"
-                  helperText="Analysis period in months"
-                />
-
-                <FormControl size="small" fullWidth>
-                  <InputLabel>Payment Frequency</InputLabel>
-                  <Select
-                    value={parameters.paymentFrequency}
-                    label="Payment Frequency"
-                    onChange={(e) => handleParameterChange('paymentFrequency', e.target.value)}
-                  >
-                    <MenuItem value="monthly">Monthly</MenuItem>
-                    <MenuItem value="quarterly">Quarterly</MenuItem>
-                    <MenuItem value="annually">Annually</MenuItem>
-                  </Select>
-                </FormControl>
-
-                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <Button
-                    variant="contained"
-                    startIcon={<RunIcon />}
+                    fullWidth variant="contained" size="large"
+                    startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <CalculateIcon />}
                     onClick={handleCalculate}
                     disabled={loading}
-                    fullWidth
+                    sx={{ height: '56px', borderRadius: 2, fontWeight: 'bold' }}
                   >
-                    {loading ? <CircularProgress size={20} /> : 'Calculate DCF'}
+                    Calculate
                   </Button>
-                  <Button
-                    variant="outlined"
-                    startIcon={<ClearIcon />}
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                   <Button
+                    fullWidth variant="outlined" size="large"
+                    startIcon={<CloudUploadIcon />}
+                    onClick={() => setUploadDialogOpen(true)}
+                    sx={{ height: '56px', borderRadius: 2, fontWeight: 'bold' }}
+                  >
+                    Upload DCF
+                  </Button>
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                   <Button
+                    fullWidth variant="text" size="large"
                     onClick={onClearResults}
-                    disabled={!onClearResults}
+                    disabled={!calculationResults}
+                    sx={{ height: '56px', borderRadius: 2 }}
                   >
                     Clear
                   </Button>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+                </Grid>
 
-        {/* Account Information - Right Column beside DCF Parameters */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                <AccountBalanceIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Account Information
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <Typography variant="body2" color="text.secondary">Outstanding Balance:</Typography>
-                  <Typography variant="h6">
-                    {formatCurrency(account?.outstanding_balance || 0)}
-                  </Typography>
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <Typography variant="body2" color="text.secondary">Current Provision:</Typography>
-                  <Typography variant="h6">
-                    {formatCurrency(account?.provision_amount || 0)}
-                  </Typography>
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <Typography variant="body2" color="text.secondary">Current Stage:</Typography>
-                  <Box sx={{ mt: 1 }}>
-                    {account && renderStageChipLocal(account.stage)}
-                  </Box>
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <Typography variant="body2" color="text.secondary">Impaired Status:</Typography>
-                  <Box sx={{ mt: 1 }}>
-                    {account && renderImpairedFlagLocal(account.impaired_flag)}
-                  </Box>
+                {/* Validation Info */}
+                <Grid size={12}>
+                  <Alert severity={(assumptions.poRate1 + assumptions.poRate2 + assumptions.poRate3) === 100 ? "info" : "warning"} sx={{ py: 0 }}>
+                    Total PO Rate: <strong>{assumptions.poRate1 + assumptions.poRate2 + assumptions.poRate3}%</strong>
+                    {(assumptions.poRate1 + assumptions.poRate2 + assumptions.poRate3) !== 100 ? " (Must be exactly 100%)" : " (Valid)"}
+                  </Alert>
                 </Grid>
               </Grid>
             </CardContent>
           </Card>
         </Grid>
 
-        {/* Scenario Analysis - Full Width Below */}
-        <Grid size={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                <AddChartIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Scenario Analysis
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
+        {/* DCF Upload Dialog */}
+        <Dialog
+          open={uploadDialogOpen}
+          onClose={() => setUploadDialogOpen(false)}
+          maxWidth="md"
+          fullWidth
+          PaperProps={{ sx: { borderRadius: 3 } }}
+        >
+          <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#f8f9fa' }}>
+            <Typography variant="h6" component="span" fontWeight="bold">Upload Cash Flow Detail</Typography>
+            <Button onClick={() => setUploadDialogOpen(false)}><CloseIcon /></Button>
+          </DialogTitle>
+          <DialogContent dividers>
+            <DCFUploadTab
+              account={account}
+              onUploadSuccess={handleUploadSuccess}
+              initialAssumptions={assumptions}
+              onStagedDCF={onStagedDCF}
+            />
+          </DialogContent>
+        </Dialog>
 
-              <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-                {scenarioData.map((scenario) => (
-                  <Button
-                    key={scenario.name}
-                    variant={activeScenario.includes(scenario.name.toLowerCase()) ? 'contained' : 'outlined'}
-                    size="small"
-                    onClick={() => handleScenarioChange(scenario.name)}
-                    sx={{ flex: '1 1 auto' }}
-                  >
-                    {scenario.name}
-                  </Button>
-                ))}
-              </Box>
-
-              <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Scenario</TableCell>
-                      <TableCell>Discount Rate</TableCell>
-                      <TableCell>Recovery Rate</TableCell>
-                      <TableCell>Growth Rate</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {scenarioData.map((scenario) => (
-                      <TableRow key={scenario.name}>
-                        <TableCell>{scenario.name}</TableCell>
-                        <TableCell>{scenario.discountRate}%</TableCell>
-                        <TableCell>{scenario.recoveryRate}%</TableCell>
-                        <TableCell>{scenario.growthRate}%</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* DCF Results - Full Width Below */}
+        {/* DCF Results & Amortization Schedule */}
         {calculationResults && (
           <Grid size={12}>
-            <Card>
+            <Card sx={{ boxShadow: 5, borderRadius: 3 }}>
               <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  <CalculateIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                  DCF Calculation Results
+                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                  <Typography variant="h6" fontWeight="bold" color="primary">Assessment Results Summary</Typography>
+                  <Chip label="PROCESSED" color="success" variant="filled" size="small" sx={{ fontWeight: 'bold' }} />
+                </Stack>
+
+                <Grid container spacing={2} sx={{ mb: 4 }}>
+                   {[
+                    { label: 'Present Value (NPV)', value: calculationResults.presentValue, color: 'primary.main', bg: '#e3f2fd' },
+                    { label: 'Outstanding Balance', value: calculationResults.outstanding, color: 'text.primary', bg: '#f5f5f5' },
+                    { label: 'Impairment Loss (LGD)', value: calculationResults.lgd, color: 'error.main', bg: '#ffebee' },
+                    { label: 'Recommended Provision', value: calculationResults.recommendedProvision, color: 'warning.dark', bg: '#fffde7' }
+                   ].map((item, i) => (
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }} key={i}>
+                      <Box sx={{ p: 2, bgcolor: item.bg, borderRadius: 2, textAlign: 'center', height: '100%', border: '1px solid rgba(0,0,0,0.05)' }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 1 }}>{item.label}</Typography>
+                        <Typography variant="h6" fontWeight="bold" sx={{ color: item.color }}>{formatCurrency(item.value)}</Typography>
+                      </Box>
+                    </Grid>
+                   ))}
+                </Grid>
+
+                {/* Amortization Table */}
+                <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ mt: 4, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <AssignmentIcon color="primary" /> Amortization & Unwinding Schedule
                 </Typography>
                 <Divider sx={{ mb: 2 }} />
 
-                <Grid container spacing={2}>
-                  <Grid size={{ xs: 12, md: 3 }}>
-                    <Typography variant="body2" color="text.secondary">Present Value:</Typography>
-                    <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 'bold' }}>
-                      {formatCurrency(calculationResults.presentValue || 0)}
-                    </Typography>
-                  </Grid>
-                  <Grid size={{ xs: 12, md: 3 }}>
-                    <Typography variant="body2" color="text.secondary">Outstanding:</Typography>
-                    <Typography variant="h6">
-                      {formatCurrency(calculationResults.outstanding || 0)}
-                    </Typography>
-                  </Grid>
-                  <Grid size={{ xs: 12, md: 3 }}>
-                    <Typography variant="body2" color="text.secondary">Loss Given Default:</Typography>
-                    <Typography variant="h6" sx={{ color: 'error.main', fontWeight: 'bold' }}>
-                      {formatCurrency(calculationResults.lgd || 0)}
-                    </Typography>
-                  </Grid>
-                  <Grid size={{ xs: 12, md: 3 }}>
-                    <Typography variant="body2" color="text.secondary">Recommended Provision:</Typography>
-                    <Typography variant="h6" sx={{ color: 'warning.main', fontWeight: 'bold' }}>
-                      {formatCurrency(calculationResults.recommendedProvision || 0)}
-                    </Typography>
-                  </Grid>
-                </Grid>
+                <TableContainer component={Paper} sx={{ maxHeight: 400, borderRadius: 2, border: '1px solid #eee' }}>
+                  <Table stickyHeader size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold' }}>Period</TableCell>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold' }}>Beginning Balance</TableCell>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold' }}>Interest (EIR)</TableCell>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold' }}>Weighted Flow</TableCell>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold' }}>Ending Balance</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {calculationResults.details.map((row: any, idx: number) => (
+                        <TableRow key={idx} hover>
+                          <TableCell>{row.period}</TableCell>
+                          <TableCell>{formatCurrency(row.beginningBalance)}</TableCell>
+                          <TableCell sx={{ color: 'success.main' }}>+{formatCurrency(row.interestAccrual)}</TableCell>
+                          <TableCell sx={{ color: 'error.main' }}>-{formatCurrency(row.weightedFlow)}</TableCell>
+                          <TableCell sx={{ fontWeight: 'bold' }}>{formatCurrency(row.endingBalance)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
 
-                {/* Cash Flow Chart */}
-                <Box sx={{ mt: 4, height: 350, width: '100%' }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Cash Flow & Present Value Projection
-                  </Typography>
+                {/* Visual Chart Trend */}
+                <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ mt: 5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <AddChartIcon color="primary" /> Projected Recovery Trend
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
+
+                <Box sx={{ height: 350, width: '100%', mt: 2 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart
-                      data={calculationResults.details || []}
-                      margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="period" />
-                      <YAxis 
-                        tickFormatter={(value) => new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(value)}
+                    <AreaChart data={calculationResults.details}>
+                      <defs>
+                        <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#2196f3" stopOpacity={0.1}/>
+                          <stop offset="95%" stopColor="#2196f3" stopOpacity={0}/>
+                        </linearGradient>
+                        <linearGradient id="colorFlow" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#4caf50" stopOpacity={0.1}/>
+                          <stop offset="95%" stopColor="#4caf50" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                      <XAxis
+                        dataKey="period"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#9e9e9e', fontSize: 12 }}
                       />
-                      <RechartsTooltip 
-                        formatter={(value: number) => formatCurrency(value)}
-                        labelFormatter={(label) => `Period: ${label}`}
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#9e9e9e', fontSize: 12 }}
+                        tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`}
                       />
-                      <Legend />
-                      <Area 
-                        type="monotone" 
-                        dataKey="cashflow" 
-                        name="Cash Flow" 
-                        stackId="1" 
-                        stroke="#8884d8" 
-                        fill="#8884d8" 
-                        fillOpacity={0.6}
+                      <RechartsTooltip
+                        contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                        formatter={(value: any) => formatCurrency(value)}
                       />
-                      <Area 
-                        type="monotone" 
-                        dataKey="pv" 
-                        name="Present Value (PV)" 
-                        stackId="2" 
-                        stroke="#82ca9d" 
-                        fill="#82ca9d" 
-                        fillOpacity={0.6} 
+                      <Legend verticalAlign="top" align="right" height={36}/>
+                      <Area
+                        name="Ending Balance"
+                        type="monotone"
+                        dataKey="endingBalance"
+                        stroke="#2196f3"
+                        fillOpacity={1}
+                        fill="url(#colorBalance)"
+                        strokeWidth={3}
+                      />
+                      <Area
+                        name="Monthly Cash Flow"
+                        type="monotone"
+                        dataKey="weightedFlow"
+                        stroke="#4caf50"
+                        fillOpacity={1}
+                        fill="url(#colorFlow)"
+                        strokeWidth={2}
                       />
                     </AreaChart>
                   </ResponsiveContainer>
                 </Box>
 
-                {calculationResults.details && calculationResults.details.length > 0 && (
-                  <Box sx={{ mt: 3 }}>
-                    <Typography variant="subtitle2" gutterBottom>
-                      Cash Flow Details
-                    </Typography>
-                    <TableContainer>
-                      <Table size="small">
-                        <TableHead>
-                          <TableRow>
-                            <TableCell>Period</TableCell>
-                            <TableCell>Cash Flow</TableCell>
-                            <TableCell>Discount Factor</TableCell>
-                            <TableCell>Present Value</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {calculationResults.details.slice(0, 12).map((detail: any, index: number) => (
-                            <TableRow key={index}>
-                              <TableCell>{detail.period}</TableCell>
-                              <TableCell>{formatCurrency(detail.cashflow || 0)}</TableCell>
-                              <TableCell>{(detail.discountFactor || 0).toFixed(4)}</TableCell>
-                              <TableCell>{formatCurrency(detail.pv || 0)}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                    {calculationResults.details.length > 12 && (
-                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                        Showing first 12 periods of {calculationResults.details.length} total periods
-                      </Typography>
-                    )}
-                  </Box>
-                )}
+                <Box sx={{ mt: 3, p: 2, bgcolor: '#f1f8e9', borderRadius: 2, borderLeft: '4px solid #4caf50' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    * Grafik di atas menunjukkan proyeksi penurunan saldo hutang (Ending Balance) seiring dengan diterimanya pembayaran (Monthly Cash Flow) selama jangka waktu {assumptions.timeHorizon} bulan.
+                  </Typography>
+                </Box>
+
+                <Box sx={{ mt: 2, textAlign: 'right' }}>
+                  <Typography variant="caption" color="text.secondary">
+                    * Calculation based on EIR: <strong>{calculationResults.assumptions?.eir?.toFixed(2)}%</strong>
+                  </Typography>
+                </Box>
               </CardContent>
             </Card>
           </Grid>

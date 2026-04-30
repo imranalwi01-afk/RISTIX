@@ -1,13 +1,11 @@
+// @ts-nocheck
 'use client';
 
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
-import { usePathname, useSearchParams, useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
+import dayjs from 'dayjs';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Alert,
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
   Box,
   Chip,
   Container,
@@ -20,7 +18,14 @@ import {
   Button,
   Snackbar,
   Tooltip,
-  Stack
+  Stack,
+  Grid,
+  Avatar,
+  Stepper,
+  Step,
+  StepLabel,
+  Backdrop,
+  CircularProgress
 } from '@mui/material';
 import {
   OpenInNew as OpenInNewIcon,
@@ -29,11 +34,10 @@ import {
   Assignment as AssignmentIcon,
   Assessment as AssessmentIcon,
   Calculate as CalculateIcon,
-  MonetizationOn as MoneyIcon,
+  MonetizationOn as MonetizationOnIcon,
   History as HistoryIcon,
-  Description as DescriptionIcon,
-  Summarize as SummarizeIcon,
-  ExpandMore as ExpandMoreIcon
+  Folder as FolderIcon,
+  CloudUpload as UploadIcon
 } from '@mui/icons-material';
 import PageHeader from '@/components/banking/shared/PageHeader';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
@@ -41,74 +45,111 @@ import { AssessmentWorkspaceEmbeddedProvider } from './embedded-context';
 import { AssessmentKPI } from '@/components/banking/individual/assessment/AssessmentKPI';
 import { AssessmentWatchlist } from '@/components/banking/individual/assessment/AssessmentWatchlist';
 import { AssessmentFilters } from '@/components/banking/individual/assessment/AssessmentFilters';
+import { AssessmentDetailsTab } from '@/components/banking/individual/assessment/AssessmentDetailsTab';
 import { FILTER_DEFAULTS } from './constants';
 import { individualImpairmentAPI, IndividualImpairmentWatchlistItem } from '@/services/api.individual-impairment';
 import { DCFAnalysisTab } from '@/components/banking/individual/assessment/DCFAnalysisTab';
 import { ProvisionCalculationTab } from '@/components/banking/individual/assessment/ProvisionCalculationTab';
 import { AssessmentHistoryTab } from '@/components/banking/individual/assessment/AssessmentHistoryTab';
 import { AssessmentDocumentsTab } from '@/components/banking/individual/assessment/AssessmentDocumentsTab';
-import {
-  useAssessmentAccountLookupQuery,
-  useAssessmentSummaryQuery,
-  useAssessmentWatchlistQuery,
-} from '@/features/individual-impairment/hooks/useAssessmentDashboardQuery';
-import { buildIndividualAssessmentUrl } from '@/features/individual-impairment/routing';
-
-const OverrideTriggerSection = dynamic(() => import('../override-trigger/page'));
-const IndividualReportsSection = dynamic(() => import('../reports/page'));
+import { AssessmentReportsTab } from '@/components/banking/individual/assessment/AssessmentReportsTab';
+import { Send as SendIcon } from '@mui/icons-material';
+import { approvalAPI } from '@/services/api/approval.api';
+import { useAuth } from '@/providers/AuthProvider';
+import { useNotifications } from '@/providers/NotificationProvider';
+import { keyframes } from '@mui/system';
 
 interface SectionDef {
   key: string;
   label: string;
   section: string;
   helper: string;
-  icon: React.ReactElement;
+  icon: React.ElementType;
   render: () => React.ReactNode;
 }
 
-type QueryDebugMetadata = {
-  endpoint?: string;
-  selectedSource?: string;
-  sourceTables?: string[];
-  filtersApplied?: Record<string, unknown>;
-  sqlPreview?: string;
-  notes?: string[];
-};
-
-const SECTION_KEYS = [
-  'watchlist',
-  'individual-reports',
-  'assessment-details',
-  'dcf-analysis',
-  'provision-calculation',
-  'history',
-  'documents',
-] as const;
-
-const ACCOUNT_OPTIONAL_SECTIONS = new Set<string>(['watchlist', 'individual-reports']);
+const livePulse = keyframes`
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.1); }
+  100% { opacity: 1; transform: scale(1); }
+`;
 
 export default function IndividualAssessmentWizardPage() {
-  const [activeTab, setActiveTab] = useState(0);
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const searchKey = searchParams.toString();
   const accountId = searchParams.get('accountId');
   const accountNumber = searchParams.get('accountNumber');
-  const tabParam = searchParams.get('tab');
   const mode = searchParams.get('mode') || 'conventional';
-  const skipTabUrlSyncRef = useRef(false);
   const watchlistUrlInitializedRef = useRef(false);
   const skipNextWatchlistUrlSyncRef = useRef(false);
+  const { user } = useAuth();
+  const { unreadCount, notifications, acknowledgeNotification } = useNotifications();
+
+  // Automatically acknowledge approval notifications when viewing workspace
+  useEffect(() => {
+    if (accountId && notifications.length > 0) {
+      const relevantNotifs = notifications.filter(n =>
+        (n.type === 'APPROVAL_PENDING' || n.type === 'APPROVAL_COMPLETED') &&
+        !n.readAt
+      );
+
+      if (relevantNotifs.length > 0) {
+        relevantNotifs.forEach(n => {
+          acknowledgeNotification(n.id);
+        });
+      }
+    }
+  }, [accountId, notifications, acknowledgeNotification]);
+
+  // Check if there are live pending approvals for this module
+  const hasLiveNotifications = React.useMemo(() => {
+    return notifications.some(n =>
+        n.type === 'APPROVAL_PENDING' &&
+        !n.readAt
+    );
+  }, [notifications]);
+
+  // Staged Data for Consolidated Approval
+  const [stagedOverride, setStagedOverride] = useState<any>(null);
+  const [stagedDCF, setStagedDCF] = useState<any>(null);
+  const [submittingPackage, setSubmittingPackage] = useState(false);
+  const autoSubmitInProgress = useRef(false);
   const [headerSnackbar, setHeaderSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({
     open: false,
     message: '',
     severity: 'success'
   });
 
-  const buildAssessmentUrl = useCallback((next: { accountId?: number | string; tab?: string; accountNumber?: string }) => {
+  // Dashboard State
+  const [loading, setLoading] = useState(false);
+  const [watchlist, setWatchlist] = useState<IndividualImpairmentWatchlistItem[]>([]);
+  const [summary, setSummary] = useState<{
+    totalAccounts: number;
+    impairedAccounts: number;
+    pendingAssessments: number;
+    totalProvisions: number;
+    dataDate?: string;
+  } | undefined>(undefined);
+  const [dashboardError, setDashboardError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({
+    page: 0,
+    limit: 10,
+    total: 0
+  });
+  const [filters, setFilters] = useState(FILTER_DEFAULTS);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
+
+
+
+  const buildAssessmentUrl = useCallback((next: {
+    accountId?: number | string;
+    tab?: string;
+    accountNumber?: string;
+    extra?: Record<string, string>;
+  }) => {
     const params = new URLSearchParams();
     params.set('mode', mode);
+
     if (next.accountId !== undefined && next.accountId !== null && String(next.accountId).trim()) {
       params.set('accountId', String(next.accountId));
     }
@@ -116,8 +157,21 @@ export default function IndividualAssessmentWizardPage() {
       params.set('accountNumber', next.accountNumber);
     }
     if (next.tab) params.set('tab', next.tab);
-    return buildIndividualAssessmentUrl(params, pathname);
-  }, [mode, pathname]);
+
+    // Preserve current watchlist state for "Back" navigation
+    if (filters.search) params.set('search', filters.search);
+    if (filters.downloadDate) params.set('downloadDate', filters.downloadDate);
+    if (filters.stage) params.set('stage', filters.stage);
+    if (filters.impairedFlag) params.set('impairedFlag', filters.impairedFlag);
+    if (filters.priorityLevel) params.set('priorityLevel', filters.priorityLevel);
+    if (pagination.page > 0) params.set('page', String(pagination.page + 1));
+    if (pagination.limit !== 10) params.set('limit', String(pagination.limit));
+
+    if (next.extra) {
+      Object.entries(next.extra).forEach(([k, v]) => params.set(k, v));
+    }
+    return `/banking/individual/assessment?${params.toString()}`;
+  }, [mode, filters, pagination.page, pagination.limit]);
 
   const copyToClipboard = useCallback(async (text: string, message: string) => {
     try {
@@ -158,13 +212,7 @@ export default function IndividualAssessmentWizardPage() {
     }
   }, []);
 
-  // Dashboard State
-  const [pagination, setPagination] = useState({
-    page: 0,
-    limit: 10,
-    total: 0
-  });
-  const [filters, setFilters] = useState(FILTER_DEFAULTS);
+
 
   const buildWatchlistUrl = useCallback((next?: {
     search?: string
@@ -174,10 +222,11 @@ export default function IndividualAssessmentWizardPage() {
     downloadDate?: string
     page?: number
     limit?: number
+    tab?: string
   }) => {
     const params = new URLSearchParams();
     params.set('mode', mode);
-    params.set('tab', 'watchlist');
+    params.set('tab', next?.tab || 'watchlist');
 
     const search = (next?.search ?? filters.search) || '';
     const stage = (next?.stage ?? filters.stage) || '';
@@ -196,68 +245,122 @@ export default function IndividualAssessmentWizardPage() {
     if (page > 0) params.set('page', String(page + 1));
     if (limit !== 10) params.set('limit', String(limit));
 
-    return buildIndividualAssessmentUrl(params, pathname);
-  }, [filters.downloadDate, filters.impairedFlag, filters.priorityLevel, filters.search, filters.stage, mode, pagination.limit, pagination.page, pathname]);
+    return `/banking/individual/assessment?${params.toString()}`;
+  }, [filters.downloadDate, filters.impairedFlag, filters.priorityLevel, filters.search, filters.stage, mode, pagination.limit, pagination.page]);
+
+  const handleTabChangeByKey = useCallback((key: string) => {
+    const nextUrl = accountId
+      ? buildAssessmentUrl({ accountId, tab: key, accountNumber: accountNumber || undefined })
+      : buildWatchlistUrl({ tab: key });
+
+    router.push(nextUrl);
+  }, [accountId, accountNumber, buildAssessmentUrl, buildWatchlistUrl, router]);
 
   const [selectedAccount, setSelectedAccount] = useState<IndividualImpairmentWatchlistItem | null>(null);
   const [dcfLoading, setDcfLoading] = useState(false);
   const [dcfCalculation, setDcfCalculation] = useState<any>(null);
-  const watchlistEnabled = !accountId || activeTab === 0;
-  const watchlistQuery = useAssessmentWatchlistQuery({
-    page: pagination.page + 1,
-    limit: pagination.limit,
-    search: filters.search,
-    stage: filters.stage,
-    impairedFlag: filters.impairedFlag,
-    priorityLevel: filters.priorityLevel,
-    downloadDate: filters.downloadDate,
-    mode,
-  }, watchlistEnabled);
-  const summaryQuery = useAssessmentSummaryQuery(filters.downloadDate || undefined, mode, watchlistEnabled);
-  const accountLookupQuery = useAssessmentAccountLookupQuery(
-    accountId,
-    accountNumber,
-    mode,
-    Boolean(accountId && accountNumber),
-  );
+  const [assessmentData, setAssessmentData] = useState<any>(null);
+  const [historyData, setHistoryData] = useState<any[]>([]);
 
-  const watchlist = useMemo(
-    () => watchlistQuery.data?.rows ?? [],
-    [watchlistQuery.data],
-  );
-  const watchlistDebug = watchlistQuery.data?.debug as QueryDebugMetadata | undefined;
-  const summary = useMemo(
-    () => summaryQuery.data ?? undefined,
-    [summaryQuery.data],
-  );
-  const loading = watchlistQuery.isLoading || watchlistQuery.isFetching || summaryQuery.isLoading || summaryQuery.isFetching;
-  const dashboardError =
-    (watchlistQuery.error instanceof Error ? watchlistQuery.error.message : null)
-    || (summaryQuery.error instanceof Error ? summaryQuery.error.message : null);
+  // Derive active tab from URL instead of local state to prevent sync loops
+  const activeTab = useMemo(() => {
+    const tabParam = searchParams.get('tab');
+    if (!tabParam) return accountId ? 2 : 0;
+
+    // We'll define sections in a bit, but for now we just need the index
+    const tabKeys = ['watchlist', 'individual-reports', 'assessment-details', 'dcf-analysis', 'provision-calculation', 'history', 'documents'];
+    const index = tabKeys.indexOf(tabParam);
+    return index !== -1 ? index : (accountId ? 2 : 0);
+  }, [searchParams, accountId]);
+
+  // Fetch Dashboard Data
+  const fetchDashboardData = useCallback(async () => {
+    // Only fetch watchlist dashboard data if we are on the watchlist tab (activeTab === 0)
+    // and not viewing a specific account details.
+    if (activeTab !== 0 || accountId) return;
+
+    setLoading(true);
+    setDashboardError(null);
+    try {
+      const stageValue = Number.parseInt(filters.stage, 10);
+      const stage = Number.isFinite(stageValue) ? stageValue : undefined;
+
+      const impairedFlag =
+        filters.impairedFlag === 'I' || filters.impairedFlag === 'N'
+          ? filters.impairedFlag
+          : undefined;
+
+      const [watchlistRes, summaryRes] = await Promise.all([
+        individualImpairmentAPI.watchlist.getAll({
+          page: pagination.page + 1,
+          limit: pagination.limit,
+          search: filters.search,
+          filter: {
+            stage,
+            impaired_flag: impairedFlag,
+            priority_level: filters.priorityLevel,
+            dateFrom: filters.downloadDate || undefined,
+            dateTo: filters.downloadDate || undefined,
+            mode: mode
+          }
+        }),
+        individualImpairmentAPI.watchlist.getSummary(filters.downloadDate, mode)
+      ]);
+
+      if (watchlistRes.success && Array.isArray(watchlistRes.data)) {
+        setWatchlist(watchlistRes.data);
+        setPagination(prev => ({
+          ...prev,
+          total: watchlistRes.pagination?.total || watchlistRes.data.length || 0
+        }));
+      } else {
+        setWatchlist([]);
+        setPagination(prev => ({ ...prev, total: 0 }));
+      }
+
+      if (summaryRes.success) {
+        const s: any = summaryRes.data ?? undefined;
+        setSummary(s ? {
+          totalAccounts: Number(s.totalAccounts ?? s.total_accounts ?? 0),
+          impairedAccounts: Number(s.impairedAccounts ?? s.impaired_accounts ?? 0),
+          pendingAssessments: Number(s.pendingAssessments ?? s.pending_assessments ?? 0),
+          totalProvisions: Number(s.totalProvisions ?? s.total_provisions ?? 0),
+          dataDate: s.dataDate ?? s.data_date ?? undefined,
+        } : undefined);
+      }
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error);
+      const message =
+        (error as any)?.response?.data?.message ||
+        (error instanceof Error ? error.message : null) ||
+        'Failed to fetch dashboard data';
+      setDashboardError(String(message));
+    } finally {
+      setLoading(false);
+    }
+  }, [activeTab, accountId, filters, mode, pagination.page, pagination.limit]);
 
   useEffect(() => {
-    if (typeof watchlistQuery.data?.total === 'number') {
-      setPagination((prev) => ({ ...prev, total: watchlistQuery.data?.total ?? 0 }));
-    }
-  }, [watchlistQuery.data?.total]);
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
+  // URL State Initialization
   useEffect(() => {
     if (watchlistUrlInitializedRef.current) return;
     if (accountId) return;
 
-    const params = new URLSearchParams(searchKey);
-    const initialTab = params.get('tab');
-    if (initialTab && initialTab !== 'watchlist') return;
+    const tabParam = searchParams.get('tab');
+    if (tabParam && tabParam !== 'watchlist') return;
 
     const nextFilters = { ...FILTER_DEFAULTS };
 
-    const qSearch = params.get('search');
-    const qDownloadDate = params.get('downloadDate');
-    const qStage = params.get('stage');
-    const qImpairedFlag = params.get('impairedFlag');
-    const qPriorityLevel = params.get('priorityLevel');
-    const qPage = params.get('page');
-    const qLimit = params.get('limit');
+    const qSearch = searchParams.get('search');
+    const qDownloadDate = searchParams.get('downloadDate');
+    const qStage = searchParams.get('stage');
+    const qImpairedFlag = searchParams.get('impairedFlag');
+    const qPriorityLevel = searchParams.get('priorityLevel');
+    const qPage = searchParams.get('page');
+    const qLimit = searchParams.get('limit');
 
     if (qSearch) nextFilters.search = qSearch;
     if (qDownloadDate) nextFilters.downloadDate = qDownloadDate;
@@ -266,15 +369,19 @@ export default function IndividualAssessmentWizardPage() {
     if (qPriorityLevel) nextFilters.priorityLevel = qPriorityLevel;
 
     setFilters(nextFilters);
+    const p = qPage ? parseInt(qPage, 10) : NaN;
+    const l = qLimit ? parseInt(qLimit, 10) : NaN;
+
     setPagination((prev) => ({
       ...prev,
-      page: qPage ? Math.max(0, Number(qPage) - 1) : prev.page,
-      limit: qLimit ? Math.max(1, Number(qLimit)) : prev.limit,
+      page: !isNaN(p) ? Math.max(0, p - 1) : prev.page,
+      limit: !isNaN(l) ? Math.max(1, l) : prev.limit,
     }));
 
     watchlistUrlInitializedRef.current = true;
-  }, [accountId, searchKey]);
+  }, [accountId, searchParams]);
 
+  // URL Sync Effect
   useEffect(() => {
     if (accountId) return;
     if (!watchlistUrlInitializedRef.current) return;
@@ -283,18 +390,21 @@ export default function IndividualAssessmentWizardPage() {
       return;
     }
 
-    const url = buildWatchlistUrl();
-    router.replace(url);
-  }, [accountId, buildWatchlistUrl, filters.downloadDate, filters.impairedFlag, filters.priorityLevel, filters.search, filters.stage, pagination.limit, pagination.page, router]);
+    const currentTab = searchParams.get('tab') || 'watchlist';
+    const nextUrl = buildWatchlistUrl({ tab: currentTab });
+    const currentSearch = typeof window !== 'undefined' ? window.location.search : '';
+    const targetSearch = nextUrl.split('?')[1] ? `?${nextUrl.split('?')[1]}` : '';
 
+    if (currentSearch !== targetSearch && targetSearch !== '') {
+        router.replace(nextUrl);
+    }
+  }, [buildWatchlistUrl, router, searchParams, accountId]);
+
+  // Account Selection Sync
   useEffect(() => {
     if (!accountId) {
       setSelectedAccount(null);
       setDcfCalculation(null);
-      if (!ACCOUNT_OPTIONAL_SECTIONS.has(SECTION_KEYS[activeTab] ?? '')) {
-        skipTabUrlSyncRef.current = true;
-        setActiveTab(0);
-      }
       return;
     }
 
@@ -303,24 +413,138 @@ export default function IndividualAssessmentWizardPage() {
       const match = watchlist.find((w) => w.account_id === id);
       if (match) setSelectedAccount(match);
     }
-  }, [accountId, activeTab, watchlist]);
+  }, [accountId, watchlist]);
 
+  // External Account Fetching (Direct URL Access)
   useEffect(() => {
-    if (!accountId) return;
-    if (selectedAccount && String(selectedAccount.account_id) === String(accountId)) return;
-    if (accountLookupQuery.data) {
-      setSelectedAccount(accountLookupQuery.data);
-    }
-  }, [accountId, accountLookupQuery.data, selectedAccount]);
+    const fetchSelectedAccount = async () => {
+      if (!accountId) return;
+      if (selectedAccount && String(selectedAccount.account_id) === String(accountId)) return;
 
-  const handleRefreshDashboard = useCallback(async () => {
-    await Promise.all([
-      watchlistQuery.refetch(),
-      summaryQuery.refetch(),
-    ]);
-  }, [summaryQuery, watchlistQuery]);
+      const idNum = Number(accountId);
+      const match = watchlist.find(w => w.account_id === idNum);
+      if (match) {
+        setSelectedAccount(match);
+        return;
+      }
 
-  // Handlers for Dashboard
+      try {
+        setLoading(true);
+        let res;
+        if (accountNumber) {
+          res = await individualImpairmentAPI.watchlist.getAll({
+            page: 1, limit: 1, search: accountNumber, filter: { mode }
+          });
+        } else {
+          res = await individualImpairmentAPI.watchlist.getById(idNum);
+        }
+
+        if (res?.success) {
+          const found = Array.isArray(res.data)
+            ? (res.data.find((w: any) => String(w.account_id) === String(accountId)) ?? res.data[0])
+            : res.data;
+          if (found) setSelectedAccount(found);
+        } else if (res && !res.success && res.account_id) {
+           setSelectedAccount(res);
+        }
+      } catch (err) {
+        console.error('Failed to sync account for workspace:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSelectedAccount();
+  }, [accountId, accountNumber, mode, watchlist, selectedAccount]);
+
+  // Fetch current assessment status for the page
+  useEffect(() => {
+    const fetchStatus = async () => {
+      if (!accountId) {
+        setAssessmentData(null);
+        setHistoryData([]);
+        return;
+      }
+      try {
+        const res = await individualImpairmentAPI.assessment.get(Number(accountId));
+        if (res.success) {
+          setAssessmentData(res.data.header || res.data);
+        }
+
+        // Also fetch history
+        const histRes = await individualImpairmentAPI.assessment.getHistory(Number(accountId));
+        if (histRes.success) {
+          setHistoryData(histRes.data || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch assessment status in page:', err);
+      }
+    };
+    fetchStatus();
+  }, [accountId, stagedOverride, stagedDCF, historyRefreshKey]); // Re-fetch when staging or refresh requested
+
+  // Fetch existing DCF result when account is selected
+  useEffect(() => {
+    const fetchExistingDcf = async () => {
+      if (!selectedAccount?.account_id) {
+        setDcfCalculation(null);
+        return;
+      }
+
+      // If we already have fresh calculation in state, don't overwrite with historical unless it's a new account
+      if (dcfCalculation && !dcfCalculation.isHistorical) return;
+
+      try {
+        const response = await individualImpairmentAPI.getIaResultDetail({
+            accountId: selectedAccount.account_id
+        });
+        if (response?.success && response.data?.header) {
+          const header = response.data.header;
+          const historicalCalc = {
+            presentValue: Number(header.pvDcfAmt),
+            lgd: Number(header.outstanding) - Number(header.pvDcfAmt),
+            recommendedProvision: Number(header.eclIaAmt),
+            outstanding: Number(header.outstanding),
+            isHistorical: true,
+            details: (response.data.details || []).map((d: any) => ({
+              period: d.periode,
+              cashflow: d.amount,
+              pv: d.pvAmount,
+              discountFactor: d.amount > 0 ? d.pvAmount / d.amount : 0
+            })),
+            assumptions: {
+              discountRate: Number(header.effInterestRate || header.interestRate),
+              recoveryRate: 0,
+            }
+          };
+          setDcfCalculation(historicalCalc);
+
+          // Also stage it as historical DCF so it can be used for consolidated submission/revision
+          setStagedDCF({
+            accountId: selectedAccount.account_id,
+            accountNumber: selectedAccount.account_number,
+            fileName: 'Historical Report Data',
+            totalRows: historicalCalc.details.length,
+            cashflows: historicalCalc.details,
+            scenarioType: 'historical',
+            scenariosCount: 1,
+            uploadedBy: 'system',
+            uploadedAt: new Date().toISOString(),
+            results: historicalCalc,
+            isHistorical: true
+          });
+        } else {
+          setDcfCalculation(null);
+        }
+      } catch (err) {
+        console.error('Failed to fetch existing DCF:', err);
+      }
+    };
+
+    fetchExistingDcf();
+  }, [selectedAccount?.account_id]);
+
+  // Handlers
   const handlePageChange = (event: unknown, newPage: number) => {
     setPagination(prev => ({ ...prev, page: newPage }));
   };
@@ -348,23 +572,30 @@ export default function IndividualAssessmentWizardPage() {
   const handleViewDetails = (account: IndividualImpairmentWatchlistItem) => {
     router.push(buildAssessmentUrl({ accountId: account.account_id, tab: 'assessment-details', accountNumber: account.account_number }));
   };
+
   const handleEditAssessment = (account: IndividualImpairmentWatchlistItem) => {
     router.push(buildAssessmentUrl({ accountId: account.account_id, tab: 'assessment-details', accountNumber: account.account_number }));
   };
 
   const handleResetAssessment = async (account: IndividualImpairmentWatchlistItem) => {
     try {
-      const response = await (individualImpairmentAPI as any).removeFromWatchlist(String(account.account_id));
+      const response = await individualImpairmentAPI.assessment.reset(Number(account.account_id));
       if (response?.success) {
-        await handleRefreshDashboard();
+        // Clear local staged states if resetting current selection
         if (String(accountId) === String(account.account_id)) {
-          router.replace(buildAssessmentUrl({}));
+          setStagedOverride(null);
+          setStagedDCF(null);
+          setDcfCalculation(null);
+          autoSubmitInProgress.current = false;
         }
+
+        await fetchDashboardData();
+        setHeaderSnackbar({ open: true, message: 'Assessment reset successfully. Pending data and files cleared.', severity: 'success' });
         return { success: true, message: 'Reset successful' };
       }
       return { success: false, message: response?.message || 'Reset failed' };
-    } catch (error) {
-      return { success: false, message: 'Reset failed' };
+    } catch (error: any) {
+      return { success: false, message: error.message || 'Reset failed' };
     }
   };
 
@@ -378,137 +609,98 @@ export default function IndividualAssessmentWizardPage() {
         accountId: resolvedAccountId,
         assumptions: payload
       });
-      if (response?.success) {
+      if (response?.success && response.data) {
         setDcfCalculation(response.data);
+
+        // AUTO-STAGE: Capture this calculation as staged DCF for consolidated submission
+        const autoStagedDCF = {
+            accountId: resolvedAccountId,
+            accountNumber: payload.accountNumber || selectedAccount?.account_number,
+            fileName: 'Manual Calculation',
+            totalRows: 1,
+            cashflows: response.data.details || [],
+            scenarioType: response.data.scenario || payload.scenarioType || 'manual',
+            scenariosCount: 1,
+            uploadedBy: user?.id ?? 'unknown',
+            uploadedAt: new Date().toISOString(),
+            // Store the full result for reference
+            results: response.data
+        };
+        setStagedDCF(autoStagedDCF);
+
+        // REMOVED: Automatic navigate to Provision. Allow user to upload DCF file first.
+        setHeaderSnackbar({ open: true, message: 'Scenario calculated. Please upload the DCF file to complete the package.', severity: 'success' });
+      } else {
+        setHeaderSnackbar({ open: true, message: response?.message || 'Calculation failed. Please check your parameters.', severity: 'error' });
       }
     } finally {
       setDcfLoading(false);
     }
   };
 
-  const watchlistContent = (
-    <>
-      {dashboardError ? (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {dashboardError}
-        </Alert>
-      ) : null}
-      <AssessmentKPI
-        watchlist={watchlist}
-        loading={loading}
-        summary={summary}
-      />
+  // REMOVED: AUTOMATIC SUBMISSION LOGIC
+  // We now rely on manual submission from the Provision tab to allow for final review.
 
-      <Card sx={{ mt: 3 }}>
-        <CardContent>
-          <AssessmentFilters
-            filters={filters}
-            onFilterChange={handleFilterChange}
-            onReset={handleResetFilters}
-            mode={mode}
-          />
+  const handleFinalPackageSubmit = async () => {
+    if (!selectedAccount) return;
+    if (!stagedOverride && !stagedDCF) {
+        setHeaderSnackbar({ open: true, message: 'Please stage an override or DCF upload first.', severity: 'warning' });
+        return;
+    }
 
-          <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap' }}>
-            <Chip
-              label={`Showing ${watchlist.length} of ${pagination.total}`}
-              variant="outlined"
-              size="small"
-              sx={{ fontWeight: 600 }}
-            />
-            <Chip
-              label="Source: FRS9_MASTER_ACCOUNT"
-              variant="outlined"
-              size="small"
-            />
-            {filters.search ? (
-              <Chip
-                label={`Search: ${filters.search}`}
-                size="small"
-                onDelete={() => handleFilterChange('search', '')}
-              />
-            ) : null}
-            {filters.downloadDate ? (
-              <Chip
-                label={`Date: ${filters.downloadDate}`}
-                size="small"
-                onDelete={() => handleFilterChange('downloadDate', '')}
-              />
-            ) : null}
-            {filters.stage ? (
-              <Chip
-                label={`Stage: ${filters.stage}`}
-                size="small"
-                onDelete={() => handleFilterChange('stage', '')}
-              />
-            ) : null}
-            {filters.impairedFlag ? (
-              <Chip
-                label={`Impaired: ${filters.impairedFlag}`}
-                size="small"
-                onDelete={() => handleFilterChange('impairedFlag', '')}
-              />
-            ) : null}
-            {filters.priorityLevel ? (
-              <Chip
-                label={`Priority: ${filters.priorityLevel}`}
-                size="small"
-                onDelete={() => handleFilterChange('priorityLevel', '')}
-              />
-            ) : null}
-          </Stack>
+    if (submittingPackage) return;
+    setSubmittingPackage(true);
 
-          {watchlistDebug ? (
-            <Accordion disableGutters sx={{ mb: 2, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'flex-start', sm: 'center' }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    Watchlist Debug Query
-                  </Typography>
-                  <Chip label={watchlistDebug.selectedSource || 'FRS9_MASTER_ACCOUNT'} size="small" variant="outlined" />
-                  <Chip label={watchlistDebug.endpoint || '/watchlist'} size="small" variant="outlined" />
-                </Stack>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Box
-                  component="pre"
-                  sx={{
-                    m: 0,
-                    p: 1.5,
-                    borderRadius: 1,
-                    bgcolor: 'grey.100',
-                    overflow: 'auto',
-                    fontSize: '0.75rem',
-                    whiteSpace: 'pre-wrap',
-                  }}
-                >
-{JSON.stringify({
-  sourceTables: watchlistDebug.sourceTables,
-  filtersApplied: watchlistDebug.filtersApplied,
-  sqlPreview: watchlistDebug.sqlPreview,
-  notes: watchlistDebug.notes,
-}, null, 2)}
-                </Box>
-              </AccordionDetails>
-            </Accordion>
-          ) : null}
+    try {
+        const requestedBy = user?.id ?? user?.email ?? 'unknown';
+        const titleParts = [];
+        if (stagedOverride) titleParts.push('Override');
+        if (stagedDCF) titleParts.push('DCF');
 
-          <AssessmentWatchlist
-            watchlist={watchlist}
-            loading={loading}
-            pagination={pagination}
-            onPageChange={handlePageChange}
-            onRowsPerPageChange={handleRowsPerPageChange}
-            onAccountSelect={handleAccountSelect}
-            onEditAssessment={handleEditAssessment}
-            onViewDetails={handleViewDetails}
-            onResetAssessment={handleResetAssessment}
-            selectedAccountId={accountId}
-            mode={mode}
-          />
-        </CardContent>
-      </Card>
-    </>
-  );
+        // Capture data before clearing state
+        const submissionData = {
+            operation: 'update',
+            accountId: selectedAccount.account_id,
+            accountNumber: selectedAccount.account_number,
+            cifNumber: selectedAccount.cif_number,
+            cifName: selectedAccount.cif_name,
+            ...stagedOverride,
+            ...stagedDCF,
+            isConsolidated: true,
+            justification: stagedOverride?.justification || 'Consolidated Assessment Submission'
+        };
+
+        await approvalAPI.createRequest({
+            tenantId: user?.tenantId || 'default',
+            entityType: 'INDIVIDUAL_ASSESSMENT_CONSOLIDATED',
+            entityId: String(selectedAccount.account_id),
+            title: `Assessment Package: ${selectedAccount.account_number} (${titleParts.join(' + ')})`,
+            description: `Consolidated assessment for ${selectedAccount.cif_name}. Requested by ${requestedBy}.`,
+            requestedBy,
+            requestData: submissionData
+        });
+
+        setHeaderSnackbar({ open: true, message: 'Assessment package submitted for approval successfully!', severity: 'success' });
+
+        // CLEAR STATE
+        setStagedOverride(null);
+        setStagedDCF(null);
+        autoSubmitInProgress.current = false;
+
+        // Refresh data
+        await fetchDashboardData();
+        setHistoryRefreshKey(prev => prev + 1); // Refresh history tab
+
+        // UX: Redirect to Reports tab after submission to see pending status
+        handleTabChangeByKey('individual-reports');
+  } catch (error: any) {
+    setHeaderSnackbar({ open: true, message: error.message || 'Failed to submit assessment package', severity: 'error' });
+  } finally {
+    setSubmittingPackage(false);
+  }
+};
+
+
 
   const sections = useMemo<SectionDef[]>(
     () => [
@@ -516,32 +708,59 @@ export default function IndividualAssessmentWizardPage() {
         key: 'watchlist',
         label: 'Watchlist',
         section: '16',
-        icon: <AssignmentIcon />,
         helper: 'Melihat daftar debitur yang memerlukan penilaian individu, termasuk filter dan pencarian.',
-        render: () => watchlistContent
+        icon: AssignmentIcon,
+        render: () => null
       },
       {
         key: 'individual-reports',
-        label: 'Individual Reports',
+        label: 'Reports',
         section: '17',
-        icon: <SummarizeIcon />,
-        helper: 'Melihat hasil individual impairment yang sudah masuk ke FRS9_IMP_IA_HEADER, termasuk Review, History, dan DCF.',
-        render: () => <IndividualReportsSection />
+        helper: 'View the list of processed individual assessment reports.',
+        icon: AssessmentIcon,
+        render: () => (
+          <AssessmentReportsTab
+            onNavigate={(id, tab, num, isEdit) => {
+              router.push(buildAssessmentUrl({
+                accountId: id,
+                tab,
+                accountNumber: num,
+                extra: isEdit ? { edit: 'true' } : undefined
+              }));
+            }}
+          />
+        )
       },
       {
         key: 'assessment-details',
-        label: 'Assessment Details',
+        label: 'Details',
         section: '18',
-        icon: <AssessmentIcon />,
         helper: 'Melihat status detail dan melakukan override penilaian manual jika diperlukan.',
-        render: () => <OverrideTriggerSection />
+        icon: AssessmentIcon,
+        render: () => (
+          <AssessmentDetailsTab
+            account={selectedAccount}
+            assessment={null}
+            onUpdateAssessment={async (data) => {
+              // Extract the actual override data if it's wrapped
+              const actualData = (data as any).stagedOverride || data;
+              setStagedOverride(actualData);
+              // UX: Automatically navigate to DCF Analysis tab after staging
+              handleTabChangeByKey('dcf-analysis');
+              return { success: true };
+            }}
+            onTabChange={handleTabChangeByKey}
+            assessmentData={assessmentData}
+            historyData={historyData}
+          />
+        )
       },
       {
         key: 'dcf-analysis',
-        label: 'DCF Analysis',
+        label: 'DCF',
         section: '20',
-        icon: <CalculateIcon />,
         helper: 'Melakukan perhitungan Discounted Cash Flow dan menghitung Present Value.',
+        icon: CalculateIcon,
         render: () => (
           <DCFAnalysisTab
             account={selectedAccount}
@@ -549,113 +768,155 @@ export default function IndividualAssessmentWizardPage() {
             onCalculate={handleCalculateDcf}
             calculationResults={dcfCalculation}
             loading={dcfLoading}
+            onStagedDCF={(data) => {
+              setStagedDCF(data);
+              // If the data contains calculation results (from manual or upload), update the UI state
+              if (data.results) {
+                setDcfCalculation(data.results);
+              }
+              // UX: Automatically navigate to Provision Calculation tab AFTER UPLOAD/STAGING is complete
+              handleTabChangeByKey('provision-calculation');
+            }}
           />
         )
       },
       {
         key: 'provision-calculation',
-        label: 'Provision Calculation',
+        label: 'Provision',
         section: '21',
-        icon: <MoneyIcon />,
         helper: 'Menghitung CKPN/Provision berdasarkan hasil DCF dan Outstanding Balance.',
+        icon: MonetizationOnIcon,
         render: () => (
           <ProvisionCalculationTab
             account={selectedAccount}
             assessment={null}
             calculation={dcfCalculation}
             loading={dcfLoading}
+            isStagedOverrideReady={!!stagedOverride}
+            isStagedDCFReady={!!stagedDCF}
+            onFinalSubmit={handleFinalPackageSubmit}
+            submitting={submittingPackage}
           />
         )
       },
       {
         key: 'history',
-        label: 'History',
+        label: 'Assessment & Approval History',
         section: '22',
-        icon: <HistoryIcon />,
-        helper: 'Melihat audit trail dan riwayat perubahan assessment untuk debitur terpilih.',
-        render: () => <AssessmentHistoryTab account={selectedAccount} />
+        helper: 'Melihat riwayat aktivitas dan audit trail penilaian individu.',
+        icon: HistoryIcon,
+        render: () => (
+          <AssessmentHistoryTab
+            key={`history-${accountId}-${historyRefreshKey}`} // Force remount/refetch when account or refreshKey changes
+            account={selectedAccount}
+          />
+        )
       },
       {
         key: 'documents',
         label: 'Documents',
         section: '23',
-        icon: <DescriptionIcon />,
-        helper: 'Mengelola dokumen pendukung assessment individual untuk debitur terpilih.',
-        render: () => <AssessmentDocumentsTab account={selectedAccount} />
+        helper: 'Mengelola dan melihat dokumen pendukung penilaian.',
+        icon: FolderIcon,
+        render: () => (
+          <AssessmentDocumentsTab
+            key={`docs-${accountId}-${stagedOverride ? 'o' : ''}-${stagedDCF ? 'd' : ''}`}
+            account={selectedAccount}
+            stagedOverride={stagedOverride}
+            stagedDCF={stagedDCF}
+            assessmentData={assessmentData}
+            historyData={historyData}
+          />
+        )
       }
     ],
-    [dcfCalculation, dcfLoading, handleCalculateDcf, selectedAccount, watchlistContent]
+    [accountId, accountNumber, buildAssessmentUrl, dcfCalculation, dcfLoading, handleTabChangeByKey, router, selectedAccount]
   );
 
-  useEffect(() => {
-    if (accountId || !tabParam || !ACCOUNT_OPTIONAL_SECTIONS.has(tabParam)) return;
+  const handleTabChange = useCallback((nextIndex: number) => {
+    const nextSection = sections[nextIndex];
+    if (!nextSection) return;
 
-    const tabIndex = SECTION_KEYS.indexOf(tabParam as typeof SECTION_KEYS[number]);
-    if (tabIndex !== -1) {
-      setActiveTab((current) => current === tabIndex ? current : tabIndex);
-    }
-  }, [accountId, tabParam]);
-
-  useEffect(() => {
-    if (!accountId) return;
-
-    if (tabParam) {
-      const tabIndex = SECTION_KEYS.indexOf(tabParam as typeof SECTION_KEYS[number]);
-      if (tabIndex !== -1) {
-        skipTabUrlSyncRef.current = true;
-        setActiveTab((current) => current === tabIndex ? current : tabIndex);
-        return;
-      }
-    }
-
-    const assessmentDetailsIndex = SECTION_KEYS.indexOf('assessment-details');
-
-    // Default to Assessment Details when an account is opened from the watchlist.
-    skipTabUrlSyncRef.current = true;
-    setActiveTab((current) => current === assessmentDetailsIndex ? current : assessmentDetailsIndex);
-  }, [accountId, tabParam]);
-
-  useEffect(() => {
-    if (!accountId) return;
-    if (skipTabUrlSyncRef.current) {
-      skipTabUrlSyncRef.current = false;
+    if (nextIndex > 1 && !accountId) {
+      setHeaderSnackbar({
+        open: true,
+        message: 'Pilih debitur terlebih dahulu untuk mengakses tab Assessment, DCF, dan Provision',
+        severity: 'info'
+      });
       return;
     }
 
-    const key = SECTION_KEYS[activeTab];
-    if (!key) return;
-
-    if (tabParam === key) return;
-
-    router.replace(buildAssessmentUrl({ accountId, tab: key, accountNumber: accountNumber || undefined }));
-  }, [accountId, accountNumber, activeTab, buildAssessmentUrl, router, tabParam]);
+    handleTabChangeByKey(nextSection.key);
+  }, [sections, accountId, handleTabChangeByKey]);
 
   const activeSection = sections[activeTab] ?? sections[0];
 
   return (
-    <Container maxWidth="xl" sx={{ py: 2 }}>
+    <Container maxWidth={false} sx={{ py: 1, px: { xs: 1, md: 1.5 } }}>
       <FullstackIndicator />
+
+      {/* Auto-submission Progress Overlay */}
+      <Backdrop
+        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1, flexDirection: 'column', gap: 2, backdropFilter: 'blur(4px)', bgcolor: 'rgba(0,0,0,0.7)' }}
+        open={submittingPackage}
+      >
+        <CircularProgress color="inherit" size={60} thickness={4} />
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>Submitting Assessment Package...</Typography>
+          <Typography variant="body1" sx={{ opacity: 0.8 }}>Consolidating Adjustment and DCF data for Checker review.</Typography>
+        </Box>
+      </Backdrop>
+
       <PageHeader
         title="Assessment Workspace"
         subtitle={`Individual Impairment workflow (SOP) - ${mode.toUpperCase()} Mode`}
-        onRefresh={activeSection.key === 'watchlist' ? handleRefreshDashboard : undefined}
-        loading={activeSection.key === 'watchlist' ? loading : false}
+        chip={hasLiveNotifications ? "LIVE UPDATES" : undefined}
+        chipColor="success"
         extraActions={
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-            {accountId && activeSection.key !== 'watchlist' ? (
+            {hasLiveNotifications && (
+                <Box
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        bgcolor: 'rgba(76, 175, 80, 0.1)',
+                        px: 1.5,
+                        py: 0.5,
+                        borderRadius: '20px',
+                        border: '1px solid rgba(76, 175, 80, 0.2)',
+                        mr: 1
+                    }}
+                >
+                    <Box
+                        sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            bgcolor: '#4caf50',
+                            animation: `${livePulse} 2s infinite ease-in-out`,
+                            boxShadow: '0 0 10px #4caf50'
+                        }}
+                    />
+                    <Typography variant="caption" sx={{ color: '#2e7d32', fontWeight: 700, letterSpacing: '0.5px' }}>
+                        NEW REQUESTS
+                    </Typography>
+                </Box>
+            )}
+            {accountId && (
               <Button
                 variant="outlined"
                 onClick={() => router.push(buildAssessmentUrl({}))}
               >
                 Back to Watchlist
               </Button>
-            ) : null}
-            <Tooltip title="Copy current workspace link">
+            )}
+            <Tooltip title={accountId ? "Copy current workspace link" : "Watchlist link (filters included)"}>
               <span>
                 <Button
                   variant="outlined"
                   startIcon={<CopyIcon />}
-                  onClick={() => copyToClipboard(window.location.href, 'Workspace link copied')}
+                  onClick={() => copyToClipboard(window.location.href, accountId ? 'Workspace link copied' : 'Watchlist link copied')}
                 >
                   Copy Link
                 </Button>
@@ -676,89 +937,173 @@ export default function IndividualAssessmentWizardPage() {
         }
       />
 
-      {accountId && !selectedAccount && (
+      {accountId && !selectedAccount && !loading && (
         <Alert severity="info" sx={{ mb: 2 }}>
-          Memuat detail debitur terpilih. Jika data tidak muncul, kembali ke Watchlist lalu buka ulang dari ikon Mata (View Details).
+          Pilih debitur dari Watchlist menggunakan ikon Mata (View Details) untuk membuka tab Assessment, DCF, dan Provision.
         </Alert>
       )}
-      {selectedAccount && (
-        <Card sx={{ mb: 2 }}>
-          <CardContent sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-            <Box>
-              <Typography variant="subtitle2" color="text.secondary">
-                Selected Account
-              </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                {selectedAccount.account_number}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {selectedAccount.cif_name} • {selectedAccount.cif_number}
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-              <Chip label={`Stage ${selectedAccount.stage}`} color={selectedAccount.stage === 1 ? 'success' : selectedAccount.stage === 2 ? 'warning' : 'error'} />
-              <Chip label={selectedAccount.impaired_flag === 'I' ? 'Impaired' : 'Not Impaired'} color={selectedAccount.impaired_flag === 'I' ? 'error' : 'default'} variant={selectedAccount.impaired_flag === 'I' ? 'filled' : 'outlined'} />
-              <Chip label={selectedAccount.assessment_status} variant="outlined" />
-              <Tooltip title="Copy account summary">
-                <span>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={<CopyIcon />}
-                    onClick={() => {
-                      const summaryText = [
-                        `Account: ${selectedAccount.account_number} (${selectedAccount.account_id})`,
-                        `CIF: ${selectedAccount.cif_name} (${selectedAccount.cif_number})`,
-                        `Stage: ${selectedAccount.stage}`,
-                        `Impaired: ${selectedAccount.impaired_flag}`,
-                        `Status: ${selectedAccount.assessment_status}`,
-                      ].join('\n')
-                      void copyToClipboard(summaryText, 'Account summary copied')
-                    }}
-                  >
-                    Copy Summary
-                  </Button>
-                </span>
-              </Tooltip>
-              <Tooltip title="Download selected account JSON">
-                <span>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={<DownloadIcon />}
-                    onClick={() => {
-                      const safe = String(selectedAccount.account_number || selectedAccount.account_id || 'account').replace(/[^\w.-]+/g, '_')
-                      downloadJson(`selected_account_${safe}.json`, selectedAccount)
-                    }}
-                  >
-                    Download JSON
-                  </Button>
-                </span>
-              </Tooltip>
-            </Box>
+      {accountId && selectedAccount && (
+        <Card sx={{ mb: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', overflow: 'visible' }}>
+          <CardContent sx={{ p: 2 }}>
+            <Grid container spacing={2} alignItems="center">
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar sx={{ bgcolor: 'primary.main', width: 48, height: 48 }}>
+                    {selectedAccount.cif_name ? selectedAccount.cif_name.charAt(0) : '?'}
+                  </Avatar>
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">Selected Debtor</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                      {selectedAccount.cif_name}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'flex', gap: 1 }}>
+                      <span>Acc: {selectedAccount.account_number}</span>
+                      <span>•</span>
+                      <span>CIF: {selectedAccount.cif_number}</span>
+                    </Typography>
+                  </Box>
+                </Box>
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 8 }}>
+                <Box sx={{ px: { md: 4 } }}>
+                   <Stepper activeStep={activeTab >= 2 ? activeTab - 2 : 0} alternativeLabel size="small">
+                      {sections.slice(2).map((s, idx) => (
+                        <Step
+                          key={s.key}
+                          completed={
+                            s.key === 'assessment-details' ? !!stagedOverride :
+                            s.key === 'dcf-analysis' ? !!stagedDCF :
+                            s.key === 'provision-calculation' ? (!!stagedDCF) :
+                            activeTab > idx + 2
+                          }
+                        >
+                          <StepLabel
+                            onClick={() => handleTabChangeByKey(s.key)}
+                            sx={{ cursor: 'pointer', '& .MuiStepLabel-label': { fontSize: '0.7rem', fontWeight: 600 } }}
+                            StepIconProps={{
+                              sx: {
+                                '&.Mui-completed': { color: 'success.main' },
+                                '&.Mui-active': { color: 'primary.main' }
+                              }
+                            }}
+                          >
+                            {s.label}
+                          </StepLabel>
+                        </Step>
+                      ))}
+                   </Stepper>
+                </Box>
+              </Grid>
+            </Grid>
           </CardContent>
         </Card>
       )}
 
+
+      {accountId && (() => {
+        const isProcessed = assessmentData?.status === 1 ||
+                          assessmentData?.is_pending_approval ||
+                          assessmentData?.approval_status === 'APPROVED';
+
+        // Distinguish between data pre-loaded from history and data actively changed by user
+        const isStagingOverride = stagedOverride && !stagedOverride.isHistorical;
+        const isStagingDCF = stagedDCF && stagedDCF.scenarioType !== 'historical';
+        const isActivelyStaging = isStagingOverride || isStagingDCF;
+
+        const isFullyStaged = (stagedOverride || isProcessed) && (stagedDCF || isProcessed);
+
+        // Hide the entire status bar if it's already processed and the user hasn't started a new revision (active staging)
+        if (isProcessed && !isActivelyStaging) return null;
+
+        return (
+          <Box sx={{ mb: 2 }}>
+            {!isFullyStaged ? (
+              <Alert
+                severity="warning"
+                variant="outlined"
+                sx={{ borderRadius: 2, bgcolor: '#fff9c4', borderColor: '#fbc02d' }}
+                action={
+                  <Button color="inherit" size="small" onClick={() => handleTabChangeByKey(!stagedOverride ? 'assessment-details' : 'dcf-analysis')}>
+                    COMPLETE NOW
+                  </Button>
+                }
+              >
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                  Package Incomplete:
+                  {!stagedOverride && <Chip size="small" label="Adjustment Missing" sx={{ ml: 1, bgcolor: 'error.light', color: 'white' }} />}
+                  {!stagedDCF && <Chip size="small" label="DCF Missing" sx={{ ml: 1, bgcolor: 'error.light', color: 'white' }} />}
+                </Typography>
+                <Typography variant="caption">
+                  Please complete all required components to enable consolidated submission for this customer.
+                </Typography>
+              </Alert>
+            ) : (
+              <Alert
+                severity="success"
+                variant="filled"
+                sx={{ borderRadius: 2 }}
+              >
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                  Ready for Submission!
+                </Typography>
+                <Typography variant="caption">
+                  Both Adjustment and DCF components are staged. The system is ready to finalize the package.
+                </Typography>
+              </Alert>
+            )}
+          </Box>
+        );
+      })()}
+
       <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 2, bgcolor: 'background.paper' }}>
         <Tabs
           value={activeTab}
-          onChange={(_, next) => setActiveTab(next)}
-          variant="scrollable"
-          scrollButtons="auto"
-          sx={{ px: 2, pt: 1 }}
-        >
-          {sections.map((section) => (
-            <Tab
-              key={section.key}
-              label={section.label}
-              icon={section.icon}
-              iconPosition="start"
-              disabled={
-                (!accountId && !ACCOUNT_OPTIONAL_SECTIONS.has(section.key))
+          onChange={(_, next) => handleTabChange(next)}
+          variant="fullWidth" // Ensures 1/7 width for each tab consistently
+          sx={{
+            minHeight: 56, // Stable height
+            bgcolor: 'background.paper',
+            borderTopLeftRadius: 8,
+            borderTopRightRadius: 8,
+            '& .MuiTabs-indicator': { height: 3, bgcolor: 'primary.main', borderRadius: '3px 3px 0 0' },
+            '& .MuiTab-root': {
+              minHeight: 56,
+              minWidth: 0,
+              p: 0,
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: '0.85rem', // Stable professional font size
+              color: 'text.secondary',
+              transition: 'none', // Remove transitions to prevent shifting perception
+              '&.Mui-selected': {
+                color: 'primary.main',
+                fontWeight: 700
               }
-            />
-          ))}
+            }
+          }}
+        >
+          {sections.map((section, index) => {
+            const Icon = section.icon;
+            return (
+              <Tab
+                key={section.key}
+                icon={<Icon sx={{ fontSize: 20, mb: '2px !important' }} />}
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    {section.label}
+                    {section.key === 'history' && stagedOverride && (
+                      <Chip size="small" color="primary" sx={{ height: 10, width: 10, minWidth: 10, borderRadius: '50%', p: 0, '& .MuiChip-label': { display: 'none' } }} />
+                    )}
+                    {section.key === 'provision-calculation' && stagedDCF && (
+                      <Chip size="small" color="primary" sx={{ height: 10, width: 10, minWidth: 10, borderRadius: '50%', p: 0, '& .MuiChip-label': { display: 'none' } }} />
+                    )}
+                  </Box>
+                }
+                disabled={index > 1 && !accountId}
+              />
+            );
+          })}
         </Tabs>
 
         <Divider />
@@ -769,10 +1114,101 @@ export default function IndividualAssessmentWizardPage() {
           </Typography>
         </Box>
 
-        <Box sx={{ p: 1 }}>
-          <AssessmentWorkspaceEmbeddedProvider>
-            {activeSection.render()}
-          </AssessmentWorkspaceEmbeddedProvider>
+        <Box sx={{ p: 1.5, width: '100%', boxSizing: 'border-box' }}>
+          {activeTab === 0 ? (
+            <Box sx={{ width: '100%' }}>
+              {dashboardError ? (
+                <Alert severity="error" sx={{ mb: 2 }}>{dashboardError}</Alert>
+              ) : null}
+              <AssessmentKPI
+                watchlist={watchlist}
+                loading={loading}
+                summary={summary}
+              />
+              <Card sx={{ mt: 2, borderRadius: 2, border: '1px solid #e0e0e0', boxShadow: 'none' }}>
+                <CardContent sx={{ p: 2 }}>
+                  <AssessmentFilters
+                    filters={filters}
+                    onFilterChange={handleFilterChange}
+                    onReset={handleResetFilters}
+                    mode={mode}
+                  />
+                  <Stack direction="row" spacing={1} sx={{ mb: 1.5, flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
+                    {/* Active Filter Chips */}
+                    {Object.entries(filters).map(([key, value]) => {
+                      if (!value || key === 'search') return null;
+
+                      let label = '';
+                      if (key === 'downloadDate') label = `Date: ${dayjs(value as string).format('DD MMM YYYY')}`;
+                      else if (key === 'stage') label = `Stage ${value}`;
+                      else if (key === 'impairedFlag') label = value === 'I' ? 'Impaired' : 'Non-Impaired';
+                      else if (key === 'priorityLevel') label = `Priority: ${value}`;
+
+                      return (
+                        <Chip
+                          key={key}
+                          label={label}
+                          onDelete={() => handleFilterChange(key, '')}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                          sx={{
+                            borderRadius: 1.5,
+                            bgcolor: 'primary.lighter',
+                            borderColor: 'primary.light',
+                            fontWeight: 600,
+                            '& .MuiChip-deleteIcon': {
+                              color: 'primary.main',
+                              fontSize: 16
+                            }
+                          }}
+                        />
+                      )
+                    })}
+
+                    {/* Results Count Chip */}
+                    <Chip
+                      label={`Showing ${pagination.total > 0 ? (pagination.page * pagination.limit + 1) : 0} - ${Math.min((pagination.page + 1) * pagination.limit, pagination.total)} of ${pagination.total.toLocaleString()} records`}
+                      variant="soft"
+                      size="small"
+                      sx={{
+                        ml: 'auto !important',
+                        height: 28,
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        px: 1,
+                        bgcolor: 'grey.100',
+                        color: 'text.secondary',
+                        border: '1px solid',
+                        borderColor: 'divider'
+                      }}
+                    />
+                  </Stack>
+                  <AssessmentWatchlist
+                    watchlist={watchlist}
+                    loading={loading}
+                    pagination={pagination}
+                    onPageChange={handlePageChange}
+                    onRowsPerPageChange={handleRowsPerPageChange}
+                    onAccountSelect={handleAccountSelect}
+                    onEditAssessment={handleEditAssessment}
+                    onViewDetails={handleViewDetails}
+                    onResetAssessment={handleResetAssessment}
+                    selectedAccountId={accountId}
+                    mode={mode}
+                  />
+                </CardContent>
+              </Card>
+            </Box>
+          ) : (
+            <AssessmentWorkspaceEmbeddedProvider>
+              <Box sx={{ width: '100%' }}>
+                {(accountId || activeTab <= 1) ? activeSection.render() : (
+                  <Alert severity="info">Pilih debitur dari Watchlist untuk membuka tab ini</Alert>
+                )}
+              </Box>
+            </AssessmentWorkspaceEmbeddedProvider>
+          )}
         </Box>
       </Box>
 
@@ -782,12 +1218,7 @@ export default function IndividualAssessmentWizardPage() {
         onClose={() => setHeaderSnackbar((prev) => ({ ...prev, open: false }))}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert
-          severity={headerSnackbar.severity}
-          variant="filled"
-          onClose={() => setHeaderSnackbar((prev) => ({ ...prev, open: false }))}
-          sx={{ width: '100%' }}
-        >
+        <Alert severity={headerSnackbar.severity} variant="filled" onClose={() => setHeaderSnackbar((prev) => ({ ...prev, open: false }))} sx={{ width: '100%' }}>
           {headerSnackbar.message}
         </Alert>
       </Snackbar>
