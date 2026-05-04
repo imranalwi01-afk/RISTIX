@@ -57,7 +57,7 @@ import { Send as SendIcon } from '@mui/icons-material';
 import { approvalAPI } from '@/services/api/approval.api';
 import { useAuth } from '@/providers/AuthProvider';
 import { useNotifications } from '@/providers/NotificationProvider';
-import { keyframes } from '@mui/system';
+import { keyframes } from '@mui/material/styles';
 
 interface SectionDef {
   key: string;
