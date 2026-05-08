@@ -459,6 +459,15 @@ export const BANKING_PERMISSION_CATALOG: SeedPermissionDefinition[] = [
         'approval',
         'WORKFLOW'
     ),
+    createPermission(
+        'approval.requests.self_approve_override',
+        'Self-Approval Override',
+        'Approve own approval request only when the platform DB setting is enabled',
+        'approvals',
+        'self_approve_override',
+        'approval',
+        'WORKFLOW'
+    ),
     ...createResourcePermissions({
         stem: 'notifications',
         label: 'Notifications',

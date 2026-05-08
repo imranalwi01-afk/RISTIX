@@ -212,10 +212,22 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
           borderRadius: 1,
           border: '1px solid',
           borderColor: 'divider',
-          width: '100%'
+          width: '100%',
+          maxWidth: '100%',
+          '&::-webkit-scrollbar': {
+            height: 10,
+            width: 10,
+          },
+          '&::-webkit-scrollbar-track': {
+            backgroundColor: 'rgba(0, 0, 0, 0.04)',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'rgba(0, 0, 0, 0.24)',
+            borderRadius: 999,
+          },
         }}
       >
-        <Table stickyHeader size="small" sx={{ tableLayout: 'fixed', width: '100%', maxWidth: '100%' }} aria-label="Individual Assessment Watchlist">
+        <Table stickyHeader size="small" sx={{ tableLayout: 'fixed', minWidth: 1400 }} aria-label="Individual Assessment Watchlist">
           <TableHead>
             <TableRow>
               <TableCell sx={{

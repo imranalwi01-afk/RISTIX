@@ -44,6 +44,10 @@ export function getApprovalRequestTypeLabel(requestType: unknown): string {
     return 'Individual Impairment V2';
   }
 
+  if (value.toLowerCase() === 'individual_assessment_consolidated') {
+    return 'Individual Assessment Consolidated';
+  }
+
   return value.replace(/_/g, ' ').toUpperCase();
 }
 
