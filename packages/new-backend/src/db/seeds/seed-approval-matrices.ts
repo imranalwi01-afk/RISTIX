@@ -33,6 +33,7 @@ const approvalEntities = [
     'ead_configuration',
     'ecl_configuration',
     'fl_scalar',
+    'individual_assessment_consolidated',
 ] as const
 
 const RESOURCE_BY_ENTITY: Record<string, string> = {
@@ -86,6 +87,13 @@ const approvalPermissions = [
         description: 'Can approve any type of request',
         resource: 'approvals',
         action: 'approve_all',
+    },
+    {
+        code: 'approval.requests.self_approve_override',
+        name: 'Self-Approval Override',
+        description: 'Can approve own approval request only when the platform DB setting is enabled',
+        resource: 'approvals',
+        action: 'self_approve_override',
     },
 ]
 
@@ -507,6 +515,33 @@ const defaultMatrices = [
             },
         ],
     },
+    {
+        name: 'Individual Assessment Consolidated Approval',
+        description: 'Approval workflow for consolidated individual impairment assessment packages',
+        entityType: 'individual_assessment_consolidated',
+        operationType: 'update',
+        isActive: true,
+        autoApprovalRules: {
+            bypassPermissions: [],
+            autoApproveImpactLevels: [],
+        },
+        levels: [
+            {
+                level: 1,
+                name: 'IFRS Checker Review',
+                requiredRoles: ['CHECKER', 'IAF_IFRS_MANAGER'],
+                requiredCount: 1,
+                timeoutHours: 24,
+            },
+            {
+                level: 2,
+                name: 'Risk Final Approval',
+                requiredRoles: ['APPROVER', 'IAF_BANK_CRO'],
+                requiredCount: 1,
+                timeoutHours: 24,
+            },
+        ],
+    },
 ]
 
 const ADMIN_APPROVAL_ENTITIES = new Set([
@@ -574,6 +609,9 @@ const BUSINESS_APPROVAL_PERMISSION_CODES = [
     'approval.fl_scalar.create',
     'approval.fl_scalar.update',
     'approval.fl_scalar.delete',
+    'approval.individual_assessment_consolidated.create',
+    'approval.individual_assessment_consolidated.update',
+    'approval.individual_assessment_consolidated.delete',
 ]
 
 const BUSINESS_CHECKER_ROLES = ['CHECKER', 'IAF_IFRS_MANAGER']
@@ -811,7 +849,7 @@ export async function assignApprovalPermissionsToRoles() {
     const adminApprovalCodes = ADMIN_APPROVAL_PERMISSION_CODES
 
     // Existing generic role codes
-    await assignByRoleCode('PLATFORM_ADMIN', ['approval.all'])
+    await assignByRoleCode('PLATFORM_ADMIN', ['approval.all', 'approval.requests.self_approve_override'])
     await assignByRoleCode('MANAGER', [
         'approval.user.create',
         'approval.user.update',
@@ -830,7 +868,7 @@ export async function assignApprovalPermissionsToRoles() {
     ])
 
     // IAF role codes
-    await assignByRoleCode('IAF_TENANT_SUPERADMIN', ['approval.all'])
+    await assignByRoleCode('IAF_TENANT_SUPERADMIN', ['approval.all', 'approval.requests.self_approve_override'])
     await assignByRoleCode('IAF_TENANT_ADMIN', [
         ...adminApprovalCodes,
         'approval.parameter.create',

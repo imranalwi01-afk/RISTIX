@@ -174,6 +174,22 @@ export const AssessmentFilters: React.FC<AssessmentFiltersProps> = ({ filters, o
           </Select>
         </FormControl>
 
+        <FormControl size="small" sx={{ minWidth: 160 }}>
+          <InputLabel>Status</InputLabel>
+          <Select
+            value={filters.assessmentStatus}
+            label="Status"
+            onChange={(e) => onFilterChange('assessmentStatus', e.target.value)}
+            sx={{ borderRadius: 1.5 }}
+          >
+            <MenuItem value="">All Statuses</MenuItem>
+            <MenuItem value="PENDING">Pending</MenuItem>
+            <MenuItem value="SUBMITTED">Submitted</MenuItem>
+            <MenuItem value="APPROVED">Approved</MenuItem>
+            <MenuItem value="REJECTED">Rejected</MenuItem>
+          </Select>
+        </FormControl>
+
         <Button
           variant="outlined"
           color="error"
