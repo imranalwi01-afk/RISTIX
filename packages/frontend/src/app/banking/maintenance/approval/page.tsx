@@ -58,6 +58,10 @@ import {
   useApprovalStatistics,
   useApprovalUniverseQuery,
 } from '@/features/approval/hooks/useApprovalQueries';
+import {
+  getApprovalRequestTitle,
+  getApprovalRequestTypeLabel,
+} from '@/features/approval/domain/approval.models';
 import { ApprovalActionDialog, ApprovalMatrixEditorDialog } from '@/components/approval';
 import { ApprovalRequestList } from './components/ApprovalRequestList';
 import { ApprovalStatisticsPanel } from './components/ApprovalStatisticsPanel';
@@ -173,8 +177,9 @@ const mapApprovalGridFiltersToBackend = (
 
 const transformApprovalRequest = (req: any): ApprovalRequest => ({
   ...req,
-  requestTitle: req.title || req.requestTitle || 'Untitled Request',
+  requestTitle: getApprovalRequestTitle(req),
   requestType: req.entityType || req.requestType || 'unknown',
+  requestTypeLabel: getApprovalRequestTypeLabel(req.entityType || req.requestType || 'unknown'),
   priority: req.impactLevel || req.priority || 'medium',
   dueDate: req.expiresAt || req.dueDate,
   requestedAt: req.createdAt || req.requestedAt || new Date().toISOString(),

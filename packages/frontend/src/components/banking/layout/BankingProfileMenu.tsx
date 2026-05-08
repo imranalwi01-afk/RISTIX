@@ -20,6 +20,7 @@ import {
 } from '@mui/icons-material';
 import { useBankingTheme } from '../../../providers/BankingThemeProvider'; // Adjust path as needed
 import { useAuth } from '../../../providers/AuthProvider'; // Adjust path as needed
+import { clearAuthTokens } from '../../../utils/auth-token';
 
 interface BankingProfileMenuProps {
     anchorEl: HTMLElement | null;
@@ -47,11 +48,13 @@ export const BankingProfileMenu: React.FC<BankingProfileMenuProps> = ({
             if (logout) {
                 await logout();
             } else {
-                window.location.href = '/login';
+                clearAuthTokens();
+                window.location.replace('/login?logout=true&ts=' + Date.now());
             }
         } catch (error) {
             console.error('Logout error:', error);
-            window.location.href = '/login';
+            clearAuthTokens();
+            window.location.replace('/login?logout=true&error=true&ts=' + Date.now());
         }
     };
 

@@ -2,7 +2,15 @@ import { individualImpairmentService } from '@/services/individual-impairment.se
 import { Context } from 'hono';
 import path from 'path'
 import { promises as fs } from 'fs'
+import { Effect } from 'effect';
+import { createApprovalRequest } from '@/services/approval.service';
+import { formatApprovalRequiredResponse } from '@/lib/approval-helpers';
 import { buildErrorResponse } from '@/lib/http/error-response';
+import {
+    INDIVIDUAL_IMPAIRMENT_V2_ENTITY_TYPE,
+    INDIVIDUAL_IMPAIRMENT_V2_SUBTYPES,
+    isIndividualImpairmentV2Path,
+} from '@/lib/individual-impairment-approval';
 import {
     ListQueryValidationError,
     buildCursorPagination,
@@ -55,6 +63,44 @@ const CUSTOMER_LIST_QUERY_CONFIG: ListQueryConfig = {
     filterableColumns: ['dateFrom', 'dateTo'],
 }
 
+const INDIVIDUAL_REPORT_LIST_QUERY_CONFIG: ListQueryConfig = {
+    defaultLimit: 25,
+    maxLimit: 200,
+    defaultSort: [{ field: 'downloadDate', direction: 'desc' }],
+    searchableColumns: ['accountNumber', 'cifName', 'cifNumber'],
+    filterableColumns: ['reportPeriod', 'dateFrom', 'dateTo', 'status', 'impaired_flag'],
+    sortableColumns: [
+        'pkid',
+        'downloadDate',
+        'prc_date',
+        'accountNumber',
+        'account_number',
+        'cifName',
+        'cif_name',
+        'outstanding',
+        'dpd',
+        'collectability',
+        'eadAmt',
+        'pvDcfAmt',
+        'eclIaAmt',
+        'status',
+    ],
+    filterAliases: {
+        reportPeriod: 'reportPeriod',
+        downloadDate: 'dateFrom',
+        'date_range.start': 'dateFrom',
+        'date_range.from': 'dateFrom',
+        'date_range.end': 'dateTo',
+        'date_range.to': 'dateTo',
+    },
+}
+
+function getIndividualImpairmentApiBase(c: Context): string {
+    return c.req.path.startsWith('/api/v2/')
+        ? '/api/v2/individual-impairment'
+        : '/api/v1/banking/individual/impairment'
+}
+
 const stringFilter = (value: unknown): string | undefined => {
     if (value === undefined || value === null) return undefined
     if (Array.isArray(value)) return value[0] === undefined ? undefined : String(value[0])
@@ -64,8 +110,8 @@ const stringFilter = (value: unknown): string | undefined => {
 export class IndividualImpairmentController {
     private individualImpairmentService: any;
 
-    constructor() {
-        this.individualImpairmentService = individualImpairmentService;
+    constructor(service: any = individualImpairmentService) {
+        this.individualImpairmentService = service;
     }
 
     private unauthorized(c: Context) {
@@ -101,7 +147,7 @@ export class IndividualImpairmentController {
             const filters = query.filters;
             const stageValue = filters.stage === undefined ? undefined : Number(stringFilter(filters.stage));
 
-            const result = await individualImpairmentService.getWatchlist(user.tenantId, { 
+            const result = await this.individualImpairmentService.getWatchlist(user.tenantId, {
                 search: query.search,
                 stage: Number.isFinite(stageValue) ? stageValue : undefined,
                 status: stringFilter(filters.assessment_status),
@@ -126,7 +172,24 @@ export class IndividualImpairmentController {
                 })
                 : buildOffsetPagination(query, result.total ?? 0);
 
-            return c.json(buildListResponse(result.data, query, pagination));
+            return c.json(buildListResponse(
+                result.data,
+                query,
+                pagination,
+                {
+                    debug: {
+                        endpoint: `GET ${getIndividualImpairmentApiBase(c)}/watchlist`,
+                        selectedSource: 'FRS9_MASTER_ACCOUNT',
+                        sourceTables: ['public.frs9_master_account', 'public.frs9_imp_ia_header'],
+                        filtersApplied: {
+                            search: query.search,
+                            ...filters,
+                        },
+                        sqlPreview: `SELECT A.PRC_DATE AS DOWNLOAD_DATE, A.CIF_NUMBER AS CUSTOMER_NUMBER, A.CIF_NAME AS CUSTOMER_NAME, A.ACCOUNT_NUMBER, A.CURRENCY, A.OUTSTANDING, A.DPD AS DAY_PAST_DUE, A.COLLECTABILITY, A.EXT_RATING_CODE AS RATING FROM FRS9_MASTER_ACCOUNT A WHERE A.DPD > 30 AND A.OUTSTANDING >= 1000000 AND NOT EXISTS (SELECT 1 FROM FRS9_IMP_IA_HEADER B WHERE A.ACCOUNT_ID = B.ACCOUNT_ID AND B.IMPAIRED_FLAG = 'I')`,
+                        notes: ['Matches techspec Individual Watchlist. Existing T impaired flag rows are also excluded for compatibility with the current override flow.'],
+                    },
+                },
+            ));
         } catch (error: any) {
             if (error instanceof ListQueryValidationError) return this.listQueryBadRequest(c, error);
             return this.handleError(c, error);
@@ -141,7 +204,7 @@ export class IndividualImpairmentController {
             const query = parseListQuery(c, CUSTOMER_LIST_QUERY_CONFIG);
             const filters = query.filters;
 
-            const result = await individualImpairmentService.getCustomerList(user.tenantId, {
+            const result = await this.individualImpairmentService.getCustomerList(user.tenantId, {
                 search: query.search,
                 dateFrom: stringFilter(filters.dateFrom),
                 dateTo: stringFilter(filters.dateTo),
@@ -174,7 +237,7 @@ export class IndividualImpairmentController {
             if (!user?.tenantId) return this.unauthorized(c);
 
             const body = await c.req.json();
-            const data = await individualImpairmentService.addToWatchlist({
+            const data = await this.individualImpairmentService.addToWatchlist({
                 ...body,
                 tenantId: user.tenantId,
                 addedBy: user.id
@@ -193,7 +256,7 @@ export class IndividualImpairmentController {
 
             const id = c.req.param('id');
             if (!id) return this.badRequest(c, 'ID required');
-            await individualImpairmentService.removeFromWatchlist(id, tenantId);
+            await this.individualImpairmentService.removeFromWatchlist(id, tenantId);
             return c.json({ success: true, message: 'Removed from watchlist' });
         } catch (error: any) {
             return this.handleError(c, error);
@@ -209,7 +272,7 @@ export class IndividualImpairmentController {
             const accountId = Number(c.req.param('accountId'));
             if (!accountId) return this.badRequest(c, 'Account ID required');
 
-            const data = await individualImpairmentService.getAssessment(user.tenantId, accountId);
+            const data = await this.individualImpairmentService.getAssessment(user.tenantId, accountId);
             if (!data) return this.notFound(c, 'Assessment not found');
 
             return c.json({ success: true, data });
@@ -226,7 +289,7 @@ export class IndividualImpairmentController {
             const id = Number(c.req.param('id'));
             const { comments } = await c.req.json();
             
-            const data = await individualImpairmentService.submitAssessment(id, comments, user.id);
+            const data = await this.individualImpairmentService.submitAssessment(id, comments, user.id);
             return c.json({ success: true, data: data });
         } catch (error: any) {
             return this.handleError(c, error);
@@ -241,7 +304,7 @@ export class IndividualImpairmentController {
             const id = Number(c.req.param('id'));
             const { comments } = await c.req.json();
             
-            const data = await individualImpairmentService.approveAssessment(id, comments, user.id);
+            const data = await this.individualImpairmentService.approveAssessment(id, comments, user.id);
             return c.json({ success: true, data: data });
         } catch (error: any) {
             return this.handleError(c, error);
@@ -256,7 +319,7 @@ export class IndividualImpairmentController {
             const id = Number(c.req.param('id'));
             const { reason } = await c.req.json();
             
-            const data = await individualImpairmentService.rejectAssessment(id, reason, user.id);
+            const data = await this.individualImpairmentService.rejectAssessment(id, reason, user.id);
             return c.json({ success: true, data: data });
         } catch (error: any) {
             return this.handleError(c, error);
@@ -269,7 +332,7 @@ export class IndividualImpairmentController {
             if (!user?.tenantId) return this.unauthorized(c);
 
             const body = await c.req.json();
-            const data = await individualImpairmentService.createAssessment({
+            const data = await this.individualImpairmentService.createAssessment({
                 ...body,
                 tenantId: user.tenantId,
                 createdBy: user.id
@@ -292,7 +355,7 @@ export class IndividualImpairmentController {
             const limit = Number(c.req.query('limit')) || 50;
             const offset = Number(c.req.query('offset')) || 0;
 
-            const data = await individualImpairmentService.getOverrides(user.tenantId, {
+            const data = await this.individualImpairmentService.getOverrides(user.tenantId, {
                 status,
                 accountId: accountId ? Number(accountId) : undefined,
                 accountNumber,
@@ -338,10 +401,43 @@ export class IndividualImpairmentController {
                 body.supportingDocument = storedName
             }
 
-            const data = await individualImpairmentService.createOverride({
+            if (isIndividualImpairmentV2Path(c.req.path)) {
+                const accountNumber = String(body?.accountNumber || body?.account_number || '').trim()
+                const customerName = String(body?.customerName || body?.customer_name || '').trim()
+                const approvalPayload = {
+                    ...body,
+                    tenantId: user.tenantId,
+                    requestedBy: user.id,
+                    createdBy: user.id,
+                }
+
+                const approvalRequest = await Effect.runPromise(createApprovalRequest({
+                    tenantId: user.tenantId,
+                    entityType: INDIVIDUAL_IMPAIRMENT_V2_ENTITY_TYPE,
+                    entityId: accountNumber || undefined,
+                    title: `Individual impairment override${accountNumber ? ` - ${accountNumber}` : ''}`,
+                    description: `Request override${customerName ? ` for ${customerName}` : ''}${accountNumber ? ` (${accountNumber})` : ''}`,
+                    requestData: {
+                        operation: 'create',
+                        entityType: INDIVIDUAL_IMPAIRMENT_V2_ENTITY_TYPE,
+                        subtype: INDIVIDUAL_IMPAIRMENT_V2_SUBTYPES.OVERRIDE,
+                        apiVersion: 'v2',
+                        sourceApi: getIndividualImpairmentApiBase(c),
+                        data: approvalPayload,
+                    },
+                    requestedBy: user.id,
+                    impactLevel: 'high',
+                    bankingMode: c.req.query('mode') || c.req.header('x-banking-mode') || undefined,
+                }))
+
+                return c.json(formatApprovalRequiredResponse(approvalRequest), 202)
+            }
+
+            const data = await this.individualImpairmentService.createOverride({
                 ...body,
                 tenantId: user.tenantId,
-                requestedBy: user.id
+                requestedBy: user.id,
+                createdBy: user.id,
             });
             return c.json({ success: true, data: data[0] });
         } catch (error: any) {
@@ -400,7 +496,7 @@ export class IndividualImpairmentController {
             const limit = Number(c.req.query('limit')) || 50;
             const offset = Number(c.req.query('offset')) || 0;
 
-            const data = await individualImpairmentService.getAuditTrails(user.tenantId, { entityType, limit, offset });
+            const data = await this.individualImpairmentService.getAuditTrails(user.tenantId, { entityType, limit, offset });
 
             return c.json({ success: true, data, meta: { limit, offset, count: data.length } });
         } catch (error: any) {
@@ -416,7 +512,7 @@ export class IndividualImpairmentController {
             const accountId = Number(c.req.param('accountId'));
             if (!accountId) return this.badRequest(c, 'Account ID required');
 
-            const data = await individualImpairmentService.getAssessmentHistory(user.tenantId, accountId);
+            const data = await this.individualImpairmentService.getAssessmentHistory(user.tenantId, accountId);
             return c.json({ success: true, data });
         } catch (error: any) {
             return this.handleError(c, error);
@@ -429,13 +525,41 @@ export class IndividualImpairmentController {
             const user = c.get('user');
             if (!user?.tenantId) return this.unauthorized(c);
 
-            const reportPeriod = c.req.query('reportPeriod');
-            const limit = Number(c.req.query('limit')) || 50;
-            const offset = Number(c.req.query('offset')) || 0;
+            const query = parseListQuery(c, INDIVIDUAL_REPORT_LIST_QUERY_CONFIG);
+            const filters = query.filters;
 
-            const data = await individualImpairmentService.getReports(user.tenantId, { reportPeriod, limit, offset });
-            return c.json({ success: true, data });
+            const result = await this.individualImpairmentService.getReports(user.tenantId, {
+                search: query.search,
+                reportPeriod: stringFilter(filters.reportPeriod),
+                dateFrom: stringFilter(filters.dateFrom),
+                dateTo: stringFilter(filters.dateTo),
+                status: stringFilter(filters.status),
+                impaired_flag: stringFilter(filters.impaired_flag),
+                limit: query.limit,
+                offset: query.offset,
+                sort: query.sort,
+            });
+
+            return c.json(buildListResponse(
+                result.data,
+                query,
+                buildOffsetPagination(query, result.total ?? 0),
+                {
+                    debug: {
+                        endpoint: `GET ${getIndividualImpairmentApiBase(c)}/reports`,
+                        selectedSource: 'FRS9_IMP_IA_HEADER',
+                        sourceTables: ['public.frs9_imp_ia_header'],
+                        filtersApplied: {
+                            search: query.search,
+                            ...filters,
+                        },
+                        sqlPreview: `SELECT PRC_DATE AS DOWNLOAD_DATE, CIF_NUMBER AS CUSTOMER_NUMBER, CIF_NAME AS CUSTOMER_NAME, ACCOUNT_NUMBER, CURRENCY, OUTSTANDING, DPD AS DAY_PAST_DUE, COLLECTABILITY, RATING_CODE AS RATING, EAD_AMT, PV_DCF_AMT, ECL_IA_AMT, STATUS FROM FRS9_IMP_IA_HEADER WHERE IMPAIRED_FLAG = 'I'`,
+                        notes: ['Matches techspec List of Individual Report. Compatibility also includes legacy T impaired flag rows.'],
+                    },
+                },
+            ));
         } catch (error: any) {
+            if (error instanceof ListQueryValidationError) return this.listQueryBadRequest(c, error);
             return this.handleError(c, error);
         }
     }
@@ -446,7 +570,7 @@ export class IndividualImpairmentController {
             if (!user?.tenantId) return this.unauthorized(c);
 
             const body = await c.req.json();
-            const data = await individualImpairmentService.createReport({
+            const data = await this.individualImpairmentService.createReport({
                 ...body,
                 tenantId: user.tenantId,
                 generatedBy: user.id
@@ -466,7 +590,7 @@ export class IndividualImpairmentController {
             const status = c.req.query('status');
             const accountId = Number(c.req.query('accountId'));
 
-            const data = await individualImpairmentService.getScenarios(user.tenantId, { status, accountId });
+            const data = await this.individualImpairmentService.getScenarios(user.tenantId, { status, accountId });
             return c.json({ success: true, data });
         } catch (error: any) {
             return this.handleError(c, error);
@@ -479,7 +603,7 @@ export class IndividualImpairmentController {
             if (!user?.tenantId) return this.unauthorized(c);
 
             const body = await c.req.json();
-            const data = await individualImpairmentService.createScenario({
+            const data = await this.individualImpairmentService.createScenario({
                 ...body,
                 tenantId: user.tenantId,
                 createdBy: user.id
@@ -502,7 +626,7 @@ export class IndividualImpairmentController {
             if (!id) return this.badRequest(c, 'ID required');
             if (!status) return this.badRequest(c, 'Status required');
 
-            const data = await individualImpairmentService.updateScenarioStatus(id, tenantId, status, userId);
+            const data = await this.individualImpairmentService.updateScenarioStatus(id, tenantId, status, userId);
             return c.json({ success: true, data: data[0] });
         } catch (error: any) {
             return this.handleError(c, error);
@@ -515,7 +639,7 @@ export class IndividualImpairmentController {
             const user = c.get('user');
             if (!user?.tenantId) return this.unauthorized(c);
 
-            const data = await individualImpairmentService.getDcfUploads(user.tenantId);
+            const data = await this.individualImpairmentService.getDcfUploads(user.tenantId);
             return c.json({ success: true, data });
         } catch (error: any) {
             return this.handleError(c, error);
@@ -530,7 +654,7 @@ export class IndividualImpairmentController {
 
             const uploadId = c.req.param('uploadId');
             if (!uploadId) return this.badRequest(c, 'Upload ID required');
-            const data = await individualImpairmentService.getDcfCashflows(tenantId, uploadId);
+            const data = await this.individualImpairmentService.getDcfCashflows(tenantId, uploadId);
             return c.json({ success: true, data });
         } catch (error: any) {
             return this.handleError(c, error);
@@ -541,7 +665,7 @@ export class IndividualImpairmentController {
             const user = c.get('user');
             if (!user?.tenantId) return this.unauthorized(c);
 
-            const data = await individualImpairmentService.getDcfCalculations(user.tenantId);
+            const data = await this.individualImpairmentService.getDcfCalculations(user.tenantId);
             return c.json({ success: true, data });
         } catch (error: any) {
             return this.handleError(c, error);
@@ -557,7 +681,7 @@ export class IndividualImpairmentController {
             const accountNumber = c.req.query('accountNumber');
             const accountId = accountIdRaw ? Number(accountIdRaw) : undefined;
 
-            const data = await individualImpairmentService.getIaResultDetail(user.tenantId, {
+            const data = await this.individualImpairmentService.getIaResultDetail(user.tenantId, {
                 accountId: Number.isFinite(accountId) ? accountId : undefined,
                 accountNumber: accountNumber || undefined
             });
@@ -575,7 +699,7 @@ export class IndividualImpairmentController {
             const body = await c.req.json();
 
             // Panggil Service untuk hitung matematika
-            const data = await individualImpairmentService.calculateDcf(user.tenantId, body);
+            const data = await this.individualImpairmentService.calculateDcf(user.tenantId, body);
 
             return c.json({ success: true, data });
         } catch (error: any) {
@@ -589,7 +713,7 @@ export class IndividualImpairmentController {
             if (!user?.tenantId) return this.unauthorized(c);
 
             const body = await c.req.json();
-            const { fileName, batchId, cashflows } = body;
+            const { fileName, batchId, cashflows, scenario } = body;
 
             // Basic validation
             if (!fileName || !cashflows || !Array.isArray(cashflows)) {
@@ -603,7 +727,10 @@ export class IndividualImpairmentController {
                 createdBy: user.id,
                 createdHost: c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'web',
             }));
-            const inserted = await individualImpairmentService.createDcfCashflows(cashflowData);
+            const inserted = await this.individualImpairmentService.createDcfCashflows({
+                cashflows: cashflowData,
+                scenario
+            });
 
             return c.json({
                 success: true,
@@ -651,7 +778,7 @@ export class IndividualImpairmentController {
             if (!user?.tenantId) return this.unauthorized(c);
             
             const date = c.req.query('date'); // Extract date from query params
-            const summary = await individualImpairmentService.getWatchlistSummary(user.tenantId, date);
+            const summary = await this.individualImpairmentService.getWatchlistSummary(user.tenantId, date);
             return c.json({ success: true, data: summary });
         } catch (error: any) {
             return this.handleError(c, error);

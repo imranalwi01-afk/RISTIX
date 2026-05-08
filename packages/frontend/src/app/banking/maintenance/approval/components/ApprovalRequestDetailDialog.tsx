@@ -1,5 +1,8 @@
 import React, { memo } from 'react';
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Alert,
   Box,
   Button,
@@ -13,10 +16,97 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { Security as SecurityIcon } from '@mui/icons-material';
+import {
+  AttachFile as AttachFileIcon,
+  DataObject as DataObjectIcon,
+  Download as DownloadIcon,
+  ExpandMore as ExpandMoreIcon,
+  Security as SecurityIcon,
+} from '@mui/icons-material';
 import { ApprovalRequest, RequestRoutingMatch } from '../types';
 
 const DETAIL_CANDIDATE_VISIBLE_LIMIT = 24;
+const REDACTED_KEYS = new Set(['password', 'token', 'accessToken', 'refreshToken', 'authorization', 'secret']);
+
+type GenericAttachment = {
+  label: string;
+  fileName: string;
+  mimeType?: string;
+  base64?: string;
+  url?: string;
+};
+
+function toPlainRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function sanitizePayload(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(sanitizePayload);
+  }
+
+  const record = toPlainRecord(value);
+  if (!record) return value;
+
+  return Object.fromEntries(
+    Object.entries(record).map(([key, child]) => {
+      if (REDACTED_KEYS.has(key)) return [key, '[redacted]'];
+      return [key, sanitizePayload(child)];
+    })
+  );
+}
+
+function findGenericAttachments(value: unknown, path = 'requestData'): GenericAttachment[] {
+  const record = toPlainRecord(value);
+  if (!record) {
+    if (Array.isArray(value)) {
+      return value.flatMap((entry, index) => findGenericAttachments(entry, `${path}[${index}]`));
+    }
+    return [];
+  }
+
+  const fileName = [record.fileName, record.filename, record.name, record.originalName]
+    .find((candidate) => typeof candidate === 'string' && candidate.trim().length > 0) as string | undefined;
+  const base64 = [record.base64, record.fileBase64, record.contentBase64, record.content, record.data]
+    .find((candidate) => typeof candidate === 'string' && candidate.trim().length > 0) as string | undefined;
+  const url = [record.url, record.fileUrl, record.downloadUrl]
+    .find((candidate) => typeof candidate === 'string' && candidate.trim().length > 0) as string | undefined;
+  const mimeType = [record.mimeType, record.contentType]
+    .find((candidate) => typeof candidate === 'string' && candidate.trim().length > 0) as string | undefined;
+
+  const current = fileName && (base64 || url)
+    ? [{ label: path, fileName, base64, url, mimeType }]
+    : [];
+
+  const nested = Object.entries(record).flatMap(([key, child]) => findGenericAttachments(child, `${path}.${key}`));
+  return [...current, ...nested];
+}
+
+function downloadAttachment(attachment: GenericAttachment) {
+  if (attachment.url) {
+    window.open(attachment.url, '_blank', 'noopener,noreferrer');
+    return;
+  }
+
+  if (!attachment.base64) return;
+
+  const cleanBase64 = attachment.base64.includes(',')
+    ? attachment.base64.split(',').pop() || ''
+    : attachment.base64;
+  const byteCharacters = atob(cleanBase64);
+  const byteNumbers = Array.from(byteCharacters, (char) => char.charCodeAt(0));
+  const blob = new Blob([new Uint8Array(byteNumbers)], { type: attachment.mimeType || 'application/octet-stream' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = attachment.fileName;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
+}
 
 interface ApprovalRequestDetailDialogProps {
   open: boolean;
@@ -49,6 +139,9 @@ export const ApprovalRequestDetailDialog = memo(function ApprovalRequestDetailDi
   getPriorityColor,
   isOverdue,
 }: ApprovalRequestDetailDialogProps) {
+  const sanitizedRequestData = request?.requestData ? sanitizePayload(request.requestData) : null;
+  const genericAttachments = request?.requestData ? findGenericAttachments(request.requestData) : [];
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>Approval Request Details</DialogTitle>
@@ -64,8 +157,20 @@ export const ApprovalRequestDetailDialog = memo(function ApprovalRequestDetailDi
               </Grid>
               <Grid size={6}>
                 <Typography variant="subtitle2">Request Type:</Typography>
-                <Typography variant="body2">{request.requestType.replace('_', ' ').toUpperCase()}</Typography>
+                <Typography variant="body2">{request.requestTypeLabel || request.requestType.replace(/_/g, ' ').toUpperCase()}</Typography>
               </Grid>
+              {request.requestData?.sourceApi && (
+                <Grid size={6}>
+                  <Typography variant="subtitle2">Source API:</Typography>
+                  <Typography variant="body2">{request.requestData.sourceApi}</Typography>
+                </Grid>
+              )}
+              {request.requestData?.apiVersion && (
+                <Grid size={6}>
+                  <Typography variant="subtitle2">API Version:</Typography>
+                  <Chip label={String(request.requestData.apiVersion).toUpperCase()} size="small" variant="outlined" sx={{ mt: 0.5 }} />
+                </Grid>
+              )}
               <Grid size={6}>
                 <Typography variant="subtitle2">Requested By:</Typography>
                 <Typography variant="body2">{request.requestedByName}</Typography>
@@ -103,6 +208,61 @@ export const ApprovalRequestDetailDialog = memo(function ApprovalRequestDetailDi
                 <Grid size={6}>
                   <Typography variant="subtitle2">Risk Level:</Typography>
                   <Chip label={request.riskLevel.toUpperCase()} color={getPriorityColor(request.riskLevel) as any} size="small" sx={{ mt: 0.5 }} />
+                </Grid>
+              )}
+              {sanitizedRequestData && (
+                <Grid size={12}>
+                  <Accordion variant="outlined" disableGutters sx={{ mt: 1 }}>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <DataObjectIcon fontSize="small" color="primary" />
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                          Request Payload
+                        </Typography>
+                      </Box>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                      {genericAttachments.length > 0 && (
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                            Attachments
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                            {genericAttachments.map((attachment, index) => (
+                              <Button
+                                key={`${attachment.label}-${attachment.fileName}-${index}`}
+                                size="small"
+                                variant="outlined"
+                                startIcon={<AttachFileIcon />}
+                                endIcon={<DownloadIcon />}
+                                onClick={() => downloadAttachment(attachment)}
+                              >
+                                {attachment.fileName}
+                              </Button>
+                            ))}
+                          </Box>
+                        </Box>
+                      )}
+                      <Box
+                        component="pre"
+                        sx={{
+                          m: 0,
+                          p: 1.5,
+                          maxHeight: 360,
+                          overflow: 'auto',
+                          borderRadius: 1,
+                          bgcolor: 'grey.50',
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          fontSize: 12,
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                        }}
+                      >
+                        {JSON.stringify(sanitizedRequestData, null, 2)}
+                      </Box>
+                    </AccordionDetails>
+                  </Accordion>
                 </Grid>
               )}
               <Grid size={12}>

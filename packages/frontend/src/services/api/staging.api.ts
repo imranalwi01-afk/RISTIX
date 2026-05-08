@@ -3,7 +3,7 @@
 // IFRS9 Staging API Client
 // ============================================================================
 
-import { apiClient as api } from '../api-setup';
+import { individualImpairmentScopedClient as api } from './individual-impairment-scoped-client';
 
 export interface StagingAnalysis {
   prcDate: string | null;

@@ -3,7 +3,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { businessQueryKeys } from '@/features/shared/query/query-keys';
 import { fetchIndividualReportAssessmentList, fetchIndividualReportHistory } from '../api/individual-impairment.api';
-import { toAssessmentWatchlist, toIndividualReportHistoryRows } from '../domain/individual-impairment.models';
+import { toIndividualReportHistoryRows, toIndividualReportListRows } from '../domain/individual-impairment.models';
 
 export function useIndividualReportHistoryQuery(enabled = true) {
   return useQuery({
@@ -22,6 +22,8 @@ export function useIndividualReportAssessmentListQuery(
     page: number;
     limit: number;
     search?: string;
+    downloadDate?: string;
+    status?: string;
     mode: string;
   },
   enabled = true,
@@ -30,10 +32,11 @@ export function useIndividualReportAssessmentListQuery(
     queryKey: businessQueryKeys.list('individual-report-assessment-list', params),
     queryFn: async () => {
       const response = await fetchIndividualReportAssessmentList(params);
-      const rows = toAssessmentWatchlist(response?.data);
+      const rows = toIndividualReportListRows(response?.data);
       return {
         rows,
         total: Number(response?.meta?.total ?? response?.pagination?.total ?? rows.length),
+        debug: response?.meta?.debug,
       };
     },
     enabled,

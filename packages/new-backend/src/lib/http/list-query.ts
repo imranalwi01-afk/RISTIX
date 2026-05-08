@@ -83,6 +83,17 @@ export type ListResponse<T> = {
         sort: ListSort[]
     }
     filterDefinitions?: Record<string, ListFilterDefinition>
+    meta?: {
+        debug?: {
+            endpoint?: string
+            requestUrl?: string
+            selectedSource?: string
+            sourceTables?: string[]
+            filtersApplied?: Record<string, unknown>
+            sqlPreview?: string
+            notes?: string[]
+        }
+    }
 }
 
 export class ListQueryValidationError extends Error {
@@ -413,7 +424,18 @@ export function buildListResponse<T>(
     data: T[],
     query: ListQuery,
     pagination: ListPagination,
-    metadata?: { filterDefinitions?: Record<string, ListFilterDefinition> },
+    metadata?: {
+        filterDefinitions?: Record<string, ListFilterDefinition>
+        debug?: {
+            endpoint?: string
+            requestUrl?: string
+            selectedSource?: string
+            sourceTables?: string[]
+            filtersApplied?: Record<string, unknown>
+            sqlPreview?: string
+            notes?: string[]
+        }
+    },
 ): ListResponse<T> {
     return {
         success: true,
@@ -425,6 +447,7 @@ export function buildListResponse<T>(
             sort: query.sort,
         },
         ...(metadata?.filterDefinitions ? { filterDefinitions: metadata.filterDefinitions } : {}),
+        ...(metadata?.debug ? { meta: { debug: metadata.debug } } : {}),
     }
 }
 

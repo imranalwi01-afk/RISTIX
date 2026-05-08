@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { Effect, pipe } from 'effect'
-import { and, eq, gte, isNull, lte, or } from 'drizzle-orm'
+import { and, eq, gte, isNull, lte, or, sql } from 'drizzle-orm'
 import { ApprovalRepository } from '@/repositories/approval.repository'
 import {
     type NewApprovalMatrix,
@@ -15,9 +15,9 @@ import { dbOperation } from '@/lib/effect'
 import { userRolesRepository } from '@/repositories/rbac.repository'
 import { getDatabase } from '@/config/database'
 import { buildDefaultFourEyesRouting } from '@/lib/approval-helpers'
+import { INDIVIDUAL_IMPAIRMENT_V2_ENTITY_TYPE, INDIVIDUAL_IMPAIRMENT_V2_SUBTYPES } from '@/lib/individual-impairment-approval'
 import { getNotificationSocket, type NotificationPayload } from '@/socket/notification.socket'
-import { NotificationRepository } from '@/repositories/notification.repository'
-import { deriveNotificationCategory, filterNotificationRecipientsByPreferences } from '@/services/notifications.service'
+import { deriveNotificationCategory, filterNotificationRecipientsByPreferences, createNotification } from '@/services/notifications.service'
 
 // =============================================================================
 // TYPES
@@ -47,6 +47,8 @@ export interface ProcessApprovalInput {
 }
 
 const SUPER_ADMIN_PERMISSION_CODE = 'admin.super_admin'
+const SELF_APPROVAL_OVERRIDE_PERMISSION_CODE = 'approval.requests.self_approve_override'
+const SELF_APPROVAL_OVERRIDE_SETTING_KEY = 'approval.self_approval_override.enabled'
 const SELF_APPROVAL_BYPASS_ENV = 'APPROVAL_ALLOW_SUPERADMIN_SELF_APPROVAL'
 const LEVEL_ROUTING_BYPASS_ENV = 'APPROVAL_ALLOW_SUPERADMIN_LEVEL_BYPASS'
 const APPROVAL_COUNT_BYPASS_ENV = 'APPROVAL_ALLOW_SUPERADMIN_COUNT_BYPASS'
@@ -63,6 +65,38 @@ const isSuperAdminApprovalCountBypassEnabled = (): boolean =>
 
 const isSuperAdminAutoApproveOnCreateEnabled = (): boolean =>
     String(process.env[SUPERADMIN_AUTO_APPROVE_REQUESTS_ENV] ?? 'false').trim().toLowerCase() === 'true'
+
+const normalizeBooleanSetting = (value: unknown): boolean => {
+    if (typeof value === 'boolean') return value
+    if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase()
+        return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'enabled'
+    }
+    if (value && typeof value === 'object') {
+        const candidate = (value as Record<string, unknown>).enabled
+            ?? (value as Record<string, unknown>).value
+            ?? (value as Record<string, unknown>).allow
+        return normalizeBooleanSetting(candidate)
+    }
+    return false
+}
+
+const isSelfApprovalOverrideSettingEnabled = async (): Promise<boolean> => {
+    try {
+        const database = getDatabase()
+        const result = await database.execute(sql`
+            SELECT value
+            FROM platform_admin.settings
+            WHERE key = ${SELF_APPROVAL_OVERRIDE_SETTING_KEY}
+            LIMIT 1
+        `)
+        const rows = Array.isArray(result) ? result : (result?.rows ?? [])
+        return normalizeBooleanSetting(rows[0]?.value)
+    } catch (error) {
+        console.warn('[Approval] Failed to read self-approval override setting; defaulting to disabled', error)
+        return false
+    }
+}
 
 export interface CancelApprovalRequestInput {
     requestId: string
@@ -360,19 +394,25 @@ export const processApprovalAction = (
                 const hasSuperAdminPermission = Boolean(
                     approverContext?.permissions.has(SUPER_ADMIN_PERMISSION_CODE)
                 )
-                const bypassEnabled = isSuperAdminSelfApprovalBypassEnabled()
-                const canBypass = bypassEnabled && hasSuperAdminPermission
+                const hasSelfApprovalOverridePermission = Boolean(
+                    approverContext?.permissions.has(SELF_APPROVAL_OVERRIDE_PERMISSION_CODE)
+                )
+                const dbOverrideEnabled = await isSelfApprovalOverrideSettingEnabled()
+                const envBypassEnabled = isSuperAdminSelfApprovalBypassEnabled()
+                const canUseDbOverride = dbOverrideEnabled && hasSelfApprovalOverridePermission
+                const canUseLegacyEnvBypass = envBypassEnabled && hasSuperAdminPermission
+                const canBypass = canUseDbOverride || canUseLegacyEnvBypass
 
                 if (!canBypass) {
                     throw new BusinessError({
-                        message: 'You cannot approve your own request',
+                        message: `You cannot approve your own request. Self-approval override requires ${SELF_APPROVAL_OVERRIDE_PERMISSION_CODE} and ${SELF_APPROVAL_OVERRIDE_SETTING_KEY}=true.`,
                         code: 'SELF_APPROVAL_NOT_ALLOWED',
                     })
                 }
 
                 if (!String(input.comment || '').trim()) {
                     throw new BusinessError({
-                        message: 'Super admin self-approval bypass requires approval comment',
+                        message: 'Self-approval override requires approval comment',
                         code: 'SELF_APPROVAL_BYPASS_COMMENT_REQUIRED',
                     })
                 }
@@ -380,8 +420,12 @@ export const processApprovalAction = (
                 selfApprovalBypassMetadata = {
                     selfApprovalBypass: true,
                     bypassedRule: 'SELF_APPROVAL_NOT_ALLOWED',
-                    policy: SELF_APPROVAL_BYPASS_ENV,
-                    approverPermission: SUPER_ADMIN_PERMISSION_CODE,
+                    policy: canUseDbOverride ? SELF_APPROVAL_OVERRIDE_SETTING_KEY : SELF_APPROVAL_BYPASS_ENV,
+                    approverPermission: canUseDbOverride
+                        ? SELF_APPROVAL_OVERRIDE_PERMISSION_CODE
+                        : SUPER_ADMIN_PERMISSION_CODE,
+                    dbOverrideEnabled,
+                    legacyEnvBypassEnabled: envBypassEnabled,
                     requestedBy: request.requestedBy,
                 }
             }
@@ -525,7 +569,7 @@ export const processApprovalAction = (
                     if (isComplete) {
                         // Execute the approved action (e.g., create user, update config)
                         await executeApprovedAction(request, input.approverId)
-                        await notifyApprovalCompletion(request, 'approved')
+                        await notifyApprovalCompletion(request, 'approved', input.approverId)
                     } else if (currentLevelComplete) {
                         // Only notify next level when current level has collected enough approvers.
                         await notifyNextLevelApprovers({ ...request, currentLevel: nextLevel?.level ?? request.currentLevel })
@@ -550,7 +594,7 @@ export const processApprovalAction = (
 
                 if (isComplete) {
                     await executeApprovedAction(request, input.approverId)
-                    await notifyApprovalCompletion(request, 'approved')
+                    await notifyApprovalCompletion(request, 'approved', input.approverId)
                 } else {
                     await notifyNextLevelApprovers(request)
                 }
@@ -565,7 +609,7 @@ export const processApprovalAction = (
                     completedBy: input.approverId,
                 })
 
-                await notifyApprovalCompletion(request, 'rejected')
+                await notifyApprovalCompletion(request, 'rejected', input.approverId)
                 return { completed: true, status: 'rejected' }
             }
 
@@ -740,6 +784,10 @@ async function executeApprovedAction(request: any, approvedBy?: string): Promise
 
             case 'journal_parameter':
                 await executeJournalParameterAction(operation, data, tenantId, request.entityId, request.requestedBy ?? approvedBy)
+                break
+
+            case INDIVIDUAL_IMPAIRMENT_V2_ENTITY_TYPE:
+                await executeIndividualImpairmentV2Action(operation, requestData, data, tenantId, request.requestedBy ?? approvedBy)
                 break
 
             case 'role_permission':
@@ -1531,6 +1579,37 @@ async function executeJournalParameterAction(
     }
 }
 
+async function executeIndividualImpairmentV2Action(
+    operation: 'create' | 'update' | 'delete',
+    requestData: any,
+    data: any,
+    tenantId: string,
+    actorId?: string
+): Promise<void> {
+    const subtype = String(requestData?.subtype || '').trim()
+
+    if (subtype !== INDIVIDUAL_IMPAIRMENT_V2_SUBTYPES.OVERRIDE) {
+        console.warn(`[ApprovalService] Unsupported individual impairment v2 subtype: ${subtype || '(empty)'}`)
+        return
+    }
+
+    if (operation !== 'create' && operation !== 'update') {
+        console.warn(`[ApprovalService] Unsupported individual impairment v2 operation: ${operation}`)
+        return
+    }
+
+    const { individualImpairmentV2Service } = await import('./individual-impairment-v2.service')
+    const effectiveActorId = actorId || data?.requestedBy || data?.createdBy || 'system'
+
+    await individualImpairmentV2Service.createOverride({
+        ...data,
+        tenantId,
+        requestedBy: effectiveActorId,
+        createdBy: effectiveActorId,
+        status: data?.status || 'PENDING',
+    })
+}
+
 /**
  * Execute role-permission updates after approval.
  */
@@ -1580,10 +1659,29 @@ async function executeRolePermissionAction(
 /**
  * Notify the completion of the entire approval process
  */
-async function notifyApprovalCompletion(request: any, outcome: 'approved' | 'rejected'): Promise<void> {
+function getApprovalNotificationTitle(request: any): string {
+    const requestData = request?.requestData && typeof request.requestData === 'object' ? request.requestData : {}
+    const candidates = [
+        request?.title,
+        request?.requestTitle,
+        requestData.title,
+        requestData.requestTitle,
+        requestData.customerName && requestData.accountNumber
+            ? `${requestData.customerName} (${requestData.accountNumber})`
+            : undefined,
+        requestData.accountNumber ? `Account ${requestData.accountNumber}` : undefined,
+        request?.entityType && request?.entityId ? `${request.entityType} ${request.entityId}` : undefined,
+    ]
+
+    const value = candidates.find((candidate) => typeof candidate === 'string' && candidate.trim().length > 0)
+    return typeof value === 'string' ? value.trim() : 'Approval request'
+}
+
+async function notifyApprovalCompletion(request: any, outcome: 'approved' | 'rejected', actorUserId?: string): Promise<void> {
     const type = outcome === 'approved' ? 'APPROVAL_APPROVED' : 'APPROVAL_REJECTED'
     const severity = outcome === 'approved' ? 'success' : 'warning'
     const title = outcome === 'approved' ? 'Approval Completed' : 'Approval Rejected'
+    const requestTitle = getApprovalNotificationTitle(request)
 
     const notification: NotificationPayload = {
         id: `approval-${request.id}-${outcome}-${Date.now()}`,
@@ -1591,13 +1689,15 @@ async function notifyApprovalCompletion(request: any, outcome: 'approved' | 'rej
         workflowId: request.id,
         tenantId: request.tenantId,
         title,
-        message: `${request.title} was ${outcome}.`,
+        message: `${requestTitle} was ${outcome}.`,
         severity,
         timestamp: new Date().toISOString(),
         data: {
+            requestId: request.id,
             entityType: request.entityType,
             entityId: request.entityId,
             status: outcome,
+            title: requestTitle,
         },
         actionUrl: `/banking/maintenance/approval?requestId=${request.id}`,
     }
@@ -1605,6 +1705,7 @@ async function notifyApprovalCompletion(request: any, outcome: 'approved' | 'rej
     await safeEmitNotification(request.tenantId, notification, {
         userIds: [request.requestedBy],
         roleRooms: ['CHECKER', 'APPROVER', 'SUPER_ADMIN'],
+        excludeUserId: actorUserId,
     })
 }
 
@@ -1627,7 +1728,7 @@ async function notifyNextLevelApprovers(request: any): Promise<void> {
         type: 'APPROVAL_PENDING',
         workflowId: request.id,
         tenantId: request.tenantId,
-        title: `Approval Needed: ${request.title}`,
+        title: `Approval Needed: ${getApprovalNotificationTitle(request)}`,
         message: `Request is waiting for level ${request.currentLevel} (${currentLevel.name}) approval.`,
         severity: 'info',
         timestamp: new Date().toISOString(),
@@ -1671,13 +1772,14 @@ async function notifyApprover(userId: string, request: any, type: 'new' | 'deleg
  * Notify the original requester
  */
 async function notifyRequester(request: any, type: string, comment?: string): Promise<void> {
+    const requestTitle = getApprovalNotificationTitle(request)
     const notification: NotificationPayload = {
         id: `approval-${request.id}-${type}-${Date.now()}`,
         type: 'APPROVAL_PENDING',
         workflowId: request.id,
         tenantId: request.tenantId,
         title: 'Approval Update',
-        message: comment ? `Update on ${request.title}: ${comment}` : `Update on ${request.title}`,
+        message: comment ? `Update on ${requestTitle}: ${comment}` : `Update on ${requestTitle}`,
         severity: 'info',
         timestamp: new Date().toISOString(),
         actionUrl: `/banking/maintenance/approval?requestId=${request.id}`,
@@ -1966,7 +2068,7 @@ async function autoApproveCreatedRequest(request: any, approverId: string): Prom
     const finalized = await ApprovalRepository.findRequestById(String(request.id))
     if (finalized) {
         await executeApprovedAction(finalized, approverId)
-        await notifyApprovalCompletion(finalized, 'approved')
+        await notifyApprovalCompletion(finalized, 'approved', approverId)
         return finalized
     }
 
@@ -2158,6 +2260,7 @@ async function persistNotificationRecord(
     options: {
         roleRooms: string[]
         userIds: string[]
+        excludeUserId?: string
     },
     deliveryStatus: 'pending' | 'sent' | 'failed' | 'read',
     errorMessage?: string
@@ -2175,9 +2278,9 @@ async function persistNotificationRecord(
     const userTargets = Array.from(new Set([
         ...options.userIds,
         ...roleCandidateUserIds,
-    ]))
+    ])).filter((userId) => userId !== options.excludeUserId)
 
-    await NotificationRepository.createWithDeliveries({
+    await Effect.runPromise(createNotification({
         tenantId,
         approvalRequestId: typeof notification.workflowId === 'string' && UUID_PATTERN.test(notification.workflowId)
             ? notification.workflowId
@@ -2198,7 +2301,7 @@ async function persistNotificationRecord(
         deliveryStatus,
         deliveredAt: new Date(),
         errorMessage,
-    })
+    }))
 }
 
 async function safeEmitNotification(
@@ -2207,6 +2310,7 @@ async function safeEmitNotification(
     options?: {
         roleRooms?: string[]
         userIds?: string[]
+        excludeUserId?: string
     }
 ): Promise<void> {
     const roleRooms = Array.isArray(options?.roleRooms)
@@ -2215,6 +2319,9 @@ async function safeEmitNotification(
     const userIds = Array.isArray(options?.userIds)
         ? options!.userIds!.filter((userId): userId is string => typeof userId === 'string' && userId.trim().length > 0)
         : []
+    const excludeUserId = typeof options?.excludeUserId === 'string' && options.excludeUserId.trim().length > 0
+        ? options.excludeUserId.trim()
+        : undefined
     let resolvedUserIds = userIds
 
     try {
@@ -2235,8 +2342,9 @@ async function safeEmitNotification(
             ).map((candidate) => candidate.userId)
             : []
 
+        const hasExplicitTargets = roleRooms.length > 0 || userIds.length > 0
         const targetUserIds = Array.from(new Set([...userIds, ...roleCandidateUserIds]))
-        const hasExplicitTargets = roleRooms.length > 0 || targetUserIds.length > 0
+            .filter((userId) => userId !== excludeUserId)
 
         const eligibleUserIds = await filterNotificationRecipientsByPreferences({
             tenantId,
@@ -2251,12 +2359,14 @@ async function safeEmitNotification(
         } else if (!hasExplicitTargets) {
             // Fallback broadcast only when there are no explicit targets.
             socket.broadcastApprovalNotification(tenantId, notificationWithCategory)
+        } else {
+            return
         }
 
         await persistNotificationRecord(
             tenantId,
             notificationWithCategory,
-            { roleRooms: [], userIds: eligibleUserIds },
+            { roleRooms: [], userIds: eligibleUserIds, excludeUserId },
             'sent'
         )
     } catch (error) {
@@ -2264,7 +2374,7 @@ async function safeEmitNotification(
             await persistNotificationRecord(
                 tenantId,
                 notification,
-                { roleRooms: [], userIds: resolvedUserIds },
+                { roleRooms: [], userIds: resolvedUserIds, excludeUserId },
                 'failed',
                 error instanceof Error ? error.message : String(error)
             )

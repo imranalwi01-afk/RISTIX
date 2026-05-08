@@ -93,7 +93,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
     description: 'Individual impairment assessment and management',
     icon: 'person',
     sort_order: 6,
-    children: ['individual_assessment_override']
+    children: ['individual_assessment_v1', 'individual_assessment_v2', 'individual_reports', 'individual_assessment_override']
   },
   {
     id: 'ifrs9',
@@ -186,6 +186,15 @@ const MENU_KEY_MAPPINGS: Record<string, string> = {
   'ecl-configuration': 'ecl_config',
 
   // Individual Impairment mappings
+  'individual_assessment_v1': 'individual_assessment_v1',
+  'individual-assessment-v1': 'individual_assessment_v1',
+  'assessment-workspace': 'individual_assessment_v1',
+  'assessment-workspace-v1': 'individual_assessment_v1',
+  'individual_assessment_v2': 'individual_assessment_v2',
+  'individual-assessment-v2': 'individual_assessment_v2',
+  'assessment-workspace-v2': 'individual_assessment_v2',
+  'individual_reports': 'individual_reports',
+  'individual-reports': 'individual_reports',
   'individual_assessment_override': 'individual_assessment_override',
   'individual-assessment-override': 'individual_assessment_override',
   'assessment-override': 'individual_assessment_override',

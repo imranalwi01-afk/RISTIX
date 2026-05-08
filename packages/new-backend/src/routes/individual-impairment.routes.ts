@@ -740,8 +740,20 @@ individualImpairmentRoutes.openapi(
         request: {
             query: z.object({
                 reportPeriod: z.string().optional(),
+                search: z.string().optional(),
+                page: z.string().optional(),
                 limit: z.string().optional(),
-                offset: z.string().optional()
+                offset: z.string().optional(),
+                paginationMode: z.enum(['offset', 'cursor']).optional(),
+                sort: z.string().optional(),
+                sortField: z.string().optional(),
+                sortOrder: z.enum(['asc', 'desc', 'ASC', 'DESC']).optional(),
+                dateFrom: z.string().optional(),
+                dateTo: z.string().optional(),
+                downloadDate: z.string().optional(),
+                status: z.string().optional(),
+                impaired_flag: z.string().optional(),
+                filters: z.string().optional()
             })
         },
         responses: {

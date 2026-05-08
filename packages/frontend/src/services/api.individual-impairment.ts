@@ -3,11 +3,13 @@
 // IFRS9 INDIVIDUAL IMPAIRMENT ASSESSMENT OVERRIDE API SERVICE
 // ============================================================================
 // Purpose: Individual account impairment assessment and DCF analysis
-// API Endpoints: /api/v1/banking/individual/impairment/*
+// API Endpoints:
+// - /banking/individual/assessment uses legacy /api/v1/banking/individual/impairment/*
+// - /banking/individual/assessment-new uses /api/v2/individual-impairment/*
 // Database Integration: FRS9PRO database with real-time calculations
 // ============================================================================
 
-import { apiClient } from './api-client';
+import { individualImpairmentScopedClient as apiClient } from './api/individual-impairment-scoped-client';
 
 // ============================================================================
 // TYPESCRIPT INTERFACES FOR INDIVIDUAL IMPAIRMENT
@@ -37,7 +39,7 @@ export interface IndividualImpairmentWatchlistItem {
   last_review_date: string;
   next_review_date: string;
   assigned_analyst: string;
-  assessment_status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'REVIEWED';
+  assessment_status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'REVIEWED' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
   priority_level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   notes?: string;
   createdby: string;
@@ -382,6 +384,8 @@ export const individualImpairmentAPI = {
         dpd_range?: { min?: number; max?: number };
         balance_range?: { min?: number; max?: number };
         date_range?: { start?: string; end?: string };
+        dateFrom?: string;
+        dateTo?: string;
         analyst?: string;
         mode?: string;
       };

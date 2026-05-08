@@ -135,6 +135,7 @@ export const API_ENDPOINTS = {
 
   // Individual impairment endpoints
   INDIVIDUAL_IMPAIRMENT: '/banking/individual/impairment',
+  INDIVIDUAL_IMPAIRMENT_V2: '/api/v2/individual-impairment',
 
   // Rule base setting endpoints
   RULE_BASE_SETTING: '/banking/collective/rule-base',

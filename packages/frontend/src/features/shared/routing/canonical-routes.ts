@@ -3,6 +3,7 @@ export const canonicalRoutes = {
   impairmentModule: '/banking/ifrs9/impairment-module',
   amortizationModule: '/banking/ifrs9/amortization-module',
   individualAssessment: '/banking/individual/assessment',
+  individualAssessmentV2: '/banking/individual/assessment-new',
   ifrs9Reports: {
     eadModel: '/banking/ifrs9-reports/ead-model',
     eclMovement: '/banking/ifrs9-reports/ecl-movement',

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -20,6 +20,8 @@ import {
 } from '@mui/material';
 import type { AmortizationModuleDetailViewModel, AmortizationModuleRowViewModel } from '../domain/ifrs9-modules.models';
 
+type AmortizationEventViewModel = AmortizationModuleDetailViewModel['events'][number];
+
 interface AmortizationModuleDetailsPanelProps {
   selectedRow: AmortizationModuleRowViewModel | null;
   loading: boolean;
@@ -29,19 +31,45 @@ interface AmortizationModuleDetailsPanelProps {
   compatibilityMessage?: string | null;
 }
 
+function normalizeCurrencyCode(currency: string | null | undefined) {
+  const normalized = String(currency ?? 'IDR').trim().toUpperCase();
+  return /^[A-Z]{3}$/.test(normalized) ? normalized : 'IDR';
+}
+
 function formatCurrency(value: number | null | undefined, currency = 'IDR') {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(Number.isFinite(Number(value)) ? Number(value) : 0);
+  const safeCurrency = normalizeCurrencyCode(currency);
+  const safeValue = Number.isFinite(Number(value)) ? Number(value) : 0;
+
+  try {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: safeCurrency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(safeValue);
+  } catch {
+    return new Intl.NumberFormat('id-ID', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(safeValue);
+  }
 }
 
 function formatValue(value: unknown) {
   if (value === null || value === undefined || value === '') return '-';
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   return String(value);
+}
+
+function normalizeDateKey(value: unknown) {
+  if (!value) return '';
+  const text = String(value).trim();
+  if (!text) return '';
+  const date = new Date(text);
+  if (!Number.isNaN(date.getTime())) {
+    return date.toISOString().slice(0, 10);
+  }
+  return text.slice(0, 10);
 }
 
 function TabPanel({ value, index, children }: { value: number; index: number; children: React.ReactNode }) {
@@ -98,6 +126,7 @@ export function AmortizationModuleDetailsPanel({
   compatibilityMessage,
 }: AmortizationModuleDetailsPanelProps) {
   const [tab, setTab] = useState(0);
+  const [selectedEvent, setSelectedEvent] = useState<AmortizationEventViewModel | null>(null);
 
   const contractEntries = useMemo(() => {
     const contract = detail?.contractDetail;
@@ -139,6 +168,15 @@ export function AmortizationModuleDetailsPanel({
 
   const feeRows = detail?.feeCosts.filter((row) => row.transactionType === 'F') ?? [];
   const costRows = detail?.feeCosts.filter((row) => row.transactionType === 'C') ?? [];
+  const selectedEventDateKey = normalizeDateKey(selectedEvent?.effectiveDate || selectedEvent?.eventDate);
+  const selectedEventScheduleRows = useMemo(() => {
+    if (!detail || !selectedEventDateKey) return [];
+    return detail.amortizationSchedule.filter((row) => normalizeDateKey(row.prcDate) === selectedEventDateKey);
+  }, [detail, selectedEventDateKey]);
+
+  useEffect(() => {
+    setSelectedEvent(null);
+  }, [selectedRow?.pkid, detail]);
 
   return (
     <Card sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
@@ -261,50 +299,16 @@ export function AmortizationModuleDetailsPanel({
 
             <TabPanel value={tab} index={2}>
               <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
-                Amortization Schedule
-              </Typography>
-              {detail.amortizationSchedule.length === 0 ? (
-                <Alert severity="info" sx={{ mb: 3 }}>No amortization schedule row was found in `frs9_eir_ecf`.</Alert>
-              ) : (
-                <ScrollTable minWidth={1180} sx={{ mb: 3 }}>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Counter</TableCell>
-                        <TableCell>Payment Date</TableCell>
-                        <TableCell align="right">Interest Rate</TableCell>
-                        <TableCell align="right">Effective Rate</TableCell>
-                        <TableCell align="right">Outstanding Principal</TableCell>
-                        <TableCell align="right">Principal</TableCell>
-                        <TableCell align="right">Interest Contractual</TableCell>
-                        <TableCell align="right">Amort Total</TableCell>
-                        <TableCell align="right">Carrying Amount</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {detail.amortizationSchedule.map((row, index) => (
-                        <TableRow key={`${row.counter ?? index}-${row.paymentDate ?? index}`}>
-                          <TableCell>{row.counter ?? '-'}</TableCell>
-                          <TableCell>{row.paymentDate || '-'}</TableCell>
-                          <TableCell align="right">{`${Number(row.interestRate ?? 0).toFixed(4)}%`}</TableCell>
-                          <TableCell align="right">{`${Number(row.effectiveInterestRate ?? 0).toFixed(4)}%`}</TableCell>
-                          <TableCell align="right">{formatCurrency(row.outstandingPrincipal, detail.contractDetail?.currency || 'IDR')}</TableCell>
-                          <TableCell align="right">{formatCurrency(row.principal, detail.contractDetail?.currency || 'IDR')}</TableCell>
-                          <TableCell align="right">{formatCurrency(row.interestContractual, detail.contractDetail?.currency || 'IDR')}</TableCell>
-                          <TableCell align="right">{formatCurrency(row.amortTotal, detail.contractDetail?.currency || 'IDR')}</TableCell>
-                          <TableCell align="right">{formatCurrency(row.carryingAmount, detail.contractDetail?.currency || 'IDR')}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                </ScrollTable>
-              )}
-
-              <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
                 Event Changes
               </Typography>
               {detail.events.length === 0 ? (
-                <Alert severity="info">No event rows were found in `frs9_event_changes`.</Alert>
+                <Alert severity="info" sx={{ mb: 3 }}>No event rows were found in `frs9_event_changes`.</Alert>
               ) : (
-                <ScrollTable minWidth={1100}>
+                <>
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    Select one event change row to load the matching amortization schedule from `frs9_eir_ecf`.
+                  </Alert>
+                  <ScrollTable minWidth={1100} sx={{ mb: 3 }}>
                     <TableHead>
                       <TableRow>
                         <TableCell>Event Date</TableCell>
@@ -317,18 +321,74 @@ export function AmortizationModuleDetailsPanel({
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {detail.events.map((row, index) => (
-                        <TableRow key={`${row.eventDate ?? index}-${row.eventId ?? index}`}>
-                          <TableCell>{row.eventDate || '-'}</TableCell>
-                          <TableCell>{row.accountNumber || '-'}</TableCell>
-                          <TableCell>{row.eventId ?? '-'}</TableCell>
-                          <TableCell>{row.eventDescription || '-'}</TableCell>
-                          <TableCell>{row.effectiveDate || '-'}</TableCell>
-                          <TableCell>{row.beforeValue || '-'}</TableCell>
-                          <TableCell>{row.afterValue || '-'}</TableCell>
+                      {detail.events.map((row, index) => {
+                        const isSelected = selectedEvent === row;
+                        return (
+                          <TableRow
+                            key={`${row.eventDate ?? index}-${row.eventId ?? index}`}
+                            hover
+                            selected={isSelected}
+                            onClick={() => setSelectedEvent(row)}
+                            sx={{ cursor: 'pointer' }}
+                          >
+                            <TableCell>{row.eventDate || '-'}</TableCell>
+                            <TableCell>{row.accountNumber || '-'}</TableCell>
+                            <TableCell>{row.eventId ?? '-'}</TableCell>
+                            <TableCell>{row.eventDescription || '-'}</TableCell>
+                            <TableCell>{row.effectiveDate || '-'}</TableCell>
+                            <TableCell>{row.beforeValue || '-'}</TableCell>
+                            <TableCell>{row.afterValue || '-'}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </ScrollTable>
+                </>
+              )}
+
+              <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+                Amortization Schedule
+              </Typography>
+              {!selectedEvent ? (
+                <Alert severity="info">
+                  Select an event change row first. The schedule is filtered by the selected event effective date.
+                </Alert>
+              ) : selectedEventScheduleRows.length === 0 ? (
+                <Alert severity="info">
+                  No amortization schedule row was found in `frs9_eir_ecf` for selected event date {selectedEventDateKey || '-'}.
+                </Alert>
+              ) : (
+                <ScrollTable minWidth={1180}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Processing Date</TableCell>
+                      <TableCell>Counter</TableCell>
+                      <TableCell>Payment Date</TableCell>
+                      <TableCell align="right">Interest Rate</TableCell>
+                      <TableCell align="right">Effective Rate</TableCell>
+                      <TableCell align="right">Outstanding Principal</TableCell>
+                      <TableCell align="right">Principal</TableCell>
+                      <TableCell align="right">Interest Contractual</TableCell>
+                      <TableCell align="right">Amort Total</TableCell>
+                      <TableCell align="right">Carrying Amount</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {selectedEventScheduleRows.map((row, index) => (
+                      <TableRow key={`${row.prcDate ?? index}-${row.counter ?? index}-${row.paymentDate ?? index}`}>
+                        <TableCell>{row.prcDate || '-'}</TableCell>
+                        <TableCell>{row.counter ?? '-'}</TableCell>
+                        <TableCell>{row.paymentDate || '-'}</TableCell>
+                        <TableCell align="right">{`${Number(row.interestRate ?? 0).toFixed(4)}%`}</TableCell>
+                        <TableCell align="right">{`${Number(row.effectiveInterestRate ?? 0).toFixed(4)}%`}</TableCell>
+                        <TableCell align="right">{formatCurrency(row.outstandingPrincipal, detail.contractDetail?.currency || 'IDR')}</TableCell>
+                        <TableCell align="right">{formatCurrency(row.principal, detail.contractDetail?.currency || 'IDR')}</TableCell>
+                        <TableCell align="right">{formatCurrency(row.interestContractual, detail.contractDetail?.currency || 'IDR')}</TableCell>
+                        <TableCell align="right">{formatCurrency(row.amortTotal, detail.contractDetail?.currency || 'IDR')}</TableCell>
+                        <TableCell align="right">{formatCurrency(row.carryingAmount, detail.contractDetail?.currency || 'IDR')}</TableCell>
                         </TableRow>
                       ))}
-                    </TableBody>
+                  </TableBody>
                 </ScrollTable>
               )}
             </TabPanel>

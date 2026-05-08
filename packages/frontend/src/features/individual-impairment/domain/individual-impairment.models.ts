@@ -37,6 +37,27 @@ export interface IndividualReportHistoryRowViewModel {
   [key: string]: unknown;
 }
 
+export interface IndividualReportListRowViewModel {
+  id: string | number;
+  pkid: number;
+  iaId: number | null;
+  downloadDate: string | null;
+  customerNumber: string;
+  customerName: string;
+  accountId: number | null;
+  accountNumber: string;
+  currency: string;
+  outstanding: number;
+  dayPastDue: number;
+  collectability: number | null;
+  rating: string;
+  eadAmount: number;
+  pvDcfAmount: number;
+  eclIaAmount: number;
+  status: string;
+  [key: string]: unknown;
+}
+
 const pickText = (...values: unknown[]): string | undefined => {
   for (const value of values) {
     const raw = value == null ? '' : String(value).trim();
@@ -127,6 +148,37 @@ export function toIndividualReportHistoryRows(rows: unknown[] | undefined): Indi
       createdAt: (source.createdAt ?? source.created_at ?? source.generation_date ?? null) as string | null,
       status: pickText(source.status) ?? 'UNKNOWN',
       totalRecords: Number(source.totalRecords ?? source.total_records ?? source.record_count ?? 0),
+    };
+  });
+}
+
+export function toIndividualReportListRows(rows: unknown[] | undefined): IndividualReportListRowViewModel[] {
+  if (!Array.isArray(rows)) return [];
+
+  return rows.map((row, index) => {
+    const source = row as Record<string, unknown>;
+    const pkid = Number(source.pkid ?? index);
+    const accountId = source.account_id ?? source.accountId;
+
+    return {
+      ...source,
+      id: (source.pkid ?? source.ia_id ?? source.iaId ?? source.account_number ?? index) as string | number,
+      pkid,
+      iaId: source.ia_id == null && source.iaId == null ? null : Number(source.ia_id ?? source.iaId),
+      downloadDate: (source.download_date ?? source.downloadDate ?? source.prc_date ?? source.prcDate ?? null) as string | null,
+      customerNumber: pickText(source.customer_number, source.customerNumber, source.cif_number, source.cifNumber) ?? '-',
+      customerName: pickText(source.customer_name, source.customerName, source.cif_name, source.cifName) ?? '-',
+      accountId: accountId == null ? null : Number(accountId),
+      accountNumber: pickText(source.account_number, source.accountNumber) ?? '-',
+      currency: pickText(source.currency) ?? '-',
+      outstanding: Number(source.outstanding ?? 0),
+      dayPastDue: Number(source.day_past_due ?? source.dayPastDue ?? source.dpd ?? 0),
+      collectability: source.collectability == null ? null : Number(source.collectability),
+      rating: pickText(source.rating, source.rating_code, source.ratingCode) ?? '-',
+      eadAmount: Number(source.ead_amt ?? source.eadAmt ?? 0),
+      pvDcfAmount: Number(source.pv_dcf_amt ?? source.pvDcfAmt ?? 0),
+      eclIaAmount: Number(source.ecl_ia_amt ?? source.eclIaAmt ?? 0),
+      status: pickText(source.status) ?? '-',
     };
   });
 }

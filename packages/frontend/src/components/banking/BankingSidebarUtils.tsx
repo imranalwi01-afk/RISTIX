@@ -130,6 +130,8 @@ const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'menu-management': 'admin.system.manage',
     'job-monitoring': ['jobs.view', 'jobs.manage', 'admin.system.manage'],
     'assessment-workspace': 'banking.individual.view',
+    'assessment-workspace-v1': 'banking.individual.view',
+    'assessment-workspace-v2': 'banking.individual.view',
     'workflow-management': 'approval.requests.approve',
     'approval-system': 'approval.requests.approve',
     'workflow-notifications': ['notifications.view', 'notifications.manage', 'approval.requests.approve'],
@@ -381,11 +383,19 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_PORTFOLIO_MANAGER'],
         children: [
             {
-                id: 'assessment-workspace',
-                label: 'Assessment Workspace',
+                id: 'assessment-workspace-v1',
+                code: 'assessment-workspace',
+                label: 'Assessment Workspace V1',
                 href: '/banking/individual/assessment',
                 icon: <Assessment />,
-                description: 'End-to-end impairment assessment',
+                description: 'Legacy individual impairment workspace',
+            },
+            {
+                id: 'assessment-workspace-v2',
+                label: 'Assessment Workspace V2',
+                href: '/banking/individual/assessment-new',
+                icon: <Assessment />,
+                description: 'V2 impairment assessment isolated from legacy API',
                 isNew: true
             }
         ]

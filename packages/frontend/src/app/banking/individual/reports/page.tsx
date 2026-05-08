@@ -1,25 +1,38 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { Container, Box, Card, CardContent, Chip, Grid, IconButton, Tab, Tabs, TextField, Tooltip } from '@mui/material';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { Accordion, AccordionDetails, AccordionSummary, Alert, Container, Box, Button, Card, CardContent, Chip, Grid, IconButton, MenuItem, Stack, Tab, Tabs, TextField, Tooltip, Typography } from '@mui/material';
 import PageHeader from '@/components/banking/shared/PageHeader';
 import { GridColDef } from '@mui/x-data-grid';
 import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import { StatCard } from '@/components/common/StatCard';
 import { useAssessmentWorkspaceEmbedded } from '../assessment/embedded-context';
-import type { IndividualImpairmentWatchlistItem } from '@/services/api.individual-impairment';
 import { useIndividualReportAssessmentListQuery, useIndividualReportHistoryQuery } from '@/features/individual-impairment/hooks/useIndividualReportsQueries';
-import type { IndividualReportHistoryRowViewModel } from '@/features/individual-impairment/domain/individual-impairment.models';
+import type { IndividualReportHistoryRowViewModel, IndividualReportListRowViewModel } from '@/features/individual-impairment/domain/individual-impairment.models';
+import { buildIndividualAssessmentUrl } from '@/features/individual-impairment/routing';
 import {
   Assessment as ReportIcon,
   CheckCircle as ReadyIcon,
   Schedule as PendingIcon,
   Error as ErrorIcon,
-  OpenInNew as DcfDetailIcon
+  History as HistoryActionIcon,
+  OpenInNew as OpenActionIcon,
+  TableView as TableViewIcon,
+  ContentCopy as CopyIcon,
+  ExpandMore as ExpandMoreIcon
 } from '@mui/icons-material';
+
+type ReportDebugMetadata = {
+  endpoint?: string;
+  selectedSource?: string;
+  sourceTables?: string[];
+  filtersApplied?: Record<string, unknown>;
+  sqlPreview?: string;
+  notes?: string[];
+};
 
 const reportColumns: GridColDef<IndividualReportHistoryRowViewModel>[] = [
   { field: 'reportPeriod', headerName: 'Period', width: 150 },
@@ -47,21 +60,104 @@ const reportColumns: GridColDef<IndividualReportHistoryRowViewModel>[] = [
   { field: 'totalRecords', headerName: 'Records', width: 150 },
 ];
 
+const formatCurrency = (value: unknown, currency = 'IDR') => {
+  const numeric = Number(value ?? 0);
+  if (!Number.isFinite(numeric)) return '-';
+
+  try {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(numeric);
+  } catch {
+    return numeric.toLocaleString('id-ID');
+  }
+};
+
+const formatDate = (value: unknown) => {
+  if (!value) return '-';
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
 export default function IndividualReportsPage() {
   const embedded = useAssessmentWorkspaceEmbedded();
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
+  const searchParamsKey = searchParams.toString();
   const mode = searchParams.get('mode') || 'conventional';
+  const initializedFromUrlRef = useRef(false);
+  const skipNextUrlSyncRef = useRef(false);
 
   const [activeTab, setActiveTab] = useState(0);
   const [assessmentPage, setAssessmentPage] = useState(0);
   const [assessmentPageSize, setAssessmentPageSize] = useState(25);
   const [search, setSearch] = useState('');
+  const [downloadDate, setDownloadDate] = useState('');
+  const [status, setStatus] = useState('');
+  const deferredSearch = useDeferredValue(search.trim());
+
+  useEffect(() => {
+    if (initializedFromUrlRef.current) return;
+
+    const rawPage = Number(searchParams.get('reportPage') ?? searchParams.get('page') ?? '1');
+    const rawLimit = Number(searchParams.get('reportLimit') ?? searchParams.get('limit') ?? '25');
+    const nextLimit = [10, 25, 50, 75, 100].includes(rawLimit) ? rawLimit : 25;
+
+    setAssessmentPage(Number.isFinite(rawPage) ? Math.max(0, rawPage - 1) : 0);
+    setAssessmentPageSize(nextLimit);
+    setSearch(searchParams.get('reportSearch') ?? searchParams.get('search') ?? '');
+    setDownloadDate(searchParams.get('reportDownloadDate') ?? searchParams.get('downloadDate') ?? '');
+    setStatus(searchParams.get('reportStatus') ?? searchParams.get('status') ?? '');
+    skipNextUrlSyncRef.current = true;
+    initializedFromUrlRef.current = true;
+  }, [searchParams]);
+
+  const syncReportUrl = useCallback(() => {
+    if (!initializedFromUrlRef.current) return;
+    if (skipNextUrlSyncRef.current) {
+      skipNextUrlSyncRef.current = false;
+      return;
+    }
+
+    const params = new URLSearchParams(searchParamsKey);
+    params.set('mode', mode);
+    if (pathname.includes('/banking/individual/assessment')) {
+      params.set('tab', 'individual-reports');
+    }
+    params.set('paginationMode', 'offset');
+    params.set('reportPage', String(assessmentPage + 1));
+    params.set('reportLimit', String(assessmentPageSize));
+
+    if (deferredSearch) params.set('reportSearch', deferredSearch);
+    else params.delete('reportSearch');
+
+    if (downloadDate) params.set('reportDownloadDate', downloadDate);
+    else params.delete('reportDownloadDate');
+
+    if (status) params.set('reportStatus', status);
+    else params.delete('reportStatus');
+
+    const nextUrl = `${pathname}?${params.toString()}`;
+    const currentUrl = `${pathname}?${searchParamsKey}`;
+    if (nextUrl !== currentUrl) router.replace(nextUrl, { scroll: false });
+  }, [assessmentPage, assessmentPageSize, deferredSearch, downloadDate, mode, pathname, router, searchParamsKey, status]);
+
+  useEffect(() => {
+    syncReportUrl();
+  }, [syncReportUrl]);
 
   const reportHistoryQuery = useIndividualReportHistoryQuery();
   const assessmentListQuery = useIndividualReportAssessmentListQuery({
     page: assessmentPage + 1,
     limit: assessmentPageSize,
-    search: search || undefined,
+    search: deferredSearch || undefined,
+    downloadDate: downloadDate || undefined,
+    status: status || undefined,
     mode,
   });
 
@@ -70,6 +166,18 @@ export default function IndividualReportsPage() {
   const assessmentRows = assessmentListQuery.data?.rows ?? [];
   const assessmentTotal = assessmentListQuery.data?.total ?? 0;
   const assessmentLoading = assessmentListQuery.isLoading || assessmentListQuery.isFetching;
+  const reportDebug = assessmentListQuery.data?.debug as ReportDebugMetadata | undefined;
+  const reportDebugSourceTables = reportDebug && Array.isArray(reportDebug.sourceTables) ? reportDebug.sourceTables : [];
+  const reportDebugPayload = {
+    filtersApplied: reportDebug ? reportDebug.filtersApplied : undefined,
+    sqlPreview: reportDebug ? reportDebug.sqlPreview : undefined,
+    notes: reportDebug ? reportDebug.notes : undefined,
+  };
+
+  const copyReportDebug = useCallback(async () => {
+    if (!reportDebug) return;
+    await navigator.clipboard.writeText(JSON.stringify(reportDebug, null, 2));
+  }, [reportDebug]);
 
   const stats = {
     total: reportRows.length,
@@ -78,39 +186,160 @@ export default function IndividualReportsPage() {
     errors: reportRows.filter(r => String(r.status ?? '') === 'ERROR').length
   };
 
-  const assessmentColumns = useMemo<GridColDef<IndividualImpairmentWatchlistItem>[]>(() => {
+  const assessmentColumns = useMemo<GridColDef<IndividualReportListRowViewModel>[]>(() => {
     return [
-      { field: 'account_number', headerName: 'Account', width: 160 },
-      { field: 'cif_name', headerName: 'Customer', width: 220 },
-      { field: 'stage', headerName: 'Stage', width: 90 },
-      { field: 'assessment_status', headerName: 'Status', width: 140 },
-      { field: 'dpd', headerName: 'DPD', width: 90, type: 'number' },
-      { field: 'provision_amount', headerName: 'Provision', width: 160, type: 'number' },
       {
-        field: 'actions',
-        headerName: 'DCF Detail',
-        width: 120,
+        field: 'review',
+        headerName: 'Review',
+        width: 116,
+        minWidth: 116,
         sortable: false,
         filterable: false,
         renderCell: (params) => {
-          const accountId = params.row.account_id;
+          const accountId = params.row.accountId;
+          const query = new URLSearchParams({
+            mode,
+            accountId: String(accountId ?? ''),
+            accountNumber: params.row.accountNumber,
+            tab: 'assessment-details',
+          });
+          const href = buildIndividualAssessmentUrl(query, pathname);
+          return (
+            <Tooltip title={accountId ? 'Open assessment review' : 'Account ID missing'}>
+              <span>
+                <Button
+                  component={Link}
+                  href={href}
+                  size="small"
+                  disabled={!accountId}
+                  startIcon={<OpenActionIcon fontSize="small" />}
+                >
+                  Review
+                </Button>
+              </span>
+            </Tooltip>
+          );
+        }
+      },
+      {
+        field: 'history',
+        headerName: 'History',
+        width: 112,
+        minWidth: 112,
+        sortable: false,
+        filterable: false,
+        renderCell: (params) => {
+          const accountId = params.row.accountId;
+          const query = new URLSearchParams({
+            mode,
+            accountId: String(accountId ?? ''),
+            accountNumber: params.row.accountNumber,
+            tab: 'history',
+          });
+          const href = buildIndividualAssessmentUrl(query, pathname);
+          return (
+            <Tooltip title={accountId ? 'Open assessment history' : 'Account ID missing'}>
+              <span>
+                <Button
+                  component={Link}
+                  href={href}
+                  size="small"
+                  disabled={!accountId}
+                  startIcon={<HistoryActionIcon fontSize="small" />}
+                >
+                  History
+                </Button>
+              </span>
+            </Tooltip>
+          );
+        }
+      },
+      {
+        field: 'dcf',
+        headerName: 'DCF',
+        width: 92,
+        minWidth: 92,
+        sortable: false,
+        filterable: false,
+        renderCell: (params) => {
+          const accountId = params.row.accountId;
           const href = `/banking/individual/review/ia-dcf-detail/${accountId}?mode=${encodeURIComponent(mode)}`;
           return (
-            <Tooltip title="Open DCF Detail">
-              <IconButton
+            <Tooltip title={accountId ? 'Open DCF detail' : 'Account ID missing'}>
+              <span>
+                <IconButton
                 component={Link}
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
                 size="small"
+                  disabled={!accountId}
                 color="primary"
               >
-                <DcfDetailIcon fontSize="small" />
+                  <TableViewIcon fontSize="small" />
               </IconButton>
+              </span>
             </Tooltip>
           );
         }
-      }
+      },
+      {
+        field: 'downloadDate',
+        headerName: 'Download Date',
+        width: 150,
+        minWidth: 150,
+        valueFormatter: (value: unknown) => formatDate(value),
+      },
+      { field: 'customerNumber', headerName: 'Customer Number', width: 170, minWidth: 170 },
+      { field: 'customerName', headerName: 'Customer Name', width: 240, minWidth: 220 },
+      { field: 'accountNumber', headerName: 'Account Number', width: 170, minWidth: 170 },
+      { field: 'currency', headerName: 'Currency', width: 110, minWidth: 110 },
+      {
+        field: 'outstanding',
+        headerName: 'Outstanding',
+        width: 180,
+        minWidth: 180,
+        type: 'number',
+        align: 'right',
+        valueFormatter: (value: unknown, row: IndividualReportListRowViewModel) => formatCurrency(value, row.currency || 'IDR'),
+      },
+      { field: 'dayPastDue', headerName: 'Day Past Due', width: 140, minWidth: 140, type: 'number', align: 'right' },
+      { field: 'collectability', headerName: 'Collectability', width: 150, minWidth: 150, type: 'number', align: 'right' },
+      { field: 'rating', headerName: 'Rating', width: 120, minWidth: 120 },
+      {
+        field: 'eadAmount',
+        headerName: 'EAD Amount',
+        width: 180,
+        minWidth: 180,
+        type: 'number',
+        align: 'right',
+        valueFormatter: (value: unknown, row: IndividualReportListRowViewModel) => formatCurrency(value, row.currency || 'IDR'),
+      },
+      {
+        field: 'pvDcfAmount',
+        headerName: 'PV DCF Amount',
+        width: 180,
+        minWidth: 180,
+        type: 'number',
+        align: 'right',
+        valueFormatter: (value: unknown, row: IndividualReportListRowViewModel) => formatCurrency(value, row.currency || 'IDR'),
+      },
+      {
+        field: 'eclIaAmount',
+        headerName: 'ECL IA Amount',
+        width: 180,
+        minWidth: 180,
+        type: 'number',
+        align: 'right',
+        valueFormatter: (value: unknown, row: IndividualReportListRowViewModel) => formatCurrency(value, row.currency || 'IDR'),
+      },
+      {
+        field: 'status',
+        headerName: 'Status',
+        width: 140,
+        minWidth: 140,
+        renderCell: (params) => <Chip label={String(params.value || '-')} size="small" variant="outlined" />,
+      },
     ];
   }, [mode]);
 
@@ -126,7 +355,7 @@ export default function IndividualReportsPage() {
 
       <Box sx={{ mb: 2 }}>
         <Tabs value={activeTab} onChange={(_, next) => setActiveTab(next)}>
-          <Tab label="Assessment List" />
+          <Tab label="List of Individual Report" />
           <Tab label="Generated Reports" />
         </Tabs>
       </Box>
@@ -134,7 +363,7 @@ export default function IndividualReportsPage() {
       {activeTab === 0 && (
         <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ xs: 'stretch', md: 'center' }} sx={{ mb: 2 }}>
               <TextField
                 label="Search"
                 size="small"
@@ -144,18 +373,105 @@ export default function IndividualReportsPage() {
                   setAssessmentPage(0);
                 }}
               />
+              <TextField
+                label="Download Date"
+                type="date"
+                size="small"
+                value={downloadDate}
+                onChange={(e) => {
+                  setDownloadDate(e.target.value);
+                  setAssessmentPage(0);
+                }}
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField
+                label="Status"
+                select
+                size="small"
+                value={status}
+                onChange={(e) => {
+                  setStatus(e.target.value);
+                  setAssessmentPage(0);
+                }}
+                sx={{ minWidth: 180 }}
+              >
+                <MenuItem value="">All Status</MenuItem>
+                <MenuItem value="PENDING">Pending</MenuItem>
+                <MenuItem value="APPROVED">Approved</MenuItem>
+                <MenuItem value="REJECTED">Rejected</MenuItem>
+              </TextField>
+              <Button
+                variant="outlined"
+                onClick={() => {
+                  setSearch('');
+                  setDownloadDate('');
+                  setStatus('');
+                  setAssessmentPage(0);
+                }}
+              >
+                Clear
+              </Button>
               <Chip label={`${mode.toUpperCase()} Mode`} color="primary" variant="outlined" size="small" />
-            </Box>
-            <Box sx={{ height: 520, width: '100%' }}>
+              <Chip label="Source: FRS9_IMP_IA_HEADER" variant="outlined" size="small" />
+            </Stack>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Techspec source: `FRS9_IMP_IA_HEADER`, filtered by impaired rows. Watchlist remains sourced from `FRS9_MASTER_ACCOUNT`.
+            </Typography>
+            {reportDebug && (
+              <Accordion disableGutters sx={{ mb: 2, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'flex-start', sm: 'center' }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                      Debug Query
+                    </Typography>
+                    <Chip label={reportDebug.selectedSource || 'FRS9_IMP_IA_HEADER'} size="small" variant="outlined" />
+                    <Chip label={reportDebug.endpoint || '/reports'} size="small" variant="outlined" />
+                  </Stack>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Stack spacing={1.5}>
+                    <Alert
+                      severity="info"
+                      action={
+                        <Button size="small" startIcon={<CopyIcon />} onClick={copyReportDebug}>
+                          Copy
+                        </Button>
+                      }
+                    >
+                      Use this to compare local vs dev server data source and filters.
+                    </Alert>
+                    <Typography variant="caption" color="text.secondary">
+                      Source tables: {reportDebugSourceTables.join(', ') || '-'}
+                    </Typography>
+                    <Box
+                      component="pre"
+                      sx={{
+                        m: 0,
+                        p: 1.5,
+                        borderRadius: 1,
+                        bgcolor: 'grey.100',
+                        overflow: 'auto',
+                        fontSize: '0.75rem',
+                        whiteSpace: 'pre-wrap',
+                      }}
+                    >
+{JSON.stringify(reportDebugPayload, null, 2)}
+                    </Box>
+                  </Stack>
+                </AccordionDetails>
+              </Accordion>
+            )}
+            <Box sx={{ height: { xs: 560, md: 'min(68vh, 720px)' }, minHeight: 460, width: '100%', minWidth: 0, overflow: 'hidden' }}>
               <SafeDataGrid
                 rows={assessmentRows}
                 columns={assessmentColumns}
-                getRowId={(row) => row.pkid}
+                getRowId={(row) => row.pkid ?? row.id ?? row.accountNumber}
                 loading={assessmentLoading}
                 pagination
                 rowCount={assessmentTotal}
                 paginationMode="server"
                 paginationModel={{ page: assessmentPage, pageSize: assessmentPageSize }}
+                pageSizeOptions={[10, 25, 50, 75, 100]}
                 onPaginationModelChange={(model) => {
                   setAssessmentPage(model.page);
                   setAssessmentPageSize(model.pageSize);
@@ -166,61 +482,62 @@ export default function IndividualReportsPage() {
         </Card>
       )}
 
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard
-            title="Total Reports"
-            value={stats.total}
-            icon={<ReportIcon sx={{ fontSize: 40 }} />}
-            color="#1976d2"
-            subtitle="Generated Reports"
+      {activeTab === 1 && (
+        <>
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <StatCard
+                title="Total Reports"
+                value={stats.total}
+                icon={<ReportIcon sx={{ fontSize: 40 }} />}
+                color="#1976d2"
+                subtitle="Generated Reports"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <StatCard
+                title="Ready"
+                value={stats.ready}
+                icon={<ReadyIcon sx={{ fontSize: 40 }} />}
+                color="#2e7d32"
+                subtitle="Available for Download"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <StatCard
+                title="Processing"
+                value={stats.pending}
+                icon={<PendingIcon sx={{ fontSize: 40 }} />}
+                color="#ff9800"
+                subtitle="Generation in Progress"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <StatCard
+                title="Errors"
+                value={stats.errors}
+                icon={<ErrorIcon sx={{ fontSize: 40 }} />}
+                color="#d32f2f"
+                subtitle="Failed Generations"
+              />
+            </Grid>
+          </Grid>
 
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard
-            title="Ready"
-            value={stats.ready}
-            icon={<ReadyIcon sx={{ fontSize: 40 }} />}
-            color="#2e7d32"
-            subtitle="Available for Download"
-
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard
-            title="Processing"
-            value={stats.pending}
-            icon={<PendingIcon sx={{ fontSize: 40 }} />}
-            color="#ff9800"
-            subtitle="Generation in Progress"
-
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard
-            title="Errors"
-            value={stats.errors}
-            icon={<ErrorIcon sx={{ fontSize: 40 }} />}
-            color="#d32f2f"
-            subtitle="Failed Generations"
-
-          />
-        </Grid>
-      </Grid>
-
-      <Card>
-        <CardContent>
-          <Box sx={{ height: 500, width: '100%' }}>
-            <SafeDataGrid
-              rows={reportRows}
-              columns={reportColumns}
-              loading={reportLoading}
-              getRowId={(row) => row.id}
-            />
-          </Box>
-        </CardContent>
-      </Card>
+          <Card>
+            <CardContent>
+              <Box sx={{ height: 500, width: '100%' }}>
+                <SafeDataGrid
+                  rows={reportRows}
+                  columns={reportColumns}
+                  loading={reportLoading}
+                  getRowId={(row) => row.id}
+                  pageSizeOptions={[10, 25, 50, 75, 100]}
+                />
+              </Box>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </Container>
   );
 }

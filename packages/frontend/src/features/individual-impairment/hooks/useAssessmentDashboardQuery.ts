@@ -17,7 +17,8 @@ export function useAssessmentWatchlistQuery(params: AssessmentWatchlistFilters, 
       const response = await fetchAssessmentWatchlist(params);
       return {
         rows: toAssessmentWatchlist(response.data),
-        total: Number(response.meta?.total ?? 0),
+        total: Number(response.pagination?.total ?? response.meta?.total ?? response.total ?? 0),
+        debug: response.meta?.debug,
       };
     },
     enabled,

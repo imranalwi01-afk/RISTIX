@@ -1,5 +1,5 @@
 
-import { apiClient } from '../api-client';
+import { individualImpairmentScopedClient as apiClient } from './individual-impairment-scoped-client';
 
 export interface AuditTrail {
   id: string;
@@ -93,7 +93,17 @@ export const individualImpairmentAPI = {
   },
 
   // REPORTS
-  getReports: async (params?: { reportPeriod?: string }) => {
+  getReports: async (params?: {
+    reportPeriod?: string;
+    search?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+    offset?: number;
+    paginationMode?: 'offset' | 'cursor';
+  }) => {
     const response = await apiClient.get('/banking/individual/impairment/reports', { params });
     return response.data;
   },

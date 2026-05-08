@@ -99,6 +99,12 @@ const state = {
     update: [] as any[],
     delete: [] as any[],
   },
+  individualImpairmentServiceCalls: {
+    createOverride: [] as any[],
+  },
+  individualImpairmentV2ServiceCalls: {
+    createOverride: [] as any[],
+  },
   availablePermissions: [
     { id: 'perm-approval', code: 'approval.requests.approve' },
     { id: 'perm-users-create', code: 'users.create' },
@@ -217,6 +223,7 @@ mock.module('@/repositories/notification.repository', () => ({
 }))
 
 mock.module('@/services/notifications.service', () => ({
+  createNotification: (payload: any) => Effect.succeed({ id: 'notif-service-1', ...payload }),
   deriveNotificationCategory: () => state.derivedCategory,
   filterNotificationRecipientsByPreferences: async ({ userIds }: any) => {
     if (state.filteredRecipients) {
@@ -429,6 +436,24 @@ mock.module('@/services/journal-parameters.service', () => ({
   },
 }))
 
+mock.module('@/services/individual-impairment.service', () => ({
+  individualImpairmentService: {
+    createOverride: (payload: any) => {
+      state.individualImpairmentServiceCalls.createOverride.push(payload)
+      return Promise.resolve([{ pkid: 1, ...payload }])
+    },
+  },
+}))
+
+mock.module('@/services/individual-impairment-v2.service', () => ({
+  individualImpairmentV2Service: {
+    createOverride: (payload: any) => {
+      state.individualImpairmentV2ServiceCalls.createOverride.push(payload)
+      return Promise.resolve([{ pkid: 2, ...payload }])
+    },
+  },
+}))
+
 const approvalService = await import('@/services/approval.service')
 
 describe('approval.service behavior', () => {
@@ -533,6 +558,12 @@ describe('approval.service behavior', () => {
       create: [],
       update: [],
       delete: [],
+    }
+    state.individualImpairmentServiceCalls = {
+      createOverride: [],
+    }
+    state.individualImpairmentV2ServiceCalls = {
+      createOverride: [],
     }
     state.availablePermissions = [
       { id: 'perm-approval', code: 'approval.requests.approve' },
@@ -2484,6 +2515,41 @@ describe('approval.service behavior', () => {
     expect(state.productServiceCalls.update[0].id).toBe(66)
     expect(state.journalServiceCalls.delete).toHaveLength(1)
     expect(state.journalServiceCalls.delete[0].id).toBe(77)
+  })
+
+  test('processApprovalAction executes individual impairment v2 approvals through the v2 service only', async () => {
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-individual-v2-override',
+      entityId: 'ACC-501',
+      requestedBy: 'maker-v2',
+      requestData: {
+        operation: 'create',
+        entityType: 'individual_impairment_v2',
+        subtype: 'override',
+        data: {
+          accountNumber: 'ACC-501',
+          customerName: 'Customer One',
+          overrideStage: 2,
+          justification: 'Needs v2 approval',
+        },
+      },
+    })
+
+    await Effect.runPromise(approvalService.processApprovalAction({
+      requestId: 'approval-individual-v2-override',
+      approverId: 'checker-1',
+      action: 'approve',
+    }))
+
+    expect(state.individualImpairmentServiceCalls.createOverride).toHaveLength(0)
+    expect(state.individualImpairmentV2ServiceCalls.createOverride).toHaveLength(1)
+    expect(state.individualImpairmentV2ServiceCalls.createOverride[0]).toMatchObject({
+      accountNumber: 'ACC-501',
+      tenantId: 'tenant-approval-1',
+      requestedBy: 'maker-v2',
+      createdBy: 'maker-v2',
+      status: 'PENDING',
+    })
   })
 
   test('processApprovalAction maps role-permission payload validation errors', async () => {
