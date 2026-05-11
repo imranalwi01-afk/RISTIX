@@ -110,7 +110,7 @@ jobs:
   # ==============================================================================
   deploy:
     name: Deploy to Production Server
-    runs-on: [self-hosted, X64, Linux, prod, iaf-prod]
+    runs-on: [self-hosted, X64, Linux, iaf-prod]
     needs: [frontend, backend]
 
     permissions:
