@@ -25,7 +25,13 @@ import {
   Step,
   StepLabel,
   Backdrop,
-  CircularProgress
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Paper,
+  TextField
 } from '@mui/material';
 import {
   OpenInNew as OpenInNewIcon,
@@ -48,16 +54,17 @@ import { AssessmentFilters } from '@/components/banking/individual/assessment/As
 import { AssessmentDetailsTab } from '@/components/banking/individual/assessment/AssessmentDetailsTab';
 import { FILTER_DEFAULTS } from './constants';
 import { individualImpairmentAPI, IndividualImpairmentWatchlistItem } from '@/services/api.individual-impairment';
+import { Send as SendIcon, CheckCircle as ApproveIcon, Cancel as RejectIcon } from '@mui/icons-material';
 import { DCFAnalysisTab } from '@/components/banking/individual/assessment/DCFAnalysisTab';
 import { ProvisionCalculationTab } from '@/components/banking/individual/assessment/ProvisionCalculationTab';
 import { AssessmentHistoryTab } from '@/components/banking/individual/assessment/AssessmentHistoryTab';
 import { AssessmentDocumentsTab } from '@/components/banking/individual/assessment/AssessmentDocumentsTab';
 import { AssessmentReportsTab } from '@/components/banking/individual/assessment/AssessmentReportsTab';
-import { Send as SendIcon } from '@mui/icons-material';
+import LoadingButton from '@mui/lab/LoadingButton';
 import { approvalAPI } from '@/services/api/approval.api';
 import { useAuth } from '@/providers/AuthProvider';
 import { useNotifications } from '@/providers/NotificationProvider';
-import { keyframes } from '@mui/material/styles';
+import { keyframes, useTheme, alpha } from '@mui/material/styles';
 
 interface SectionDef {
   key: string;
@@ -75,6 +82,7 @@ const livePulse = keyframes`
 `;
 
 export default function IndividualAssessmentWizardPage() {
+  const theme = useTheme();
   const searchParams = useSearchParams();
   const router = useRouter();
   const accountId = searchParams.get('accountId');
@@ -85,7 +93,24 @@ export default function IndividualAssessmentWizardPage() {
   const { user } = useAuth();
   const { unreadCount, notifications, acknowledgeNotification } = useNotifications();
 
-  // Automatically acknowledge approval notifications when viewing workspace
+  // Checker specific state
+  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
+  const [checkerComments, setCheckerComments] = useState('');
+  const [submittingApproval, setSubmittingApproval] = useState(false);
+
+  const isChecker = useMemo(() => {
+    if (!user) return false;
+    const roles = Array.isArray(user.roles) ? user.roles : (user.role ? [user.role] : []);
+    const roleCodes = Array.isArray(user.roleCodes) ? user.roleCodes : [];
+    const allRoles = [...roles, ...roleCodes].map(r => String(r).toUpperCase());
+    return allRoles.includes('CHECKER') || allRoles.includes('APPROVER') || allRoles.includes('SUPER_ADMIN');
+  }, [user]);
+
+  const canApprove = useMemo(() => {
+    // Status 0 is PENDING
+    return isChecker && assessmentData?.status === 0;
+  }, [isChecker, assessmentData]);
   useEffect(() => {
     if (accountId && notifications.length > 0) {
       const relevantNotifs = notifications.filter(n =>
@@ -114,11 +139,13 @@ export default function IndividualAssessmentWizardPage() {
   const [stagedDCF, setStagedDCF] = useState<any>(null);
   const [submittingPackage, setSubmittingPackage] = useState(false);
   const autoSubmitInProgress = useRef(false);
+  const calculationInProgress = useRef(false);
   const [headerSnackbar, setHeaderSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({
     open: false,
     message: '',
     severity: 'success'
   });
+  const [submitSuccessModal, setSubmitSuccessModal] = useState(false);
 
   // Dashboard State
   const [loading, setLoading] = useState(false);
@@ -277,7 +304,7 @@ export default function IndividualAssessmentWizardPage() {
   const fetchDashboardData = useCallback(async () => {
     // Only fetch watchlist dashboard data if we are on the watchlist tab (activeTab === 0)
     // and not viewing a specific account details.
-    if (activeTab !== 0 || accountId) return;
+    if (activeTab !== 0) return;
 
     setLoading(true);
     setDashboardError(null);
@@ -484,6 +511,63 @@ export default function IndividualAssessmentWizardPage() {
     fetchStatus();
   }, [accountId, stagedOverride, stagedDCF, historyRefreshKey]); // Re-fetch when staging or refresh requested
 
+  const fetchStatus = useCallback(async () => {
+    if (!accountId) return;
+    try {
+      const response = await individualImpairmentAPI.assessment.get(Number(accountId));
+      if (response?.success) {
+        setAssessmentData(response.data);
+      }
+      
+      const histRes = await individualImpairmentAPI.assessment.getHistory(Number(accountId));
+      if (histRes.success) {
+        setHistoryData(histRes.data || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch assessment status in page:', err);
+    }
+  }, [accountId]);
+
+  const handleApprove = async () => {
+    if (!accountId) return;
+    try {
+      setSubmittingApproval(true);
+      const res = await individualImpairmentAPI.assessment.approve(Number(accountId), checkerComments);
+      if (res.success) {
+        setHeaderSnackbar({ open: true, message: 'Assessment Approved successfully', severity: 'success' });
+        setHistoryRefreshKey(prev => prev + 1);
+        fetchStatus();
+        setApprovalDialogOpen(false);
+      }
+    } catch (err) {
+      setHeaderSnackbar({ open: true, message: 'Failed to approve assessment', severity: 'error' });
+    } finally {
+      setSubmittingApproval(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!accountId) return;
+    if (!checkerComments.trim()) {
+      setHeaderSnackbar({ open: true, message: 'Please provide a reason for rejection', severity: 'warning' });
+      return;
+    }
+    try {
+      setSubmittingApproval(true);
+      const res = await individualImpairmentAPI.assessment.reject(Number(accountId), checkerComments);
+      if (res.success) {
+        setHeaderSnackbar({ open: true, message: 'Assessment Rejected', severity: 'info' });
+        setHistoryRefreshKey(prev => prev + 1);
+        fetchStatus();
+        setRejectionDialogOpen(false);
+      }
+    } catch (err) {
+      setHeaderSnackbar({ open: true, message: 'Failed to reject assessment', severity: 'error' });
+    } finally {
+      setSubmittingApproval(false);
+    }
+  };
+
   // Fetch existing DCF result when account is selected
   useEffect(() => {
     const fetchExistingDcf = async () => {
@@ -501,18 +585,28 @@ export default function IndividualAssessmentWizardPage() {
         });
         if (response?.success && response.data?.header) {
           const header = response.data.header;
+          const standardizedDetails = (response.data.details || []).map((d: any) => ({
+            ...d,
+            period: d.periode,
+            cashflow: Number(d.pwAmt || 0),
+            pv: Number(d.pvAmt || 0),
+            principal: Number(d.principal || 0),
+            interest: Number(d.interest || 0),
+            installment: Number(d.installment || 0),
+            collateral: Number(d.collateral || 0),
+            beginningBalance: Number(d.beginningBalance || 0),
+            interestAccrual: Number(d.eirAmt || 0),
+            endingBalance: Number(d.endingBalance || 0),
+            weightedFlow: Number(d.pwAmt || 0)
+          }));
+
           const historicalCalc = {
             presentValue: Number(header.pvDcfAmt),
             lgd: Number(header.outstanding) - Number(header.pvDcfAmt),
             recommendedProvision: Number(header.eclIaAmt),
             outstanding: Number(header.outstanding),
             isHistorical: true,
-            details: (response.data.details || []).map((d: any) => ({
-              period: d.periode,
-              cashflow: d.amount,
-              pv: d.pvAmount,
-              discountFactor: d.amount > 0 ? d.pvAmount / d.amount : 0
-            })),
+            details: standardizedDetails,
             assumptions: {
               discountRate: Number(header.effInterestRate || header.interestRate),
               recoveryRate: 0,
@@ -525,8 +619,8 @@ export default function IndividualAssessmentWizardPage() {
             accountId: selectedAccount.account_id,
             accountNumber: selectedAccount.account_number,
             fileName: 'Historical Report Data',
-            totalRows: historicalCalc.details.length,
-            cashflows: historicalCalc.details,
+            totalRows: standardizedDetails.length,
+            cashflows: standardizedDetails,
             scenarioType: 'historical',
             scenariosCount: 1,
             uploadedBy: 'system',
@@ -604,24 +698,31 @@ export default function IndividualAssessmentWizardPage() {
     const resolvedAccountId = Number(payload?.accountId ?? accountId);
     if (!Number.isFinite(resolvedAccountId)) return;
 
+    if (calculationInProgress.current) {
+        console.warn('Calculation already in progress, skipping...');
+        return;
+    }
+
     try {
+      calculationInProgress.current = true;
       setDcfLoading(true);
       const response = await individualImpairmentAPI.dcf.calculate(resolvedAccountId, {
         accountId: resolvedAccountId,
-        assumptions: payload
+        ...payload
       });
       if (response?.success && response.data) {
         setDcfCalculation(response.data);
 
         // AUTO-STAGE: Capture this calculation as staged DCF for consolidated submission
         const autoStagedDCF = {
+            ...(stagedDCF || {}),
             accountId: resolvedAccountId,
             accountNumber: payload.accountNumber || selectedAccount?.account_number,
-            fileName: 'Manual Calculation',
-            totalRows: 1,
+            fileName: stagedDCF?.fileName || 'Manual Calculation',
+            totalRows: response.data.details?.length || 1,
             cashflows: response.data.details || [],
             scenarioType: response.data.scenario || payload.scenarioType || 'manual',
-            scenariosCount: 1,
+            scenariosCount: 3,
             uploadedBy: user?.id ?? 'unknown',
             uploadedAt: new Date().toISOString(),
             // Store the full result for reference
@@ -636,6 +737,7 @@ export default function IndividualAssessmentWizardPage() {
       }
     } finally {
       setDcfLoading(false);
+      calculationInProgress.current = false;
     }
   };
 
@@ -649,7 +751,10 @@ export default function IndividualAssessmentWizardPage() {
         return;
     }
 
-    if (submittingPackage) return;
+    if (submittingPackage || calculationInProgress.current) {
+        setHeaderSnackbar({ open: true, message: 'Process in progress. Please wait...', severity: 'warning' });
+        return;
+    }
     setSubmittingPackage(true);
 
     try {
@@ -690,10 +795,11 @@ export default function IndividualAssessmentWizardPage() {
 
         // Refresh data
         await fetchDashboardData();
-        setHistoryRefreshKey(prev => prev + 1); // Refresh history tab
+        setHistoryRefreshKey(prev => prev + 1);
 
-        // UX: Redirect to Reports tab after submission to see pending status
-        handleTabChangeByKey('individual-reports');
+        // UX: Show success modal → then redirect to history tab
+        setSubmitSuccessModal(true);
+        handleTabChangeByKey('history');
   } catch (error: any) {
     setHeaderSnackbar({ open: true, message: error.message || 'Failed to submit assessment package', severity: 'error' });
   } finally {
@@ -769,11 +875,12 @@ export default function IndividualAssessmentWizardPage() {
             onCalculate={handleCalculateDcf}
             calculationResults={dcfCalculation}
             loading={dcfLoading}
+            stagedDCF={stagedDCF}
             onStagedDCF={(data) => {
               setStagedDCF(data);
-              // If the data contains calculation results (from manual or upload), update the UI state
-              if (data.results) {
-                setDcfCalculation(data.results);
+              // Automate the calculation after upload/staging
+              if (data.cashflows && data.cashflows.length > 0) {
+                handleCalculateDcf(data);
               }
               // UX: Automatically navigate to Provision Calculation tab AFTER UPLOAD/STAGING is complete
               handleTabChangeByKey('provision-calculation');
@@ -951,9 +1058,99 @@ export default function IndividualAssessmentWizardPage() {
                 </Button>
               </span>
             </Tooltip>
+
+            {canApprove && (
+              <Stack direction="row" spacing={1}>
+                <Button
+                  variant="contained"
+                  color="error"
+                  startIcon={<RejectIcon />}
+                  onClick={() => {
+                    setCheckerComments('');
+                    setRejectionDialogOpen(true);
+                  }}
+                >
+                  Reject
+                </Button>
+                <Button
+                  variant="contained"
+                  color="success"
+                  startIcon={<ApproveIcon />}
+                  onClick={() => {
+                    setCheckerComments('');
+                    setApprovalDialogOpen(true);
+                  }}
+                >
+                  Approve
+                </Button>
+              </Stack>
+            )}
           </Box>
         }
       />
+
+      {/* Approval Dialog */}
+      <Dialog open={approvalDialogOpen} onClose={() => !submittingApproval && setApprovalDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800 }}>Confirm Approval</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Are you sure you want to approve this impairment assessment for <strong>{selectedAccount?.cif_name}</strong>?
+          </Typography>
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            label="Approval Comments (Optional)"
+            placeholder="Add any notes for the Maker..."
+            value={checkerComments}
+            onChange={(e) => setCheckerComments(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2, pt: 0 }}>
+          <Button onClick={() => setApprovalDialogOpen(false)} disabled={submittingApproval}>Cancel</Button>
+          <LoadingButton
+            variant="contained"
+            color="success"
+            onClick={handleApprove}
+            loading={submittingApproval}
+          >
+            Confirm Approval
+          </LoadingButton>
+        </DialogActions>
+      </Dialog>
+
+      {/* Rejection Dialog */}
+      <Dialog open={rejectionDialogOpen} onClose={() => !submittingApproval && setRejectionDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800, color: 'error.main' }}>Reject Assessment</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Please provide a reason for rejecting the assessment for <strong>{selectedAccount?.cif_name}</strong>.
+          </Typography>
+          <TextField
+            fullWidth
+            multiline
+            rows={4}
+            required
+            label="Rejection Reason"
+            placeholder="Explain why this assessment is being returned to Maker..."
+            value={checkerComments}
+            onChange={(e) => setCheckerComments(e.target.value)}
+            error={rejectionDialogOpen && !checkerComments.trim()}
+            helperText={rejectionDialogOpen && !checkerComments.trim() ? "Reason is required for rejection" : ""}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2, pt: 0 }}>
+          <Button onClick={() => setRejectionDialogOpen(false)} disabled={submittingApproval}>Cancel</Button>
+          <LoadingButton
+            variant="contained"
+            color="error"
+            onClick={handleReject}
+            loading={submittingApproval}
+          >
+            Reject Assessment
+          </LoadingButton>
+        </DialogActions>
+      </Dialog>
 
       {accountId && !selectedAccount && !loading && (
         <Alert severity="info" sx={{ mb: 2 }}>
@@ -1074,29 +1271,43 @@ export default function IndividualAssessmentWizardPage() {
         );
       })()}
 
-      <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 2, bgcolor: 'background.paper' }}>
+      <Box sx={{ 
+        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`, 
+        borderRadius: '24px', 
+        bgcolor: alpha(theme.palette.background.paper, 0.8),
+        backdropFilter: 'blur(16px)',
+        boxShadow: '0 12px 48px rgba(0, 0, 0, 0.08)',
+        overflow: 'hidden'
+      }}>
         <Tabs
           value={activeTab}
           onChange={(_, next) => handleTabChange(next)}
-          variant="fullWidth" // Ensures 1/7 width for each tab consistently
+          variant="fullWidth"
           sx={{
-            minHeight: 56, // Stable height
-            bgcolor: 'background.paper',
-            borderTopLeftRadius: 8,
-            borderTopRightRadius: 8,
-            '& .MuiTabs-indicator': { height: 3, bgcolor: 'primary.main', borderRadius: '3px 3px 0 0' },
+            minHeight: 64,
+            bgcolor: 'transparent',
+            '& .MuiTabs-indicator': { 
+              height: 4, 
+              bgcolor: theme.palette.primary.main, 
+              borderRadius: '4px 4px 0 0',
+              boxShadow: `0 -4px 12px ${alpha(theme.palette.primary.main, 0.4)}`
+            },
             '& .MuiTab-root': {
-              minHeight: 56,
+              minHeight: 64,
               minWidth: 0,
               p: 0,
               textTransform: 'none',
               fontWeight: 600,
-              fontSize: '0.85rem', // Stable professional font size
-              color: 'text.secondary',
-              transition: 'none', // Remove transitions to prevent shifting perception
+              fontSize: '0.9rem',
+              color: theme.palette.text.secondary,
+              transition: 'all 0.2s ease',
               '&.Mui-selected': {
-                color: 'primary.main',
-                fontWeight: 700
+                color: theme.palette.primary.main,
+                fontWeight: 700,
+                bgcolor: alpha(theme.palette.primary.main, 0.03)
+              },
+              '&:hover': {
+                bgcolor: alpha(theme.palette.primary.main, 0.02)
               }
             }
           }}
@@ -1106,15 +1317,15 @@ export default function IndividualAssessmentWizardPage() {
             return (
               <Tab
                 key={section.key}
-                icon={<Icon sx={{ fontSize: 20, mb: '2px !important' }} />}
+                icon={<Icon sx={{ fontSize: 22, mb: '4px !important' }} />}
                 label={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     {section.label}
                     {section.key === 'history' && stagedOverride && (
-                      <Chip size="small" color="primary" sx={{ height: 10, width: 10, minWidth: 10, borderRadius: '50%', p: 0, '& .MuiChip-label': { display: 'none' } }} />
+                      <Chip size="small" color="primary" sx={{ height: 8, width: 8, minWidth: 8, borderRadius: '50%', p: 0, '& .MuiChip-label': { display: 'none' }, boxShadow: `0 0 8px ${theme.palette.primary.main}` }} />
                     )}
                     {section.key === 'provision-calculation' && stagedDCF && (
-                      <Chip size="small" color="primary" sx={{ height: 10, width: 10, minWidth: 10, borderRadius: '50%', p: 0, '& .MuiChip-label': { display: 'none' } }} />
+                      <Chip size="small" color="primary" sx={{ height: 8, width: 8, minWidth: 8, borderRadius: '50%', p: 0, '& .MuiChip-label': { display: 'none' }, boxShadow: `0 0 8px ${theme.palette.primary.main}` }} />
                     )}
                   </Box>
                 }
@@ -1124,10 +1335,10 @@ export default function IndividualAssessmentWizardPage() {
           })}
         </Tabs>
 
-        <Divider />
+        <Divider sx={{ opacity: 0.1 }} />
 
-        <Box sx={{ px: 2, py: 1.5, bgcolor: 'grey.50', borderBottom: 1, borderColor: 'divider' }}>
-          <Typography variant="body2" color="text.secondary">
+        <Box sx={{ px: 3, py: 1.5, bgcolor: alpha(theme.palette.primary.main, 0.02), borderBottom: `1px solid ${alpha(theme.palette.divider, 0.05)}` }}>
+          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, fontStyle: 'italic', opacity: 0.8 }}>
             {activeSection.helper}
           </Typography>
         </Box>
@@ -1143,8 +1354,7 @@ export default function IndividualAssessmentWizardPage() {
                 loading={loading}
                 summary={summary}
               />
-              <Card sx={{ mt: 2, borderRadius: 2, border: '1px solid #e0e0e0', boxShadow: 'none' }}>
-                <CardContent sx={{ p: 2 }}>
+              <Box sx={{ mt: 3 }}>
                   <AssessmentFilters
                     filters={filters}
                     onFilterChange={handleFilterChange}
@@ -1216,8 +1426,7 @@ export default function IndividualAssessmentWizardPage() {
                     selectedAccountId={accountId}
                     mode={mode}
                   />
-                </CardContent>
-              </Card>
+              </Box>
             </Box>
           ) : (
             <AssessmentWorkspaceEmbeddedProvider>
@@ -1241,6 +1450,57 @@ export default function IndividualAssessmentWizardPage() {
           {headerSnackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Submit Success Modal — Maker informed that Checker must review */}
+      <Dialog
+        open={submitSuccessModal}
+        onClose={() => setSubmitSuccessModal(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden' } }}
+      >
+        <DialogTitle sx={{ background: 'linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)', color: 'white', fontWeight: 800, py: 2.5 }}>
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)' }}>✓</Avatar>
+            <span>Assessment Berhasil Disubmit!</span>
+          </Stack>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          <Paper sx={{ p: 2.5, bgcolor: '#f0f7ff', border: '1px solid #bbdefb', borderRadius: 2, mb: 2 }}>
+            <Typography variant="body2" fontWeight={700} color="primary.dark" mb={0.5}>
+              📋 Langkah Selanjutnya — Four-Eyes Principle
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Assessment package telah masuk ke antrian persetujuan. Seorang <strong>Checker</strong> perlu mereview dan menyetujuinya sebelum dapat dieksekusi.
+            </Typography>
+          </Paper>
+          <Stack spacing={1}>
+            {[
+              { step: '1', label: 'Anda (Maker)', desc: 'Sudah submit assessment package ✓', done: true },
+              { step: '2', label: 'Checker', desc: 'Mereview dan menyetujui di Approval Inbox', done: false },
+              { step: '3', label: 'Eksekusi Sistem', desc: 'Data CKPN diperbarui secara otomatis', done: false },
+            ].map(s => (
+              <Stack key={s.step} direction="row" spacing={1.5} alignItems="flex-start">
+                <Avatar sx={{ width: 28, height: 28, fontSize: '0.75rem', bgcolor: s.done ? 'success.main' : 'grey.300', color: s.done ? 'white' : 'grey.600', flexShrink: 0 }}>{s.done ? '✓' : s.step}</Avatar>
+                <Box>
+                  <Typography variant="body2" fontWeight={700}>{s.label}</Typography>
+                  <Typography variant="caption" color="text.secondary">{s.desc}</Typography>
+                </Box>
+              </Stack>
+            ))}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
+          <Button onClick={() => setSubmitSuccessModal(false)} variant="outlined" sx={{ borderRadius: 2 }}>Tutup</Button>
+          <Button
+            onClick={() => { setSubmitSuccessModal(false); router.push('/banking/workflow/approval'); }}
+            variant="contained"
+            sx={{ borderRadius: 2, fontWeight: 700 }}
+          >
+            Buka Approval Inbox
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

@@ -70,7 +70,7 @@ const KPICard = ({ title, value, gradient, icon, loading, delay = 0 }: any) => (
               {title}
             </Typography>
             <Typography variant="subtitle2" color="text.primary" sx={{ fontWeight: 700, lineHeight: 1 }}>
-              {loading ? <Skeleton width={30} /> : value}
+              {loading ? <Skeleton width={30} /> : (value ?? 0)}
             </Typography>
           </Box>
         </Box>
@@ -99,13 +99,13 @@ export const AssessmentReportsTab: React.FC<AssessmentReportsTabProps> = ({ onNa
 
   // Column filters state
   const [filters, setFilters] = useState({
-    prcDate: '',
-    accountNumber: '',
-    cifName: '',
+    prc_date: '',
+    account_number: '',
+    cif_name: '',
     currency: '',
     outstanding: '',
-    pvDcfAmt: '',
-    eclIaAmt: '',
+    pv_dcf_amt: '',
+    ecl_ia_amt: '',
     createdby: '',
     status: ''
   });
@@ -125,7 +125,7 @@ export const AssessmentReportsTab: React.FC<AssessmentReportsTabProps> = ({ onNa
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [filters.accountNumber, filters.cifName, filters.status]);
+  }, [filters.account_number, filters.cif_name, filters.status]);
 
   useEffect(() => {
     fetchSummary();
@@ -138,11 +138,7 @@ export const AssessmentReportsTab: React.FC<AssessmentReportsTabProps> = ({ onNa
         setSummary(response.data);
       }
     } catch (err: any) {
-      console.error('❌ Error fetching summary:', err);
-      if (err.response) {
-        console.error('❌ Error Data:', err.response.data);
-        console.error('❌ Error Status:', err.response.status);
-      }
+      setSummary({ total: 0, pending: 0, approve: 0, approved: 0, rejected: 0 });
     }
   };
 
@@ -153,23 +149,37 @@ export const AssessmentReportsTab: React.FC<AssessmentReportsTabProps> = ({ onNa
       console.log('🔍 [fetchReports] Calling API with filters:', {
         limit: pagination.limit,
         offset: pagination.page * pagination.limit,
-        accountNumber: filters.accountNumber,
-        cifName: filters.cifName,
+        account_number: filters.account_number,
+        cif_name: filters.cif_name,
         status: filters.status
       });
+      if (typeof individualImpairmentAPI?.reports?.getAll !== 'function') {
+        throw new Error('Reporting API not initialized correctly');
+      }
+
       const response = await individualImpairmentAPI.reports.getAll({
         limit: pagination.limit,
         offset: pagination.page * pagination.limit,
-        accountNumber: filters.accountNumber,
-        cifName: filters.cifName,
+        account_number: filters.account_number,
+        cif_name: filters.cif_name,
         status: filters.status
       });
       if (response.success && response.data) {
-        setReports(response.data);
-        const dataLength = Array.isArray(response.data) ? response.data.length : 0;
+        // Map snake_case to camelCase
+        const reportsArray = Array.isArray(response.data) ? response.data : (Array.isArray(response.data.data) ? response.data.data : []);
+        const mappedData = reportsArray.map((item: any) => ({
+          ...item,
+          prcDate: item.prc_date || item.download_date,
+          accountNumber: item.account_number,
+          cifName: item.cif_name || item.customer_name,
+          pvDcfAmt: item.pv_dcf_amt,
+          eclIaAmt: item.ecl_ia_amt,
+          accountId: item.account_id
+        }));
+        setReports(mappedData);
         setPagination(prev => ({
           ...prev,
-          total: response.pagination?.total || dataLength
+          total: response.pagination?.total || (Array.isArray(response.data) ? response.data.length : 0)
         }));
       } else {
         setReports([]);
@@ -359,8 +369,8 @@ export const AssessmentReportsTab: React.FC<AssessmentReportsTabProps> = ({ onNa
                         variant="outlined"
                         placeholder="Filter..."
                         fullWidth
-                        value={(filters as any)[col.id]}
-                        onChange={(e) => handleFilterChange(col.id, e.target.value)}
+                        value={(filters as any)[col.id === 'prcDate' ? 'prc_date' : col.id === 'accountNumber' ? 'account_number' : col.id === 'cifName' ? 'cif_name' : col.id === 'pvDcfAmt' ? 'pv_dcf_amt' : col.id === 'eclIaAmt' ? 'ecl_ia_amt' : col.id] || ''}
+                        onChange={(e) => handleFilterChange(col.id === 'prcDate' ? 'prc_date' : col.id === 'accountNumber' ? 'account_number' : col.id === 'cifName' ? 'cif_name' : col.id === 'pvDcfAmt' ? 'pv_dcf_amt' : col.id === 'eclIaAmt' ? 'ecl_ia_amt' : col.id, e.target.value)}
                         InputProps={{
                           startAdornment: col.id !== 'action' ? (
                             <InputAdornment position="start">

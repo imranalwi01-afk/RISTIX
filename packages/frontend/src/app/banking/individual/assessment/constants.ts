@@ -18,12 +18,14 @@ export const PRIORITY_COLORS: Record<string, string> = {
 };
 
 export const ASSESSMENT_STATUS_COLORS: Record<string, string> = {
-  'PENDING': '#757575',
+  'PENDING': '#2196f3',  // Blue (In progress)
   'IN_PROGRESS': '#2196f3',
   'COMPLETED': '#4caf50',
   'REVIEWED': '#ff9800',
-  'NEW': '#2196f3',      // Blue-1
-  'APPROVED': '#9e9e9e'  // Grey-3
+  'NEW': '#ff9800',       // Amber (Not yet processed)
+  'SUBMITTED': '#ff9800', // Amber (Waiting for approval)
+  'APPROVED': '#4caf50',  // Green
+  'REJECTED': '#f44336'   // Red
 };
 
 export const FILTER_DEFAULTS = {

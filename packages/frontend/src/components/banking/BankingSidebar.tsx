@@ -95,6 +95,7 @@ import { usePermission } from '@/hooks/usePermission';
 import { useMenuState } from '@/hooks/useMenuState';
 import { getAuthToken } from '@/utils/auth-token'; // ✅ Import token utility
 import { MenuSkeleton } from '../common/MenuSkeleton'; // ✅ Import Skeleton loader
+import { usePendingApprovalCount } from '@/hooks/usePendingApprovalCount'; // ✅ Approval badge
 
 // Database menu item structure (from API)
 
@@ -388,6 +389,9 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   const pathname = usePathname();
   const router = useRouter();
 
+  // ✅ Pending approval badge count (polling every 30s)
+  const { count: pendingApprovalCount } = usePendingApprovalCount();
+
   // 🔽 FLYOUT MENU STATE
   const [flyoutAnchorEl, setFlyoutAnchorEl] = useState<null | HTMLElement>(null);
   const [flyoutItem, setFlyoutItem] = useState<HierarchicalMenuItem | null>(null);
@@ -524,6 +528,23 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
     return filterHierarchicalMenu(rawItems, bankingMode, userPermissions);
   }, [menuData, isMenuLoading, bankingMode, userPermissions, buildNavigationUrl]);
 
+  // ✅ Inject live pending badge into Approval menu items
+  const menuWithBadges = React.useMemo(() => {
+    if (pendingApprovalCount === 0) return hierarchicalMenu;
+    const injectBadge = (items: HierarchicalMenuItem[]): HierarchicalMenuItem[] =>
+      items.map(item => {
+        const isApprovalItem = item.url?.includes('/workflow/approval') || item.id?.includes('approval');
+        return {
+          ...item,
+          metadata: isApprovalItem
+            ? { ...item.metadata, badge_info: { content: String(pendingApprovalCount > 99 ? '99+' : pendingApprovalCount), color: 'error' as const } }
+            : item.metadata,
+          children: item.children ? injectBadge(item.children) : item.children,
+        };
+      });
+    return injectBadge(hierarchicalMenu);
+  }, [hierarchicalMenu, pendingApprovalCount]);
+
   // Use hierarchical menu state management
   const menuState = useMenuState(hierarchicalMenu);
 
@@ -548,7 +569,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
 
   // ✅ TOP-LEVEL RENDER: Recursive calls replaced by SidebarItem component
   const menuItems = React.useMemo(() => {
-    return hierarchicalMenu.map(item => (
+    return menuWithBadges.map(item => (
       <SidebarItem
         key={item.id}
         item={item}
@@ -564,7 +585,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
         onMenuClick={onMenuClick}
       />
     ));
-  }, [hierarchicalMenu, collapsed, menuState.expandedItems, menuState.activeItems, menuState.selectedItem, handleNavigate, handleFlyoutOpen, onMenuClick, menuState.toggleExpansion, handlePrefetch]);
+  }, [menuWithBadges, collapsed, menuState.expandedItems, menuState.activeItems, menuState.selectedItem, handleNavigate, handleFlyoutOpen, onMenuClick, menuState.toggleExpansion, handlePrefetch]);
 
   // Get top level page URL for logo link
   const getTopLevelRoute = () => {

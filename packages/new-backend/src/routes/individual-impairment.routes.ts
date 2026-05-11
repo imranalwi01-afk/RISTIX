@@ -624,6 +624,24 @@ individualImpairmentRoutes.openapi(
     (c: any) => individualImpairmentController.rejectAssessment(c)
 )
 
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/assessment/{id}/reset',
+        tags: ['Individual Impairment'],
+        summary: 'Reset Assessment',
+        request: {
+            params: z.object({ id: z.string() })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: SuccessResponseSchema } }, description: 'Reset successful' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c: any) => individualImpairmentController.resetAssessment(c)
+)
+
 // --- OVERRIDES ---
 
 individualImpairmentRoutes.openapi(
@@ -734,6 +752,37 @@ individualImpairmentRoutes.openapi(
 individualImpairmentRoutes.openapi(
     createRoute({
         method: 'get',
+        path: '/reports-summary',
+        tags: ['Individual Impairment'],
+        summary: 'Get assessment report summary',
+        description: 'Returns aggregated status counts for individual assessment reports',
+        responses: {
+            200: {
+                description: 'Success',
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            data: z.object({
+                                total: z.number(),
+                                pending: z.number(),
+                                approve: z.number(),
+                                approved: z.number(),
+                                rejected: z.number()
+                            })
+                        })
+                    }
+                }
+            }
+        }
+    }),
+    (c: any) => individualImpairmentController.getAssessmentSummary(c)
+)
+
+
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'get',
         path: '/reports',
         tags: ['Individual Impairment'],
         summary: 'Get Reports',
@@ -782,6 +831,7 @@ individualImpairmentRoutes.openapi(
     }),
     (c: any) => individualImpairmentController.createReport(c)
 )
+
 
 // --- SCENARIOS ---
 

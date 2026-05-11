@@ -10,8 +10,10 @@ import {
   Select,
   Button,
   Stack,
-  Typography
+  Typography,
+  Paper
 } from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -43,6 +45,7 @@ interface AssessmentFiltersProps {
 }
 
 export const AssessmentFilters: React.FC<AssessmentFiltersProps> = ({ filters, onFilterChange, onReset, mode }) => {
+  const theme = useTheme();
   const [searchTerm, setSearchTerm] = useState(filters.search);
   // Using 500ms debounce as per spec
   const debouncedSearch = useLocalDebounce(searchTerm, 500);
@@ -72,13 +75,15 @@ export const AssessmentFilters: React.FC<AssessmentFiltersProps> = ({ filters, o
         direction={{ xs: 'column', md: 'row' }}
         spacing={2}
         alignItems={{ xs: 'stretch', md: 'center' }}
+        component={Paper}
+        elevation={0}
         sx={{
-          p: 2.5,
-          bgcolor: 'background.paper',
-          borderRadius: 2,
-          boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-          border: '1px solid',
-          borderColor: 'divider',
+          p: 3,
+          backgroundColor: alpha(theme.palette.background.paper, 0.8),
+          backdropFilter: 'blur(12px)',
+          borderRadius: '20px',
+          border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.05)',
           flexWrap: 'wrap'
         }}
       >
@@ -98,12 +103,22 @@ export const AssessmentFilters: React.FC<AssessmentFiltersProps> = ({ filters, o
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon fontSize="small" color="action" />
+                <SearchIcon fontSize="small" color="primary" />
               </InputAdornment>
             ),
-            sx: { borderRadius: 1.5, bgcolor: 'action.hover' }
+            sx: { 
+              borderRadius: '12px', 
+              bgcolor: alpha(theme.palette.primary.main, 0.03),
+              '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.05) },
+              transition: 'all 0.2s ease',
+              border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+              '&.Mui-focused': {
+                border: `1px solid ${theme.palette.primary.main}`,
+                boxShadow: `0 0 0 4px ${alpha(theme.palette.primary.main, 0.1)}`
+              }
+            }
           }}
-          sx={{ minWidth: { md: 300 }, flexGrow: 1 }}
+          sx={{ minWidth: { md: 320 }, flexGrow: 1 }}
         />
 
         <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -122,7 +137,7 @@ export const AssessmentFilters: React.FC<AssessmentFiltersProps> = ({ filters, o
               textField: {
                 size: 'small',
                 sx: { minWidth: 180 },
-                InputProps: { sx: { borderRadius: 1.5 } }
+                InputProps: { sx: { borderRadius: '12px', bgcolor: alpha(theme.palette.primary.main, 0.03) } }
               }
             }}
             format="DD/MM/YYYY"
@@ -135,7 +150,7 @@ export const AssessmentFilters: React.FC<AssessmentFiltersProps> = ({ filters, o
             value={filters.stage}
             label="Stage"
             onChange={(e) => onFilterChange('stage', e.target.value)}
-            sx={{ borderRadius: 1.5 }}
+            sx={{ borderRadius: '12px', bgcolor: alpha(theme.palette.primary.main, 0.03) }}
           >
             <MenuItem value="">All Stages</MenuItem>
             <MenuItem value="1">Stage 1</MenuItem>
@@ -150,7 +165,7 @@ export const AssessmentFilters: React.FC<AssessmentFiltersProps> = ({ filters, o
             value={filters.impairedFlag}
             label="Impaired Status"
             onChange={(e) => onFilterChange('impairedFlag', e.target.value)}
-            sx={{ borderRadius: 1.5 }}
+            sx={{ borderRadius: '12px', bgcolor: alpha(theme.palette.primary.main, 0.03) }}
           >
             <MenuItem value="">All Status</MenuItem>
             <MenuItem value="I">Impaired</MenuItem>
@@ -164,7 +179,7 @@ export const AssessmentFilters: React.FC<AssessmentFiltersProps> = ({ filters, o
             value={filters.priorityLevel}
             label="Priority"
             onChange={(e) => onFilterChange('priorityLevel', e.target.value)}
-            sx={{ borderRadius: 1.5 }}
+            sx={{ borderRadius: '12px', bgcolor: alpha(theme.palette.primary.main, 0.03) }}
           >
             <MenuItem value="">All Priorities</MenuItem>
             <MenuItem value="LOW">Low</MenuItem>
@@ -174,17 +189,17 @@ export const AssessmentFilters: React.FC<AssessmentFiltersProps> = ({ filters, o
           </Select>
         </FormControl>
 
-        <FormControl size="small" sx={{ minWidth: 160 }}>
-          <InputLabel>Status</InputLabel>
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel>Assessment Status</InputLabel>
           <Select
             value={filters.assessmentStatus}
-            label="Status"
+            label="Assessment Status"
             onChange={(e) => onFilterChange('assessmentStatus', e.target.value)}
-            sx={{ borderRadius: 1.5 }}
+            sx={{ borderRadius: '12px', bgcolor: alpha(theme.palette.primary.main, 0.03) }}
           >
             <MenuItem value="">All Statuses</MenuItem>
-            <MenuItem value="PENDING">Pending</MenuItem>
-            <MenuItem value="SUBMITTED">Submitted</MenuItem>
+            <MenuItem value="NEW">Unprocessed (New)</MenuItem>
+            <MenuItem value="PENDING">In Assessment (Pending)</MenuItem>
             <MenuItem value="APPROVED">Approved</MenuItem>
             <MenuItem value="REJECTED">Rejected</MenuItem>
           </Select>
@@ -192,24 +207,26 @@ export const AssessmentFilters: React.FC<AssessmentFiltersProps> = ({ filters, o
 
         <Button
           variant="outlined"
-          color="error"
+          color="inherit"
           size="medium"
           startIcon={<ClearIcon />}
           onClick={onReset}
           sx={{
-            borderRadius: 1.5,
+            borderRadius: '12px',
             textTransform: 'none',
-            px: 2,
-            borderColor: 'divider',
-            color: 'text.secondary',
+            fontWeight: 600,
+            px: 3,
+            borderColor: alpha(theme.palette.divider, 0.2),
+            color: theme.palette.text.secondary,
             '&:hover': {
-              borderColor: 'error.main',
-              color: 'error.main',
-              bgcolor: 'error.lighter'
-            }
+              borderColor: theme.palette.error.main,
+              color: theme.palette.error.main,
+              bgcolor: alpha(theme.palette.error.main, 0.05)
+            },
+            transition: 'all 0.2s ease'
           }}
         >
-          Clear All
+          Reset Filters
         </Button>
       </Stack>
     </Box>

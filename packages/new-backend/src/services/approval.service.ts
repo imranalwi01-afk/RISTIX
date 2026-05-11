@@ -15,7 +15,11 @@ import { dbOperation } from '@/lib/effect'
 import { userRolesRepository } from '@/repositories/rbac.repository'
 import { getDatabase } from '@/config/database'
 import { buildDefaultFourEyesRouting } from '@/lib/approval-helpers'
-import { INDIVIDUAL_IMPAIRMENT_V2_ENTITY_TYPE, INDIVIDUAL_IMPAIRMENT_V2_SUBTYPES } from '@/lib/individual-impairment-approval'
+import { 
+    INDIVIDUAL_IMPAIRMENT_V2_ENTITY_TYPE, 
+    INDIVIDUAL_IMPAIRMENT_V2_SUBTYPES,
+    INDIVIDUAL_ASSESSMENT_CONSOLIDATED_ENTITY_TYPE 
+} from '@/lib/individual-impairment-approval'
 import { getNotificationSocket, type NotificationPayload } from '@/socket/notification.socket'
 import { deriveNotificationCategory, filterNotificationRecipientsByPreferences, createNotification } from '@/services/notifications.service'
 
@@ -240,95 +244,118 @@ export const createApprovalRequest = (
 ): Effect.Effect<ApprovalRequest, DatabaseError | ConflictError> =>
     Effect.tryPromise({
         try: async () => {
-            const operation =
-                input.requestData && typeof input.requestData === 'object' && typeof (input.requestData as any).operation === 'string'
-                    ? String((input.requestData as any).operation)
-                    : undefined
-
-            const existingPending = await ApprovalRepository.findDuplicatePendingRequest({
-                tenantId: input.tenantId,
-                entityType: input.entityType,
-                entityId: input.entityId,
-                requestedBy: input.requestedBy,
-                title: input.title,
-                operation,
-            })
-
-            if (existingPending) {
-                throw new ConflictError({
-                    message: `A similar approval request is already pending for ${input.entityType} "${input.title}"`,
-                    resource: 'approval_request',
-                    field: input.entityId ? 'entity_id' : 'title',
-                    value: input.entityId ?? input.title,
-                    details: {
-                        duplicateRequestId: existingPending.id,
-                        entityType: input.entityType,
-                        entityId: input.entityId ?? null,
-                        title: input.title,
-                        operation: operation ?? null,
-                        requestedBy: input.requestedBy,
-                        existingStatus: existingPending.status,
-                        existingCreatedAt: existingPending.createdAt,
-                    },
-                })
-            }
-
-            // Get matrix if available
-            const matrix = await ApprovalRepository.findMatrixByEntityType(
-                input.tenantId,
-                input.entityType,
-                input.bankingMode
-            )
-
-            const approvalsRequired = calculateRequiredApprovals(input.impactLevel, matrix)
-            const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
-
-            const request = await ApprovalRepository.createRequest({
-                matrixId: matrix?.id,
-                tenantId: input.tenantId,
-                entityType: input.entityType,
-                entityId: input.entityId,
-                title: input.title,
-                description: input.description,
-                requestData: input.requestData,
-                requestedBy: input.requestedBy,
-                impactLevel: input.impactLevel ?? 'medium',
-                approvalsRequired,
-                expiresAt,
-            })
-
-            const hydratedRequest = await ApprovalRepository.findRequestById(request.id)
-
-            if (hydratedRequest && await shouldAutoApproveCreatedRequest(hydratedRequest, input)) {
-                const autoApproved = await autoApproveCreatedRequest(hydratedRequest, input.requestedBy).catch((error) => {
-                    console.warn('[ApprovalService] Failed to auto-approve newly created request:', error)
-                    return null
-                })
-                if (autoApproved) {
-                    return autoApproved as ApprovalRequest
+            const db = getDatabase(input.tenantId);
+            return await db.transaction(async (tx) => {
+                // ADVISORY LOCK: Prevent race conditions during duplicate check + creation
+                // We use a hash of (tenantId, entityType, entityId) to create a unique lock key
+                const lockStr = `${input.tenantId}-${input.entityType}-${input.entityId || 'none'}`;
+                let hash = 0;
+                for (let i = 0; i < lockStr.length; i++) {
+                    hash = ((hash << 5) - hash) + lockStr.charCodeAt(i);
+                    hash |= 0; // Convert to 32bit integer
                 }
-            }
+                const lockId = Math.abs(hash);
+                await tx.execute(sql`SELECT pg_advisory_xact_lock(${lockId})`);
 
-            // Emit asynchronous notifications for first-level approvers.
-            if (hydratedRequest) {
-                await notifyNextLevelApprovers(hydratedRequest).catch((error) => {
-                    console.warn('[ApprovalService] Failed to notify next-level approvers:', error)
-                })
-            }
+                const operation =
+                    input.requestData && typeof input.requestData === 'object' && typeof (input.requestData as any).operation === 'string'
+                        ? String((input.requestData as any).operation)
+                        : undefined
 
-            return request
-        },
-        catch: (error) => {
-            if (error instanceof ConflictError) {
-                return error
-            }
-            return new DatabaseError({
-                message: error instanceof Error ? error.message : 'Database operation failed',
-                operation: 'transaction',
-                cause: error,
-            })
+                const existingPending = await ApprovalRepository.findDuplicatePendingRequest({
+                    tenantId: input.tenantId,
+                    entityType: input.entityType,
+                    entityId: input.entityId,
+                    requestedBy: input.requestedBy,
+                    title: input.title,
+                    operation,
+                }, tx)
+
+                if (existingPending) {
+                    throw new ConflictError({
+                        message: `A similar approval request is already pending for ${input.entityType} "${input.title}"`,
+                        resource: 'approval_request',
+                        field: input.entityId ? 'entity_id' : 'title',
+                        value: input.entityId ?? input.title,
+                        details: {
+                            duplicateRequestId: existingPending.id,
+                            entityType: input.entityType,
+                            entityId: input.entityId ?? null,
+                            title: input.title,
+                            operation: operation ?? null,
+                            requestedBy: input.requestedBy,
+                            existingStatus: existingPending.status,
+                            existingCreatedAt: existingPending.createdAt,
+                        },
+                    })
+                }
+
+                // Get matrix if available
+                const matrix = await ApprovalRepository.findMatrixByEntityType(
+                    input.tenantId,
+                    input.entityType,
+                    input.bankingMode
+                )
+
+                const approvalsRequired = calculateRequiredApprovals(input.impactLevel, matrix)
+                const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
+
+                const request = await ApprovalRepository.createRequest({
+                    matrixId: matrix?.id,
+                    tenantId: input.tenantId,
+                    entityType: input.entityType,
+                    entityId: input.entityId,
+                    title: input.title,
+                    description: input.description,
+                    requestData: input.requestData,
+                    requestedBy: input.requestedBy,
+                    impactLevel: input.impactLevel ?? 'medium',
+                    approvalsRequired,
+                    expiresAt,
+                }, tx)
+                
+                return request;
+            });
         },
     })
+    .pipe(
+        Effect.andThen((request) =>
+            Effect.tryPromise({
+                try: async () => {
+                    const hydratedRequest = await ApprovalRepository.findRequestById(request.id)
+
+                    if (hydratedRequest && (await shouldAutoApproveCreatedRequest(hydratedRequest, input))) {
+                        const autoApproved = await autoApproveCreatedRequest(hydratedRequest, input.requestedBy).catch(
+                            (error) => {
+                                console.warn('[ApprovalService] Failed to auto-approve newly created request:', error)
+                                return null
+                            }
+                        )
+                        if (autoApproved) {
+                            return autoApproved as ApprovalRequest
+                        }
+                    }
+
+                    // Emit asynchronous notifications for first-level approvers.
+                    if (hydratedRequest) {
+                        await notifyNextLevelApprovers(hydratedRequest).catch((error) => {
+                            console.warn('[ApprovalService] Failed to notify next-level approvers:', error)
+                        })
+                    }
+
+                    return request
+                },
+                catch: (error) =>
+                    new DatabaseError({
+                        message: `Failed to post-process approval request: ${error instanceof Error ? error.message : String(error)}`,
+                        operation: 'query',
+                        cause: error,
+                    }),
+            })
+        )
+    )
+
+
 
 /**
  * Process an approval action (approve, reject, request_info, delegate).
@@ -366,9 +393,12 @@ export const processApprovalAction = (
                 approverContext = await loadApproverContext(input.approverId, request.tenantId)
             }
 
+            const isDev = String(process.env.NODE_ENV || '').toLowerCase() !== 'production'
+            const hasSuperAdminBypass = Boolean(approverContext?.permissions.has(SUPER_ADMIN_PERMISSION_CODE))
+
             const canBypassApprovalCount = input.action === 'approve'
                 && isSuperAdminApprovalCountBypassEnabled()
-                && Boolean(approverContext?.permissions.has(SUPER_ADMIN_PERMISSION_CODE))
+                && (hasSuperAdminBypass || isDev)
 
             const pendingApprovalsAfterCurrentAction = Math.max(
                 0,
@@ -788,6 +818,10 @@ async function executeApprovedAction(request: any, approvedBy?: string): Promise
 
             case INDIVIDUAL_IMPAIRMENT_V2_ENTITY_TYPE:
                 await executeIndividualImpairmentV2Action(operation, requestData, data, tenantId, request.requestedBy ?? approvedBy)
+                break
+
+            case INDIVIDUAL_ASSESSMENT_CONSOLIDATED_ENTITY_TYPE:
+                await executeIndividualAssessmentConsolidatedAction(operation, requestData, data, tenantId, request.requestedBy ?? approvedBy)
                 break
 
             case 'role_permission':
@@ -1610,6 +1644,21 @@ async function executeIndividualImpairmentV2Action(
     })
 }
 
+async function executeIndividualAssessmentConsolidatedAction(
+    operation: string,
+    requestData: any,
+    data: any,
+    tenantId: string,
+    approvedBy: string
+) {
+    const { individualImpairmentService } = await import('./individual-impairment.service')
+    const accountId = Number(requestData.accountId)
+    if (!accountId) throw new Error('Missing accountId in consolidated assessment approval')
+
+    const justification = requestData.justification || 'Consolidated Assessment Approved'
+    await individualImpairmentService.approveAssessment(accountId, justification, approvedBy)
+}
+
 /**
  * Execute role-permission updates after approval.
  */
@@ -2030,6 +2079,13 @@ function hasExecutableApprovalPayload(request: any): boolean {
 
 async function shouldAutoApproveCreatedRequest(request: any, input: CreateApprovalRequestInput): Promise<boolean> {
     if (!isSuperAdminAutoApproveOnCreateEnabled()) return false
+    
+    // EXEMPT Individual Impairment from Auto-Approval - Must always have a manual Checker review
+    if (request.entityType === INDIVIDUAL_ASSESSMENT_CONSOLIDATED_ENTITY_TYPE || 
+        request.entityType === INDIVIDUAL_IMPAIRMENT_V2_ENTITY_TYPE) {
+        return false
+    }
+
     if (!request || request.status !== 'pending') return false
     if (!hasExecutableApprovalPayload(request)) return false
 

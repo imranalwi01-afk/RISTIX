@@ -19,7 +19,7 @@ import { decodeCursor, encodeCursor } from '@/lib/http/list-query';
 // Helper to map Legacy Status (Int) <-> Frontend Status (String)
 // Assumption: 0=Pending, 1=Approved, 2=Rejected
 const STATUS_MAP_TO_STRING: Record<number, string> = {
-    0: 'PENDING',
+    0: 'SUBMITTED',
     1: 'APPROVED',
     2: 'REJECTED'
 };
@@ -32,17 +32,80 @@ const STATUS_MAP_TO_INT: Record<string, number> = {
 export class IndividualImpairmentService {
     private toNumber(value: unknown) {
         if (value == null || value === '') return 0;
+        if (typeof value === 'string') {
+            // Remove commas and other formatting characters
+            const clean = value.replace(/,/g, '').trim();
+            const parsed = Number(clean);
+            return Number.isFinite(parsed) ? parsed : 0;
+        }
         const parsed = Number(value);
         return Number.isFinite(parsed) ? parsed : 0;
     }
 
     private toDateString(value?: string | Date | null) {
         if (!value) return new Date().toISOString().slice(0, 10);
-        const date = value instanceof Date ? value : new Date(value);
-        if (Number.isNaN(date.getTime())) {
-            return String(value).slice(0, 10);
+        
+        // 1. Handle Date objects
+        if (value instanceof Date) {
+            if (Number.isNaN(value.getTime())) return new Date().toISOString().slice(0, 10);
+            return value.toISOString().slice(0, 10);
         }
-        return date.toISOString().slice(0, 10);
+
+        // 2. Handle Numeric values (Excel Serial Dates)
+        // Excel serial dates are numbers like 43737 (Sep 2019)
+        const numericValue = Number(value);
+        if (!isNaN(numericValue) && (typeof value === 'number' || (typeof value === 'string' && /^\d+(\.\d+)?$/.test(value.trim())))) {
+            // Excel dates are usually between 1 (1900) and 100000 (2173)
+            if (numericValue > 0 && numericValue < 1000000) {
+                // 25569 is the offset between Unix epoch (1970-01-01) and Excel epoch (1899-12-30)
+                const date = new Date(Math.round((numericValue - 25569) * 86400 * 1000));
+                if (!Number.isNaN(date.getTime())) {
+                    return date.toISOString().slice(0, 10);
+                }
+            }
+        }
+
+        const str = String(value).trim();
+        if (!str) return new Date().toISOString().slice(0, 10);
+
+        // 3. Try standard ISO (YYYY-MM-DD)
+        // Pre-check to avoid bare numbers being parsed as years (e.g. "43737" -> Year 43737)
+        if (str.includes('-') || str.includes('/')) {
+             const date = new Date(str);
+             if (!Number.isNaN(date.getTime())) {
+                 // Heuristic: Ensure it's a "reasonable" year to avoid parsing errors
+                 const y = date.getFullYear();
+                 if (y > 1900 && y < 2100) {
+                     return date.toISOString().slice(0, 10);
+                 }
+             }
+        }
+
+        // 4. Handle DD-MM-YYYY or DD/MM/YYYY or DD-MM-YY
+        const parts = str.split(/[-/]/);
+        if (parts.length === 3) {
+            let d, m, y;
+            
+            // Check if it's YYYY-MM-DD or DD-MM-YYYY
+            if (parts[0].length === 4) {
+                y = parseInt(parts[0], 10);
+                m = parseInt(parts[1], 10) - 1;
+                d = parseInt(parts[2], 10);
+            } else {
+                d = parseInt(parts[0], 10);
+                m = parseInt(parts[1], 10) - 1;
+                y = parseInt(parts[2], 10);
+                // Handle 2-digit years
+                if (y < 100) y += (y > 50 ? 1900 : 2000);
+            }
+
+            if (!isNaN(d) && !isNaN(m) && !isNaN(y)) {
+                // Return YYYY-MM-DD string directly to avoid timezone shifts
+                return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            }
+        }
+
+        return str.slice(0, 10);
     }
 
     private mapDcfCashflowRow(row: any) {
@@ -126,6 +189,9 @@ export class IndividualImpairmentService {
         createdBy: string,
         createdHost: string
     ) {
+        // SERIALIZE per account to prevent duplicate headers during parallel DCF uploads
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(${accountId})`);
+
         const existing = await tx.select()
             .from(frs9ImpIaHeader)
             .where(eq(frs9ImpIaHeader.accountId, accountId))
@@ -141,7 +207,7 @@ export class IndividualImpairmentService {
             throw new Error(`Assessment source for account ${accountId} not found`);
         }
 
-        const iaId = await this.generateIaId();
+        const iaId = await this.generateIaId(tx);
         const now = new Date().toISOString();
         const prcDate = this.toDateString(assessment.prc_date || new Date());
         const impairedFlag = String(assessment.impaired_flag || 'N').toUpperCase() === 'I' ? 'T' : 'F';
@@ -846,102 +912,107 @@ export class IndividualImpairmentService {
                 scNames[index] = String(row.scenarioName || `Scenario ${index + 1}`).slice(0, 20);
             });
 
-            const assessment = await this.getAssessment(data.tenantId || 'legacy', accountId);
-            if (!assessment) {
-                throw new Error(`Assessment source for account ${accountId} not found`);
-            }
+            return await legacyDb.transaction(async (tx) => {
+                // SERIALIZE per account to prevent unique constraint violations on frs9_imp_ia_header
+                await tx.execute(sql`SELECT pg_advisory_xact_lock(${accountId})`);
 
-            const now = new Date().toISOString();
-            const createdBy = String(data.createdBy || 'SYSTEM').slice(0, 36) || 'SYSTEM';
+                const assessment = await this.getAssessment(data.tenantId || 'legacy', accountId);
+                if (!assessment) {
+                    throw new Error(`Assessment source for account ${accountId} not found`);
+                }
 
-            const existing = await legacyDb.select()
-                .from(frs9ImpIaHeader)
-                .where(eq(frs9ImpIaHeader.accountId, accountId))
-                .orderBy(desc(frs9ImpIaHeader.updateddate), desc(frs9ImpIaHeader.createddate))
-                .limit(1);
+                const now = new Date().toISOString();
+                const createdBy = String(data.createdBy || 'SYSTEM').slice(0, 36) || 'SYSTEM';
 
-            const headerPayload = {
-                scenarioId: scenarioMethodId,
-                nOfScenario: scenarioCount,
-                poRate1: poRates[0] || 0,
-                poRate2: poRates[1] || 0,
-                poRate3: poRates[2] || 0,
-                scName1: scNames[0],
-                scName2: scNames[1],
-                scName3: scNames[2],
-                triggerRemarks: String(data.description || assessment.impairment_reason || assessment.analyst_comments || ''),
-                status: STATUS_MAP_TO_INT[String(data.status || 'PENDING').toUpperCase()] ?? 0,
-                updatedby: createdBy,
-                updateddate: now,
-                updatedhost: 'localhost'
-            };
+                const existing = await tx.select()
+                    .from(frs9ImpIaHeader)
+                    .where(eq(frs9ImpIaHeader.accountId, accountId))
+                    .orderBy(desc(frs9ImpIaHeader.updateddate), desc(frs9ImpIaHeader.createddate))
+                    .limit(1);
 
-            let savedHeader;
-            let iaId;
+                const headerPayload = {
+                    scenarioId: scenarioMethodId,
+                    nOfScenario: scenarioCount,
+                    poRate1: poRates[0] || 0,
+                    poRate2: poRates[1] || 0,
+                    poRate3: poRates[2] || 0,
+                    scName1: scNames[0],
+                    scName2: scNames[1],
+                    scName3: scNames[2],
+                    triggerRemarks: String(data.description || assessment.impairment_reason || assessment.analyst_comments || ''),
+                    status: STATUS_MAP_TO_INT[String(data.status || 'PENDING').toUpperCase()] ?? 0,
+                    updatedby: createdBy,
+                    updateddate: now,
+                    updatedhost: 'localhost'
+                };
 
-            if (existing.length > 0) {
-                iaId = Number(existing[0].iaId);
-                [savedHeader] = await legacyDb.update(frs9ImpIaHeader)
-                    .set(headerPayload)
-                    .where(eq(frs9ImpIaHeader.pkid, existing[0].pkid))
-                    .returning();
-            } else {
-                iaId = await this.generateIaId();
-                const prcDate = assessment.prc_date || new Date().toISOString().slice(0, 10);
-                const impairedFlag = String(assessment.impaired_flag || 'N').toUpperCase() === 'I' ? 'T' : 'F';
+                let savedHeader;
+                let iaId;
 
-                [savedHeader] = await legacyDb.insert(frs9ImpIaHeader).values({
+                if (existing.length > 0) {
+                    iaId = Number(existing[0].iaId);
+                    [savedHeader] = await tx.update(frs9ImpIaHeader)
+                        .set(headerPayload)
+                        .where(eq(frs9ImpIaHeader.pkid, existing[0].pkid))
+                        .returning();
+                } else {
+                    iaId = await this.generateIaId(tx);
+                    const prcDate = assessment.prc_date || new Date().toISOString().slice(0, 10);
+                    const impairedFlag = String(assessment.impaired_flag || 'N').toUpperCase() === 'I' ? 'T' : 'F';
+
+                    [savedHeader] = await tx.insert(frs9ImpIaHeader).values({
+                        iaId,
+                        prcDate,
+                        effDate: assessment.eff_date || prcDate,
+                        cifNumber: assessment.cif_number || 'UNKNOWN',
+                        cifName: assessment.cif_name || 'UNKNOWN',
+                        accountId,
+                        accountNumber: assessment.account_number || String(accountId),
+                        currency: assessment.currency || 'IDR',
+                        effInterestRate: Number(assessment.eff_interest_rate || 0),
+                        interestRate: Number(assessment.interest_rate || 0),
+                        dpd: Number(assessment.dpd || 0),
+                        collectability: Number(assessment.collectability || 0),
+                        ratingCode: assessment.rating_code || null,
+                        impairedFlag,
+                        method: 'DCF',
+                        plafond: String(assessment.plafond || assessment.outstanding_balance || 0),
+                        outstanding: String(assessment.outstanding_balance || 0),
+                        accruedInterest: String(assessment.accrued_interest || 0),
+                        carryingAmt: String(assessment.carrying_amt || assessment.outstanding_balance || 0),
+                        eadAmt: String(assessment.ead_amt || assessment.outstanding_balance || 0),
+                        pvDcfAmt: '0',
+                        eclIaAmt: '0',
+                        triggerFilename: assessment.supporting_documents?.[0] || null,
+                        createdby: createdBy,
+                        createddate: now,
+                        createdhost: 'localhost',
+                        ...headerPayload
+                    }).returning();
+                }
+
+                await tx.delete(frs9ImpIaRr)
+                    .where(eq(frs9ImpIaRr.iaId, iaId));
+
+                const rrRowsPayload = boundedRows.map((row, index) => ({
                     iaId,
-                    prcDate,
-                    effDate: assessment.eff_date || prcDate,
-                    cifNumber: assessment.cif_number || 'UNKNOWN',
-                    cifName: assessment.cif_name || 'UNKNOWN',
                     accountId,
-                    accountNumber: assessment.account_number || String(accountId),
-                    currency: assessment.currency || 'IDR',
-                    effInterestRate: Number(assessment.eff_interest_rate || 0),
-                    interestRate: Number(assessment.interest_rate || 0),
-                    dpd: Number(assessment.dpd || 0),
-                    collectability: Number(assessment.collectability || 0),
-                    ratingCode: assessment.rating_code || null,
-                    impairedFlag,
-                    method: 'DCF',
-                    plafond: String(assessment.plafond || assessment.outstanding_balance || 0),
-                    outstanding: String(assessment.outstanding_balance || 0),
-                    accruedInterest: String(assessment.accrued_interest || 0),
-                    carryingAmt: String(assessment.carrying_amt || assessment.outstanding_balance || 0),
-                    eadAmt: String(assessment.ead_amt || assessment.outstanding_balance || 0),
-                    pvDcfAmt: '0',
-                    eclIaAmt: '0',
-                    triggerFilename: assessment.supporting_documents?.[0] || null,
+                    periodStart: row.periodStart || assessment.prc_date || new Date().toISOString().slice(0, 10),
+                    periodEnd: row.periodEnd || row.periodStart || assessment.prc_date || new Date().toISOString().slice(0, 10),
+                    rrRate1: index === 0 ? Number(row.repaymentRate || 0) : 0,
+                    rrRate2: index === 1 ? Number(row.repaymentRate || 0) : 0,
+                    rrRate3: index === 2 ? Number(row.repaymentRate || 0) : 0,
                     createdby: createdBy,
                     createddate: now,
-                    createdhost: 'localhost',
-                    ...headerPayload
-                }).returning();
-            }
+                    createdhost: 'localhost'
+                }));
 
-            await legacyDb.delete(frs9ImpIaRr)
-                .where(eq(frs9ImpIaRr.iaId, iaId));
+                if (rrRowsPayload.length > 0) {
+                    await tx.insert(frs9ImpIaRr).values(rrRowsPayload);
+                }
 
-            const rrRowsPayload = boundedRows.map((row, index) => ({
-                iaId,
-                accountId,
-                periodStart: row.periodStart || assessment.prc_date || new Date().toISOString().slice(0, 10),
-                periodEnd: row.periodEnd || row.periodStart || assessment.prc_date || new Date().toISOString().slice(0, 10),
-                rrRate1: index === 0 ? Number(row.repaymentRate || 0) : 0,
-                rrRate2: index === 1 ? Number(row.repaymentRate || 0) : 0,
-                rrRate3: index === 2 ? Number(row.repaymentRate || 0) : 0,
-                createdby: createdBy,
-                createddate: now,
-                createdhost: 'localhost'
-            }));
-
-            if (rrRowsPayload.length > 0) {
-                await legacyDb.insert(frs9ImpIaRr).values(rrRowsPayload);
-            }
-
-            return [this.mapLegacyScenarioHeader(savedHeader, rrRowsPayload)];
+                return [this.mapLegacyScenarioHeader(savedHeader, rrRowsPayload)];
+            });
         } catch (error) {
             console.error('Error creating scenario:', error);
             throw error;
@@ -997,15 +1068,19 @@ export class IndividualImpairmentService {
     }
 
     async createDcfUpload(data: any) {
-        const iaId = await this.generateIaId();
-        return legacyDb.insert(frs9ImpIaDcf).values({
-            ...data,
-            iaId,
-            createdby: 'SYSTEM',
-            createddate: new Date().toISOString(),
-            createdhost: 'localhost',
-            status: '0' // Default status
-        }).returning();
+        const accountId = Number(data.accountId || data.account_id || 0);
+        return await legacyDb.transaction(async (tx) => {
+            if (accountId) await tx.execute(sql`SELECT pg_advisory_xact_lock(${accountId})`);
+            const iaId = await this.generateIaId(tx);
+            return tx.insert(frs9ImpIaDcf).values({
+                ...data,
+                iaId,
+                createdby: 'SYSTEM',
+                createddate: new Date().toISOString(),
+                createdhost: 'localhost',
+                status: '0' // Default status
+            }).returning();
+        });
     }
 
     async getDcfCashflows(tenantId: string, uploadId: string) {
@@ -1113,6 +1188,9 @@ export class IndividualImpairmentService {
         const createdHost = String(sample.createdHost || 'localhost').slice(0, 36) || 'localhost';
 
         return legacyDb.transaction(async (tx) => {
+            // SERIALIZE per account to prevent unique constraint violations during cashflow updates
+            await tx.execute(sql`SELECT pg_advisory_xact_lock(${accountId})`);
+
             const existingHeader = await this.ensureLegacyIaHeader(tx, accountId, createdBy, createdHost);
             let activeHeader = existingHeader;
             let rrRows: any[] = [];
@@ -1142,21 +1220,39 @@ export class IndividualImpairmentService {
             await tx.delete(frs9ImpIaDcf).where(eq(frs9ImpIaDcf.accountId, accountId));
             await tx.delete(frs9ImpIaDetail).where(eq(frs9ImpIaDetail.accountId, accountId));
 
-            const rows = data.map((row: any, index: number) => ({
-                iaId,
-                prcDate,
-                accountId,
-                accountNumber: String(row.accountNumber || activeHeader.accountNumber || ''),
-                mob: Number(row.mob || index + 1),
-                periode: this.toDateString(row.periodDate || row.periode || createdAt.slice(0, 10)),
-                principal: String(this.toNumber(row.principal)),
-                interest: String(this.toNumber(row.interest)),
-                collateral: String(this.toNumber(row.collateral)),
-                status: String(row.status || '0').slice(0, 1) || '0',
-                createdby: createdBy,
-                createddate: createdAt,
-                createdhost: createdHost
-            }));
+            const seenPeriods = new Set();
+            const rows = data.map((row: any, index: number) => {
+                // Handle case-insensitive keys from Excel headers (uppercase vs lowercase)
+                const rawPeriode = row.periode || row.PERIODE || row.periodDate || row.period;
+                const rawPrincipal = row.principal || row.PRINCIPAL;
+                const rawInterest = row.interest || row.INTEREST;
+                const rawCollateral = row.collateral || row.COLLATERAL;
+                const rawMob = row.mob || row.MOB;
+
+                const mob = Number(rawMob || index + 1);
+                const periodeStr = this.toDateString(rawPeriode || createdAt.slice(0, 10));
+
+                if (seenPeriods.has(periodeStr)) {
+                    throw new Error(`Duplicate Date detected in payload for Account ${accountId}: ${periodeStr}. Each period must be unique.`);
+                }
+                seenPeriods.add(periodeStr);
+
+                return {
+                    iaId,
+                    prcDate,
+                    accountId,
+                    accountNumber: String(row.accountNumber || row.ACCOUNT_NUMBER || activeHeader.accountNumber || ''),
+                    mob: mob,
+                    periode: periodeStr,
+                    principal: String(this.toNumber(rawPrincipal)),
+                    interest: String(this.toNumber(rawInterest)),
+                    collateral: String(this.toNumber(rawCollateral)),
+                    status: String(row.status || row.STATUS || '0').slice(0, 1) || '0',
+                    createdby: createdBy,
+                    createddate: createdAt,
+                    createdhost: createdHost
+                };
+            });
 
             const inserted = await tx.insert(frs9ImpIaDcf).values(rows).returning();
 
@@ -1200,67 +1296,227 @@ export class IndividualImpairmentService {
     }
 
     async calculateDcf(tenantId: string, params: any) {
-        const { accountId, assumptions } = params;
+        const { 
+            accountId, 
+        } = params || {};
+        
+        // Support various payload structures (assumptions vs scenario, repaymentRates vs rrRows, etc.)
+        const assumptions = params.scenario || params.assumptions || {};
+        const repaymentRates = params.repaymentRates || params.rrRows || [];
+        const cashflows = params.cashflows || params.rows || [];
 
-        // 1. Ambil Data Akun
-        const account = await this.getAssessment(tenantId, accountId);
-        if (!account) throw new Error("Account not found");
-        const outstanding = Number(account.outstanding_balance) || 0;
+        const userId = params?.userId || 'SYSTEM';
+        const host = params?.host || 'localhost';
+        const accountIdNum = Number(accountId);
 
-        // 2. Hitung PV (Discounted Cash Flow)
-        const discountRate = (Number(assumptions.discountRate) || 12) / 100;
-        const growthRate = (Number(assumptions.projectedGrowthRate) || 0) / 100;
-        const timeHorizon = Number(assumptions.timeHorizon) || 12;
-        let pv = 0;
-        let details = [];
-        const r_m = discountRate / 12;
-        const g_m = growthRate / 12;
-        const baseMonthlyFlow = outstanding / timeHorizon;
-        for (let t = 1; t <= timeHorizon; t++) {
-            const cf = baseMonthlyFlow * Math.pow(1 + g_m, t);
-            const df = 1 / Math.pow(1 + r_m, t);
-            const presentValue = cf * df;
+        return await legacyDb.transaction(async (tx) => {
+            // 0. ADVISORY LOCK: Prevent concurrent processing for the same account
+            await tx.execute(sql`SELECT pg_advisory_xact_lock(${accountIdNum})`);
 
-            pv += presentValue;
+            // 1. Fetch Master Account Data
+            const masterAccount = await tx.select()
+                .from(frs9MasterAccount)
+                .where(eq(frs9MasterAccount.accountId, accountIdNum))
+                .orderBy(desc(frs9MasterAccount.prcDate))
+                .limit(1);
 
-            details.push({
-                period: t,
-                cashflow: cf,
-                discountFactor: df,
-                pv: presentValue
-            });
-        }
+            if (!masterAccount.length) throw new Error("Master Account not found in Database");
+            const ma = masterAccount[0];
 
-        // 3. Hitung LGD & Provision
-        const lgd = Math.max(0, outstanding - pv);
-        const provision = lgd;
-        // --- PERSISTENCE: Save Result Header ---
-        let savedId = null;
-        try {
-            const [saved] = await legacyDb.insert(frs9ImpIaResultH).values({
-                prcDate: new Date().toISOString().split('T')[0],
-                accountId: accountId,
-                outstanding: outstanding.toString(),
-                pvDcfAmt: pv.toString(),
-                eclIaAmt: provision.toString(),
-                createdby: 'SYSTEM',
-                createddate: new Date().toISOString()
-            }).returning();
-            if (saved) savedId = saved.pkid;
-        } catch (e) {
-            console.error('Failed to persist DCF Result:', e);
-        }
-        return {
-            account_id: accountId,
-            scenario: assumptions.scenarioType || 'base',
-            presentValue: pv,
-            outstanding: outstanding,
-            lgd: lgd,
-            recommendedProvision: provision,
-            assumptions: assumptions,
-            details: details,
-            savedId: savedId
-        };
+            // 2. IA ID Management via robust UPSERT
+            const headerData = {
+                prcDate: ma.prcDate || new Date().toISOString().slice(0, 10),
+                effDate: new Date().toISOString().slice(0, 10),
+                cifNumber: ma.cifNumber || 'UNKNOWN',
+                cifName: ma.cifName || 'UNKNOWN',
+                accountId: accountIdNum,
+                accountNumber: ma.accountNumber || 'UNKNOWN',
+                currency: ma.currency || 'IDR',
+                effInterestRate: this.toNumber(ma.effInterestRate),
+                interestRate: this.toNumber(ma.interestRate),
+                impairedFlag: 'I',
+                outstanding: ma.outstanding || "0",
+                carryingAmt: ma.carryingAmt || "0",
+                eadAmt: ma.outstanding || "0",
+                status: 1, // NEW
+                nOfScenario: Number(assumptions?.nOfScenario || 3),
+                scenarioId: Number(assumptions?.scenarioId || 1),
+                scName1: String(assumptions?.scName1 || 'Base').slice(0, 20),
+                scName2: assumptions?.scName2 ? String(assumptions.scName2).slice(0, 20) : 'Optimistic',
+                scName3: assumptions?.scName3 ? String(assumptions.scName3).slice(0, 20) : 'Pessimistic',
+                poRate1: this.toNumber(assumptions?.poRate1),
+                poRate2: this.toNumber(assumptions?.poRate2),
+                poRate3: this.toNumber(assumptions?.poRate3),
+                method: String(assumptions?.method || '3'),
+            };
+
+            const insertedHeader = await this.upsertIaHeader(accountIdNum, headerData, userId, host, tx);
+            const iaId = insertedHeader.iaId;
+
+            // 3. Save Repayment Rates (RR)
+            await tx.delete(frs9ImpIaRr).where(eq(frs9ImpIaRr.iaId, iaId));
+            if (repaymentRates && Array.isArray(repaymentRates)) {
+                for (const rr of repaymentRates) {
+                    await tx.insert(frs9ImpIaRr).values({
+                        iaId: iaId,
+                        accountId: accountIdNum,
+                        periodStart: this.toDateString(rr.periodStart),
+                        periodEnd: this.toDateString(rr.periodEnd),
+                        rrRate1: this.toNumber(rr.rrRate1),
+                        rrRate2: this.toNumber(rr.rrRate2),
+                        rrRate3: this.toNumber(rr.rrRate3),
+                        createdby: userId,
+                        createddate: new Date().toISOString(),
+                        createdhost: host
+                    });
+                }
+            }
+
+            // 4. Save DCF Uploads
+            await tx.delete(frs9ImpIaDcf).where(eq(frs9ImpIaDcf.iaId, iaId));
+            if (cashflows && Array.isArray(cashflows)) {
+                for (const cf of cashflows) {
+                    await tx.insert(frs9ImpIaDcf).values({
+                        iaId: iaId,
+                        prcDate: ma.prcDate || new Date().toISOString().slice(0, 10),
+                        accountId: accountIdNum,
+                        accountNumber: ma.accountNumber || 'UNKNOWN',
+                        mob: cf.mob || 0,
+                        periode: this.toDateString(cf.periode),
+                        principal: this.toNumber(cf.principal).toString(),
+                        interest: this.toNumber(cf.interest).toString(),
+                        collateral: this.toNumber(cf.collateral).toString(),
+                        status: 'A',
+                        createdby: userId,
+                        createddate: new Date().toISOString(),
+                        createdhost: host
+                    });
+                }
+            }
+
+            // 5. THE CALCULATION ENGINE
+            const allDcf = await tx.select().from(frs9ImpIaDcf).where(eq(frs9ImpIaDcf.iaId, iaId)).orderBy(asc(frs9ImpIaDcf.mob));
+            const allRr = await tx.select().from(frs9ImpIaRr).where(eq(frs9ImpIaRr.iaId, iaId));
+            
+            const poRate1 = this.toNumber(assumptions.poRate1) / 100;
+            const poRate2 = this.toNumber(assumptions.poRate2) / 100;
+            const poRate3 = this.toNumber(assumptions.poRate3) / 100;
+            
+            const rawEir = this.toNumber(ma.effInterestRate);
+            const nominalRate = this.toNumber(ma.interestRate);
+            const finalEir = rawEir > 0 ? rawEir : nominalRate;
+            const eir = finalEir / 100;
+
+            let totalNpv = 0;
+            const detailRows = [];
+
+            for (const cf of allDcf) {
+                const cfDate = new Date(cf.periode);
+                const rr = allRr.find(r => {
+                    const start = new Date(r.periodStart);
+                    const end = new Date(r.periodEnd);
+                    // Match by date range
+                    return cfDate >= start && cfDate <= end;
+                }) || allRr[0] || { rrRate1: 100, rrRate2: 100, rrRate3: 100 }; // Fallback to first scenario or 100%
+
+                const rr1 = this.toNumber(rr.rrRate1) / 100;
+                const rr2 = this.toNumber(rr.rrRate2) / 100;
+                const rr3 = this.toNumber(rr.rrRate3) / 100;
+
+                const baseAmount = this.toNumber(cf.principal) + this.toNumber(cf.interest) + this.toNumber(cf.collateral);
+                
+                const def1 = baseAmount * poRate1 * rr1;
+                const def2 = baseAmount * poRate2 * rr2;
+                const def3 = baseAmount * poRate3 * rr3;
+                
+                const pwAmt = def1 + def2 + def3;
+                const mob = Number(cf.mob);
+                const discountFactor = Math.pow(1 / (1 + eir / 12), mob);
+                const pvAmt = pwAmt * discountFactor;
+
+                totalNpv += pvAmt;
+
+                detailRows.push({
+                    iaId,
+                    accountId: accountIdNum,
+                    effInterestRate: ma.effInterestRate,
+                    mob,
+                    periode: cf.periode,
+                    principal: cf.principal,
+                    interest: cf.interest,
+                    installment: (this.toNumber(cf.principal) + this.toNumber(cf.interest)).toString(),
+                    collateral: cf.collateral,
+                    poRate1: poRate1 * 100,
+                    rrRate1: rr1 * 100,
+                    default1: def1.toString(),
+                    poRate2: poRate2 * 100,
+                    rrRate2: rr2 * 100,
+                    default2: def2.toString(),
+                    poRate3: poRate3 * 100,
+                    rrRate3: rr3 * 100,
+                    default3: def3.toString(),
+                    pwAmt: pwAmt.toString(),
+                    discountFactor,
+                    pvAmt: pvAmt.toString(),
+                    createdby: userId,
+                    createddate: new Date().toISOString(),
+                    createdhost: host
+                });
+            }
+
+            // 6. AMORTIZATION SCHEDULE
+            let runningBalance = totalNpv;
+            for (let i = 0; i < detailRows.length; i++) {
+                const row = detailRows[i];
+                const beginningBalance = runningBalance;
+                const eirAmt = beginningBalance * (eir / 12);
+                const pwAmt = this.toNumber(row.pwAmt);
+                const endingBalance = beginningBalance + eirAmt - pwAmt;
+
+                row.beginningBalance = beginningBalance.toString();
+                row.interestAccrual = eirAmt.toString();
+                row.endingBalance = endingBalance.toString();
+                row.weightedFlow = pwAmt.toString();
+
+                runningBalance = endingBalance;
+            }
+
+            // 7. Persist Result Details & Update Header
+            await tx.delete(frs9ImpIaDetail).where(eq(frs9ImpIaDetail.iaId, iaId));
+            if (detailRows.length > 0) {
+                await tx.insert(frs9ImpIaDetail).values(detailRows);
+            }
+
+            const eadAmt = this.toNumber(ma.outstanding);
+            const eclIaAmt = Math.max(0, eadAmt - totalNpv);
+
+            await tx.update(frs9ImpIaHeader)
+                .set({
+                    pvDcfAmt: totalNpv.toString(),
+                    eclIaAmt: eclIaAmt.toString(),
+                    updatedby: userId,
+                    updateddate: new Date().toISOString()
+                })
+                .where(eq(frs9ImpIaHeader.iaId, iaId));
+
+            return {
+                success: true,
+                iaId,
+                totalNpv,
+                presentValue: totalNpv,
+                eadAmt,
+                outstandingBalance: eadAmt,
+                eclIaAmt,
+                recommendedProvision: eclIaAmt,
+                lgd: eclIaAmt,
+                details: detailRows,
+                assumptions: {
+                    ...assumptions,
+                    effectiveInterestRate: finalEir,
+                    discountRate: finalEir
+                }
+            };
+        });
     }
 
     // =========================================================================
@@ -1279,7 +1535,7 @@ export class IndividualImpairmentService {
             const override = overrides.find(o => o.accountNumber === row.accountNumber);
 
             let currentStage = Number(row.stage) || 1;
-            let currentStatus = 'PENDING';
+            let currentStatus = 'NEW';
             let currentNotes = '';
             let currentImpaired = row.impairedFlag ? 'I' : 'N';
 
@@ -1717,7 +1973,7 @@ export class IndividualImpairmentService {
                             WHEN 2 THEN 'REJECTED'
                             ELSE NULL
                         END,
-                        'PENDING'
+                        'NEW'
                     ) as assessment_status,
                     NULLIF(TRIM(COALESCE(lh.trigger_remarks, '')), '') as remarks
                 FROM filtered f
@@ -1739,14 +1995,18 @@ export class IndividualImpairmentService {
 
 
     async addToWatchlist(data: any) {
-        const iaId = await this.generateIaId();
-        return legacyDb.insert(frs9ImpIaHeader).values({
-            ...data,
-            iaId,
-            createdby: 'SYSTEM',
-            createddate: new Date().toISOString(),
-            createdhost: 'localhost',
-        }).returning();
+        const accountId = Number(data.accountId || data.account_id || 0);
+        return await legacyDb.transaction(async (tx) => {
+            if (accountId) await tx.execute(sql`SELECT pg_advisory_xact_lock(${accountId})`);
+            const iaId = await this.generateIaId(tx);
+            return tx.insert(frs9ImpIaHeader).values({
+                ...data,
+                iaId,
+                createdby: 'SYSTEM',
+                createddate: new Date().toISOString(),
+                createdhost: 'localhost',
+            }).returning();
+        });
     }
 
     async removeFromWatchlist(accountId: string | number, tenantId: string) {
@@ -1855,50 +2115,26 @@ export class IndividualImpairmentService {
         const accountId = Number(data.account_id || data.accountId);
         if (!accountId) throw new Error("Account ID is required for assessment creation");
 
-        // 1. Check if record exists
-        const existing = await legacyDb.select()
-            .from(frs9ImpIaHeader)
-            .where(eq(frs9ImpIaHeader.accountId, accountId))
-            .limit(1);
+        return await legacyDb.transaction(async (tx) => {
+            // 0. ADVISORY LOCK
+            await tx.execute(sql`SELECT pg_advisory_xact_lock(${accountId})`);
 
-        const statusInt = STATUS_MAP_TO_INT[data.approval_status || 'PENDING'] ?? 0;
-        const remarks = data.analyst_comments || data.justification || '';
-        const userId = (data.createdby || data.createdBy || 'SYSTEM').slice(0, 36);
+            const statusInt = STATUS_MAP_TO_INT[data.approval_status || 'PENDING'] ?? 0;
+            const remarks = data.analyst_comments || data.justification || '';
+            const userId = (data.createdby || data.createdBy || 'SYSTEM').slice(0, 36);
+            const host = 'localhost'; // Or pass from controller
 
-        if (existing.length > 0) {
-            // UPDATE
-            const [updated] = await legacyDb.update(frs9ImpIaHeader)
-                .set({
-                    // Update relevant fields
-                    impairedFlag: Number(data.overrideStage) === 3 ? 'T' : 'F',
-                    triggerRemarks: remarks,
-                    status: statusInt,
-                    updatedby: userId,
-                    updateddate: new Date().toISOString(),
-                    // If stage is provided
-                    stage: data.overrideStage ? String(data.overrideStage) : undefined,
-                    // Store filename if provided
-                    triggerFilename: data.supportingDocument
-                })
-                .where(eq(frs9ImpIaHeader.pkid, existing[0].pkid))
-                .returning();
-            return updated; // Return object directly, not array
-        } else {
-            // INSERT
-            // Need to fetch Master Account details to populate required fields if missing
-            const masterAccount = await legacyDb.select()
+            // Fetch Master Account details to populate required fields if needed
+            const masterAccount = await tx.select()
                 .from(frs9MasterAccount)
                 .where(eq(frs9MasterAccount.accountId, accountId))
                 .limit(1);
 
             if (!masterAccount.length) throw new Error("Master Account not found");
             const ma = masterAccount[0];
-
-            const iaId = await this.generateIaId();
             const today = new Date().toISOString().split('T')[0];
 
-            const [inserted] = await legacyDb.insert(frs9ImpIaHeader).values({
-                iaId: iaId,
+            const headerData = {
                 prcDate: ma.prcDate || today,
                 effDate: ma.prcDate || today,
                 cifNumber: ma.cifNumber || 'UNKNOWN',
@@ -1911,25 +2147,17 @@ export class IndividualImpairmentService {
                 impairedFlag: Number(data.overrideStage) === 3 ? 'T' : 'F',
                 triggerRemarks: remarks,
                 status: statusInt,
-                createdby: userId,
-                createddate: new Date().toISOString(),
-                createdhost: 'localhost',
-
-                // Defaults / Mapped from Master
                 outstanding: ma.outstanding || "0",
                 plafond: ma.plafond || "0",
                 accruedInterest: ma.accruedInterest || "0",
                 carryingAmt: ma.carryingAmt || "0",
                 eadAmt: ma.eadAmt || "0",
-                pvDcfAmt: "0",
-                eclIaAmt: "0",
-                poRate1: 0, poRate2: 0, poRate3: 0,
+                triggerFilename: data.supportingDocument,
+                stage: data.overrideStage ? String(data.overrideStage) : undefined,
+            };
 
-                // Store filename if provided
-                triggerFilename: data.supportingDocument
-            }).returning();
-            return inserted; // Return object directly
-        }
+            return await this.upsertIaHeader(accountId, headerData, userId, host, tx);
+        });
     }
 
     // =========================================================================
@@ -1993,62 +2221,33 @@ export class IndividualImpairmentService {
             throw new Error(`Account Number ${accountNumber} not found in Master Data.`);
         }
 
-        // 2. Check if Override already exists for this Account
-        const existing = await legacyDb.select()
-            .from(frs9ImpIaHeader)
-            .where(eq(frs9ImpIaHeader.accountId, realAccountId))
-            .limit(1);
+        const headerData = {
+            impairedFlag: Number(data.overrideStage) === 3 ? 'T' : 'F',
+            triggerRemarks: data.justification,
+            triggerFilename: data.supportingDocument || data.triggerFilename,
+            status: statusInt,
+            currency: 'IDR',
+            outstanding: "0",
+            plafond: "0",
+            accruedInterest: "0",
+            carryingAmt: "0",
+            eadAmt: "0",
+            pvDcfAmt: "0",
+            eclIaAmt: "0",
+            poRate1: 0, poRate2: 0, poRate3: 0,
+            cifNumber: data.cifNumber || 'UNKNOWN',
+            cifName: data.customerName || 'UNKNOWN',
+            accountNumber: accountNumber,
+            prcDate: new Date().toISOString().split('T')[0],
+            effDate: new Date().toISOString().split('T')[0],
+        };
 
-        if (existing.length > 0) {
-            // UPSERT: Update existing record
-            const updated = await legacyDb.update(frs9ImpIaHeader)
-                .set({
-                    impairedFlag: Number(data.overrideStage) === 3 ? 'T' : 'F',
-                    triggerRemarks: data.justification,
-                    triggerFilename: data.supportingDocument || data.triggerFilename,
-                    status: statusInt,
-                    updatedby: (data.createdBy || 'SYSTEM').slice(0, 36),
-                    updateddate: new Date().toISOString(),
-                    // Update other fields if necessary
-                })
-                .where(eq(frs9ImpIaHeader.pkid, existing[0].pkid))
-                .returning();
-            return updated;
-        } else {
-            // INSERT: Create new record
-            const iaId = await this.generateIaId();
-            const today = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
-
-            const result = await legacyDb.insert(frs9ImpIaHeader).values({
-                iaId: iaId,
-                prcDate: today,
-                effDate: today,
-                cifNumber: data.cifNumber || 'UNKNOWN',
-                cifName: data.customerName || 'UNKNOWN',
-                accountId: realAccountId,
-                accountNumber: accountNumber,
-                currency: 'IDR',
-                effInterestRate: 0,
-                interestRate: 0,
-                impairedFlag: Number(data.overrideStage) === 3 ? 'T' : 'F',
-                triggerRemarks: data.justification,
-                triggerFilename: data.supportingDocument || data.triggerFilename,
-                status: statusInt,
-                createdby: (data.createdBy || 'SYSTEM').slice(0, 36),
-                createddate: new Date().toISOString(), // TIMESTAMP column accepts ISO
-                createdhost: 'localhost', // Max 36, safe
-                // Defaults for NOT NULL constraints
-                outstanding: "0",
-                plafond: "0",
-                accruedInterest: "0",
-                carryingAmt: "0",
-                eadAmt: "0",
-                pvDcfAmt: "0",
-                eclIaAmt: "0",
-                poRate1: 0, poRate2: 0, poRate3: 0
-            }).returning();
-            return result;
-        }
+        return await this.upsertIaHeader(
+            realAccountId, 
+            headerData, 
+            String(data.createdBy || 'SYSTEM').slice(0, 36), 
+            'localhost'
+        );
     }
 
     async submitAssessment(accountId: number, comments: string, userId: string) {
@@ -2123,9 +2322,122 @@ export class IndividualImpairmentService {
         return updated; // Return object directly
     }
 
-    private async generateIaId(): Promise<number> {
-        const result = await legacyDb.execute(sql`SELECT MAX(ia_id) as max_id FROM frs9_imp_ia_header`);
-        const maxId = Number(result[0]?.max_id) || 0;
+    /**
+     * Resets an individual impairment assessment by deleting all associated records.
+     * This effectively returns the account to the 'NEW' assessment state.
+     */
+    async resetAssessment(accountId: number, userId: string) {
+        return legacyDb.transaction(async (tx) => {
+            // Advisory lock to prevent race conditions during reset
+            await tx.execute(sql`SELECT pg_advisory_xact_lock(${accountId})`);
+
+            console.log(`[IndividualImpairmentService] Resetting assessment for account: ${accountId} by user: ${userId}`);
+
+            // 1. Delete DCF records
+            await tx.delete(frs9ImpIaDcf).where(eq(frs9ImpIaDcf.accountId, accountId));
+            
+            // 2. Delete Details
+            await tx.delete(frs9ImpIaDetail).where(eq(frs9ImpIaDetail.accountId, accountId));
+            
+            // 3. Delete Results (H & D)
+            await tx.delete(frs9ImpIaResultH).where(eq(frs9ImpIaResultH.accountId, accountId));
+            await tx.delete(frs9ImpIaResultD).where(eq(frs9ImpIaResultD.accountId, accountId));
+            
+            // 4. Delete Recovery Rate records
+            await tx.delete(frs9ImpIaRr).where(eq(frs9ImpIaRr.accountId, accountId));
+            
+            // 5. Delete Assessment Header
+            const [deleted] = await tx.delete(frs9ImpIaHeader)
+                .where(eq(frs9ImpIaHeader.accountId, accountId))
+                .returning();
+
+            if (!deleted) {
+                console.warn(`[IndividualImpairmentService] No assessment header found to delete for account: ${accountId}`);
+            }
+
+            return { 
+                success: true, 
+                message: "Assessment reset successfully",
+                deletedAccountId: accountId
+            };
+        });
+    }
+
+    /**
+     * Unified UPSERT logic for IA Assessment Header to handle concurrency and race conditions.
+     */
+    private async upsertIaHeader(accountId: number, data: any, userId: string, host: string, tx?: any) {
+        const db = tx || legacyDb;
+        
+        // 1. SERIALIZE per account to handle concurrency at the database level
+        await db.execute(sql`SELECT pg_advisory_xact_lock(${accountId})`);
+
+        // 2. Double-check existence to handle race conditions before attempting insert
+        const existing = await db.select().from(frs9ImpIaHeader).where(eq(frs9ImpIaHeader.accountId, accountId)).limit(1);
+        
+        if (existing.length > 0) {
+            // UPDATE EXISTING
+            const [updated] = await db.update(frs9ImpIaHeader)
+                .set({ 
+                    ...data, 
+                    updatedby: userId, 
+                    updateddate: new Date().toISOString(), 
+                    updatedhost: host 
+                })
+                .where(eq(frs9ImpIaHeader.pkid, existing[0].pkid))
+                .returning();
+            return updated;
+        } else {
+            // INSERT NEW (with retry logic for concurrent insertion attempts)
+            let attempts = 0;
+            const maxAttempts = 3;
+            
+            while (attempts < maxAttempts) {
+                try {
+                    const iaId = await this.generateIaId(db);
+                    const [inserted] = await db.insert(frs9ImpIaHeader).values({
+                        ...data,
+                        iaId,
+                        createdby: userId,
+                        createddate: new Date().toISOString(),
+                        createdhost: host
+                    }).returning();
+                    return inserted;
+                } catch (error: any) {
+                    const errorMsg = error.message?.toLowerCase() || '';
+                    if (errorMsg.includes('unique constraint') || errorMsg.includes('duplicate key') || error.code === '23505') {
+                        // Concurrency hit: someone else inserted this account between our initial select and insert.
+                        // Wait a tiny bit and retry the select-then-update logic.
+                        await new Promise(resolve => setTimeout(resolve, 50));
+                        const recheck = await db.select().from(frs9ImpIaHeader).where(eq(frs9ImpIaHeader.accountId, accountId)).limit(1);
+                        if (recheck.length > 0) {
+                            const [updated] = await db.update(frs9ImpIaHeader)
+                                .set({ 
+                                    ...data, 
+                                    updatedby: userId, 
+                                    updateddate: new Date().toISOString(), 
+                                    updatedhost: host 
+                                })
+                                .where(eq(frs9ImpIaHeader.pkid, recheck[0].pkid))
+                                .returning();
+                            return updated;
+                        }
+                        attempts++;
+                    } else {
+                        throw error;
+                    }
+                }
+            }
+            throw new Error(`Failed to upsert assessment header for account ${accountId} after ${maxAttempts} attempts due to high concurrency.`);
+        }
+    }
+
+    private async generateIaId(dbx?: any): Promise<number> {
+        const db = dbx || legacyDb;
+        // GLOBAL ADVISORY LOCK (ID: 9999) to protect the MAX(id)+1 sequence generation
+        await db.execute(sql`SELECT pg_advisory_xact_lock(9999)`);
+        const result = await db.execute(sql`SELECT COALESCE(MAX(ia_id), 0) as max_id FROM frs9_imp_ia_header`);
+        const maxId = Number(result[0]?.max_id || 0);
         return maxId + 1;
     }
 
@@ -2359,6 +2671,55 @@ export class IndividualImpairmentService {
             };
         } catch (error) {
             console.error('Error in getStagingSummary:', error);
+            throw error;
+        }
+    }
+
+    // Get Assessment Summary (Status Breakdown)
+    async getAssessmentSummary(tenantId: string, date?: string) {
+        try {
+            const targetDateQuery = date
+                ? sql`SELECT ${date}::date as target_date`
+                : sql`
+                    SELECT prc_date as target_date 
+                    FROM frs9_master_account 
+                    GROUP BY prc_date 
+                    ORDER BY (COUNT(*) > 10) DESC, prc_date DESC 
+                    LIMIT 1
+                `;
+
+            const query = sql`
+                WITH target_date_cte AS (
+                    ${targetDateQuery}
+                ),
+                status_counts AS (
+                    SELECT 
+                        status,
+                        COUNT(*) as count
+                    FROM frs9_imp_ia_header
+                    WHERE prc_date = (SELECT target_date FROM target_date_cte)
+                    GROUP BY status
+                )
+                SELECT 
+                    COALESCE((SELECT SUM(count) FROM status_counts), 0) as total,
+                    COALESCE((SELECT count FROM status_counts WHERE status = 0), 0) as pending,
+                    COALESCE((SELECT count FROM status_counts WHERE status = 0), 0) as approve, -- Mapping pending to 'approve' for frontend compatibility
+                    COALESCE((SELECT count FROM status_counts WHERE status = 1), 0) as approved,
+                    COALESCE((SELECT count FROM status_counts WHERE status = 2), 0) as rejected
+            `;
+
+            const result = await legacyDb.execute(query);
+            const row = result[0] || { total: 0, pending: 0, approve: 0, approved: 0, rejected: 0 };
+            
+            return {
+                total: Number(row.total || 0),
+                pending: Number(row.pending || 0),
+                approve: Number(row.approve || 0),
+                approved: Number(row.approved || 0),
+                rejected: Number(row.rejected || 0)
+            };
+        } catch (error) {
+            console.error('Error in getAssessmentSummary:', error);
             throw error;
         }
     }

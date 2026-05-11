@@ -366,8 +366,8 @@ export const ApprovalRepository = {
      * @param data - The request data
      * @returns The created request
      */
-    createRequest: async (data: NewApprovalRequest) => {
-        const dbx = getDatabase((data as any).tenantId)
+    createRequest: async (data: NewApprovalRequest, tx?: any) => {
+        const dbx = tx || getDatabase((data as any).tenantId)
         const [request] = await dbx.insert(approvalRequests).values(data).returning()
         return request
     },
@@ -383,8 +383,8 @@ export const ApprovalRepository = {
         requestedBy: string
         title: string
         operation?: string
-    }) => {
-        const dbx = getDatabase(input.tenantId)
+    }, tx?: any) => {
+        const dbx = tx || getDatabase(input.tenantId)
         const pendingRows = await dbx.query.approvalRequests.findMany({
             where: and(
                 eq(approvalRequests.tenantId, input.tenantId),

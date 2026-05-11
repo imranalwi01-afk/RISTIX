@@ -12,18 +12,23 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   Grid,
   Tooltip,
   Typography,
+  useTheme,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import {
   AttachFile as AttachFileIcon,
   DataObject as DataObjectIcon,
   Download as DownloadIcon,
   ExpandMore as ExpandMoreIcon,
   Security as SecurityIcon,
+  Analytics as AnalyticsIcon,
 } from '@mui/icons-material';
 import { ApprovalRequest, RequestRoutingMatch } from '../types';
+import { ConsolidatedAssessmentApprovalContent } from './ConsolidatedAssessmentApprovalContent';
 
 const DETAIL_CANDIDATE_VISIBLE_LIMIT = 24;
 const REDACTED_KEYS = new Set(['password', 'token', 'accessToken', 'refreshToken', 'authorization', 'secret']);
@@ -139,6 +144,7 @@ export const ApprovalRequestDetailDialog = memo(function ApprovalRequestDetailDi
   getPriorityColor,
   isOverdue,
 }: ApprovalRequestDetailDialogProps) {
+  const theme = useTheme();
   const sanitizedRequestData = request?.requestData ? sanitizePayload(request.requestData) : null;
   const genericAttachments = request?.requestData ? findGenericAttachments(request.requestData) : [];
 
@@ -210,6 +216,26 @@ export const ApprovalRequestDetailDialog = memo(function ApprovalRequestDetailDi
                   <Chip label={request.riskLevel.toUpperCase()} color={getPriorityColor(request.riskLevel) as any} size="small" sx={{ mt: 0.5 }} />
                 </Grid>
               )}
+
+              {/* SPECIALIZED CONTENT: INDIVIDUAL ASSESSMENT */}
+              {(request.entityType === 'INDIVIDUAL_ASSESSMENT_CONSOLIDATED' || request.requestType === 'INDIVIDUAL_ASSESSMENT') && (
+                <Grid size={12}>
+                  <Box sx={{ mt: 2, p: 2, border: '1px solid', borderColor: 'primary.light', borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.01) }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <AnalyticsIcon color="primary" />
+                      <Typography variant="h6" color="primary.main" sx={{ fontWeight: 700 }}>
+                        Assessment Audit Details
+                      </Typography>
+                    </Box>
+                    <Divider sx={{ mb: 2 }} />
+                    <ConsolidatedAssessmentApprovalContent 
+                      data={request.requestData} 
+                      formatDate={formatDate} 
+                    />
+                  </Box>
+                </Grid>
+              )}
+
               {sanitizedRequestData && (
                 <Grid size={12}>
                   <Accordion variant="outlined" disableGutters sx={{ mt: 1 }}>
