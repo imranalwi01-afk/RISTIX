@@ -324,6 +324,7 @@ export default function IndividualAssessmentWizardPage() {
           filter: {
             stage,
             impaired_flag: impairedFlag,
+            assessment_status: filters.assessmentStatus || undefined,
             priority_level: filters.priorityLevel,
             dateFrom: filters.downloadDate || undefined,
             dateTo: filters.downloadDate || undefined,
@@ -776,7 +777,7 @@ export default function IndividualAssessmentWizardPage() {
 
         await approvalAPI.createRequest({
             tenantId: user?.tenantId || 'default',
-            entityType: 'INDIVIDUAL_ASSESSMENT_CONSOLIDATED',
+            entityType: 'individual_assessment_consolidated',
             entityId: String(selectedAccount.account_id),
             title: `Assessment Package: ${selectedAccount.account_number} (${titleParts.join(' + ')})`,
             description: `Consolidated assessment for ${selectedAccount.cif_name}. Requested by ${requestedBy}.`,
@@ -1369,6 +1370,7 @@ export default function IndividualAssessmentWizardPage() {
                       else if (key === 'stage') label = `Stage ${value}`;
                       else if (key === 'impairedFlag') label = value === 'I' ? 'Impaired' : 'Non-Impaired';
                       else if (key === 'priorityLevel') label = `Priority: ${value}`;
+                      else if (key === 'assessmentStatus') label = `Status: ${value}`;
 
                       return (
                         <Chip

@@ -39,7 +39,7 @@ export interface IndividualImpairmentWatchlistItem {
   last_review_date: string;
   next_review_date: string;
   assigned_analyst: string;
-  assessment_status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'REVIEWED';
+  assessment_status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'REVIEWED' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
   priority_level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   notes?: string;
   createdby: string;
@@ -384,6 +384,8 @@ export const individualImpairmentAPI = {
         dpd_range?: { min?: number; max?: number };
         balance_range?: { min?: number; max?: number };
         date_range?: { start?: string; end?: string };
+        dateFrom?: string;
+        dateTo?: string;
         analyst?: string;
         mode?: string;
       };

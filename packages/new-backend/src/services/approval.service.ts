@@ -51,6 +51,8 @@ export interface ProcessApprovalInput {
 }
 
 const SUPER_ADMIN_PERMISSION_CODE = 'admin.super_admin'
+const SELF_APPROVAL_OVERRIDE_PERMISSION_CODE = 'approval.requests.self_approve_override'
+const SELF_APPROVAL_OVERRIDE_SETTING_KEY = 'approval.self_approval_override.enabled'
 const SELF_APPROVAL_BYPASS_ENV = 'APPROVAL_ALLOW_SUPERADMIN_SELF_APPROVAL'
 const LEVEL_ROUTING_BYPASS_ENV = 'APPROVAL_ALLOW_SUPERADMIN_LEVEL_BYPASS'
 const APPROVAL_COUNT_BYPASS_ENV = 'APPROVAL_ALLOW_SUPERADMIN_COUNT_BYPASS'
@@ -67,6 +69,38 @@ const isSuperAdminApprovalCountBypassEnabled = (): boolean =>
 
 const isSuperAdminAutoApproveOnCreateEnabled = (): boolean =>
     String(process.env[SUPERADMIN_AUTO_APPROVE_REQUESTS_ENV] ?? 'false').trim().toLowerCase() === 'true'
+
+const normalizeBooleanSetting = (value: unknown): boolean => {
+    if (typeof value === 'boolean') return value
+    if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase()
+        return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'enabled'
+    }
+    if (value && typeof value === 'object') {
+        const candidate = (value as Record<string, unknown>).enabled
+            ?? (value as Record<string, unknown>).value
+            ?? (value as Record<string, unknown>).allow
+        return normalizeBooleanSetting(candidate)
+    }
+    return false
+}
+
+const isSelfApprovalOverrideSettingEnabled = async (): Promise<boolean> => {
+    try {
+        const database = getDatabase()
+        const result = await database.execute(sql`
+            SELECT value
+            FROM platform_admin.settings
+            WHERE key = ${SELF_APPROVAL_OVERRIDE_SETTING_KEY}
+            LIMIT 1
+        `)
+        const rows = Array.isArray(result) ? result : (result?.rows ?? [])
+        return normalizeBooleanSetting(rows[0]?.value)
+    } catch (error) {
+        console.warn('[Approval] Failed to read self-approval override setting; defaulting to disabled', error)
+        return false
+    }
+}
 
 export interface CancelApprovalRequestInput {
     requestId: string
@@ -387,23 +421,41 @@ export const processApprovalAction = (
 
             // Prevent users from approving their own requests unless explicit super-admin bypass is enabled.
             if (input.action === 'approve' && input.approverId === request.requestedBy) {
-                // In development: bypass applies to all users when env var is set.
-                // In production: only SuperAdmin can bypass.
-                const bypassEnabled = isSuperAdminSelfApprovalBypassEnabled()
-                const canBypass = bypassEnabled && (hasSuperAdminBypass || isDev)
+                const hasSuperAdminPermission = Boolean(
+                    approverContext?.permissions.has(SUPER_ADMIN_PERMISSION_CODE)
+                )
+                const hasSelfApprovalOverridePermission = Boolean(
+                    approverContext?.permissions.has(SELF_APPROVAL_OVERRIDE_PERMISSION_CODE)
+                )
+                const dbOverrideEnabled = await isSelfApprovalOverrideSettingEnabled()
+                const envBypassEnabled = isSuperAdminSelfApprovalBypassEnabled()
+                const canUseDbOverride = dbOverrideEnabled && hasSelfApprovalOverridePermission
+                const canUseLegacyEnvBypass = envBypassEnabled && hasSuperAdminPermission
+                const canBypass = canUseDbOverride || canUseLegacyEnvBypass
 
                 if (!canBypass) {
                     throw new BusinessError({
-                        message: 'You cannot approve your own request',
+                        message: `You cannot approve your own request. Self-approval override requires ${SELF_APPROVAL_OVERRIDE_PERMISSION_CODE} and ${SELF_APPROVAL_OVERRIDE_SETTING_KEY}=true.`,
                         code: 'SELF_APPROVAL_NOT_ALLOWED',
+                    })
+                }
+
+                if (!String(input.comment || '').trim()) {
+                    throw new BusinessError({
+                        message: 'Self-approval override requires approval comment',
+                        code: 'SELF_APPROVAL_BYPASS_COMMENT_REQUIRED',
                     })
                 }
 
                 selfApprovalBypassMetadata = {
                     selfApprovalBypass: true,
                     bypassedRule: 'SELF_APPROVAL_NOT_ALLOWED',
-                    policy: SELF_APPROVAL_BYPASS_ENV,
-                    approverPermission: SUPER_ADMIN_PERMISSION_CODE,
+                    policy: canUseDbOverride ? SELF_APPROVAL_OVERRIDE_SETTING_KEY : SELF_APPROVAL_BYPASS_ENV,
+                    approverPermission: canUseDbOverride
+                        ? SELF_APPROVAL_OVERRIDE_PERMISSION_CODE
+                        : SUPER_ADMIN_PERMISSION_CODE,
+                    dbOverrideEnabled,
+                    legacyEnvBypassEnabled: envBypassEnabled,
                     requestedBy: request.requestedBy,
                 }
             }
