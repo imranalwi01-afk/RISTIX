@@ -72,7 +72,7 @@ export function DcfScenarioConfigurator({
       {/* 1. Method Selection & Count */}
       <Box sx={{ p: 3, bgcolor: '#f8f9fa', borderRadius: 3, border: '1px solid #e0e0e0' }}>
         <Grid container spacing={3} alignItems="flex-end">
-          <Grid item xs={12} md={5}>
+          <Grid size={{ xs: 12, md: 5 }}>
             <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 600 }}>
               DCF SCENARIO METHOD
             </Typography>
@@ -96,7 +96,7 @@ export function DcfScenarioConfigurator({
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 600 }}>
               NUMBER OF SCENARIOS
             </Typography>
@@ -116,7 +116,7 @@ export function DcfScenarioConfigurator({
             </ToggleButtonGroup>
           </Grid>
 
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <Button 
                 variant="contained" 
                 fullWidth 
@@ -170,26 +170,26 @@ export function DcfScenarioConfigurator({
                 }}
               >
                 <Grid container spacing={2} alignItems="center">
-                  <Grid item xs={12} md={1.5}>
+                  <Grid size={{ xs: 12, md: 1.5 }}>
                     <TextField 
                         label="Weight %" size="small" fullWidth type="number" 
                         value={row.possibleOutcomeRate} 
                         onChange={(e) => onUpdateScenarioRow(row.id, 'possibleOutcomeRate', Number(e.target.value) || 0)} 
                     />
                   </Grid>
-                  <Grid item xs={12} md={2.5}>
+                  <Grid size={{ xs: 12, md: 2.5 }}>
                     <TextField label="Name" size="small" fullWidth value={row.scenarioName} onChange={(e) => onUpdateScenarioRow(row.id, 'scenarioName', e.target.value)} />
                   </Grid>
-                  <Grid item xs={12} md={2}>
+                  <Grid size={{ xs: 12, md: 2 }}>
                     <TextField label="Start" size="small" fullWidth type="date" value={row.periodStart} onChange={(e) => onUpdateScenarioRow(row.id, 'periodStart', e.target.value)} InputLabelProps={{ shrink: true }} />
                   </Grid>
-                  <Grid item xs={12} md={2}>
+                  <Grid size={{ xs: 12, md: 2 }}>
                     <TextField label="End" size="small" fullWidth type="date" value={row.periodEnd} onChange={(e) => onUpdateScenarioRow(row.id, 'periodEnd', e.target.value)} InputLabelProps={{ shrink: true }} />
                   </Grid>
-                  <Grid item xs={12} md={2}>
+                  <Grid size={{ xs: 12, md: 2 }}>
                     <TextField label="RR %" size="small" fullWidth type="number" value={row.repaymentRate} onChange={(e) => onUpdateScenarioRow(row.id, 'repaymentRate', Number(e.target.value) || 0)} />
                   </Grid>
-                  <Grid item xs={12} md={2}>
+                  <Grid size={{ xs: 12, md: 2 }}>
                     <Stack direction="row" spacing={1} justifyContent="flex-end">
                       <Tooltip title="Delete Scenario">
                         <IconButton color="error" onClick={() => onDeleteScenarioRow(row.id)}>
@@ -215,7 +215,7 @@ export function DcfScenarioConfigurator({
             
             <Stack direction="row" spacing={2}>
                {!isWeightValid && (
-                 <Alert severity="warning" size="small" sx={{ py: 0, border: 'none' }}>
+                 <Alert severity="warning" sx={{ py: 0, border: 'none' }}>
                     Total PO Rate must be 100%
                  </Alert>
                )}

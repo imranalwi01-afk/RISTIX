@@ -207,7 +207,7 @@ function DetailPanel({ item, currentUserId, onApprove, onReject, loading }: {
               { label: 'PV DCF', value: formatCurrency(rd.pvDcfAmt), color: '#1976d2' },
               { label: 'EAD / Outstanding', value: formatCurrency(rd.eadAmt || rd.outstanding || rd.outstandingBalance), color: '#388e3c' },
             ].map(card => (
-              <Grid item xs={4} key={card.label}>
+              <Grid size={{ xs: 4 }} key={card.label}>
                 <Paper sx={{ p: 1.5, borderRadius: 2, textAlign: 'center', border: `1px solid ${alpha(card.color, 0.2)}`, bgcolor: alpha(card.color, 0.04) }}>
                   <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontSize: '0.6rem', fontWeight: 700 }}>{card.label}</Typography>
                   <Typography variant="body2" fontWeight={800} color={card.color}>{card.value}</Typography>
@@ -424,7 +424,7 @@ export default function ApprovalInboxPage() {
 
       <Grid container spacing={2} sx={{ height: 'calc(100vh - 200px)' }}>
         {/* LEFT: Approval Queue */}
-        <Grid item xs={12} md={4} sx={{ height: '100%' }}>
+        <Grid size={{ xs: 12, md: 4 }} sx={{ height: '100%' }}>
           <Paper sx={{ height: '100%', borderRadius: 3, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             {/* Tabs */}
             <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ px: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
@@ -469,7 +469,7 @@ export default function ApprovalInboxPage() {
         </Grid>
 
         {/* RIGHT: Detail Panel */}
-        <Grid item xs={12} md={8} sx={{ height: '100%' }}>
+        <Grid size={{ xs: 12, md: 8 }} sx={{ height: '100%' }}>
           <Paper sx={{ height: '100%', borderRadius: 3, overflow: 'hidden' }}>
             {selected ? (
               <DetailPanel
