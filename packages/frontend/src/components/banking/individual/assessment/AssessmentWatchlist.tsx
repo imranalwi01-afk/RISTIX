@@ -26,8 +26,12 @@ import {
   DialogActions,
   Button,
   Alert,
-  Snackbar
+  Snackbar,
+  Paper,
+  Fade,
+  Grow
 } from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
 import {
   Visibility as VisibilityIcon,
   Edit as EditIcon,
@@ -78,6 +82,7 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
   selectedAccountId,
   mode
 }) => {
+  const theme = useTheme();
   const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLElement | null>(null)
   const [menuAccount, setMenuAccount] = useState<IndividualImpairmentWatchlistItem | null>(null)
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
@@ -204,188 +209,85 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
 
   return (
     <>
+    <Fade in={!loading || watchlist.length > 0} timeout={800}>
       <TableContainer
+        component={Paper}
+        elevation={0}
         sx={{
           maxHeight: 'calc(100vh - 420px)',
           minHeight: '300px',
           overflow: 'auto',
-          borderRadius: 1,
-          border: '1px solid',
-          borderColor: 'divider',
-          width: '100%'
+          borderRadius: '16px',
+          border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+          width: '100%',
+          backgroundColor: theme.palette.background.paper,
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.05)',
+          '&::-webkit-scrollbar': {
+            width: '6px',
+            height: '6px',
+          },
+          '&::-webkit-scrollbar-track': {
+            backgroundColor: 'transparent',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: alpha(theme.palette.primary.main, 0.1),
+            borderRadius: '10px',
+            '&:hover': {
+              backgroundColor: alpha(theme.palette.primary.main, 0.2),
+            },
+          },
         }}
       >
-        <Table stickyHeader size="small" sx={{ tableLayout: 'fixed', width: '100%', maxWidth: '100%' }} aria-label="Individual Assessment Watchlist">
+        <Table 
+          stickyHeader 
+          size="small" 
+          sx={{ 
+            width: '100%', 
+            minWidth: 1600, // Matching V2 width to ensure no overlapping
+            '& .MuiTableCell-root': {
+              borderColor: alpha(theme.palette.divider, 0.05),
+            }
+          }} 
+          aria-label="Individual Assessment Watchlist"
+        >
           <TableHead>
             <TableRow>
-              <TableCell sx={{
-                backgroundColor: '#f8f9fa',
-                borderBottom: '2px solid',
-                borderColor: 'primary.main',
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2px',
-                color: 'text.primary',
-                width: '8%',
-                p: 1
-              }}>Account</TableCell>
-              <TableCell sx={{
-                backgroundColor: '#f8f9fa',
-                borderBottom: '2px solid',
-                borderColor: 'primary.main',
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2px',
-                color: 'text.primary',
-                width: '10%',
-                p: 1
-              }}>Customer</TableCell>
-              <TableCell sx={{
-                backgroundColor: '#f8f9fa',
-                borderBottom: '2px solid',
-                borderColor: 'primary.main',
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2px',
-                color: 'text.primary',
-                width: '6%',
-                p: 1
-              }}>Date</TableCell>
-              <TableCell sx={{
-                backgroundColor: '#f8f9fa',
-                borderBottom: '2px solid',
-                borderColor: 'primary.main',
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2px',
-                color: 'text.primary',
-                width: '4%',
-                p: 1
-              }}>Ccy</TableCell>
-              <TableCell sx={{
-                backgroundColor: '#f8f9fa',
-                borderBottom: '2px solid',
-                borderColor: 'primary.main',
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2px',
-                color: 'text.primary',
-                width: '4%',
-                p: 1
-              }}>DPD</TableCell>
-              <TableCell sx={{
-                backgroundColor: '#f8f9fa',
-                borderBottom: '2px solid',
-                borderColor: 'primary.main',
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2px',
-                color: 'text.primary',
-                width: '4%',
-                p: 1
-              }}>Coll</TableCell>
-              <TableCell sx={{
-                backgroundColor: '#f8f9fa',
-                borderBottom: '2px solid',
-                borderColor: 'primary.main',
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2px',
-                color: 'text.primary',
-                width: '5%',
-                p: 1
-              }}>Rating</TableCell>
-              <TableCell align="right" sx={{
-                backgroundColor: '#f8f9fa',
-                borderBottom: '2px solid',
-                borderColor: 'primary.main',
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2px',
-                color: 'text.primary',
-                width: '9%',
-                p: 1
-              }}>Balance</TableCell>
-              <TableCell sx={{
-                backgroundColor: '#f8f9fa',
-                borderBottom: '2px solid',
-                borderColor: 'primary.main',
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2px',
-                color: 'text.primary',
-                width: '6%',
-                p: 1
-              }}>Stage</TableCell>
-              <TableCell sx={{
-                backgroundColor: '#f8f9fa',
-                borderBottom: '2px solid',
-                borderColor: 'primary.main',
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2px',
-                color: 'text.primary',
-                width: '8%',
-                p: 1
-              }}>Status</TableCell>
-              <TableCell sx={{
-                backgroundColor: '#f8f9fa',
-                borderBottom: '2px solid',
-                borderColor: 'primary.main',
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2px',
-                color: 'text.primary',
-                width: '8%',
-                p: 1
-              }}>Priority</TableCell>
-              <TableCell sx={{
-                backgroundColor: '#f8f9fa',
-                borderBottom: '2px solid',
-                borderColor: 'primary.main',
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2px',
-                color: 'text.primary',
-                width: '8%',
-                p: 1
-              }}>Impaired</TableCell>
-              <TableCell align="right" sx={{
-                backgroundColor: '#f8f9fa',
-                borderBottom: '2px solid',
-                borderColor: 'primary.main',
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2px',
-                color: 'text.primary',
-                width: '10%',
-                p: 1
-              }}>Provision</TableCell>
-              <TableCell sx={{
-                backgroundColor: '#f8f9fa',
-                borderBottom: '2px solid',
-                borderColor: 'primary.main',
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2px',
-                color: 'text.primary',
-                width: '10%',
-                p: 1
-              }}>Actions</TableCell>
+              {[
+                { label: 'Download Date', width: 120 },
+                { label: 'CIF Number', width: 140 },
+                { label: 'Customer Name', width: 220 },
+                { label: 'Account Number', width: 160 },
+                { label: 'Ccy', width: 80 },
+                { label: 'Outstanding', width: 160, align: 'right' },
+                { label: 'DPD', width: 80 },
+                { label: 'Coll', width: 100 },
+                { label: 'Rating', width: 100 },
+                { label: 'Stage', width: 100 },
+                { label: 'Status & Priority', width: 140 },
+                { label: 'Actions', width: 160, align: 'center' },
+              ].map((column) => (
+                <TableCell
+                  key={column.label}
+                  align={column.align as any || 'left'}
+                  sx={{
+                    backgroundColor: '#f8f9fa', // Solid background for sticky header
+                    borderBottom: `2px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+                    fontWeight: 800,
+                    fontSize: '0.65rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.8px',
+                    color: theme.palette.text.secondary,
+                    width: column.width,
+                    minWidth: column.width,
+                    py: 1.5,
+                    px: 1.5,
+                    whiteSpace: 'nowrap',
+                    zIndex: 11, // Increased zIndex for header
+                  }}
+                >
+                  {column.label}
+                </TableCell>
+              ))}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -413,85 +315,90 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
                     key={account.pkid || account.account_id || index}
                     hover
                     sx={{
-                      backgroundColor: index % 2 === 0 ? 'transparent' : 'rgba(0, 0, 0, 0.02)',
+                      transition: 'all 0.2s ease',
+                      borderLeft: isSelected ? `4px solid ${theme.palette.primary.main}` : '4px solid transparent',
+                      backgroundColor: isSelected 
+                        ? alpha(theme.palette.primary.main, 0.08) 
+                        : (index % 2 === 0 ? 'transparent' : alpha(theme.palette.action.hover, 0.02)),
                       '&:hover': {
-                        backgroundColor: 'rgba(102, 126, 234, 0.08) !important',
-                        transition: 'background-color 0.2s ease'
+                        backgroundColor: isSelected 
+                          ? alpha(theme.palette.primary.main, 0.12) 
+                          : `${alpha(theme.palette.primary.main, 0.04)} !important`,
+                        transform: 'translateY(-1px)',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+                        '& .action-buttons': {
+                          opacity: 1,
+                          transform: 'translateX(0)',
+                        }
                       },
-                      ...(isSelected
-                        ? {
-                            backgroundColor: 'rgba(25, 118, 210, 0.08) !important',
-                            outline: '2px solid rgba(25, 118, 210, 0.35)',
-                            outlineOffset: '-2px',
-                          }
-                        : null),
                       cursor: 'pointer'
                     }}
                     onClick={handleOpen}
                   >
-                    <TableCell sx={{ py: 0.75, px: 1 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.75rem', lineHeight: 1.2 }}>
-                        {account.account_number}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                        {account.account_id}
+                    <TableCell sx={{ py: 1.5, px: 1.5 }}>
+                      <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 500, color: 'text.primary' }}>
+                        {account.prc_date ? dayjs(account.prc_date).format('DD MMM YYYY') : '-'}
                       </Typography>
                     </TableCell>
-                    <TableCell sx={{ py: 0.75, px: 1 }}>
-                      <Typography variant="body2" sx={{ fontSize: '0.75rem', lineHeight: 1.2 }}>{account.cif_name}</Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                    <TableCell sx={{ py: 1.5, px: 1.5 }}>
+                      <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 600, color: theme.palette.primary.main }}>
                         {account.cif_number}
                       </Typography>
                     </TableCell>
-                    <TableCell sx={{ py: 0.75, px: 1 }}>
-                      <Typography variant="body2" sx={{ fontSize: '0.75rem', lineHeight: 1.2 }}>
-                        {account.prc_date ? dayjs(account.prc_date).format('DD/MM/YYYY') : '-'}
+                    <TableCell sx={{ py: 1.5, px: 1.5, whiteSpace: 'nowrap' }}>
+                      <Typography variant="body2" sx={{ fontSize: '0.75rem', lineHeight: 1.2, fontWeight: 600, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis' }}>{account.cif_name}</Typography>
+                    </TableCell>
+                    <TableCell sx={{ py: 1.5, px: 1.5 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.75rem', lineHeight: 1.2, color: 'text.primary' }}>
+                        {account.account_number}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', display: 'block', mt: 0.25 }}>
+                        ID: {account.account_id}
                       </Typography>
                     </TableCell>
-                    <TableCell sx={{ py: 0.75, px: 1 }}>
-                      <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 500 }}>
+                    <TableCell sx={{ py: 1.5, px: 1.5 }}>
+                      <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'text.secondary' }}>
                         {account.currency || 'IDR'}
                       </Typography>
                     </TableCell>
-                    <TableCell sx={{ py: 0.75, px: 1 }}>
-                      <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 500, color: (account.dpd || 0) > 0 ? 'error.main' : 'inherit' }}>
-                        {account.dpd || 0}
-                      </Typography>
-                    </TableCell>
-                    <TableCell sx={{ py: 0.75, px: 1 }}>
-                      <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
-                        {account.collectability || '-'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell sx={{ py: 0.75, px: 1 }}>
-                      <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 500 }}>
-                        {account.rating_code || '-'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right" sx={{ py: 0.75, px: 1 }}>
-                      <Typography variant="body2" sx={{ fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: 500 }}>
+                    <TableCell align="right" sx={{ py: 1.5, px: 1.5 }}>
+                      <Typography variant="body2" sx={{ fontSize: '0.8rem', fontFamily: 'var(--font-mono, monospace)', fontWeight: 700, color: 'text.primary' }}>
                         {formatCurrency(account.outstanding_balance)}
                       </Typography>
                     </TableCell>
-                    <TableCell sx={{ py: 0.75, px: 1 }}>
-                      {renderStageChip(account.stage)}
-                    </TableCell>
-                    <TableCell sx={{ py: 0.75, px: 1 }}>
-                      {renderAssessmentStatus(account.assessment_status)}
-                    </TableCell>
-                    <TableCell sx={{ py: 0.75, px: 1 }}>
-                      {renderPriorityChip(account.priority_level)}
-                    </TableCell>
-                    <TableCell sx={{ py: 0.75, px: 1 }}>
-                      {renderImpairedFlag(account.impaired_flag)}
-                    </TableCell>
-                    <TableCell align="right" sx={{ py: 0.75, px: 1 }}>
-                      <Typography variant="body2" sx={{ fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: 600, color: 'error.main' }}>
-                        {formatCurrency(account.provision_amount)}
+                    <TableCell sx={{ py: 1.5, px: 1.5 }}>
+                      <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 700, color: (account.dpd || 0) > 0 ? theme.palette.error.main : 'text.primary' }}>
+                        {account.dpd || 0}
                       </Typography>
                     </TableCell>
-                    <TableCell sx={{ py: 0.75, px: 0.5 }}>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
+                    <TableCell sx={{ py: 1.5, px: 1.5 }}>
+                      <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 700 }}>
+                        {account.collectability || '-'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ py: 1.5, px: 1.5 }}>
+                      <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'text.secondary' }}>
+                        {account.rating_code || '-'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ py: 1.5, px: 1.5 }}>
+                      {renderStageChip(account.stage)}
+                    </TableCell>
+                    <TableCell sx={{ py: 1.5, px: 1.5 }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, alignItems: 'flex-start' }}>
+                        {renderAssessmentStatus(account.assessment_status)}
+                        {renderPriorityChip(account.priority_level)}
+                      </Box>
+                    </TableCell>
+                    <TableCell align="center" sx={{ py: 1, px: 0.5 }}>
+                      <Box className="action-buttons" sx={{ 
+                        display: 'flex', 
+                        gap: 0.5, 
+                        justifyContent: 'center',
+                        opacity: 0.6,
+                        transition: 'all 0.3s ease',
+                        transform: 'translateX(5px)',
+                      }}>
                         <Tooltip title="View Details">
                           <IconButton
                             size="small"
@@ -500,10 +407,13 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
                               handleOpen();
                             }}
                             disabled={!account.account_id}
-                            color="primary"
-                            aria-label="View Details"
+                            sx={{ 
+                              color: theme.palette.primary.main,
+                              backgroundColor: alpha(theme.palette.primary.main, 0.05),
+                              '&:hover': { backgroundColor: alpha(theme.palette.primary.main, 0.15) }
+                            }}
                           >
-                            <VisibilityIcon sx={{ fontSize: 18 }} />
+                            <VisibilityIcon sx={{ fontSize: 16 }} />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Edit Assessment">
@@ -514,9 +424,13 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
                               onEditAssessment(account);
                             }}
                             disabled={!account.account_id}
-                            aria-label="Edit Assessment"
+                            sx={{ 
+                              color: theme.palette.info.main,
+                              backgroundColor: alpha(theme.palette.info.main, 0.05),
+                              '&:hover': { backgroundColor: alpha(theme.palette.info.main, 0.15) }
+                            }}
                           >
-                            <EditIcon sx={{ fontSize: 18 }} />
+                            <EditIcon sx={{ fontSize: 16 }} />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title={
@@ -527,24 +441,28 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
                           <IconButton
                             size="small"
                             sx={{
-                              color: account.assessment_status === 'SUBMITTED' ? 'warning.main' : 'error.main',
-                              '&:hover': { bgcolor: 'rgba(211, 47, 47, 0.1)' },
-                              opacity: (account.is_override || account.assessment_status === 'SUBMITTED') ? 1 : 0.3
+                              color: (account.assessment_status === 'SUBMITTED' || account.assessment_status === 'PENDING') ? theme.palette.warning.main : theme.palette.error.main,
+                              backgroundColor: (account.assessment_status === 'SUBMITTED' || account.assessment_status === 'PENDING') ? alpha(theme.palette.warning.main, 0.05) : alpha(theme.palette.error.main, 0.05),
+                              '&:hover': { backgroundColor: (account.assessment_status === 'SUBMITTED' || account.assessment_status === 'PENDING') ? alpha(theme.palette.warning.main, 0.15) : alpha(theme.palette.error.main, 0.15) },
+                              opacity: (account.is_override || account.assessment_status === 'SUBMITTED' || account.assessment_status === 'PENDING') ? 1 : 0.3
                             }}
                             onClick={(event) => requestReset(event, account)}
-                            disabled={!account.is_override && account.assessment_status !== 'SUBMITTED'}
-                            aria-label="Reset Assessment"
+                            disabled={!account.is_override && account.assessment_status !== 'SUBMITTED' && account.assessment_status !== 'PENDING'}
                           >
-                            <RestartAltIcon sx={{ fontSize: 20 }} />
+                            <RestartAltIcon sx={{ fontSize: 18 }} />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="More Actions">
+                        <Tooltip title="More">
                           <IconButton
                             size="small"
-                            aria-label="More Actions"
                             onClick={(event) => openMenu(event, account)}
+                            sx={{ 
+                              color: theme.palette.text.secondary,
+                              backgroundColor: alpha(theme.palette.text.secondary, 0.05),
+                              '&:hover': { backgroundColor: alpha(theme.palette.text.secondary, 0.15) }
+                            }}
                           >
-                            <MoreVertIcon sx={{ fontSize: 18 }} />
+                            <MoreVertIcon sx={{ fontSize: 16 }} />
                           </IconButton>
                         </Tooltip>
                       </Box>
@@ -571,6 +489,7 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
           </TableBody>
         </Table>
       </TableContainer>
+    </Fade>
 
       <TablePagination
         rowsPerPageOptions={[10, 25, 50, 100, 200, 500]}
@@ -701,7 +620,7 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
             onClick={confirmReset}
             variant="contained"
             color="error"
-            disabled={(!resetAccount?.is_override && resetAccount?.assessment_status !== 'SUBMITTED') || resetSubmitting}
+            disabled={(!resetAccount?.is_override && resetAccount?.assessment_status !== 'SUBMITTED' && resetAccount?.assessment_status !== 'PENDING') || resetSubmitting}
           >
             Reset
           </Button>

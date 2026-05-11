@@ -556,6 +556,13 @@ export const individualImpairmentAPI = {
         reason
       });
       return response.data;
+    },
+
+    // Reset assessment
+    reset: async (id: number) => {
+      console.log(`🔄 Resetting assessment ${id}`);
+      const response = await apiClient.post(`/banking/individual/impairment/assessment/${id}/reset`);
+      return response.data;
     }
   },
 
@@ -792,6 +799,13 @@ export const individualImpairmentAPI = {
 
   // Reporting
   reports: {
+    // Get all reports with filtering
+    getAll: async (params?: any) => {
+      console.log('📋 Fetching all Individual Impairment reports');
+      const response = await apiClient.get('/banking/individual/impairment/reports', { params });
+      return response.data;
+    },
+
     // Generate individual impairment assessment report
     generate: async (reportParams: {
       report_type: string;
@@ -825,6 +839,13 @@ export const individualImpairmentAPI = {
       });
       return response.data;
     }
+  },
+
+  // Get assessment summary statistics
+    getAssessmentSummary: async (date?: string) => {
+    console.log('📊 Fetching assessment summary statistics');
+    const response = await apiClient.get('/banking/individual/impairment/reports-summary', { params: { date } });
+    return response.data;
   },
 
   // Health Check

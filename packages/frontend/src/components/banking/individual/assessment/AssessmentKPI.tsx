@@ -125,6 +125,7 @@ export const AssessmentKPI: React.FC<AssessmentKPIProps> = ({ watchlist = [], lo
 
   const totalAccounts = summary ? summary.totalAccounts : safeWatchlist.length;
   const impairedAccounts = summary ? summary.impairedAccounts : safeWatchlist.filter(a => a.impaired_flag === 'I').length;
+  const newAccounts = safeWatchlist.filter(a => a.assessment_status === 'NEW').length;
   const pendingAssessments = summary ? summary.pendingAssessments : safeWatchlist.filter(a => a.assessment_status === 'PENDING').length;
   const totalProvisions = summary ? summary.totalProvisions : safeWatchlist.reduce((sum, a) => sum + (a.provision_amount || 0), 0);
 
@@ -150,7 +151,7 @@ export const AssessmentKPI: React.FC<AssessmentKPIProps> = ({ watchlist = [], lo
         gridTemplateColumns: {
           xs: '1fr',                    // Mobile: 1 column
           sm: '1fr 1fr',                // Tablet: 2 columns
-          md: 'repeat(4, 1fr)'          // Desktop: 4 columns
+          md: 'repeat(5, 1fr)'          // Desktop: 5 columns
         },
         gap: 1.5
       }}
@@ -159,33 +160,41 @@ export const AssessmentKPI: React.FC<AssessmentKPIProps> = ({ watchlist = [], lo
         title="Total Accounts"
         value={totalAccounts}
         gradient="linear-gradient(135deg, #1976d2 0%, #1565c0 100%)"
-        icon={<TotalIcon sx={{ fontSize: 28 }} />}
+        icon={<TotalIcon sx={{ fontSize: 24 }} />}
         loading={loading && !summary}
         delay={0}
       />
       <KPICard
-        title="Impaired Accounts"
+        title="Impaired"
         value={impairedAccounts}
         gradient="linear-gradient(135deg, #d32f2f 0%, #c62828 100%)"
-        icon={<ImpairedIcon sx={{ fontSize: 28 }} />}
+        icon={<ImpairedIcon sx={{ fontSize: 24 }} />}
         loading={loading && !summary}
         delay={100}
       />
       <KPICard
-        title="Pending Assessments"
-        value={pendingAssessments}
-        gradient="linear-gradient(135deg, #f57c00 0%, #ef6c00 100%)"
-        icon={<PendingIcon sx={{ fontSize: 28 }} />}
+        title="Unprocessed (New)"
+        value={newAccounts}
+        gradient="linear-gradient(135deg, #ff9800 0%, #f57c00 100%)"
+        icon={<PendingIcon sx={{ fontSize: 24 }} />}
         loading={loading && !summary}
         delay={200}
+      />
+      <KPICard
+        title="In Assessment"
+        value={pendingAssessments}
+        gradient="linear-gradient(135deg, #2196f3 0%, #1976d2 100%)"
+        icon={<PendingIcon sx={{ fontSize: 24 }} />}
+        loading={loading && !summary}
+        delay={300}
       />
       <KPICard
         title="Total Provisions"
         value={formatCurrency(totalProvisions)}
         gradient="linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)"
-        icon={<ProvisionIcon sx={{ fontSize: 28 }} />}
+        icon={<ProvisionIcon sx={{ fontSize: 24 }} />}
         loading={loading && !summary}
-        delay={300}
+        delay={400}
       />
 
       {renderDataDate()}

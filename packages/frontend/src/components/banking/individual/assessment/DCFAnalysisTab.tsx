@@ -27,7 +27,8 @@ import {
   DialogContent,
   DialogActions,
   Stack,
-  Paper
+  Paper,
+  LinearProgress
 } from '@mui/material';
 import {
   Calculate as CalculateIcon,
@@ -38,7 +39,11 @@ import {
   AccountBalance as AccountBalanceIcon,
   CloudUpload as CloudUploadIcon,
   Close as CloseIcon,
-  Assignment as AssignmentIcon
+  Assignment as AssignmentIcon,
+  CheckCircle as CheckCircleIcon,
+  Warning as WarningIcon,
+  History as HistoryIcon,
+  TrendingUp as TrendingUpIcon
 } from '@mui/icons-material';
 import {
   ResponsiveContainer,
@@ -50,6 +55,7 @@ import {
   Tooltip as RechartsTooltip,
   Legend
 } from 'recharts';
+import dayjs from 'dayjs';
 import {
   type IndividualImpairmentWatchlistItem,
   type IndividualImpairmentAssessment,
@@ -65,6 +71,7 @@ interface DCFAnalysisTabProps {
   calculationResults?: any;
   onClearResults?: () => void;
   onStagedDCF?: (data: any) => void;
+  stagedDCF?: any;
 }
 
 function toFiniteNumber(value: unknown, fallback = 0) {
@@ -89,7 +96,8 @@ export function DCFAnalysisTab({
   loading,
   calculationResults,
   onClearResults,
-  onStagedDCF
+  stagedDCF,
+  onStagedDCF,
 }: DCFAnalysisTabProps) {
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [assumptions, setAssumptions] = useState({
@@ -105,23 +113,24 @@ export function DCFAnalysisTab({
 
     const rawDetails = Array.isArray(calculationResults.details) ? calculationResults.details : [];
     const outstanding =
-      calculationResults.outstanding ??
       calculationResults.outstandingBalance ??
+      calculationResults.outstanding ??
       account?.outstanding_balance ??
       account?.outstanding ??
       0;
 
     return {
       ...calculationResults,
-      presentValue: toFiniteNumber(calculationResults.presentValue ?? calculationResults.pvDcfAmt),
+      presentValue: toFiniteNumber(calculationResults.presentValue ?? calculationResults.totalNpv ?? calculationResults.pvDcfAmt),
       outstanding: toFiniteNumber(outstanding),
-      lgd: toFiniteNumber(calculationResults.lgd ?? calculationResults.impairmentLoss),
+      lgd: toFiniteNumber(calculationResults.lgd ?? calculationResults.eclIaAmt ?? calculationResults.impairmentLoss),
       recommendedProvision: toFiniteNumber(calculationResults.recommendedProvision ?? calculationResults.eclIaAmt),
       details: rawDetails.map((row: any) => ({
         ...row,
+        period: row.period || row.periode || row.mob,
         beginningBalance: toFiniteNumber(row.beginningBalance),
-        interestAccrual: toFiniteNumber(row.interestAccrual),
-        weightedFlow: toFiniteNumber(row.weightedFlow ?? row.cashflow),
+        interestAccrual: toFiniteNumber(row.interestAccrual ?? row.eirAmt),
+        weightedFlow: toFiniteNumber(row.weightedFlow ?? row.pwAmt ?? row.cashflow),
         endingBalance: toFiniteNumber(row.endingBalance),
       })),
     };
@@ -140,34 +149,67 @@ export function DCFAnalysisTab({
   const handleCalculate = () => {
     setValidationError(null);
 
-    // 1. Validate PO Rate (Total must be 100)
     const totalPo = assumptions.poRate1 + assumptions.poRate2 + assumptions.poRate3;
     if (totalPo !== 100) {
       setValidationError(`Total PO Rate must be exactly 100% (Current: ${totalPo}%)`);
       return;
     }
 
-    // 2. Validate Repayment Rate (At least one must reach 100, usually Base Case)
-    // As per user request: "repayment rate harus mencapai 100%"
-    if (assumptions.rrRate1 < 100 && assumptions.rrRate2 < 100 && assumptions.rrRate3 < 100) {
-      setValidationError('At least one scenario (ideally Base Case) must have a Repayment Rate of 100%');
-      return;
+    // IA_FLOWS Rule: Generate default monthly cashflows if none exist for Quick Calculate
+    const horizon = assumptions.timeHorizon || 12;
+    const outstanding = toFiniteNumber(account?.outstanding_balance || account?.outstanding || 0);
+    const monthlyPrincipal = outstanding / horizon;
+    
+    const generatedCashflows = [];
+    const startDate = dayjs();
+    
+    for (let i = 1; i <= horizon; i++) {
+      generatedCashflows.push({
+        mob: i,
+        periode: startDate.add(i, 'month').format('YYYY-MM-DD'),
+        principal: monthlyPrincipal,
+        interest: 0,
+        collateral: 0
+      });
     }
 
     onCalculate({
-      ...assumptions,
-      accountId: account?.account_id
+      accountId: account?.account_id,
+      accountNumber: account?.account_number,
+      assumptions: {
+        ...assumptions,
+        discountRate: account?.eff_interest_rate || account?.interest_rate || 12,
+        nOfScenario: 3,
+        method: '3'
+      },
+      repaymentRates: [
+        {
+          periodStart: startDate.format('YYYY-MM-DD'),
+          periodEnd: startDate.add(horizon + 1, 'month').format('YYYY-MM-DD'),
+          rrRate1: assumptions.rrRate1,
+          rrRate2: assumptions.rrRate2,
+          rrRate3: assumptions.rrRate3
+        }
+      ],
+      cashflows: generatedCashflows
+    });
+  };
+
+  const handleProcessStaged = () => {
+    if (!stagedDCF) return;
+    onCalculate({
+      accountId: account?.account_id,
+      assumptions: {
+        ...(stagedDCF.assumptions || assumptions),
+        discountRate: account?.eff_interest_rate || account?.interest_rate || 12
+      },
+      repaymentRates: stagedDCF.repaymentRates || [],
+      cashflows: stagedDCF.cashflows || []
     });
   };
 
   const handleUploadSuccess = (rows: any[]) => {
     setUploadDialogOpen(false);
-    // Trigger calculation with uploaded cashflows
-    onCalculate({
-      ...assumptions,
-      accountId: account?.account_id,
-      cashflows: rows
-    });
   };
 
   const handleAssumptionChange = (field: string, value: number) => {
@@ -194,57 +236,93 @@ export function DCFAnalysisTab({
               <Grid container spacing={3}>
                 {/* Scenario 1: Base */}
                 <Grid size={{ xs: 12, md: 4 }}>
-                  <Box sx={{ p: 2, bgcolor: 'rgba(33, 150, 243, 0.05)', borderRadius: 2 }}>
-                    <Typography variant="subtitle2" color="primary" fontWeight="bold" gutterBottom>Scenario 1: Base Case</Typography>
-                    <Stack spacing={2}>
+                  <Box sx={{ p: 2.5, bgcolor: 'rgba(33, 150, 243, 0.05)', borderRadius: 3, border: '1px solid rgba(33, 150, 243, 0.2)', borderLeft: '6px solid #1976d2' }}>
+                    <Typography variant="subtitle2" color="primary" fontWeight="bold" gutterBottom sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      SCENARIO 1: BASE CASE
+                      <CheckCircleIcon sx={{ fontSize: 16 }} />
+                    </Typography>
+                    <Stack spacing={2} sx={{ mt: 2 }}>
                       <TextField
                         label="PO Rate (Weight %)" size="small" type="number"
                         value={assumptions.poRate1}
                         onChange={(e) => handleAssumptionChange('poRate1', Number(e.target.value))}
+                        sx={{ bgcolor: '#fff' }}
                       />
                       <TextField
                         label="Repayment Rate (%)" size="small" type="number"
                         value={assumptions.rrRate1}
                         onChange={(e) => handleAssumptionChange('rrRate1', Number(e.target.value))}
+                        sx={{ bgcolor: '#fff' }}
                       />
                     </Stack>
                   </Box>
                 </Grid>
                 {/* Scenario 2: Optimistic */}
                 <Grid size={{ xs: 12, md: 4 }}>
-                  <Box sx={{ p: 2, bgcolor: 'rgba(76, 175, 80, 0.05)', borderRadius: 2 }}>
-                    <Typography variant="subtitle2" color="success.main" fontWeight="bold" gutterBottom>Scenario 2: Optimistic</Typography>
-                    <Stack spacing={2}>
+                  <Box sx={{ p: 2.5, bgcolor: 'rgba(76, 175, 80, 0.05)', borderRadius: 3, border: '1px solid rgba(76, 175, 80, 0.2)', borderLeft: '6px solid #2e7d32' }}>
+                    <Typography variant="subtitle2" color="success.main" fontWeight="bold" gutterBottom sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      SCENARIO 2: OPTIMISTIC
+                      <CheckCircleIcon sx={{ fontSize: 16 }} />
+                    </Typography>
+                    <Stack spacing={2} sx={{ mt: 2 }}>
                       <TextField
                         label="PO Rate (Weight %)" size="small" type="number"
                         value={assumptions.poRate2}
                         onChange={(e) => handleAssumptionChange('poRate2', Number(e.target.value))}
+                        sx={{ bgcolor: '#fff' }}
                       />
                       <TextField
                         label="Repayment Rate (%)" size="small" type="number"
                         value={assumptions.rrRate2}
                         onChange={(e) => handleAssumptionChange('rrRate2', Number(e.target.value))}
+                        sx={{ bgcolor: '#fff' }}
                       />
                     </Stack>
                   </Box>
                 </Grid>
                 {/* Scenario 3: Pessimistic */}
                 <Grid size={{ xs: 12, md: 4 }}>
-                  <Box sx={{ p: 2, bgcolor: 'rgba(244, 67, 54, 0.05)', borderRadius: 2 }}>
-                    <Typography variant="subtitle2" color="error.main" fontWeight="bold" gutterBottom>Scenario 3: Pessimistic</Typography>
-                    <Stack spacing={2}>
+                  <Box sx={{ p: 2.5, bgcolor: 'rgba(244, 67, 54, 0.05)', borderRadius: 3, border: '1px solid rgba(244, 67, 54, 0.2)', borderLeft: '6px solid #d32f2f' }}>
+                    <Typography variant="subtitle2" color="error.main" fontWeight="bold" gutterBottom sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      SCENARIO 3: PESSIMISTIC
+                      <CheckCircleIcon sx={{ fontSize: 16 }} />
+                    </Typography>
+                    <Stack spacing={2} sx={{ mt: 2 }}>
                       <TextField
                         label="PO Rate (Weight %)" size="small" type="number"
                         value={assumptions.poRate3}
                         onChange={(e) => handleAssumptionChange('poRate3', Number(e.target.value))}
+                        sx={{ bgcolor: '#fff' }}
                       />
                       <TextField
                         label="Repayment Rate (%)" size="small" type="number"
                         value={assumptions.rrRate3}
                         onChange={(e) => handleAssumptionChange('rrRate3', Number(e.target.value))}
+                        sx={{ bgcolor: '#fff' }}
                       />
                     </Stack>
                   </Box>
+                </Grid>
+
+                {/* Weight Tracker Section */}
+                <Grid size={12}>
+                  <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: (assumptions.poRate1 + assumptions.poRate2 + assumptions.poRate3) === 100 ? 'rgba(76, 175, 80, 0.05)' : 'rgba(255, 152, 0, 0.05)', borderStyle: 'dashed' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, alignItems: 'center' }}>
+                       <Typography variant="body2" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          Total Possible Outcome (PO) Weighting 
+                          {(assumptions.poRate1 + assumptions.poRate2 + assumptions.poRate3) === 100 ? <CheckCircleIcon color="success" sx={{ fontSize: 18 }} /> : <WarningIcon color="warning" sx={{ fontSize: 18 }} />}
+                       </Typography>
+                       <Typography variant="body2" fontWeight="bold" color={(assumptions.poRate1 + assumptions.poRate2 + assumptions.poRate3) === 100 ? "success.main" : "warning.main"}>
+                          {assumptions.poRate1 + assumptions.poRate2 + assumptions.poRate3}% / 100%
+                       </Typography>
+                    </Box>
+                    <LinearProgress 
+                      variant="determinate" 
+                      value={Math.min(assumptions.poRate1 + assumptions.poRate2 + assumptions.poRate3, 100)} 
+                      color={(assumptions.poRate1 + assumptions.poRate2 + assumptions.poRate3) === 100 ? "success" : "warning"}
+                      sx={{ height: 10, borderRadius: 5 }}
+                    />
+                  </Paper>
                 </Grid>
 
                 <Grid size={{ xs: 12, md: 6 }}>
@@ -252,17 +330,12 @@ export function DCFAnalysisTab({
                     fullWidth label="Time Horizon (Months)" size="small" type="number"
                     value={assumptions.timeHorizon}
                     onChange={(e) => handleAssumptionChange('timeHorizon', Number(e.target.value))}
+                    sx={{ mt: 1 }}
+                    helperText="Masa proyeksi arus kas dalam bulan"
                   />
                 </Grid>
-                {validationError && (
-                  <Grid size={12}>
-                    <Alert severity="error" sx={{ borderRadius: 2, fontWeight: 'bold' }}>
-                      {validationError}
-                    </Alert>
-                  </Grid>
-                )}
 
-                <Grid size={{ xs: 12, md: 4 }}>
+                <Grid size={{ xs: 12, md: stagedDCF ? 3 : 4 }}>
                   <Button
                     fullWidth variant="contained" size="large"
                     startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <CalculateIcon />}
@@ -270,10 +343,10 @@ export function DCFAnalysisTab({
                     disabled={loading}
                     sx={{ height: '56px', borderRadius: 2, fontWeight: 'bold' }}
                   >
-                    Calculate
+                    Quick Calculate
                   </Button>
                 </Grid>
-                <Grid size={{ xs: 12, md: 4 }}>
+                <Grid size={{ xs: 12, md: stagedDCF ? 3 : 4 }}>
                    <Button
                     fullWidth variant="outlined" size="large"
                     startIcon={<CloudUploadIcon />}
@@ -283,7 +356,20 @@ export function DCFAnalysisTab({
                     Upload DCF
                   </Button>
                 </Grid>
-                <Grid size={{ xs: 12, md: 4 }}>
+                {stagedDCF && (
+                    <Grid size={{ xs: 12, md: 3 }}>
+                        <Button
+                            fullWidth variant="contained" size="large" color="success"
+                            startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <RunIcon />}
+                            onClick={handleProcessStaged}
+                            disabled={loading}
+                            sx={{ height: '56px', borderRadius: 2, fontWeight: 'bold', boxShadow: 3 }}
+                        >
+                            Recalculate (Staged)
+                        </Button>
+                    </Grid>
+                )}
+                <Grid size={{ xs: 12, md: stagedDCF ? 3 : 4 }}>
                    <Button
                     fullWidth variant="text" size="large"
                     onClick={onClearResults}

@@ -326,6 +326,19 @@ export class IndividualImpairmentController {
         }
     }
 
+    async resetAssessment(c: Context) {
+        try {
+            const user = c.get('user');
+            if (!user?.tenantId) return this.unauthorized(c);
+
+            const id = Number(c.req.param('id'));
+            const data = await this.individualImpairmentService.resetAssessment(id, user.id);
+            return c.json(data);
+        } catch (error: any) {
+            return this.handleError(c, error);
+        }
+    }
+
     async createAssessment(c: Context) {
         try {
             const user = c.get('user');
@@ -699,7 +712,11 @@ export class IndividualImpairmentController {
             const body = await c.req.json();
 
             // Panggil Service untuk hitung matematika
-            const data = await this.individualImpairmentService.calculateDcf(user.tenantId, body);
+            const data = await this.individualImpairmentService.calculateDcf(user.tenantId, {
+                ...body,
+                userId: user.id,
+                host: c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'web'
+            });
 
             return c.json({ success: true, data });
         } catch (error: any) {
@@ -757,9 +774,24 @@ export class IndividualImpairmentController {
             return c.json(buildErrorResponse(c, { error: msg, message: msg, code: 'BAD_REQUEST' }), 400);
         }
 
-        // 2. Conflict Errors
-        if (msg.includes('duplicate') || msg.includes('unique constraint') || msg.includes('already exists')) {
-            return c.json(buildErrorResponse(c, { error: 'Data conflict: Record already exists or violates unique constraint.', message: 'Data conflict: Record already exists or violates unique constraint.', code: 'CONFLICT' }), 409);
+        // 2. Conflict Errors (Hardened v2)
+        if (msg.includes('duplicate') || msg.includes('unique constraint') || msg.includes('already exists') || error.code === '23505') {
+            const errorDetails = {
+                message: msg,
+                code: error.code,
+                detail: error.detail,
+                table: error.table,
+                constraint: error.constraint,
+                internal: JSON.parse(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+            };
+            const detailedMsg = `[HARDENED-V2] Conflict detected: ${msg} | Constraint: ${error.constraint || 'unknown'}`;
+            
+            return c.json(buildErrorResponse(c, { 
+                error: detailedMsg, 
+                message: detailedMsg, 
+                code: 'CONFLICT',
+                details: errorDetails
+            }), 409);
         }
 
         // 3. Unauthorized (handled usually by middleware, but just in case)
@@ -825,6 +857,20 @@ export class IndividualImpairmentController {
             });
             
             return c.json({ success: true, data: analysis });
+        } catch (error: any) {
+            return this.handleError(c, error);
+        }
+    }
+
+    // Get Assessment Summary (Status Breakdown)
+    async getAssessmentSummary(c: Context) {
+        try {
+            const user = c.get('user');
+            if (!user?.tenantId) return this.unauthorized(c);
+            
+            const date = c.req.query('date');
+            const summary = await this.individualImpairmentService.getAssessmentSummary(user.tenantId, date);
+            return c.json({ success: true, data: summary });
         } catch (error: any) {
             return this.handleError(c, error);
         }

@@ -7,7 +7,8 @@ import {
   Card,
   CardContent,
   Divider,
-  Alert,
+  Tab,
+  Tabs,
   Paper,
   Table,
   TableBody,
@@ -18,6 +19,7 @@ import {
   Stack,
   Chip
 } from '@mui/material';
+import { useTheme, alpha } from '@mui/material/styles';
 import { MonetizationOn as MoneyIcon, Send as SendIcon, CheckCircle as CheckCircleIcon, Warning as WarningIcon, History as HistoryIcon } from '@mui/icons-material';
 import {
   type IndividualImpairmentWatchlistItem,
@@ -46,6 +48,7 @@ export function ProvisionCalculationTab({
     onFinalSubmit,
     submitting
 }: ProvisionCalculationTabProps) {
+  const theme = useTheme();
   const toFiniteNumber = (value: unknown, fallback = 0) => {
     const normalized = typeof value === 'string' ? value.replace(/[^\d.-]/g, '') : value;
     const numeric = Number(normalized);
@@ -66,25 +69,27 @@ export function ProvisionCalculationTab({
     if (!calculation) return null;
 
     const outstanding =
-      calculation.outstanding ??
       calculation.outstandingBalance ??
+      calculation.outstanding ??
       account?.outstanding_balance ??
       account?.outstanding ??
       0;
+    
     const details = Array.isArray(calculation.details) ? calculation.details : [];
 
     return {
       ...calculation,
-      presentValue: toFiniteNumber(calculation.presentValue ?? calculation.pvDcfAmt),
+      presentValue: toFiniteNumber(calculation.presentValue ?? calculation.totalNpv ?? calculation.pvDcfAmt),
       outstanding: toFiniteNumber(outstanding),
-      lgd: toFiniteNumber(calculation.lgd ?? calculation.impairmentLoss),
+      lgd: toFiniteNumber(calculation.lgd ?? calculation.eclIaAmt ?? calculation.impairmentLoss),
       recommendedProvision: toFiniteNumber(calculation.recommendedProvision ?? calculation.eclIaAmt),
       assumptions: calculation.assumptions || {},
       details: details.map((row: any) => ({
         ...row,
+        period: row.period || row.periode,
         beginningBalance: toFiniteNumber(row.beginningBalance),
-        interestAccrual: toFiniteNumber(row.interestAccrual),
-        weightedFlow: toFiniteNumber(row.weightedFlow ?? row.cashflow),
+        interestAccrual: toFiniteNumber(row.interestAccrual ?? row.eirAmt),
+        weightedFlow: toFiniteNumber(row.weightedFlow ?? row.pwAmt ?? row.cashflow),
         endingBalance: toFiniteNumber(row.endingBalance),
       })),
     };
@@ -92,11 +97,18 @@ export function ProvisionCalculationTab({
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', fontWeight: 700 }}>
-            <MoneyIcon sx={{ mr: 1, color: 'primary.main' }} />
-            Provision Calculation - {account?.account_number}
-        </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Stack direction="row" spacing={2} alignItems="center">
+            <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.dark', letterSpacing: '-0.5px' }}>
+                Assessment Results Summary
+            </Typography>
+            <Chip 
+                label="PROCESSED" 
+                color="success" 
+                size="small" 
+                sx={{ fontWeight: 900, borderRadius: '8px', px: 1 }} 
+            />
+        </Stack>
 
         {normalizedCalculation && (
             <Stack direction="row" spacing={1}>
@@ -120,141 +132,154 @@ export function ProvisionCalculationTab({
 
       {normalizedCalculation ? (
         <Grid container spacing={3}>
-          {/* Summary Cards */}
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Card sx={{ height: '100%', bgcolor: '#f0f7ff', border: '1px solid', borderColor: 'primary.light', borderRadius: 3 }}>
-              <CardContent>
-                <Typography variant="subtitle2" color="primary.dark" fontWeight={600}>Present Value (DCF)</Typography>
-                <Typography variant="h5" fontWeight="bold" color="primary.main" sx={{ mt: 1 }}>
+          {/* Summary Cards - Exactly matching reference */}
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card sx={{ height: '100%', bgcolor: '#eef6ff', border: 'none', borderRadius: 4, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+              <CardContent sx={{ textAlign: 'center', py: 3 }}>
+                <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    Present Value (NPV)
+                </Typography>
+                <Typography variant="h5" fontWeight={800} color="primary.main" sx={{ mt: 1 }}>
                   {formatCurrency(normalizedCalculation.presentValue)}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Card sx={{ height: '100%', bgcolor: '#fff5f5', border: '1px solid', borderColor: 'error.light', borderRadius: 3 }}>
-              <CardContent>
-                <Typography variant="subtitle2" color="error.dark" fontWeight={600}>Loss Given Default (LGD)</Typography>
-                <Typography variant="h5" fontWeight="bold" color="error.main" sx={{ mt: 1 }}>
+
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card sx={{ height: '100%', bgcolor: '#f5f5f5', border: 'none', borderRadius: 4, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+              <CardContent sx={{ textAlign: 'center', py: 3 }}>
+                <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    Outstanding Balance
+                </Typography>
+                <Typography variant="h5" fontWeight={800} color="text.primary" sx={{ mt: 1 }}>
+                  {formatCurrency(normalizedCalculation.outstanding)}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card sx={{ height: '100%', bgcolor: '#fff1f0', border: 'none', borderRadius: 4, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+              <CardContent sx={{ textAlign: 'center', py: 3 }}>
+                <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    Impairment Loss (LGD)
+                </Typography>
+                <Typography variant="h5" fontWeight={800} color="#f5222d" sx={{ mt: 1 }}>
                   {formatCurrency(normalizedCalculation.lgd)}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-             <Card sx={{ height: '100%', bgcolor: '#f6ffed', border: '1px solid', borderColor: 'success.light', borderRadius: 3 }}>
-              <CardContent>
-                <Typography variant="subtitle2" color="success.dark" fontWeight={600}>Final Provision (ECL)</Typography>
-                <Typography variant="h5" fontWeight="bold" color="success.main" sx={{ mt: 1 }}>
+
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card sx={{ height: '100%', bgcolor: '#feffe6', border: 'none', borderRadius: 4, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+              <CardContent sx={{ textAlign: 'center', py: 3 }}>
+                <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    Recommended Provision
+                </Typography>
+                <Typography variant="h5" fontWeight={800} color="#faad14" sx={{ mt: 1 }}>
                   {formatCurrency(normalizedCalculation.recommendedProvision)}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
 
-          {/* Detailed Calculation Table */}
+          {/* Table 1: DCF Cashflow Details (Source Data) */}
           <Grid size={12}>
-            <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
-                <Typography variant="subtitle1" fontWeight={700} gutterBottom>Calculation Components</Typography>
-                <Divider sx={{ mb: 2 }} />
-                <TableContainer>
-                    <Table size="small">
-                        <TableHead>
-                            <TableRow sx={{ bgcolor: 'grey.50' }}>
-                                <TableCell sx={{ fontWeight: 700 }}>Component</TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 700 }}>Amount / Rate</TableCell>
-                                <TableCell sx={{ fontWeight: 700 }}>Description</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            <TableRow hover>
-                                <TableCell>Outstanding Balance</TableCell>
-                                <TableCell align="right">{formatCurrency(normalizedCalculation.outstanding)}</TableCell>
-                                <TableCell color="text.secondary">Total exposure at default</TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell>Discount Rate (EIR)</TableCell>
-                                <TableCell align="right">{toFiniteNumber(normalizedCalculation.assumptions?.discountRate ?? normalizedCalculation.assumptions?.effectiveInterestRate ?? normalizedCalculation.assumptions?.eir).toFixed(2)}%</TableCell>
-                                <TableCell color="text.secondary">Effective Interest Rate used for discounting</TableCell>
-                            </TableRow>
-                            <TableRow hover>
-                                <TableCell>Scenario Method</TableCell>
-                                <TableCell align="right">{normalizedCalculation.scenario || 'Multi-Scenario Weighted'}</TableCell>
-                                <TableCell color="text.secondary">Economic scenario probability model applied</TableCell>
-                            </TableRow>
-                             <TableRow sx={{ bgcolor: 'primary.50' }}>
-                                <TableCell sx={{ fontWeight: 700 }}>Calculated PV</TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 700 }}>{formatCurrency(normalizedCalculation.presentValue)}</TableCell>
-                                <TableCell sx={{ fontSize: '0.75rem' }}>Sum of all discounted recovery cash flows</TableCell>
-                            </TableRow>
-                             <TableRow sx={{ bgcolor: 'error.50' }}>
-                                <TableCell sx={{ fontWeight: 700 }}>Impairment Loss (LGD)</TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 700 }}>{formatCurrency(normalizedCalculation.lgd)}</TableCell>
-                                <TableCell sx={{ fontSize: '0.75rem' }}>Exposure - Recoverable Amount</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            </Paper>
-          </Grid>
-
-           {/* Detailed Amortization Table */}
-           <Grid size={12}>
-            <Card variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
-              <Box sx={{ p: 2, bgcolor: '#fafafa', borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="subtitle1" fontWeight={700}>
-                  Amortization & Unwinding Schedule
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, mt: 2 }}>
+                <HistoryIcon sx={{ mr: 1, color: 'primary.main' }} />
+                <Typography variant="subtitle1" fontWeight={800}>
+                    DCF Cashflow Details (Source Data)
                 </Typography>
-                <Chip label={`${normalizedCalculation.details.length || 0} Periods`} size="small" variant="outlined" />
-              </Box>
-              <CardContent sx={{ p: 0 }}>
-                <TableContainer sx={{ maxHeight: 350 }}>
-                  <Table stickyHeader size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Period</TableCell>
-                        <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Beginning Balance</TableCell>
-                        <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Interest Accrual</TableCell>
-                        <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Expected Recovery</TableCell>
-                        <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Ending Balance</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {normalizedCalculation.details.length > 0 ? normalizedCalculation.details.map((row: any, idx: number) => (
-                        <TableRow key={`${row.period || 'period'}-${idx}`} hover>
-                          <TableCell sx={{ fontSize: '0.75rem' }}>{row.period || '-'}</TableCell>
-                          <TableCell sx={{ fontSize: '0.75rem' }}>{formatCurrency(row.beginningBalance)}</TableCell>
-                          <TableCell sx={{ fontSize: '0.75rem', color: 'success.main' }}>+{formatCurrency(row.interestAccrual)}</TableCell>
-                          <TableCell sx={{ fontSize: '0.75rem', color: 'error.main' }}>-{formatCurrency(row.weightedFlow)}</TableCell>
-                          <TableCell sx={{ fontSize: '0.75rem', fontWeight: 700 }}>{formatCurrency(row.endingBalance)}</TableCell>
-                        </TableRow>
-                      )) : (
-                        <TableRow>
-                          <TableCell colSpan={5}>
-                            <Alert severity="info" sx={{ my: 1 }}>
-                              No amortization schedule rows returned for this staged DCF.
-                            </Alert>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </CardContent>
-            </Card>
+            </Box>
+            <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={{ bgcolor: '#fafafa' }}>
+                    <TableCell sx={{ fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem' }}>PERIOD</TableCell>
+                    <TableCell sx={{ fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem' }} align="right">PRINCIPAL</TableCell>
+                    <TableCell sx={{ fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem' }} align="right">INTEREST</TableCell>
+                    <TableCell sx={{ fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem' }} align="right">INSTALLMENT</TableCell>
+                    <TableCell sx={{ fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem' }} align="right">COLLATERAL</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {normalizedCalculation.details.length > 0 ? normalizedCalculation.details.map((row: any, idx: number) => (
+                    <TableRow key={idx} hover>
+                      <TableCell sx={{ fontWeight: 600 }}>{row.period || row.periode || '-'}</TableCell>
+                      <TableCell align="right">{formatCurrency(row.principal)}</TableCell>
+                      <TableCell align="right">{formatCurrency(row.interest)}</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700 }}>{formatCurrency(toFiniteNumber(row.principal) + toFiniteNumber(row.interest))}</TableCell>
+                      <TableCell align="right" color="text.secondary">{formatCurrency(row.collateral)}</TableCell>
+                    </TableRow>
+                  )) : (
+                    <TableRow>
+                      <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                         <Typography variant="body2" color="text.secondary">No source cashflow data available</Typography>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </Grid>
 
-           <Grid size={12}>
-            <Paper sx={{ p: 3, borderRadius: 3, bgcolor: isReadyToSubmit ? 'success.50' : 'grey.50', border: '1px dashed', borderColor: isReadyToSubmit ? 'success.main' : 'divider' }}>
+          {/* Table 2: Amortization & Unwinding Schedule (Calculation Result) - Exactly matching screenshot */}
+          <Grid size={12}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, mt: 3 }}>
+                <MoneyIcon sx={{ mr: 1, color: 'primary.main' }} />
+                <Typography variant="subtitle1" fontWeight={800}>
+                    Amortization & Unwinding Schedule
+                </Typography>
+            </Box>
+            <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
+              <Table stickyHeader size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem' }}>PERIOD</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem' }}>BEGINNING BALANCE</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem' }}>INTEREST (EIR)</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem' }}>WEIGHTED FLOW</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem' }}>ENDING BALANCE</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {normalizedCalculation.details.length > 0 ? normalizedCalculation.details.map((row: any, idx: number) => (
+                    <TableRow key={idx} hover>
+                      <TableCell sx={{ fontWeight: 500, color: 'text.primary' }}>{row.period || row.periode || '-'}</TableCell>
+                      <TableCell sx={{ color: 'text.secondary' }}>{formatCurrency(row.beginningBalance)}</TableCell>
+                      <TableCell sx={{ color: 'success.main', fontWeight: 600 }}>
+                        +{formatCurrency(row.interestAccrual)}
+                      </TableCell>
+                      <TableCell sx={{ color: 'error.main', fontWeight: 600 }}>
+                        -{formatCurrency(row.weightedFlow)}
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 800 }}>{formatCurrency(row.endingBalance)}</TableCell>
+                    </TableRow>
+                  )) : (
+                    <TableRow>
+                      <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+                         <Typography variant="body2" color="text.secondary">Waiting for calculation results...</Typography>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Grid>
+
+           <Grid size={12} sx={{ mt: 2 }}>
+            <Paper sx={{ p: 3, borderRadius: 4, bgcolor: isReadyToSubmit ? alpha(theme.palette.success.main, 0.05) : '#fafafa', border: '2px dashed', borderColor: isReadyToSubmit ? 'success.main' : 'divider' }}>
                 <Grid container spacing={2} alignItems="center">
                     <Grid size={{ xs: 12, md: 8 }}>
-                        <Typography variant="subtitle1" fontWeight={700} color={isReadyToSubmit ? 'success.main' : 'text.primary'}>
-                            {isReadyToSubmit ? 'Ready to Submit to Approval' : 'Incomplete Assessment Package'}
+                        <Typography variant="subtitle1" fontWeight={800} color={isReadyToSubmit ? 'success.main' : 'text.primary'}>
+                            {isReadyToSubmit ? 'Assessment Package Complete' : 'Pending Verification'}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                             {isReadyToSubmit
-                                ? 'Seluruh tahap (Adjustment & DCF) telah selesai divalidasi. Klik tombol di samping untuk mengirimkan paket assessment ini ke antrian approval Checker.'
-                                : 'Anda harus menyelesaikan tahap Adjustment (Details) dan DCF Analysis terlebih dahulu sebelum dapat mengirimkan paket ini ke Checker.'}
+                                ? 'Seluruh kalkulasi DCF dan adjustment telah divalidasi. Anda dapat mengirimkan hasil ini ke Checker untuk proses persetujuan akhir.'
+                                : 'Lengkapi data DCF dan Analysis Scenario untuk mengaktifkan tombol submit.'}
                         </Typography>
                     </Grid>
                     <Grid size={{ xs: 12, md: 4 }} sx={{ textAlign: 'right' }}>
@@ -266,7 +291,7 @@ export function ProvisionCalculationTab({
                             loading={submitting}
                             startIcon={<SendIcon />}
                             onClick={onFinalSubmit}
-                            sx={{ px: 4, py: 1.5, borderRadius: 2, fontWeight: 700, textTransform: 'none' }}
+                            sx={{ px: 5, py: 1.5, borderRadius: 3, fontWeight: 800, textTransform: 'none', boxShadow: isReadyToSubmit ? '0 8px 16px rgba(46, 125, 50, 0.24)' : 'none' }}
                         >
                             Submit to Approval
                         </LoadingButton>
@@ -276,9 +301,13 @@ export function ProvisionCalculationTab({
           </Grid>
         </Grid>
       ) : (
-        <Alert severity="info" sx={{ borderRadius: 2 }}>
-          Silakan lakukan analisis DCF terlebih dahulu untuk menghitung nilai pencadangan (Provision).
-        </Alert>
+        <Paper sx={{ p: 8, textAlign: 'center', borderRadius: 4, bgcolor: '#fcfcfc', border: '1px dashed #ddd' }}>
+          <HistoryIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
+          <Typography variant="h6" color="text.secondary" fontWeight={700}>No Calculation Results Yet</Typography>
+          <Typography variant="body2" color="text.disabled" sx={{ maxWidth: 400, mx: 'auto', mt: 1 }}>
+            Lakukan upload DCF dan jalankan kalkulasi di tab sebelumnya untuk melihat hasil perhitungan Provisioning di sini.
+          </Typography>
+        </Paper>
       )}
     </Box>
   );
