@@ -345,7 +345,7 @@ export function DCFUploadTab({
           </Typography>
           <Grid container spacing={2} sx={{ mb: 2 }}>
             {scenarioNames.map((name, i) => (
-              <Grid item xs={12} md={4} key={i}>
+              <Grid size={{ xs: 12, md: 4 }} key={i}>
                 <Paper sx={{ 
                     p: 2, 
                     bgcolor: i === 0 ? 'rgba(33, 150, 243, 0.05)' : (i === 1 ? 'rgba(76, 175, 80, 0.05)' : 'rgba(244, 67, 54, 0.05)'), 
@@ -407,7 +407,7 @@ export function DCFUploadTab({
                   ><DeleteIcon /></IconButton>
               )}
               <Grid container spacing={2} alignItems="center">
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <LocalizationProvider dateAdapter={AdapterDateFns}>
                     <DatePicker
                       label="Mulai" value={period.start}
@@ -416,7 +416,7 @@ export function DCFUploadTab({
                     />
                   </LocalizationProvider>
                 </Grid>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <LocalizationProvider dateAdapter={AdapterDateFns}>
                     <DatePicker
                       label="Selesai" value={period.end}
@@ -426,7 +426,7 @@ export function DCFUploadTab({
                   </LocalizationProvider>
                 </Grid>
                 {scenarioNames.map((name, sIdx) => (
-                  <Grid item xs={12} md={2} key={sIdx}>
+                  <Grid size={{ xs: 12, md: 2 }} key={sIdx}>
                     <TextField
                       label={`RR % (${name})`} type="number" size="small" fullWidth
                       value={period.rates[sIdx]}

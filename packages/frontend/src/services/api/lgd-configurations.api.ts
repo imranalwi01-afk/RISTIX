@@ -14,6 +14,7 @@ export interface LGDConfiguration {
     observation_period?: string;  // varchar(50)
     observation_start_date?: string; // date
     workout_period?: number;      // integer
+    max_recovery_period?: number; // integer
     fl_flag?: boolean;
     fl_scalar_id?: number;
     lgd_rate?: number;
@@ -32,6 +33,7 @@ export interface CreateLGDConfigurationDto {
     observationPeriod?: string;
     // observationStartDate?: string; // Not in form yet? Should be added if needed, but backend supports it
     workoutPeriod?: number;
+    maxRecoveryPeriod?: number;
     flFlag?: boolean;
     flScalarId?: number;
     lgdRate?: number;

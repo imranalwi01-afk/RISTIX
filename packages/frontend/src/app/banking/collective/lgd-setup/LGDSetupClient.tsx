@@ -77,6 +77,7 @@ const createEmptyFormData = (): Partial<LGDConfiguration> => ({
   population_type: '',
   observation_period: '',
   workout_period: undefined,
+  max_recovery_period: undefined,
   fl_flag: false,
   fl_scalar_id: undefined,
   lgd_rate: undefined,
@@ -225,6 +226,7 @@ export default function LGDSetupPage() {
         population_type: formData.population_type,
         observation_period: formData.observation_period,
         workout_period: formData.workout_period,
+        max_recovery_period: formData.max_recovery_period,
         fl_flag: formData.fl_flag,
         fl_scalar_id: formData.fl_scalar_id,
         lgd_rate: formData.lgd_rate,
@@ -299,6 +301,7 @@ export default function LGDSetupPage() {
     { field: 'segment_name', headerName: 'Segment', width: 150 },
     { field: 'method_name', headerName: 'Method', width: 150 },
     { field: 'population_type_name', headerName: 'Pop Type', width: 160 },
+    { field: 'max_recovery_period', headerName: 'Max Recovery', width: 130 },
     {
       field: 'fl_flag',
       headerName: 'FL Flag',
@@ -515,6 +518,17 @@ export default function LGDSetupPage() {
                 value={formData.workout_period || ''}
                 onChange={(e) => updateFormField('workout_period', e.target.value === '' ? undefined : Number(e.target.value))}
                 data-testid="lgd-workout-period-input"
+              />
+
+              <TextField
+                fullWidth
+                type="number"
+                label="Max Recovery Period (Months)"
+                value={formData.max_recovery_period || ''}
+                onChange={(e) => updateFormField('max_recovery_period', e.target.value === '' ? undefined : Number(e.target.value))}
+                error={!!formErrors.max_recovery_period}
+                helperText={formErrors.max_recovery_period}
+                data-testid="lgd-max-recovery-period-input"
               />
 
               <TextField
