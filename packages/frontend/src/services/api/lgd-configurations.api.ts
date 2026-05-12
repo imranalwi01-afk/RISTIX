@@ -23,6 +23,8 @@ export interface LGDConfiguration {
     updated_by?: string;
     created_date?: string;
     updated_date?: string;
+    created_host?: string;
+    updated_host?: string;
 }
 
 export interface CreateLGDConfigurationDto {

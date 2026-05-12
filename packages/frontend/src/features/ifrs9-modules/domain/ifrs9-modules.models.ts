@@ -27,6 +27,12 @@ function toNumber(value: unknown) {
   return Number.isFinite(numericValue) ? numericValue : 0;
 }
 
+function toOptionalNumber(value: unknown) {
+  if (value == null || value === '') return null;
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : null;
+}
+
 function toStringValue(value: unknown) {
   if (value == null) return null;
   const normalized = String(value).trim();
@@ -249,7 +255,20 @@ function toAmortizationSchedule(rows: AmortizationScheduleRow[] | undefined) {
 }
 
 function toAmortizationEvents(rows: AmortizationEventRow[] | undefined) {
-  return Array.isArray(rows) ? rows : [];
+  if (!Array.isArray(rows)) return [];
+  return rows.map((row) => {
+    const record = row as unknown as Record<string, unknown>;
+    return {
+      ...row,
+      eventDate: toStringValue(row.eventDate ?? record.event_date),
+      accountNumber: toStringValue(row.accountNumber ?? record.account_number),
+      eventId: toOptionalNumber(row.eventId ?? record.event_id),
+      eventDescription: toStringValue(row.eventDescription ?? record.event_description),
+      effectiveDate: toStringValue(row.effectiveDate ?? record.effective_date),
+      beforeValue: toStringValue(row.beforeValue ?? record.before_value),
+      afterValue: toStringValue(row.afterValue ?? record.after_value),
+    };
+  });
 }
 
 function toAmortizationJournal(rows: AmortizationJournalRow[] | undefined) {

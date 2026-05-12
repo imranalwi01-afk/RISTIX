@@ -297,10 +297,17 @@ export default function LGDSetupPage() {
   };
 
   const columns: GridColDef[] = [
+    { field: 'id', headerName: 'ID', width: 90 },
     { field: 'model_name', headerName: 'Model Name', width: 200 },
+    { field: 'segment_id', headerName: 'Segment ID', width: 120 },
     { field: 'segment_name', headerName: 'Segment', width: 150 },
+    { field: 'lgd_method', headerName: 'Method ID', width: 120 },
     { field: 'method_name', headerName: 'Method', width: 150 },
+    { field: 'population_type', headerName: 'Pop Type ID', width: 120 },
     { field: 'population_type_name', headerName: 'Pop Type', width: 160 },
+    { field: 'observation_period', headerName: 'Observation Period', width: 170 },
+    { field: 'observation_start_date', headerName: 'Observation Start', width: 170 },
+    { field: 'workout_period', headerName: 'Workout Period', width: 150 },
     { field: 'max_recovery_period', headerName: 'Max Recovery', width: 130 },
     {
       field: 'fl_flag',
@@ -315,7 +322,9 @@ export default function LGDSetupPage() {
         />
       )
     },
+    { field: 'fl_scalar_id', headerName: 'FL Scalar ID', width: 130 },
     { field: 'scalar_name', headerName: 'FL Scalar', width: 150 },
+    { field: 'lgd_rate', headerName: 'LGD Rate', width: 120 },
     {
       field: 'is_active',
       headerName: 'Status',
@@ -332,6 +341,12 @@ export default function LGDSetupPage() {
         );
       }
     },
+    { field: 'created_by', headerName: 'Created By', width: 140 },
+    { field: 'created_date', headerName: 'Created Date', width: 190 },
+    { field: 'created_host', headerName: 'Created Host', width: 150 },
+    { field: 'updated_by', headerName: 'Updated By', width: 140 },
+    { field: 'updated_date', headerName: 'Updated Date', width: 190 },
+    { field: 'updated_host', headerName: 'Updated Host', width: 150 },
     {
       field: 'actions',
       type: 'actions',
