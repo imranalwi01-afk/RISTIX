@@ -60,7 +60,7 @@ jobs:
   # ==============================================================================
   deploy-r:
     name: Deploy R Analytics to Production
-    runs-on: [self-hosted, X64, Linux, prod, iaf-prod]
+    runs-on: [self-hosted, X64, Linux, iaf-prod]
     needs: [r-analytics]
 
     permissions:

@@ -65,7 +65,7 @@ export const ConsolidatedAssessmentApprovalContent: React.FC<ConsolidatedAssessm
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, my: 2 }}>
       {/* Customer & Basic Info */}
       <Grid container spacing={2}>
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card variant="outlined" sx={{ height: '100%', borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.02) }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
@@ -98,7 +98,7 @@ export const ConsolidatedAssessmentApprovalContent: React.FC<ConsolidatedAssessm
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card variant="outlined" sx={{ height: '100%', borderRadius: 2, borderLeft: `4px solid ${theme.palette.secondary.main}` }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
@@ -125,7 +125,7 @@ export const ConsolidatedAssessmentApprovalContent: React.FC<ConsolidatedAssessm
                   <Typography variant="caption" color="text.secondary" display="block">Proposed Stage</Typography>
                   <Chip 
                     label={`Stage ${data.overrideStage || '-'}`} 
-                    variant="contained"
+                    variant="filled"
                     sx={{ bgcolor: getStageColor(data.overrideStage), color: '#fff', fontWeight: 700, px: 1 }}
                   />
                 </Box>
@@ -150,7 +150,7 @@ export const ConsolidatedAssessmentApprovalContent: React.FC<ConsolidatedAssessm
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>DCF Calculation Results</Typography>
             </Box>
             <Grid container spacing={2}>
-              <Grid item xs={12} md={4}>
+              <Grid size={{ xs: 12, md: 4 }}>
                 <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'primary.50', borderRadius: 2 }}>
                   <Typography variant="caption" color="primary" sx={{ fontWeight: 700 }}>NPV (PRESENT VALUE)</Typography>
                   <Typography variant="h6" sx={{ fontWeight: 800 }}>
@@ -158,7 +158,7 @@ export const ConsolidatedAssessmentApprovalContent: React.FC<ConsolidatedAssessm
                   </Typography>
                 </Box>
               </Grid>
-              <Grid item xs={12} md={4}>
+              <Grid size={{ xs: 12, md: 4 }}>
                 <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'error.50', borderRadius: 2 }}>
                   <Typography variant="caption" color="error" sx={{ fontWeight: 700 }}>IMPAIRMENT LOSS (LGD)</Typography>
                   <Typography variant="h6" sx={{ fontWeight: 800 }}>
@@ -166,7 +166,7 @@ export const ConsolidatedAssessmentApprovalContent: React.FC<ConsolidatedAssessm
                   </Typography>
                 </Box>
               </Grid>
-              <Grid item xs={12} md={4}>
+              <Grid size={{ xs: 12, md: 4 }}>
                 <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'success.50', borderRadius: 2 }}>
                   <Typography variant="caption" color="success" sx={{ fontWeight: 700 }}>RECOMMENDED PROVISION</Typography>
                   <Typography variant="h6" sx={{ fontWeight: 800 }}>
@@ -188,7 +188,7 @@ export const ConsolidatedAssessmentApprovalContent: React.FC<ConsolidatedAssessm
           </Box>
           <Grid container spacing={2}>
             {data.supportingDocument && (
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Box sx={{ p: 2, border: '1px dashed', borderColor: 'divider', borderRadius: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Box>
                     <Typography variant="subtitle2">Adjustment Document</Typography>
@@ -206,7 +206,7 @@ export const ConsolidatedAssessmentApprovalContent: React.FC<ConsolidatedAssessm
               </Grid>
             )}
             {data.fileName && (
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Box sx={{ p: 2, border: '1px dashed', borderColor: 'divider', borderRadius: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Box>
                     <Typography variant="subtitle2">DCF Source File</Typography>

@@ -238,9 +238,11 @@ amortizationRoutes.openapi(
             const limit = Number(c.req.query('limit') || '10')
             const offset = (page - 1) * limit
             const search = c.req.query('search')?.trim()
-            const effectivePrcDate = await resolveEffectivePrcDate(c.req.query('prcDate'))
+            const requestedPrcDate = c.req.query('prcDate')
+            const effectivePrcDate = await resolveEffectivePrcDate(requestedPrcDate)
+            const shouldFilterByPrcDate = Boolean(requestedPrcDate) || !search
 
-            if (!effectivePrcDate) {
+            if (shouldFilterByPrcDate && !effectivePrcDate) {
                 return c.json({
                     success: true,
                     data: [],
@@ -249,7 +251,9 @@ amortizationRoutes.openapi(
                 } as any)
             }
 
-            const conditions = [eq(frs9MasterAccount.prcDate, effectivePrcDate)]
+            const conditions = shouldFilterByPrcDate
+                ? [eq(frs9MasterAccount.prcDate, effectivePrcDate as string)]
+                : []
             if (search) {
                 conditions.push(or(
                     ilike(frs9MasterAccount.accountNumber, `%${search}%`),

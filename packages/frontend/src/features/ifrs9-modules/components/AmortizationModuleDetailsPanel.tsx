@@ -322,22 +322,29 @@ export function AmortizationModuleDetailsPanel({
                     </TableHead>
                     <TableBody>
                       {detail.events.map((row, index) => {
+                        const eventDate = row.eventDate ?? null;
+                        const accountNumber = row.accountNumber ?? null;
+                        const eventId = row.eventId ?? null;
+                        const eventDescription = row.eventDescription ?? null;
+                        const effectiveDate = row.effectiveDate ?? null;
+                        const beforeValue = row.beforeValue ?? null;
+                        const afterValue = row.afterValue ?? null;
                         const isSelected = selectedEvent === row;
                         return (
                           <TableRow
-                            key={`${row.eventDate ?? index}-${row.eventId ?? index}`}
+                            key={`${eventDate ?? index}-${eventId ?? index}`}
                             hover
                             selected={isSelected}
                             onClick={() => setSelectedEvent(row)}
                             sx={{ cursor: 'pointer' }}
                           >
-                            <TableCell>{row.eventDate || '-'}</TableCell>
-                            <TableCell>{row.accountNumber || '-'}</TableCell>
-                            <TableCell>{row.eventId ?? '-'}</TableCell>
-                            <TableCell>{row.eventDescription || '-'}</TableCell>
-                            <TableCell>{row.effectiveDate || '-'}</TableCell>
-                            <TableCell>{row.beforeValue || '-'}</TableCell>
-                            <TableCell>{row.afterValue || '-'}</TableCell>
+                            <TableCell>{eventDate || '-'}</TableCell>
+                            <TableCell>{accountNumber || '-'}</TableCell>
+                            <TableCell>{eventId ?? '-'}</TableCell>
+                            <TableCell>{eventDescription || '-'}</TableCell>
+                            <TableCell>{effectiveDate || '-'}</TableCell>
+                            <TableCell>{beforeValue || '-'}</TableCell>
+                            <TableCell>{afterValue || '-'}</TableCell>
                           </TableRow>
                         );
                       })}

@@ -92,6 +92,8 @@ const transformEadConfig = (config: typeof frs9ImpCaEadConfig.$inferSelect) => (
     updated_by: config.updatedby,
     created_date: config.createddate,
     updated_date: config.updateddate,
+    created_host: config.createdhost,
+    updated_host: config.updatedhost,
 })
 
 const getEadConfigSnapshot = (id: number) =>

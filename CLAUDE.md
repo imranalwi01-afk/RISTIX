@@ -165,12 +165,54 @@ const backendUrl = config.api.backend;
 - R Analytics: 4236 → https://iaf-ifrs-analytics.danafin.com
 
 **Technology Stack:**
-- Frontend: Next.js 15 + Material-UI v6 + React Admin v4
+- Frontend: Next.js 16.1.x + Material UI v7 + React Admin v4
 - Backend: Express.js + Node.js + TypeScript + Sequelize ORM
 - Database: PostgreSQL (multi-tenant with database-per-tenant isolation)
 - Analytics: R Analytics integration (port 4236)
 - Caching: Redis
 - Package Manager: pnpm (workspace-based monorepo)
+
+## Frontend Material UI Version Policy
+
+The frontend uses **Next.js 16.1.x** and **Material UI v7**. Do not downgrade Next.js, React, Material UI, or related packages to make old snippets compile. Fix code to match the installed API instead.
+
+### Mandatory Grid API
+
+Use the current Material UI Grid API everywhere:
+
+```tsx
+import Grid from '@mui/material/Grid';
+
+<Grid container spacing={2}>
+  <Grid size={{ xs: 12, md: 6 }}>
+    ...
+  </Grid>
+</Grid>
+```
+
+### Blocked Legacy Patterns
+
+Do not add or keep these patterns in frontend code:
+
+- `<Grid item xs={12} md={6}>`
+- `item` props on MUI Grid children
+- `import Grid2 from ...`
+- `import { Unstable_Grid2 } from ...`
+- imports from `@mui/system`
+- installing `@mui/system` just to satisfy old imports
+- package downgrades to Material UI v5/v6, Next.js 15, or older React behavior
+
+Use `@mui/material/styles` for styling helpers such as `alpha`, `styled`, and `keyframes`. If a PR introduces old Material UI code, rewrite it to v7 instead of changing dependencies.
+
+### Required Frontend Check Before PR
+
+Run these checks for any frontend change touching MUI components:
+
+```bash
+rg -n "<Grid\\s+item|\\bitem\\s+xs=|@mui/system|Unstable_Grid2|Grid2" packages/frontend/src
+pnpm --dir packages/frontend run type-check
+pnpm --dir packages/frontend run build
+```
 
 ## Development Commands
 
@@ -233,7 +275,7 @@ const backendUrl = config.api.backend;
 - **Configuration Management**: Feature flags and tenant-specific settings (`src/core/services/config/`)
 
 ### Frontend Architecture  
-- **React Admin**: Admin interface with Material-UI v6
+- **React Admin**: Admin interface integrated with Material UI v7
 - **Dual Banking Themes**: Separate themes for conventional/Syariah banking
 - **Multi-stakeholder Support**: Different layouts for banking staff, consultants, regulators
 - **IFRS9 Dashboard**: Analytics and calculation monitoring

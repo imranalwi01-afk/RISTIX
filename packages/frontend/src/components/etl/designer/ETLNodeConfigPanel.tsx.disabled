@@ -311,7 +311,7 @@ export const ETLNodeConfigPanel: React.FC<ETLNodeConfigPanelProps> = ({
       {(config.aggregations || []).map((agg: any, index: number) => (
         <Box key={index} sx={{ border: 1, borderColor: 'divider', p: 2, mb: 1, borderRadius: 1 }}>
           <Grid container spacing={2}>
-            <Grid item xs={4}>
+            <Grid size={{ xs: 4 }}>
               <TextField
                 fullWidth
                 label="Field"
@@ -324,7 +324,7 @@ export const ETLNodeConfigPanel: React.FC<ETLNodeConfigPanelProps> = ({
                 size="small"
               />
             </Grid>
-            <Grid item xs={4}>
+            <Grid size={{ xs: 4 }}>
               <FormControl fullWidth size="small">
                 <InputLabel>Function</InputLabel>
                 <Select
@@ -343,7 +343,7 @@ export const ETLNodeConfigPanel: React.FC<ETLNodeConfigPanelProps> = ({
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={3}>
+            <Grid size={{ xs: 3 }}>
               <TextField
                 fullWidth
                 label="Output Field"
@@ -356,7 +356,7 @@ export const ETLNodeConfigPanel: React.FC<ETLNodeConfigPanelProps> = ({
                 size="small"
               />
             </Grid>
-            <Grid item xs={1}>
+            <Grid size={{ xs: 1 }}>
               <IconButton
                 onClick={() => {
                   const newAggs = [...(config.aggregations || [])];
