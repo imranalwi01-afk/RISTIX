@@ -34,10 +34,35 @@ export const PDConfigGrid = memo(function PDConfigGrid({
   onViewResults,
 }: PDConfigGridProps) {
   const columns: GridColDef[] = [
+    { field: 'id', headerName: 'ID', width: 90 },
     { field: 'model_name', headerName: 'Model Name', width: 250 },
+    { field: 'population_segment_id', headerName: 'Segment ID', width: 120 },
     { field: 'segment_name', headerName: 'Segment', width: 200 },
+    { field: 'selected_method', headerName: 'Method ID', width: 120 },
     { field: 'method_name', headerName: 'Method', width: 150 },
+    { field: 'migration_interval', headerName: 'Migration Interval', width: 160 },
+    { field: 'population_type', headerName: 'Pop Type ID', width: 120 },
+    { field: 'population_type_desc', headerName: 'Pop Type', width: 160 },
+    { field: 'historical_month', headerName: 'Historical Month', width: 160 },
+    { field: 'first_historical_date', headerName: 'First Historical Date', width: 180 },
+    { field: 'multiplication', headerName: 'Multiplication', width: 140 },
+    {
+      field: 'fl_flag',
+      headerName: 'FL Flag',
+      width: 100,
+      renderCell: (params) => <Chip label={params.value ? 'Yes' : 'No'} color={params.value ? 'primary' : 'default'} size="small" variant={params.value ? 'filled' : 'outlined'} />,
+    },
+    { field: 'fl_scalar_id', headerName: 'FL Scalar ID', width: 130 },
+    { field: 'fl_scalar', headerName: 'FL Scalar', width: 150 },
+    {
+      field: 'ia_flag',
+      headerName: 'IA Flag',
+      width: 100,
+      renderCell: (params) => <Chip label={params.value ? 'Yes' : 'No'} color={params.value ? 'primary' : 'default'} size="small" variant={params.value ? 'filled' : 'outlined'} />,
+    },
     { field: 'bucket', headerName: 'Bucket Group', width: 150 },
+    { field: 'bucket_desc', headerName: 'Bucket Desc', width: 160 },
+    { field: 'seq', headerName: 'Seq', width: 90 },
     {
       field: 'is_active',
       headerName: 'Status',
@@ -48,6 +73,12 @@ export const PDConfigGrid = memo(function PDConfigGrid({
         return <Chip label={params.value ? 'Active' : 'Inactive'} color={params.value ? 'success' : 'default'} size="small" />;
       },
     },
+    { field: 'created_by', headerName: 'Created By', width: 140 },
+    { field: 'created_date', headerName: 'Created Date', width: 190 },
+    { field: 'created_host', headerName: 'Created Host', width: 150 },
+    { field: 'updated_by', headerName: 'Updated By', width: 140 },
+    { field: 'updated_date', headerName: 'Updated Date', width: 190 },
+    { field: 'updated_host', headerName: 'Updated Host', width: 150 },
     {
       field: 'actions',
       type: 'actions',

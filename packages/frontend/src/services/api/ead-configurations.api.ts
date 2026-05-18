@@ -16,6 +16,8 @@ export interface EADConfiguration {
     updated_by?: string;
     created_date?: string;
     updated_date?: string;
+    created_host?: string;
+    updated_host?: string;
 }
 
 export interface CreateEADConfigurationDto {

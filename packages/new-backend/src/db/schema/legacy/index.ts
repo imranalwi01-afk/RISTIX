@@ -410,6 +410,7 @@ export const frs9ImpCaLgdConfig = pgTable("frs9_imp_ca_lgd_config", {
 	observationPeriod: varchar("observation_period", { length: 50 }),
 	observationStartDate: date("observation_start_date"),
 	workoutPeriod: integer("workout_period"),
+	maxRecoveryPeriod: integer("max_recovery_period"),
 	flFlag: boolean("fl_flag").notNull(),
 	flScalarId: smallint("fl_scalar_id"),
 	lgdRate: doublePrecision("lgd_rate"),

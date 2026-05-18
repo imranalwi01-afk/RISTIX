@@ -107,10 +107,6 @@ export default function IndividualAssessmentWizardPage() {
     return allRoles.includes('CHECKER') || allRoles.includes('APPROVER') || allRoles.includes('SUPER_ADMIN');
   }, [user]);
 
-  const canApprove = useMemo(() => {
-    // Status 0 is PENDING
-    return isChecker && assessmentData?.status === 0;
-  }, [isChecker, assessmentData]);
   useEffect(() => {
     if (accountId && notifications.length > 0) {
       const relevantNotifs = notifications.filter(n =>
@@ -291,6 +287,11 @@ export default function IndividualAssessmentWizardPage() {
   const [dcfCalculation, setDcfCalculation] = useState<any>(null);
   const [assessmentData, setAssessmentData] = useState<any>(null);
   const [historyData, setHistoryData] = useState<any[]>([]);
+
+  const canApprove = useMemo(() => {
+    // Status 0 is PENDING
+    return isChecker && assessmentData?.status === 0;
+  }, [isChecker, assessmentData]);
 
   // Derive active tab from URL instead of local state to prevent sync loops
   const activeTab = useMemo(() => {

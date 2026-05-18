@@ -254,7 +254,9 @@ export default function EADSetupPage() {
   };
 
   const columns: GridColDef[] = [
+    { field: 'id', headerName: 'ID', width: 90 },
     { field: 'model_name', headerName: 'Model Name', width: 250 },
+    { field: 'segment_id', headerName: 'Segment ID', width: 120 },
     { field: 'segment_name', headerName: 'Segment', width: 200 },
     { field: 'ead_method', headerName: 'EAD Method', width: 150 },
     { field: 'calc_method', headerName: 'Calc Method', width: 150 },
@@ -274,6 +276,12 @@ export default function EADSetupPage() {
         );
       }
     },
+    { field: 'created_by', headerName: 'Created By', width: 140 },
+    { field: 'created_date', headerName: 'Created Date', width: 190 },
+    { field: 'created_host', headerName: 'Created Host', width: 150 },
+    { field: 'updated_by', headerName: 'Updated By', width: 140 },
+    { field: 'updated_date', headerName: 'Updated Date', width: 190 },
+    { field: 'updated_host', headerName: 'Updated Host', width: 150 },
     {
       field: 'actions',
       type: 'actions',

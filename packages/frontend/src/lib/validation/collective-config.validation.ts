@@ -80,6 +80,7 @@ export const lgdConfigurationSchema = z.object({
   population_type: z.unknown(),
   observation_period: z.unknown(),
   observation_start_date: z.unknown(),
+  max_recovery_period: z.unknown().optional(),
   fl_flag: z.boolean().optional(),
   fl_scalar_id: z.unknown().optional(),
 }).superRefine((data, ctx) => {
@@ -105,6 +106,10 @@ export const lgdConfigurationSchema = z.object({
 
   if (!hasValue(data.observation_start_date)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['observation_start_date'], message: 'Observation Start Date is required' });
+  }
+
+  if (hasValue(data.max_recovery_period) && (!isValidNumberInput(data.max_recovery_period) || Number(data.max_recovery_period) < 0)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['max_recovery_period'], message: 'Max Recovery Period must be zero or greater' });
   }
 
   if (Boolean(data.fl_flag) && !hasValue(data.fl_scalar_id)) {
