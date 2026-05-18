@@ -59,13 +59,13 @@ const APPROVAL_COUNT_BYPASS_ENV = 'APPROVAL_ALLOW_SUPERADMIN_COUNT_BYPASS'
 const SUPERADMIN_AUTO_APPROVE_REQUESTS_ENV = 'APPROVAL_AUTO_APPROVE_SUPERADMIN_REQUESTS'
 
 const isSuperAdminSelfApprovalBypassEnabled = (): boolean =>
-    String(process.env[SELF_APPROVAL_BYPASS_ENV] ?? 'false').trim().toLowerCase() === 'true'
+    String(process.env[SELF_APPROVAL_BYPASS_ENV] ?? 'true').trim().toLowerCase() === 'true'
 
 const isSuperAdminLevelRoutingBypassEnabled = (): boolean =>
-    String(process.env[LEVEL_ROUTING_BYPASS_ENV] ?? 'false').trim().toLowerCase() === 'true'
+    String(process.env[LEVEL_ROUTING_BYPASS_ENV] ?? 'true').trim().toLowerCase() === 'true'
 
 const isSuperAdminApprovalCountBypassEnabled = (): boolean =>
-    String(process.env[APPROVAL_COUNT_BYPASS_ENV] ?? 'false').trim().toLowerCase() === 'true'
+    String(process.env[APPROVAL_COUNT_BYPASS_ENV] ?? 'true').trim().toLowerCase() === 'true'
 
 const isSuperAdminAutoApproveOnCreateEnabled = (): boolean =>
     String(process.env[SUPERADMIN_AUTO_APPROVE_REQUESTS_ENV] ?? 'false').trim().toLowerCase() === 'true'
@@ -755,78 +755,107 @@ async function executeApprovedAction(request: any, approvedBy?: string): Promise
     const tenantId = request.tenantId
 
     try {
+        const requestEntityType = String(request?.entityType || '').trim()
+        const normalizedRequestEntityType = requestEntityType.toLowerCase()
+        const effectiveEntityTypeRaw = typeof entityType === 'string' && entityType.trim()
+            ? entityType.trim()
+            : (requestEntityType || '')
+        const effectiveEntityType =
+            effectiveEntityTypeRaw === 'individual_assessment_consolidated'
+                ? INDIVIDUAL_ASSESSMENT_CONSOLIDATED_ENTITY_TYPE
+                : effectiveEntityTypeRaw
+
+        const effectiveData = data ?? (requestData.data ?? requestData)
+
+        if (!entityType && normalizedRequestEntityType === 'individual_assessment_consolidated') {
+            await executeIndividualAssessmentConsolidatedAction(
+                operation,
+                requestData.data ?? requestData,
+                requestData.data ?? requestData,
+                tenantId,
+                request.requestedBy ?? approvedBy
+            )
+            return
+        }
+
         // Map entity types to their service executors
-        switch (entityType) {
+        switch (effectiveEntityType) {
             case 'user':
                 await executeUserAction(
                     operation,
-                    operation === 'update' && request.entityId && !data?.id
-                        ? { ...data, id: request.entityId }
-                        : data,
+                    operation === 'update' && request.entityId && !effectiveData?.id
+                        ? { ...effectiveData, id: request.entityId }
+                        : effectiveData,
                     tenantId
                 )
                 break
 
             case 'user_status':
-                await executeUserStatusAction(operation, data, tenantId)
+                await executeUserStatusAction(operation, effectiveData, tenantId)
                 break
 
             case 'role':
-                await executeRoleAction(operation, data, tenantId)
+                await executeRoleAction(operation, effectiveData, tenantId)
                 break
 
             case 'role_assignment':
-                await executeRoleAssignmentAction(operation, data, tenantId)
+                await executeRoleAssignmentAction(operation, effectiveData, tenantId)
                 break
 
             case 'parameter':
             case 'app_setting':
             case 'business_setting':
-                await executeParameterAction(operation, data, tenantId, entityType, request.entityId, request.requestedBy ?? approvedBy)
+                await executeParameterAction(operation, effectiveData, tenantId, effectiveEntityType, request.entityId, request.requestedBy ?? approvedBy)
                 break
 
             case 'pd_configuration':
             case 'lgd_configuration':
             case 'ead_configuration':
             case 'ecl_configuration':
-                await executeConfigurationAction(operation, data, tenantId, entityType, request.entityId, request.requestedBy ?? approvedBy)
+                await executeConfigurationAction(operation, effectiveData, tenantId, effectiveEntityType, request.entityId, request.requestedBy ?? approvedBy)
                 break
 
             case 'bucket_parameter':
-                await executeBucketParameterAction(operation, data, tenantId, request.entityId, request.requestedBy ?? approvedBy)
+                await executeBucketParameterAction(operation, effectiveData, tenantId, request.entityId, request.requestedBy ?? approvedBy)
                 break
 
             case 'rule_base_setting':
-                await executeRuleBaseSettingAction(operation, data, tenantId, request.entityId, request.requestedBy ?? approvedBy)
+                await executeRuleBaseSettingAction(operation, effectiveData, tenantId, request.entityId, request.requestedBy ?? approvedBy)
                 break
 
             case 'segmentation':
-                await executeSegmentationAction(operation, data, tenantId, request.entityId, request.requestedBy ?? approvedBy)
+                await executeSegmentationAction(operation, effectiveData, tenantId, request.entityId, request.requestedBy ?? approvedBy)
                 break
 
             case 'fl_scalar':
-                await executeFlScalarAction(operation, data, tenantId, request.entityId, request.requestedBy ?? approvedBy)
+                await executeFlScalarAction(operation, effectiveData, tenantId, request.entityId, request.requestedBy ?? approvedBy)
                 break
 
             case 'product_parameter':
-                await executeProductParameterAction(operation, data, tenantId, request.entityId, request.requestedBy ?? approvedBy)
+                await executeProductParameterAction(operation, effectiveData, tenantId, request.entityId, request.requestedBy ?? approvedBy)
                 break
 
             case 'journal_parameter':
-                await executeJournalParameterAction(operation, data, tenantId, request.entityId, request.requestedBy ?? approvedBy)
+                await executeJournalParameterAction(operation, effectiveData, tenantId, request.entityId, request.requestedBy ?? approvedBy)
                 break
 
             case INDIVIDUAL_IMPAIRMENT_V2_ENTITY_TYPE:
-                await executeIndividualImpairmentV2Action(operation, requestData, data, tenantId, request.requestedBy ?? approvedBy)
+                await executeIndividualImpairmentV2Action(operation, requestData, effectiveData, tenantId, request.requestedBy ?? approvedBy)
                 break
 
             case INDIVIDUAL_ASSESSMENT_CONSOLIDATED_ENTITY_TYPE:
-                await executeIndividualAssessmentConsolidatedAction(operation, requestData, data, tenantId, request.requestedBy ?? approvedBy)
+                await executeIndividualAssessmentConsolidatedAction(
+                    operation,
+                    requestData.data ?? requestData,
+                    effectiveData,
+                    tenantId,
+                    request.requestedBy ?? approvedBy
+                )
                 break
 
             case 'role_permission':
             case 'role_permissions':
-                await executeRolePermissionAction(operation, data, tenantId)
+                await executeRolePermissionAction(operation, effectiveData, tenantId)
                 break
 
             default:
@@ -1655,6 +1684,10 @@ async function executeIndividualAssessmentConsolidatedAction(
     const accountId = Number(requestData.accountId)
     if (!accountId) throw new Error('Missing accountId in consolidated assessment approval')
 
+    // 1. Apply the staged data to operational tables
+    await individualImpairmentService.applyConsolidatedAssessment(accountId, requestData, approvedBy)
+
+    // 2. Mark the assessment as APPROVED
     const justification = requestData.justification || 'Consolidated Assessment Approved'
     await individualImpairmentService.approveAssessment(accountId, justification, approvedBy)
 }

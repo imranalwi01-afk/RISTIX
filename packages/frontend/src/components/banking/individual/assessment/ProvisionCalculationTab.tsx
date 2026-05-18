@@ -64,7 +64,19 @@ export function ProvisionCalculationTab({
     }).format(toFiniteNumber(amount));
   };
 
-  const isReadyToSubmit = isStagedOverrideReady && isStagedDCFReady;
+  const currentStatus = assessment?.status === 0 ? 'PENDING' 
+                      : assessment?.status === 1 ? 'APPROVED' 
+                      : assessment?.status === 2 ? 'REJECTED' 
+                      : assessment?.assessment_status 
+                      || account?.assessment_status 
+                      || 'PENDING';
+
+  const isPending = currentStatus === 'PENDING';
+  const isApproved = currentStatus === 'APPROVED';
+  
+  // If we already have a pending or approved status, we shouldn't submit again
+  const canSubmit = !isPending && !isApproved;
+  const isReadyToSubmit = isStagedOverrideReady && isStagedDCFReady && canSubmit;
   const normalizedCalculation = useMemo(() => {
     if (!calculation) return null;
 
@@ -270,16 +282,20 @@ export function ProvisionCalculationTab({
           </Grid>
 
            <Grid size={12} sx={{ mt: 2 }}>
-            <Paper sx={{ p: 3, borderRadius: 4, bgcolor: isReadyToSubmit ? alpha(theme.palette.success.main, 0.05) : '#fafafa', border: '2px dashed', borderColor: isReadyToSubmit ? 'success.main' : 'divider' }}>
+            <Paper sx={{ p: 3, borderRadius: 4, bgcolor: isReadyToSubmit ? alpha(theme.palette.success.main, 0.05) : (canSubmit ? '#fafafa' : alpha(theme.palette.warning.main, 0.05)), border: '2px dashed', borderColor: isReadyToSubmit ? 'success.main' : (canSubmit ? 'divider' : 'warning.main') }}>
                 <Grid container spacing={2} alignItems="center">
                     <Grid size={{ xs: 12, md: 8 }}>
-                        <Typography variant="subtitle1" fontWeight={800} color={isReadyToSubmit ? 'success.main' : 'text.primary'}>
-                            {isReadyToSubmit ? 'Assessment Package Complete' : 'Pending Verification'}
+                        <Typography variant="subtitle1" fontWeight={800} color={isReadyToSubmit ? 'success.main' : (canSubmit ? 'text.primary' : 'warning.dark')}>
+                            {!canSubmit 
+                                ? (isApproved ? 'Assessment Already Approved' : 'Assessment Pending Approval')
+                                : (isReadyToSubmit ? 'Assessment Package Complete' : 'Pending Verification')}
                         </Typography>
                         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                            {isReadyToSubmit
-                                ? 'Seluruh kalkulasi DCF dan adjustment telah divalidasi. Anda dapat mengirimkan hasil ini ke Checker untuk proses persetujuan akhir.'
-                                : 'Lengkapi data DCF dan Analysis Scenario untuk mengaktifkan tombol submit.'}
+                            {!canSubmit 
+                                ? 'Package assessment ini sedang dalam antrian atau telah disetujui. Tombol submit dinonaktifkan untuk mencegah duplikasi.'
+                                : (isReadyToSubmit
+                                    ? 'Seluruh kalkulasi DCF dan adjustment telah divalidasi. Anda dapat mengirimkan hasil ini ke Checker untuk proses persetujuan akhir.'
+                                    : 'Lengkapi data DCF dan Analysis Scenario untuk mengaktifkan tombol submit.')}
                         </Typography>
                     </Grid>
                     <Grid size={{ xs: 12, md: 4 }} sx={{ textAlign: 'right' }}>
@@ -287,7 +303,7 @@ export function ProvisionCalculationTab({
                             variant="contained"
                             color="success"
                             size="large"
-                            disabled={!isReadyToSubmit}
+                            disabled={!isReadyToSubmit || !canSubmit}
                             loading={submitting}
                             startIcon={<SendIcon />}
                             onClick={onFinalSubmit}

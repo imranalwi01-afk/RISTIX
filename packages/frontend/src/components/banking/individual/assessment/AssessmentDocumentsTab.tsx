@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   Box,
@@ -474,7 +473,47 @@ export function AssessmentDocumentsTab({
             </CardContent>
           </Card>
 
-          {/* 4. PROCESSED / HISTORY DOCUMENTS */}
+          {/* 4. CHECKER DOCUMENTS */}
+          {checkerDocs.length > 0 && (
+            <Card elevation={0} sx={{ mb: 3, borderRadius: '16px', border: '1px solid', borderColor: 'success.200', bgcolor: 'success.50' }}>
+              <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'success.200', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'success.800' }}>
+                  Checker Documents
+                </Typography>
+                <Chip label={`${checkerDocs.length} file(s)`} size="small" color="success" sx={{ fontWeight: 600 }} />
+              </Box>
+              <CardContent sx={{ p: 0 }}>
+                <List disablePadding>
+                  {checkerDocs.map((doc, idx) => (
+                    <ListItem
+                      key={idx}
+                      secondaryAction={
+                        <IconButton size="small" onClick={() => individualImpairmentAPI.documents.download(doc.filename || doc.name)}>
+                          <DownloadIcon fontSize="small" />
+                        </IconButton>
+                      }
+                      sx={{
+                        py: 1.5,
+                        borderBottom: idx < checkerDocs.length - 1 ? '1px solid' : 'none',
+                        borderColor: 'success.100'
+                      }}
+                    >
+                      <ListItemIcon>
+                        <FileIcon color="success" sx={{ opacity: 0.7 }} />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={doc.filename || doc.name}
+                        secondary={doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleString() : 'N/A'}
+                        primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 5. PROCESSED / HISTORY DOCUMENTS */}
           <Card elevation={0} sx={{ borderRadius: '16px', border: '1px solid', borderColor: 'divider' }}>
             <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>

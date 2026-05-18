@@ -994,6 +994,78 @@ individualImpairmentRoutes.openapi(
     (c: any) => individualImpairmentController.getDcfCashflows(c)
 )
 
+// --- DOCUMENTS ---
+
+const DocumentItemSchema = z.object({
+    name: z.string(),
+    filename: z.string(),
+    size: z.number(),
+    source: z.string(),
+    uploaded_at: z.string().optional(),
+    account_id: z.number().optional()
+}).openapi('DocumentItem')
+
+const DocumentListResponse = z.object({
+    success: z.boolean(),
+    data: z.array(DocumentItemSchema)
+}).openapi('DocumentListResponse')
+
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/documents/{accountId}',
+        tags: ['Individual Impairment'],
+        summary: 'List documents for an account',
+        request: {
+            params: z.object({ accountId: z.string() })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: DocumentListResponse } }, description: 'Documents' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c: any) => individualImpairmentController.listDocuments(c)
+)
+
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/documents/download/{fileName}',
+        tags: ['Individual Impairment'],
+        summary: 'Download a document',
+        request: {
+            params: z.object({ fileName: z.string() })
+        },
+        responses: {
+            200: { description: 'File' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad request' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c: any) => individualImpairmentController.downloadDocument(c)
+)
+
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/documents/upload/{accountId}',
+        tags: ['Individual Impairment'],
+        summary: 'Upload a document for an account',
+        request: {
+            params: z.object({ accountId: z.string() })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: SuccessResponseSchema } }, description: 'Uploaded' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad request' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c: any) => individualImpairmentController.uploadDocument(c)
+)
+
 // Keep generic accountId route last so it doesn't shadow static routes like /scenarios.
 individualImpairmentRoutes.openapi(
     createRoute({

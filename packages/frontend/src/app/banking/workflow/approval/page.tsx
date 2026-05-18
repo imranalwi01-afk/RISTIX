@@ -168,6 +168,7 @@ function DetailPanel({ item, currentUserId, onApprove, onReject, loading }: {
   // SoD: checker cannot be same as maker
   const isSelf = currentUserId && item.requestedBy === currentUserId;
   const canAct = isPending && !isSelf;
+  const canOpenProvision = ia && (rd as any)?.accountId;
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -215,6 +216,31 @@ function DetailPanel({ item, currentUserId, onApprove, onReject, loading }: {
               </Grid>
             ))}
           </Grid>
+        )}
+
+        {canOpenProvision && (
+          <Paper sx={{ p: 2, borderRadius: 2, mb: 2 }}>
+            <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+              <Box sx={{ minWidth: 0 }}>
+                <Typography variant="subtitle2" fontWeight={700}>Review Detail Perhitungan</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Buka tampilan seperti tab Provision untuk melihat hasil DCF dan detail cashflow.
+                </Typography>
+              </Box>
+              <Button
+                variant="contained"
+                startIcon={<OpenIcon />}
+                onClick={() => window.open(
+                  `/banking/individual/assessment?mode=${encodeURIComponent(String((rd as any).mode || 'conventional'))}&accountId=${encodeURIComponent(String((rd as any).accountId))}&accountNumber=${encodeURIComponent(String((rd as any).accountNumber || ''))}&tab=provision-calculation`,
+                  '_blank',
+                  'noopener,noreferrer'
+                )}
+                sx={{ fontWeight: 700, borderRadius: 2, whiteSpace: 'nowrap' }}
+              >
+                Buka Provision
+              </Button>
+            </Stack>
+          </Paper>
         )}
 
         {/* Request Details */}

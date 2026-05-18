@@ -116,6 +116,8 @@ export async function startServer() {
             .filter((origin) => origin.length > 0),
         'http://localhost:4231',
         'http://127.0.0.1:4231',
+        'http://[::1]:4231',
+        'http://host.docker.internal:4231',
     ]))
 
     const normalizeOrigin = (origin: string) => origin.trim().replace(/\/+$/, '')
