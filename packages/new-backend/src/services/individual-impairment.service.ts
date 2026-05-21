@@ -10,23 +10,28 @@ import {
     frs9ImpIaResultD,
     frs9ImpIaRr
 } from '../db/schema/legacy';
-import { frs9MasterAccount, users } from '../db/schema';
+import { frs9MasterAccount, users, auditLogs } from '../db/schema';
 import { and, eq, desc, asc, sql, inArray, ilike, or } from 'drizzle-orm';
 import { MasterAccountRepository } from '@/repositories/master-account.repository';
 import { decodeCursor, encodeCursor } from '@/lib/http/list-query';
+import { db } from '../config';
+import { logDataChange, logCalculation, logApproval, runAuditSafely } from './audit.service';
 
 
 // Helper to map Legacy Status (Int) <-> Frontend Status (String)
-// Assumption: 0=Pending, 1=Approved, 2=Rejected
+// Assumption: 0=Pending, 1=Approved, 2=Rejected, 3=Draft
 const STATUS_MAP_TO_STRING: Record<number, string> = {
-    0: 'SUBMITTED',
+    0: 'PENDING',
     1: 'APPROVED',
-    2: 'REJECTED'
+    2: 'REJECTED',
+    3: 'DRAFT'
 };
 const STATUS_MAP_TO_INT: Record<string, number> = {
     'PENDING': 0,
     'APPROVED': 1,
-    'REJECTED': 2
+    'REJECTED': 2,
+    'DRAFT': 3,
+    'IN_PROGRESS': 3
 };
 
 export class IndividualImpairmentService {
@@ -106,6 +111,16 @@ export class IndividualImpairmentService {
         }
 
         return str.slice(0, 10);
+    }
+
+    private getEomonth(dateStr: string): string {
+        const d = new Date(dateStr);
+        if (Number.isNaN(d.getTime())) return dateStr;
+        const year = d.getFullYear();
+        const month = d.getMonth() + 1;
+        // Last day of the month = day 0 of the next month
+        const eom = new Date(year, month, 0);
+        return eom.toISOString().slice(0, 10);
     }
 
     private mapDcfCashflowRow(row: any) {
@@ -215,7 +230,7 @@ export class IndividualImpairmentService {
         const [inserted] = await tx.insert(frs9ImpIaHeader).values({
             iaId,
             prcDate,
-            effDate: this.toDateString(assessment.eff_date || prcDate),
+            effDate: this.getEomonth(prcDate),
             cifNumber: assessment.cif_number || 'UNKNOWN',
             cifName: assessment.cif_name || 'UNKNOWN',
             accountId,
@@ -577,86 +592,109 @@ export class IndividualImpairmentService {
 
     async getAssessmentHistory(tenantId: string, accountId: number) {
         try {
-            // Fetch the Assessment Record
-            const result = await legacyDb.select()
-                .from(frs9ImpIaHeader)
-                .where(eq(frs9ImpIaHeader.accountId, Number(accountId)))
-                .limit(1);
+            // 1. Fetch system audit logs for this account (Individual Assessment Consolidated entity)
+            const auditEvents = await db.select()
+                .from(auditLogs)
+                .where(
+                    and(
+                        eq(auditLogs.entityType, 'individual_assessment_consolidated'),
+                        eq(auditLogs.entityId, String(accountId))
+                    )
+                )
+                .orderBy(desc(auditLogs.createdAt))
+                .limit(50);
 
-            if (!result.length) {
-                const masterRows = await legacyDb.select()
-                    .from(frs9MasterAccount)
-                    .where(eq(frs9MasterAccount.accountId, Number(accountId)))
-                    .orderBy(desc(frs9MasterAccount.prcDate))
+            // 2. Map Audit Logs to HistoryEvents
+            const events = auditEvents.map(log => {
+                let action: 'CREATE' | 'UPDATE' | 'REVIEW' | 'SUBMIT' | 'APPROVE' | 'REJECT' = 'UPDATE';
+                let details = log.description || '';
+                let status = '';
+
+                if (log.action === 'approval_requested') {
+                    action = 'SUBMIT';
+                    status = 'PENDING';
+                } else if (log.action === 'approval_granted') {
+                    action = 'APPROVE';
+                    status = 'APPROVED';
+                    // Extract checker comment if available
+                    if (log.newValues && typeof log.newValues === 'object') {
+                        const comment = (log.newValues as any).comment;
+                        if (comment) details = `Checker Comment: ${comment}`;
+                    }
+                } else if (log.action === 'approval_rejected') {
+                    action = 'REJECT';
+                    status = 'REJECTED';
+                    if (log.newValues && typeof log.newValues === 'object') {
+                        const reason = (log.newValues as any).reason;
+                        if (reason) details = `Rejection Reason: ${reason}`;
+                    }
+                }
+
+                return {
+                    id: String(log.id),
+                    entityId: String(log.entityId),
+                    entityType: log.entityType,
+                    action,
+                    actor: log.userId || 'System',
+                    timestamp: log.createdAt?.toISOString() || new Date().toISOString(),
+                    details,
+                    status
+                };
+            });
+
+            // 3. Fallback to Legacy Header History if no audit logs found (for older records)
+            if (events.length === 0) {
+                const legacyHeader = await legacyDb.select()
+                    .from(frs9ImpIaHeader)
+                    .where(eq(frs9ImpIaHeader.accountId, Number(accountId)))
                     .limit(1);
 
-                if (!masterRows.length) return [];
-
-                const master = masterRows[0];
-                return [{
-                    id: `HIST-SRC-${master.pkid}`,
-                    entityId: String(master.accountId),
-                    entityType: 'MASTER_ACCOUNT',
-                    action: 'CREATE',
-                    actor: 'SYSTEM',
-                    timestamp: master.prcDate,
-                    details: `Source account loaded from FRS9_MASTER_ACCOUNT (${master.accountNumber || accountId})`,
-                    status: master.impairedFlag ? 'IMPAIRED_SOURCE' : 'SOURCE'
-                }];
+                if (legacyHeader.length > 0) {
+                    const h = legacyHeader[0];
+                    events.push({
+                        id: `LEGACY-${h.pkid}`,
+                        entityId: String(h.accountId),
+                        entityType: 'INDIVIDUAL_ASSESSMENT',
+                        action: h.status === 1 ? 'APPROVE' : 'CREATE',
+                        actor: h.createdby || 'System',
+                        timestamp: h.createddate || new Date().toISOString(),
+                        details: h.triggerRemarks || 'Legacy assessment record',
+                        status: STATUS_MAP_TO_STRING[h.status as number] || 'PENDING'
+                    });
+                }
             }
 
-            const row = result[0];
-            const history = [];
-
-            // 1. Creation Event
-            if (row.createddate) {
-                history.push({
-                    id: `HIST-C-${row.pkid}`,
-                    entityId: row.pkid.toString(),
-                    entityType: 'ASSESSMENT',
-                    action: 'CREATE',
-                    actor: row.createdby,
-                    timestamp: row.createddate,
-                    details: 'Assessment created',
-                    status: 'PENDING'
-                });
-            }
-
-            // 2. Update Event
-            if (row.updateddate) {
-                history.push({
-                    id: `HIST-U-${row.pkid}`,
-                    entityId: row.pkid.toString(),
-                    entityType: 'ASSESSMENT',
-                    action: 'UPDATE',
-                    actor: row.updatedby || 'SYSTEM',
-                    timestamp: row.updateddate,
-                    details: row.triggerRemarks || 'Assessment details updated',
-                    status: STATUS_MAP_TO_STRING[row.status] || 'IN_PROGRESS'
-                });
-            }
-
-            // 3. Review Event
-            if (row.revieweddate) {
-                history.push({
-                    id: `HIST-R-${row.pkid}`,
-                    entityId: row.pkid.toString(),
-                    entityType: 'ASSESSMENT',
-                    action: 'REVIEW',
-                    actor: row.reviewedby || 'SYSTEM',
-                    timestamp: row.revieweddate,
-                    details: 'Assessment reviewed',
-                    status: 'REVIEWED'
-                });
-            }
-
-            // Sort by timestamp desc
-            return history.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
+            return events;
         } catch (error) {
-            console.error('❌ Error fetching assessment history:', error);
+            console.error('Error fetching assessment history:', error);
             return [];
         }
+    }
+
+    /**
+     * Re-applies data from a consolidated approval request to the operational tables.
+     * This ensures that any staged adjustments are persisted upon approval.
+     */
+    async applyConsolidatedAssessment(accountId: number, requestData: any, userId: string) {
+        return await legacyDb.transaction(async (tx) => {
+            const host = 'localhost';
+            
+            // 1. Apply Adjustment (Override) data to Header
+            const stagedOverride = requestData.stagedOverride;
+            if (stagedOverride) {
+                const headerData = {
+                    impairedFlag: Number(stagedOverride.overrideStage) === 3 ? 'T' : 'F',
+                    triggerRemarks: stagedOverride.justification,
+                    triggerFilename: stagedOverride.supportingDocumentName || stagedOverride.triggerFilename,
+                    currency: 'IDR',
+                };
+                await this.upsertIaHeader(accountId, headerData, userId, host, tx);
+            }
+
+            // 2. Note: DCF data is usually already written during the "Calculate" step by the Maker.
+            // If we wanted to be extremely strict, we could re-write DCF cashflows from requestData.stagedDCF here.
+            // But currently the system assumes DCF is committed to DB once calculated.
+        });
     }
 
     async createAuditLog(entry: any) {
@@ -674,14 +712,15 @@ export class IndividualImpairmentService {
         impaired_flag?: string;
         dateFrom?: string;
         dateTo?: string;
+        accountNumber?: string;
+        cifName?: string;
         limit?: number;
         offset?: number;
         sort?: Array<{ field: string; direction: 'asc' | 'desc' }>;
     }) {
-        const { reportPeriod, search, status, impaired_flag, dateFrom, dateTo, limit = 50, offset = 0 } = filters;
+        const { reportPeriod, search, status, impaired_flag, dateFrom, dateTo, accountNumber, cifName, limit = 50, offset = 0 } = filters;
         const conditions = [
-            // Techspec uses IMPAIRED_FLAG = 'I'. Keep T compatibility because existing override flow writes T/F.
-            sql`(${frs9ImpIaHeader.impairedFlag} = 'I' OR ${frs9ImpIaHeader.impairedFlag} = 'T')`,
+            sql`(${frs9ImpIaHeader.status} IN (0, 1, 2) OR ${frs9ImpIaHeader.status} IS NULL)`,
         ];
 
         if (reportPeriod) {
@@ -696,6 +735,12 @@ export class IndividualImpairmentService {
             conditions.push(sql`${frs9ImpIaHeader.prcDate} <= ${dateTo}`);
         }
 
+        if (accountNumber) {
+            conditions.push(ilike(frs9ImpIaHeader.accountNumber, `%${accountNumber}%`));
+        }
+        if (cifName) {
+            conditions.push(ilike(frs9ImpIaHeader.cifName, `%${cifName}%`));
+        }
         if (search) {
             conditions.push(or(
                 ilike(frs9ImpIaHeader.accountNumber, `%${search}%`),
@@ -963,7 +1008,7 @@ export class IndividualImpairmentService {
                     [savedHeader] = await tx.insert(frs9ImpIaHeader).values({
                         iaId,
                         prcDate,
-                        effDate: assessment.eff_date || prcDate,
+                        effDate: this.getEomonth(prcDate),
                         cifNumber: assessment.cif_number || 'UNKNOWN',
                         cifName: assessment.cif_name || 'UNKNOWN',
                         accountId,
@@ -1264,7 +1309,7 @@ export class IndividualImpairmentService {
                 .set({
                     prcDate,
                     pvDcfAmt: String(Number(npv.toFixed(6))),
-                    eclIaAmt: String(Number((eadAmt - npv).toFixed(6))),
+                    eclIaAmt: String(Number(Math.max(0, eadAmt - npv).toFixed(6))),
                     updatedby: createdBy,
                     updateddate: createdAt,
                     updatedhost: createdHost
@@ -1313,6 +1358,14 @@ export class IndividualImpairmentService {
             // 0. ADVISORY LOCK: Prevent concurrent processing for the same account
             await tx.execute(sql`SELECT pg_advisory_xact_lock(${accountIdNum})`);
 
+            const existingHeader = await tx.select({ status: frs9ImpIaHeader.status })
+                .from(frs9ImpIaHeader)
+                .where(eq(frs9ImpIaHeader.accountId, accountIdNum))
+                .limit(1);
+            const preservedStatus = existingHeader.length > 0 && [0, 1, 2].includes(Number(existingHeader[0].status))
+                ? Number(existingHeader[0].status)
+                : 3;
+
             // 1. Fetch Master Account Data
             const masterAccount = await tx.select()
                 .from(frs9MasterAccount)
@@ -1324,9 +1377,10 @@ export class IndividualImpairmentService {
             const ma = masterAccount[0];
 
             // 2. IA ID Management via robust UPSERT
+            const prcDate = ma.prcDate || new Date().toISOString().slice(0, 10);
             const headerData = {
-                prcDate: ma.prcDate || new Date().toISOString().slice(0, 10),
-                effDate: new Date().toISOString().slice(0, 10),
+                prcDate,
+                effDate: this.getEomonth(prcDate),
                 cifNumber: ma.cifNumber || 'UNKNOWN',
                 cifName: ma.cifName || 'UNKNOWN',
                 accountId: accountIdNum,
@@ -1338,7 +1392,7 @@ export class IndividualImpairmentService {
                 outstanding: ma.outstanding || "0",
                 carryingAmt: ma.carryingAmt || "0",
                 eadAmt: ma.outstanding || "0",
-                status: 1, // NEW
+                status: preservedStatus,
                 nOfScenario: Number(assumptions?.nOfScenario || 3),
                 scenarioId: Number(assumptions?.scenarioId || 1),
                 scName1: String(assumptions?.scName1 || 'Base').slice(0, 20),
@@ -1347,7 +1401,7 @@ export class IndividualImpairmentService {
                 poRate1: this.toNumber(assumptions?.poRate1),
                 poRate2: this.toNumber(assumptions?.poRate2),
                 poRate3: this.toNumber(assumptions?.poRate3),
-                method: String(assumptions?.method || '3'),
+                method: 'DCF',
             };
 
             const insertedHeader = await this.upsertIaHeader(accountIdNum, headerData, userId, host, tx);
@@ -1499,6 +1553,23 @@ export class IndividualImpairmentService {
                 })
                 .where(eq(frs9ImpIaHeader.iaId, iaId));
 
+            // 8. LOG THE CALCULATION
+            runAuditSafely(logCalculation({
+                userId,
+                calculationType: 'INDIVIDUAL_DCF',
+                calculationDate: new Date().toISOString(),
+                status: 'SUCCESS',
+                parameters: JSON.stringify({
+                    assumptions,
+                    repaymentRates,
+                    cashflowsCount: cashflows.length
+                }),
+                results: JSON.stringify({
+                    presentValue: totalNpv,
+                    eclIaAmt
+                })
+            }), 'logIndividualDcfCalculation');
+
             return {
                 success: true,
                 iaId,
@@ -1550,7 +1621,7 @@ export class IndividualImpairmentService {
                 pkid: Number(row.pkid),
                 ia_id: override ? Number(override.iaId) : null,
                 prc_date: row.prcDate,
-                eff_date: row.prcDate,
+                eff_date: override?.effDate || row.prcDate,
                 cif_number: row.cifNumber,
                 cif_name: row.cifName,
                 account_id: Number(row.accountId),
@@ -1639,7 +1710,7 @@ export class IndividualImpairmentService {
                     SELECT 1
                     FROM frs9_imp_ia_header h
                     WHERE h.account_id = ${frs9MasterAccount.accountId}
-                    AND (h.impaired_flag = 'I' OR h.impaired_flag = 'T')
+                    AND (h.status IS NULL OR h.status IN (0, 1, 2))
                 )`,
             ];
 
@@ -1658,7 +1729,7 @@ export class IndividualImpairmentService {
             if (dateTo) {
                 conditions.push(sql`${frs9MasterAccount.prcDate} <= ${dateTo}`);
             }
-            if (!dateFrom && !dateTo) {
+            if (!dateFrom && !dateTo && !search) {
                 // Default to latest full snapshot date (avoid tiny ad-hoc/test dates, e.g. only a few rows)
                 conditions.push(sql`${frs9MasterAccount.prcDate} = COALESCE(
                     (
@@ -2054,6 +2125,7 @@ export class IndividualImpairmentService {
                 supporting_documents: row.triggerFilename ? [row.triggerFilename] : [],
                 analyst_comments: row.triggerRemarks, // Mapping trigger remarks to comments
                 reviewer_comments: null,
+                status: row.status,
                 // Map status to Approval Status string
                 approval_status: STATUS_MAP_TO_STRING[row.status] || 'PENDING',
                 createdby: row.createdby,
@@ -2134,9 +2206,10 @@ export class IndividualImpairmentService {
             const ma = masterAccount[0];
             const today = new Date().toISOString().split('T')[0];
 
+            const prcDateVal = ma.prcDate || today;
             const headerData = {
-                prcDate: ma.prcDate || today,
-                effDate: ma.prcDate || today,
+                prcDate: prcDateVal,
+                effDate: this.getEomonth(prcDateVal),
                 cifNumber: ma.cifNumber || 'UNKNOWN',
                 cifName: ma.cifName || 'UNKNOWN',
                 accountId: accountId,
@@ -2239,52 +2312,49 @@ export class IndividualImpairmentService {
             cifName: data.customerName || 'UNKNOWN',
             accountNumber: accountNumber,
             prcDate: new Date().toISOString().split('T')[0],
-            effDate: new Date().toISOString().split('T')[0],
+            effDate: this.getEomonth(new Date().toISOString().split('T')[0]),
         };
 
-        return await this.upsertIaHeader(
+        const insertedHeader = await this.upsertIaHeader(
             realAccountId, 
             headerData, 
             String(data.createdBy || 'SYSTEM').slice(0, 36), 
             'localhost'
         );
+
+        // 2. LOG THE OVERRIDE
+        runAuditSafely(logDataChange.update(
+            'frs9_imp_ia_header',
+            String(realAccountId),
+            { status: 'INITIAL' },
+            headerData,
+            String(data.createdBy || 'SYSTEM').slice(0, 36),
+            data.tenantId || 'SYSTEM'
+        ), 'logIndividualOverrideCreated');
+
+        return insertedHeader;
     }
 
     async submitAssessment(accountId: number, comments: string, userId: string) {
-        // Find existing header
-        const existing = await legacyDb.select()
-            .from(frs9ImpIaHeader)
-            .where(eq(frs9ImpIaHeader.accountId, Number(accountId)))
-            .limit(1);
-
-        if (existing.length === 0) {
-            // Should not happen in normal flow, but if submitting without saving first
-            throw new Error(`Assessment for account ${accountId} not found. Please save first.`);
-        }
-
-        const [updated] = await legacyDb.update(frs9ImpIaHeader)
+        const updated = await legacyDb.update(frs9ImpIaHeader)
             .set({
                 status: STATUS_MAP_TO_INT['PENDING'], // 0
                 updatedby: userId,
                 updateddate: new Date().toISOString(),
                 triggerRemarks: comments
             })
-            .where(eq(frs9ImpIaHeader.pkid, existing[0].pkid))
+            .where(eq(frs9ImpIaHeader.accountId, Number(accountId)))
             .returning();
 
-        return updated; // Return object directly
+        if (!updated.length) {
+            throw new Error(`Assessment for account ${accountId} not found. Please save first.`);
+        }
+
+        return updated[0];
     }
 
     async approveAssessment(accountId: number, comments: string, userId: string) {
-        // Find existing header
-        const existing = await legacyDb.select()
-            .from(frs9ImpIaHeader)
-            .where(eq(frs9ImpIaHeader.accountId, Number(accountId)))
-            .limit(1);
-
-        if (existing.length === 0) throw new Error("Assessment not found");
-
-        const [updated] = await legacyDb.update(frs9ImpIaHeader)
+        const updated = await legacyDb.update(frs9ImpIaHeader)
             .set({
                 status: STATUS_MAP_TO_INT['APPROVED'], // 1
                 updatedby: userId,
@@ -2292,22 +2362,16 @@ export class IndividualImpairmentService {
                 reviewedby: userId,
                 revieweddate: new Date().toISOString()
             })
-            .where(eq(frs9ImpIaHeader.pkid, existing[0].pkid))
+            .where(eq(frs9ImpIaHeader.accountId, Number(accountId)))
             .returning();
 
-        return updated; // Return object directly
+        if (!updated.length) throw new Error("Assessment not found");
+
+        return updated[0];
     }
 
     async rejectAssessment(accountId: number, reason: string, userId: string) {
-        // Find existing header
-        const existing = await legacyDb.select()
-            .from(frs9ImpIaHeader)
-            .where(eq(frs9ImpIaHeader.accountId, Number(accountId)))
-            .limit(1);
-
-        if (existing.length === 0) throw new Error("Assessment not found");
-
-        const [updated] = await legacyDb.update(frs9ImpIaHeader)
+        const updated = await legacyDb.update(frs9ImpIaHeader)
             .set({
                 status: STATUS_MAP_TO_INT['REJECTED'], // 2
                 updatedby: userId,
@@ -2316,10 +2380,12 @@ export class IndividualImpairmentService {
                 revieweddate: new Date().toISOString(),
                 triggerRemarks: reason
             })
-            .where(eq(frs9ImpIaHeader.pkid, existing[0].pkid))
+            .where(eq(frs9ImpIaHeader.accountId, Number(accountId)))
             .returning();
 
-        return updated; // Return object directly
+        if (!updated.length) throw new Error("Assessment not found");
+
+        return updated[0];
     }
 
     /**

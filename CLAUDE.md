@@ -2,6 +2,37 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 🧠 Sesi Progress (17 Mei 2026)
+
+### Yang sudah dilakukan:
+- **Backend container** (`new-backend-vpn`) berhasil jalan dengan profile `backend-remote-db`, connect ke database remote via VPN (`10.8.0.2:5433`)
+- **Frontend container** (`frontend-dev`) dibangun dengan image custom (`Dockerfile.dev`) yang pre-install dependencies, jadi container start cepat tanpa perlu `pnpm install` tiap kali
+- **Docker compose** di `ops/local/docker-compose.yml` sudah dimodifikasi:
+  - `frontend-dev` menggunakan `build` (Dockerfile.dev) bukan `image: node:20-alpine`
+  - Mount hanya `src/`, `public/`, file config — `node_modules` tetap dari image
+  - `tsconfig.json` di-mount `:ro` (read-only) agar Next.js tidak override
+- **Fix `.env.local`** frontend: `BACKEND_URL` dan `BACKEND_INTERNAL_URL` dari `ifrs9-new-backend-vpn:4232` → `localhost:4232`
+- **Fix `ops/local/backend.env`**: Semua `DB_HOST=postgres` → `10.8.0.2`, port `5432` → `5433`, `LEGACY_DB_NAME=frs9pro` → `FRS9PRO`
+
+### Cara menjalankan (semua di Docker):
+```bash
+cd D:\pro\ifrs9-new - Copy
+docker compose --env-file ops/local/backend.env -f ops/local/docker-compose.yml --profile backend-remote-db up -d
+docker compose --env-file ops/local/frontend.env -f ops/local/docker-compose.yml -f ops/local/docker-compose.yml up -d --build frontend-dev
+```
+
+Akses:
+- Frontend: http://localhost:4231
+- Backend API: http://localhost:4232/api/v1/health
+- Backend Reference: http://localhost:4232/reference
+- Backend OpenAPI: http://localhost:4232/doc
+
+### Catatan penting:
+- 🔐 VPN harus aktif sebelum start container (konek ke `10.8.0.2:5433`)
+- Frontend container pakai image build local (`Dockerfile.dev`), rebuild dengan `--build` jika ada perubahan dependencies
+- Backend tidak tergantung local postgres (profile `backend-remote-db` hanya depends on Redis)
+- PostgreSQL case-sensitive untuk nama database: `FRS9PRO` (bukan `frs9pro`)
+
 ## Project Overview
 
 IFRS 9 Multi-Tenant Dual Banking Platform - a comprehensive banking solution supporting both conventional and Syariah banking institutions with IFRS 9 compliance calculations.

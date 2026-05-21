@@ -17,6 +17,7 @@ const nextConfig = {
   allowedDevOrigins: [
     'localhost',
     '127.0.0.1',
+    'host.docker.internal',
     '*.ifrspro.id',
     'iaf-ifrs.ifrspro.id',
     'iaf-ifrs-be.ifrspro.id',

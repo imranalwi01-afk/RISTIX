@@ -114,6 +114,14 @@ export const AssessmentReportsTab: React.FC<AssessmentReportsTabProps> = ({ onNa
     fetchReports();
   }, [pagination.page, pagination.limit]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchReports();
+      fetchSummary();
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [pagination.page, pagination.limit, filters.account_number, filters.cif_name, filters.status]);
+
   // Debounced search effect
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -448,7 +456,7 @@ export const AssessmentReportsTab: React.FC<AssessmentReportsTabProps> = ({ onNa
                     <TableCell align="right" sx={{ fontSize: '0.75rem', fontFamily: 'monospace' }}>{formatCurrency(Number(report.pvDcfAmt || 0))}</TableCell>
                     <TableCell align="right" sx={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'success.main', fontWeight: 600 }}>{formatCurrency(Number(report.eclIaAmt || 0))}</TableCell>
                     <TableCell align="center">
-                      {renderStatusChip(report.status || 'APPROVED')}
+                      {renderStatusChip(report.status || 'PENDING')}
                     </TableCell>
                     <TableCell sx={{ fontSize: '0.75rem' }}>{report.createdby || '-'}</TableCell>
                     <TableCell align="center">

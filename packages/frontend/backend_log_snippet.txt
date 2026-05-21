@@ -1,0 +1,213 @@
+﻿
+{"level":20,"time":"2026-05-17T14:45:54.017Z","service":"ifrs9-new-backend","en
+vironment":"development","origin":"","normalizedOrigin":"","allowedOrigins":["h
+ttp://localhost:4231","http://127.0.0.1:4231"],"isAllowed":false,"msg":"CORS 
+check"}
+<-- GET /api/v1/health
+--> GET /api/v1/health [32m200[0m 533ms
+{"level":30,"time":"2026-05-17T14:45:54.551Z","service":"ifrs9-new-backend","en
+vironment":"development","requestId":"rRypSXsgPPUu01CpdZwKc","method":"GET","pa
+th":"/api/v1/health","status":200,"durationMs":533.7,"requestId":"rRypSXsgPPUu0
+1CpdZwKc","msg":"request.completed"}
+{"level":20,"time":"2026-05-17T14:46:24.675Z","service":"ifrs9-new-backend","en
+vironment":"development","origin":"","normalizedOrigin":"","allowedOrigins":["h
+ttp://localhost:4231","http://127.0.0.1:4231"],"isAllowed":false,"msg":"CORS 
+check"}
+<-- GET /api/v1/health
+--> GET /api/v1/health [32m200[0m 760ms
+{"level":30,"time":"2026-05-17T14:46:25.435Z","service":"ifrs9-new-backend","en
+vironment":"development","requestId":"uSrPUIkJMPM2UL2HEvxmW","method":"GET","pa
+th":"/api/v1/health","status":200,"durationMs":763.68,"requestId":"uSrPUIkJMPM2
+UL2HEvxmW","msg":"request.completed"}
+<-- GET /api/v1/health
+{"level":20,"time":"2026-05-17T14:46:55.588Z","service":"ifrs9-new-backend","en
+vironment":"development","origin":"","normalizedOrigin":"","allowedOrigins":["h
+ttp://localhost:4231","http://127.0.0.1:4231"],"isAllowed":false,"msg":"CORS 
+check"}
+--> GET /api/v1/health [32m200[0m 536ms
+{"level":30,"time":"2026-05-17T14:46:56.126Z","service":"ifrs9-new-backend","en
+vironment":"development","requestId":"D3eXG9TgjwguBawgs1O4n","method":"GET","pa
+th":"/api/v1/health","status":200,"durationMs":537.5,"requestId":"D3eXG9TgjwguB
+awgs1O4n","msg":"request.completed"}
+{"level":20,"time":"2026-05-17T14:47:26.315Z","service":"ifrs9-new-backend","en
+vironment":"development","origin":"","normalizedOrigin":"","allowedOrigins":["h
+ttp://localhost:4231","http://127.0.0.1:4231"],"isAllowed":false,"msg":"CORS 
+check"}
+<-- GET /api/v1/health
+--> GET /api/v1/health [32m200[0m 548ms
+{"level":30,"time":"2026-05-17T14:47:26.866Z","service":"ifrs9-new-backend","en
+vironment":"development","requestId":"QwJJWe2SN7bY_XEX_AC65","method":"GET","pa
+th":"/api/v1/health","status":200,"durationMs":552.25,"requestId":"QwJJWe2SN7bY
+_XEX_AC65","msg":"request.completed"}
+{"level":20,"time":"2026-05-17T14:47:56.976Z","service":"ifrs9-new-backend","en
+vironment":"development","origin":"","normalizedOrigin":"","allowedOrigins":["h
+ttp://localhost:4231","http://127.0.0.1:4231"],"isAllowed":false,"msg":"CORS 
+check"}
+<-- GET /api/v1/health
+--> GET /api/v1/health [32m200[0m 609ms
+{"level":30,"time":"2026-05-17T14:47:57.586Z","service":"ifrs9-new-backend","en
+vironment":"development","requestId":"KHGcgZaG35VmT3cGmQ4M7","method":"GET","pa
+th":"/api/v1/health","status":200,"durationMs":610.36,"requestId":"KHGcgZaG35Vm
+T3cGmQ4M7","msg":"request.completed"}
+{"level":20,"time":"2026-05-17T14:48:27.706Z","service":"ifrs9-new-backend","en
+vironment":"development","origin":"","normalizedOrigin":"","allowedOrigins":["h
+ttp://localhost:4231","http://127.0.0.1:4231"],"isAllowed":false,"msg":"CORS 
+check"}
+<-- GET /api/v1/health
+--> GET /api/v1/health [32m200[0m 554ms
+{"level":30,"time":"2026-05-17T14:48:28.261Z","service":"ifrs9-new-backend","en
+vironment":"development","requestId":"5NRoLkqWeTiv-038TCvNd","method":"GET","pa
+th":"/api/v1/health","status":200,"durationMs":554.76,"requestId":"5NRoLkqWeTiv
+-038TCvNd","msg":"request.completed"}
+{"level":20,"time":"2026-05-17T14:48:58.374Z","service":"ifrs9-new-backend","en
+vironment":"development","origin":"","normalizedOrigin":"","allowedOrigins":["h
+ttp://localhost:4231","http://127.0.0.1:4231"],"isAllowed":false,"msg":"CORS 
+check"}
+<-- GET /api/v1/health
+--> GET /api/v1/health [32m200[0m 539ms
+{"level":30,"time":"2026-05-17T14:48:58.913Z","service":"ifrs9-new-backend","en
+vironment":"development","requestId":"pU1FGzXHjodRN1BzIViGE","method":"GET","pa
+th":"/api/v1/health","status":200,"durationMs":538.89,"requestId":"pU1FGzXHjodR
+N1BzIViGE","msg":"request.completed"}
+<-- GET /api/v1/health
+{"level":20,"time":"2026-05-17T14:49:08.517Z","service":"ifrs9-new-backend","en
+vironment":"development","origin":"","normalizedOrigin":"","allowedOrigins":["h
+ttp://localhost:4231","http://127.0.0.1:4231"],"isAllowed":false,"msg":"CORS 
+check"}
+--> GET /api/v1/health [32m200[0m 78ms
+{"level":30,"time":"2026-05-17T14:49:08.595Z","service":"ifrs9-new-backend","en
+vironment":"development","requestId":"Aa5s_EaeEEp92gTquchsz","method":"GET","pa
+th":"/api/v1/health","status":200,"durationMs":78.5,"requestId":"Aa5s_EaeEEp92g
+Tquchsz","msg":"request.completed"}
+{"level":20,"time":"2026-05-17T14:49:29.035Z","service":"ifrs9-new-backend","en
+vironment":"development","origin":"","normalizedOrigin":"","allowedOrigins":["h
+ttp://localhost:4231","http://127.0.0.1:4231"],"isAllowed":false,"msg":"CORS 
+check"}
+<-- GET /api/v1/health
+--> GET /api/v1/health [32m200[0m 527ms
+{"level":30,"time":"2026-05-17T14:49:29.562Z","service":"ifrs9-new-backend","en
+vironment":"development","requestId":"rTYLJKddwAtzHKf5c71Yn","method":"GET","pa
+th":"/api/v1/health","status":200,"durationMs":527.63,"requestId":"rTYLJKddwAtz
+HKf5c71Yn","msg":"request.completed"}
+{"level":20,"time":"2026-05-17T14:49:59.729Z","service":"ifrs9-new-backend","en
+vironment":"development","origin":"","normalizedOrigin":"","allowedOrigins":["h
+ttp://localhost:4231","http://127.0.0.1:4231"],"isAllowed":false,"msg":"CORS 
+check"}
+<-- GET /api/v1/health
+--> GET /api/v1/health [32m200[0m 540ms
+{"level":30,"time":"2026-05-17T14:50:00.269Z","service":"ifrs9-new-backend","en
+vironment":"development","requestId":"K8tAw3VQY7PbVko9NlTNe","method":"GET","pa
+th":"/api/v1/health","status":200,"durationMs":540.82,"requestId":"K8tAw3VQY7Pb
+Vko9NlTNe","msg":"request.completed"}
+{"level":20,"time":"2026-05-17T14:50:30.380Z","service":"ifrs9-new-backend","en
+vironment":"development","origin":"","normalizedOrigin":"","allowedOrigins":["h
+ttp://localhost:4231","http://127.0.0.1:4231"],"isAllowed":false,"msg":"CORS 
+check"}
+<-- GET /api/v1/health
+--> GET /api/v1/health [32m200[0m 539ms
+{"level":30,"time":"2026-05-17T14:50:30.919Z","service":"ifrs9-new-backend","en
+vironment":"development","requestId":"U0wXEiy8FtshrpVSEOiqU","method":"GET","pa
+th":"/api/v1/health","status":200,"durationMs":539.73,"requestId":"U0wXEiy8Ftsh
+rpVSEOiqU","msg":"request.completed"}
+{"level":20,"time":"2026-05-17T14:51:01.030Z","service":"ifrs9-new-backend","en
+vironment":"development","origin":"","normalizedOrigin":"","allowedOrigins":["h
+ttp://localhost:4231","http://127.0.0.1:4231"],"isAllowed":false,"msg":"CORS 
+check"}
+<-- GET /api/v1/health
+--> GET /api/v1/health [32m200[0m 541ms
+{"level":30,"time":"2026-05-17T14:51:01.572Z","service":"ifrs9-new-backend","en
+vironment":"development","requestId":"YcaCXEa4Ta5oICYiW5C7N","method":"GET","pa
+th":"/api/v1/health","status":200,"durationMs":541.67,"requestId":"YcaCXEa4Ta5o
+ICYiW5C7N","msg":"request.completed"}
+{"level":20,"time":"2026-05-17T14:51:31.708Z","service":"ifrs9-new-backend","en
+vironment":"development","origin":"","normalizedOrigin":"","allowedOrigins":["h
+ttp://localhost:4231","http://127.0.0.1:4231"],"isAllowed":false,"msg":"CORS 
+check"}
+<-- GET /api/v1/health
+--> GET /api/v1/health [32m200[0m 865ms
+{"level":30,"time":"2026-05-17T14:51:32.573Z","service":"ifrs9-new-backend","en
+vironment":"development","requestId":"9q5gVRpJsvynTXxXTkwak","method":"GET","pa
+th":"/api/v1/health","status":200,"durationMs":864.7,"requestId":"9q5gVRpJsvynT
+XxXTkwak","msg":"request.completed"}
+<-- GET /api/v1/health
+{"level":20,"time":"2026-05-17T14:52:02.676Z","service":"ifrs9-new-backend","en
+vironment":"development","origin":"","normalizedOrigin":"","allowedOrigins":["h
+ttp://localhost:4231","http://127.0.0.1:4231"],"isAllowed":false,"msg":"CORS 
+check"}
+--> GET /api/v1/health [32m200[0m 564ms
+{"level":30,"time":"2026-05-17T14:52:03.246Z","service":"ifrs9-new-backend","en
+vironment":"development","requestId":"CRL55cf7nCKTjgLmc6_I_","method":"GET","pa
+th":"/api/v1/health","status":200,"durationMs":569.68,"requestId":"CRL55cf7nCKT
+jgLmc6_I_","msg":"request.completed"}
+<-- GET /api/v1/health
+{"level":20,"time":"2026-05-17T14:52:33.538Z","service":"ifrs9-new-backend","en
+vironment":"development","origin":"","normalizedOrigin":"","allowedOrigins":["h
+ttp://localhost:4231","http://127.0.0.1:4231"],"isAllowed":false,"msg":"CORS 
+check"}
+--> GET /api/v1/health [32m200[0m 520ms
+{"level":30,"time":"2026-05-17T14:52:34.058Z","service":"ifrs9-new-backend","en
+vironment":"development","requestId":"Cm1eY54sK5vge3HLAVzlF","method":"GET","pa
+th":"/api/v1/health","status":200,"durationMs":520.33,"requestId":"Cm1eY54sK5vg
+e3HLAVzlF","msg":"request.completed"}
+{"level":20,"time":"2026-05-17T14:53:04.167Z","service":"ifrs9-new-backend","en
+vironment":"development","origin":"","normalizedOrigin":"","allowedOrigins":["h
+ttp://localhost:4231","http://127.0.0.1:4231"],"isAllowed":false,"msg":"CORS 
+check"}
+<-- GET /api/v1/health
+--> GET /api/v1/health [32m200[0m 543ms
+{"level":30,"time":"2026-05-17T14:53:04.712Z","service":"ifrs9-new-backend","en
+vironment":"development","requestId":"xtb07sLjkDkiAVjSf45Aj","method":"GET","pa
+th":"/api/v1/health","status":200,"durationMs":544.98,"requestId":"xtb07sLjkDki
+AVjSf45Aj","msg":"request.completed"}
+{"level":20,"time":"2026-05-17T14:53:34.842Z","service":"ifrs9-new-backend","en
+vironment":"development","origin":"","normalizedOrigin":"","allowedOrigins":["h
+ttp://localhost:4231","http://127.0.0.1:4231"],"isAllowed":false,"msg":"CORS 
+check"}
+<-- GET /api/v1/health
+--> GET /api/v1/health [32m200[0m 529ms
+{"level":30,"time":"2026-05-17T14:53:35.371Z","service":"ifrs9-new-backend","en
+vironment":"development","requestId":"TlRtMI9TQXI59CvquR3ri","method":"GET","pa
+th":"/api/v1/health","status":200,"durationMs":528.96,"requestId":"TlRtMI9TQXI5
+9CvquR3ri","msg":"request.completed"}
+{"level":20,"time":"2026-05-17T14:54:05.472Z","service":"ifrs9-new-backend","en
+vironment":"development","origin":"","normalizedOrigin":"","allowedOrigins":["h
+ttp://localhost:4231","http://127.0.0.1:4231"],"isAllowed":false,"msg":"CORS 
+check"}
+<-- GET /api/v1/health
+--> GET /api/v1/health [32m200[0m 569ms
+{"level":30,"time":"2026-05-17T14:54:06.041Z","service":"ifrs9-new-backend","en
+vironment":"development","requestId":"CZSYO2PzYw0iVGE56C1La","method":"GET","pa
+th":"/api/v1/health","status":200,"durationMs":569.01,"requestId":"CZSYO2PzYw0i
+VGE56C1La","msg":"request.completed"}
+<-- GET /api/v1/health
+{"level":20,"time":"2026-05-17T14:54:36.150Z","service":"ifrs9-new-backend","en
+vironment":"development","origin":"","normalizedOrigin":"","allowedOrigins":["h
+ttp://localhost:4231","http://127.0.0.1:4231"],"isAllowed":false,"msg":"CORS 
+check"}
+--> GET /api/v1/health [32m200[0m 644ms
+{"level":30,"time":"2026-05-17T14:54:36.795Z","service":"ifrs9-new-backend","en
+vironment":"development","requestId":"uArpB-tPlkW3r0194zCU7","method":"GET","pa
+th":"/api/v1/health","status":200,"durationMs":645.15,"requestId":"uArpB-tPlkW3
+r0194zCU7","msg":"request.completed"}
+{"level":20,"time":"2026-05-17T14:55:06.899Z","service":"ifrs9-new-backend","en
+vironment":"development","origin":"","normalizedOrigin":"","allowedOrigins":["h
+ttp://localhost:4231","http://127.0.0.1:4231"],"isAllowed":false,"msg":"CORS 
+check"}
+<-- GET /api/v1/health
+--> GET /api/v1/health [32m200[0m 534ms
+{"level":30,"time":"2026-05-17T14:55:07.434Z","service":"ifrs9-new-backend","en
+vironment":"development","requestId":"-16uKRPQ5kHo_Bo2nadii","method":"GET","pa
+th":"/api/v1/health","status":200,"durationMs":535.62,"requestId":"-16uKRPQ5kHo
+_Bo2nadii","msg":"request.completed"}
+{"level":20,"time":"2026-05-17T14:55:37.578Z","service":"ifrs9-new-backend","en
+vironment":"development","origin":"","normalizedOrigin":"","allowedOrigins":["h
+ttp://localhost:4231","http://127.0.0.1:4231"],"isAllowed":false,"msg":"CORS 
+check"}
+<-- GET /api/v1/health
+--> GET /api/v1/health [32m200[0m 549ms
+{"level":30,"time":"2026-05-17T14:55:38.127Z","service":"ifrs9-new-backend","en
+vironment":"development","requestId":"L9n3Lgad5sqwOOZGKFW2m","method":"GET","pa
+th":"/api/v1/health","status":200,"durationMs":549.04,"requestId":"L9n3Lgad5sqw
+OOZGKFW2m","msg":"request.completed"}
+
+

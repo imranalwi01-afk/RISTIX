@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -322,6 +321,10 @@ export function DCFUploadTab({
             collateral: r.COLLATERAL
         }))
     };
+
+    if (selectedFile) {
+        (payload as any).fileBlob = selectedFile;
+    }
 
     if (onStagedDCF) {
         onStagedDCF(payload);

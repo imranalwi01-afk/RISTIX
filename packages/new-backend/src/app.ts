@@ -100,7 +100,12 @@ export function createApp() {
                     .filter(Boolean)
 
                 // Always allow local frontend origins for local docker/frontend-dev workflows.
-                allowedOrigins.push('http://127.0.0.1:4231', 'http://localhost:4231')
+                allowedOrigins.push(
+                    'http://127.0.0.1:4231',
+                    'http://localhost:4231',
+                    'http://[::1]:4231',
+                    'http://host.docker.internal:4231'
+                )
                 const normalizedOrigins = Array.from(new Set(allowedOrigins))
                 const normalizedOrigin = origin ? origin.trim().replace(/\/+$/, '') : origin
 
@@ -117,7 +122,7 @@ export function createApp() {
                 // Allow requests with no origin (like mobile apps or curl requests)
                 if (!normalizedOrigin) return normalizedOrigins[0]
                 if (normalizedOrigins.includes(normalizedOrigin)) return normalizedOrigin
-                return normalizedOrigins[0]
+                return false
             },
             credentials: true,
             allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

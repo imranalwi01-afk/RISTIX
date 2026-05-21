@@ -27,6 +27,7 @@ const resolveBackendOrigin = (): string => {
   const candidates = [
     process.env.NEXT_PUBLIC_BACKEND_URL,
     process.env.BACKEND_URL,
+    process.env.BACKEND_INTERNAL_URL,
     process.env.NEXT_PUBLIC_API_BASE_URL,
     process.env.NEXT_PUBLIC_BACKEND_API_URL,
     process.env.API_BASE_URL,
@@ -34,7 +35,8 @@ const resolveBackendOrigin = (): string => {
 
   for (const candidate of candidates) {
     if (!candidate) continue;
-    return stripApiSuffix(candidate as string);
+    const normalized = stripApiSuffix(candidate as string);
+    if (normalized) return normalized;
   }
 
   return '';
@@ -46,9 +48,28 @@ const resolveApiBase = (backendOrigin: string): string => {
     process.env.NEXT_PUBLIC_BACKEND_API_URL ||
     process.env.API_BASE_URL;
 
-  if (explicitApiBase) return toApiV1(explicitApiBase);
+  if (explicitApiBase) {
+    const trimmedBase = explicitApiBase.trim();
+    if (trimmedBase.startsWith('/')) {
+      const normalizedPath = trimTrailingSlash(trimmedBase);
+      if (/\/api(?:\/v1)?$/i.test(normalizedPath)) {
+        return backendOrigin ? `${backendOrigin}${normalizedPath}` : normalizedPath;
+      }
+      return backendOrigin ? `${backendOrigin}${normalizedPath}/api/v1` : `${normalizedPath}/api/v1`;
+    }
+
+    return toApiV1(trimmedBase);
+  }
+
   if (backendOrigin) return `${backendOrigin}/api/v1`;
   return '/api/v1';
+};
+
+const resolveWebsocketUrl = (backendOrigin: string): string => {
+  const explicitWebsocket = process.env.NEXT_PUBLIC_WS_URL?.trim();
+  if (explicitWebsocket) return stripApiSuffix(explicitWebsocket);
+  if (backendOrigin) return backendOrigin;
+  return '';
 };
 
 export interface FrontendEnvironmentConfig {
@@ -117,7 +138,7 @@ class FrontendEnvironmentLoader {
       urls: {
         frontend: frontendUrl,
         backend: backendOrigin || backendApi,
-        websocket: process.env.NEXT_PUBLIC_WS_URL || '',
+        websocket: resolveWebsocketUrl(backendOrigin || backendApi),
       },
       iaf: {
         tenantId: process.env.NEXT_PUBLIC_TENANT_ID || 'iaf',
