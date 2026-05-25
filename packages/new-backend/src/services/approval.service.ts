@@ -2113,9 +2113,11 @@ function hasExecutableApprovalPayload(request: any): boolean {
 async function shouldAutoApproveCreatedRequest(request: any, input: CreateApprovalRequestInput): Promise<boolean> {
     if (!isSuperAdminAutoApproveOnCreateEnabled()) return false
     
+    const normalizedEntityType = String(request?.entityType || '').trim().toLowerCase()
+
     // EXEMPT Individual Impairment from Auto-Approval - Must always have a manual Checker review
-    if (request.entityType === INDIVIDUAL_ASSESSMENT_CONSOLIDATED_ENTITY_TYPE || 
-        request.entityType === INDIVIDUAL_IMPAIRMENT_V2_ENTITY_TYPE) {
+    if (normalizedEntityType === INDIVIDUAL_ASSESSMENT_CONSOLIDATED_ENTITY_TYPE.toLowerCase() ||
+        normalizedEntityType === INDIVIDUAL_IMPAIRMENT_V2_ENTITY_TYPE.toLowerCase()) {
         return false
     }
 

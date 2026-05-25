@@ -122,7 +122,7 @@ export function createApp() {
                 // Allow requests with no origin (like mobile apps or curl requests)
                 if (!normalizedOrigin) return normalizedOrigins[0]
                 if (normalizedOrigins.includes(normalizedOrigin)) return normalizedOrigin
-                return false
+                return null
             },
             credentials: true,
             allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

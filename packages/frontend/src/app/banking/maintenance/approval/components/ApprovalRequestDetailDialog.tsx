@@ -326,7 +326,11 @@ export const ApprovalRequestDetailDialog = memo(function ApprovalRequestDetailDi
               )}
 
               {/* SPECIALIZED CONTENT: INDIVIDUAL ASSESSMENT */}
-              {(request.entityType === 'INDIVIDUAL_ASSESSMENT_CONSOLIDATED' || request.requestType === 'INDIVIDUAL_ASSESSMENT') && (
+              {(
+                String(request.entityType || '').toLowerCase() === 'individual_assessment_consolidated'
+                || String(request.requestType || '').toLowerCase() === 'individual_assessment_consolidated'
+                || request.requestType === 'INDIVIDUAL_ASSESSMENT'
+              ) && (
                 <Grid size={12}>
                   <Box sx={{ mt: 2, p: 2, border: '1px solid', borderColor: 'primary.light', borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.01) }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>

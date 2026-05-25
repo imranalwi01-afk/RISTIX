@@ -1,4 +1,4 @@
-import { eq, and, asc, desc, count, gte, lte, ilike, or, sql } from 'drizzle-orm'
+import { eq, and, asc, desc, count, gte, lte, ilike, isNull, or, sql } from 'drizzle-orm'
 import { getDatabase } from '@/config/database'
 import {
     approvalMatrices,
@@ -46,17 +46,39 @@ export const ApprovalRepository = {
      * @param bankingMode - Optional banking mode filter
      * @returns The approval matrix with levels
      */
-    findMatrixByEntityType: (tenantId: string, entityType: string, bankingMode?: string) => {
+    findMatrixByEntityType: async (tenantId: string, entityType: string, bankingMode?: string) => {
         const dbx = getDatabase(tenantId)
-        return dbx.query.approvalMatrices.findFirst({
+        const normalizedEntityType = entityType.trim().toLowerCase()
+        const normalizedBankingMode = bankingMode?.trim().toLowerCase()
+
+        const matches = await dbx.query.approvalMatrices.findMany({
             where: and(
                 eq(approvalMatrices.tenantId, tenantId),
-                eq(approvalMatrices.entityType, entityType),
+                sql`lower(${approvalMatrices.entityType}) = ${normalizedEntityType}`,
                 eq(approvalMatrices.isActive, true),
-                bankingMode ? eq(approvalMatrices.bankingMode, bankingMode) : undefined
+                normalizedBankingMode
+                    ? or(
+                        sql`lower(${approvalMatrices.bankingMode}) = ${normalizedBankingMode}`,
+                        sql`lower(${approvalMatrices.bankingMode}) = 'dual'`,
+                        isNull(approvalMatrices.bankingMode)
+                    )
+                    : undefined
             ),
             with: { levels: { orderBy: [asc(approvalLevels.level)] } },
         })
+
+        if (!normalizedBankingMode) return matches[0] ?? null
+
+        return [...matches].sort((a, b) => {
+            const rank = (mode: string | null | undefined) => {
+                const normalized = String(mode || '').trim().toLowerCase()
+                if (normalized === normalizedBankingMode) return 0
+                if (normalized === 'dual') return 1
+                if (!normalized) return 2
+                return 3
+            }
+            return rank(a.bankingMode) - rank(b.bankingMode)
+        })[0] ?? null
     },
 
     /**
