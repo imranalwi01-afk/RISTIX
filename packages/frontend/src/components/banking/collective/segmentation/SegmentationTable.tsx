@@ -1,30 +1,14 @@
-
-import React from 'react';
+import React, { useMemo } from 'react';
+import { Box, Chip, IconButton, Tooltip, Typography } from '@mui/material';
 import {
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  IconButton,
-  Chip,
-  Checkbox,
-  Tooltip,
-  Typography,
-  TablePagination,
-  Skeleton
-} from '@mui/material';
-import {
-  Edit as EditIcon,
+  ContentCopy as DuplicateIcon,
   Delete as DeleteIcon,
+  Edit as EditIcon,
   Visibility as ViewIcon,
-  ContentCopy as DuplicateIcon
 } from '@mui/icons-material';
+import type { GridColDef } from '@mui/x-data-grid';
 import { ApprovalStatusBadge } from '@/components/approval/ApprovalStatusBadge';
-import EmptyState from '../../shared/EmptyState';
+import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 
 interface SegmentationTableProps {
   data: any[];
@@ -41,6 +25,7 @@ interface SegmentationTableProps {
   totalCount: number;
   onPageChange: (newPage: number) => void;
   onRowsPerPageChange: (newRowsPerPage: number) => void;
+  onSaveView?: () => void;
   pendingRequests?: any[];
   canManage?: boolean;
 }
@@ -60,12 +45,10 @@ export const SegmentationTable: React.FC<SegmentationTableProps> = ({
   totalCount,
   onPageChange,
   onRowsPerPageChange,
+  onSaveView,
   pendingRequests = [],
-  canManage = false
+  canManage = false,
 }) => {
-
-  const isSelected = (id: number) => selectedIds.includes(id);
-
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'active':
@@ -84,230 +67,186 @@ export const SegmentationTable: React.FC<SegmentationTableProps> = ({
     }
   };
 
-  const renderSkeleton = () => (
-    Array.from(new Array(5)).map((_, index) => (
-      <TableRow key={`skeleton-${index}`}>
-        <TableCell padding="checkbox"><Skeleton variant="rectangular" width={20} height={20} /></TableCell>
-        <TableCell><Skeleton variant="text" width={100} /></TableCell>
-        <TableCell><Skeleton variant="text" width={150} /></TableCell>
-        <TableCell><Skeleton variant="text" width={100} /></TableCell>
-        <TableCell><Skeleton variant="text" width={100} /></TableCell>
-        <TableCell align="center"><Skeleton variant="rounded" width={40} height={24} /></TableCell>
-        <TableCell align="center"><Skeleton variant="text" width={30} /></TableCell>
-        <TableCell align="center"><Skeleton variant="rounded" width={80} height={24} /></TableCell>
-        <TableCell><Skeleton variant="text" width={80} /></TableCell>
-      </TableRow>
-    ))
-  );
+  const handleSelectionChange = (ids: (string | number)[]) => {
+    const currentPageIds = new Set(data.map((row) => Number(row.id)));
+    const nextSelectedIds = new Set(ids.map((id) => Number(id)));
+
+    if (nextSelectedIds.size === 0) {
+      onSelectAll(false);
+      return;
+    }
+
+    if (data.length > 0 && data.every((row) => nextSelectedIds.has(Number(row.id)))) {
+      onSelectAll(true);
+      return;
+    }
+
+    const changedIds = [
+      ...selectedIds.filter((id) => currentPageIds.has(Number(id)) && !nextSelectedIds.has(Number(id))),
+      ...Array.from(nextSelectedIds).filter((id) => currentPageIds.has(id) && !selectedIds.includes(id)),
+    ];
+
+    changedIds.forEach((id) => onSelect(Number(id)));
+  };
+
+  const columns = useMemo<GridColDef[]>(() => [
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      type: 'actions',
+      width: 144,
+      filterable: false,
+      sortable: false,
+      renderCell: (params) => (
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          <Tooltip title="View Details">
+            <IconButton
+              size="small"
+              onClick={() => onView(params.row)}
+              color="info"
+              sx={{ p: 0.5 }}
+              aria-label="view-segmentation"
+              data-testid="view-segmentation-btn"
+            >
+              <ViewIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          {canManage && (
+            <>
+              <Tooltip title="Edit">
+                <IconButton
+                  size="small"
+                  onClick={() => onEdit(params.row)}
+                  color="warning"
+                  sx={{ p: 0.5 }}
+                  aria-label="edit-segmentation"
+                  data-testid="edit-segmentation-btn"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Duplicate">
+                <IconButton size="small" onClick={() => onDuplicate(params.row)} color="primary" sx={{ p: 0.5 }}>
+                  <DuplicateIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Delete">
+                <IconButton
+                  size="small"
+                  onClick={() => onDelete(params.row)}
+                  color="error"
+                  sx={{ p: 0.5 }}
+                  aria-label="delete-segmentation"
+                  data-testid="delete-segmentation-btn"
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
+        </Box>
+      ),
+    },
+    {
+      field: 'group_segment',
+      headerName: 'Group Segment',
+      minWidth: 180,
+      flex: 1,
+      renderCell: (params) => (
+        <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
+          {params.value}
+        </Typography>
+      ),
+    },
+    {
+      field: 'segment',
+      headerName: 'Segment',
+      minWidth: 180,
+      flex: 1,
+      renderCell: (params) => (
+        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+          {params.value}
+        </Typography>
+      ),
+    },
+    { field: 'sub_segment', headerName: 'Sub Segment', minWidth: 180, flex: 1 },
+    {
+      field: 'segment_type',
+      headerName: 'Type',
+      width: 130,
+      align: 'center',
+      renderCell: (params) => (
+        <Chip label={params.value} size="small" variant="outlined" sx={{ fontWeight: 'bold', fontSize: '0.65rem', height: 20, borderRadius: 1 }} />
+      ),
+    },
+    { field: 'seq', headerName: 'Seq', width: 96, align: 'center' },
+    {
+      field: 'status',
+      headerName: 'Status',
+      width: 140,
+      align: 'center',
+      renderCell: (params) => {
+        const status = params.row.active_flag ? 'Active' : (params.row.status || 'Inactive');
+        const isPending = pendingRequests.some((request) => request.entityId === params.row.id.toString());
+
+        return isPending ? (
+          <ApprovalStatusBadge status="pending" />
+        ) : (
+          <Chip
+            label={status}
+            size="small"
+            color={getStatusColor(status) as any}
+            variant="filled"
+            sx={{ fontWeight: 'bold', fontSize: '0.65rem', height: 20, minWidth: 70, borderRadius: 1 }}
+          />
+        );
+      },
+    },
+    {
+      field: 'updated_date',
+      headerName: 'Updated',
+      width: 150,
+      renderCell: (params) => (
+        <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+          {params.value ? new Date(params.value).toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+          }) : '-'}
+        </Typography>
+      ),
+    },
+  ], [canManage, onDelete, onDuplicate, onEdit, onView, pendingRequests]);
 
   return (
-    <Paper
-      sx={{
-        width: '100%',
-        mb: 2,
-        overflow: 'hidden',
-        borderRadius: 2,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-        border: '1px solid',
-        borderColor: 'divider'
+    <SafeDataGrid
+      rows={data}
+      columns={columns}
+      loading={loading}
+      getRowId={(row) => row.id}
+      checkboxSelection
+      rowSelectionModel={selectedIds as any}
+      onRowSelectionModelChange={(ids) => handleSelectionChange(ids as any)}
+      rowCount={totalCount}
+      paginationMode="offset"
+      paginationModel={{ page, pageSize: rowsPerPage }}
+      onPaginationModelChange={(model) => {
+        if (model.page !== page) onPageChange(model.page);
+        if (model.pageSize !== rowsPerPage) onRowsPerPageChange(model.pageSize);
       }}
-      variant="elevation"
-    >
-      <TableContainer sx={{ maxHeight: 'calc(100vh - 400px)' }}>
-        <Table stickyHeader size="small" aria-label="segmentation table">
-          <TableHead>
-            <TableRow>
-              <TableCell padding="checkbox" sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>
-                <Checkbox
-                  color="primary"
-                  indeterminate={selectedIds.length > 0 && selectedIds.length < data.length}
-                  checked={data.length > 0 && selectedIds.length === data.length}
-                  onChange={(e) => onSelectAll(e.target.checked)}
-                />
-              </TableCell>
-              <TableCell sx={{ bgcolor: '#f8fafc', fontWeight: 'bold', color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.75rem' }}>
-                Actions
-              </TableCell>
-              <TableCell sx={{ bgcolor: '#f8fafc', fontWeight: 'bold', color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.75rem' }}>
-                Group Segment
-              </TableCell>
-              <TableCell sx={{ bgcolor: '#f8fafc', fontWeight: 'bold', color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.75rem' }}>
-                Segment
-              </TableCell>
-              <TableCell sx={{ bgcolor: '#f8fafc', fontWeight: 'bold', color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.75rem' }}>
-                Sub Segment
-              </TableCell>
-              <TableCell align="center" sx={{ bgcolor: '#f8fafc', fontWeight: 'bold', color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.75rem' }}>
-                Type
-              </TableCell>
-              <TableCell align="center" sx={{ bgcolor: '#f8fafc', fontWeight: 'bold', color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.75rem' }}>
-                Seq
-              </TableCell>
-              <TableCell align="center" sx={{ bgcolor: '#f8fafc', fontWeight: 'bold', color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.75rem' }}>
-                Status
-              </TableCell>
-              <TableCell sx={{ bgcolor: '#f8fafc', fontWeight: 'bold', color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.75rem' }}>
-                Updated
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading ? (
-              renderSkeleton()
-            ) : data.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={9} align="center" sx={{ py: 10 }}>
-                  <EmptyState
-                    title="No Segmentations Found"
-                    description="Try adjusting your search or filters to find what you're looking for."
-                  />
-                </TableCell>
-              </TableRow>
-            ) : (
-              data.map((row) => {
-                const isItemSelected = isSelected(row.id);
-                const status = row.active_flag ? 'Active' : (row.status || 'Inactive');
-                const isPending = pendingRequests.some(r => r.entityId === row.id.toString());
-
-                return (
-                  <TableRow
-                    hover
-                    role="checkbox"
-                    aria-checked={isItemSelected}
-                    tabIndex={-1}
-                    key={row.id}
-                    selected={isItemSelected}
-                    sx={{
-                      '&:nth-of-type(even)': { backgroundColor: '#fcfcfc' },
-                      '&:hover': { backgroundColor: '#f1f5f9 !important' },
-                      transition: 'background-color 0.2s ease'
-                    }}
-                  >
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        color="primary"
-                        checked={isItemSelected}
-                        onChange={() => onSelect(row.id)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', gap: 0.5 }}>
-                        <Tooltip title="View Details">
-                          <IconButton
-                            size="small"
-                            onClick={() => onView(row)}
-                            color="info"
-                            sx={{ p: 0.5 }}
-                            aria-label="view-segmentation"
-                            data-testid="view-segmentation-btn"
-                          >
-                            <ViewIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        {canManage && (
-                          <>
-                            <Tooltip title="Edit">
-                              <IconButton
-                                size="small"
-                                onClick={() => onEdit(row)}
-                                color="warning"
-                                sx={{ p: 0.5 }}
-                                aria-label="edit-segmentation"
-                                data-testid="edit-segmentation-btn"
-                              >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Duplicate">
-                              <IconButton size="small" onClick={() => onDuplicate(row)} color="primary" sx={{ p: 0.5 }}>
-                                <DuplicateIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Delete">
-                              <IconButton
-                                size="small"
-                                onClick={() => onDelete(row)}
-                                color="error"
-                                sx={{ p: 0.5 }}
-                                aria-label="delete-segmentation"
-                                data-testid="delete-segmentation-btn"
-                              >
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          </>
-                        )}
-                      </Box>
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>
-                      {row.group_segment}
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 500 }}>{row.segment}</TableCell>
-                    <TableCell color="text.secondary">{row.sub_segment || '-'}</TableCell>
-                    <TableCell align="center">
-                      <Chip
-                        label={row.segment_type}
-                        size="small"
-                        variant="outlined"
-                        sx={{
-                          fontWeight: 'bold',
-                          fontSize: '0.65rem',
-                          height: 20,
-                          borderRadius: 1
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 'medium' }}>{row.seq}</TableCell>
-                    <TableCell align="center">
-                      {isPending ? (
-                        <ApprovalStatusBadge status="pending" />
-                      ) : (
-                        <Chip
-                          label={status}
-                          size="small"
-                          color={getStatusColor(status) as any}
-                          variant="filled"
-                          sx={{
-                            fontWeight: 'bold',
-                            fontSize: '0.65rem',
-                            height: 20,
-                            minWidth: 70,
-                            borderRadius: 1
-                          }}
-                        />
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
-                        {row.updated_date ? new Date(row.updated_date).toLocaleDateString(undefined, {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric'
-                        }) : '-'}
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      <TablePagination
-        rowsPerPageOptions={[10, 25, 50]}
-        component="div"
-        count={totalCount}
-        rowsPerPage={rowsPerPage}
-        page={page}
-        onPageChange={(_, p) => onPageChange(p)}
-        onRowsPerPageChange={(e) => onRowsPerPageChange(parseInt(e.target.value, 10))}
-        labelDisplayedRows={({ from, to, count }) => (
-          <Box component="span" sx={{ fontSize: '0.875rem' }}>
-            Showing <strong>{from}–{to}</strong> of <strong>{count}</strong>
-          </Box>
-        )}
-        sx={{ borderTop: '1px solid', borderColor: 'divider', bgcolor: '#f8fafc' }}
-      />
-    </Paper>
+      pageSizeOptions={[10, 25, 50]}
+      tableStateKey="collective-segmentation-table"
+      maxTableHeight="none"
+      fillAvailableHeight
+      onSaveView={onSaveView}
+      disableRowSelectionOnClick
+      sx={{
+        minHeight: 0,
+        flex: '1 1 auto',
+        '& .MuiPaper-root': {
+          borderRadius: 2,
+        },
+      }}
+    />
   );
 };

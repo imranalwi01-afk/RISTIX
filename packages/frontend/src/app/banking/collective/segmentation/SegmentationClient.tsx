@@ -12,20 +12,7 @@ import {
   Alert,
   Snackbar,
   Box,
-  Card,
-  CardContent,
-  Typography,
-  Tooltip,
-  Button,
-  Chip,
-  Menu,
-  MenuItem
 } from '@mui/material';
-import {
-  Refresh as RefreshIcon,
-  Download as ExportIcon,
-  HelpOutline as HelpIcon
-} from '@mui/icons-material';
 import { api } from '../../../../services/api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import { exportToCSV, exportToPDF, exportToXLSX } from '@/utils/exportUtils';
@@ -45,7 +32,6 @@ import SegmentationFilterDrawer from './components/SegmentationFilterDrawer';
 import { bankingAPI } from '@/services/api';
 import {
   ApprovalNotification,
-  ApprovalStatusBadge,
   buildApprovalConflictNotification,
   buildApprovalNotification,
   createClosedApprovalNotification,
@@ -73,6 +59,7 @@ interface SegmentationHeaderData {
 
 const BANKING_TOP_OFFSET = 74; // Banking app bar (42) + breadcrumbs row (32)
 const DETAIL_CONTAINER_VARIANT: 'modal' | 'drawer' = 'modal';
+const SEGMENTATION_DRAFT_STORAGE_PREFIX = 'ifrs9:collective:segmentation:draft:';
 const EMPTY_FILTERS = {
   segmentType: '',
   status: '',
@@ -91,6 +78,49 @@ const SEGMENTATION_EXPORT_COLUMNS = [
   { field: 'status', headerName: 'Status' },
   { field: 'updated_date', headerName: 'Updated Date' },
 ] as const;
+
+const stringifyNullable = (value: unknown) => value == null ? '' : String(value);
+
+const normalizeSegmentationRules = (rules: unknown) => Array.isArray(rules)
+  ? rules.map((rule: any, index) => ({
+    ...rule,
+    query_group: Number(rule?.query_group ?? 1),
+    seq: Number(rule?.seq ?? index + 1),
+    table_name: stringifyNullable(rule?.table_name),
+    column_name: stringifyNullable(rule?.column_name),
+    data_type: stringifyNullable(rule?.data_type),
+    operator: stringifyNullable(rule?.operator),
+    value1: stringifyNullable(rule?.value1),
+    value2: stringifyNullable(rule?.value2),
+    condition: (stringifyNullable(rule?.condition) || 'AND') as 'AND' | 'OR',
+  }))
+  : [];
+
+const getSegmentationDraftKey = (id: number | string) => `${SEGMENTATION_DRAFT_STORAGE_PREFIX}${id || 'new'}`;
+
+const readSegmentationDraft = (id: number) => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(getSegmentationDraftKey(id));
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+};
+
+const writeSegmentationDraft = (id: number, data: any) => {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(getSegmentationDraftKey(id), JSON.stringify({
+    ...data,
+    savedAt: new Date().toISOString(),
+  }));
+};
+
+const clearSegmentationDraft = (id: number) => {
+  if (typeof window === 'undefined') return;
+  window.localStorage.removeItem(getSegmentationDraftKey(id));
+};
 
 export default function SegmentationClient() {
   const { user } = useAuth();
@@ -141,7 +171,6 @@ export default function SegmentationClient() {
   });
 
   // Detail View
-  const [exportAnchorEl, setExportAnchorEl] = useState<null | HTMLElement>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailMode, setDetailMode] = useState<'add' | 'edit' | 'view'>('view');
   const [selectedHeader, setSelectedHeader] = useState<SegmentationHeaderData | null>(null);
@@ -279,9 +308,9 @@ export default function SegmentationClient() {
 
   const handleAddSegmentation = () => {
     if (!canManageSegmentation) return;
+    const draft = readSegmentationDraft(0);
     setDetailMode('add');
     setSelectedHeader({
-      id: 0,
       group_segment: '',
       segment: '',
       sub_segment: '',
@@ -289,8 +318,13 @@ export default function SegmentationClient() {
       seq: totalCount + 1,
       active_flag: true,
       status: 'Draft',
-      rules: []
+      ...(draft || {}),
+      id: 0,
+      rules: normalizeSegmentationRules(draft?.rules || [])
     });
+    if (draft) {
+      setSnackbar({ open: true, message: 'Loaded saved draft for new segmentation', type: 'info' });
+    }
     setDetailOpen(true);
   };
 
@@ -312,8 +346,18 @@ export default function SegmentationClient() {
     setLoading(true);
     try {
       const details = await api.banking.segmentation.getDetails(header.id);
+      const draft = readSegmentationDraft(header.id);
       setDetailMode('edit');
-      setSelectedHeader({ ...header, rules: details.data || details || [] });
+      setSelectedHeader({
+        ...header,
+        ...(draft || {}),
+        id: header.id,
+        status: draft ? 'Draft' : header.status,
+        rules: normalizeSegmentationRules(draft?.rules || details.data || details || []),
+      });
+      if (draft) {
+        setSnackbar({ open: true, message: 'Loaded saved draft for this segmentation', type: 'info' });
+      }
       setDetailOpen(true);
     } catch (err) {
       setSnackbar({ open: true, message: 'Failed to load rules', type: 'error' });
@@ -405,7 +449,6 @@ export default function SegmentationClient() {
 
   const handleExport = useCallback(async (format: 'xlsx' | 'csv' | 'pdf') => {
     try {
-      setExportAnchorEl(null);
       const exportRows = await fetchAllSegmentationRows();
       const exportFilters: Record<string, string> = {};
       if (searchTerm) exportFilters.Search = searchTerm;
@@ -435,13 +478,24 @@ export default function SegmentationClient() {
   }, [fetchAllSegmentationRows, filters, searchTerm]);
 
   const handleSave = async (data: any, isDraft: boolean) => {
+    const payload = {
+      ...data,
+      rules: normalizeSegmentationRules(data.rules),
+      active_flag: Boolean(data.active_flag),
+    };
+
+    if (isDraft) {
+      writeSegmentationDraft(payload.id || 0, payload);
+      setSnackbar({
+        open: true,
+        message: 'Draft saved. Submit for approval when ready to apply it.',
+        type: 'success'
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      const payload = {
-        ...data,
-        active_flag: isDraft ? false : data.active_flag
-      };
-
       let response;
       if (detailMode === 'add') {
         response = await api.banking.segmentation.createHeader(payload);
@@ -459,6 +513,7 @@ export default function SegmentationClient() {
         });
       }
 
+      clearSegmentationDraft(payload.id || 0);
       setDetailOpen(false);
       loadHeaders();
       loadPendingApprovals();
@@ -480,7 +535,20 @@ export default function SegmentationClient() {
   // ============================================================================
 
   return (
-    <Container maxWidth="xl" sx={{ position: 'relative', pb: 5 }}>
+    <Container
+      maxWidth={false}
+      sx={{
+        position: 'relative',
+        pb: 4,
+        px: { xs: 2, lg: 4, xl: 6 },
+        minHeight: {
+          xs: 'auto',
+          lg: 'calc(100vh - 122px)',
+        },
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
       <FullstackIndicator />
       {!canViewSegmentation && (
         <Alert severity="warning" sx={{ mb: 2 }}>
@@ -495,44 +563,8 @@ export default function SegmentationClient() {
         onHelp={() => window.open('#', '_blank')}
         lastUpdated={new Date().toLocaleTimeString()}
         dbStatus="active"
+        canExport={canExportSegmentation}
       />
-
-      {/* Header Card */}
-      <Card sx={{ mb: 3, borderRadius: 2 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-            <Box>
-              <Typography variant="h4" component="h1" fontWeight="bold" gutterBottom>
-                Segmentation Configuration
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                Master-detail configuration for portfolio segmentation rules and criteria
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Tooltip title="Shortcut: R"><Button startIcon={<RefreshIcon />} onClick={() => loadHeaders()}>Refresh</Button></Tooltip>
-              {canExportSegmentation && (
-                <>
-                  <Button startIcon={<ExportIcon />} onClick={(e) => setExportAnchorEl(e.currentTarget)}>Export</Button>
-                  <Menu anchorEl={exportAnchorEl} open={Boolean(exportAnchorEl)} onClose={() => setExportAnchorEl(null)}>
-                    <MenuItem onClick={() => handleExport('xlsx')}>Export to Excel</MenuItem>
-                    <MenuItem onClick={() => handleExport('csv')}>Export to CSV</MenuItem>
-                    <MenuItem onClick={() => handleExport('pdf')}>Export to PDF</MenuItem>
-                  </Menu>
-                </>
-              )}
-              <Button variant="outlined" onClick={handleSaveView}>Save View</Button>
-              <Button variant="outlined" startIcon={<HelpIcon />}>Help</Button>
-            </Box>
-          </Box>
-          <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-            <Typography variant="caption" color="text.secondary" sx={{ mr: 2 }}>
-              Last updated: {new Date().toLocaleTimeString()}
-            </Typography>
-            <Chip label="Database Active" size="small" color="success" variant="outlined" />
-          </Box>
-        </CardContent>
-      </Card>
 
       {/* Error Feedback */}
       {error && (
@@ -554,26 +586,29 @@ export default function SegmentationClient() {
       />
 
       {/* Main Table */}
-      <SegmentationTable
-        data={headers}
-        canManage={canManageSegmentation}
-        loading={loading}
-        page={queryState.paginationModel.page}
-        rowsPerPage={queryState.paginationModel.pageSize}
-        totalCount={totalCount}
-        selectedIds={selectedIds}
-        onSelect={(id) => {
-          setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-        }}
-        onSelectAll={(checked) => setSelectedIds(checked ? headers.map(h => h.id) : [])}
-        onView={handleView}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onDuplicate={handleDuplicate}
-        onPageChange={(nextPage) => setPaginationModel({ page: nextPage, pageSize: queryState.paginationModel.pageSize })}
-        onRowsPerPageChange={(nextRowsPerPage) => setPaginationModel({ page: 0, pageSize: nextRowsPerPage })}
-        pendingRequests={pendingRequests}
-      />
+      <Box sx={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: 0 }}>
+        <SegmentationTable
+          data={headers}
+          canManage={canManageSegmentation}
+          loading={loading}
+          page={queryState.paginationModel.page}
+          rowsPerPage={queryState.paginationModel.pageSize}
+          totalCount={totalCount}
+          selectedIds={selectedIds}
+          onSelect={(id) => {
+            setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+          }}
+          onSelectAll={(checked) => setSelectedIds(checked ? headers.map(h => h.id) : [])}
+          onView={handleView}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onDuplicate={handleDuplicate}
+          onPageChange={(nextPage) => setPaginationModel({ page: nextPage, pageSize: queryState.paginationModel.pageSize })}
+          onRowsPerPageChange={(nextRowsPerPage) => setPaginationModel({ page: 0, pageSize: nextRowsPerPage })}
+          onSaveView={handleSaveView}
+          pendingRequests={pendingRequests}
+        />
+      </Box>
 
       {detailOpen && selectedHeader && (
         <SegmentationDetailContainer

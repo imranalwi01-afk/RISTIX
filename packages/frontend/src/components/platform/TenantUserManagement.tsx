@@ -6,13 +6,6 @@ import {
     Box,
     Typography,
     Paper,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    TablePagination,
     IconButton,
     Button,
     Chip,
@@ -49,7 +42,9 @@ import {
     ManageAccounts as ManageAccountsIcon,
     VpnKey as VpnKeyIcon
 } from '@mui/icons-material';
+import type { GridColDef } from '@mui/x-data-grid';
 import { format } from 'date-fns';
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { exportToCsv } from '@/utils/export-csv';
 import { getErrorMessage } from '@/utils/error-message';
 import { usePlatformTenantsQuery } from '@/features/platform-tenants/hooks/usePlatformTenantsQueries';
@@ -446,6 +441,112 @@ const TenantUserManagement = () => {
         setInitialRoleIds(assignedIds);
     };
 
+    const tenantUserColumns = useMemo<GridColDef<TenantUser>[]>(() => [
+        {
+            field: 'fullName',
+            headerName: 'User',
+            minWidth: 260,
+            flex: 1.3,
+            renderCell: (params) => (
+                <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                        {params.row.fullName}
+                    </Typography>
+                    <Typography variant="caption" color="textSecondary">
+                        {params.row.email}
+                    </Typography>
+                    <Typography variant="caption" display="block" color="textSecondary">
+                        @{params.row.username}
+                    </Typography>
+                </Box>
+            ),
+        },
+        {
+            field: 'roles',
+            headerName: 'Roles',
+            minWidth: 220,
+            flex: 1,
+            sortable: false,
+            filterable: false,
+            renderCell: (params) => {
+                const roles = userRolesMap[params.row.id] || [];
+                return (
+                    <Box display="flex" gap={0.5} flexWrap="wrap" alignItems="center">
+                        {roles.length === 0 ? (
+                            <Typography variant="caption" color="text.secondary">
+                                No roles
+                            </Typography>
+                        ) : (
+                            <>
+                                {roles.slice(0, 2).map((role) => (
+                                    <Chip key={role.id} label={role.roleName} size="small" variant="outlined" />
+                                ))}
+                                {roles.length > 2 && (
+                                    <Chip label={`+${roles.length - 2}`} size="small" color="default" />
+                                )}
+                            </>
+                        )}
+                    </Box>
+                );
+            },
+        },
+        {
+            field: 'isActive',
+            headerName: 'Status',
+            width: 140,
+            renderCell: (params) => (
+                <Chip
+                    label={params.row.isActive ? 'Active' : 'Inactive'}
+                    size="small"
+                    color={params.row.isActive ? 'success' : 'default'}
+                    icon={params.row.isActive ? <CheckCircleIcon /> : <CancelIcon />}
+                    variant={params.row.isActive ? 'filled' : 'outlined'}
+                    onClick={() => handleToggle(params.row)}
+                />
+            ),
+        },
+        {
+            field: 'createdAt',
+            headerName: 'Created At',
+            width: 160,
+            renderCell: (params) => params.value ? format(new Date(params.value), 'MMM d, yyyy') : '-',
+        },
+        {
+            field: 'actions',
+            headerName: 'Actions',
+            type: 'actions',
+            width: 168,
+            sortable: false,
+            filterable: false,
+            getActions: (params) => [
+                <SafeGridActionsCellItem
+                    key="roles"
+                    label="Manage Roles"
+                    icon={<ManageAccountsIcon fontSize="small" color="primary" />}
+                    onClick={() => openRoleDialog(params.row)}
+                />,
+                <SafeGridActionsCellItem
+                    key="reset"
+                    label="Reset Password"
+                    icon={<LockResetIcon fontSize="small" color="warning" />}
+                    onClick={() => openResetPasswordDialog(params.row)}
+                />,
+                <SafeGridActionsCellItem
+                    key="edit"
+                    label="Edit"
+                    icon={<EditIcon fontSize="small" />}
+                    onClick={() => handleEdit(params.row)}
+                />,
+                <SafeGridActionsCellItem
+                    key="delete"
+                    label="Delete"
+                    icon={<DeleteIcon fontSize="small" color="error" />}
+                    onClick={() => handleDelete(params.row.id)}
+                />,
+            ],
+        },
+    ], [handleDelete, handleEdit, handleToggle, openResetPasswordDialog, openRoleDialog, userRolesMap]);
+
     const handleToggleRole = (roleId: string) => {
         setSelectedRoleIds((prev) =>
             prev.includes(roleId)
@@ -714,138 +815,33 @@ const TenantUserManagement = () => {
                 </Box>
             </Paper>
 
-            <Card variant="outlined">
-                <TableContainer>
-                    <Table sx={{ minWidth: 650 }}>
-                        <TableHead sx={{ bgcolor: 'background.default' }}>
-                            <TableRow>
-                                <TableCell>User</TableCell>
-                                <TableCell>Roles</TableCell>
-                                <TableCell>Status</TableCell>
-                                <TableCell>Created At</TableCell>
-                                <TableCell align="right">Actions</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {!selectedTenant ? (
-                                <TableRow>
-                                    <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
-                                        <Typography variant="body1" color="textSecondary">
-                                            Please select a tenant to view users.
-                                        </Typography>
-                                    </TableCell>
-                                </TableRow>
-                            ) : loading ? (
-                                <TableRow>
-                                    <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
-                                        <CircularProgress />
-                                    </TableCell>
-                                </TableRow>
-                            ) : filteredUsers.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
-                                        <Typography variant="body1" color="textSecondary">
-                                            No users found for this tenant.
-                                        </Typography>
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                filteredUsers.map((user) => (
-                                    <TableRow key={user.id} hover>
-                                        <TableCell>
-                                            <Box>
-                                                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                                                    {user.fullName}
-                                                </Typography>
-                                                <Typography variant="caption" color="textSecondary">
-                                                    {user.email}
-                                                </Typography>
-                                                <Typography variant="caption" display="block" color="textSecondary">
-                                                    @{user.username}
-                                                </Typography>
-                                            </Box>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Box display="flex" gap={0.5} flexWrap="wrap" alignItems="center">
-                                                {(userRolesMap[user.id] || []).length === 0 ? (
-                                                    <Typography variant="caption" color="text.secondary">
-                                                        No roles
-                                                    </Typography>
-                                                ) : (
-                                                    <>
-                                                        {(userRolesMap[user.id] || []).slice(0, 2).map((role) => (
-                                                            <Chip
-                                                                key={role.id}
-                                                                label={role.roleName}
-                                                                size="small"
-                                                                variant="outlined"
-                                                            />
-                                                        ))}
-                                                        {(userRolesMap[user.id] || []).length > 2 && (
-                                                            <Chip
-                                                                label={`+${(userRolesMap[user.id] || []).length - 2}`}
-                                                                size="small"
-                                                                color="default"
-                                                            />
-                                                        )}
-                                                    </>
-                                                )}
-                                            </Box>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Chip
-                                                label={user.isActive ? 'Active' : 'Inactive'}
-                                                size="small"
-                                                color={user.isActive ? 'success' : 'default'}
-                                                icon={user.isActive ? <CheckCircleIcon /> : <CancelIcon />}
-                                                variant={user.isActive ? "filled" : "outlined"}
-                                                onClick={() => handleToggle(user)}
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Typography variant="body2">
-                                                {user.createdAt
-                                                    ? format(new Date(user.createdAt), 'MMM d, yyyy')
-                                                    : '-'}
-                                            </Typography>
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            <Tooltip title="Manage Roles">
-                                                <IconButton size="small" color="primary" onClick={() => openRoleDialog(user)}>
-                                                    <ManageAccountsIcon fontSize="small" />
-                                                </IconButton>
-                                            </Tooltip>
-                                            <Tooltip title="Reset Password">
-                                                <IconButton size="small" color="warning" onClick={() => openResetPasswordDialog(user)}>
-                                                    <LockResetIcon fontSize="small" />
-                                                </IconButton>
-                                            </Tooltip>
-                                            <Tooltip title="Edit">
-                                                <IconButton size="small" onClick={() => handleEdit(user)}>
-                                                    <EditIcon fontSize="small" />
-                                                </IconButton>
-                                            </Tooltip>
-                                            <Tooltip title="Delete">
-                                                <IconButton size="small" color="error" onClick={() => handleDelete(user.id)}>
-                                                    <DeleteIcon fontSize="small" />
-                                                </IconButton>
-                                            </Tooltip>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-                <TablePagination
-                    rowsPerPageOptions={[5, 10, 25]}
-                    component="div"
-                    count={statusFilter === 'all' ? total : filteredUsers.length}
-                    rowsPerPage={rowsPerPage}
-                    page={page}
-                    onPageChange={handlePageChange}
-                    onRowsPerPageChange={handleRowsPerPageChange}
-                />
+            <Card variant="outlined" sx={{ p: 2 }}>
+                {!selectedTenant ? (
+                    <Typography variant="body1" color="textSecondary" sx={{ py: 8, textAlign: 'center' }}>
+                        Please select a tenant to view users.
+                    </Typography>
+                ) : (
+                    <SafeDataGrid
+                        rows={filteredUsers}
+                        columns={tenantUserColumns}
+                        loading={loading}
+                        getRowId={(row) => row.id}
+                        rowCount={statusFilter === 'all' ? total : filteredUsers.length}
+                        paginationMode="offset"
+                        paginationModel={{ page, pageSize: rowsPerPage }}
+                        onPaginationModelChange={(model) => {
+                            if (model.page !== page) handlePageChange(null, model.page);
+                            if (model.pageSize !== rowsPerPage) {
+                                handleRowsPerPageChange({ target: { value: String(model.pageSize) } } as React.ChangeEvent<HTMLInputElement>);
+                            }
+                        }}
+                        pageSizeOptions={[5, 10, 25]}
+                        disableRowSelectionOnClick
+                        tableStateKey="tenant-user-management-table"
+                        fillAvailableHeight
+                        maxTableHeight="none"
+                    />
+                )}
             </Card>
 
             {/* Simplistic Dialog Form for MVP */}

@@ -9,7 +9,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -24,12 +24,6 @@ import {
   Breadcrumbs,
   Link,
   Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   LinearProgress,
   Tabs,
   Tab,
@@ -89,8 +83,10 @@ import {
   Timeline,
   FactCheck,
 } from '@mui/icons-material';
+import type { GridColDef } from '@mui/x-data-grid';
 import { useRouter } from 'next/navigation';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from 'recharts';
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 
 // Data quality rule types
 type QualityRuleType = 'completeness' | 'uniqueness' | 'validity' | 'consistency' | 'accuracy' | 'timeliness';
@@ -427,6 +423,129 @@ export default function DataValidationDashboard() {
     return true;
   });
 
+  const qualityRuleColumns = useMemo<GridColDef<QualityRule>[]>(() => [
+    {
+      field: 'name',
+      headerName: 'Rule',
+      minWidth: 280,
+      flex: 1.2,
+      renderCell: (params) => {
+        const RuleTypeIcon = ruleTypeIcons[params.row.type];
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <RuleTypeIcon sx={{ mr: 1, color: 'primary.main' }} />
+            <Box>
+              <Typography variant="subtitle2">{params.row.name}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {params.row.table}.{params.row.column}
+              </Typography>
+            </Box>
+          </Box>
+        );
+      },
+    },
+    {
+      field: 'type',
+      headerName: 'Type',
+      width: 150,
+      renderCell: (params) => <Chip label={params.row.type} size="small" variant="outlined" />,
+    },
+    {
+      field: 'status',
+      headerName: 'Status',
+      width: 140,
+      renderCell: (params) => (
+        <Chip
+          label={params.row.status}
+          size="small"
+          sx={{
+            backgroundColor: getStatusColor(params.row.status) + '20',
+            color: getStatusColor(params.row.status),
+            fontWeight: 'bold'
+          }}
+        />
+      ),
+    },
+    {
+      field: 'score',
+      headerName: 'Score',
+      width: 150,
+      renderCell: (params) => (
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography variant="body2" sx={{ mr: 1 }}>
+            {params.row.score.toFixed(1)}%
+          </Typography>
+          <LinearProgress
+            variant="determinate"
+            value={params.row.score}
+            sx={{ width: 60, height: 4, borderRadius: 2 }}
+          />
+        </Box>
+      ),
+    },
+    {
+      field: 'errorCount',
+      headerName: 'Errors',
+      width: 130,
+      renderCell: (params) => (
+        <Typography variant="body2" color={params.row.errorCount > 0 ? 'error' : 'text.secondary'}>
+          {params.row.errorCount} / {params.row.totalRecords}
+        </Typography>
+      ),
+    },
+    {
+      field: 'severity',
+      headerName: 'Severity',
+      width: 130,
+      renderCell: (params) => (
+        <Chip
+          label={params.row.severity}
+          size="small"
+          sx={{
+            backgroundColor: getSeverityColor(params.row.severity) + '20',
+            color: getSeverityColor(params.row.severity),
+            fontWeight: 'bold'
+          }}
+        />
+      ),
+    },
+    {
+      field: 'lastRun',
+      headerName: 'Last Run',
+      width: 130,
+      renderCell: (params) => (
+        <Typography variant="caption" color="text.secondary">
+          {(params.row.lastRun as Date).toLocaleTimeString()}
+        </Typography>
+      ),
+    },
+    {
+      field: 'actions',
+      type: 'actions',
+      headerName: 'Actions',
+      width: 110,
+      getActions: (params) => [
+        <SafeGridActionsCellItem
+          key="run"
+          icon={<RunIcon />}
+          label="Run"
+          onClick={() => runValidation(params.row.id)}
+          showInMenu={false}
+        />,
+        <SafeGridActionsCellItem
+          key="view"
+          icon={<ViewIcon />}
+          label="View"
+          onClick={() => {
+            setSelectedRule(params.row);
+            setRuleDialogOpen(true);
+          }}
+          showInMenu={false}
+        />,
+      ],
+    },
+  ], []);
+
   if (loading) {
     return (
       <Container maxWidth="xl">
@@ -613,107 +732,17 @@ export default function DataValidationDashboard() {
                 Data Quality Rules
               </Typography>
 
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Rule</TableCell>
-                      <TableCell>Type</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Score</TableCell>
-                      <TableCell>Errors</TableCell>
-                      <TableCell>Severity</TableCell>
-                      <TableCell>Last Run</TableCell>
-                      <TableCell>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {filteredRules.map((rule) => {
-                      const RuleTypeIcon = ruleTypeIcons[rule.type];
-                      return (
-                        <TableRow key={rule.id}>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              <RuleTypeIcon sx={{ mr: 1, color: 'primary.main' }} />
-                              <Box>
-                                <Typography variant="subtitle2">{rule.name}</Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  {rule.table}.{rule.column}
-                                </Typography>
-                              </Box>
-                            </Box>
-                          </TableCell>
-                          <TableCell>
-                            <Chip label={rule.type} size="small" variant="outlined" />
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={rule.status}
-                              size="small"
-                              sx={{
-                                backgroundColor: getStatusColor(rule.status) + '20',
-                                color: getStatusColor(rule.status),
-                                fontWeight: 'bold'
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              <Typography variant="body2" sx={{ mr: 1 }}>
-                                {rule.score.toFixed(1)}%
-                              </Typography>
-                              <LinearProgress
-                                variant="determinate"
-                                value={rule.score}
-                                sx={{ width: 60, height: 4, borderRadius: 2 }}
-                              />
-                            </Box>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" color={rule.errorCount > 0 ? 'error' : 'text.secondary'}>
-                              {rule.errorCount} / {rule.totalRecords}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={rule.severity}
-                              size="small"
-                              sx={{
-                                backgroundColor: getSeverityColor(rule.severity) + '20',
-                                color: getSeverityColor(rule.severity),
-                                fontWeight: 'bold'
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="caption" color="text.secondary">
-                              {rule.lastRun.toLocaleTimeString()}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <IconButton
-                              size="small"
-                              onClick={() => runValidation(rule.id)}
-                              color="primary"
-                            >
-                              <RunIcon />
-                            </IconButton>
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                setSelectedRule(rule);
-                                setRuleDialogOpen(true);
-                              }}
-                            >
-                              <ViewIcon />
-                            </IconButton>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              <SafeDataGrid
+                rows={filteredRules}
+                columns={qualityRuleColumns}
+                getRowId={(row) => row.id}
+                paginationMode="client"
+                pageSizeOptions={[10, 25, 50]}
+                disableRowSelectionOnClick
+                tableStateKey="data-validation-rules-table"
+                fillAvailableHeight={false}
+                maxTableHeight={540}
+              />
             </CardContent>
           </Card>
         </Box>

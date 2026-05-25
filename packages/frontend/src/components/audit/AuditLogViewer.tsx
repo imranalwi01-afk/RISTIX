@@ -1,18 +1,11 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
     Box,
     Card,
     CardContent,
     Typography,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    TablePagination,
     Chip,
     TextField,
     MenuItem,
@@ -20,22 +13,21 @@ import {
     FormControl,
     InputLabel,
     Button,
-    IconButton,
     Dialog,
     DialogTitle,
     DialogContent,
     DialogActions,
     Grid,
-    Paper
 } from '@mui/material'
 import {
     Visibility as VisibilityIcon,
     Download as DownloadIcon,
-    FilterList as FilterListIcon
 } from '@mui/icons-material';
+import type { GridColDef } from '@mui/x-data-grid';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { api } from '@/services/api';
 import { format } from 'date-fns'
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 
 interface AuditLog {
     id: string
@@ -148,6 +140,77 @@ export const AuditLogViewer: React.FC = () => {
             default: return 'default'
         }
     }
+
+    const auditColumns = useMemo<GridColDef<AuditLog>[]>(() => [
+        {
+            field: 'timestamp',
+            headerName: 'Timestamp',
+            width: 190,
+            renderCell: (params) => format(new Date(params.value as string), 'MMM dd, yyyy HH:mm:ss'),
+        },
+        {
+            field: 'eventType',
+            headerName: 'Event Type',
+            width: 150,
+            renderCell: (params) => (
+                <Chip
+                    label={params.value}
+                    size="small"
+                    color={getEventTypeColor(params.value as string) as any}
+                />
+            ),
+        },
+        {
+            field: 'action',
+            headerName: 'Action',
+            minWidth: 150,
+            flex: 0.8,
+        },
+        {
+            field: 'description',
+            headerName: 'Description',
+            minWidth: 300,
+            flex: 1.4,
+            renderCell: (params) => (
+                <Typography variant="body2" noWrap sx={{ maxWidth: '100%' }}>
+                    {params.value}
+                </Typography>
+            ),
+        },
+        {
+            field: 'riskLevel',
+            headerName: 'Risk Level',
+            width: 140,
+            renderCell: (params) => (
+                <Chip
+                    label={params.value}
+                    size="small"
+                    color={getRiskLevelColor(params.value as string) as any}
+                />
+            ),
+        },
+        {
+            field: 'ipAddress',
+            headerName: 'IP Address',
+            width: 150,
+            renderCell: (params) => params.value || '-',
+        },
+        {
+            field: 'actions',
+            type: 'actions',
+            headerName: 'Actions',
+            width: 96,
+            getActions: (params) => [
+                <SafeGridActionsCellItem
+                    key="view"
+                    icon={<VisibilityIcon />}
+                    label="View Details"
+                    onClick={() => handleViewDetails(params.row)}
+                    showInMenu={false}
+                />,
+            ],
+        },
+    ], [])
 
     return (
         <Box>
@@ -263,81 +326,27 @@ export const AuditLogViewer: React.FC = () => {
                 </CardContent>
             </Card>
 
-            {/* Table */}
-            <TableContainer component={Paper}>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>Timestamp</TableCell>
-                            <TableCell>Event Type</TableCell>
-                            <TableCell>Action</TableCell>
-                            <TableCell>Description</TableCell>
-                            <TableCell>Risk Level</TableCell>
-                            <TableCell>IP Address</TableCell>
-                            <TableCell>Actions</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {loading ? (
-                            <TableRow>
-                                <TableCell colSpan={7} align="center">Loading...</TableCell>
-                            </TableRow>
-                        ) : logs.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={7} align="center">No audit logs found</TableCell>
-                            </TableRow>
-                        ) : (
-                            logs.map((log) => (
-                                <TableRow key={log.id} hover>
-                                    <TableCell>
-                                        {format(new Date(log.timestamp), 'MMM dd, yyyy HH:mm:ss')}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Chip
-                                            label={log.eventType}
-                                            size="small"
-                                            color={getEventTypeColor(log.eventType) as any}
-                                        />
-                                    </TableCell>
-                                    <TableCell>{log.action}</TableCell>
-                                    <TableCell>
-                                        <Typography variant="body2" noWrap sx={{ maxWidth: 300 }}>
-                                            {log.description}
-                                        </Typography>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Chip
-                                            label={log.riskLevel}
-                                            size="small"
-                                            color={getRiskLevelColor(log.riskLevel) as any}
-                                        />
-                                    </TableCell>
-                                    <TableCell>{log.ipAddress || '-'}</TableCell>
-                                    <TableCell>
-                                        <IconButton
-                                            size="small"
-                                            onClick={() => handleViewDetails(log)}
-                                        >
-                                            <VisibilityIcon />
-                                        </IconButton>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-                <TablePagination
-                    component="div"
-                    count={total}
-                    page={page}
-                    onPageChange={(_, newPage) => setPage(newPage)}
-                    rowsPerPage={rowsPerPage}
-                    onRowsPerPageChange={(e) => {
-                        setRowsPerPage(parseInt(e.target.value, 10))
+            <SafeDataGrid
+                rows={logs}
+                columns={auditColumns}
+                loading={loading}
+                getRowId={(row) => row.id}
+                rowCount={total}
+                paginationMode="offset"
+                paginationModel={{ page, pageSize: rowsPerPage }}
+                onPaginationModelChange={(model) => {
+                    if (model.page !== page) setPage(model.page)
+                    if (model.pageSize !== rowsPerPage) {
+                        setRowsPerPage(model.pageSize)
                         setPage(0)
-                    }}
-                />
-            </TableContainer>
+                    }
+                }}
+                pageSizeOptions={[10, 25, 50, 100]}
+                disableRowSelectionOnClick
+                tableStateKey="audit-log-viewer-table"
+                fillAvailableHeight
+                maxTableHeight="none"
+            />
 
             {/* Details Dialog */}
             <Dialog

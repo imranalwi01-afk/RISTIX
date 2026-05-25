@@ -140,7 +140,7 @@ export const FLScalarGrid = memo(function FLScalarGrid({
   ];
 
   return (
-    <Paper sx={{ p: 2 }}>
+    <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: 0 }}>
       <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <TrendingUpIcon color="primary" />
@@ -185,7 +185,6 @@ export const FLScalarGrid = memo(function FLScalarGrid({
         rows={rows}
         columns={columns}
         loading={loading}
-        autoHeight
         pageSizeOptions={[10, 25, 50]}
         initialState={{
           pagination: { paginationModel: { pageSize: 10 } },
@@ -206,6 +205,9 @@ export const FLScalarGrid = memo(function FLScalarGrid({
           },
         }}
         getRowId={(row) => row.pkid}
+        fillAvailableHeight
+        maxTableHeight="none"
+        tableStateKey="collective-fl-scalar-table"
       />
     </Paper>
   );

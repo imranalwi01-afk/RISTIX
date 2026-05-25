@@ -10,7 +10,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -30,14 +30,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Tooltip,
   Snackbar,
   List,
   ListItem,
@@ -73,6 +65,8 @@ import { getAuthToken } from '@/utils/auth-token';
 // getUploadHistory and uploadDataFile imports removed as they are unused and the module does not exist
 import { useDropzone } from 'react-dropzone';
 import { usePermission } from '@/hooks/usePermission';
+import type { GridColDef } from '@mui/x-data-grid';
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 
 interface UploadBatch {
   batchId: string;
@@ -368,6 +362,131 @@ export default function DataUploadPage() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const batchColumns = useMemo<GridColDef<UploadBatch>[]>(() => [
+    {
+      field: 'originalName',
+      headerName: 'Filename',
+      minWidth: 260,
+      flex: 1.2,
+      renderCell: (params) => (
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <FileIcon sx={{ mr: 1, color: 'primary.main' }} />
+          <Box>
+            <Typography variant="body2" fontWeight="medium">
+              {params.row.originalName}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {params.row.batchId}
+            </Typography>
+          </Box>
+        </Box>
+      ),
+    },
+    {
+      field: 'fileSize',
+      headerName: 'Size',
+      width: 150,
+      renderCell: (params) => (
+        <Box>
+          <Typography variant="body2">
+            {formatFileSize(params.row.fileSize)}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {params.row.fileType}
+          </Typography>
+        </Box>
+      ),
+    },
+    {
+      field: 'status',
+      headerName: 'Status',
+      minWidth: 180,
+      flex: 0.8,
+      renderCell: (params) => (
+        <Box>
+          {getStatusChip(params.row.status)}
+          {params.row.validationResults && (
+            <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+              {params.row.validationResults.recordCount} records
+              {params.row.validationResults.errorCount > 0 && (
+                <Box component="span" sx={{ color: 'error.main' }}>
+                  {`, ${params.row.validationResults.errorCount} errors`}
+                </Box>
+              )}
+            </Typography>
+          )}
+        </Box>
+      ),
+    },
+    {
+      field: 'uploadedAt',
+      headerName: 'Uploaded',
+      width: 170,
+      renderCell: (params) => (
+        <Box>
+          <Typography variant="body2">
+            {new Date(params.row.uploadedAt).toLocaleDateString()}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {new Date(params.row.uploadedAt).toLocaleTimeString()}
+          </Typography>
+        </Box>
+      ),
+    },
+    {
+      field: 'records',
+      headerName: 'Records',
+      width: 130,
+      renderCell: (params) => {
+        const records = params.row.processingResults?.recordsProcessed ?? params.row.validationResults?.recordCount;
+        return records ? records.toLocaleString() : '-';
+      },
+    },
+    {
+      field: 'actions',
+      type: 'actions',
+      headerName: 'Actions',
+      width: 132,
+      getActions: (params) => {
+        const actions = [
+          <SafeGridActionsCellItem
+            key="view"
+            icon={<ViewIcon />}
+            label="View Details"
+            onClick={() => handleViewDetails(params.row)}
+            showInMenu={false}
+          />,
+        ];
+
+        if (canValidateData && params.row.status === 'uploaded') {
+          actions.push(
+            <SafeGridActionsCellItem
+              key="validate"
+              icon={<ValidateIcon />}
+              label="Validate Data"
+              onClick={() => handleValidateData(params.row.batchId)}
+              showInMenu={false}
+            />
+          );
+        }
+
+        if (canProcessData && params.row.status === 'valid') {
+          actions.push(
+            <SafeGridActionsCellItem
+              key="process"
+              icon={<PlayIcon />}
+              label="Process Data"
+              onClick={() => handleProcessData(params.row.batchId)}
+              showInMenu={false}
+            />
+          );
+        }
+
+        return actions;
+      },
+    },
+  ], [canProcessData, canValidateData]);
+
   if (loading) {
     return (
       <Container maxWidth="xl">
@@ -575,119 +694,19 @@ export default function DataUploadPage() {
                   No file uploads yet. Upload your first file to get started with the ETL pipeline.
                 </Alert>
               ) : (
-                <TableContainer component={Paper} variant="outlined" sx={{ mt: 2 }}>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Filename</TableCell>
-                        <TableCell>Size</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell>Uploaded</TableCell>
-                        <TableCell>Records</TableCell>
-                        <TableCell align="center">Actions</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {batches.map((batch) => (
-                        <TableRow key={batch.batchId} hover>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              <FileIcon sx={{ mr: 1, color: 'primary.main' }} />
-                              <Box>
-                                <Typography variant="body2" fontWeight="medium">
-                                  {batch.originalName}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  {batch.batchId}
-                                </Typography>
-                              </Box>
-                            </Box>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">
-                              {formatFileSize(batch.fileSize)}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {batch.fileType}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            {getStatusChip(batch.status)}
-                            {batch.validationResults && (
-                              <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
-                                {batch.validationResults.recordCount} records
-                                {batch.validationResults.errorCount > 0 && (
-                                  <span style={{ color: 'red' }}>
-                                    , {batch.validationResults.errorCount} errors
-                                  </span>
-                                )}
-                              </Typography>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">
-                              {new Date(batch.uploadedAt).toLocaleDateString()}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {new Date(batch.uploadedAt).toLocaleTimeString()}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            {batch.processingResults ? (
-                              <Typography variant="body2">
-                                {batch.processingResults.recordsProcessed.toLocaleString()}
-                              </Typography>
-                            ) : batch.validationResults ? (
-                              <Typography variant="body2">
-                                {batch.validationResults.recordCount.toLocaleString()}
-                              </Typography>
-                            ) : (
-                              <Typography variant="body2" color="text.secondary">
-                                -
-                              </Typography>
-                            )}
-                          </TableCell>
-                          <TableCell align="center">
-                            <Box sx={{ display: 'flex', gap: 0.5 }}>
-                              <Tooltip title="View Details">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleViewDetails(batch)}
-                                >
-                                  <ViewIcon />
-                                </IconButton>
-                              </Tooltip>
-
-                              {canValidateData && batch.status === 'uploaded' && (
-                                <Tooltip title="Validate Data">
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => handleValidateData(batch.batchId)}
-                                    color="primary"
-                                  >
-                                    <ValidateIcon />
-                                  </IconButton>
-                                </Tooltip>
-                              )}
-
-                              {canProcessData && batch.status === 'valid' && (
-                                <Tooltip title="Process Data">
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => handleProcessData(batch.batchId)}
-                                    color="success"
-                                  >
-                                    <PlayIcon />
-                                  </IconButton>
-                                </Tooltip>
-                              )}
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                <Box sx={{ mt: 2 }}>
+                  <SafeDataGrid
+                    rows={batches}
+                    columns={batchColumns}
+                    getRowId={(row) => row.batchId}
+                    paginationMode="client"
+                    pageSizeOptions={[10, 25, 50]}
+                    disableRowSelectionOnClick
+                    tableStateKey="data-upload-batches-table"
+                    fillAvailableHeight={false}
+                    maxTableHeight={520}
+                  />
+                </Box>
               )}
             </CardContent>
           </Card>

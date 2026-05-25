@@ -28,13 +28,6 @@ import {
   MenuItem,
   Menu,
   ListItemText,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   IconButton,
   Tooltip,
   Dialog,
@@ -57,7 +50,6 @@ import {
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 
-import EmptyState from '@/components/banking/shared/EmptyState';
 import api, { handleAPIError, bankingAPI } from '../../../../services/api';
 import { exportToCSV, exportToPDF, exportToXLSX } from '@/utils/exportUtils';
 import { getErrorMessage } from '@/utils/error-message';
@@ -226,6 +218,38 @@ const ApplicationDetailPanel = ({ row, onEditDetail, onDeleteDetail, onAddDetail
     loadDetails();
   }, [row.CommonCode, refreshTrigger]);
 
+  const detailColumns = useMemo<GridColDef[]>(() => [
+    { field: 'SeqNo', headerName: 'Sequence', width: 120 },
+    { field: 'Value1', headerName: 'Value 1', minWidth: 160, flex: 1 },
+    { field: 'Value2', headerName: 'Value 2', minWidth: 160, flex: 1 },
+    { field: 'Value3', headerName: 'Value 3', minWidth: 160, flex: 1 },
+    { field: 'Description', headerName: 'Description', minWidth: 240, flex: 1.5 },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      type: 'actions',
+      width: 112,
+      filterable: false,
+      sortable: false,
+      renderCell: (params) => (
+        canManage ? (
+          <Box sx={{ display: 'flex' }}>
+            <Tooltip title="Edit Detail">
+              <IconButton size="small" color="primary" onClick={() => onEditDetail(params.row, row)}>
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Delete Detail">
+              <IconButton size="small" color="error" onClick={() => onDeleteDetail(params.row, row.CommonCode, loadDetails)}>
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        ) : null
+      ),
+    },
+  ], [canManage, loadDetails, onDeleteDetail, onEditDetail, row]);
+
   if (loading) return <Box sx={{ p: 2, textAlign: 'center' }}><CircularProgress size={20} /></Box>;
 
   return (
@@ -249,43 +273,15 @@ const ApplicationDetailPanel = ({ row, onEditDetail, onDeleteDetail, onAddDetail
       {details.length === 0 ? (
         <Typography variant="body2" color="text.secondary">No details found.</Typography>
       ) : (
-        <TableContainer component={Paper} variant="outlined" sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto', overflowY: 'hidden' }}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Sequence</TableCell>
-                <TableCell>Value 1</TableCell>
-                <TableCell>Value 2</TableCell>
-                <TableCell>Value 3</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {details.map((detail) => (
-                <TableRow key={detail.ID} hover>
-                  <TableCell>{detail.SeqNo}</TableCell>
-                  <TableCell>{detail.Value1}</TableCell>
-                  <TableCell>{detail.Value2 || '-'}</TableCell>
-                  <TableCell>{detail.Value3 || '-'}</TableCell>
-                  <TableCell>{detail.Description}</TableCell>
-                  <TableCell>
-                    {canManage && (
-                      <Box sx={{ display: 'flex' }}>
-                        <IconButton size="small" color="primary" onClick={() => onEditDetail(detail, row)}>
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton size="small" color="error" onClick={() => onDeleteDetail(detail, row.CommonCode, loadDetails)}>
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Box>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <SafeDataGrid
+          rows={details}
+          columns={detailColumns}
+          getRowId={(detail) => detail.ID || detail.pkid || `${row.CommonCode}-${detail.SeqNo}`}
+          hideFooterPagination
+          disableRowSelectionOnClick
+          density="compact"
+          tableStateKey={`application-setting-details:${row.CommonCode}`}
+        />
       )}
     </Box>
   );
@@ -904,6 +900,141 @@ export default function ApplicationSettingPage() {
     }
   ];
 
+  const viewDetailColumns = useMemo<GridColDef[]>(() => [
+    {
+      field: 'sequence',
+      headerName: 'Sequence',
+      width: 120,
+      sortable: false,
+      renderCell: (params) => (
+        <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}>
+          {params.row.param_seq ?? params.row.SeqNo}
+        </Typography>
+      ),
+    },
+    {
+      field: 'value1',
+      headerName: 'Value 1',
+      minWidth: 160,
+      flex: 1,
+      sortable: false,
+      renderCell: (params) => (
+        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+          {params.row.value1 ?? params.row.Value1}
+        </Typography>
+      ),
+    },
+    {
+      field: 'value2',
+      headerName: 'Value 2',
+      minWidth: 160,
+      flex: 1,
+      sortable: false,
+      renderCell: (params) => (
+        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+          {params.row.value2 ?? params.row.Value2 ?? '-'}
+        </Typography>
+      ),
+    },
+    {
+      field: 'value3',
+      headerName: 'Value 3',
+      minWidth: 160,
+      flex: 1,
+      sortable: false,
+      renderCell: (params) => (
+        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+          {params.row.value3 ?? params.row.Value3 ?? '-'}
+        </Typography>
+      ),
+    },
+    {
+      field: 'description',
+      headerName: 'Description',
+      minWidth: 260,
+      flex: 1.4,
+      sortable: false,
+      renderCell: (params) => {
+        const description = params.row.paramdesc ?? params.row.Description ?? '';
+        return (
+          <Typography variant="body2" title={description}>
+            {description.length > 50 ? `${description.substring(0, 50)}...` : description}
+          </Typography>
+        );
+      },
+    },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      type: 'actions',
+      width: 112,
+      filterable: false,
+      sortable: false,
+      renderCell: (params) => (
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          {canManageApplication && (
+            <>
+              <Tooltip title="Edit Detail">
+                <IconButton
+                  size="small"
+                  color="primary"
+                  onClick={() => {
+                    const detail = params.row;
+                    setSelectedDetail(detail);
+                    setDetailFormData({
+                      ParamCode: detail.param_code ?? '',
+                      SeqNo: detail.param_seq ?? 0,
+                      Value1: detail.value1 ?? '',
+                      Value2: detail.value2 ?? '',
+                      Value3: detail.value3 ?? '',
+                      Description: detail.paramdesc ?? ''
+                    });
+                    setDetailModalOpen(true);
+                  }}
+                  data-testid="btn-edit-detail"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Delete Detail">
+                <IconButton
+                  size="small"
+                  color="error"
+                  data-testid="btn-delete-detail"
+                  onClick={async () => {
+                    const detail = params.row;
+                    if (!confirm(`Are you sure you want to delete detail sequence ${detail.param_seq ?? detail.SeqNo}?`)) {
+                      return;
+                    }
+                    try {
+                      setDetailLoading(true);
+                      const result = await api.applicationParameter.details.delete(detail.ID.toString());
+                      await loadDetailData(selectedRecord?.CommonCode || '');
+                      if (result?.approvalRequired) {
+                        setApprovalNotification(buildApprovalNotification(result, 'Detail deletion submitted for approval'));
+                      } else {
+                        setSuccess('Parameter detail deleted successfully');
+                      }
+                    } catch (error) {
+                      console.error('❌ Failed to delete detail:', error);
+                      if (!showApprovalConflict(error, 'Detail deletion submitted for approval')) {
+                        setError(`Failed to delete detail: ${handleAPIError(error).message}`);
+                      }
+                    } finally {
+                      setDetailLoading(false);
+                    }
+                  }}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
+        </Box>
+      ),
+    },
+  ], [canManageApplication, loadDetailData, selectedRecord?.CommonCode, showApprovalConflict]);
+
   return (
     <Container maxWidth="xl" sx={{ minWidth: 0 }}>
       {!canViewApplication && (
@@ -1139,114 +1270,15 @@ export default function ApplicationSettingPage() {
           )}
 
           {!detailLoading && detailData.length > 0 && (
-            <TableContainer component={Paper} variant="outlined" sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto', overflowY: 'hidden' }}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Sequence</TableCell>
-                    <TableCell>Value 1</TableCell>
-                    <TableCell>Value 2</TableCell>
-                    <TableCell>Value 3</TableCell>
-                    <TableCell>Description</TableCell>
-                    <TableCell>Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {detailData.map((detail) => (
-                    <TableRow key={detail.ID} hover>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}>
-                          {detail.param_seq ?? detail.SeqNo}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                          {detail.value1 ?? detail.Value1}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                          {detail.value2 ?? detail.Value2 ?? '-'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                          {detail.value3 ?? detail.Value3 ?? '-'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" title={detail.Description}>
-                          {(detail.paramdesc ?? detail.Description)?.length > 50
-                            ? `${(detail.paramdesc ?? detail.Description).substring(0, 50)}...`
-                            : (detail.paramdesc ?? detail.Description)
-                          }
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          {canManageApplication && (
-                            <>
-                              <Tooltip title="Edit Detail">
-                                <IconButton
-                                  size="small"
-                                  color="primary"
-                                  onClick={() => {
-                                    setSelectedDetail(detail);
-                                    setDetailFormData({
-                                      ParamCode: detail.param_code ?? '',
-                                      SeqNo: detail.param_seq ?? 0,
-                                      Value1: detail.value1 ?? '',
-                                      Value2: detail.value2 ?? '',
-                                      Value3: detail.value3 ?? '',
-                                      Description: detail.paramdesc ?? ''
-                                    });
-                                    setDetailModalOpen(true);
-                                  }}
-                                  data-testid="btn-edit-detail"
-                                >
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Delete Detail">
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  data-testid="btn-delete-detail"
-                                  onClick={async () => {
-                                    if (!confirm(`Are you sure you want to delete detail sequence ${detail.param_seq ?? detail.SeqNo}?`)) {
-                                      return;
-                                    }
-                                    try {
-                                      setDetailLoading(true);
-                                      const result = await api.applicationParameter.details.delete(detail.ID.toString());
-                                      await loadDetailData(selectedRecord?.CommonCode || '');
-                                      if (result?.approvalRequired) {
-                                        setApprovalNotification(buildApprovalNotification(result, 'Detail deletion submitted for approval'));
-                                      } else {
-                                        setSuccess('Parameter detail deleted successfully');
-                                      }
-                                    } catch (error) {
-                                      console.error('❌ Failed to delete detail:', error);
-                                      if (!showApprovalConflict(error, 'Detail deletion submitted for approval')) {
-                                        setError(`Failed to delete detail: ${handleAPIError(error).message}`);
-                                      }
-                                    } finally {
-                                      setDetailLoading(false);
-                                    }
-                                  }}
-                                >
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            </>
-                          )}
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            <SafeDataGrid
+              rows={detailData}
+              columns={viewDetailColumns}
+              getRowId={(detail) => detail.ID || detail.pkid || `${detail.param_code}-${detail.param_seq}`}
+              hideFooterPagination
+              disableRowSelectionOnClick
+              density="compact"
+              tableStateKey={`application-setting-view-details:${selectedRecord?.CommonCode || 'unknown'}`}
+            />
           )}
         </DialogContent>
         <DialogActions>

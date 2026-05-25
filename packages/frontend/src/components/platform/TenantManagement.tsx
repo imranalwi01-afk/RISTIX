@@ -6,22 +6,12 @@ import {
     Box,
     Typography,
     Paper,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    TablePagination,
-    IconButton,
     Button,
     Chip,
-    Tooltip,
     InputAdornment,
     TextField,
     Card,
     Alert,
-    CircularProgress,
     Dialog,
     DialogTitle,
     DialogContent,
@@ -40,7 +30,9 @@ import {
     CheckCircle as CheckCircleIcon,
     Cancel as CancelIcon
 } from '@mui/icons-material';
+import type { GridColDef } from '@mui/x-data-grid';
 import { format } from 'date-fns';
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { exportToCsv } from '@/utils/export-csv';
 import { getErrorMessage } from '@/utils/error-message';
 import {
@@ -256,6 +248,97 @@ const TenantManagement = () => {
         }
     };
 
+    const tenantColumns = useMemo<GridColDef<Tenant>[]>(() => [
+        {
+            field: 'name',
+            headerName: 'Tenant',
+            minWidth: 240,
+            flex: 1.3,
+            renderCell: (params) => (
+                <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                        {params.row.name}
+                    </Typography>
+                    <Typography variant="caption" color="textSecondary">
+                        Code: {params.row.code}
+                    </Typography>
+                    {params.row.slug && (
+                        <Typography variant="caption" display="block" color="textSecondary">
+                            Slug: {params.row.slug}
+                        </Typography>
+                    )}
+                </Box>
+            ),
+        },
+        {
+            field: 'type',
+            headerName: 'Type',
+            width: 150,
+            renderCell: (params) => (
+                <Chip
+                    label={toTitleCase(normalizeTenantType(params.row))}
+                    size="small"
+                    variant="outlined"
+                />
+            ),
+        },
+        {
+            field: 'bankingMode',
+            headerName: 'Mode',
+            width: 150,
+            renderCell: (params) => (
+                <Chip
+                    label={toTitleCase(normalizeBankingMode(params.row))}
+                    size="small"
+                    variant="outlined"
+                />
+            ),
+        },
+        {
+            field: 'isActive',
+            headerName: 'Status',
+            width: 140,
+            renderCell: (params) => (
+                <Chip
+                    label={params.row.isActive ? 'Active' : 'Inactive'}
+                    size="small"
+                    color={params.row.isActive ? 'success' : 'default'}
+                    icon={params.row.isActive ? <CheckCircleIcon /> : <CancelIcon />}
+                    variant={params.row.isActive ? 'filled' : 'outlined'}
+                    onClick={() => handleToggle(params.row)}
+                />
+            ),
+        },
+        {
+            field: 'createdAt',
+            headerName: 'Created At',
+            width: 160,
+            renderCell: (params) => params.value ? format(new Date(params.value), 'MMM d, yyyy') : '-',
+        },
+        {
+            field: 'actions',
+            headerName: 'Actions',
+            type: 'actions',
+            width: 112,
+            filterable: false,
+            sortable: false,
+            getActions: (params) => [
+                <SafeGridActionsCellItem
+                    key="edit"
+                    label="Edit"
+                    icon={<EditIcon fontSize="small" />}
+                    onClick={() => handleEdit(params.row)}
+                />,
+                <SafeGridActionsCellItem
+                    key="delete"
+                    label="Delete"
+                    icon={<DeleteIcon fontSize="small" color="error" />}
+                    onClick={() => handleDelete(params.row.id)}
+                />,
+            ],
+        },
+    ], [handleDelete, handleEdit, handleToggle]);
+
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setFormLoading(true);
@@ -381,109 +464,26 @@ const TenantManagement = () => {
                 </Box>
             </Paper>
 
-            <Card variant="outlined">
-                <TableContainer>
-                    <Table sx={{ minWidth: 650 }}>
-                        <TableHead sx={{ bgcolor: 'background.default' }}>
-                            <TableRow>
-                                <TableCell>Tenant</TableCell>
-                                <TableCell>Type</TableCell>
-                                <TableCell>Mode</TableCell>
-                                <TableCell>Status</TableCell>
-                                <TableCell>Created At</TableCell>
-                                <TableCell align="right">Actions</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {loading ? (
-                                <TableRow>
-                                    <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
-                                        <CircularProgress />
-                                    </TableCell>
-                                </TableRow>
-                            ) : filteredTenants.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
-                                        <Typography variant="body1" color="textSecondary">
-                                            No tenants found.
-                                        </Typography>
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                filteredTenants.map((tenant) => (
-                                    <TableRow key={tenant.id} hover>
-                                        <TableCell>
-                                            <Box>
-                                                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                                                    {tenant.name}
-                                                </Typography>
-                                                <Typography variant="caption" color="textSecondary">
-                                                    Code: {tenant.code}
-                                                </Typography>
-                                                {tenant.slug && (
-                                                    <Typography variant="caption" display="block" color="textSecondary">
-                                                        Slug: {tenant.slug}
-                                                    </Typography>
-                                                )}
-                                            </Box>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Chip
-                                                label={toTitleCase(normalizeTenantType(tenant))}
-                                                size="small"
-                                                variant="outlined"
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Chip
-                                                label={toTitleCase(normalizeBankingMode(tenant))}
-                                                size="small"
-                                                variant="outlined"
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Chip
-                                                label={tenant.isActive ? 'Active' : 'Inactive'}
-                                                size="small"
-                                                color={tenant.isActive ? 'success' : 'default'}
-                                                icon={tenant.isActive ? <CheckCircleIcon /> : <CancelIcon />}
-                                                variant={tenant.isActive ? "filled" : "outlined"}
-                                                onClick={() => handleToggle(tenant)}
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Typography variant="body2">
-                                                {tenant.createdAt
-                                                    ? format(new Date(tenant.createdAt), 'MMM d, yyyy')
-                                                    : '-'}
-                                            </Typography>
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            <Tooltip title="Edit">
-                                                <IconButton size="small" onClick={() => handleEdit(tenant)}>
-                                                    <EditIcon fontSize="small" />
-                                                </IconButton>
-                                            </Tooltip>
-                                            <Tooltip title="Delete">
-                                                <IconButton size="small" color="error" onClick={() => handleDelete(tenant.id)}>
-                                                    <DeleteIcon fontSize="small" />
-                                                </IconButton>
-                                            </Tooltip>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-                <TablePagination
-                    rowsPerPageOptions={[5, 10, 25]}
-                    component="div"
-                    count={statusFilter === 'all' ? total : filteredTenants.length}
-                    rowsPerPage={rowsPerPage}
-                    page={page}
-                    onPageChange={handlePageChange}
-                    onRowsPerPageChange={handleRowsPerPageChange}
+            <Card variant="outlined" sx={{ p: 2 }}>
+                <SafeDataGrid
+                    rows={filteredTenants}
+                    columns={tenantColumns}
+                    loading={loading}
+                    getRowId={(row) => row.id}
+                    rowCount={statusFilter === 'all' ? total : filteredTenants.length}
+                    paginationMode="offset"
+                    paginationModel={{ page, pageSize: rowsPerPage }}
+                    onPaginationModelChange={(model) => {
+                        if (model.page !== page) handlePageChange(null, model.page);
+                        if (model.pageSize !== rowsPerPage) {
+                            handleRowsPerPageChange({ target: { value: String(model.pageSize) } } as React.ChangeEvent<HTMLInputElement>);
+                        }
+                    }}
+                    pageSizeOptions={[5, 10, 25]}
+                    disableRowSelectionOnClick
+                    tableStateKey="platform-tenant-management-table"
+                    fillAvailableHeight
+                    maxTableHeight="none"
                 />
             </Card>
 

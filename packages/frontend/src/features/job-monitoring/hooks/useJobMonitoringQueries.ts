@@ -10,6 +10,9 @@ import {
 } from '../api/job-monitoring.api';
 
 export function useJobMonitoringQuery(options?: { enabled?: boolean; autoRefresh?: boolean }) {
+  const enabled = options && typeof options.enabled === 'boolean' ? options.enabled : true;
+  const autoRefresh = options && options.autoRefresh === true;
+
   return useQuery({
     queryKey: businessQueryKeys.feature('job-monitoring'),
     queryFn: async () => {
@@ -25,9 +28,9 @@ export function useJobMonitoringQuery(options?: { enabled?: boolean; autoRefresh
         metrics,
       };
     },
-    enabled: options?.enabled ?? true,
+    enabled,
     placeholderData: keepPreviousData,
-    refetchInterval: options?.autoRefresh ? 30 * 1000 : false,
+    refetchInterval: autoRefresh ? 30 * 1000 : false,
     refetchIntervalInBackground: false,
   });
 }

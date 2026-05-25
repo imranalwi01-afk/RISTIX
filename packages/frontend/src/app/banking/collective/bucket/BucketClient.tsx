@@ -8,7 +8,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Card,
@@ -21,24 +21,12 @@ import {
   Select,
   MenuItem,
   Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  IconButton,
   Alert,
   Breadcrumbs,
   Link,
-  Tooltip,
   CircularProgress,
   Container,
-  Switch,
-  FormControlLabel,
   Snackbar,
-  Pagination
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -50,6 +38,7 @@ import {
   Layers as BucketIcon
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
+import type { GridColDef } from '@mui/x-data-grid';
 import { bucketParameterAPI, BucketParameterHeader, BucketParameterDetail } from '../../../../services/api.bucketparameter';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import {
@@ -63,7 +52,7 @@ import {
 import { bankingAPI } from '@/services/api';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/utils/error-message';
-import { BucketHeaderRow } from './components/BucketHeaderRow';
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { BucketHeaderDialog } from './components/BucketHeaderDialog';
 import { BucketDetailDialog } from './components/BucketDetailDialog';
 
@@ -94,6 +83,162 @@ const getBucketDetailValidationMessage = (detail: Partial<BucketParameterDetail>
   }
 
   return null;
+};
+
+const formatBucketRange = (start: number, end?: number | null): string => {
+  if (end === null || end === undefined || end === 9999) return `${start.toLocaleString()}+`;
+  return `${start.toLocaleString()} - ${end.toLocaleString()}`;
+};
+
+interface BucketDetailsPanelProps {
+  header: BucketParameterHeader;
+  canManage: boolean;
+  onAddDetail: (header: BucketParameterHeader) => void;
+  onEditDetail: (detail: BucketParameterDetail) => void;
+  onDeleteDetail: (detail: BucketParameterDetail) => void;
+}
+
+const BucketDetailsPanel = ({
+  header,
+  canManage,
+  onAddDetail,
+  onEditDetail,
+  onDeleteDetail,
+}: BucketDetailsPanelProps) => {
+  const [details, setDetails] = useState<BucketParameterDetail[]>([]);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+
+  const loadDetails = useCallback(async () => {
+    if (!header.id) return;
+
+    setDetailsLoading(true);
+    try {
+      const response = await bucketParameterAPI.getDetails(header.id);
+      setDetails(response.success ? response.data || [] : []);
+    } catch (error) {
+      console.error('Error loading bucket details:', error);
+      setDetails([]);
+    } finally {
+      setDetailsLoading(false);
+    }
+  }, [header.id]);
+
+  useEffect(() => {
+    void loadDetails();
+  }, [loadDetails]);
+
+  const detailColumns = useMemo<GridColDef[]>(() => [
+    {
+      field: 'bucket_name',
+      headerName: 'Name',
+      minWidth: 180,
+      flex: 1,
+      renderCell: (params) => (
+        <Typography variant="body2" fontWeight="medium">
+          {params.value}
+        </Typography>
+      ),
+    },
+    { field: 'range_start', headerName: 'Range Start', width: 140 },
+    {
+      field: 'range_end',
+      headerName: 'Range End',
+      width: 140,
+      renderCell: (params) => params.value ?? 'Open',
+    },
+    {
+      field: 'display',
+      headerName: 'Display',
+      minWidth: 180,
+      flex: 1,
+      renderCell: (params) => (
+        <Typography variant="body2" color="primary" fontWeight="medium">
+          {formatBucketRange(params.row.range_start || 0, params.row.range_end)}
+        </Typography>
+      ),
+    },
+    {
+      field: 'active_flag',
+      headerName: 'Status',
+      width: 120,
+      align: 'center',
+      renderCell: (params) => (
+        <Chip
+          label={params.value ? 'Active' : 'Inactive'}
+          size="small"
+          color={params.value ? 'success' : 'default'}
+          variant="outlined"
+          data-testid="detail-status-chip"
+        />
+      ),
+    },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      type: 'actions',
+      width: 112,
+      filterable: false,
+      sortable: false,
+      getActions: (params) => canManage ? [
+        <SafeGridActionsCellItem
+          key="edit"
+          label="Edit Detail"
+          icon={<EditIcon color="primary" />}
+          onClick={() => onEditDetail(params.row)}
+          data-testid="edit-detail-btn"
+        />,
+        <SafeGridActionsCellItem
+          key="delete"
+          label="Delete Detail"
+          icon={<DeleteIcon color="error" />}
+          onClick={() => onDeleteDetail(params.row)}
+          data-testid="delete-detail-btn"
+        />,
+      ] : [],
+    },
+  ], [canManage, onDeleteDetail, onEditDetail]);
+
+  return (
+    <Box sx={{ p: 2, bgcolor: '#f8fafc', borderRadius: 1.5 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, mb: 2 }}>
+        <Typography variant="h6" color="primary">
+          Bucket Details
+        </Typography>
+        {canManage && (
+          <Button
+            size="small"
+            startIcon={<AddIcon />}
+            onClick={() => onAddDetail(header)}
+            variant="contained"
+            data-testid="add-detail-btn"
+          >
+            Add Detail
+          </Button>
+        )}
+      </Box>
+
+      {detailsLoading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+          <CircularProgress size={24} />
+        </Box>
+      ) : details.length > 0 ? (
+        <SafeDataGrid
+          rows={details}
+          columns={detailColumns}
+          getRowId={(detail) => detail.id || `${header.id}-${detail.seq}`}
+          loading={detailsLoading}
+          hideFooterPagination
+          disableRowSelectionOnClick
+          density="compact"
+          tableStateKey={`collective-bucket-details:${header.id}`}
+        />
+      ) : (
+        <Alert severity="info" sx={{ mt: 1 }}>
+          No bucket details found. Click Add Detail to create one.
+        </Alert>
+      )}
+    </Box>
+  );
 };
 
 // ============================================================================
@@ -400,10 +545,117 @@ export default function BucketParameterPage() {
     }
   }, [canManageBucket, detailFormData, editMode, loadBucketHeaders, loadPendingApprovals, selectedHeader, showApprovalConflict]);
 
-  const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
-    setPagination(prev => ({ ...prev, page: value }));
-    loadBucketHeaders();
-  };
+  const getBasisDescription = useCallback((basisCode: string): string => {
+    const basis = basisOptions.find((option) => option.value1 === basisCode);
+    return basis?.paramdesc || basisCode;
+  }, [basisOptions]);
+
+  const bucketColumns = useMemo<GridColDef<BucketParameterHeader>[]>(() => [
+    {
+      field: 'bucket_group',
+      headerName: 'Bucket Group',
+      minWidth: 180,
+      flex: 1,
+      renderCell: (params) => (
+        <Typography variant="body2" fontWeight="medium">
+          {params.value}
+        </Typography>
+      ),
+    },
+    {
+      field: 'bucket_group_desc',
+      headerName: 'Description',
+      minWidth: 260,
+      flex: 1.4,
+      renderCell: (params) => params.row.bucket_group_desc || params.row.bucket_desc || '-',
+    },
+    {
+      field: 'basis',
+      headerName: 'Basis',
+      minWidth: 180,
+      flex: 1,
+      renderCell: (params) => (
+        <Chip
+          label={getBasisDescription(params.value || '')}
+          size="small"
+          color={params.value === 'D' ? 'primary' : 'info'}
+          variant="outlined"
+          data-testid="basis-chip"
+        />
+      ),
+    },
+    {
+      field: 'include_close',
+      headerName: 'Include Closed',
+      width: 150,
+      align: 'center',
+      renderCell: (params) => (
+        <Chip
+          label={params.value ? 'Yes' : 'No'}
+          size="small"
+          color={params.value ? 'success' : 'default'}
+          variant="outlined"
+          data-testid="include-close-chip"
+        />
+      ),
+    },
+    {
+      field: 'include_wo',
+      headerName: 'Include WO',
+      width: 140,
+      align: 'center',
+      renderCell: (params) => (
+        <Chip
+          label={params.value ? 'Yes' : 'No'}
+          size="small"
+          color={params.value ? 'warning' : 'default'}
+          variant="outlined"
+          data-testid="include-wo-chip"
+        />
+      ),
+    },
+    {
+      field: 'active_flag',
+      headerName: 'Status',
+      width: 130,
+      align: 'center',
+      renderCell: (params) => pendingRequests.some((request) => request.entityId === params.row.id?.toString()) ? (
+        <ApprovalStatusBadge status="pending" />
+      ) : (
+        <Chip
+          label={params.value ? 'Active' : 'Inactive'}
+          size="small"
+          color={params.value ? 'success' : 'default'}
+          variant="outlined"
+          data-testid="header-status-chip"
+        />
+      ),
+    },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      type: 'actions',
+      width: 112,
+      filterable: false,
+      sortable: false,
+      getActions: (params) => canManageBucket ? [
+        <SafeGridActionsCellItem
+          key="edit"
+          label="Edit Bucket Group"
+          icon={<EditIcon color="primary" />}
+          onClick={() => handleEditHeader(params.row)}
+          data-testid="edit-header-btn"
+        />,
+        <SafeGridActionsCellItem
+          key="delete"
+          label="Delete Bucket Group"
+          icon={<DeleteIcon color="error" />}
+          onClick={() => handleDeleteHeader(params.row)}
+          data-testid="delete-header-btn"
+        />,
+      ] : [],
+    },
+  ], [canManageBucket, getBasisDescription, handleDeleteHeader, handleEditHeader, pendingRequests]);
 
   // ============================================================================
   // EFFECTS
@@ -420,7 +672,17 @@ export default function BucketParameterPage() {
   // ============================================================================
 
   return (
-    <Container maxWidth="xl" sx={{ position: 'relative' }}>
+    <Container
+      maxWidth={false}
+      sx={{
+        position: 'relative',
+        minHeight: { xs: 'auto', lg: 'calc(100vh - 122px)' },
+        display: 'flex',
+        flexDirection: 'column',
+        px: { xs: 2, lg: 4, xl: 6 },
+        pb: 4,
+      }}
+    >
       <FullstackIndicator />
       {!canViewBucket && (
         <Alert severity="warning" sx={{ mb: 2 }}>
@@ -505,6 +767,7 @@ export default function BucketParameterPage() {
               <InputLabel>Filter by Basis</InputLabel>
               <Select
                 label="Filter by Basis"
+                value={filterBasis}
                 onChange={(e) => setFilterBasis(e.target.value as string)}
                 data-testid="bucket-basis-select"
               >
@@ -537,63 +800,43 @@ export default function BucketParameterPage() {
         </Snackbar>
       )}
 
-      <Card>
-        <CardContent>
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-              <CircularProgress />
-            </Box>
-          ) : bucketHeaders.length > 0 ? (
-            <TableContainer component={Paper} variant="outlined">
-              <Table>
-                <TableHead>
-                  <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                    <TableCell sx={{ width: 50 }}></TableCell>
-                    <TableCell><strong>Bucket Group</strong></TableCell>
-                    <TableCell><strong>Description</strong></TableCell>
-                    <TableCell><strong>Basis</strong></TableCell>
-                    <TableCell align="center"><strong>Include Closed</strong></TableCell>
-                    <TableCell align="center"><strong>Include WO</strong></TableCell>
-                    <TableCell align="center"><strong>Status</strong></TableCell>
-                    <TableCell><strong>Actions</strong></TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {bucketHeaders.map((header) => (
-                    <BucketHeaderRow
-                      key={header.id}
-                      header={header}
-                      basisOptions={basisOptions}
-                      canManage={canManageBucket}
-                      onEdit={handleEditHeader}
-                      onDelete={handleDeleteHeader}
-                      onAddDetail={handleAddDetail}
-                      onEditDetail={handleEditDetail}
-                      onDeleteDetail={handleDeleteDetail}
-                      pendingRequests={pendingRequests}
-                    />
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+      <Card sx={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: 0 }}>
+        <CardContent sx={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: 0, '&:last-child': { pb: 2 } }}>
+          {bucketHeaders.length > 0 || loading ? (
+            <SafeDataGrid
+              rows={bucketHeaders}
+              columns={bucketColumns}
+              loading={loading}
+              getRowId={(row) => row.id || row.bucket_group || row.bucket_name || `${row.basis}-${row.bucket_group_desc}`}
+              rowCount={pagination.totalCount}
+              paginationMode="offset"
+              paginationModel={{ page: Math.max(0, pagination.page - 1), pageSize: pagination.limit }}
+              onPaginationModelChange={(model) => {
+                setPagination((prev) => ({
+                  ...prev,
+                  page: model.page + 1,
+                  limit: model.pageSize,
+                }));
+              }}
+              pageSizeOptions={[10, 25, 50]}
+              disableRowSelectionOnClick
+              fillAvailableHeight
+              maxTableHeight="none"
+              tableStateKey="collective-bucket-parameter-table"
+              getDetailPanelContent={({ row }) => (
+                <BucketDetailsPanel
+                  header={row}
+                  canManage={canManageBucket}
+                  onAddDetail={handleAddDetail}
+                  onEditDetail={handleEditDetail}
+                  onDeleteDetail={handleDeleteDetail}
+                />
+              )}
+            />
           ) : (
-            <Alert severity="info">
+            <Alert severity="info" sx={{ flex: '1 1 auto', alignItems: 'center' }}>
               No bucket parameters found. Click Add Bucket Group to create one.
             </Alert>
-          )}
-          {pagination.totalPages > 1 && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, mb: 2 }}>
-              <Pagination
-                count={pagination.totalPages}
-                page={pagination.page}
-                onChange={handlePageChange}
-                color="primary"
-                showFirstButton
-                showLastButton
-                disabled={loading}
-                data-testid="bucket-pagination"
-              />
-            </Box>
           )}
         </CardContent>
       </Card>
