@@ -68,7 +68,7 @@ const INDIVIDUAL_REPORT_LIST_QUERY_CONFIG: ListQueryConfig = {
     maxLimit: 200,
     defaultSort: [{ field: 'downloadDate', direction: 'desc' }],
     searchableColumns: ['accountNumber', 'cifName', 'cifNumber'],
-    filterableColumns: ['reportPeriod', 'dateFrom', 'dateTo', 'status', 'impaired_flag'],
+    filterableColumns: ['reportPeriod', 'dateFrom', 'dateTo', 'status', 'impaired_flag', 'account_number', 'cif_name'],
     sortableColumns: [
         'pkid',
         'downloadDate',
@@ -305,6 +305,11 @@ export class IndividualImpairmentController {
             const { comments } = await c.req.json();
             
             const data = await this.individualImpairmentService.approveAssessment(id, comments, user.id);
+            
+            if (comments) {
+                await this.saveCheckerComment(id, 'APPROVE', comments, user.id);
+            }
+            
             return c.json({ success: true, data: data });
         } catch (error: any) {
             return this.handleError(c, error);
@@ -320,9 +325,26 @@ export class IndividualImpairmentController {
             const { reason } = await c.req.json();
             
             const data = await this.individualImpairmentService.rejectAssessment(id, reason, user.id);
+            
+            if (reason) {
+                await this.saveCheckerComment(id, 'REJECT', reason, user.id);
+            }
+            
             return c.json({ success: true, data: data });
         } catch (error: any) {
             return this.handleError(c, error);
+        }
+    }
+
+    private async saveCheckerComment(accountId: number, action: string, comment: string, userId: string) {
+        try {
+            const storageDir = path.resolve(process.cwd(), 'storage', 'individual-impairment', 'documents', String(accountId));
+            await fs.mkdir(storageDir, { recursive: true });
+            const fileName = `Checker_${action}_${new Date().toISOString().slice(0, 10)}.txt`;
+            const content = `Checker ${action} by ${userId} on ${new Date().toISOString()}\n\nComment: ${comment}`;
+            await fs.writeFile(path.join(storageDir, fileName), content, 'utf-8');
+        } catch (e) {
+            console.warn('Failed to save checker comment document:', e);
         }
     }
 
@@ -499,6 +521,186 @@ export class IndividualImpairmentController {
         }
     }
 
+    // ================= DOCUMENTS =================
+
+    async listDocuments(c: Context) {
+        try {
+            const user = c.get('user');
+            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+
+            const accountId = c.req.param('accountId');
+            const safeAccountId = String(accountId || '').replace(/[^0-9]/g, '');
+            if (!safeAccountId) {
+                return c.json({ success: false, message: 'Invalid account ID' }, 400);
+            }
+
+            const storageDir = path.resolve(process.cwd(), 'storage', 'individual-impairment', 'documents', safeAccountId);
+            let files: any[] = [];
+
+            try {
+                const dirEntries = await fs.readdir(storageDir);
+                const metaCache = new Map<string, any>();
+
+                // First pass: load metadata
+                for (const name of dirEntries) {
+                    if (name.endsWith('.meta.json')) {
+                        try {
+                            const metaContent = await fs.readFile(path.join(storageDir, name), 'utf-8');
+                            const meta = JSON.parse(metaContent);
+                            const baseName = name.slice(0, -10); // remove '.meta.json'
+                            metaCache.set(baseName, meta);
+                        } catch { /* skip invalid meta */ }
+                    }
+                }
+
+                // Second pass: build file list (skip meta files)
+                for (const name of dirEntries) {
+                    if (name.endsWith('.meta.json')) continue;
+                    const fullPath = path.join(storageDir, name);
+                    const stat = await fs.stat(fullPath);
+                    if (stat.isFile()) {
+                        const cached = metaCache.get(name);
+                        let source = cached?.source || 'maker';
+
+                        // Naming-based detection for checker comment files
+                        if (source === 'maker' && /^Checker_(APPROVE|REJECT)_\d{4}-\d{2}-\d{2}\.txt$/i.test(name)) {
+                            source = 'checker';
+                        }
+
+                        files.push({
+                            name,
+                            filename: name,
+                            size: stat.size,
+                            source,
+                            uploaded_at: cached?.uploadedAt || stat.mtime.toISOString(),
+                            account_id: Number(safeAccountId)
+                        });
+                    }
+                }
+            } catch {
+                // Directory doesn't exist yet — return empty list
+            }
+
+            files.sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime());
+
+            return c.json({ success: true, data: files });
+        } catch (error: any) {
+            return this.handleError(c, error);
+        }
+    }
+
+    async downloadDocument(c: Context) {
+        try {
+            const user = c.get('user');
+            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+
+            const fileName = c.req.param('fileName');
+            const safeName = String(fileName || '').replace(/[^a-zA-Z0-9._-]+/g, '')
+            if (!safeName || safeName !== fileName || safeName === '.' || safeName === '..') {
+                return c.json({ success: false, message: 'Invalid file name' }, 400);
+            }
+
+            // Search across all account subdirectories for the file
+            const baseDir = path.resolve(process.cwd(), 'storage', 'individual-impairment', 'documents');
+            let filePath = '';
+
+            try {
+                const accountDirs = await fs.readdir(baseDir);
+                for (const dir of accountDirs) {
+                    const candidate = path.resolve(baseDir, dir, safeName);
+                    if (candidate.startsWith(baseDir + path.sep)) {
+                        try {
+                            await fs.access(candidate);
+                            filePath = candidate;
+                            break;
+                        } catch { /* not in this dir */ }
+                    }
+                }
+            } catch {
+                return c.json({ success: false, message: 'File not found' }, 404);
+            }
+
+            if (!filePath) {
+                return c.json({ success: false, message: 'File not found' }, 404);
+            }
+
+            const file = Bun.file(filePath)
+            const ext = path.extname(safeName).toLowerCase()
+            const contentType =
+                ext === '.pdf' ? 'application/pdf' :
+                ext === '.png' ? 'image/png' :
+                ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' :
+                ext === '.xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' :
+                ext === '.csv' ? 'text/csv' :
+                'application/octet-stream'
+
+            c.header('Content-Type', contentType)
+            c.header('Content-Disposition', `attachment; filename="${safeName}"`)
+            return c.body(file.stream() as any)
+        } catch (error: any) {
+            return this.handleError(c, error);
+        }
+    }
+
+    async uploadDocument(c: Context) {
+        try {
+            const user = c.get('user');
+            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+
+            const accountId = c.req.param('accountId');
+            const safeAccountId = String(accountId || '').replace(/[^0-9]/g, '');
+            if (!safeAccountId) {
+                return c.json({ success: false, message: 'Invalid account ID' }, 400);
+            }
+
+            const formData = await c.req.formData();
+            const file = formData.get('file');
+            if (!file || !(file instanceof File)) {
+                return c.json({ success: false, message: 'No file provided' }, 400);
+            }
+
+            const storageDir = path.resolve(process.cwd(), 'storage', 'individual-impairment', 'documents', safeAccountId);
+            await fs.mkdir(storageDir, { recursive: true });
+
+            const buffer = await file.arrayBuffer();
+            const filePath = path.resolve(storageDir, file.name);
+            if (!filePath.startsWith(storageDir + path.sep)) {
+                return c.json({ success: false, message: 'Invalid file name' }, 400);
+            }
+
+            await fs.writeFile(filePath, Buffer.from(buffer));
+
+            // Extract metadata.source from formData if provided
+            let source = 'maker';
+            try {
+                const metadataRaw = formData.get('metadata');
+                if (metadataRaw) {
+                    const metadata = JSON.parse(String(metadataRaw));
+                    if (metadata?.source) source = String(metadata.source);
+                }
+            } catch { /* ignore invalid metadata */ }
+
+            // Persist source metadata alongside the file
+            const metaPath = filePath + '.meta.json';
+            await fs.writeFile(metaPath, JSON.stringify({ source, uploadedAt: new Date().toISOString() }));
+
+            return c.json({
+                success: true,
+                message: 'File uploaded successfully',
+                data: {
+                    name: file.name,
+                    filename: file.name,
+                    size: file.size,
+                    source,
+                    uploaded_at: new Date().toISOString(),
+                    account_id: Number(safeAccountId)
+                }
+            });
+        } catch (error: any) {
+            return this.handleError(c, error);
+        }
+    }
+
     // ================= HISTORY =================
     async getHistory(c: Context) {
         try {
@@ -548,6 +750,8 @@ export class IndividualImpairmentController {
                 dateTo: stringFilter(filters.dateTo),
                 status: stringFilter(filters.status),
                 impaired_flag: stringFilter(filters.impaired_flag),
+                accountNumber: stringFilter(filters.account_number),
+                cifName: stringFilter(filters.cif_name),
                 limit: query.limit,
                 offset: query.offset,
                 sort: query.sort,

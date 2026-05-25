@@ -136,12 +136,15 @@ export default function IndividualAssessmentWizardPage() {
   const [submittingPackage, setSubmittingPackage] = useState(false);
   const autoSubmitInProgress = useRef(false);
   const calculationInProgress = useRef(false);
+  const lastDcfAccountIdRef = useRef<number | null>(null);
   const [headerSnackbar, setHeaderSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({
     open: false,
     message: '',
     severity: 'success'
   });
   const [submitSuccessModal, setSubmitSuccessModal] = useState(false);
+  const [approvalRequestId, setApprovalRequestId] = useState<string | null>(null);
+  const [reviewDocuments, setReviewDocuments] = useState<any[]>([]);
 
   // Dashboard State
   const [loading, setLoading] = useState(false);
@@ -459,6 +462,7 @@ export default function IndividualAssessmentWizardPage() {
 
       try {
         setLoading(true);
+        let resolved = false;
         let res;
         if (accountNumber) {
           res = await individualImpairmentAPI.watchlist.getAll({
@@ -472,9 +476,60 @@ export default function IndividualAssessmentWizardPage() {
           const found = Array.isArray(res.data)
             ? (res.data.find((w: any) => String(w.account_id) === String(accountId)) ?? res.data[0])
             : res.data;
-          if (found) setSelectedAccount(found);
+          if (found) {
+            setSelectedAccount(found);
+            resolved = true;
+            return;
+          }
         } else if (res && !res.success && res.account_id) {
            setSelectedAccount(res);
+           resolved = true;
+           return;
+        } else {
+          resolved = false;
+        }
+
+        if (!resolved) {
+          const assessmentRes = await individualImpairmentAPI.assessment.get(idNum);
+          if (assessmentRes?.success && assessmentRes.data) {
+            const data = assessmentRes.data.header || assessmentRes.data;
+            const normalizedStatus = typeof data?.status === 'number'
+              ? (data.status === 0 ? 'PENDING' : data.status === 1 ? 'APPROVED' : data.status === 2 ? 'REJECTED' : 'PENDING')
+              : String(data?.approval_status || data?.assessment_status || 'PENDING').toUpperCase();
+            setSelectedAccount({
+              pkid: Number(data.pkid || 0),
+              ia_id: data.ia_id ? Number(data.ia_id) : null,
+              prc_date: data.prc_date,
+              eff_date: data.eff_date,
+              cif_number: data.cif_number,
+              cif_name: data.cif_name,
+              account_id: Number(data.account_id),
+              account_number: data.account_number,
+              currency: data.currency || 'IDR',
+              eff_interest_rate: Number(data.eff_interest_rate || 0),
+              interest_rate: Number(data.interest_rate || 0),
+              dpd: Number(data.dpd || 0),
+              collectability: Number(data.collectability || 0),
+              rating_code: data.rating_code || '',
+              impaired_flag: data.impaired_flag === 'I' ? 'I' : 'N',
+              method: data.method || 'DCF',
+              outstanding_balance: Number(data.outstanding_balance || 0),
+              provision_amount: 0,
+              ecl_amount: 0,
+              stage: Number(data.stage || 1),
+              last_review_date: data.updateddate || data.createddate || data.prc_date,
+              next_review_date: data.prc_date,
+              assigned_analyst: data.createdby || 'SYSTEM',
+              assessment_status: normalizedStatus,
+              priority_level: 'MEDIUM',
+              notes: data.analyst_comments || data.impairment_reason || '',
+              createdby: data.createdby || 'SYSTEM',
+              createddate: data.createddate || data.prc_date,
+              updatedby: data.updatedby,
+              updateddate: data.updateddate,
+              is_override: true,
+            });
+          }
         }
       } catch (err) {
         console.error('Failed to sync account for workspace:', err);
@@ -535,6 +590,14 @@ export default function IndividualAssessmentWizardPage() {
       setSubmittingApproval(true);
       const res = await individualImpairmentAPI.assessment.approve(Number(accountId), checkerComments);
       if (res.success) {
+        // Create audit log via approval workflow
+        if (approvalRequestId) {
+          try {
+            await approvalAPI.approveRequest(approvalRequestId, { comment: checkerComments || 'Approved' });
+          } catch (logErr) {
+            console.warn('Audit log update failed (non-blocking):', logErr);
+          }
+        }
         setHeaderSnackbar({ open: true, message: 'Assessment Approved successfully', severity: 'success' });
         setHistoryRefreshKey(prev => prev + 1);
         fetchStatus();
@@ -557,6 +620,14 @@ export default function IndividualAssessmentWizardPage() {
       setSubmittingApproval(true);
       const res = await individualImpairmentAPI.assessment.reject(Number(accountId), checkerComments);
       if (res.success) {
+        // Create audit log via approval workflow
+        if (approvalRequestId) {
+          try {
+            await approvalAPI.rejectRequest(approvalRequestId, { comment: checkerComments });
+          } catch (logErr) {
+            console.warn('Audit log update failed (non-blocking):', logErr);
+          }
+        }
         setHeaderSnackbar({ open: true, message: 'Assessment Rejected', severity: 'info' });
         setHistoryRefreshKey(prev => prev + 1);
         fetchStatus();
@@ -577,9 +648,20 @@ export default function IndividualAssessmentWizardPage() {
         return;
       }
 
-      // If we already have fresh calculation in state, don't overwrite with historical unless it's a new account
-      if (dcfCalculation && !dcfCalculation.isHistorical) return;
+      const currentAccountId = Number(selectedAccount.account_id);
+      const isSameAccount = lastDcfAccountIdRef.current === currentAccountId;
+      if (!isSameAccount) {
+        lastDcfAccountIdRef.current = currentAccountId;
+        if (dcfCalculation) setDcfCalculation(null);
+      }
 
+      // Historical data already loaded for this account
+      if (isSameAccount && dcfCalculation?.isHistorical) return;
+
+      // If we already have fresh calculation in state for the same account, don't overwrite it with historical
+      if (isSameAccount && dcfCalculation && !dcfCalculation.isHistorical) return;
+
+      setDcfLoading(true);
       try {
         const response = await individualImpairmentAPI.getIaResultDetail({
             accountId: selectedAccount.account_id
@@ -634,11 +716,13 @@ export default function IndividualAssessmentWizardPage() {
         }
       } catch (err) {
         console.error('Failed to fetch existing DCF:', err);
+      } finally {
+        setDcfLoading(false);
       }
     };
 
     fetchExistingDcf();
-  }, [selectedAccount?.account_id]);
+  }, [selectedAccount?.account_id, dcfCalculation]);
 
   // Handlers
   const handlePageChange = (event: unknown, newPage: number) => {
@@ -764,28 +848,47 @@ export default function IndividualAssessmentWizardPage() {
         if (stagedOverride) titleParts.push('Override');
         if (stagedDCF) titleParts.push('DCF');
 
+        const resultSnapshot = stagedDCF?.results || dcfCalculation || {};
+        const pvDcfAmt = resultSnapshot.presentValue ?? resultSnapshot.totalNpv ?? resultSnapshot.pvDcfAmt ?? null;
+        const eclIaAmt = resultSnapshot.eclIaAmt ?? resultSnapshot.recommendedProvision ?? resultSnapshot.lgd ?? null;
+        const outstanding = resultSnapshot.outstandingBalance ?? resultSnapshot.outstanding ?? selectedAccount?.outstanding_balance ?? selectedAccount?.outstanding ?? null;
+
         // Capture data before clearing state
         const submissionData = {
             operation: 'update',
+            mode,
             accountId: selectedAccount.account_id,
             accountNumber: selectedAccount.account_number,
             cifNumber: selectedAccount.cif_number,
             cifName: selectedAccount.cif_name,
+            pvDcfAmt,
+            eclIaAmt,
+            outstanding,
+            stagedOverride: stagedOverride || null,
+            stagedDCF: stagedDCF || null,
             ...stagedOverride,
             ...stagedDCF,
             isConsolidated: true,
             justification: stagedOverride?.justification || 'Consolidated Assessment Submission'
         };
 
-        await approvalAPI.createRequest({
+        await individualImpairmentAPI.assessment.submit(Number(selectedAccount.account_id), submissionData.justification);
+
+        const approvalRes = await approvalAPI.createRequest({
             tenantId: user?.tenantId || 'default',
             entityType: 'individual_assessment_consolidated',
             entityId: String(selectedAccount.account_id),
             title: `Assessment Package: ${selectedAccount.account_number} (${titleParts.join(' + ')})`,
             description: `Consolidated assessment for ${selectedAccount.cif_name}. Requested by ${requestedBy}.`,
             requestedBy,
-            requestData: submissionData
+            requestData: {
+              operation: 'update',
+              entityType: 'INDIVIDUAL_ASSESSMENT_CONSOLIDATED',
+              data: submissionData,
+            }
         });
+        const requestId = approvalRes?.data?.id || approvalRes?.data?.requestId || null;
+        setApprovalRequestId(requestId);
 
         setHeaderSnackbar({ open: true, message: 'Assessment package submitted for approval successfully!', severity: 'success' });
 
@@ -850,10 +953,24 @@ export default function IndividualAssessmentWizardPage() {
             account={selectedAccount}
             assessment={null}
             onUpdateAssessment={async (data) => {
-              // Extract the actual override data if it's wrapped
               const actualData = (data as any).stagedOverride || data;
+              try {
+                await individualImpairmentAPI.createOverride(actualData);
+                if (actualData.supportingDocumentContent && selectedAccount) {
+                  const byteChars = atob(actualData.supportingDocumentContent);
+                  const byteNums = new Array(byteChars.length);
+                  for (let i = 0; i < byteChars.length; i++) {
+                    byteNums[i] = byteChars.charCodeAt(i);
+                  }
+                  const byteArray = new Uint8Array(byteNums);
+                  const blob = new Blob([byteArray]);
+                  const file = new File([blob], actualData.supportingDocumentName || 'adjustment_file.pdf');
+                  await individualImpairmentAPI.documents.upload(Number(selectedAccount.account_id), file, { source: 'adjustment', type: 'override' });
+                }
+              } catch (e) {
+                console.warn('Override save warning:', e);
+              }
               setStagedOverride(actualData);
-              // UX: Automatically navigate to DCF Analysis tab after staging
               handleTabChangeByKey('dcf-analysis');
               return { success: true };
             }}
@@ -872,18 +989,23 @@ export default function IndividualAssessmentWizardPage() {
         render: () => (
           <DCFAnalysisTab
             account={selectedAccount}
-            assessment={null}
+            assessment={assessmentData}
             onCalculate={handleCalculateDcf}
             calculationResults={dcfCalculation}
             loading={dcfLoading}
             stagedDCF={stagedDCF}
-            onStagedDCF={(data) => {
+            onStagedDCF={async (data) => {
               setStagedDCF(data);
-              // Automate the calculation after upload/staging
+              if (data.fileBlob && selectedAccount) {
+                try {
+                  await individualImpairmentAPI.documents.upload(Number(selectedAccount.account_id), data.fileBlob, { source: 'dcf', type: 'cashflow' });
+                } catch (e) {
+                  console.warn('DCF file save warning:', e);
+                }
+              }
               if (data.cashflows && data.cashflows.length > 0) {
                 handleCalculateDcf(data);
               }
-              // UX: Automatically navigate to Provision Calculation tab AFTER UPLOAD/STAGING is complete
               handleTabChangeByKey('provision-calculation');
             }}
           />
@@ -898,7 +1020,7 @@ export default function IndividualAssessmentWizardPage() {
         render: () => (
           <ProvisionCalculationTab
             account={selectedAccount}
-            assessment={null}
+            assessment={assessmentData}
             calculation={dcfCalculation}
             loading={dcfLoading}
             isStagedOverrideReady={!!stagedOverride}
@@ -929,12 +1051,26 @@ export default function IndividualAssessmentWizardPage() {
         icon: FolderIcon,
         render: () => (
           <AssessmentDocumentsTab
-            key={`docs-${accountId}-${stagedOverride ? 'o' : ''}-${stagedDCF ? 'd' : ''}`}
+            key={`docs-${accountId}-${stagedOverride ? 'o' : ''}-${stagedDCF ? 'd' : ''}-${historyRefreshKey}`}
             account={selectedAccount}
             stagedOverride={stagedOverride}
             stagedDCF={stagedDCF}
             assessmentData={assessmentData}
             historyData={historyData}
+            onUpload={async (files) => {
+              if (!selectedAccount?.account_id) return;
+              for (const file of files) {
+                try {
+                  await individualImpairmentAPI.documents.upload(
+                    Number(selectedAccount.account_id),
+                    file,
+                    { source: 'additional', type: 'evidence' }
+                  );
+                } catch (err) {
+                  console.error('Upload failed:', file.name, err);
+                }
+              }
+            }}
           />
         )
       }
@@ -1060,16 +1196,14 @@ export default function IndividualAssessmentWizardPage() {
               </span>
             </Tooltip>
 
-            {canApprove && (
-              <Stack direction="row" spacing={1}>
+            {isChecker && accountId && assessmentData?.status === 0 && (
+              <>
                 <Button
                   variant="contained"
                   color="error"
                   startIcon={<RejectIcon />}
-                  onClick={() => {
-                    setCheckerComments('');
-                    setRejectionDialogOpen(true);
-                  }}
+                  onClick={() => setRejectionDialogOpen(true)}
+                  sx={{ fontWeight: 700, mr: 1 }}
                 >
                   Reject
                 </Button>
@@ -1077,26 +1211,204 @@ export default function IndividualAssessmentWizardPage() {
                   variant="contained"
                   color="success"
                   startIcon={<ApproveIcon />}
-                  onClick={() => {
-                    setCheckerComments('');
-                    setApprovalDialogOpen(true);
-                  }}
+                  onClick={() => setApprovalDialogOpen(true)}
+                  sx={{ fontWeight: 700 }}
                 >
-                  Approve
+                  Review & Approve
                 </Button>
-              </Stack>
+              </>
             )}
           </Box>
         }
       />
 
       {/* Approval Dialog */}
-      <Dialog open={approvalDialogOpen} onClose={() => !submittingApproval && setApprovalDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>Confirm Approval</DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" sx={{ mb: 2 }}>
-            Are you sure you want to approve this impairment assessment for <strong>{selectedAccount?.cif_name}</strong>?
-          </Typography>
+      <Dialog open={approvalDialogOpen} onClose={() => !submittingApproval && setApprovalDialogOpen(false)} maxWidth="md" fullWidth scroll="body">
+        <DialogTitle sx={{ fontWeight: 800, bgcolor: 'success.50', borderBottom: '1px solid', borderColor: 'success.200', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <ApproveIcon sx={{ color: 'success.main' }} />
+          Checker Review — Account {selectedAccount?.account_number}
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3, pb: 1 }}>
+          {/* Review data effect */}
+          {(() => {
+            // eslint-disable-next-line react-hooks/rules-of-hooks
+            React.useEffect(() => {
+              if (!approvalDialogOpen || !selectedAccount?.account_id) return;
+              (async () => {
+                try {
+                  const res = await individualImpairmentAPI.documents.get(Number(selectedAccount.account_id));
+                  if (res.success) setReviewDocuments(res.data || []);
+                } catch {}
+              })();
+            }, [approvalDialogOpen]);
+            return null;
+          })()}
+
+          {/* 1. CUSTOMER INFORMATION */}
+          <Card variant="outlined" sx={{ mb: 3, borderRadius: 2, bgcolor: '#fafafa' }}>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Customer</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>{selectedAccount?.cif_name}</Typography>
+                  <Typography variant="caption" color="text.secondary">CIF: {selectedAccount?.cif_number}</Typography>
+                </Grid>
+                <Grid size={{ xs: 6, md: 2 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Status</Typography>
+                  <Chip label={assessmentData?.status === 0 ? 'PENDING' : 'N/A'} size="small" color="warning" sx={{ fontWeight: 700, display: 'block', mt: 0.5, width: 'fit-content' }} />
+                </Grid>
+                <Grid size={{ xs: 6, md: 2 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Stage</Typography>
+                  <Chip label={`Stage ${selectedAccount?.stage || assessmentData?.stage || '-'}`} size="small" color="warning" variant="outlined" sx={{ fontWeight: 700, display: 'block', mt: 0.5, width: 'fit-content' }} />
+                </Grid>
+                <Grid size={{ xs: 6, md: 2 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>DPD</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>{selectedAccount?.dpd || 0} days</Typography>
+                </Grid>
+                <Grid size={{ xs: 6, md: 2 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Outstanding</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(selectedAccount?.outstanding_balance) || 0)}
+                  </Typography>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            {/* 2. ADJUSTMENT CARD */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Card variant="outlined" sx={{ borderRadius: 2, height: '100%', borderColor: 'primary.200' }}>
+                <Box sx={{ px: 2, py: 1.5, bgcolor: 'primary.50', borderBottom: '1px solid', borderColor: 'primary.200' }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.800' }}>📋 Adjustment</Typography>
+                </Box>
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  <Typography variant="caption" color="text.secondary">Justification</Typography>
+                  <Typography variant="body2" sx={{ mb: 1.5, fontStyle: 'italic', bgcolor: 'grey.50', p: 1, borderRadius: 1 }}>
+                    "{stagedOverride?.justification || assessmentData?.triggerRemarks || 'No adjustment justification provided'}"
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">Impaired Flag</Typography>
+                  <Typography variant="body2" sx={{ mb: 1 }}>{stagedOverride?.impairedFlag || assessmentData?.impairedFlag || '-'}</Typography>
+                  <Typography variant="caption" color="text.secondary">Override Stage</Typography>
+                  <Typography variant="body2" sx={{ mb: 1.5 }}>{stagedOverride?.overrideStage || assessmentData?.stage || '-'}</Typography>
+                  <Divider sx={{ my: 1.5 }} />
+                  {(() => {
+                    const adjFileName = stagedOverride?.supportingDocumentName || assessmentData?.triggerFilename;
+                    return adjFileName ? (
+                      <Button size="small" variant="outlined" startIcon={<DownloadIcon />} onClick={() => individualImpairmentAPI.documents.download(adjFileName)} sx={{ textTransform: 'none', fontWeight: 600 }}>
+                        Adjustment: {adjFileName}
+                      </Button>
+                    ) : (
+                      <Typography variant="caption" color="text.secondary">No adjustment file</Typography>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* 3. DCF CARD */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Card variant="outlined" sx={{ borderRadius: 2, height: '100%', borderColor: 'info.200' }}>
+                <Box sx={{ px: 2, py: 1.5, bgcolor: 'info.50', borderBottom: '1px solid', borderColor: 'info.200' }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'info.800' }}>📊 DCF Analysis</Typography>
+                </Box>
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  {(() => {
+                    const dcfDoc = reviewDocuments.find(d => d.source === 'dcf' || d.name?.toLowerCase().includes('dcf'));
+                    const dcfFileName = stagedDCF?.fileName || dcfDoc?.filename || dcfDoc?.name;
+                    return dcfFileName ? (
+                      <>
+                        <Typography variant="caption" color="text.secondary">Uploaded File</Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>{dcfFileName}</Typography>
+                        <Button size="small" variant="outlined" color="info" startIcon={<DownloadIcon />} onClick={() => individualImpairmentAPI.documents.download(dcfFileName)} sx={{ textTransform: 'none', fontWeight: 600, mb: 1.5 }}>
+                          Download DCF File
+                        </Button>
+                      </>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>DCF file not available for download</Typography>
+                    );
+                  })()}
+                  <Divider sx={{ my: 1.5 }} />
+                  <Typography variant="caption" color="text.secondary">Cashflow Periods</Typography>
+                  <Typography variant="body2">{stagedDCF?.cashflows?.length || dcfCalculation?.details?.length || 'N/A'} rows</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>Scenario</Typography>
+                  <Typography variant="body2">{stagedDCF?.scenarioType || 'Standard'}</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+
+          {/* 4. CALCULATION RESULTS */}
+          <Card variant="outlined" sx={{ mb: 3, borderRadius: 2, borderColor: 'warning.200' }}>
+            <Box sx={{ px: 2, py: 1.5, bgcolor: 'warning.50', borderBottom: '1px solid', borderColor: 'warning.200' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'warning.800' }}>📈 Calculation Results</Typography>
+            </Box>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 6, md: 3 }}>
+                  <Typography variant="caption" color="text.secondary">Outstanding / EAD</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(
+                      Number(dcfCalculation?.outstandingBalance || dcfCalculation?.eadAmt || assessmentData?.outstanding || selectedAccount?.outstanding_balance || 0)
+                    )}
+                  </Typography>
+                </Grid>
+                <Grid size={{ xs: 6, md: 3 }}>
+                  <Typography variant="caption" color="text.secondary">PV DCF Amount</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: 'info.main' }}>
+                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(
+                      Number(dcfCalculation?.presentValue || dcfCalculation?.totalNpv || assessmentData?.pvDcfAmt || 0)
+                    )}
+                  </Typography>
+                </Grid>
+                <Grid size={{ xs: 6, md: 3 }}>
+                  <Typography variant="caption" color="text.secondary">ECL IA Amount</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: 'error.main', fontSize: '1.1rem' }}>
+                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(
+                      Number(dcfCalculation?.eclIaAmt || dcfCalculation?.recommendedProvision || assessmentData?.eclIaAmt || 0)
+                    )}
+                  </Typography>
+                </Grid>
+                <Grid size={{ xs: 6, md: 3 }}>
+                  <Typography variant="caption" color="text.secondary">Discount Rate</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                    {dcfCalculation?.assumptions?.discountRate || assessmentData?.effInterestRate || '-'}%
+                  </Typography>
+                </Grid>
+              </Grid>
+              {(stagedDCF?.results || dcfCalculation?.assumptions) && (
+                <>
+                  <Divider sx={{ my: 1.5 }} />
+                  <Grid container spacing={2}>
+                    <Grid size={{ xs: 4 }}>
+                      <Typography variant="caption" color="text.secondary">PO Rate 1</Typography>
+                      <Typography variant="body2">{dcfCalculation?.assumptions?.poRate1 || assessmentData?.poRate1 || '-'}%</Typography>
+                    </Grid>
+                    <Grid size={{ xs: 4 }}>
+                      <Typography variant="caption" color="text.secondary">PO Rate 2</Typography>
+                      <Typography variant="body2">{dcfCalculation?.assumptions?.poRate2 || assessmentData?.poRate2 || '-'}%</Typography>
+                    </Grid>
+                    <Grid size={{ xs: 4 }}>
+                      <Typography variant="caption" color="text.secondary">PO Rate 3</Typography>
+                      <Typography variant="body2">{dcfCalculation?.assumptions?.poRate3 || assessmentData?.poRate3 || '-'}%</Typography>
+                    </Grid>
+                  </Grid>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* 5. MAKER JUSTIFICATION */}
+          {assessmentData?.triggerRemarks && (
+            <Box sx={{ mb: 3, p: 2, bgcolor: 'primary.50', borderRadius: 2, borderLeft: '4px solid', borderColor: 'primary.main' }}>
+              <Typography variant="caption" color="primary.main" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>Maker Justification</Typography>
+              <Typography variant="body2" sx={{ mt: 0.5, fontStyle: 'italic' }}>"{assessmentData.triggerRemarks}"</Typography>
+            </Box>
+          )}
+
+          <Divider sx={{ mb: 2 }} />
+          {/* 6. CHECKER DECISION INPUT */}
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: 'text.secondary' }}>CHECKER DECISION</Typography>
           <TextField
             fullWidth
             multiline
@@ -1105,28 +1417,118 @@ export default function IndividualAssessmentWizardPage() {
             placeholder="Add any notes for the Maker..."
             value={checkerComments}
             onChange={(e) => setCheckerComments(e.target.value)}
+            sx={{ mb: 1 }}
           />
         </DialogContent>
-        <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button onClick={() => setApprovalDialogOpen(false)} disabled={submittingApproval}>Cancel</Button>
-          <LoadingButton
-            variant="contained"
-            color="success"
-            onClick={handleApprove}
-            loading={submittingApproval}
-          >
-            Confirm Approval
-          </LoadingButton>
+        <DialogActions sx={{ p: 2.5, pt: 1, borderTop: '1px solid', borderColor: 'divider', justifyContent: 'space-between' }}>
+          <Typography variant="caption" color="text.secondary">
+            Review all data above before making a decision
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button onClick={() => setApprovalDialogOpen(false)} disabled={submittingApproval} variant="outlined">Cancel</Button>
+            <LoadingButton
+              variant="contained"
+              color="success"
+              onClick={handleApprove}
+              loading={submittingApproval}
+              startIcon={<ApproveIcon />}
+              sx={{ fontWeight: 700, px: 3 }}
+            >
+              Approve Assessment
+            </LoadingButton>
+          </Box>
         </DialogActions>
       </Dialog>
 
       {/* Rejection Dialog */}
-      <Dialog open={rejectionDialogOpen} onClose={() => !submittingApproval && setRejectionDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800, color: 'error.main' }}>Reject Assessment</DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" sx={{ mb: 2 }}>
-            Please provide a reason for rejecting the assessment for <strong>{selectedAccount?.cif_name}</strong>.
-          </Typography>
+      <Dialog open={rejectionDialogOpen} onClose={() => !submittingApproval && setRejectionDialogOpen(false)} maxWidth="md" fullWidth scroll="body">
+        <DialogTitle sx={{ fontWeight: 800, bgcolor: 'error.50', borderBottom: '1px solid', borderColor: 'error.200', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <RejectIcon sx={{ color: 'error.main' }} />
+          Checker Review — Reject Assessment — {selectedAccount?.account_number}
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3, pb: 1 }}>
+          {/* Customer Info Summary */}
+          <Card variant="outlined" sx={{ mb: 3, borderRadius: 2, bgcolor: '#fafafa' }}>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Grid container spacing={2} alignItems="center">
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Customer</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>{selectedAccount?.cif_name}</Typography>
+                  <Typography variant="caption" color="text.secondary">Acc: {selectedAccount?.account_number} / CIF: {selectedAccount?.cif_number}</Typography>
+                </Grid>
+                <Grid size={{ xs: 6, md: 2 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Status</Typography>
+                  <Chip label="PENDING" size="small" color="warning" sx={{ fontWeight: 700, display: 'block', mt: 0.5, width: 'fit-content' }} />
+                </Grid>
+                <Grid size={{ xs: 6, md: 2 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Outstanding</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(selectedAccount?.outstanding_balance) || 0)}
+                  </Typography>
+                </Grid>
+                <Grid size={{ xs: 6, md: 2 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>ECL IA</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: 'error.main' }}>
+                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(dcfCalculation?.eclIaAmt || assessmentData?.eclIaAmt || 0))}
+                  </Typography>
+                </Grid>
+                <Grid size={{ xs: 6, md: 2 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>DPD / Rating</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>{selectedAccount?.dpd || 0}d / {selectedAccount?.rating_code || '-'}</Typography>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+
+          {/* Adjustment + DCF Summary */}
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Card variant="outlined" sx={{ borderRadius: 2, borderColor: 'primary.200' }}>
+                <Box sx={{ px: 2, py: 1, bgcolor: 'primary.50', borderBottom: '1px solid', borderColor: 'primary.200' }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.800' }}>Adjustment</Typography>
+                </Box>
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  <Typography variant="body2" sx={{ fontStyle: 'italic', mb: 1 }}>
+                    "{stagedOverride?.justification || assessmentData?.triggerRemarks || 'No justification'}"
+                  </Typography>
+                  {(() => {
+                    const fn = stagedOverride?.supportingDocumentName || assessmentData?.triggerFilename;
+                    return fn ? (
+                      <Button size="small" variant="outlined" startIcon={<DownloadIcon />} onClick={() => individualImpairmentAPI.documents.download(fn)} sx={{ textTransform: 'none' }}>
+                        {fn}
+                      </Button>
+                    ) : null;
+                  })()}
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Card variant="outlined" sx={{ borderRadius: 2, borderColor: 'info.200' }}>
+                <Box sx={{ px: 2, py: 1, bgcolor: 'info.50', borderBottom: '1px solid', borderColor: 'info.200' }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'info.800' }}>DCF Analysis</Typography>
+                </Box>
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  <Typography variant="body2" color="text.secondary">PV DCF: <strong>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(dcfCalculation?.presentValue || assessmentData?.pvDcfAmt || 0))}</strong></Typography>
+                  <Typography variant="body2" color="text.secondary">ECL IA: <strong style={{ color: '#d32f2f' }}>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(dcfCalculation?.eclIaAmt || assessmentData?.eclIaAmt || 0))}</strong></Typography>
+                  {(() => {
+                    const dcfDoc = reviewDocuments.find(d => d.source === 'dcf' || d.name?.toLowerCase().includes('dcf'));
+                    const fn = stagedDCF?.fileName || dcfDoc?.filename || dcfDoc?.name;
+                    return fn ? (
+                      <Button size="small" variant="outlined" color="info" startIcon={<DownloadIcon />} onClick={() => individualImpairmentAPI.documents.download(fn)} sx={{ textTransform: 'none', mt: 1 }}>
+                        Download DCF: {fn}
+                      </Button>
+                    ) : null;
+                  })()}
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+
+          {/* Rejection Reason Input */}
+          <Alert severity="error" variant="outlined" sx={{ mb: 2, borderRadius: 2, bgcolor: 'error.50' }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Rejection requires a detailed reason</Typography>
+            <Typography variant="caption">This reason will be sent back to the Maker for revision.</Typography>
+          </Alert>
           <TextField
             fullWidth
             multiline
@@ -1138,18 +1540,27 @@ export default function IndividualAssessmentWizardPage() {
             onChange={(e) => setCheckerComments(e.target.value)}
             error={rejectionDialogOpen && !checkerComments.trim()}
             helperText={rejectionDialogOpen && !checkerComments.trim() ? "Reason is required for rejection" : ""}
+            sx={{ mb: 1 }}
           />
         </DialogContent>
-        <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button onClick={() => setRejectionDialogOpen(false)} disabled={submittingApproval}>Cancel</Button>
-          <LoadingButton
-            variant="contained"
-            color="error"
-            onClick={handleReject}
-            loading={submittingApproval}
-          >
-            Reject Assessment
-          </LoadingButton>
+        <DialogActions sx={{ p: 2.5, pt: 1, borderTop: '1px solid', borderColor: 'divider', justifyContent: 'space-between' }}>
+          <Typography variant="caption" color="text.secondary">
+            Data reviewed. Enter rejection reason above.
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button onClick={() => setRejectionDialogOpen(false)} disabled={submittingApproval} variant="outlined">Cancel</Button>
+            <LoadingButton
+              variant="contained"
+              color="error"
+              onClick={handleReject}
+              loading={submittingApproval}
+              startIcon={<RejectIcon />}
+              disabled={!checkerComments.trim()}
+              sx={{ fontWeight: 700, px: 3 }}
+            >
+              Reject Assessment
+            </LoadingButton>
+          </Box>
         </DialogActions>
       </Dialog>
 

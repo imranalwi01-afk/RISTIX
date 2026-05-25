@@ -843,6 +843,43 @@ export const individualImpairmentAPI = {
     }
   },
 
+  // Document Management
+  documents: {
+    // Get all documents for an account
+    get: async (accountId: number) => {
+      const response = await apiClient.get(`/banking/individual/impairment/documents/${accountId}`);
+      return response.data;
+    },
+
+    // Download a document
+    download: async (fileName: string) => {
+      const response = await apiClient.get(`/banking/individual/impairment/documents/download/${encodeURIComponent(fileName)}`, {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    },
+
+    // Upload a document
+    upload: async (accountId: number, file: File, metadata?: Record<string, any>) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (metadata) {
+        formData.append('metadata', JSON.stringify(metadata));
+      }
+      const response = await apiClient.post(`/banking/individual/impairment/documents/upload/${accountId}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    }
+  },
+
   // Get assessment summary statistics
     getAssessmentSummary: async (date?: string) => {
     console.log('📊 Fetching assessment summary statistics');
