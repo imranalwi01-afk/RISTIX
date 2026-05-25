@@ -10,7 +10,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -27,17 +27,13 @@ import {
   Tooltip,
   Chip,
   Snackbar,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   FormControl,
+  FormControlLabel,
   InputLabel,
+  Menu,
   Select,
   MenuItem,
+  Switch,
 } from '@mui/material';
 import {
   Rule as PageIcon,
@@ -48,8 +44,10 @@ import {
   Refresh as RefreshIcon,
   Search as SearchIcon,
   FilterAlt as FilterIcon,
-  Clear as ClearIcon
+  Clear as ClearIcon,
+  ViewColumn as ViewColumnIcon
 } from '@mui/icons-material';
+import type { GridColDef } from '@mui/x-data-grid';
 import { useRouter } from 'next/navigation';
 import { bankingAPI } from '../../../../services/api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
@@ -63,10 +61,12 @@ import {
 } from '@/components/approval';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/utils/error-message';
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import type { RuleBaseDetail, RuleBaseHeader } from './types';
-import { RuleBaseExpandableRow } from './components/RuleBaseExpandableRow';
+import { RuleBaseExpandableRow, type RuleBaseColumnKey } from './components/RuleBaseExpandableRow';
 import { RuleBaseHeaderDialog } from './components/RuleBaseHeaderDialog';
 import { RuleBaseDetailDialog } from './components/RuleBaseDetailDialog';
+import { RuleBaseDetailsDialog } from './components/RuleBaseDetailsDialog';
 
 
 const normalizeListPayload = (payload: unknown): string[] => {
@@ -134,6 +134,23 @@ const getRuleBaseDetailValidationMessage = (detail: Partial<RuleBaseDetail>): st
   return null;
 };
 
+const RULE_BASE_COLUMNS: Array<{ key: RuleBaseColumnKey; label: string }> = [
+  { key: 'id', label: 'ID' },
+  { key: 'rule_name', label: 'Rule Name' },
+  { key: 'rule_type', label: 'Type' },
+  { key: 'updated_table', label: 'Updated Table' },
+  { key: 'updated_column', label: 'Updated Column' },
+  { key: 'value', label: 'Value' },
+  { key: 'seq', label: 'Seq' },
+  { key: 'status', label: 'Status' },
+  { key: 'details', label: 'Details' },
+];
+
+const DEFAULT_RULE_BASE_COLUMN_VISIBILITY = RULE_BASE_COLUMNS.reduce(
+  (visibility, column) => ({ ...visibility, [column.key]: true }),
+  {} as Record<RuleBaseColumnKey, boolean>
+);
+
 // =====================================================
 // MAIN COMPONENT
 // =====================================================
@@ -162,9 +179,12 @@ export default function RuleBaseSettingPage() {
   // Dialog States
   const [headerDialogOpen, setHeaderDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedHeader, setSelectedHeader] = useState<RuleBaseHeader | null>(null);
   const [selectedDetail, setSelectedDetail] = useState<RuleBaseDetail | null>(null);
   const [selectedHeaderId, setSelectedHeaderId] = useState<number | null>(null);
+  const [columnsMenuAnchor, setColumnsMenuAnchor] = useState<null | HTMLElement>(null);
+  const [columnVisibility, setColumnVisibility] = useState<Record<RuleBaseColumnKey, boolean>>(DEFAULT_RULE_BASE_COLUMN_VISIBILITY);
 
   // Form States
   const [headerFormData, setHeaderFormData] = useState<Partial<RuleBaseHeader>>({});
@@ -185,6 +205,19 @@ export default function RuleBaseSettingPage() {
     setRefreshTriggers(prev => ({ ...prev, [headerId]: Date.now() }));
   }, []);
 
+  const handleToggleColumn = useCallback((columnKey: RuleBaseColumnKey) => {
+    setColumnVisibility((prev) => {
+      const visibleCount = RULE_BASE_COLUMNS.filter((column) => prev[column.key]).length;
+      if (prev[columnKey] && visibleCount <= 1) return prev;
+      return { ...prev, [columnKey]: !prev[columnKey] };
+    });
+  }, []);
+
+  const handleViewRuleDetails = useCallback((header: RuleBaseHeader) => {
+    setSelectedHeader(header);
+    setDetailsDialogOpen(true);
+  }, []);
+
   // Dropdown Options - Live Database Metadata
   const [ruleTypes, setRuleTypes] = useState<{ label: string, value: string }[]>([]);
   const [conditions, setConditions] = useState<{ label: string, value: string }[]>([]);
@@ -202,6 +235,7 @@ export default function RuleBaseSettingPage() {
   });
   const headerValidationMessage = getRuleBaseHeaderValidationMessage(headerFormData);
   const detailValidationMessage = getRuleBaseDetailValidationMessage(detailFormData);
+  const visibleColumnCount = RULE_BASE_COLUMNS.filter((column) => columnVisibility[column.key]).length;
 
   // Filter functions
   const applyFilters = useCallback(() => {
@@ -503,6 +537,139 @@ export default function RuleBaseSettingPage() {
       setLoading(false);
     }
   }, [canManageRuleBase, loadHeaders, loadPendingApprovals, showApprovalConflict]);
+
+  const ruleBaseColumns = useMemo<GridColDef<RuleBaseHeader>[]>(() => [
+    {
+      field: 'id',
+      headerName: 'ID',
+      width: 90,
+      renderCell: (params) => (
+        <Typography variant="body2" sx={{ fontWeight: 'bold', fontFamily: 'monospace' }} data-testid="rule-id-cell">
+          {params.value}
+        </Typography>
+      ),
+    },
+    {
+      field: 'rule_name',
+      headerName: 'Rule Name',
+      minWidth: 220,
+      flex: 1.2,
+      renderCell: (params) => (
+        <Typography variant="body2" sx={{ fontWeight: 'bold' }} data-testid="rule-name-cell">
+          {params.value}
+        </Typography>
+      ),
+    },
+    {
+      field: 'rule_type',
+      headerName: 'Type',
+      width: 140,
+      renderCell: (params) => (
+        <Chip
+          label={params.value}
+          size="small"
+          color={params.value === 'STAGE' ? 'primary' : params.value === 'DEFAULT' ? 'warning' : 'info'}
+        />
+      ),
+    },
+    {
+      field: 'updated_table',
+      headerName: 'Updated Table',
+      minWidth: 190,
+      flex: 1,
+      renderCell: (params) => (
+        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+          {params.value}
+        </Typography>
+      ),
+    },
+    {
+      field: 'updated_column',
+      headerName: 'Updated Column',
+      minWidth: 180,
+      flex: 1,
+      renderCell: (params) => (
+        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+          {params.value}
+        </Typography>
+      ),
+    },
+    {
+      field: 'value',
+      headerName: 'Value',
+      width: 130,
+      renderCell: (params) => (
+        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+          {params.value}
+        </Typography>
+      ),
+    },
+    {
+      field: 'seq',
+      headerName: 'Seq',
+      width: 90,
+      align: 'center',
+      renderCell: (params) => <Chip label={params.value} size="small" variant="outlined" />,
+    },
+    {
+      field: 'status',
+      headerName: 'Status',
+      width: 140,
+      renderCell: (params) => pendingRequests.some((request) => request.entityId === params.row.id.toString()) ? (
+        <ApprovalStatusBadge status="pending" />
+      ) : (
+        <Chip
+          label={params.row.active_flag ? 'Active' : 'Inactive'}
+          size="small"
+          color={params.row.active_flag ? 'success' : 'default'}
+        />
+      ),
+    },
+    {
+      field: 'details',
+      headerName: 'Details',
+      width: 110,
+      sortable: false,
+      filterable: false,
+      renderCell: () => <Chip label="Expand" size="small" color="info" variant="outlined" />,
+    },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      type: 'actions',
+      width: 144,
+      sortable: false,
+      filterable: false,
+      getActions: (params) => [
+        <SafeGridActionsCellItem
+          key="view"
+          label="View Rule Details"
+          icon={<FilterIcon color="info" />}
+          onClick={() => handleViewRuleDetails(params.row)}
+          disabled={loading}
+          data-testid="view-rule-details-btn"
+        />,
+        ...(canManageRuleBase ? [
+          <SafeGridActionsCellItem
+            key="edit"
+            label="Edit Rule Header"
+            icon={<EditIcon color="primary" />}
+            onClick={() => handleEditHeader(params.row)}
+            disabled={loading}
+            data-testid="edit-header-btn"
+          />,
+          <SafeGridActionsCellItem
+            key="delete"
+            label="Delete Rule Header"
+            icon={<DeleteIcon color="error" />}
+            onClick={() => handleDeleteHeader(params.row)}
+            disabled={loading}
+            data-testid="delete-header-btn"
+          />,
+        ] : []),
+      ],
+    },
+  ], [canManageRuleBase, handleDeleteHeader, handleEditHeader, handleViewRuleDetails, loading, pendingRequests]);
 
   const handleSaveHeader = useCallback(async () => {
     if (!canManageRuleBase) return;
@@ -827,6 +994,38 @@ export default function RuleBaseSettingPage() {
         </Box>
 
         <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="outlined"
+            startIcon={<ViewColumnIcon />}
+            onClick={(event) => setColumnsMenuAnchor(event.currentTarget)}
+            disabled={loading}
+          >
+            Columns ({visibleColumnCount})
+          </Button>
+          <Menu
+            anchorEl={columnsMenuAnchor}
+            open={Boolean(columnsMenuAnchor)}
+            onClose={() => setColumnsMenuAnchor(null)}
+          >
+            {RULE_BASE_COLUMNS.map((column) => {
+              const visibleCount = RULE_BASE_COLUMNS.filter((item) => columnVisibility[item.key]).length;
+              return (
+                <MenuItem key={column.key} dense>
+                  <FormControlLabel
+                    control={(
+                      <Switch
+                        size="small"
+                        checked={columnVisibility[column.key]}
+                        disabled={columnVisibility[column.key] && visibleCount <= 1}
+                        onChange={() => handleToggleColumn(column.key)}
+                      />
+                    )}
+                    label={column.label}
+                  />
+                </MenuItem>
+              );
+            })}
+          </Menu>
           <Tooltip title="Refresh Data">
             <IconButton onClick={loadHeaders} color="primary" disabled={loading}>
               <RefreshIcon />
@@ -956,8 +1155,8 @@ export default function RuleBaseSettingPage() {
       </Card>
 
       {/* Master Table with Expandable Details */}
-      <Card>
-        <CardContent sx={{ p: 0 }}>
+      <Card variant="outlined" sx={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: 0 }}>
+        <CardContent sx={{ p: 2, display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: 0, '&:last-child': { pb: 2 } }}>
           {filteredHeaders.length === 0 ? (
             <Box sx={{ p: 4, textAlign: 'center' }}>
               <Alert severity="info">
@@ -968,42 +1167,40 @@ export default function RuleBaseSettingPage() {
               </Alert>
             </Box>
           ) : (
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell />
-                    <TableCell><strong>ID</strong></TableCell>
-                    <TableCell><strong>Rule Name</strong></TableCell>
-                    <TableCell><strong>Type</strong></TableCell>
-                    <TableCell><strong>Updated Table</strong></TableCell>
-                    <TableCell><strong>Updated Column</strong></TableCell>
-                    <TableCell><strong>Value</strong></TableCell>
-                    <TableCell align="center"><strong>Seq</strong></TableCell>
-                    <TableCell><strong>Status</strong></TableCell>
-                    <TableCell><strong>Details</strong></TableCell>
-                    <TableCell><strong>Actions</strong></TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredHeaders.map((header, index) => (
-                    <RuleBaseExpandableRow
-                      key={header.id ? `row-${header.id}` : `row-idx-${index}`}
-                      header={header}
-                      canManage={canManageRuleBase}
-                      onEditHeader={handleEditHeader}
-                      onDeleteHeader={handleDeleteHeader}
-                      onCreateDetail={handleCreateDetail}
-                      onEditDetail={handleEditDetail}
-                      onDeleteDetail={handleDeleteDetail}
-                      loading={loading}
-                      refreshTrigger={refreshTriggers[header.id]}
-                      pendingRequests={pendingRequests}
-                    />
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            <SafeDataGrid
+              rows={filteredHeaders}
+              columns={ruleBaseColumns}
+              loading={loading}
+              getRowId={(row) => row.id}
+              disableRowSelectionOnClick
+              hideFooterPagination
+              fillAvailableHeight
+              maxTableHeight="none"
+              tableStateKey="collective-rule-base-table"
+              columnVisibilityModel={Object.fromEntries(
+                Object.entries(columnVisibility).map(([field, visible]) => [field, visible])
+              )}
+              onColumnVisibilityModelChange={(model) => {
+                setColumnVisibility((current) => {
+                  const next = { ...current };
+                  RULE_BASE_COLUMNS.forEach((column) => {
+                    next[column.key] = model[column.key] !== false;
+                  });
+                  return next;
+                });
+              }}
+              getDetailPanelContent={({ row }) => (
+                <RuleBaseExpandableRow
+                  header={row}
+                  canManage={canManageRuleBase}
+                  onCreateDetail={handleCreateDetail}
+                  onEditDetail={handleEditDetail}
+                  onDeleteDetail={handleDeleteDetail}
+                  loading={loading}
+                  refreshTrigger={refreshTriggers[row.id]}
+                />
+              )}
+            />
           )}
         </CardContent>
       </Card>
@@ -1026,6 +1223,11 @@ export default function RuleBaseSettingPage() {
         onSave={handleSaveHeader}
         onHeaderTableChange={handleHeaderTableChange}
         onHeaderFormChange={setHeaderFormData}
+      />
+      <RuleBaseDetailsDialog
+        open={detailsDialogOpen}
+        header={selectedHeader}
+        onClose={() => setDetailsDialogOpen(false)}
       />
       <RuleBaseDetailDialog
         open={detailDialogOpen}

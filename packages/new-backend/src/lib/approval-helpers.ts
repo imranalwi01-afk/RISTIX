@@ -343,6 +343,7 @@ export const shouldAutoApprove = (
 }
 
 const STRICT_FOUR_EYES_ENTITIES = new Set([
+    'segmentation',
     'user',
     'role',
     'role_permission',

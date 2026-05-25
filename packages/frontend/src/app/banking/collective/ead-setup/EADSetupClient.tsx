@@ -312,7 +312,16 @@ export default function EADSetupPage() {
   ];
 
   return (
-    <Container maxWidth="xl">
+    <Container
+      maxWidth={false}
+      sx={{
+        minHeight: { xs: 'auto', lg: 'calc(100vh - 122px)' },
+        display: 'flex',
+        flexDirection: 'column',
+        px: { xs: 2, lg: 4, xl: 6 },
+        pb: 4,
+      }}
+    >
       {!canViewEadSetup && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           You do not have permission to view EAD setup.
@@ -362,14 +371,17 @@ export default function EADSetupPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <Box sx={{ height: 600, width: '100%' }}>
+      <Card sx={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: 0 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: 0, width: '100%' }}>
           <SafeDataGrid
             rows={filteredConfigs}
             columns={columns}
             loading={loading}
             getRowId={(row) => row.id || Math.random().toString()}
             disableRowSelectionOnClick
+            fillAvailableHeight
+            maxTableHeight="none"
+            tableStateKey="collective-ead-setup-table"
           />
         </Box>
       </Card>

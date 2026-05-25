@@ -115,7 +115,7 @@ export const PDConfigGrid = memo(function PDConfigGrid({
   ];
 
   return (
-    <>
+    <Box sx={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: 0 }}>
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box />
         <Box>
@@ -143,11 +143,20 @@ export const PDConfigGrid = memo(function PDConfigGrid({
         </CardContent>
       </Card>
 
-      <Card>
-        <Box sx={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-          <SafeDataGrid rows={rows} columns={columns} loading={loading} getRowId={(row) => row.id || Math.random().toString()} disableRowSelectionOnClick />
+      <Card sx={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: 0 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: 0, position: 'relative' }}>
+          <SafeDataGrid
+            rows={rows}
+            columns={columns}
+            loading={loading}
+            getRowId={(row) => row.id || Math.random().toString()}
+            disableRowSelectionOnClick
+            fillAvailableHeight
+            maxTableHeight="none"
+            tableStateKey="collective-pd-setup-table"
+          />
         </Box>
       </Card>
-    </>
+    </Box>
   );
 });

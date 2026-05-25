@@ -299,7 +299,16 @@ const PdSetupPage = () => {
   };
 
   return (
-    <Container maxWidth="xl">
+    <Container
+      maxWidth={false}
+      sx={{
+        minHeight: { xs: 'auto', lg: 'calc(100vh - 122px)' },
+        display: 'flex',
+        flexDirection: 'column',
+        px: { xs: 2, lg: 4, xl: 6 },
+        pb: 4,
+      }}
+    >
       {!canViewPdSetup && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           You do not have permission to view PD setup.

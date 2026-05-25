@@ -9,7 +9,7 @@
 
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -31,12 +31,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   LinearProgress,
   List,
   ListItem,
@@ -72,6 +66,8 @@ import {
 import { useRouter } from 'next/navigation';
 import { useDropzone } from 'react-dropzone';
 import { usePermission } from '@/hooks/usePermission';
+import type { GridColDef } from '@mui/x-data-grid';
+import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 
 // ============================================================================
 // INTERFACES
@@ -325,6 +321,67 @@ export default function ManualUploadPage() {
     }
   };
 
+  const uploadedFileColumns = useMemo<GridColDef<UploadedFile>[]>(() => [
+    {
+      field: 'name',
+      headerName: 'File Name',
+      minWidth: 240,
+      flex: 1.2,
+    },
+    {
+      field: 'size',
+      headerName: 'Size',
+      width: 120,
+      renderCell: (params) => formatFileSize(params.value as number),
+    },
+    {
+      field: 'template',
+      headerName: 'Template',
+      minWidth: 200,
+      flex: 1,
+      renderCell: (params) => params.row.template.name,
+    },
+    {
+      field: 'status',
+      headerName: 'Status',
+      width: 180,
+      renderCell: (params) => (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {getStatusIcon(params.row.status)}
+          <Chip
+            label={params.row.status}
+            size="small"
+            color={getStatusColor(params.row.status) as any}
+            variant="outlined"
+          />
+        </Box>
+      ),
+    },
+    {
+      field: 'progress',
+      headerName: 'Progress',
+      width: 160,
+      renderCell: (params) => (
+        <Box sx={{ width: 120 }}>
+          <LinearProgress
+            variant="determinate"
+            value={params.row.progress}
+            color={getStatusColor(params.row.status) as any}
+          />
+          <Typography variant="caption">
+            {params.row.progress}%
+          </Typography>
+        </Box>
+      ),
+    },
+    {
+      field: 'records',
+      headerName: 'Records',
+      width: 130,
+      renderCell: (params) => params.row.records > 0 ? params.row.records.toLocaleString() : '-',
+    },
+  ], []);
+
   // Tab content renderer
   const renderTabContent = () => {
     switch (activeTab) {
@@ -447,55 +504,17 @@ export default function ManualUploadPage() {
                         Uploaded Files ({uploadedFiles.length})
                       </Typography>
                       
-                      <TableContainer>
-                        <Table>
-                          <TableHead>
-                            <TableRow>
-                              <TableCell>File Name</TableCell>
-                              <TableCell>Size</TableCell>
-                              <TableCell>Template</TableCell>
-                              <TableCell>Status</TableCell>
-                              <TableCell>Progress</TableCell>
-                              <TableCell>Records</TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {uploadedFiles.map((file) => (
-                              <TableRow key={file.id}>
-                                <TableCell>{file.name}</TableCell>
-                                <TableCell>{formatFileSize(file.size)}</TableCell>
-                                <TableCell>{file.template.name}</TableCell>
-                                <TableCell>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    {getStatusIcon(file.status)}
-                                    <Chip 
-                                      label={file.status} 
-                                      size="small" 
-                                      color={getStatusColor(file.status) as any}
-                                      variant="outlined" 
-                                    />
-                                  </Box>
-                                </TableCell>
-                                <TableCell>
-                                  <Box sx={{ width: 100 }}>
-                                    <LinearProgress 
-                                      variant="determinate" 
-                                      value={file.progress} 
-                                      color={getStatusColor(file.status) as any}
-                                    />
-                                    <Typography variant="caption">
-                                      {file.progress}%
-                                    </Typography>
-                                  </Box>
-                                </TableCell>
-                                <TableCell>
-                                  {file.records > 0 ? file.records.toLocaleString() : '-'}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
+                      <SafeDataGrid
+                        rows={uploadedFiles}
+                        columns={uploadedFileColumns}
+                        getRowId={(row) => row.id}
+                        paginationMode="client"
+                        pageSizeOptions={[10, 25, 50]}
+                        disableRowSelectionOnClick
+                        tableStateKey="tools-upload-files-table"
+                        fillAvailableHeight={false}
+                        maxTableHeight={420}
+                      />
 
                       {uploadedFiles.length > 0 && (
                         <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>

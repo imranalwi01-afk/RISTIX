@@ -1,28 +1,15 @@
 'use client';
 
-import React, { memo } from 'react';
-import {
-  Box,
-  Chip,
-  IconButton,
-  Paper,
-  Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+import React, { memo, useMemo } from 'react';
+import { Chip, Typography } from '@mui/material';
 import {
   Delete as DeleteIcon,
   Edit as EditIcon,
   Visibility as ViewIcon,
 } from '@mui/icons-material';
-import type { ModelManagementTableProps } from './types';
+import type { GridColDef } from '@mui/x-data-grid';
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
+import type { ModelManagementTableProps, ModelRecord } from './types';
 
 const getStatusColor = (status: boolean) => (status ? '#4caf50' : '#f44336');
 const getStatusLabel = (status: boolean) => (status ? 'Active' : 'Inactive');
@@ -40,107 +27,119 @@ const ModelManagementTable = memo(function ModelManagementTable({
   onEditModel,
   onDeleteModel,
 }: ModelManagementTableProps) {
+  const columns = useMemo<GridColDef<ModelRecord>[]>(() => [
+    {
+      field: 'model_name',
+      headerName: 'Model Name',
+      minWidth: 220,
+      flex: 1.3,
+      renderCell: (params) => (
+        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+          {params.row.model_name || params.row.name || `Model ${params.row.__rowIndex + 1}`}
+        </Typography>
+      ),
+    },
+    {
+      field: 'segment_id',
+      headerName: 'Segment',
+      minWidth: 160,
+      flex: 0.8,
+      renderCell: (params) => (
+        <Chip
+          label={params.value ? `Segment ${params.value}` : 'All Segments'}
+          size="small"
+          variant="outlined"
+        />
+      ),
+    },
+    {
+      field: 'method',
+      headerName: 'Method',
+      minWidth: 180,
+      flex: 1,
+      renderCell: (params) => params.row.selected_method || params.row.lgd_method || params.row.ead_method || 'N/A',
+    },
+    {
+      field: 'active_flag',
+      headerName: 'Status',
+      width: 130,
+      align: 'center',
+      renderCell: (params) => {
+        const active = Boolean(params.row.active_flag || params.row.isActive);
+        return (
+          <Chip
+            label={getStatusLabel(active)}
+            size="small"
+            sx={{
+              backgroundColor: getStatusColor(active),
+              color: 'white',
+              fontWeight: 'bold',
+            }}
+          />
+        );
+      },
+    },
+    {
+      field: 'effective_date',
+      headerName: 'Effective Date',
+      width: 160,
+      renderCell: (params) => params.value || new Date().toLocaleDateString(),
+    },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      type: 'actions',
+      width: 136,
+      filterable: false,
+      sortable: false,
+      getActions: (params) => [
+        <SafeGridActionsCellItem
+          key="view"
+          label="View Details"
+          icon={<ViewIcon fontSize="small" />}
+          onClick={() => onViewModel(params.row)}
+        />,
+        <SafeGridActionsCellItem
+          key="edit"
+          label="Edit Model"
+          icon={<EditIcon fontSize="small" />}
+          onClick={() => onEditModel(params.row)}
+        />,
+        <SafeGridActionsCellItem
+          key="delete"
+          label="Delete Model"
+          icon={<DeleteIcon fontSize="small" color="error" />}
+          onClick={() => onDeleteModel(params.row)}
+        />,
+      ],
+    },
+  ], [onDeleteModel, onEditModel, onViewModel]);
+
+  const rows = useMemo(() => (
+    paginatedData.map((row, index) => ({ ...row, __rowIndex: index }))
+  ), [paginatedData]);
+
   return (
-    <Paper>
-      <TableContainer>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Model Name</TableCell>
-              <TableCell>Segment</TableCell>
-              <TableCell>Method</TableCell>
-              <TableCell align="center">Status</TableCell>
-              <TableCell>Effective Date</TableCell>
-              <TableCell align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading ? (
-              Array.from({ length: rowsPerPage }).map((_, index) => (
-                <TableRow key={index}>
-                  <TableCell><Skeleton variant="text" /></TableCell>
-                  <TableCell><Skeleton variant="text" /></TableCell>
-                  <TableCell><Skeleton variant="text" /></TableCell>
-                  <TableCell align="center"><Skeleton variant="text" /></TableCell>
-                  <TableCell><Skeleton variant="text" /></TableCell>
-                  <TableCell align="right"><Skeleton variant="text" /></TableCell>
-                </TableRow>
-              ))
-            ) : paginatedData.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} align="center">
-                  <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
-                    No {modelType} models found
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ) : (
-              paginatedData.map((model, index) => (
-                <TableRow key={index} hover>
-                  <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                      {model.model_name || model.name || `Model ${index + 1}`}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={model.segment_id ? `Segment ${model.segment_id}` : 'All Segments'}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {model.selected_method || model.lgd_method || model.ead_method || 'N/A'}
-                  </TableCell>
-                  <TableCell align="center">
-                    <Chip
-                      label={getStatusLabel(Boolean(model.active_flag || model.isActive))}
-                      size="small"
-                      sx={{
-                        backgroundColor: getStatusColor(Boolean(model.active_flag || model.isActive)),
-                        color: 'white',
-                        fontWeight: 'bold',
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {model.effective_date || new Date().toLocaleDateString()}
-                  </TableCell>
-                  <TableCell align="right">
-                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                      <Tooltip title="View Details">
-                        <IconButton size="small" onClick={() => onViewModel(model)}>
-                          <ViewIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Edit Model">
-                        <IconButton size="small" onClick={() => onEditModel(model)}>
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete Model">
-                        <IconButton size="small" color="error" onClick={() => onDeleteModel(model)}>
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      <TablePagination
-        rowsPerPageOptions={[10, 25, 50, 100]}
-        component="div"
-        count={totalCount}
-        rowsPerPage={rowsPerPage}
-        page={page}
-        onPageChange={onChangePage}
-        onRowsPerPageChange={onChangeRowsPerPage}
-      />
-    </Paper>
+    <SafeDataGrid
+      rows={rows}
+      columns={columns}
+      loading={loading}
+      getRowId={(row) => row.id || row.pkid || row.model_id || row.model_name || row.name || row.__rowIndex}
+      rowCount={totalCount}
+      paginationMode="offset"
+      paginationModel={{ page, pageSize: rowsPerPage }}
+      onPaginationModelChange={(model) => {
+        if (model.page !== page) onChangePage(null, model.page);
+        if (model.pageSize !== rowsPerPage) {
+          onChangeRowsPerPage({ target: { value: String(model.pageSize) } } as React.ChangeEvent<HTMLInputElement>);
+        }
+      }}
+      pageSizeOptions={[10, 25, 50, 100]}
+      disableRowSelectionOnClick
+      tableStateKey={`ifrs9-model-management:${modelType}`}
+      fillAvailableHeight
+      maxTableHeight="none"
+    />
   );
 });
 

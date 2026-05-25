@@ -1,27 +1,17 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Box,
     Typography,
     Paper,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    TablePagination,
-    IconButton,
     Button,
     Chip,
-    Tooltip,
     InputAdornment,
     TextField,
     Card,
     CardContent,
     Alert,
-    CircularProgress
 } from '@mui/material';
 import {
     Edit as EditIcon,
@@ -34,9 +24,11 @@ import {
     CheckCircle as CheckCircleIcon,
     Cancel as CancelIcon
 } from '@mui/icons-material';
+import type { GridColDef } from '@mui/x-data-grid';
 import { format } from 'date-fns';
 import { usersAPI } from '@/services/api';
 import { getErrorMessage } from '@/utils/error-message';
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import UserForm, { UserFormData } from './UserForm';
 
 // Since the API type might be inferred, let's define a local interface matching usage
@@ -151,6 +143,84 @@ const UserManagement = () => {
         }
     };
 
+    const userColumns = useMemo<GridColDef<User>[]>(() => [
+        {
+            field: 'fullName',
+            headerName: 'User',
+            minWidth: 260,
+            flex: 1.3,
+            renderCell: (params) => (
+                <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                        {params.row.fullName}
+                    </Typography>
+                    <Typography variant="caption" color="textSecondary">
+                        {params.row.email}
+                    </Typography>
+                    <Typography variant="caption" display="block" color="textSecondary">
+                        @{params.row.username}
+                    </Typography>
+                </Box>
+            ),
+        },
+        {
+            field: 'position',
+            headerName: 'Role / Position',
+            minWidth: 190,
+            flex: 1,
+            renderCell: (params) => (
+                <Box>
+                    <Typography variant="body2">{params.row.position || '-'}</Typography>
+                    <Typography variant="caption" color="textSecondary">
+                        {params.row.department || '-'}
+                    </Typography>
+                </Box>
+            ),
+        },
+        {
+            field: 'isActive',
+            headerName: 'Status',
+            width: 130,
+            renderCell: (params) => (
+                <Chip
+                    label={params.row.isActive ? 'Active' : 'Inactive'}
+                    size="small"
+                    color={params.row.isActive ? 'success' : 'default'}
+                    icon={params.row.isActive ? <CheckCircleIcon /> : <CancelIcon />}
+                    variant={params.row.isActive ? 'filled' : 'outlined'}
+                />
+            ),
+        },
+        {
+            field: 'lastLoginAt',
+            headerName: 'Last Login',
+            width: 180,
+            renderCell: (params) => params.value ? format(new Date(params.value), 'MMM d, yyyy HH:mm') : 'Never',
+        },
+        {
+            field: 'actions',
+            headerName: 'Actions',
+            type: 'actions',
+            width: 112,
+            filterable: false,
+            sortable: false,
+            getActions: (params) => [
+                <SafeGridActionsCellItem
+                    key="edit"
+                    label="Edit User"
+                    icon={<EditIcon fontSize="small" />}
+                    onClick={() => handleEdit(params.row)}
+                />,
+                <SafeGridActionsCellItem
+                    key="delete"
+                    label="Delete User"
+                    icon={<DeleteIcon fontSize="small" color="error" />}
+                    onClick={() => handleDelete(params.row.id)}
+                />,
+            ],
+        },
+    ], [handleDelete, handleEdit]);
+
     const handleFormSubmit = async (data: UserFormData) => {
         setFormLoading(true);
         setError(null);
@@ -223,97 +293,26 @@ const UserManagement = () => {
                 </Box>
             </Paper>
 
-            <Card variant="outlined">
-                <TableContainer>
-                    <Table sx={{ minWidth: 650 }}>
-                        <TableHead sx={{ bgcolor: 'background.default' }}>
-                            <TableRow>
-                                <TableCell>User</TableCell>
-                                <TableCell>Role / Position</TableCell>
-                                <TableCell>Status</TableCell>
-                                <TableCell>Last Login</TableCell>
-                                <TableCell align="right">Actions</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {loading ? (
-                                <TableRow>
-                                    <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
-                                        <CircularProgress />
-                                    </TableCell>
-                                </TableRow>
-                            ) : users.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
-                                        <Typography variant="body1" color="textSecondary">
-                                            No users found matches your criteria.
-                                        </Typography>
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                users.map((user) => (
-                                    <TableRow key={user.id} hover>
-                                        <TableCell>
-                                            <Box>
-                                                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                                                    {user.fullName}
-                                                </Typography>
-                                                <Typography variant="caption" color="textSecondary">
-                                                    {user.email}
-                                                </Typography>
-                                                <Typography variant="caption" display="block" color="textSecondary">
-                                                    @{user.username}
-                                                </Typography>
-                                            </Box>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Typography variant="body2">{user.position || '-'}</Typography>
-                                            <Typography variant="caption" color="textSecondary">
-                                                {user.department || '-'}
-                                            </Typography>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Chip
-                                                label={user.isActive ? 'Active' : 'Inactive'}
-                                                size="small"
-                                                color={user.isActive ? 'success' : 'default'}
-                                                icon={user.isActive ? <CheckCircleIcon /> : <CancelIcon />}
-                                                variant={user.isActive ? "filled" : "outlined"}
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Typography variant="body2">
-                                                {user.lastLoginAt
-                                                    ? format(new Date(user.lastLoginAt), 'MMM d, yyyy HH:mm')
-                                                    : 'Never'}
-                                            </Typography>
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            <Tooltip title="Edit User">
-                                                <IconButton size="small" onClick={() => handleEdit(user)}>
-                                                    <EditIcon fontSize="small" />
-                                                </IconButton>
-                                            </Tooltip>
-                                            <Tooltip title="Delete User">
-                                                <IconButton size="small" color="error" onClick={() => handleDelete(user.id)}>
-                                                    <DeleteIcon fontSize="small" />
-                                                </IconButton>
-                                            </Tooltip>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-                <TablePagination
-                    rowsPerPageOptions={[5, 10, 25]}
-                    component="div"
-                    count={total}
-                    rowsPerPage={rowsPerPage}
-                    page={page}
-                    onPageChange={handlePageChange}
-                    onRowsPerPageChange={handleRowsPerPageChange}
+            <Card variant="outlined" sx={{ p: 2 }}>
+                <SafeDataGrid
+                    rows={users}
+                    columns={userColumns}
+                    loading={loading}
+                    getRowId={(row) => row.id}
+                    rowCount={total}
+                    paginationMode="offset"
+                    paginationModel={{ page, pageSize: rowsPerPage }}
+                    onPaginationModelChange={(model) => {
+                        if (model.page !== page) handlePageChange(null, model.page);
+                        if (model.pageSize !== rowsPerPage) {
+                            handleRowsPerPageChange({ target: { value: String(model.pageSize) } } as React.ChangeEvent<HTMLInputElement>);
+                        }
+                    }}
+                    pageSizeOptions={[5, 10, 25]}
+                    disableRowSelectionOnClick
+                    tableStateKey="users-management-table"
+                    fillAvailableHeight
+                    maxTableHeight="none"
                 />
             </Card>
 
