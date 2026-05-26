@@ -6,22 +6,12 @@ import {
     Box,
     Typography,
     Paper,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    TablePagination,
-    IconButton,
     Button,
     Chip,
-    Tooltip,
     InputAdornment,
     TextField,
     Card,
     Alert,
-    CircularProgress,
     Dialog,
     DialogTitle,
     DialogContent,
@@ -41,7 +31,9 @@ import {
     Cancel as CancelIcon,
     SupervisorAccount as AdminIcon
 } from '@mui/icons-material';
+import type { GridColDef } from '@mui/x-data-grid';
 import { format } from 'date-fns';
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { exportToCsv } from '@/utils/export-csv';
 import { getErrorMessage } from '@/utils/error-message';
 import {
@@ -190,6 +182,70 @@ const PlatformUserManagement = () => {
         }
     };
 
+    const platformUserColumns = useMemo<GridColDef<PlatformUser>[]>(() => [
+        {
+            field: 'fullName',
+            headerName: 'User',
+            minWidth: 260,
+            flex: 1.4,
+            renderCell: (params) => (
+                <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                        {params.row.fullName}
+                    </Typography>
+                    <Typography variant="caption" color="textSecondary">
+                        {params.row.email}
+                    </Typography>
+                    <Typography variant="caption" display="block" color="textSecondary">
+                        @{params.row.username}
+                    </Typography>
+                </Box>
+            ),
+        },
+        {
+            field: 'isActive',
+            headerName: 'Status',
+            width: 140,
+            renderCell: (params) => (
+                <Chip
+                    label={params.row.isActive ? 'Active' : 'Inactive'}
+                    size="small"
+                    color={params.row.isActive ? 'success' : 'default'}
+                    icon={params.row.isActive ? <CheckCircleIcon /> : <CancelIcon />}
+                    variant={params.row.isActive ? 'filled' : 'outlined'}
+                />
+            ),
+        },
+        {
+            field: 'createdAt',
+            headerName: 'Created At',
+            width: 170,
+            renderCell: (params) => params.value ? format(new Date(params.value), 'MMM d, yyyy') : '-',
+        },
+        {
+            field: 'actions',
+            headerName: 'Actions',
+            type: 'actions',
+            width: 112,
+            filterable: false,
+            sortable: false,
+            getActions: (params) => [
+                <SafeGridActionsCellItem
+                    key="edit"
+                    label="Edit"
+                    icon={<EditIcon fontSize="small" />}
+                    onClick={() => handleEdit(params.row)}
+                />,
+                <SafeGridActionsCellItem
+                    key="delete"
+                    label="Delete"
+                    icon={<DeleteIcon fontSize="small" color="error" />}
+                    onClick={() => handleDelete(params.row.id)}
+                />,
+            ],
+        },
+    ], [handleDelete, handleEdit]);
+
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setFormLoading(true);
@@ -315,90 +371,26 @@ const PlatformUserManagement = () => {
                 </Box>
             </Paper>
 
-            <Card variant="outlined">
-                <TableContainer>
-                    <Table sx={{ minWidth: 650 }}>
-                        <TableHead sx={{ bgcolor: 'background.default' }}>
-                            <TableRow>
-                                <TableCell>User</TableCell>
-                                <TableCell>Status</TableCell>
-                                <TableCell>Created At</TableCell>
-                                <TableCell align="right">Actions</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {loading ? (
-                                <TableRow>
-                                    <TableCell colSpan={4} align="center" sx={{ py: 8 }}>
-                                        <CircularProgress />
-                                    </TableCell>
-                                </TableRow>
-                            ) : filteredUsers.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={4} align="center" sx={{ py: 8 }}>
-                                        <Typography variant="body1" color="textSecondary">
-                                            No platform admins found.
-                                        </Typography>
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                filteredUsers.map((user) => (
-                                    <TableRow key={user.id} hover>
-                                        <TableCell>
-                                            <Box>
-                                                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                                                    {user.fullName}
-                                                </Typography>
-                                                <Typography variant="caption" color="textSecondary">
-                                                    {user.email}
-                                                </Typography>
-                                                <Typography variant="caption" display="block" color="textSecondary">
-                                                    @{user.username}
-                                                </Typography>
-                                            </Box>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Chip
-                                                label={user.isActive ? 'Active' : 'Inactive'}
-                                                size="small"
-                                                color={user.isActive ? 'success' : 'default'}
-                                                icon={user.isActive ? <CheckCircleIcon /> : <CancelIcon />}
-                                                variant={user.isActive ? "filled" : "outlined"}
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Typography variant="body2">
-                                                {user.createdAt
-                                                    ? format(new Date(user.createdAt), 'MMM d, yyyy')
-                                                    : '-'}
-                                            </Typography>
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            <Tooltip title="Edit">
-                                                <IconButton size="small" onClick={() => handleEdit(user)}>
-                                                    <EditIcon fontSize="small" />
-                                                </IconButton>
-                                            </Tooltip>
-                                            <Tooltip title="Delete">
-                                                <IconButton size="small" color="error" onClick={() => handleDelete(user.id)}>
-                                                    <DeleteIcon fontSize="small" />
-                                                </IconButton>
-                                            </Tooltip>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-                <TablePagination
-                    rowsPerPageOptions={[5, 10, 25]}
-                    component="div"
-                    count={statusFilter === 'all' ? total : filteredUsers.length}
-                    rowsPerPage={rowsPerPage}
-                    page={page}
-                    onPageChange={handlePageChange}
-                    onRowsPerPageChange={handleRowsPerPageChange}
+            <Card variant="outlined" sx={{ p: 2 }}>
+                <SafeDataGrid
+                    rows={filteredUsers}
+                    columns={platformUserColumns}
+                    loading={loading}
+                    getRowId={(row) => row.id}
+                    rowCount={statusFilter === 'all' ? total : filteredUsers.length}
+                    paginationMode="offset"
+                    paginationModel={{ page, pageSize: rowsPerPage }}
+                    onPaginationModelChange={(model) => {
+                        if (model.page !== page) handlePageChange(null, model.page);
+                        if (model.pageSize !== rowsPerPage) {
+                            handleRowsPerPageChange({ target: { value: String(model.pageSize) } } as React.ChangeEvent<HTMLInputElement>);
+                        }
+                    }}
+                    pageSizeOptions={[5, 10, 25]}
+                    disableRowSelectionOnClick
+                    tableStateKey="platform-user-management-table"
+                    fillAvailableHeight
+                    maxTableHeight="none"
                 />
             </Card>
 

@@ -25,10 +25,11 @@ import { useRouter } from 'next/navigation';
 
 interface SegmentationHeaderProps {
   onRefresh: () => void;
-  onExport: (format: string) => void;
+  onExport: (format: 'xlsx' | 'csv' | 'pdf') => void;
   onHelp: () => void;
   lastUpdated: string;
   dbStatus: 'active' | 'inactive';
+  canExport?: boolean;
 }
 
 export const SegmentationHeader: React.FC<SegmentationHeaderProps> = ({
@@ -36,7 +37,8 @@ export const SegmentationHeader: React.FC<SegmentationHeaderProps> = ({
   onExport,
   onHelp,
   lastUpdated,
-  dbStatus
+  dbStatus,
+  canExport = true
 }) => {
   const router = useRouter();
   const [exportAnchorEl, setExportAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -50,7 +52,7 @@ export const SegmentationHeader: React.FC<SegmentationHeaderProps> = ({
   };
 
   return (
-    <Box sx={{ mb: 4 }}>
+    <Box sx={{ mb: 2.5 }}>
       {/* Breadcrumbs */}
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
         <Link 
@@ -78,7 +80,15 @@ export const SegmentationHeader: React.FC<SegmentationHeaderProps> = ({
       </Breadcrumbs>
 
       {/* Main Header Content */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: 2,
+          flexWrap: 'wrap',
+        }}
+      >
         <Box>
           <Typography variant="h4" component="h1" fontWeight="800" sx={{ color: 'primary.main', mb: 0.5 }}>
             Segmentation Configuration
@@ -102,25 +112,29 @@ export const SegmentationHeader: React.FC<SegmentationHeaderProps> = ({
               </Button>
             </Tooltip>
             
-            <Button 
-              variant="outlined" 
-              startIcon={<ExportIcon />} 
-              onClick={handleExportClick}
-              size="small"
-              sx={{ borderRadius: 1.5, textTransform: 'none' }}
-            >
-              Export
-            </Button>
-            <Menu
-              anchorEl={exportAnchorEl}
-              open={Boolean(exportAnchorEl)}
-              onClose={handleExportClose}
-              PaperProps={{ sx: { borderRadius: 2, mt: 1, minWidth: 160, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' } }}
-            >
-              <MenuItem onClick={() => { onExport('excel'); handleExportClose(); }}>Excel (.xlsx)</MenuItem>
-              <MenuItem onClick={() => { onExport('csv'); handleExportClose(); }}>CSV (.csv)</MenuItem>
-              <MenuItem onClick={() => { onExport('pdf'); handleExportClose(); }}>PDF (.pdf)</MenuItem>
-            </Menu>
+            {canExport && (
+              <>
+                <Button
+                  variant="outlined"
+                  startIcon={<ExportIcon />}
+                  onClick={handleExportClick}
+                  size="small"
+                  sx={{ borderRadius: 1.5, textTransform: 'none' }}
+                >
+                  Export
+                </Button>
+                <Menu
+                  anchorEl={exportAnchorEl}
+                  open={Boolean(exportAnchorEl)}
+                  onClose={handleExportClose}
+                  PaperProps={{ sx: { borderRadius: 2, mt: 1, minWidth: 160, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' } }}
+                >
+                  <MenuItem onClick={() => { onExport('xlsx'); handleExportClose(); }}>Excel (.xlsx)</MenuItem>
+                  <MenuItem onClick={() => { onExport('csv'); handleExportClose(); }}>CSV (.csv)</MenuItem>
+                  <MenuItem onClick={() => { onExport('pdf'); handleExportClose(); }}>PDF (.pdf)</MenuItem>
+                </Menu>
+              </>
+            )}
 
             <Button 
               variant="outlined" 

@@ -20,13 +20,6 @@ import {
   Breadcrumbs,
   Link,
   Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
   Tabs,
   Tab,
   TextField,
@@ -34,13 +27,10 @@ import {
   FormControl,
   InputLabel,
   Select,
-  IconButton,
-  Tooltip,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Skeleton,
   FormControlLabel,
   Checkbox
 } from '@mui/material';
@@ -51,14 +41,15 @@ import {
   Refresh as RefreshIcon,
   Add as AddIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon,
   Visibility as ViewIcon,
   CheckCircle as ApproveIcon,
   Cancel as RejectIcon
 } from '@mui/icons-material';
+import type { GridColDef } from '@mui/x-data-grid';
 import { useRouter } from 'next/navigation';
 
 import { individualImpairmentAPI } from '../../../../services/api/individual-impairment.api';
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -503,137 +494,123 @@ function ScenariosTable({
   handleChangeRowsPerPage: (event: React.ChangeEvent<HTMLInputElement>) => void;
   totalRows: number;
 }) {
+  const columns = useMemo<GridColDef[]>(() => [
+    {
+      field: 'scenarioCode',
+      headerName: 'Scenario Code',
+      minWidth: 170,
+      flex: 1,
+      renderCell: (params) => (
+        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+          {params.value}
+        </Typography>
+      ),
+    },
+    {
+      field: 'scenarioName',
+      headerName: 'Scenario Name',
+      minWidth: 220,
+      flex: 1.4,
+    },
+    {
+      field: 'status',
+      headerName: 'Status',
+      width: 140,
+      renderCell: (params) => (
+        <Chip
+          label={getStatusLabel(params.value)}
+          size="small"
+          sx={{
+            backgroundColor: getStatusColor(params.value),
+            color: 'white',
+            fontWeight: 'bold'
+          }}
+        />
+      ),
+    },
+    {
+      field: 'activeFlag',
+      headerName: 'Active',
+      width: 130,
+      renderCell: (params) => (
+        <Chip
+          label={params.value ? 'Active' : 'Inactive'}
+          size="small"
+          color={params.value ? 'success' : 'default'}
+          variant="outlined"
+        />
+      ),
+    },
+    {
+      field: 'createdDate',
+      headerName: 'Created Date',
+      width: 150,
+      renderCell: (params) => params.value ? new Date(params.value).toLocaleDateString() : '-',
+    },
+    {
+      field: 'createdBy',
+      headerName: 'Created By',
+      minWidth: 150,
+      flex: 0.8,
+    },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      type: 'actions',
+      width: 160,
+      filterable: false,
+      sortable: false,
+      getActions: (params) => [
+        <SafeGridActionsCellItem
+          key="view"
+          label="View Details"
+          icon={<ViewIcon fontSize="small" />}
+          onClick={() => onView(params.row)}
+        />,
+        <SafeGridActionsCellItem
+          key="edit"
+          label="Edit Scenario"
+          icon={<EditIcon fontSize="small" />}
+          onClick={() => onEdit(params.row)}
+        />,
+        ...(params.row.status === 'PENDING' ? [
+          <SafeGridActionsCellItem
+            key="approve"
+            label="Approve"
+            icon={<ApproveIcon fontSize="small" color="success" />}
+            onClick={() => onStatusUpdate(params.row, 'APPROVED')}
+          />,
+          <SafeGridActionsCellItem
+            key="reject"
+            label="Reject"
+            icon={<RejectIcon fontSize="small" color="error" />}
+            onClick={() => onStatusUpdate(params.row, 'DRAFT')}
+          />,
+        ] : []),
+      ],
+    },
+  ], [getStatusColor, getStatusLabel, onEdit, onStatusUpdate, onView]);
+
   return (
-    <Paper>
-      <TableContainer>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Scenario Code</TableCell>
-              <TableCell>Scenario Name</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Active</TableCell>
-              <TableCell>Created Date</TableCell>
-              <TableCell>Created By</TableCell>
-              <TableCell align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading ? (
-              Array.from({ length: rowsPerPage }).map((_, index) => (
-                <TableRow key={index}>
-                  <TableCell><Skeleton /></TableCell>
-                  <TableCell><Skeleton /></TableCell>
-                  <TableCell><Skeleton /></TableCell>
-                  <TableCell><Skeleton /></TableCell>
-                  <TableCell><Skeleton /></TableCell>
-                  <TableCell><Skeleton /></TableCell>
-                  <TableCell><Skeleton /></TableCell>
-                </TableRow>
-              ))
-            ) : scenarios.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} align="center">
-                  <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
-                    No scenarios found
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ) : (
-              scenarios.map((scenario, index) => (
-                <TableRow key={scenario.pkid} hover>
-                  <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                      {scenario.scenarioCode}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {scenario.scenarioName}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={getStatusLabel(scenario.status)}
-                      size="small"
-                      sx={{
-                        backgroundColor: getStatusColor(scenario.status),
-                        color: 'white',
-                        fontWeight: 'bold'
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={scenario.activeFlag ? 'Active' : 'Inactive'}
-                      size="small"
-                      color={scenario.activeFlag ? 'success' : 'default'}
-                      variant="outlined"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {new Date(scenario.createdDate).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    {scenario.createdBy}
-                  </TableCell>
-                  <TableCell align="right">
-                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                      <Tooltip title="View Details">
-                        <IconButton
-                          size="small"
-                          onClick={() => onView(scenario)}
-                        >
-                          <ViewIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Edit Scenario">
-                        <IconButton
-                          size="small"
-                          onClick={() => onEdit(scenario)}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      {scenario.status === 'PENDING' && (
-                        <>
-                          <Tooltip title="Approve">
-                            <IconButton
-                              size="small"
-                              color="success"
-                              onClick={() => onStatusUpdate(scenario, 'APPROVED')}
-                            >
-                              <ApproveIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Reject">
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => onStatusUpdate(scenario, 'DRAFT')}
-                            >
-                              <RejectIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </>
-                      )}
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      <TablePagination
-        rowsPerPageOptions={[10, 25, 50, 100]}
-        component="div"
-        count={totalRows}
-        rowsPerPage={rowsPerPage}
-        page={page}
-        onPageChange={handleChangePage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
-      />
-    </Paper>
+    <SafeDataGrid
+      rows={scenarios}
+      columns={columns}
+      loading={loading}
+      getRowId={(row) => row.pkid || row.scenarioCode}
+      rowCount={totalRows}
+      paginationMode="offset"
+      paginationModel={{ page, pageSize: rowsPerPage }}
+      onPaginationModelChange={(model) => {
+        if (model.page !== page) handleChangePage(null, model.page);
+        if (model.pageSize !== rowsPerPage) {
+          handleChangeRowsPerPage({ target: { value: String(model.pageSize) } } as React.ChangeEvent<HTMLInputElement>);
+        }
+      }}
+      pageSizeOptions={[10, 25, 50, 100]}
+      disableRowSelectionOnClick
+      tableStateKey="ifrs9-scenarios-table"
+      fillAvailableHeight
+      maxTableHeight="none"
+    />
   );
 }

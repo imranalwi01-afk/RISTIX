@@ -399,7 +399,15 @@ export default function FLScalarManagementPage() {
   // ============================================================================
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box
+      sx={{
+        p: { xs: 2, lg: 4, xl: 6 },
+        pb: 4,
+        minHeight: { xs: 'auto', lg: 'calc(100vh - 122px)' },
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
       {!canViewFlScalar && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           You do not have permission to view FL scalar setup.

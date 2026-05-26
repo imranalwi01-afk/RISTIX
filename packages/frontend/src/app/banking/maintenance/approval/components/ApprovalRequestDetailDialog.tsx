@@ -16,6 +16,12 @@ import {
   DialogTitle,
   Divider,
   Grid,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Tooltip,
   Typography,
   useTheme,
@@ -35,6 +41,26 @@ import { ConsolidatedAssessmentApprovalContent } from './ConsolidatedAssessmentA
 
 const DETAIL_CANDIDATE_VISIBLE_LIMIT = 24;
 const REDACTED_KEYS = new Set(['password', 'token', 'accessToken', 'refreshToken', 'authorization', 'secret']);
+const enterpriseTableSx = {
+  tableLayout: 'fixed',
+  '& .MuiTableCell-head': {
+    bgcolor: '#f8fafc',
+    color: 'text.secondary',
+    fontSize: '0.72rem',
+    fontWeight: 800,
+    letterSpacing: 0,
+    textTransform: 'uppercase',
+    borderBottom: '1px solid',
+    borderColor: 'divider',
+    py: 1,
+  },
+  '& .MuiTableCell-body': {
+    py: 0.85,
+    borderColor: 'divider',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+} as const;
 
 type GenericAttachment = {
   label: string;
@@ -114,6 +140,26 @@ function downloadAttachment(attachment: GenericAttachment) {
   anchor.click();
   document.body.removeChild(anchor);
   URL.revokeObjectURL(url);
+}
+
+function getPendingConfigurationData(request?: ApprovalRequest): Record<string, unknown> | null {
+  const requestData = toPlainRecord(request?.requestData);
+  const nestedData = toPlainRecord(requestData?.data);
+  return nestedData || requestData;
+}
+
+function getPendingRuleRows(data: Record<string, unknown> | null): Array<Record<string, unknown>> {
+  const directRules = data?.rules;
+  const directDetails = data?.details;
+  if (Array.isArray(directRules)) return directRules.filter((row): row is Record<string, unknown> => Boolean(toPlainRecord(row)));
+  if (Array.isArray(directDetails)) return directDetails.filter((row): row is Record<string, unknown> => Boolean(toPlainRecord(row)));
+  if (data && ['table_name', 'column_name', 'operator'].some((key) => key in data)) return [data];
+  return [];
+}
+
+function isConfigApprovalRequest(request?: ApprovalRequest): boolean {
+  const type = String(request?.entityType || request?.requestType || '').toLowerCase();
+  return ['segmentation', 'rule_base_setting', 'rule-base-setting', 'rule_base', 'rule-base'].includes(type);
 }
 
 interface ApprovalRequestDetailDialogProps {
@@ -317,6 +363,8 @@ export const ApprovalRequestDetailDialog = memo(function ApprovalRequestDetailDi
   const theme = useTheme();
   const sanitizedRequestData = request?.requestData ? sanitizePayload(request.requestData) : null;
   const genericAttachments = request?.requestData ? findGenericAttachments(request.requestData) : [];
+  const pendingConfigData = getPendingConfigurationData(request);
+  const pendingRuleRows = getPendingRuleRows(pendingConfigData);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -387,13 +435,73 @@ export const ApprovalRequestDetailDialog = memo(function ApprovalRequestDetailDi
                 </Grid>
               )}
 
+              {isConfigApprovalRequest(request) && pendingConfigData && (
+                <Grid size={12}>
+                  <Box sx={{ mt: 1.5, p: 2, border: '1px solid', borderColor: 'primary.light', borderRadius: 1, bgcolor: alpha(theme.palette.primary.main, 0.02) }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+                      Pending Configuration Change
+                    </Typography>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' }, gap: 1.5, mb: pendingRuleRows.length ? 2 : 0 }}>
+                      {[
+                        ['Operation', toPlainRecord(request?.requestData)?.operation],
+                        ['Group/Rule', pendingConfigData.group_segment || pendingConfigData.rule_name],
+                        ['Segment/Type', pendingConfigData.segment || pendingConfigData.rule_type],
+                        ['Target', [pendingConfigData.updated_table || pendingConfigData.table_name, pendingConfigData.updated_column || pendingConfigData.column_name].filter(Boolean).join('.')],
+                        ['Value', pendingConfigData.value || pendingConfigData.value1],
+                        ['Sequence', pendingConfigData.seq],
+                        ['Active', typeof pendingConfigData.active_flag === 'boolean' ? (pendingConfigData.active_flag ? 'Yes' : 'No') : undefined],
+                      ].filter(([, value]) => value !== undefined && value !== '').map(([label, value]) => (
+                        <Box key={String(label)}>
+                          <Typography variant="caption" color="text.secondary">{String(label)}</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600, wordBreak: 'break-word' }}>{String(value)}</Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                    {pendingRuleRows.length > 0 && (
+                      <TableContainer sx={{ maxHeight: 280, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                        <Table stickyHeader size="small" sx={enterpriseTableSx}>
+                          <TableHead>
+                            <TableRow>
+                              <TableCell sx={{ width: 86 }}>Group</TableCell>
+                              <TableCell sx={{ width: 72 }}>Seq</TableCell>
+                              <TableCell sx={{ width: 180 }}>Table</TableCell>
+                              <TableCell sx={{ width: 170 }}>Column</TableCell>
+                              <TableCell sx={{ width: 110 }}>Data Type</TableCell>
+                              <TableCell sx={{ width: 100 }}>Operator</TableCell>
+                              <TableCell sx={{ width: 150 }}>Value 1</TableCell>
+                              <TableCell sx={{ width: 150 }}>Value 2</TableCell>
+                              <TableCell sx={{ width: 100 }}>Logic</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {pendingRuleRows.map((row, index) => (
+                              <TableRow key={index} hover>
+                                <TableCell>{String(row.query_group || '-')}</TableCell>
+                                <TableCell>{String(row.seq || '-')}</TableCell>
+                                <TableCell sx={{ fontFamily: 'monospace' }}>{String(row.table_name || '-')}</TableCell>
+                                <TableCell sx={{ fontFamily: 'monospace' }}>{String(row.column_name || '-')}</TableCell>
+                                <TableCell>{String(row.data_type || '-')}</TableCell>
+                                <TableCell>{String(row.operator || '-')}</TableCell>
+                                <TableCell sx={{ fontFamily: 'monospace' }}>{String(row.value1 || '-')}</TableCell>
+                                <TableCell sx={{ fontFamily: 'monospace' }}>{String(row.value2 || '-')}</TableCell>
+                                <TableCell>{String(row.condition || '-')}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    )}
+                  </Box>
+                </Grid>
+              )}
+
               {/* SPECIALIZED CONTENT: INDIVIDUAL ASSESSMENT */}
               {isIndividualAssessmentCheckerPreviewRequest(request) && (
                 <Grid size={12}>
                   <IndividualImpairmentCheckerReviewPreview request={request} />
                 </Grid>
               )}
-              {(request.entityType === 'INDIVIDUAL_ASSESSMENT_CONSOLIDATED' || request.requestType === 'INDIVIDUAL_ASSESSMENT') && !isIndividualAssessmentCheckerPreviewRequest(request) && (
+              {(String(request.entityType || '').toLowerCase() === 'individual_assessment_consolidated' || String(request.requestType || '').toLowerCase() === 'individual_assessment') && !isIndividualAssessmentCheckerPreviewRequest(request) && (
                 <Grid size={12}>
                   <Box sx={{ mt: 2, p: 2, border: '1px solid', borderColor: 'primary.light', borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.01) }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>

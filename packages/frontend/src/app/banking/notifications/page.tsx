@@ -7,29 +7,23 @@ import {
   Button,
   Card,
   CardContent,
-  Checkbox,
   Chip,
-  CircularProgress,
   FormControl,
   InputLabel,
   MenuItem,
   Select,
   Stack,
   Switch,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TablePagination,
-  TableRow,
   TextField,
   Typography,
 } from '@mui/material'
+import type { GridColDef } from '@mui/x-data-grid'
 import { formatDistanceToNow } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import { notificationAPI, type NotificationCategory, type NotificationPreferences, type NotificationReadStatus } from '@/services/api/notification.api'
 import { formatNotificationCategory, NOTIFICATION_CATEGORIES, resolveNotificationActionRoute } from '@/utils/notification-utils'
 import { useNotifications } from '@/providers/NotificationProvider'
+import { SafeDataGrid } from '@/components/shared/SafeDataGrid'
 
 interface NotificationRecord {
   id: string
@@ -134,22 +128,6 @@ export default function NotificationsPage() {
     void loadPreferences()
   }, [loadPreferences])
 
-  const allSelected = useMemo(
-    () => rows.length > 0 && rows.every((row) => selectedIds.includes(row.notificationId)),
-    [rows, selectedIds]
-  )
-
-  const handleToggleSelectAll = (checked: boolean) => {
-    setSelectedIds(checked ? rows.map((row) => row.notificationId) : [])
-  }
-
-  const handleToggleSelect = (notificationId: string, checked: boolean) => {
-    setSelectedIds((prev) => {
-      if (checked) return Array.from(new Set([...prev, notificationId]))
-      return prev.filter((id) => id !== notificationId)
-    })
-  }
-
   const runBulkUpdate = async (read: boolean) => {
     if (selectedIds.length === 0) return
     setBulkRunning(true)
@@ -185,6 +163,80 @@ export default function NotificationsPage() {
 
     router.push(route)
   }
+
+  const notificationColumns = useMemo<GridColDef<NotificationRecord>[]>(() => [
+    {
+      field: 'category',
+      headerName: 'Category',
+      width: 150,
+      renderCell: (params) => (
+        <Chip size="small" label={formatNotificationCategory(params.value)} variant="outlined" />
+      ),
+    },
+    {
+      field: 'title',
+      headerName: 'Title',
+      minWidth: 220,
+      flex: 1,
+      renderCell: (params) => (
+        <Typography variant="body2" fontWeight={!params.row.readAt ? 700 : 500}>
+          {params.value}
+        </Typography>
+      ),
+    },
+    {
+      field: 'message',
+      headerName: 'Message',
+      minWidth: 320,
+      flex: 1.5,
+      renderCell: (params) => (
+        <Typography variant="body2" color="text.secondary" noWrap>
+          {params.value}
+        </Typography>
+      ),
+    },
+    {
+      field: 'readAt',
+      headerName: 'Status',
+      width: 120,
+      renderCell: (params) => {
+        const isUnread = !params.value
+        return (
+          <Chip
+            size="small"
+            label={isUnread ? 'Unread' : 'Read'}
+            color={isUnread ? 'warning' : 'default'}
+            variant={isUnread ? 'filled' : 'outlined'}
+          />
+        )
+      },
+    },
+    {
+      field: 'createdAt',
+      headerName: 'Time',
+      width: 170,
+      renderCell: (params) => (
+        <Typography variant="caption" color="text.secondary">
+          {formatDistanceToNow(new Date(params.value), { addSuffix: true })}
+        </Typography>
+      ),
+    },
+    {
+      field: 'action',
+      headerName: 'Action',
+      width: 110,
+      sortable: false,
+      filterable: false,
+      renderCell: (params) => {
+        const clickable = Boolean(resolveNotificationActionRoute(params.row.actionUrl || undefined))
+        return (
+          <Button size="small" disabled={!clickable} onClick={() => handleOpenNotification(params.row)}>
+            Open
+          </Button>
+        )
+      },
+    },
+  ], [handleOpenNotification])
 
   const toggleMutedCategory = (value: NotificationCategory) => {
     setPreferences((prev) => {
@@ -327,102 +379,35 @@ export default function NotificationsPage() {
               </Box>
             )}
 
-            {loading ? (
-              <Box sx={{ py: 8, textAlign: 'center' }}>
-                <CircularProgress size={24} />
-              </Box>
-            ) : (
-              <>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell padding="checkbox">
-                        <Checkbox
-                          checked={allSelected}
-                          indeterminate={!allSelected && selectedIds.length > 0}
-                          onChange={(event) => handleToggleSelectAll(event.target.checked)}
-                        />
-                      </TableCell>
-                      <TableCell>Category</TableCell>
-                      <TableCell>Title</TableCell>
-                      <TableCell>Message</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Time</TableCell>
-                      <TableCell align="right">Action</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {rows.map((row) => {
-                      const isUnread = !row.readAt
-                      const clickable = Boolean(resolveNotificationActionRoute(row.actionUrl || undefined))
-                      return (
-                        <TableRow key={`${row.id}-${row.notificationId}`} hover selected={isUnread}>
-                          <TableCell padding="checkbox">
-                            <Checkbox
-                              checked={selectedIds.includes(row.notificationId)}
-                              onChange={(event) => handleToggleSelect(row.notificationId, event.target.checked)}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Chip size="small" label={formatNotificationCategory(row.category)} variant="outlined" />
-                          </TableCell>
-                          <TableCell sx={{ maxWidth: 280 }}>
-                            <Typography variant="body2" fontWeight={isUnread ? 700 : 500}>
-                              {row.title}
-                            </Typography>
-                          </TableCell>
-                          <TableCell sx={{ maxWidth: 420 }}>
-                            <Typography variant="body2" color="text.secondary" noWrap>
-                              {row.message}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              size="small"
-                              label={isUnread ? 'Unread' : 'Read'}
-                              color={isUnread ? 'warning' : 'default'}
-                              variant={isUnread ? 'filled' : 'outlined'}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="caption" color="text.secondary">
-                              {formatDistanceToNow(new Date(row.createdAt), { addSuffix: true })}
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Button size="small" disabled={!clickable} onClick={() => handleOpenNotification(row)}>
-                              Open
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                    {rows.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={7}>
-                          <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
-                            No notifications found
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-
-                <TablePagination
-                  component="div"
-                  count={total}
-                  page={page}
-                  onPageChange={(_event, value) => setPage(value)}
-                  rowsPerPage={rowsPerPage}
-                  onRowsPerPageChange={(event) => {
-                    setRowsPerPage(Number(event.target.value))
-                    setPage(0)
-                  }}
-                  rowsPerPageOptions={[10, 20, 50, 100]}
-                />
-              </>
-            )}
+            <SafeDataGrid
+              rows={rows}
+              columns={notificationColumns}
+              loading={loading}
+              getRowId={(row) => row.notificationId}
+              rowCount={total}
+              paginationMode="offset"
+              paginationModel={{ page, pageSize: rowsPerPage }}
+              onPaginationModelChange={(model) => {
+                if (model.page !== page) setPage(model.page)
+                if (model.pageSize !== rowsPerPage) {
+                  setRowsPerPage(model.pageSize)
+                  setPage(0)
+                }
+              }}
+              pageSizeOptions={[10, 20, 50, 100]}
+              checkboxSelection
+              rowSelectionModel={selectedIds as any}
+              onRowSelectionModelChange={(ids: any) => {
+                const nextIds = Array.isArray(ids) ? ids : Array.from(ids?.ids ?? [])
+                setSelectedIds(nextIds.map(String))
+              }}
+              getRowSx={({ row }) => ({
+                bgcolor: !row.readAt ? 'rgba(245, 158, 11, 0.08)' : undefined,
+              })}
+              tableStateKey="banking-notifications-table"
+              fillAvailableHeight
+              maxTableHeight="none"
+            />
           </CardContent>
         </Card>
 

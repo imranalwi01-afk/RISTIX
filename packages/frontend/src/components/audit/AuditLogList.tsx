@@ -5,18 +5,9 @@ import {
     Box,
     Paper,
     Typography,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    TablePagination,
     TextField,
     InputAdornment,
     Chip,
-    IconButton,
-    Tooltip,
     Button,
     Stack,
     Collapse,
@@ -32,11 +23,9 @@ import {
     Search,
     FilterList,
     GetApp,
-    Visibility,
-    KeyboardArrowDown,
-    KeyboardArrowUp,
     History
 } from '@mui/icons-material';
+import type { GridColDef } from '@mui/x-data-grid';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -45,6 +34,7 @@ import AuditDiffViewer from '@/components/audit/AuditDiffViewer';
 import { exportAuditLogs } from '@/features/audit/api/audit.api';
 import { getAuditRequestId } from '@/features/audit/domain/audit.models';
 import { useAuditLogsQuery, useAuditStatsQuery } from '@/features/audit/hooks/useAuditLogQueries';
+import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 
 interface AuditLog {
     id: string;
@@ -68,7 +58,6 @@ const AuditLogList: React.FC = () => {
     const [actionFilter, setActionFilter] = useState('');
     const [entityTypeFilter, setEntityTypeFilter] = useState('');
     const [showFilters, setShowFilters] = useState(false);
-    const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
     // Filters
     const [eventType, setEventType] = useState('');
@@ -134,10 +123,6 @@ const AuditLogList: React.FC = () => {
         }
     };
 
-    const toggleRowExpansion = (id: string) => {
-        setExpandedRow(expandedRow === id ? null : id);
-    };
-
     const resetFilters = () => {
         setSearchQuery('');
         setRequestIdQuery('');
@@ -171,6 +156,106 @@ const AuditLogList: React.FC = () => {
         if (typeof window === 'undefined') return;
         window.location.href = `/banking/maintenance/approval?requestId=${encodeURIComponent(requestId)}`;
     };
+
+    const auditColumns = useMemo<GridColDef<AuditLog>[]>(() => [
+        {
+            field: 'createdAt',
+            headerName: 'Time',
+            width: 180,
+            renderCell: (params) => dayjs(params.value).format('YYYY-MM-DD HH:mm:ss'),
+        },
+        {
+            field: 'eventType',
+            headerName: 'Event',
+            width: 140,
+            renderCell: (params) => <Chip label={params.value} size="small" color="primary" variant="outlined" />,
+        },
+        {
+            field: 'action',
+            headerName: 'Action',
+            minWidth: 150,
+            flex: 0.8,
+        },
+        {
+            field: 'userId',
+            headerName: 'User',
+            minWidth: 150,
+            flex: 0.8,
+            renderCell: (params) => params.value || 'System',
+        },
+        {
+            field: 'entityType',
+            headerName: 'Entity',
+            minWidth: 220,
+            flex: 1,
+            renderCell: (params) => params.row.entityType ? `${params.row.entityType} (${params.row.entityName || '-'})` : '-',
+        },
+        {
+            field: 'description',
+            headerName: 'Description',
+            minWidth: 280,
+            flex: 1.4,
+        },
+    ], []);
+
+    const renderAuditDetailPanel = ({ row: log }: { row: AuditLog }) => (
+        <Box sx={{ p: 2, bgcolor: '#f8fafc', borderRadius: 1.5 }}>
+            <Typography variant="h6" gutterBottom component="div">
+                Details
+            </Typography>
+            <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap' }}>
+                <Chip size="small" label={`Event: ${log.eventType}`} variant="outlined" />
+                <Chip size="small" label={`Action: ${log.action}`} variant="outlined" />
+                {log.entityType && (
+                    <Chip size="small" label={`Entity: ${log.entityType}`} variant="outlined" />
+                )}
+                {getAuditRequestId(log) && (
+                    <Chip
+                        size="small"
+                        color="info"
+                        variant="outlined"
+                        label={`Request ID: ${getAuditRequestId(log)}`}
+                    />
+                )}
+                {getAuditRequestId(log) && (
+                    <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => openApprovalRequest(getAuditRequestId(log)!)}
+                        data-testid={`audit-open-approval-button-${log.id}`}
+                    >
+                        Open Approval
+                    </Button>
+                )}
+            </Stack>
+
+            <AuditDiffViewer oldValues={log.oldValues} newValues={log.newValues} />
+
+            {log.metadata && (
+                <Card variant="outlined" sx={{ mt: 2 }}>
+                    <CardContent>
+                        <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                            Metadata
+                        </Typography>
+                        <Box
+                            component="pre"
+                            sx={{
+                                m: 0,
+                                p: 1.5,
+                                bgcolor: '#f5f5f5',
+                                borderRadius: 1,
+                                fontSize: '0.8rem',
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word',
+                            }}
+                        >
+                            {JSON.stringify(log.metadata, null, 2)}
+                        </Box>
+                    </CardContent>
+                </Card>
+            )}
+        </Box>
+    );
 
     return (
         <Box>
@@ -359,131 +444,26 @@ const AuditLogList: React.FC = () => {
                     </LocalizationProvider>
                 </Collapse>
 
-                <TableContainer>
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell />
-                                <TableCell>Time</TableCell>
-                                <TableCell>Event</TableCell>
-                                <TableCell>Action</TableCell>
-                                <TableCell>User</TableCell>
-                                <TableCell>Entity</TableCell>
-                                <TableCell>Description</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {loading ? (
-                                <TableRow>
-                                    <TableCell colSpan={7} align="center">Loading...</TableCell>
-                                </TableRow>
-                            ) : logs.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={7} align="center">No logs found</TableCell>
-                                </TableRow>
-                            ) : (
-                                logs.map((log) => (
-                                    <React.Fragment key={log.id}>
-                                        <TableRow hover sx={{ '& > *': { borderBottom: 'unset' } }}>
-                                            <TableCell>
-                                                <IconButton
-                                                    aria-label="expand row"
-                                                    size="small"
-                                                    onClick={() => toggleRowExpansion(log.id)}
-                                                    data-testid={`audit-expand-button-${log.id}`}
-                                                >
-                                                    {expandedRow === log.id ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
-                                                </IconButton>
-                                            </TableCell>
-                                            <TableCell>{dayjs(log.createdAt).format('YYYY-MM-DD HH:mm:ss')}</TableCell>
-                                            <TableCell>
-                                                <Chip label={log.eventType} size="small" color="primary" variant="outlined" />
-                                            </TableCell>
-                                            <TableCell>{log.action}</TableCell>
-                                            <TableCell>{log.userId || 'System'}</TableCell>
-                                            <TableCell>{log.entityType ? `${log.entityType} (${log.entityName || '-'})` : '-'}</TableCell>
-                                            <TableCell>{log.description}</TableCell>
-                                        </TableRow>
-                                        <TableRow>
-                                            <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={7}>
-                                                <Collapse in={expandedRow === log.id} timeout="auto" unmountOnExit>
-                                                    <Box sx={{ margin: 1 }}>
-                                                        <Typography variant="h6" gutterBottom component="div">
-                                                            Details
-                                                        </Typography>
-                                                        <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap' }}>
-                                                            <Chip size="small" label={`Event: ${log.eventType}`} variant="outlined" />
-                                                            <Chip size="small" label={`Action: ${log.action}`} variant="outlined" />
-                                                            {log.entityType && (
-                                                                <Chip
-                                                                    size="small"
-                                                                    label={`Entity: ${log.entityType}`}
-                                                                    variant="outlined"
-                                                                />
-                                                            )}
-                                                            {getAuditRequestId(log) && (
-                                                                <Chip
-                                                                    size="small"
-                                                                    color="info"
-                                                                    variant="outlined"
-                                                                    label={`Request ID: ${getAuditRequestId(log)}`}
-                                                                />
-                                                            )}
-                                                            {getAuditRequestId(log) && (
-                                                                <Button
-                                                                    size="small"
-                                                                    variant="outlined"
-                                                                    onClick={() => openApprovalRequest(getAuditRequestId(log)!)}
-                                                                    data-testid={`audit-open-approval-button-${log.id}`}
-                                                                >
-                                                                    Open Approval
-                                                                </Button>
-                                                            )}
-                                                        </Stack>
-
-                                                        <AuditDiffViewer oldValues={log.oldValues} newValues={log.newValues} />
-
-                                                        {log.metadata && (
-                                                            <Card variant="outlined" sx={{ mt: 2 }}>
-                                                                <CardContent>
-                                                                    <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                                                                        Metadata
-                                                                    </Typography>
-                                                                    <Box
-                                                                        component="pre"
-                                                                        sx={{
-                                                                            m: 0,
-                                                                            p: 1.5,
-                                                                            bgcolor: '#f5f5f5',
-                                                                            borderRadius: 1,
-                                                                            fontSize: '0.8rem',
-                                                                            whiteSpace: 'pre-wrap',
-                                                                            wordBreak: 'break-word',
-                                                                        }}
-                                                                    >
-                                                                        {JSON.stringify(log.metadata, null, 2)}
-                                                                    </Box>
-                                                                </CardContent>
-                                                            </Card>
-                                                        )}
-                                                    </Box>
-                                                </Collapse>
-                                            </TableCell>
-                                        </TableRow>
-                                    </React.Fragment>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-                <TablePagination
-                    rowsPerPageOptions={[10, 25, 50]}
-                    component="div"
-                    count={total}
-                    rowsPerPage={rowsPerPage}
-                    page={page}
-                    onPageChange={handleChangePage}
-                    onRowsPerPageChange={handleChangeRowsPerPage}
+                <SafeDataGrid
+                    rows={logs}
+                    columns={auditColumns}
+                    loading={loading}
+                    getRowId={(row) => row.id}
+                    rowCount={total}
+                    paginationMode="offset"
+                    paginationModel={{ page, pageSize: rowsPerPage }}
+                    onPaginationModelChange={(model) => {
+                        if (model.page !== page) handleChangePage(null, model.page);
+                        if (model.pageSize !== rowsPerPage) {
+                            handleChangeRowsPerPage({ target: { value: String(model.pageSize) } } as React.ChangeEvent<HTMLInputElement>);
+                        }
+                    }}
+                    pageSizeOptions={[10, 25, 50]}
+                    disableRowSelectionOnClick
+                    tableStateKey="audit-log-list-table"
+                    fillAvailableHeight
+                    maxTableHeight="none"
+                    getDetailPanelContent={renderAuditDetailPanel}
                 />
             </Paper>
         </Box>

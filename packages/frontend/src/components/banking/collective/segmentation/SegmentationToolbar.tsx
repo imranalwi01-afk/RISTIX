@@ -42,9 +42,17 @@ export const SegmentationToolbar: React.FC<SegmentationToolbarProps> = ({
   canManage = false
 }) => {
   return (
-    <Card sx={{ mb: 3, borderRadius: 2, boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
-      <CardContent sx={{ py: 2 }}>
-        <Stack direction="row" spacing={2} alignItems="center">
+    <Card
+      sx={{
+        mb: 2.5,
+        borderRadius: 2,
+        border: '1px solid',
+        borderColor: 'divider',
+        boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)',
+      }}
+    >
+      <CardContent sx={{ p: { xs: 2, md: 2.25 }, '&:last-child': { pb: { xs: 2, md: 2.25 } } }}>
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', md: 'center' }}>
           <TextField
             inputRef={searchInputRef}
             placeholder="Search by group, segment, type... (/)"
@@ -54,9 +62,9 @@ export const SegmentationToolbar: React.FC<SegmentationToolbarProps> = ({
             onChange={(e) => onSearchChange(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && onSearchSubmit()}
             sx={{ 
-                flexGrow: 1,
+                flex: '1 1 420px',
                 '& .MuiOutlinedInput-root': {
-                    borderRadius: 2,
+                    borderRadius: 1.5,
                     backgroundColor: '#f8fafc',
                     '&:hover': {
                         backgroundColor: '#f1f5f9',
@@ -84,7 +92,8 @@ export const SegmentationToolbar: React.FC<SegmentationToolbarProps> = ({
                 sx={{ 
                     borderRadius: 2,
                     textTransform: 'none',
-                    px: 3,
+                    px: 2.25,
+                    minHeight: 40,
                     borderColor: activeFiltersCount > 0 ? 'primary.main' : 'divider',
                     color: activeFiltersCount > 0 ? 'primary.main' : 'text.secondary',
                     position: 'relative'
@@ -124,10 +133,11 @@ export const SegmentationToolbar: React.FC<SegmentationToolbarProps> = ({
                   onClick={onAddClick}
                   data-testid="add-segmentation-btn"
                   sx={{
-                      borderRadius: 2,
+                      borderRadius: 1.5,
                       textTransform: 'none',
-                      px: 4,
-                      boxShadow: '0 4px 12px rgba(25, 118, 210, 0.2)'
+                      px: 3,
+                      minHeight: 40,
+                      boxShadow: '0 8px 18px rgba(2, 132, 199, 0.22)'
                   }}
               >
                 Add Segmentation

@@ -7,12 +7,6 @@ import {
   Card,
   CardContent,
   Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Paper,
   Chip,
   IconButton,
@@ -48,7 +42,6 @@ import {
   ListItemSecondaryAction,
   Checkbox,
   Pagination,
-  TablePagination,
   Menu,
   MenuList,
   MenuItem as MuiMenuItem
@@ -82,10 +75,12 @@ import {
   ExpandMore as ExpandMoreIcon
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
+import type { GridColDef } from '@mui/x-data-grid';
 import { format, parseISO } from 'date-fns';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/services/api';
 import { getRoleResponsibility } from '@/components/roles/role-responsibility.utils';
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 
 // Types
 interface User {
@@ -727,6 +722,385 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     });
   };
 
+  const workspaceUserColumns = useMemo<GridColDef<User>[]>(() => [
+    {
+      field: 'select',
+      headerName: '',
+      width: 56,
+      sortable: false,
+      filterable: false,
+      disableColumnMenu: true,
+      renderHeader: () => (
+        <Checkbox
+          size="small"
+          checked={allFilteredUsersSelected}
+          indeterminate={someFilteredUsersSelected && !allFilteredUsersSelected}
+          onChange={(e) => handleSelectAllFilteredUsers(e.target.checked)}
+        />
+      ),
+      renderCell: (params) => (
+        <Checkbox
+          size="small"
+          checked={selectedUserIds.includes(params.row.id)}
+          onChange={(e) => toggleUserSelection(params.row.id, e.target.checked)}
+        />
+      ),
+    },
+    {
+      field: 'fullName',
+      headerName: 'User',
+      minWidth: 220,
+      flex: 1,
+      renderCell: (params) => (
+        <Box>
+          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{params.row.fullName}</Typography>
+          <Typography variant="caption" color="text.secondary">{params.row.email}</Typography>
+        </Box>
+      ),
+    },
+    {
+      field: 'isActive',
+      headerName: 'Status',
+      width: 120,
+      renderCell: (params) => (
+        <Chip
+          label={params.row.isActive ? 'Active' : 'Inactive'}
+          size="small"
+          color={getUserStatusColor(params.row.isActive)}
+        />
+      ),
+    },
+    {
+      field: 'roleAssignments',
+      headerName: 'Roles',
+      width: 110,
+      renderCell: (params) => <Chip size="small" variant="outlined" label={params.row.roleAssignments.length} />,
+    },
+  ], [allFilteredUsersSelected, selectedUserIds, someFilteredUsersSelected]);
+
+  const workspaceRoleColumns = useMemo<GridColDef<Role>[]>(() => [
+    {
+      field: 'select',
+      headerName: '',
+      width: 56,
+      sortable: false,
+      filterable: false,
+      disableColumnMenu: true,
+      renderHeader: () => (
+        <Checkbox
+          size="small"
+          checked={allFilteredRolesSelected}
+          indeterminate={someFilteredRolesSelected && !allFilteredRolesSelected}
+          onChange={(e) => handleSelectAllFilteredRoles(e.target.checked)}
+        />
+      ),
+      renderCell: (params) => (
+        <Checkbox
+          size="small"
+          checked={selectedRoleIds.includes(params.row.id)}
+          onChange={(e) => toggleRoleSelection(params.row.id, e.target.checked)}
+        />
+      ),
+    },
+    {
+      field: 'displayName',
+      headerName: 'Role',
+      minWidth: 240,
+      flex: 1,
+      renderCell: (params) => (
+        <Box>
+          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{getRoleLabel(params.row)}</Typography>
+          <Typography variant="caption" color="text.secondary">{params.row.name || 'UNNAMED_ROLE'}</Typography>
+          <Box sx={{ mt: 0.5 }}>
+            <Chip size="small" variant="outlined" label={getRoleResponsibilityLabel(params.row)} />
+          </Box>
+        </Box>
+      ),
+    },
+    {
+      field: 'type',
+      headerName: 'Type',
+      width: 120,
+      renderCell: (params) => (
+        <Chip
+          label={params.row.type}
+          size="small"
+          color={getRoleTypeColor(params.row.type) as any}
+          variant="outlined"
+        />
+      ),
+    },
+    {
+      field: 'assignedUsers',
+      headerName: 'Assigned',
+      width: 120,
+      renderCell: (params) => <Chip size="small" variant="outlined" label={params.row.assignedUsers} />,
+    },
+  ], [allFilteredRolesSelected, selectedRoleIds, someFilteredRolesSelected]);
+
+  const userColumns = useMemo<GridColDef<User>[]>(() => [
+    ...workspaceUserColumns.slice(0, 2),
+    {
+      field: 'email',
+      headerName: 'Email',
+      minWidth: 220,
+      flex: 1,
+    },
+    workspaceUserColumns[2],
+    {
+      field: 'assignedRoles',
+      headerName: 'Assigned Roles',
+      minWidth: 300,
+      flex: 1.3,
+      renderCell: (params) => (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+          {params.row.roleAssignments
+            .filter(assignment => {
+              const role = roles.find(r => r.id === assignment.roleId);
+              return role?.isActive;
+            })
+            .map((assignment) => {
+              const role = roles.find(r => r.id === assignment.roleId);
+              return role ? (
+                <Chip
+                  key={assignment.id}
+                  label={getRoleLabel(role)}
+                  size="small"
+                  color={getRoleTypeColor(role.type) as any}
+                  variant="outlined"
+                />
+              ) : null;
+            })}
+          {params.row.roleAssignments.length === 0 && (
+            <Typography variant="caption" color="text.secondary">
+              No roles assigned
+            </Typography>
+          )}
+        </Box>
+      ),
+    },
+    {
+      field: 'roleCount',
+      headerName: 'Role Count',
+      width: 120,
+      renderCell: (params) => (
+        <Badge badgeContent={params.row.roleAssignments.length} color="primary">
+          <AssignmentIcon fontSize="small" />
+        </Badge>
+      ),
+    },
+    {
+      field: 'createdAt',
+      headerName: 'Created',
+      width: 140,
+      renderCell: (params) => format(parseISO(params.row.createdAt), 'MMM dd, yyyy'),
+    },
+    {
+      field: 'lastLoginAt',
+      headerName: 'Last Login',
+      width: 140,
+      renderCell: (params) => params.row.lastLoginAt
+        ? format(parseISO(params.row.lastLoginAt), 'MMM dd, yyyy')
+        : 'Never',
+    },
+    {
+      field: 'actions',
+      type: 'actions',
+      headerName: 'Actions',
+      width: 112,
+      getActions: (params) => [
+        <SafeGridActionsCellItem
+          key="view"
+          icon={<ViewIcon fontSize="small" />}
+          label="View User Details"
+          onClick={() => openUserDetailsDialog(params.row)}
+          showInMenu={false}
+        />,
+        <SafeGridActionsCellItem
+          key="manage"
+          icon={<EditIcon fontSize="small" />}
+          label="Manage Roles"
+          onClick={() => openManageUserRolesDialog(params.row)}
+          showInMenu={false}
+        />,
+      ],
+    },
+  ], [roles, workspaceUserColumns]);
+
+  const roleColumns = useMemo<GridColDef<Role>[]>(() => [
+    ...workspaceRoleColumns.slice(0, 3),
+    {
+      field: 'level',
+      headerName: 'Level',
+      width: 140,
+    },
+    {
+      field: 'isActive',
+      headerName: 'Status',
+      width: 120,
+      renderCell: (params) => (
+        <Chip
+          label={params.row.isActive ? 'Active' : 'Inactive'}
+          size="small"
+          color={params.row.isActive ? 'success' : 'default'}
+        />
+      ),
+    },
+    {
+      field: 'assignedUsers',
+      headerName: 'Assigned Users',
+      width: 150,
+      renderCell: (params) => (
+        <Badge badgeContent={params.row.assignedUsers} color="primary">
+          <PeopleIcon fontSize="small" />
+        </Badge>
+      ),
+    },
+    {
+      field: 'permissions',
+      headerName: 'Permissions',
+      width: 140,
+      renderCell: (params) => (
+        <Badge badgeContent={flattenPermissions(params.row.permissions).length} color="secondary">
+          <SecurityIcon fontSize="small" />
+        </Badge>
+      ),
+    },
+    {
+      field: 'approvalScope',
+      headerName: 'Approval Scope',
+      width: 150,
+      renderCell: (params) => (
+        <Chip
+          size="small"
+          label={canRoleApproveRequests(params.row) ? 'Can Approve' : 'No Approval'}
+          color={canRoleApproveRequests(params.row) ? 'success' : 'default'}
+          variant="outlined"
+        />
+      ),
+    },
+    {
+      field: 'createdAt',
+      headerName: 'Created',
+      width: 140,
+      renderCell: (params) => format(parseISO(params.row.createdAt), 'MMM dd, yyyy'),
+    },
+    {
+      field: 'actions',
+      type: 'actions',
+      headerName: 'Actions',
+      width: 112,
+      getActions: (params) => [
+        <SafeGridActionsCellItem
+          key="view"
+          icon={<ViewIcon fontSize="small" />}
+          label="Open Role Details"
+          onClick={() => openRoleDetailsPage(params.row)}
+          showInMenu={false}
+        />,
+        <SafeGridActionsCellItem
+          key="users"
+          icon={<PeopleIcon fontSize="small" />}
+          label="Manage User Assignments"
+          onClick={() => openManageRoleUsersDialog(params.row)}
+          showInMenu={false}
+        />,
+      ],
+    },
+  ], [workspaceRoleColumns]);
+
+  const managedUserRoleRows = useMemo(
+    () => roles.filter((role) => role.isActive || manageUserRolesDialog.selectedRoleIds.includes(role.id)),
+    [manageUserRolesDialog.selectedRoleIds, roles]
+  );
+
+  const managedUserRoleColumns = useMemo<GridColDef<Role>[]>(() => [
+    {
+      field: 'select',
+      headerName: '',
+      width: 56,
+      sortable: false,
+      filterable: false,
+      disableColumnMenu: true,
+      renderCell: (params) => (
+        <Checkbox
+          checked={manageUserRolesDialog.selectedRoleIds.includes(params.row.id)}
+          onChange={(e) => toggleRoleSelectionForManagedUser(params.row.id, e.target.checked)}
+        />
+      ),
+    },
+    {
+      field: 'displayName',
+      headerName: 'Role',
+      minWidth: 280,
+      flex: 1,
+      renderCell: (params) => (
+        <Box>
+          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{getRoleLabel(params.row)}</Typography>
+          <Typography variant="caption" color="text.secondary">{params.row.description || '-'}</Typography>
+          <Box sx={{ mt: 0.5 }}>
+            <Chip size="small" variant="outlined" label={getRoleResponsibilityLabel(params.row)} />
+          </Box>
+        </Box>
+      ),
+    },
+    {
+      field: 'type',
+      headerName: 'Type',
+      width: 130,
+      renderCell: (params) => (
+        <Chip size="small" label={params.row.type} color={getRoleTypeColor(params.row.type) as any} variant="outlined" />
+      ),
+    },
+    {
+      field: 'level',
+      headerName: 'Level',
+      width: 140,
+    },
+  ], [manageUserRolesDialog.selectedRoleIds]);
+
+  const managedRoleUserRows = useMemo(
+    () => users.filter((user) => showInactiveUsers || user.isActive || manageRoleUsersDialog.selectedUserIds.includes(user.id)),
+    [manageRoleUsersDialog.selectedUserIds, showInactiveUsers, users]
+  );
+
+  const managedRoleUserColumns = useMemo<GridColDef<User>[]>(() => [
+    {
+      field: 'select',
+      headerName: '',
+      width: 56,
+      sortable: false,
+      filterable: false,
+      disableColumnMenu: true,
+      renderCell: (params) => (
+        <Checkbox
+          checked={manageRoleUsersDialog.selectedUserIds.includes(params.row.id)}
+          onChange={(e) => toggleUserSelectionForManagedRole(params.row.id, e.target.checked)}
+        />
+      ),
+    },
+    {
+      field: 'fullName',
+      headerName: 'User',
+      minWidth: 260,
+      flex: 1,
+      renderCell: (params) => (
+        <Box>
+          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{params.row.fullName}</Typography>
+          <Typography variant="caption" color="text.secondary">{params.row.email}</Typography>
+        </Box>
+      ),
+    },
+    {
+      field: 'isActive',
+      headerName: 'Status',
+      width: 130,
+      renderCell: (params) => (
+        <Chip size="small" label={params.row.isActive ? 'Active' : 'Inactive'} color={getUserStatusColor(params.row.isActive)} />
+      ),
+    },
+  ], [manageRoleUsersDialog.selectedUserIds]);
+
   const saveManagedUserRoles = async () => {
     const user = manageUserRolesDialog.user;
     if (!user) return;
@@ -1156,52 +1530,22 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
                     {allFilteredUsersSelected ? 'Unselect All' : 'Select All Filtered'}
                   </Button>
                 </Box>
-                <TableContainer sx={{ maxHeight: 360 }}>
-                  <Table stickyHeader size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell padding="checkbox">
-                          <Checkbox
-                            size="small"
-                            checked={allFilteredUsersSelected}
-                            indeterminate={someFilteredUsersSelected && !allFilteredUsersSelected}
-                            onChange={(e) => handleSelectAllFilteredUsers(e.target.checked)}
-                          />
-                        </TableCell>
-                        <TableCell>User</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell>Roles</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {paginatedUsers.map((user) => (
-                        <TableRow key={`workspace-user-${user.id}`} hover>
-                          <TableCell padding="checkbox">
-                            <Checkbox
-                              size="small"
-                              checked={selectedUserIds.includes(user.id)}
-                              onChange={(e) => toggleUserSelection(user.id, e.target.checked)}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{user.fullName}</Typography>
-                            <Typography variant="caption" color="text.secondary">{user.email}</Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={user.isActive ? 'Active' : 'Inactive'}
-                              size="small"
-                              color={getUserStatusColor(user.isActive)}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Chip size="small" variant="outlined" label={user.roleAssignments.length} />
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                <SafeDataGrid
+                  rows={filteredUsers}
+                  columns={workspaceUserColumns}
+                  getRowId={(row) => row.id}
+                  paginationMode="client"
+                  paginationModel={{ page: userPage, pageSize: userRowsPerPage }}
+                  onPaginationModelChange={(model) => {
+                    setUserPage(model.page);
+                    setUserRowsPerPage(model.pageSize);
+                  }}
+                  pageSizeOptions={[5, 10, 25]}
+                  disableRowSelectionOnClick
+                  tableStateKey="role-assignment-workspace-users-table"
+                  fillAvailableHeight={false}
+                  maxTableHeight={360}
+                />
               </Paper>
             </Grid>
 
@@ -1219,56 +1563,22 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
                     {allFilteredRolesSelected ? 'Unselect All' : 'Select All Filtered'}
                   </Button>
                 </Box>
-                <TableContainer sx={{ maxHeight: 360 }}>
-                  <Table stickyHeader size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell padding="checkbox">
-                          <Checkbox
-                            size="small"
-                            checked={allFilteredRolesSelected}
-                            indeterminate={someFilteredRolesSelected && !allFilteredRolesSelected}
-                            onChange={(e) => handleSelectAllFilteredRoles(e.target.checked)}
-                          />
-                        </TableCell>
-                        <TableCell>Role</TableCell>
-                        <TableCell>Type</TableCell>
-                        <TableCell>Assigned</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {paginatedRoles.map((role) => (
-                        <TableRow key={`workspace-role-${role.id}`} hover>
-                          <TableCell padding="checkbox">
-                            <Checkbox
-                              size="small"
-                              checked={selectedRoleIds.includes(role.id)}
-                              onChange={(e) => toggleRoleSelection(role.id, e.target.checked)}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{getRoleLabel(role)}</Typography>
-                            <Typography variant="caption" color="text.secondary">{role.name || 'UNNAMED_ROLE'}</Typography>
-                            <Box sx={{ mt: 0.5 }}>
-                              <Chip size="small" variant="outlined" label={getRoleResponsibilityLabel(role)} />
-                            </Box>
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={role.type}
-                              size="small"
-                              color={getRoleTypeColor(role.type) as any}
-                              variant="outlined"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Chip size="small" variant="outlined" label={role.assignedUsers} />
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                <SafeDataGrid
+                  rows={filteredRoles}
+                  columns={workspaceRoleColumns}
+                  getRowId={(row) => row.id}
+                  paginationMode="client"
+                  paginationModel={{ page: rolePage, pageSize: roleRowsPerPage }}
+                  onPaginationModelChange={(model) => {
+                    setRolePage(model.page);
+                    setRoleRowsPerPage(model.pageSize);
+                  }}
+                  pageSizeOptions={[5, 10, 25]}
+                  disableRowSelectionOnClick
+                  tableStateKey="role-assignment-workspace-roles-table"
+                  fillAvailableHeight={false}
+                  maxTableHeight={360}
+                />
               </Paper>
             </Grid>
 
@@ -1303,244 +1613,42 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
 
         {/* Users View Tab */}
         <TabPanel value={currentTab} index={1}>
-          <TableContainer>
-            <Table stickyHeader>
-              <TableHead>
-                <TableRow>
-                  <TableCell padding="checkbox">
-                    <Checkbox
-                      size="small"
-                      checked={allFilteredUsersSelected}
-                      indeterminate={someFilteredUsersSelected && !allFilteredUsersSelected}
-                      onChange={(e) => handleSelectAllFilteredUsers(e.target.checked)}
-                    />
-                  </TableCell>
-                  <TableCell>User</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Assigned Roles</TableCell>
-                  <TableCell>Role Count</TableCell>
-                  <TableCell>Created</TableCell>
-                  <TableCell>Last Login</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {paginatedUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        size="small"
-                        checked={selectedUserIds.includes(user.id)}
-                        onChange={(e) => toggleUserSelection(user.id, e.target.checked)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Avatar sx={{ width: 32, height: 32 }}>
-                          {user.fullName.charAt(0).toUpperCase()}
-                        </Avatar>
-                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                          {user.fullName}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={user.isActive ? 'Active' : 'Inactive'}
-                        size="small"
-                        color={getUserStatusColor(user.isActive)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {user.roleAssignments
-                          .filter(assignment => {
-                            const role = roles.find(r => r.id === assignment.roleId);
-                            return role?.isActive;
-                          })
-                          .map((assignment) => {
-                            const role = roles.find(r => r.id === assignment.roleId);
-                            return role ? (
-                              <Chip
-                                key={assignment.id}
-                                label={getRoleLabel(role)}
-                                size="small"
-                                color={getRoleTypeColor(role.type) as any}
-                                variant="outlined"
-                              />
-                            ) : null;
-                          })}
-                        {user.roleAssignments.length === 0 && (
-                          <Typography variant="caption" color="text.secondary">
-                            No roles assigned
-                          </Typography>
-                        )}
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Badge badgeContent={user.roleAssignments.length} color="primary">
-                        <AssignmentIcon fontSize="small" />
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {format(parseISO(user.createdAt), 'MMM dd, yyyy')}
-                    </TableCell>
-                    <TableCell>
-                      {user.lastLoginAt
-                        ? format(parseISO(user.lastLoginAt), 'MMM dd, yyyy')
-                        : 'Never'}
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', gap: 0.5 }}>
-                        <Tooltip title="View User Details">
-                          <IconButton size="small" onClick={() => openUserDetailsDialog(user)}>
-                            <ViewIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Manage Roles">
-                          <IconButton size="small" onClick={() => openManageUserRolesDialog(user)}>
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25]}
-              component="div"
-              count={filteredUsers.length}
-              rowsPerPage={userRowsPerPage}
-              page={userPage}
-              onPageChange={(e, newPage) => setUserPage(newPage)}
-              onRowsPerPageChange={(e) => {
-                setUserRowsPerPage(parseInt(e.target.value, 10));
-                setUserPage(0);
-              }}
-            />
-          </TableContainer>
+          <SafeDataGrid
+            rows={filteredUsers}
+            columns={userColumns}
+            getRowId={(row) => row.id}
+            paginationMode="client"
+            paginationModel={{ page: userPage, pageSize: userRowsPerPage }}
+            onPaginationModelChange={(model) => {
+              setUserPage(model.page);
+              setUserRowsPerPage(model.pageSize);
+            }}
+            pageSizeOptions={[5, 10, 25]}
+            disableRowSelectionOnClick
+            tableStateKey="role-assignment-users-table"
+            fillAvailableHeight={false}
+            maxTableHeight={620}
+          />
         </TabPanel>
 
         {/* Roles View Tab */}
         <TabPanel value={currentTab} index={2}>
-          <TableContainer>
-            <Table stickyHeader>
-              <TableHead>
-                <TableRow>
-                  <TableCell padding="checkbox">
-                    <Checkbox
-                      size="small"
-                      checked={allFilteredRolesSelected}
-                      indeterminate={someFilteredRolesSelected && !allFilteredRolesSelected}
-                      onChange={(e) => handleSelectAllFilteredRoles(e.target.checked)}
-                    />
-                  </TableCell>
-                  <TableCell>Role</TableCell>
-                  <TableCell>Type</TableCell>
-                  <TableCell>Level</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Assigned Users</TableCell>
-                  <TableCell>Permissions</TableCell>
-                  <TableCell>Approval Scope</TableCell>
-                  <TableCell>Created</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {paginatedRoles.map((role) => (
-                  <TableRow key={role.id}>
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        size="small"
-                        checked={selectedRoleIds.includes(role.id)}
-                        onChange={(e) => toggleRoleSelection(role.id, e.target.checked)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                          {getRoleLabel(role)}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {role.name || 'UNNAMED_ROLE'}
-                        </Typography>
-                        <Box sx={{ mt: 0.5 }}>
-                          <Chip size="small" variant="outlined" label={getRoleResponsibilityLabel(role)} />
-                        </Box>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={role.type}
-                        size="small"
-                        color={getRoleTypeColor(role.type) as any}
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell>{role.level}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={role.isActive ? 'Active' : 'Inactive'}
-                        size="small"
-                        color={role.isActive ? 'success' : 'default'}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Badge badgeContent={role.assignedUsers} color="primary">
-                        <PeopleIcon fontSize="small" />
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge badgeContent={flattenPermissions(role.permissions).length} color="secondary">
-                        <SecurityIcon fontSize="small" />
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={canRoleApproveRequests(role) ? 'Can Approve' : 'No Approval'}
-                        color={canRoleApproveRequests(role) ? 'success' : 'default'}
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {format(parseISO(role.createdAt), 'MMM dd, yyyy')}
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', gap: 0.5 }}>
-                        <Tooltip title="Open Role Details">
-                          <IconButton size="small" onClick={() => openRoleDetailsPage(role)}>
-                            <ViewIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Manage User Assignments">
-                          <IconButton size="small" onClick={() => openManageRoleUsersDialog(role)}>
-                            <PeopleIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25]}
-              component="div"
-              count={filteredRoles.length}
-              rowsPerPage={roleRowsPerPage}
-              page={rolePage}
-              onPageChange={(e, newPage) => setRolePage(newPage)}
-              onRowsPerPageChange={(e) => {
-                setRoleRowsPerPage(parseInt(e.target.value, 10));
-                setRolePage(0);
-              }}
-            />
-          </TableContainer>
+          <SafeDataGrid
+            rows={filteredRoles}
+            columns={roleColumns}
+            getRowId={(row) => row.id}
+            paginationMode="client"
+            paginationModel={{ page: rolePage, pageSize: roleRowsPerPage }}
+            onPaginationModelChange={(model) => {
+              setRolePage(model.page);
+              setRoleRowsPerPage(model.pageSize);
+            }}
+            pageSizeOptions={[5, 10, 25]}
+            disableRowSelectionOnClick
+            tableStateKey="role-assignment-roles-table"
+            fillAvailableHeight={false}
+            maxTableHeight={620}
+          />
         </TabPanel>
       </Paper>
 
@@ -1646,43 +1754,17 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             Select the roles that should be assigned to this user, then save changes.
           </Typography>
-          <TableContainer component={Paper} variant="outlined">
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell padding="checkbox" />
-                  <TableCell>Role</TableCell>
-                  <TableCell>Type</TableCell>
-                  <TableCell>Level</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {roles
-                  .filter((role) => role.isActive || manageUserRolesDialog.selectedRoleIds.includes(role.id))
-                  .map((role) => (
-                    <TableRow key={`manage-user-role-${role.id}`} hover>
-                      <TableCell padding="checkbox">
-                        <Checkbox
-                          checked={manageUserRolesDialog.selectedRoleIds.includes(role.id)}
-                          onChange={(e) => toggleRoleSelectionForManagedUser(role.id, e.target.checked)}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{getRoleLabel(role)}</Typography>
-                        <Typography variant="caption" color="text.secondary">{role.description || '-'}</Typography>
-                        <Box sx={{ mt: 0.5 }}>
-                          <Chip size="small" variant="outlined" label={getRoleResponsibilityLabel(role)} />
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Chip size="small" label={role.type} color={getRoleTypeColor(role.type) as any} variant="outlined" />
-                      </TableCell>
-                      <TableCell>{role.level}</TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          <SafeDataGrid
+            rows={managedUserRoleRows}
+            columns={managedUserRoleColumns}
+            getRowId={(row) => row.id}
+            paginationMode="client"
+            pageSizeOptions={[10, 25, 50]}
+            disableRowSelectionOnClick
+            tableStateKey="manage-user-roles-dialog-table"
+            fillAvailableHeight={false}
+            maxTableHeight={420}
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setManageUserRolesDialog({ open: false, user: null, selectedRoleIds: [], saving: false })}>
@@ -1708,38 +1790,17 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             Select users that should have this role assigned, then save changes.
           </Typography>
-          <TableContainer component={Paper} variant="outlined">
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell padding="checkbox" />
-                  <TableCell>User</TableCell>
-                  <TableCell>Status</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {users
-                  .filter((user) => showInactiveUsers || user.isActive || manageRoleUsersDialog.selectedUserIds.includes(user.id))
-                  .map((user) => (
-                    <TableRow key={`manage-role-user-${user.id}`} hover>
-                      <TableCell padding="checkbox">
-                        <Checkbox
-                          checked={manageRoleUsersDialog.selectedUserIds.includes(user.id)}
-                          onChange={(e) => toggleUserSelectionForManagedRole(user.id, e.target.checked)}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{user.fullName}</Typography>
-                        <Typography variant="caption" color="text.secondary">{user.email}</Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip size="small" label={user.isActive ? 'Active' : 'Inactive'} color={getUserStatusColor(user.isActive)} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          <SafeDataGrid
+            rows={managedRoleUserRows}
+            columns={managedRoleUserColumns}
+            getRowId={(row) => row.id}
+            paginationMode="client"
+            pageSizeOptions={[10, 25, 50]}
+            disableRowSelectionOnClick
+            tableStateKey="manage-role-users-dialog-table"
+            fillAvailableHeight={false}
+            maxTableHeight={420}
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setManageRoleUsersDialog({ open: false, role: null, selectedUserIds: [], saving: false })}>

@@ -39,6 +39,7 @@ import {
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import type { EnterpriseColumnFilterValue, EnterpriseDensity, EnterpriseFilterDefinition, EnterprisePaginationMode, EnterpriseTableQueryState } from '@/types/enterprise-table';
+import { TableCard } from './TableCard';
 
 /**
  * Column definition for NativeTable
@@ -86,6 +87,7 @@ export interface NativeTableProps<T = any> {
   checkboxSelection?: boolean;
   onRowSelectionModelChange?: (ids: (string | number)[]) => void;
   rowSelectionModel?: (string | number)[];
+  onRowClick?: (params: { row: T; id: string | number }) => void;
   onRowDoubleClick?: (params: { row: T; id: string | number }) => void;
   sx?: any;
   // Detail panel support
@@ -124,12 +126,16 @@ export interface NativeTableProps<T = any> {
   density?: EnterpriseDensity;
   onDensityChange?: (density: EnterpriseDensity) => void;
   showEnterpriseControls?: boolean;
+  tableStateKey?: string;
+  maxTableHeight?: any;
+  fillAvailableHeight?: boolean;
   onSaveView?: () => void;
   onResetView?: () => void;
   onQueryChange?: (queryState: EnterpriseTableQueryState) => void;
 }
 
 const COLUMN_FILTER_COMMIT_DEBOUNCE_MS = 350;
+const NATIVE_TABLE_STATE_VERSION = 1;
 
 interface DebouncedFilterTextFieldProps {
   value: string;
@@ -216,6 +222,75 @@ function areFilterMapsEqual(
   });
 }
 
+function areVisibilityMapsEqual(left: Record<string, boolean>, right: Record<string, boolean>) {
+  const leftKeys = Object.keys(left).sort();
+  const rightKeys = Object.keys(right).sort();
+
+  if (leftKeys.length !== rightKeys.length) return false;
+
+  return leftKeys.every((key, index) => key === rightKeys[index] && left[key] === right[key]);
+}
+
+function normalizeVisibilityModel(
+  model: Record<string, boolean>,
+  columns: NativeTableColumn[],
+) {
+  const allowedFields = new Set(columns.map((column) => String(column.field)));
+  const nextModel: Record<string, boolean> = {};
+
+  Object.entries(model).forEach(([field, visible]) => {
+    if (allowedFields.has(field) && visible === false) {
+      nextModel[field] = false;
+    }
+  });
+
+  const visibleCount = columns.filter((column) => nextModel[String(column.field)] !== false).length;
+  if (columns.length > 0 && visibleCount === 0) {
+    delete nextModel[String(columns[0].field)];
+  }
+
+  return nextModel;
+}
+
+function readStoredTableState(storageKey: string) {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const rawValue = window.localStorage.getItem(storageKey);
+    if (!rawValue) return null;
+
+    const parsed = JSON.parse(rawValue) as {
+      version?: number;
+      columnVisibilityModel?: Record<string, boolean>;
+      density?: EnterpriseDensity;
+    };
+
+    if (parsed.version !== NATIVE_TABLE_STATE_VERSION) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredTableState(
+  storageKey: string,
+  state: {
+    columnVisibilityModel: Record<string, boolean>;
+    density: EnterpriseDensity;
+  },
+) {
+  if (typeof window === 'undefined') return;
+
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify({
+      version: NATIVE_TABLE_STATE_VERSION,
+      ...state,
+    }));
+  } catch {
+    // Storage can be blocked in private browsing or strict browser settings.
+  }
+}
+
 /**
  * A native HTML table component with pagination, selection, and responsive support
  * @template T - The row data type (optional, defaults to any for backwards compatibility)
@@ -231,6 +306,7 @@ export function NativeTable<T = any>({
   checkboxSelection = false,
   onRowSelectionModelChange,
   rowSelectionModel = [],
+  onRowClick,
   onRowDoubleClick,
   sx,
   getDetailPanelContent,
@@ -254,11 +330,14 @@ export function NativeTable<T = any>({
   onSortModelChange,
   sortingMode = 'client',
   paginationMode = 'client',
-  columnVisibilityModel = {},
+  columnVisibilityModel: propColumnVisibilityModel,
   onColumnVisibilityModelChange,
-  density = 'standard',
+  density: propDensity,
   onDensityChange,
-  showEnterpriseControls = false,
+  showEnterpriseControls = true,
+  tableStateKey,
+  maxTableHeight,
+  fillAvailableHeight = true,
   onSaveView,
   onResetView,
   onQueryChange,
@@ -281,8 +360,18 @@ export function NativeTable<T = any>({
   const [internalColumnFilters, setInternalColumnFilters] = useState<Record<string, EnterpriseColumnFilterValue>>({});
   const [draftColumnFilters, setDraftColumnFilters] = useState<Record<string, EnterpriseColumnFilterValue>>(columnFilters ?? {});
   const [internalSortModel, setInternalSortModel] = useState<NativeTableSortModel>([]);
+  const [internalColumnVisibilityModel, setInternalColumnVisibilityModel] = useState<Record<string, boolean>>({});
+  const [internalDensity, setInternalDensity] = useState<EnterpriseDensity>('standard');
   const [columnsMenuAnchor, setColumnsMenuAnchor] = useState<null | HTMLElement>(null);
 
+  const resolvedTableStateKey = useMemo(() => {
+    if (tableStateKey) return tableStateKey;
+    const columnSignature = columns.map((column) => String(column.field)).join('|');
+    const path = typeof window !== 'undefined' ? window.location.pathname : 'unknown-path';
+    return `native-table:${path}:${columnSignature}`;
+  }, [columns, tableStateKey]);
+  const effectiveColumnVisibilityModel = propColumnVisibilityModel ?? internalColumnVisibilityModel;
+  const effectiveDensity = propDensity ?? internalDensity;
   const effectiveColumnFilters = columnFilters ?? internalColumnFilters;
   const effectiveSortModel = sortModel ?? internalSortModel;
   const activeSort = effectiveSortModel[0];
@@ -295,6 +384,39 @@ export function NativeTable<T = any>({
       ));
     }
   }, [columnFilters]);
+
+  useEffect(() => {
+    if (propColumnVisibilityModel !== undefined || propDensity !== undefined) return;
+
+    const storedState = readStoredTableState(resolvedTableStateKey);
+    if (!storedState) return;
+
+    if (storedState.columnVisibilityModel) {
+      const normalizedModel = normalizeVisibilityModel(storedState.columnVisibilityModel, columns);
+      setInternalColumnVisibilityModel((current) => (
+        areVisibilityMapsEqual(current, normalizedModel) ? current : normalizedModel
+      ));
+    }
+
+    if (storedState.density) {
+      setInternalDensity(storedState.density);
+    }
+  }, [columns, propColumnVisibilityModel, propDensity, resolvedTableStateKey]);
+
+  useEffect(() => {
+    if (propColumnVisibilityModel !== undefined || propDensity !== undefined) return;
+
+    writeStoredTableState(resolvedTableStateKey, {
+      columnVisibilityModel: internalColumnVisibilityModel,
+      density: internalDensity,
+    });
+  }, [
+    internalColumnVisibilityModel,
+    internalDensity,
+    propColumnVisibilityModel,
+    propDensity,
+    resolvedTableStateKey,
+  ]);
 
   useEffect(() => {
     if (columnFilters === undefined) {
@@ -310,12 +432,12 @@ export function NativeTable<T = any>({
       paginationModel: { page, pageSize: rowsPerPage },
       columnFilters: effectiveColumnFilters,
       sort: effectiveSortModel.map((item) => ({ field: item.field, direction: item.sort })),
-      columnVisibilityModel,
-      density,
+      columnVisibilityModel: effectiveColumnVisibilityModel,
+      density: effectiveDensity,
     });
   }, [
-    columnVisibilityModel,
-    density,
+    effectiveColumnVisibilityModel,
+    effectiveDensity,
     effectiveColumnFilters,
     effectiveSortModel,
     onQueryChange,
@@ -403,12 +525,12 @@ export function NativeTable<T = any>({
   };
 
   const visibleColumns = useMemo(() => {
-    const enabledColumns = columns.filter((col) => columnVisibilityModel[String(col.field)] !== false);
+    const enabledColumns = columns.filter((col) => effectiveColumnVisibilityModel[String(col.field)] !== false);
     if (isMobile && responsiveMode === 'cards') {
       return enabledColumns.filter(col => !col.hideMobile);
     }
     return enabledColumns;
-  }, [columns, columnVisibilityModel, isMobile, responsiveMode]);
+  }, [columns, effectiveColumnVisibilityModel, isMobile, responsiveMode]);
 
   const getCellValue = (row: any, column: NativeTableColumn) => {
     if (column.valueGetter) {
@@ -549,6 +671,43 @@ export function NativeTable<T = any>({
   const paginationCount = count !== undefined ? count : filteredRows.length;
   const activeFilterEntries = Object.entries(effectiveColumnFilters)
     .filter(([, value]) => String(value ?? '').trim().length > 0);
+  const visibleColumnCount = visibleColumns.length;
+  const tableMinWidth = useMemo(() => {
+    const contentWidth = visibleColumns.reduce((total, column) => {
+      if (column.width) return total + column.width;
+      if (column.minWidth) return total + column.minWidth;
+      return total + (column.type === 'actions' ? 96 : 160);
+    }, getDetailPanelContent ? 88 : 0);
+
+    return isMobile ? Math.max(800, contentWidth) : Math.max(960, contentWidth);
+  }, [getDetailPanelContent, isMobile, visibleColumns]);
+  const densityConfig = useMemo(() => {
+    if (effectiveDensity === 'comfortable') {
+      return {
+        tableSize: 'medium' as const,
+        bodyPy: 1.75,
+        headPy: 1.2,
+        fontSize: '0.875rem',
+      };
+    }
+
+    if (effectiveDensity === 'compact' || effectiveDensity === 'dense') {
+      return {
+        tableSize: 'small' as const,
+        bodyPy: 0.85,
+        headPy: 0.9,
+        fontSize: '0.825rem',
+      };
+    }
+
+    return {
+      tableSize: 'small' as const,
+      bodyPy: 1.15,
+      headPy: 1,
+      fontSize: '0.85rem',
+    };
+  }, [effectiveDensity]);
+  const resolvedMaxTableHeight = maxTableHeight ?? 'none';
 
   const handleClearColumnFilters = () => {
     setDraftColumnFilters({});
@@ -565,10 +724,38 @@ export function NativeTable<T = any>({
   };
 
   const handleToggleColumn = (field: string) => {
-    onColumnVisibilityModelChange?.({
-      ...columnVisibilityModel,
-      [field]: columnVisibilityModel[field] === false,
-    });
+    if (effectiveColumnVisibilityModel[field] !== false && visibleColumnCount <= 1) {
+      return;
+    }
+
+    const nextModel = normalizeVisibilityModel({
+      ...effectiveColumnVisibilityModel,
+      [field]: effectiveColumnVisibilityModel[field] === false,
+    }, columns);
+
+    if (propColumnVisibilityModel === undefined) {
+      setInternalColumnVisibilityModel(nextModel);
+    }
+    onColumnVisibilityModelChange?.(nextModel);
+  };
+
+  const handleDensityChange = (nextDensity: EnterpriseDensity) => {
+    if (propDensity === undefined) {
+      setInternalDensity(nextDensity);
+    }
+    onDensityChange?.(nextDensity);
+  };
+
+  const handleResetTableView = () => {
+    if (propColumnVisibilityModel === undefined) {
+      setInternalColumnVisibilityModel({});
+    }
+    if (propDensity === undefined) {
+      setInternalDensity('standard');
+    }
+    onColumnVisibilityModelChange?.({});
+    onDensityChange?.('standard');
+    onResetView?.();
   };
 
   const renderColumnFilterControl = (column: NativeTableColumn) => {
@@ -706,15 +893,19 @@ export function NativeTable<T = any>({
           return (
             <Card
               key={rowId}
+              onClick={() => onRowClick?.({ row, id: rowId })}
               onDoubleClick={() => onRowDoubleClick?.({ row, id: rowId })}
               sx={{
                 mb: 2,
-                cursor: onRowDoubleClick ? 'pointer' : undefined,
-                border: isSelected ? `2px solid ${theme.palette.primary.main}` : undefined,
+                borderRadius: 1.5,
+                border: '1px solid',
+                borderColor: isSelected ? 'primary.main' : 'divider',
+                boxShadow: 'none',
+                cursor: onRowClick || onRowDoubleClick ? 'pointer' : undefined,
                 ...rowSx,
               }}
             >
-              <CardContent>
+              <CardContent sx={{ '&:last-child': { pb: 2 } }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                   {getDetailPanelContent && (
                     <Tooltip title={isExpanded ? 'Hide details' : 'Show details'}>
@@ -746,13 +937,21 @@ export function NativeTable<T = any>({
                           </Typography>
                         </Grid>
                         <Grid size={{ xs: 7 }}>
-                          <Typography variant="body2">
+                          <Box
+                            sx={{
+                              color: 'text.primary',
+                              fontSize: '0.875rem',
+                              lineHeight: 1.43,
+                              minWidth: 0,
+                              overflowWrap: 'anywhere',
+                            }}
+                          >
                             {(() => {
                               const value = getCellValue(row, column);
                               const formattedValue = column.valueFormatter ? column.valueFormatter(value, row) : value;
                               return column.renderCell ? column.renderCell({ row, value, formattedValue }) : formattedValue;
                             })()}
-                          </Typography>
+                          </Box>
                         </Grid>
                       </React.Fragment>
                     );
@@ -791,21 +990,37 @@ export function NativeTable<T = any>({
 
   // Desktop Table View (or mobile with horizontal scroll)
   return (
-    <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflow: 'hidden', ...sx }}>
+    <TableCard
+      fillAvailableHeight={fillAvailableHeight}
+      sx={{
+        ...sx,
+      }}
+    >
       {(showEnterpriseControls || activeFilterEntries.length > 0) && (
         <Stack
           direction="row"
           spacing={1}
           alignItems="center"
           flexWrap="wrap"
-          sx={{ mb: 1, gap: 1 }}
+          sx={{
+            mb: 1.25,
+            gap: 1,
+            p: 1,
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 1.5,
+            bgcolor: 'background.paper',
+            boxShadow: '0 8px 22px rgba(15, 23, 42, 0.04)',
+            flexShrink: 0,
+          }}
         >
           {activeFilterEntries.map(([field, value]) => (
             <Chip
               key={field}
               size="small"
-              label={`${field}: ${String(value)}`}
+              label={`${columns.find((column) => String(column.field) === field)?.headerName ?? field}: ${String(value)}`}
               onDelete={() => handleColumnFilterCommit(field, '')}
+              sx={{ maxWidth: 260 }}
             />
           ))}
           {activeFilterEntries.length > 0 && (
@@ -815,27 +1030,44 @@ export function NativeTable<T = any>({
           )}
           {showEnterpriseControls && (
             <>
-              <Button size="small" onClick={(event) => setColumnsMenuAnchor(event.currentTarget)}>
-                Columns
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={(event) => setColumnsMenuAnchor(event.currentTarget)}
+                sx={{ borderRadius: 1, bgcolor: 'background.paper' }}
+              >
+                Columns ({visibleColumnCount})
               </Button>
               <Menu
                 anchorEl={columnsMenuAnchor}
                 open={Boolean(columnsMenuAnchor)}
                 onClose={() => setColumnsMenuAnchor(null)}
+                PaperProps={{ sx: { minWidth: 240 } }}
               >
                 {columns.map((column) => {
                   const field = String(column.field);
+                  const checked = effectiveColumnVisibilityModel[field] !== false;
+                  const disableToggle = checked && visibleColumnCount <= 1;
+
                   return (
                     <MenuItem key={field} dense>
                       <FormControlLabel
                         control={(
                           <Switch
                             size="small"
-                            checked={columnVisibilityModel[field] !== false}
+                            checked={checked}
+                            disabled={disableToggle}
                             onChange={() => handleToggleColumn(field)}
                           />
                         )}
                         label={column.headerName}
+                        sx={{
+                          m: 0,
+                          width: '100%',
+                          '.MuiFormControlLabel-label': {
+                            fontSize: '0.875rem',
+                          },
+                        }}
                       />
                     </MenuItem>
                   );
@@ -844,18 +1076,25 @@ export function NativeTable<T = any>({
               <ToggleButtonGroup
                 size="small"
                 exclusive
-                value={density}
+                value={effectiveDensity}
                 onChange={(_, nextDensity) => {
-                  if (nextDensity) onDensityChange?.(nextDensity);
+                  if (nextDensity) handleDensityChange(nextDensity);
                 }}
                 aria-label="Table density"
+                sx={{
+                  '.MuiToggleButton-root': {
+                    px: 1.5,
+                    py: 0.55,
+                    textTransform: 'none',
+                  },
+                }}
               >
                 <ToggleButton value="comfortable">Comfort</ToggleButton>
                 <ToggleButton value="standard">Default</ToggleButton>
                 <ToggleButton value="compact">Compact</ToggleButton>
               </ToggleButtonGroup>
               {onSaveView && <Button size="small" onClick={onSaveView}>Save view</Button>}
-              {onResetView && <Button size="small" onClick={onResetView}>Reset view</Button>}
+              <Button size="small" onClick={handleResetTableView}>Reset view</Button>
             </>
           )}
         </Stack>
@@ -867,33 +1106,75 @@ export function NativeTable<T = any>({
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
+        flex: fillAvailableHeight ? '1 1 auto' : undefined,
+        minHeight: fillAvailableHeight ? 0 : undefined,
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: 2,
+        boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)',
       }}>
         {loading && <LinearProgress />}
         <TableContainer sx={{
           width: '100%',
           maxWidth: '100%',
           minWidth: 0,
-          maxHeight: {
-            xs: 'min(52vh, 480px)',
-            md: 'min(56vh, 560px)',
-          },
+          maxHeight: resolvedMaxTableHeight,
+          flex: fillAvailableHeight ? '1 1 auto' : undefined,
           overflowX: 'auto',
-          overflowY: 'auto',
+          overflowY: resolvedMaxTableHeight === 'none' ? 'visible' : 'auto',
           WebkitOverflowScrolling: 'touch',
+          '&::-webkit-scrollbar': {
+            height: 10,
+            width: 10,
+          },
+          '&::-webkit-scrollbar-thumb': {
+            bgcolor: 'rgba(15, 23, 42, 0.18)',
+            borderRadius: 999,
+            border: '2px solid transparent',
+            backgroundClip: 'padding-box',
+          },
         }}>
           <Table
             stickyHeader
-            size={density === 'compact' || density === 'dense' ? 'small' : 'medium'}
-            sx={{ minWidth: isMobile ? 800 : 960 }}
+            size={densityConfig.tableSize}
+            sx={{
+              minWidth: tableMinWidth,
+              tableLayout: 'fixed',
+              '& .MuiTableCell-root': {
+                borderColor: 'divider',
+              },
+              '& .MuiTableCell-head': {
+                bgcolor: '#f8fafc',
+                color: 'text.secondary',
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                letterSpacing: 0,
+                lineHeight: 1.35,
+                py: densityConfig.headPy,
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap',
+              },
+              '& .MuiTableCell-body': {
+                color: 'text.primary',
+                fontSize: densityConfig.fontSize,
+                py: densityConfig.bodyPy,
+                verticalAlign: 'middle',
+              },
+              '& .MuiTableRow-root:hover .MuiTableCell-body': {
+                bgcolor: 'rgba(14, 165, 233, 0.04)',
+              },
+              '& .MuiTableRow-root.Mui-selected .MuiTableCell-body': {
+                bgcolor: 'rgba(14, 165, 233, 0.08)',
+              },
+            }}
           >
             <TableHead>
               <TableRow>
                 {getDetailPanelContent && (
                   <TableCell
+                    width={88}
                     sx={{
                       whiteSpace: 'nowrap',
-                      color: 'text.secondary',
-                      fontWeight: 600,
                       minWidth: 88,
                     }}
                   >
@@ -901,7 +1182,7 @@ export function NativeTable<T = any>({
                   </TableCell>
                 )}
                 {checkboxSelection && (
-                  <TableCell padding="checkbox">
+                  <TableCell padding="checkbox" width={48}>
                     <Checkbox
                       indeterminate={selected.size > 0 && selected.size < rows.length}
                       checked={rows.length > 0 && selected.size === rows.length}
@@ -913,7 +1194,15 @@ export function NativeTable<T = any>({
                   <TableCell
                     key={String(column.field)}
                     align={column.align || 'left'}
+                    width={column.width}
                     style={{ minWidth: column.minWidth || column.width }}
+                    sx={{
+                      '& .MuiTableSortLabel-root': {
+                        color: 'inherit',
+                        fontSize: 'inherit',
+                        fontWeight: 'inherit',
+                      },
+                    }}
                   >
                     {isColumnSortable(column) ? (
                       <TableSortLabel
@@ -933,15 +1222,16 @@ export function NativeTable<T = any>({
                 <TableRow>
                   {getDetailPanelContent && (
                     <TableCell
+                      width={88}
                       sx={{
-                        bgcolor: 'background.paper',
+                        bgcolor: '#f8fafc',
                         pt: 0.5,
                         pb: 1,
                         minWidth: 88,
                       }}
                     />
                   )}
-                  {checkboxSelection && <TableCell />}
+                  {checkboxSelection && <TableCell width={48} sx={{ bgcolor: '#f8fafc' }} />}
                   {visibleColumns.map((column) => {
                     const field = String(column.field);
                     const canFilter = isColumnFilterable(column);
@@ -950,8 +1240,9 @@ export function NativeTable<T = any>({
                       <TableCell
                         key={`${field}-filter`}
                         align={column.align || 'left'}
+                        width={column.width}
                         style={{ minWidth: column.minWidth || column.width }}
-                        sx={{ bgcolor: 'background.paper', pt: 0.5, pb: 1 }}
+                        sx={{ bgcolor: '#f8fafc', pt: 0.5, pb: 1 }}
                       >
                         {canFilter ? (
                           renderColumnFilterControl(column)
@@ -999,14 +1290,15 @@ export function NativeTable<T = any>({
                     <TableRow
                       hover
                       selected={isSelected}
+                      onClick={() => onRowClick?.({ row, id: rowId })}
                       onDoubleClick={() => onRowDoubleClick?.({ row, id: rowId })}
                       sx={{
-                        cursor: onRowDoubleClick ? 'pointer' : undefined,
+                        cursor: onRowClick || onRowDoubleClick ? 'pointer' : undefined,
                         ...rowSx,
                       }}
                     >
                       {getDetailPanelContent && (
-                        <TableCell>
+                        <TableCell width={88}>
                           <Tooltip title={isExpanded ? 'Hide details' : 'Show details'}>
                             <IconButton
                               size="small"
@@ -1019,7 +1311,7 @@ export function NativeTable<T = any>({
                         </TableCell>
                       )}
                       {checkboxSelection && (
-                        <TableCell padding="checkbox">
+                        <TableCell padding="checkbox" width={48}>
                           <Checkbox
                             checked={isSelected}
                             onChange={() => handleSelect(rowId)}
@@ -1029,13 +1321,42 @@ export function NativeTable<T = any>({
                       {visibleColumns.map((column) => {
                         const value = getCellValue(row, column);
                         const formattedValue = column.valueFormatter ? column.valueFormatter(value, row) : value;
+                        const renderedCell = column.renderCell ? column.renderCell({ row, value, formattedValue }) : formattedValue;
+                        const allowWrap = column.type === 'actions' || React.isValidElement(renderedCell);
+                        const titleValue = typeof formattedValue === 'string' || typeof formattedValue === 'number'
+                          ? String(formattedValue)
+                          : undefined;
+
                         return (
                           <TableCell
                             key={String(column.field)}
                             align={column.align || 'left'}
-                            sx={density === 'comfortable' ? { py: 2.25 } : undefined}
+                            width={column.width}
+                            title={allowWrap ? undefined : titleValue}
+                            sx={{
+                              minWidth: column.minWidth || column.width,
+                              maxWidth: column.width || column.minWidth || 240,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: allowWrap ? 'normal' : 'nowrap',
+                            }}
                           >
-                            {column.renderCell ? column.renderCell({ row, value, formattedValue }) : formattedValue}
+                            {allowWrap ? (
+                              renderedCell
+                            ) : (
+                              <Box
+                                component="span"
+                                sx={{
+                                  display: 'block',
+                                  minWidth: 0,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {renderedCell}
+                              </Box>
+                            )}
                           </TableCell>
                         );
                       })}
@@ -1078,6 +1399,6 @@ export function NativeTable<T = any>({
           />
         )}
       </Paper>
-    </Box>
+    </TableCard>
   );
 }

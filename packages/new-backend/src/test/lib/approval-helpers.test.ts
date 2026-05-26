@@ -185,6 +185,7 @@ describe('approval-helpers', () => {
   test('strict four-eyes defaults and env override behavior', () => {
     process.env.APPROVAL_STRICT_FOUR_EYES = undefined
     expect(requiresStrictFourEyes('role')).toBe(true)
+    expect(requiresStrictFourEyes('segmentation')).toBe(true)
     expect(requiresStrictFourEyes('parameter')).toBe(false)
 
     process.env.APPROVAL_STRICT_FOUR_EYES = 'false'
@@ -201,6 +202,7 @@ describe('approval-helpers', () => {
   test('shouldAutoApprove respects strict mode, matrix rules, bypass and approval permissions', () => {
     process.env.APPROVAL_STRICT_FOUR_EYES = 'true'
     expect(shouldAutoApprove({} as any, ['approval.all'], 'user', 'create')).toBe(false)
+    expect(shouldAutoApprove({} as any, ['approval.all'], 'segmentation', 'update')).toBe(false)
 
     process.env.APPROVAL_STRICT_FOUR_EYES = 'false'
     expect(shouldAutoApprove(null as any, [], 'parameter', 'create')).toBe(true)

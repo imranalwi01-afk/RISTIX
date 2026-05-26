@@ -1,22 +1,7 @@
 'use client';
 
-import React, { memo } from 'react';
-import {
-  Box,
-  Chip,
-  CircularProgress,
-  IconButton,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+import React, { memo, useMemo } from 'react';
+import { Box, Chip, Typography } from '@mui/material';
 import {
   AccountBalance as BankingIcon,
   Cancel as InactiveIcon,
@@ -25,6 +10,8 @@ import {
   Security as SecurityIcon,
   Visibility as ViewIcon,
 } from '@mui/icons-material';
+import type { GridColDef } from '@mui/x-data-grid';
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import type { User } from './types';
 
 interface UserManagementTableProps {
@@ -52,100 +39,112 @@ const UserManagementTable = memo(function UserManagementTable({
   onEdit,
   onToggleStatus,
 }: UserManagementTableProps) {
+  const columns = useMemo<GridColDef<User>[]>(() => [
+    {
+      field: 'fullName',
+      headerName: 'User',
+      minWidth: 240,
+      flex: 1.2,
+      renderCell: (params) => (
+        <Box>
+          <Typography variant="subtitle2">{params.row.fullName}</Typography>
+          <Typography variant="body2" color="text.secondary">
+            {params.row.email}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {params.row.position}
+          </Typography>
+        </Box>
+      ),
+    },
+    {
+      field: 'department',
+      headerName: 'Department',
+      minWidth: 160,
+      flex: 0.8,
+      renderCell: (params) => params.value || '-',
+    },
+    {
+      field: 'bankingAccess',
+      headerName: 'Banking Access',
+      width: 170,
+      renderCell: (params) => (
+        <Chip
+          label={params.row.bankingAccess}
+          color={params.row.bankingAccess === 'SYARIAH' ? 'success' : 'primary'}
+          size="small"
+          icon={params.row.syariahCertified ? <SecurityIcon /> : <BankingIcon />}
+        />
+      ),
+    },
+    {
+      field: 'isActive',
+      headerName: 'Status',
+      width: 130,
+      renderCell: (params) => (
+        <Chip
+          icon={params.value ? <ActiveIcon /> : <InactiveIcon />}
+          label={params.value ? 'Active' : 'Inactive'}
+          color={params.value ? 'success' : 'default'}
+          size="small"
+        />
+      ),
+    },
+    {
+      field: 'lastLoginAt',
+      headerName: 'Last Login',
+      width: 150,
+      renderCell: (params) => params.value ? new Date(params.value).toLocaleDateString() : 'Never',
+    },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      type: 'actions',
+      width: 144,
+      filterable: false,
+      sortable: false,
+      getActions: (params) => [
+        <SafeGridActionsCellItem
+          key="view"
+          label="View Details"
+          icon={<ViewIcon />}
+          onClick={() => onView(params.row)}
+        />,
+        <SafeGridActionsCellItem
+          key="edit"
+          label="Edit User"
+          icon={<EditIcon />}
+          onClick={() => onEdit(params.row)}
+        />,
+        <SafeGridActionsCellItem
+          key="toggle"
+          label={params.row.isActive ? 'Disable User' : 'Enable User'}
+          icon={params.row.isActive ? <InactiveIcon color="error" /> : <ActiveIcon color="success" />}
+          onClick={() => onToggleStatus(params.row.id, params.row.isActive)}
+        />,
+      ],
+    },
+  ], [onEdit, onToggleStatus, onView]);
+
   return (
-    <Paper>
-      <TableContainer>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>User</TableCell>
-              <TableCell>Department</TableCell>
-              <TableCell>Banking Access</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Last Login</TableCell>
-              <TableCell align="center">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={6} align="center">
-                  <CircularProgress />
-                </TableCell>
-              </TableRow>
-            ) : users.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} align="center">
-                  <Typography>No users found</Typography>
-                </TableCell>
-              </TableRow>
-            ) : (
-              users.map((user) => (
-                <TableRow key={user.id} hover>
-                  <TableCell>
-                    <Box>
-                      <Typography variant="subtitle2">{user.fullName}</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {user.email}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {user.position}
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell>{user.department || '-'}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={user.bankingAccess}
-                      color={user.bankingAccess === 'SYARIAH' ? 'success' : 'primary'}
-                      size="small"
-                      icon={user.syariahCertified ? <SecurityIcon /> : <BankingIcon />}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      icon={user.isActive ? <ActiveIcon /> : <InactiveIcon />}
-                      label={user.isActive ? 'Active' : 'Inactive'}
-                      color={user.isActive ? 'success' : 'default'}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'}</TableCell>
-                  <TableCell align="center">
-                    <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5 }}>
-                      <Tooltip title="View Details">
-                        <IconButton size="small" onClick={() => onView(user)}>
-                          <ViewIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Edit User">
-                        <IconButton size="small" onClick={() => onEdit(user)}>
-                          <EditIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title={user.isActive ? 'Disable User' : 'Enable User'}>
-                        <IconButton size="small" onClick={() => onToggleStatus(user.id, user.isActive)} color={user.isActive ? 'error' : 'success'}>
-                          {user.isActive ? <InactiveIcon /> : <ActiveIcon />}
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      <TablePagination
-        rowsPerPageOptions={[5, 10, 25, 50]}
-        component="div"
-        count={totalUsers}
-        rowsPerPage={rowsPerPage}
-        page={page}
-        onPageChange={(_, nextPage) => onPageChange(nextPage)}
-        onRowsPerPageChange={(e) => onRowsPerPageChange(parseInt(e.target.value, 10))}
-      />
-    </Paper>
+    <SafeDataGrid
+      rows={users}
+      columns={columns}
+      loading={loading}
+      getRowId={(row) => row.id}
+      rowCount={totalUsers}
+      paginationMode="offset"
+      paginationModel={{ page, pageSize: rowsPerPage }}
+      onPaginationModelChange={(model) => {
+        if (model.page !== page) onPageChange(model.page);
+        if (model.pageSize !== rowsPerPage) onRowsPerPageChange(model.pageSize);
+      }}
+      pageSizeOptions={[5, 10, 25, 50]}
+      disableRowSelectionOnClick
+      tableStateKey="maintenance-user-management-table"
+      fillAvailableHeight
+      maxTableHeight="none"
+    />
   );
 });
 

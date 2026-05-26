@@ -52,6 +52,9 @@ export interface SafeDataGridProps<T extends GridValidRowModel = any> extends Om
   onColumnVisibilityModelChange?: (model: Record<string, boolean>) => void;
   onDensityChange?: (density: EnterpriseDensity) => void;
   showEnterpriseControls?: boolean;
+  tableStateKey?: string;
+  maxTableHeight?: any;
+  fillAvailableHeight?: boolean;
   onSaveView?: () => void;
   onResetView?: () => void;
   onQueryChange?: (queryState: EnterpriseTableQueryState) => void;
@@ -121,6 +124,7 @@ export function SafeDataGrid<T extends GridValidRowModel = any>(props: SafeDataG
       checkboxSelection={props.checkboxSelection}
       onRowSelectionModelChange={props.onRowSelectionModelChange as ((ids: (string | number)[]) => void) | undefined}
       rowSelectionModel={props.rowSelectionModel as (string | number)[] | undefined}
+      onRowClick={props.onRowClick as ((params: { row: T; id: string | number }) => void) | undefined}
       onRowDoubleClick={props.onRowDoubleClick as ((params: { row: T; id: string | number }) => void) | undefined}
       sx={props.sx}
       getDetailPanelContent={props.getDetailPanelContent}
@@ -144,6 +148,9 @@ export function SafeDataGrid<T extends GridValidRowModel = any>(props: SafeDataG
       density={props.density as any}
       onDensityChange={props.onDensityChange}
       showEnterpriseControls={props.showEnterpriseControls}
+      tableStateKey={props.tableStateKey}
+      maxTableHeight={props.maxTableHeight}
+      fillAvailableHeight={props.fillAvailableHeight}
       onSaveView={props.onSaveView}
       onResetView={props.onResetView}
       onQueryChange={props.onQueryChange}
