@@ -1,3 +1,5 @@
+'use client';
+
 import React, { memo } from 'react';
 import {
   Accordion,
@@ -21,6 +23,7 @@ import {
 import { alpha } from '@mui/material/styles';
 import {
   AttachFile as AttachFileIcon,
+  CheckCircle as CheckCircleIcon,
   DataObject as DataObjectIcon,
   Download as DownloadIcon,
   ExpandMore as ExpandMoreIcon,
@@ -129,6 +132,173 @@ interface ApprovalRequestDetailDialogProps {
   isOverdue: (date?: string) => boolean;
 }
 
+function formatIdrAmount(value: unknown): string {
+  const numeric = typeof value === 'string' ? Number(value.replace(/[^\d.-]/g, '')) : Number(value);
+  if (!Number.isFinite(numeric)) return '-';
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(numeric);
+}
+
+function isIndividualAssessmentCheckerPreviewRequest(request?: ApprovalRequest): boolean {
+  if (!request) return false;
+  const entityType = String(request.entityType || '').toLowerCase();
+  const requestType = String(request.requestType || '').toLowerCase();
+  const payloadEntityType = String((request.requestData as any)?.entityType || '').toLowerCase();
+  const sourceApi = String((request.requestData as any)?.sourceApi || '').toLowerCase();
+
+  return entityType === 'individual_assessment_consolidated'
+    || requestType === 'individual_assessment'
+    || entityType === 'individual_impairment_v2'
+    || requestType === 'individual_impairment_v2'
+    || payloadEntityType === 'individual_impairment_v2'
+    || payloadEntityType === 'individual_assessment_consolidated'
+    || sourceApi.includes('individual-impairment');
+}
+
+function IndividualImpairmentCheckerReviewPreview({ request }: { request: ApprovalRequest }) {
+  const payload = (request.requestData as any) || {};
+  const data = (payload.data || payload) as Record<string, any>;
+  const stagedOverride = (data.stagedOverride || {}) as Record<string, any>;
+  const stagedDCF = (data.stagedDCF || {}) as Record<string, any>;
+  const results = (stagedDCF.results || data.results || {}) as Record<string, any>;
+  const summaryStatus = String(request.status || 'pending').toUpperCase();
+  const dcfRows = Array.isArray(stagedDCF.cashflows) ? stagedDCF.cashflows : [];
+  const accountNumber = String(data.accountNumber || data.account_number || request.entityId || '-');
+  const cifName = String(data.customerName || data.customer_name || data.cifName || '-');
+  const cifNumber = String(data.cifNumber || data.cif_number || '-');
+  const overrideStage = stagedOverride.overrideStage ?? data.overrideStage ?? '-';
+  const impairedFlag = stagedOverride.impairedFlag ?? data.impairedFlag ?? '-';
+  const justification = stagedOverride.justification ?? data.justification ?? 'No adjustment justification provided';
+  const supportingDocument = stagedOverride.supportingDocument ?? data.supportingDocument ?? '';
+  const dcfFileName = stagedDCF.fileName ?? data.fileName ?? '';
+  const dcfScenario = stagedDCF?.assumptions?.scenarioType || data?.assumptions?.scenarioType || '-';
+  const dcfDownloadApi = String(payload.sourceApi || '/api/v2/individual-impairment');
+  const summaryOutstanding = results?.outstanding ?? data?.outstanding ?? data?.outstandingBalance ?? null;
+  const calcOutstandingEad = results?.eadAmt ?? results?.outstandingBalance ?? data?.outstanding ?? null;
+  const calcPvDcf = results?.presentValue ?? results?.pvDcfAmt ?? null;
+  const calcEclIa = results?.eclIaAmt ?? results?.recommendedProvision ?? null;
+  const calcDiscountRate = Number(results?.assumptions?.effectiveInterestRate ?? results?.assumptions?.discountRate ?? data?.effInterestRate ?? 0);
+
+  return (
+    <Box sx={{ mt: 2, p: 2, border: '1px solid', borderColor: 'success.light', borderRadius: 2, bgcolor: alpha('#2e7d32', 0.03) }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+        <CheckCircleIcon color="success" />
+        <Typography variant="h6" sx={{ fontWeight: 700 }}>
+          Checker Review - Account {accountNumber}
+        </Typography>
+      </Box>
+
+      <Box sx={{ p: 2, borderRadius: 2, mb: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12, md: 3 }}>
+            <Typography variant="subtitle2" color="text.secondary">Customer</Typography>
+            <Typography variant="body1" sx={{ fontWeight: 700 }}>{cifName}</Typography>
+            <Typography variant="body2" color="text.secondary">CIF: {cifNumber}</Typography>
+          </Grid>
+          <Grid size={{ xs: 12, md: 2 }}>
+            <Typography variant="subtitle2" color="text.secondary">Status</Typography>
+            <Chip label={summaryStatus} size="small" color={request.status === 'pending' ? 'warning' : 'default'} sx={{ mt: 0.5 }} />
+          </Grid>
+          <Grid size={{ xs: 12, md: 2 }}>
+            <Typography variant="subtitle2" color="text.secondary">Stage</Typography>
+            <Chip label={`Stage ${overrideStage}`} size="small" variant="outlined" sx={{ mt: 0.5 }} />
+          </Grid>
+          <Grid size={{ xs: 12, md: 2 }}>
+            <Typography variant="subtitle2" color="text.secondary">DPD</Typography>
+            <Typography variant="body1" sx={{ fontWeight: 700 }}>{data.dpd ?? 0} days</Typography>
+          </Grid>
+          <Grid size={{ xs: 12, md: 3 }}>
+            <Typography variant="subtitle2" color="text.secondary">Outstanding</Typography>
+            <Typography variant="body1" sx={{ fontWeight: 700, color: 'primary.main' }}>
+              {formatIdrAmount(summaryOutstanding)}
+            </Typography>
+          </Grid>
+        </Grid>
+      </Box>
+
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Box sx={{ p: 2, borderRadius: 2, height: '100%', border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>Adjustment</Typography>
+            <Divider sx={{ mb: 1.5 }} />
+            <Typography variant="caption" color="text.secondary">Justification</Typography>
+            <Typography variant="body2" sx={{ fontStyle: 'italic', bgcolor: 'grey.100', p: 1, borderRadius: 1, mb: 1.5 }}>
+              "{justification}"
+            </Typography>
+            <Typography variant="caption" color="text.secondary">Impaired Flag</Typography>
+            <Typography variant="body2" sx={{ mb: 1.5 }}>{impairedFlag || '-'}</Typography>
+            <Typography variant="caption" color="text.secondary">Override Stage</Typography>
+            <Typography variant="body2" sx={{ mb: 1.5 }}>{overrideStage}</Typography>
+            <Divider sx={{ my: 1 }} />
+            <Typography variant="body2" color="text.secondary">
+              {supportingDocument ? `Attachment: ${supportingDocument}` : 'No adjustment file'}
+            </Typography>
+          </Box>
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Box sx={{ p: 2, borderRadius: 2, height: '100%', border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>DCF Analysis</Typography>
+            <Divider sx={{ mb: 1.5 }} />
+            <Typography variant="caption" color="text.secondary">Uploaded File</Typography>
+            <Typography variant="body1" sx={{ mb: 1 }}>{dcfFileName || 'Historical Report Data'}</Typography>
+            {dcfFileName && (
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<DownloadIcon />}
+                onClick={() => window.open(`${dcfDownloadApi}/overrides/documents/${encodeURIComponent(dcfFileName)}`, '_blank', 'noopener,noreferrer')}
+                sx={{ mb: 1.5 }}
+              >
+                Download DCF File
+              </Button>
+            )}
+            <Divider sx={{ my: 1 }} />
+            <Typography variant="caption" color="text.secondary">Cashflow Periods</Typography>
+            <Typography variant="body1">{dcfRows.length} rows</Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>Scenario</Typography>
+            <Typography variant="body1">{String(dcfScenario || '-')}</Typography>
+          </Box>
+        </Grid>
+      </Grid>
+
+      <Box sx={{ p: 2, borderRadius: 2, mt: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>Calculation Results</Typography>
+        <Divider sx={{ mb: 1.5 }} />
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12, md: 3 }}>
+            <Typography variant="caption" color="text.secondary">Outstanding / EAD</Typography>
+            <Typography variant="body1" sx={{ fontWeight: 700 }}>
+              {formatIdrAmount(calcOutstandingEad)}
+            </Typography>
+          </Grid>
+          <Grid size={{ xs: 12, md: 3 }}>
+            <Typography variant="caption" color="text.secondary">PV DCF Amount</Typography>
+            <Typography variant="body1" sx={{ fontWeight: 700 }}>
+              {formatIdrAmount(calcPvDcf)}
+            </Typography>
+          </Grid>
+          <Grid size={{ xs: 12, md: 3 }}>
+            <Typography variant="caption" color="text.secondary">ECL IA Amount</Typography>
+            <Typography variant="body1" sx={{ fontWeight: 700, color: 'error.main' }}>
+              {formatIdrAmount(calcEclIa)}
+            </Typography>
+          </Grid>
+          <Grid size={{ xs: 12, md: 3 }}>
+            <Typography variant="caption" color="text.secondary">Discount Rate</Typography>
+            <Typography variant="body1" sx={{ fontWeight: 700 }}>
+              {calcDiscountRate.toFixed(2)}%
+            </Typography>
+          </Grid>
+        </Grid>
+      </Box>
+    </Box>
+  );
+}
+
 export const ApprovalRequestDetailDialog = memo(function ApprovalRequestDetailDialog({
   open,
   request,
@@ -218,7 +388,12 @@ export const ApprovalRequestDetailDialog = memo(function ApprovalRequestDetailDi
               )}
 
               {/* SPECIALIZED CONTENT: INDIVIDUAL ASSESSMENT */}
-              {(request.entityType === 'INDIVIDUAL_ASSESSMENT_CONSOLIDATED' || request.requestType === 'INDIVIDUAL_ASSESSMENT') && (
+              {isIndividualAssessmentCheckerPreviewRequest(request) && (
+                <Grid size={12}>
+                  <IndividualImpairmentCheckerReviewPreview request={request} />
+                </Grid>
+              )}
+              {(request.entityType === 'INDIVIDUAL_ASSESSMENT_CONSOLIDATED' || request.requestType === 'INDIVIDUAL_ASSESSMENT') && !isIndividualAssessmentCheckerPreviewRequest(request) && (
                 <Grid size={12}>
                   <Box sx={{ mt: 2, p: 2, border: '1px solid', borderColor: 'primary.light', borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.01) }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>

@@ -64,17 +64,20 @@ export function ProvisionCalculationTab({
     }).format(toFiniteNumber(amount));
   };
 
-  const currentStatus = assessment?.status === 0 ? 'PENDING' 
-                      : assessment?.status === 1 ? 'APPROVED' 
-                      : assessment?.status === 2 ? 'REJECTED' 
-                      : assessment?.assessment_status 
-                      || account?.assessment_status 
-                      || 'PENDING';
+  // IMPORTANT:
+  // Do not lock maker submission using legacy numeric assessment.status,
+  // because many in-progress assessments keep status=0 (PENDING) before first approval submit.
+  // We only lock when approval state itself is already pending/approved.
+  const approvalState = String(
+    assessment?.approval_status ||
+    assessment?.assessment_status ||
+    account?.assessment_status ||
+    ''
+  ).toUpperCase();
 
-  const isPending = currentStatus === 'PENDING';
-  const isApproved = currentStatus === 'APPROVED';
-  
-  // If we already have a pending or approved status, we shouldn't submit again
+  const isPending = approvalState === 'PENDING';
+  const isApproved = approvalState === 'APPROVED' || approvalState === 'COMPLETED';
+
   const canSubmit = !isPending && !isApproved;
   const isReadyToSubmit = isStagedOverrideReady && isStagedDCFReady && canSubmit;
   const normalizedCalculation = useMemo(() => {
@@ -93,12 +96,29 @@ export function ProvisionCalculationTab({
       ...calculation,
       presentValue: toFiniteNumber(calculation.presentValue ?? calculation.totalNpv ?? calculation.pvDcfAmt),
       outstanding: toFiniteNumber(outstanding),
+      iaProvision: toFiniteNumber(calculation.eclIaAmt ?? calculation.recommendedProvision ?? calculation.lgd ?? calculation.impairmentLoss),
       lgd: toFiniteNumber(calculation.lgd ?? calculation.eclIaAmt ?? calculation.impairmentLoss),
       recommendedProvision: toFiniteNumber(calculation.recommendedProvision ?? calculation.eclIaAmt),
       assumptions: calculation.assumptions || {},
       details: details.map((row: any) => ({
         ...row,
         period: row.period || row.periode,
+        mob: toFiniteNumber(row.mob),
+        principal: toFiniteNumber(row.principal),
+        interest: toFiniteNumber(row.interest),
+        installment: toFiniteNumber(row.installment ?? (toFiniteNumber(row.principal) + toFiniteNumber(row.interest))),
+        collateral: toFiniteNumber(row.collateral),
+        poRate1: toFiniteNumber(row.poRate1),
+        rrRate1: toFiniteNumber(row.rrRate1),
+        default1: toFiniteNumber(row.default1),
+        poRate2: toFiniteNumber(row.poRate2),
+        rrRate2: toFiniteNumber(row.rrRate2),
+        default2: toFiniteNumber(row.default2),
+        poRate3: toFiniteNumber(row.poRate3),
+        rrRate3: toFiniteNumber(row.rrRate3),
+        default3: toFiniteNumber(row.default3),
+        discountFactor: toFiniteNumber(row.discountFactor),
+        pvAmt: toFiniteNumber(row.pvAmt),
         beginningBalance: toFiniteNumber(row.beginningBalance),
         interestAccrual: toFiniteNumber(row.interestAccrual ?? row.eirAmt),
         weightedFlow: toFiniteNumber(row.weightedFlow ?? row.pwAmt ?? row.cashflow),
@@ -145,11 +165,11 @@ export function ProvisionCalculationTab({
       {normalizedCalculation ? (
         <Grid container spacing={3}>
           {/* Summary Cards - Exactly matching reference */}
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <Card sx={{ height: '100%', bgcolor: '#eef6ff', border: 'none', borderRadius: 4, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
                 <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: '1px' }}>
-                    Present Value (NPV)
+                    PV Cashflow
                 </Typography>
                 <Typography variant="h5" fontWeight={800} color="primary.main" sx={{ mt: 1 }}>
                   {formatCurrency(normalizedCalculation.presentValue)}
@@ -158,7 +178,7 @@ export function ProvisionCalculationTab({
             </Card>
           </Grid>
 
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <Card sx={{ height: '100%', bgcolor: '#f5f5f5', border: 'none', borderRadius: 4, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
                 <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: '1px' }}>
@@ -171,27 +191,14 @@ export function ProvisionCalculationTab({
             </Card>
           </Grid>
 
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <Card sx={{ height: '100%', bgcolor: '#fff1f0', border: 'none', borderRadius: 4, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
                 <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: '1px' }}>
-                    Impairment Loss (LGD)
+                    IA Provision
                 </Typography>
                 <Typography variant="h5" fontWeight={800} color="#f5222d" sx={{ mt: 1 }}>
-                  {formatCurrency(normalizedCalculation.lgd)}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Card sx={{ height: '100%', bgcolor: '#feffe6', border: 'none', borderRadius: 4, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-              <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: '1px' }}>
-                    Recommended Provision
-                </Typography>
-                <Typography variant="h5" fontWeight={800} color="#faad14" sx={{ mt: 1 }}>
-                  {formatCurrency(normalizedCalculation.recommendedProvision)}
+                  {formatCurrency(normalizedCalculation.iaProvision)}
                 </Typography>
               </CardContent>
             </Card>
@@ -245,33 +252,74 @@ export function ProvisionCalculationTab({
                     Amortization & Unwinding Schedule
                 </Typography>
             </Box>
-            <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
-              <Table stickyHeader size="small">
+            <TableContainer
+              component={Paper}
+              sx={{
+                borderRadius: 3,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                maxHeight: 440,
+                overflowX: 'auto',
+                overflowY: 'auto',
+              }}
+            >
+              <Table stickyHeader size="small" sx={{ minWidth: 2800 }}>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem' }}>PERIOD</TableCell>
-                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem' }}>BEGINNING BALANCE</TableCell>
-                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem' }}>INTEREST (EIR)</TableCell>
-                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem' }}>WEIGHTED FLOW</TableCell>
-                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem' }}>ENDING BALANCE</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>MOB</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>PERIOD</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', whiteSpace: 'nowrap' }} align="right">PRINCIPAL</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', whiteSpace: 'nowrap' }} align="right">INTEREST</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', whiteSpace: 'nowrap' }} align="right">INSTALLMENT</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', whiteSpace: 'nowrap' }} align="right">COLLATERAL</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', whiteSpace: 'nowrap' }} align="right">PO RATE 1</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', whiteSpace: 'nowrap' }} align="right">RR RATE 1</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', whiteSpace: 'nowrap' }} align="right">DEFAULT 1</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', whiteSpace: 'nowrap' }} align="right">PO RATE 2</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', whiteSpace: 'nowrap' }} align="right">RR RATE 2</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', whiteSpace: 'nowrap' }} align="right">DEFAULT 2</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', whiteSpace: 'nowrap' }} align="right">PO RATE 3</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', whiteSpace: 'nowrap' }} align="right">RR RATE 3</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', whiteSpace: 'nowrap' }} align="right">DEFAULT 3</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', whiteSpace: 'nowrap' }} align="right">WEIGHTED FLOW</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', whiteSpace: 'nowrap' }} align="right">DISCOUNT FACTOR</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', whiteSpace: 'nowrap' }} align="right">PV AMOUNT</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', whiteSpace: 'nowrap' }} align="right">BEGINNING BALANCE</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', whiteSpace: 'nowrap' }} align="right">INTEREST (EIR)</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', whiteSpace: 'nowrap' }} align="right">ENDING BALANCE</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {normalizedCalculation.details.length > 0 ? normalizedCalculation.details.map((row: any, idx: number) => (
                     <TableRow key={idx} hover>
+                      <TableCell sx={{ fontWeight: 500, color: 'text.primary' }}>{row.mob || '-'}</TableCell>
                       <TableCell sx={{ fontWeight: 500, color: 'text.primary' }}>{row.period || row.periode || '-'}</TableCell>
-                      <TableCell sx={{ color: 'text.secondary' }}>{formatCurrency(row.beginningBalance)}</TableCell>
-                      <TableCell sx={{ color: 'success.main', fontWeight: 600 }}>
-                        +{formatCurrency(row.interestAccrual)}
-                      </TableCell>
-                      <TableCell sx={{ color: 'error.main', fontWeight: 600 }}>
+                      <TableCell align="right">{formatCurrency(row.principal)}</TableCell>
+                      <TableCell align="right">{formatCurrency(row.interest)}</TableCell>
+                      <TableCell align="right">{formatCurrency(row.installment)}</TableCell>
+                      <TableCell align="right">{formatCurrency(row.collateral)}</TableCell>
+                      <TableCell align="right">{toFiniteNumber(row.poRate1).toFixed(2)}%</TableCell>
+                      <TableCell align="right">{toFiniteNumber(row.rrRate1).toFixed(2)}%</TableCell>
+                      <TableCell align="right">{formatCurrency(row.default1)}</TableCell>
+                      <TableCell align="right">{toFiniteNumber(row.poRate2).toFixed(2)}%</TableCell>
+                      <TableCell align="right">{toFiniteNumber(row.rrRate2).toFixed(2)}%</TableCell>
+                      <TableCell align="right">{formatCurrency(row.default2)}</TableCell>
+                      <TableCell align="right">{toFiniteNumber(row.poRate3).toFixed(2)}%</TableCell>
+                      <TableCell align="right">{toFiniteNumber(row.rrRate3).toFixed(2)}%</TableCell>
+                      <TableCell align="right">{formatCurrency(row.default3)}</TableCell>
+                      <TableCell align="right" sx={{ color: 'error.main', fontWeight: 600 }}>
                         -{formatCurrency(row.weightedFlow)}
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 800 }}>{formatCurrency(row.endingBalance)}</TableCell>
+                      <TableCell align="right">{toFiniteNumber(row.discountFactor).toFixed(6)}</TableCell>
+                      <TableCell align="right">{formatCurrency(row.pvAmt)}</TableCell>
+                      <TableCell align="right" sx={{ color: 'text.secondary' }}>{formatCurrency(row.beginningBalance)}</TableCell>
+                      <TableCell align="right" sx={{ color: 'success.main', fontWeight: 600 }}>
+                        +{formatCurrency(row.interestAccrual)}
+                      </TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 800 }}>{formatCurrency(row.endingBalance)}</TableCell>
                     </TableRow>
                   )) : (
                     <TableRow>
-                      <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+                      <TableCell colSpan={21} align="center" sx={{ py: 6 }}>
                          <Typography variant="body2" color="text.secondary">Waiting for calculation results...</Typography>
                       </TableCell>
                     </TableRow>

@@ -197,6 +197,37 @@ describe('individual impairment route response contracts', () => {
     }))
   })
 
+  test('GET /watchlist passes assessment_status filter (Approved) to service', async () => {
+    const app = new OpenAPIHono()
+    app.route('/api/v2/individual-impairment', individualImpairmentV2Routes)
+
+    const response = await app.request(
+      '/api/v2/individual-impairment/watchlist?page=1&limit=10&search=000373200118&assessment_status=Approved'
+    )
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body).toMatchObject({
+      success: true,
+      appliedQuery: {
+        search: '000373200118',
+        filters: {
+          assessment_status: 'Approved',
+        },
+      },
+    })
+
+    expect(watchlistMock).toHaveBeenCalledWith(
+      'tenant-individual-1',
+      expect.objectContaining({
+        search: '000373200118',
+        status: 'Approved',
+        limit: 10,
+        offset: 0,
+      })
+    )
+  })
+
   test('GET /reports returns IA header list contract with techspec debug metadata', async () => {
     const app = new OpenAPIHono()
     app.route('/api/v2/individual-impairment', individualImpairmentV2Routes)
