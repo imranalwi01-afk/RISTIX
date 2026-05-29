@@ -38,6 +38,7 @@ import {
 } from '@mui/icons-material';
 import { ApprovalRequest, RequestRoutingMatch } from '../types';
 import { ConsolidatedAssessmentApprovalContent } from './ConsolidatedAssessmentApprovalContent';
+import { useCurrencyDisplay } from '@/providers/CurrencyDisplayProvider';
 
 const DETAIL_CANDIDATE_VISIBLE_LIMIT = 24;
 const REDACTED_KEYS = new Set(['password', 'token', 'accessToken', 'refreshToken', 'authorization', 'secret']);
@@ -178,17 +179,6 @@ interface ApprovalRequestDetailDialogProps {
   isOverdue: (date?: string) => boolean;
 }
 
-function formatIdrAmount(value: unknown): string {
-  const numeric = typeof value === 'string' ? Number(value.replace(/[^\d.-]/g, '')) : Number(value);
-  if (!Number.isFinite(numeric)) return '-';
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(numeric);
-}
-
 function isIndividualAssessmentCheckerPreviewRequest(request?: ApprovalRequest): boolean {
   if (!request) return false;
   const entityType = String(request.entityType || '').toLowerCase();
@@ -206,6 +196,7 @@ function isIndividualAssessmentCheckerPreviewRequest(request?: ApprovalRequest):
 }
 
 function IndividualImpairmentCheckerReviewPreview({ request }: { request: ApprovalRequest }) {
+  const { formatMoney } = useCurrencyDisplay();
   const payload = (request.requestData as any) || {};
   const data = (payload.data || payload) as Record<string, any>;
   const stagedOverride = (data.stagedOverride || {}) as Record<string, any>;
@@ -260,7 +251,7 @@ function IndividualImpairmentCheckerReviewPreview({ request }: { request: Approv
           <Grid size={{ xs: 12, md: 3 }}>
             <Typography variant="subtitle2" color="text.secondary">Outstanding</Typography>
             <Typography variant="body1" sx={{ fontWeight: 700, color: 'primary.main' }}>
-              {formatIdrAmount(summaryOutstanding)}
+              {formatMoney(summaryOutstanding, 'IDR')}
             </Typography>
           </Grid>
         </Grid>
@@ -318,19 +309,19 @@ function IndividualImpairmentCheckerReviewPreview({ request }: { request: Approv
           <Grid size={{ xs: 12, md: 3 }}>
             <Typography variant="caption" color="text.secondary">Outstanding / EAD</Typography>
             <Typography variant="body1" sx={{ fontWeight: 700 }}>
-              {formatIdrAmount(calcOutstandingEad)}
+              {formatMoney(calcOutstandingEad, 'IDR')}
             </Typography>
           </Grid>
           <Grid size={{ xs: 12, md: 3 }}>
             <Typography variant="caption" color="text.secondary">PV DCF Amount</Typography>
             <Typography variant="body1" sx={{ fontWeight: 700 }}>
-              {formatIdrAmount(calcPvDcf)}
+              {formatMoney(calcPvDcf, 'IDR')}
             </Typography>
           </Grid>
           <Grid size={{ xs: 12, md: 3 }}>
             <Typography variant="caption" color="text.secondary">ECL IA Amount</Typography>
             <Typography variant="body1" sx={{ fontWeight: 700, color: 'error.main' }}>
-              {formatIdrAmount(calcEclIa)}
+              {formatMoney(calcEclIa, 'IDR')}
             </Typography>
           </Grid>
           <Grid size={{ xs: 12, md: 3 }}>

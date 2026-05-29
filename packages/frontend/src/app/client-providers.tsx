@@ -12,6 +12,7 @@ import { AuthProvider } from '../providers/AuthProvider';
 import { ConfigurationProvider } from '../providers/ConfigurationProvider';
 import { BankingThemeProvider } from '../providers/BankingThemeProvider';
 import { PlatformSettingsProvider } from '../providers/PlatformSettingsProvider';
+import { CurrencyDisplayProvider } from '../providers/CurrencyDisplayProvider';
 import { getQueryClient } from '@/features/shared/query/query-client';
 
 import { store, persistor } from '../store';
@@ -36,16 +37,18 @@ export default function ClientProviders({ children }: { children: React.ReactNod
         <PersistGate loading={null} persistor={persistor}>
           <QueryClientProvider client={queryClient}>
             <PlatformSettingsProvider>
-              <ConfigurationProvider>
-                <AuthProvider>
-                  <BankingThemeProvider>
-                    <LocalizationProvider dateAdapter={AdapterDateFns}>
-                      <CssBaseline />
-                      {children as any}
-                    </LocalizationProvider>
-                  </BankingThemeProvider>
-                </AuthProvider>
-              </ConfigurationProvider>
+              <CurrencyDisplayProvider>
+                <ConfigurationProvider>
+                  <AuthProvider>
+                    <BankingThemeProvider>
+                      <LocalizationProvider dateAdapter={AdapterDateFns}>
+                        <CssBaseline />
+                        {children as any}
+                      </LocalizationProvider>
+                    </BankingThemeProvider>
+                  </AuthProvider>
+                </ConfigurationProvider>
+              </CurrencyDisplayProvider>
             </PlatformSettingsProvider>
           </QueryClientProvider>
         </PersistGate>

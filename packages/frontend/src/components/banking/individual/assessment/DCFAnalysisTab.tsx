@@ -61,6 +61,7 @@ import {
   type IndividualImpairmentAssessment,
   individualImpairmentAPI
 } from '@/services/api.individual-impairment';
+import { useCurrencyDisplay } from '@/providers/CurrencyDisplayProvider';
 import { DCFUploadTab } from './DCFUploadTab';
 
 interface DCFAnalysisTabProps {
@@ -80,15 +81,6 @@ function toFiniteNumber(value: unknown, fallback = 0) {
   return Number.isFinite(numeric) ? numeric : fallback;
 }
 
-function formatCurrency(amount: unknown) {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(toFiniteNumber(amount));
-}
-
 export function DCFAnalysisTab({
   account,
   assessment,
@@ -99,6 +91,8 @@ export function DCFAnalysisTab({
   stagedDCF,
   onStagedDCF,
 }: DCFAnalysisTabProps) {
+  const { formatMoney } = useCurrencyDisplay();
+  const formatCurrency = (amount: unknown) => formatMoney(toFiniteNumber(amount), 'IDR');
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [assumptions, setAssumptions] = useState({
     poRate1: 50, rrRate1: 100,

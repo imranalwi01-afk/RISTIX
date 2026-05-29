@@ -34,6 +34,7 @@ import { approvalAPI } from '@/services/api/approval.api';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 import { formatDistanceToNow, format } from 'date-fns';
+import { useCurrencyDisplay } from '@/providers/CurrencyDisplayProvider';
 
 // ============ TYPES ============
 interface ApprovalItem {
@@ -85,11 +86,6 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: '#616161',
 };
 
-const formatCurrency = (amount?: number) => {
-  if (!amount && amount !== 0) return '—';
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
-};
-
 const isIndividualImpairment = (item: ApprovalItem) =>
   item.entityType === 'INDIVIDUAL_ASSESSMENT_CONSOLIDATED' ||
   item.entityType?.includes('INDIVIDUAL_IMPAIRMENT');
@@ -97,6 +93,7 @@ const isIndividualImpairment = (item: ApprovalItem) =>
 // ============ APPROVAL CARD ============
 function ApprovalCard({ item, selected, onClick }: { item: ApprovalItem; selected: boolean; onClick: () => void }) {
   const theme = useTheme();
+  const { formatMoney } = useCurrencyDisplay();
   const ia = isIndividualImpairment(item);
   const rd = item.requestData || {};
   const impactColor = IMPACT_COLORS[item.impactLevel || 'medium'];
@@ -133,11 +130,11 @@ function ApprovalCard({ item, selected, onClick }: { item: ApprovalItem; selecte
           <Stack direction="row" spacing={2} mb={1}>
             <Box>
               <Typography variant="caption" color="text.disabled" sx={{ textTransform: 'uppercase', fontSize: '0.6rem' }}>ECL Amount</Typography>
-              <Typography variant="caption" fontWeight={700} color="error.main" display="block">{formatCurrency(rd.eclIaAmt)}</Typography>
+              <Typography variant="caption" fontWeight={700} color="error.main" display="block">{formatMoney(rd.eclIaAmt, 'IDR')}</Typography>
             </Box>
             <Box>
               <Typography variant="caption" color="text.disabled" sx={{ textTransform: 'uppercase', fontSize: '0.6rem' }}>Outstanding</Typography>
-              <Typography variant="caption" fontWeight={700} display="block">{formatCurrency(rd.outstanding || rd.outstandingBalance)}</Typography>
+              <Typography variant="caption" fontWeight={700} display="block">{formatMoney(rd.outstanding || rd.outstandingBalance, 'IDR')}</Typography>
             </Box>
           </Stack>
         )}
@@ -162,6 +159,7 @@ function DetailPanel({ item, currentUserId, onApprove, onReject, loading }: {
   loading: boolean;
 }) {
   const theme = useTheme();
+  const { formatMoney } = useCurrencyDisplay();
   const rd = item.requestData || {};
   const ia = isIndividualImpairment(item);
   const isPending = item.status === 'pending';
@@ -204,9 +202,9 @@ function DetailPanel({ item, currentUserId, onApprove, onReject, loading }: {
         {ia && (
           <Grid container spacing={2} mb={2}>
             {[
-              { label: 'ECL Amount', value: formatCurrency(rd.eclIaAmt), color: '#d32f2f' },
-              { label: 'PV DCF', value: formatCurrency(rd.pvDcfAmt), color: '#1976d2' },
-              { label: 'EAD / Outstanding', value: formatCurrency(rd.eadAmt || rd.outstanding || rd.outstandingBalance), color: '#388e3c' },
+              { label: 'ECL Amount', value: formatMoney(rd.eclIaAmt, 'IDR'), color: '#d32f2f' },
+              { label: 'PV DCF', value: formatMoney(rd.pvDcfAmt, 'IDR'), color: '#1976d2' },
+              { label: 'EAD / Outstanding', value: formatMoney(rd.eadAmt || rd.outstanding || rd.outstandingBalance, 'IDR'), color: '#388e3c' },
             ].map(card => (
               <Grid size={{ xs: 4 }} key={card.label}>
                 <Paper sx={{ p: 1.5, borderRadius: 2, textAlign: 'center', border: `1px solid ${alpha(card.color, 0.2)}`, bgcolor: alpha(card.color, 0.04) }}>

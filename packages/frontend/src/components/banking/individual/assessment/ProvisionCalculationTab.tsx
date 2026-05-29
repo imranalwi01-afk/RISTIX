@@ -25,6 +25,7 @@ import {
   type IndividualImpairmentWatchlistItem,
   type IndividualImpairmentAssessment
 } from '@/services/api.individual-impairment';
+import { useCurrencyDisplay } from '@/providers/CurrencyDisplayProvider';
 import LoadingButton from '@mui/lab/LoadingButton';
 
 interface ProvisionCalculationTabProps {
@@ -49,20 +50,14 @@ export function ProvisionCalculationTab({
     submitting
 }: ProvisionCalculationTabProps) {
   const theme = useTheme();
+  const { formatMoney } = useCurrencyDisplay();
   const toFiniteNumber = (value: unknown, fallback = 0) => {
     const normalized = typeof value === 'string' ? value.replace(/[^\d.-]/g, '') : value;
     const numeric = Number(normalized);
     return Number.isFinite(numeric) ? numeric : fallback;
   };
 
-  const formatCurrency = (amount: unknown) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(toFiniteNumber(amount));
-  };
+  const formatCurrency = (amount: unknown) => formatMoney(toFiniteNumber(amount), 'IDR');
 
   // IMPORTANT:
   // Do not lock maker submission using legacy numeric assessment.status,
