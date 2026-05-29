@@ -34,6 +34,9 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  FormControlLabel,
+  Switch,
+  Divider,
 } from '@mui/material';
 
 import {
@@ -51,9 +54,12 @@ import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeD
 import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 
 import api, { handleAPIError, bankingAPI } from '../../../../services/api';
+import { appSettingsApi } from '@/services/api/app-settings.api';
+import { invalidateAppSettingsCache } from '@/lib/cached-settings';
 import { exportToCSV, exportToPDF, exportToXLSX } from '@/utils/exportUtils';
 import { getErrorMessage } from '@/utils/error-message';
 import { useAuth } from '@/providers/AuthProvider';
+import { useCurrencyDisplay } from '@/providers/CurrencyDisplayProvider';
 import { useEnterpriseTableQuery } from '@/hooks/useEnterpriseTableQuery';
 import { useSavedTableView } from '@/hooks/useSavedTableView';
 import type { EnterpriseColumnFilterValue, EnterpriseSort } from '@/types/enterprise-table';
@@ -103,6 +109,8 @@ const APPLICATION_SORT_FIELD_MAP: Record<string, string> = {
   CreatedDate: 'createdDate',
   UpdatedDate: 'updatedDate',
 };
+const CURRENCY_SYMBOL_PARAM_CODE = 'CURRDSPLY';
+const LOCAL_CURRENCY_SYMBOL_KEY = 'ifrs9:showCurrencySymbol';
 
 const normalizeListPayload = <T,>(value: unknown): T[] => {
   if (Array.isArray(value)) return value as T[];
@@ -301,6 +309,7 @@ export default function ApplicationSettingPage() {
   const canViewApplication = hasAnyPermission(['banking.setup.application.view', 'banking.setup.application.manage', 'banking.setup.application', 'admin.super_admin']);
   const canManageApplication = hasAnyPermission(['banking.setup.application.manage', 'banking.setup.application.create', 'banking.setup.application.update', 'banking.setup.application.delete', 'admin.super_admin']);
   const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
+  const { showCurrencySymbol } = useCurrencyDisplay();
 
   // State
   const [searchTerm, setSearchTerm] = useState('');
@@ -387,6 +396,11 @@ export default function ApplicationSettingPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [detailRefreshTrigger, setDetailRefreshTrigger] = useState(0);
+  const [currencySettingLoading, setCurrencySettingLoading] = useState(false);
+  const [currencySettingSaving, setCurrencySettingSaving] = useState(false);
+  const [currencySymbolEnabled, setCurrencySymbolEnabled] = useState(true);
+  const [currencySymbolDetailId, setCurrencySymbolDetailId] = useState<number | null>(null);
+  const [currencySettingDirty, setCurrencySettingDirty] = useState(false);
 
   // Approval Modal State
   const [pendingChangesDialogOpen, setPendingChangesDialogOpen] = useState(false);
@@ -420,6 +434,162 @@ export default function ApplicationSettingPage() {
 
     return filters;
   }, [deferredHeaderFilters, normalizedGridFilters]);
+
+  const parseBooleanSetting = useCallback((raw: unknown, fallback = true) => {
+    if (typeof raw === 'boolean') return raw;
+    if (typeof raw !== 'string') return fallback;
+    const value = raw.trim().toLowerCase();
+    if (!value) return fallback;
+    return ['1', 'true', 'yes', 'y', 'on', 'aktif', 'active'].includes(value);
+  }, []);
+
+  const formatPreviewAmount = useCallback((value: number, currency: 'IDR' | 'USD', showSymbol: boolean) => {
+    const locale = currency === 'IDR' ? 'id-ID' : 'en-US';
+    const numberText = new Intl.NumberFormat(locale, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+
+    if (!showSymbol) return numberText;
+    const prefix = currency === 'IDR' ? 'Rp ' : '$ ';
+    return `${prefix}${numberText}`;
+  }, []);
+
+  const loadCurrencySymbolSetting = useCallback(async () => {
+    try {
+      setCurrencySettingLoading(true);
+      const setting = await appSettingsApi.getByCode(CURRENCY_SYMBOL_PARAM_CODE);
+      const details = Array.isArray(setting?.details) ? setting.details : [];
+      const prioritized = [...details].sort((a, b) => (a.paramSeq || 0) - (b.paramSeq || 0));
+      const selectedDetail = prioritized.find((d: any) =>
+        String(d?.paramdesc || '').toLowerCase().includes('currency symbol')
+      ) || prioritized[0];
+      const resolvedValue = parseBooleanSetting(selectedDetail?.value1 ?? selectedDetail?.value2 ?? selectedDetail?.paramdesc ?? '', true);
+      setCurrencySymbolEnabled(resolvedValue);
+      setCurrencySymbolDetailId(selectedDetail?.pkid ?? null);
+      setCurrencySettingDirty(false);
+    } catch (_error) {
+      const localValue = typeof window !== 'undefined' ? window.localStorage.getItem(LOCAL_CURRENCY_SYMBOL_KEY) : null;
+      const resolvedLocal = parseBooleanSetting(localValue, showCurrencySymbol);
+      setCurrencySymbolEnabled(resolvedLocal);
+      setCurrencySymbolDetailId(null);
+      setCurrencySettingDirty(false);
+    } finally {
+      setCurrencySettingLoading(false);
+    }
+  }, [parseBooleanSetting, showCurrencySymbol]);
+
+  useEffect(() => {
+    if (canViewApplication) {
+      void loadCurrencySymbolSetting();
+    }
+  }, [canViewApplication, loadCurrencySymbolSetting]);
+
+  const saveCurrencySymbolSetting = useCallback(async () => {
+    try {
+      setCurrencySettingSaving(true);
+      const nextValue = currencySymbolEnabled ? 'true' : 'false';
+      const targetCode = CURRENCY_SYMBOL_PARAM_CODE;
+      let setting: any = null;
+      try {
+        setting = await appSettingsApi.getByCode(targetCode);
+      } catch {
+        // Fallback: query list endpoint with targeted search to avoid noisy duplicate-create requests
+        try {
+          const listResult = await api.applicationParameter.headers.getAll({
+            search: targetCode,
+            limit: 100,
+            offset: 0,
+            paginationMode: 'offset',
+          });
+          const rows = Array.isArray(listResult?.data)
+            ? listResult.data
+            : Array.isArray(listResult?.rows)
+              ? listResult.rows
+              : [];
+          const matched = rows.find((item: any) =>
+            String(item?.param_code || item?.paramCode || item?.CommonCode || '').toUpperCase() === targetCode
+          );
+          if (matched?.param_code || matched?.paramCode || matched?.CommonCode) {
+            const code = String(matched?.param_code || matched?.paramCode || matched?.CommonCode).toUpperCase();
+            setting = await appSettingsApi.getByCode(code);
+          }
+        } catch {
+          // ignore lookup failures, continue to guarded create below
+        }
+      }
+
+      if (!setting) {
+        try {
+          await api.applicationParameter.headers.create({
+            param_code: targetCode,
+            paramCode: targetCode,
+            param_name: 'Show Currency Symbol',
+            paramName: 'Show Currency Symbol',
+            param_usage: 'Global currency symbol visibility toggle',
+            paramUsage: 'Global currency symbol visibility toggle',
+            param_type: 'S',
+            paramType: 'S',
+          });
+        } catch (createErr: any) {
+          const message = getErrorMessage(createErr, '').toLowerCase();
+          // If already exists, do not surface as error. Continue with lookup.
+          if (!message.includes('already exists')) {
+            throw createErr;
+          }
+        }
+        setting = await appSettingsApi.getByCode(targetCode);
+      }
+
+      const details = Array.isArray(setting?.details) ? setting.details : [];
+      const prioritized = [...details].sort((a: any, b: any) => (a.paramSeq || 0) - (b.paramSeq || 0));
+      const selectedDetail = prioritized.find((d: any) => String(d?.paramdesc || '').toLowerCase().includes('currency symbol'))
+        || prioritized[0];
+
+      if (selectedDetail?.pkid) {
+        await appSettingsApi.updateDetail(selectedDetail.pkid, {
+          value1: nextValue,
+          value2: selectedDetail?.value2 || '',
+          value3: selectedDetail?.value3 || '',
+          paramdesc: 'Global currency symbol visibility toggle',
+        });
+      } else {
+        const nextSeq = prioritized.length > 0 ? Math.max(...prioritized.map((d: any) => Number(d?.paramSeq || 0))) + 1 : 1;
+        await appSettingsApi.createDetail({
+          paramCode: targetCode,
+          paramSeq: nextSeq,
+          value1: nextValue,
+          value2: '',
+          value3: '',
+          paramdesc: 'Global currency symbol visibility toggle',
+        });
+      }
+
+      invalidateAppSettingsCache(CURRENCY_SYMBOL_PARAM_CODE);
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(LOCAL_CURRENCY_SYMBOL_KEY, nextValue);
+      }
+      window.dispatchEvent(new CustomEvent('currency-symbol-setting-changed', {
+        detail: { showCurrencySymbol: currencySymbolEnabled },
+      }));
+      setCurrencySymbolEnabled(currencySymbolEnabled);
+      setCurrencySettingDirty(false);
+      setSuccess('Display setting saved. Currency symbol updated globally.');
+      // Keep UI stable to saved value; background reload can be triggered on next page load.
+    } catch (err) {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(LOCAL_CURRENCY_SYMBOL_KEY, currencySymbolEnabled ? 'true' : 'false');
+      }
+      window.dispatchEvent(new CustomEvent('currency-symbol-setting-changed', {
+        detail: { showCurrencySymbol: currencySymbolEnabled },
+      }));
+      setCurrencySettingDirty(false);
+      setSuccess('Display setting applied locally. Backend save is unavailable right now.');
+      setError(null);
+    } finally {
+      setCurrencySettingSaving(false);
+    }
+  }, [currencySymbolEnabled, loadCurrencySymbolSetting]);
   const normalizedSort = useMemo(
     () =>
       queryState.sort.map((item) => ({
@@ -1051,6 +1221,48 @@ export default function ApplicationSettingPage() {
       <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold', color: 'primary.main' }}>
         Application Setting
       </Typography>
+
+      <Card sx={{ mb: 2, width: '100%', maxWidth: '100%', minWidth: 0, overflow: 'hidden' }}>
+        <CardContent>
+          <Typography variant="h6" sx={{ mb: 0.5, fontWeight: 700 }}>
+            Display Settings
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Affects all modules. Numeric values are unchanged.
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', justifyContent: 'space-between' }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={currencySymbolEnabled}
+                  onChange={(event) => {
+                    setCurrencySymbolEnabled(event.target.checked);
+                    setCurrencySettingDirty(true);
+                  }}
+                  disabled={!canManageApplication || currencySettingLoading || currencySettingSaving}
+                />
+              }
+              label="Show Currency Symbol"
+            />
+            <Button
+              variant="contained"
+              onClick={() => { void saveCurrencySymbolSetting(); }}
+              disabled={!canManageApplication || !currencySettingDirty || currencySettingLoading || currencySettingSaving}
+            >
+              {currencySettingSaving ? 'Saving...' : 'Save Display Setting'}
+            </Button>
+          </Box>
+
+          <Box sx={{ mt: 2, p: 1.5, border: '1px dashed', borderColor: 'divider', borderRadius: 1 }}>
+            <Typography variant="caption" color="text.secondary">Live Preview</Typography>
+            <Typography variant="body2">
+              {formatPreviewAmount(1250000, 'IDR', currencySymbolEnabled)} | {formatPreviewAmount(10500, 'USD', currencySymbolEnabled)}
+            </Typography>
+          </Box>
+        </CardContent>
+      </Card>
 
       <Card sx={{ mb: 2, width: '100%', maxWidth: '100%', minWidth: 0, overflow: 'hidden' }}>
         <CardContent>

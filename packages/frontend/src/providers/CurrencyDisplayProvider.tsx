@@ -4,7 +4,8 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import { getCachedAppSettingsByCode } from '@/lib/cached-settings';
 import { formatMoney, type SupportedCurrency } from '@/utils/format-money';
 
-const SHOW_CURRENCY_SYMBOL_CODE = 'SHOW_CURRENCY_SYMBOL';
+const SHOW_CURRENCY_SYMBOL_CODE = 'CURRDSPLY';
+const LOCAL_CURRENCY_SYMBOL_KEY = 'ifrs9:showCurrencySymbol';
 
 type CurrencyDisplayContextType = {
   showCurrencySymbol: boolean;
@@ -17,6 +18,32 @@ const CurrencyDisplayContext = createContext<CurrencyDisplayContextType>({
   loading: true,
   formatMoney: (value: unknown, currency: SupportedCurrency = 'IDR') => formatMoney(value, { currency, showCurrencySymbol: true }),
 });
+
+let currencyPatchInstalled = false;
+
+function installGlobalCurrencyFormatterPatch() {
+  if (currencyPatchInstalled || typeof window === 'undefined') return;
+
+  const intlObject = Intl as any;
+  const originalNumberFormat = intlObject.NumberFormat;
+  if (!originalNumberFormat) return;
+
+  const patchedNumberFormat = function patchedNumberFormat(locales?: string | string[], options?: Intl.NumberFormatOptions) {
+    const showSymbol = (window as any).__SHOW_CURRENCY_SYMBOL__ !== false;
+    const isCurrency = options?.style === 'currency';
+    if (!showSymbol && isCurrency) {
+      const { style, currency, currencyDisplay, currencySign, ...rest } = options || {};
+      return new originalNumberFormat(locales, rest);
+    }
+    return new originalNumberFormat(locales, options);
+  };
+
+  patchedNumberFormat.prototype = originalNumberFormat.prototype;
+  patchedNumberFormat.supportedLocalesOf = originalNumberFormat.supportedLocalesOf.bind(originalNumberFormat);
+
+  intlObject.NumberFormat = patchedNumberFormat;
+  currencyPatchInstalled = true;
+}
 
 function parseBooleanSetting(raw: unknown, fallback = true): boolean {
   if (typeof raw === 'boolean') return raw;
@@ -31,6 +58,8 @@ export function CurrencyDisplayProvider({ children }: { children: React.ReactNod
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    installGlobalCurrencyFormatterPatch();
+    (window as any).__SHOW_CURRENCY_SYMBOL__ = true;
     let mounted = true;
 
     async function loadSetting() {
@@ -39,11 +68,16 @@ export function CurrencyDisplayProvider({ children }: { children: React.ReactNod
         const detail = Array.isArray(setting?.details) && setting.details.length > 0 ? setting.details[0] : null;
         const rawValue = detail?.value1 ?? detail?.value2 ?? detail?.paramdesc ?? '';
         if (mounted) {
-          setShowCurrencySymbol(parseBooleanSetting(rawValue, true));
+          const resolved = parseBooleanSetting(rawValue, true);
+          (window as any).__SHOW_CURRENCY_SYMBOL__ = resolved;
+          setShowCurrencySymbol(resolved);
         }
       } catch (_error) {
         if (mounted) {
-          setShowCurrencySymbol(true);
+          const localValue = typeof window !== 'undefined' ? window.localStorage.getItem(LOCAL_CURRENCY_SYMBOL_KEY) : null;
+          const resolvedLocal = parseBooleanSetting(localValue, true);
+          (window as any).__SHOW_CURRENCY_SYMBOL__ = resolvedLocal;
+          setShowCurrencySymbol(resolvedLocal);
         }
       } finally {
         if (mounted) {
@@ -56,6 +90,22 @@ export function CurrencyDisplayProvider({ children }: { children: React.ReactNod
 
     return () => {
       mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const customEvent = event as CustomEvent<{ showCurrencySymbol?: boolean }>;
+      const nextValue = customEvent?.detail?.showCurrencySymbol;
+      if (typeof nextValue === 'boolean') {
+        (window as any).__SHOW_CURRENCY_SYMBOL__ = nextValue;
+        setShowCurrencySymbol(nextValue);
+      }
+    };
+
+    window.addEventListener('currency-symbol-setting-changed', handler as EventListener);
+    return () => {
+      window.removeEventListener('currency-symbol-setting-changed', handler as EventListener);
     };
   }, []);
 
@@ -76,4 +126,3 @@ export function CurrencyDisplayProvider({ children }: { children: React.ReactNod
 export function useCurrencyDisplay() {
   return useContext(CurrencyDisplayContext);
 }
-
