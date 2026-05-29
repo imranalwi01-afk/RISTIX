@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { formatTerbilang } from '../../utils/banking';
+import { useCurrencyDisplay } from '@/providers/CurrencyDisplayProvider';
 
 export interface ReportKPICardProps {
   /** Card title label (shown uppercase) */
@@ -51,7 +52,8 @@ export interface ReportKPICardProps {
 
 const formatValue = (
   value: number | string,
-  format: ReportKPICardProps['format'] = 'raw'
+  format: ReportKPICardProps['format'] = 'raw',
+  showCurrencySymbol = true
 ): string => {
   if (typeof value === 'string') return value;
   
@@ -71,6 +73,12 @@ const formatValue = (
       } else if (numValue >= 1000) {
         return `${(numValue / 1000).toFixed(1)} Ribu`;
       } else {
+        if (!showCurrencySymbol) {
+          return new Intl.NumberFormat('id-ID', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+          }).format(numValue);
+        }
         return new Intl.NumberFormat('id-ID', {
           style: 'currency',
           currency: 'IDR',
@@ -105,8 +113,11 @@ const ReportKPICard: React.FC<ReportKPICardProps> = ({
   sourceBadgeTooltip,
   titleTooltip,
   loading = false
-}) => (
-  <Card
+}) => {
+  const { showCurrencySymbol } = useCurrencyDisplay();
+
+  return (
+    <Card
     sx={{
       height: '100%',
       borderRadius: 4,
@@ -183,10 +194,11 @@ const ReportKPICard: React.FC<ReportKPICardProps> = ({
               }}
             >
               {(() => {
-                const formatted = formatValue(value, format);
+                const formatted = formatValue(value, format, showCurrencySymbol);
                 if (format === 'currency' && typeof formatted === 'string') {
                   // Check if it's a compact notation (ends with Triliun, Milyar, Juta, Ribu) or regular currency
                   if (formatted.match(/^[0-9.]+\s(Triliun|Milyar|Juta|Ribu)$/)) {
+                    if (!showCurrencySymbol) return formatted;
                     return (
                       <>
                         <Box component="span" sx={{ fontSize: '0.45em', fontWeight: 700, mr: 0.5, verticalAlign: 'baseline', opacity: 0.85 }}>
@@ -196,6 +208,9 @@ const ReportKPICard: React.FC<ReportKPICardProps> = ({
                       </>
                     );
                   } else if (formatted.startsWith('Rp')) {
+                    if (!showCurrencySymbol) {
+                      return formatted.replace(/^Rp\s*/i, '');
+                    }
                     const numPart = formatted.replace(/^Rp\s*/i, '');
                     return (
                       <>
@@ -225,7 +240,7 @@ const ReportKPICard: React.FC<ReportKPICardProps> = ({
                 }}
               >
                 {format === 'currency' 
-                  ? formatTerbilang(value, true) 
+                  ? formatTerbilang(value, showCurrencySymbol) 
                   : formatTerbilang(value, false)}
               </Typography>
             )}
@@ -264,6 +279,7 @@ const ReportKPICard: React.FC<ReportKPICardProps> = ({
       </Box>
     </CardContent>
   </Card>
-);
+  );
+};
 
 export default ReportKPICard;

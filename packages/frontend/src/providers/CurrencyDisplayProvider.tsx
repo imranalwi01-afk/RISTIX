@@ -64,6 +64,17 @@ export function CurrencyDisplayProvider({ children }: { children: React.ReactNod
 
     async function loadSetting() {
       try {
+        const localValue = typeof window !== 'undefined' ? window.localStorage.getItem(LOCAL_CURRENCY_SYMBOL_KEY) : null;
+        if (localValue !== null && localValue !== undefined) {
+          const resolvedLocal = parseBooleanSetting(localValue, true);
+          if (mounted) {
+            (window as any).__SHOW_CURRENCY_SYMBOL__ = resolvedLocal;
+            setShowCurrencySymbol(resolvedLocal);
+            setLoading(false);
+          }
+          return;
+        }
+
         const setting = await getCachedAppSettingsByCode(SHOW_CURRENCY_SYMBOL_CODE);
         const detail = Array.isArray(setting?.details) && setting.details.length > 0 ? setting.details[0] : null;
         const rawValue = detail?.value1 ?? detail?.value2 ?? detail?.paramdesc ?? '';

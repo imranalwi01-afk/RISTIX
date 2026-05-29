@@ -90,6 +90,7 @@ import ErrorState from '../../../components/common/ErrorState'
 import { clearAuthTokens } from '../../../utils/auth-token'
 import ReportSummaryGrid, { KPIItem } from '@/components/ifrs9/ReportSummaryGrid'
 import { usePermission } from '@/hooks/usePermission'
+import { useCurrencyDisplay } from '@/providers/CurrencyDisplayProvider'
 import {
     PieChart as RechartsPieChart,
     Pie,
@@ -120,7 +121,7 @@ const COLORS = {
 
 // 📊 COMPONENTS
 
-const ECLDistributionChart = ({ data }: any) => {
+const ECLDistributionChart = ({ data, formatAmount }: { data: any; formatAmount: (value: number) => string }) => {
     const chartData = [
         { name: 'Stage 1', value: data?.stage1ECL || 0, color: COLORS.stage1 },
         { name: 'Stage 2', value: data?.stage2ECL || 0, color: COLORS.stage2 },
@@ -155,7 +156,7 @@ const ECLDistributionChart = ({ data }: any) => {
                     contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
                     formatter={(value: number) => {
                         if (chartData.length === 0) return 'No Calculation Result';
-                        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(value);
+                        return formatAmount(value);
                     }}
                 />
             </RechartsPieChart>
@@ -166,7 +167,15 @@ const ECLDistributionChart = ({ data }: any) => {
 // NO MOCK DATA: Removed MOCK_TREND constant
 // Empty data will be handled by EmptyState component
 
-const PortfolioTrendChart = ({ data }: { data: any[] }) => (
+const PortfolioTrendChart = ({
+    data,
+    showCurrencySymbol,
+    formatAmount
+}: {
+    data: any[];
+    showCurrencySymbol: boolean;
+    formatAmount: (value: number) => string;
+}) => (
     <ResponsiveContainer width="100%" height={300}>
         <AreaChart data={data}>
             <defs>
@@ -187,11 +196,11 @@ const PortfolioTrendChart = ({ data }: { data: any[] }) => (
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: '#9e9e9e', fontSize: 10 }}
-                tickFormatter={(value) => `Rp${(value / 1e9).toFixed(1)} Milyar`}
+                tickFormatter={(value) => `${showCurrencySymbol ? 'Rp ' : ''}${(value / 1e9).toFixed(1)} Milyar`}
             />
             <RechartsTooltip
                 contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', background: 'rgba(255,255,255,0.9)' }}
-                formatter={(value: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value)}
+                formatter={(value: number) => formatAmount(value)}
             />
             <Area
                 type="monotone"
@@ -254,6 +263,7 @@ export default function DashboardClient() {
     const searchParams = useSearchParams()
     const dispatch = useDispatch()
     const { hasAnyPermission } = usePermission()
+    const { formatMoney, showCurrencySymbol } = useCurrencyDisplay()
 
     // ✅ PERFORMANCE: Pre-warm ALL API endpoints and routes on dashboard mount
     // This ensures all menu pages load instantly (<1 second)
@@ -572,14 +582,7 @@ export default function DashboardClient() {
         setSelectedDate(event.target.value);
     };
 
-    const formatCurrency = (amount: number, currency: string = 'IDR') => {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: currency,
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-        }).format(amount)
-    }
+    const formatCurrency = (amount: number, currency: string = 'IDR') => formatMoney(amount, currency as any)
 
     // ✅ SURGICAL FIX: Non-blocking UI (Optimistic Rendering)
     // Instead of a full page loader, we show the dashboard layout immediately
@@ -1069,7 +1072,11 @@ export default function DashboardClient() {
                                     <Chip label="Historical" size="small" variant="outlined" sx={{ fontWeight: 600, borderRadius: 2 }} />
                                 </Box>
                                 {/* RENDER TREND CHART */}
-                                <PortfolioTrendChart data={portfolioTrend} />
+                                <PortfolioTrendChart
+                                    data={portfolioTrend}
+                                    showCurrencySymbol={showCurrencySymbol}
+                                    formatAmount={(value) => formatCurrency(value, eclSummary?.currency || 'IDR')}
+                                />
                             </CardContent>
                         </Card>
                     </Grid>
@@ -1093,7 +1100,10 @@ export default function DashboardClient() {
                                 </Box>
                                 {/* RENDER PIE CHART */}
                                 <Box sx={{ position: 'relative', height: 300 }}>
-                                    <ECLDistributionChart data={eclSummary} />
+                                    <ECLDistributionChart
+                                        data={eclSummary}
+                                        formatAmount={(value) => formatCurrency(value, eclSummary?.currency || 'IDR')}
+                                    />
                                     {/* Center Label */}
                                     <Box sx={{
                                         position: 'absolute',
