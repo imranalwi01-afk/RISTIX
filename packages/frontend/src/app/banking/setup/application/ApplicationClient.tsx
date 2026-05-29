@@ -443,6 +443,51 @@ export default function ApplicationSettingPage() {
     return ['1', 'true', 'yes', 'y', 'on', 'aktif', 'active'].includes(value);
   }, []);
 
+  const parseBooleanToken = useCallback((raw: unknown): boolean | null => {
+    if (typeof raw === 'boolean') return raw;
+    if (typeof raw !== 'string') return null;
+    const value = raw.trim().toLowerCase();
+    if (!value) return null;
+    if (['1', 'true', 'yes', 'y', 'on', 'aktif', 'active'].includes(value)) return true;
+    if (['0', 'false', 'no', 'n', 'off', 'nonaktif', 'inactive'].includes(value)) return false;
+    return null;
+  }, []);
+
+  const sortDetailLatestFirst = useCallback((details: any[]) => (
+    [...details].sort((a: any, b: any) => {
+      const seqA = Number(a?.paramSeq ?? a?.param_seq ?? 0);
+      const seqB = Number(b?.paramSeq ?? b?.param_seq ?? 0);
+      if (seqA !== seqB) return seqB - seqA;
+      const idA = Number(a?.pkid ?? a?.id ?? 0);
+      const idB = Number(b?.pkid ?? b?.id ?? 0);
+      return idB - idA;
+    })
+  ), []);
+
+  const resolveCurrencySettingDetail = useCallback((details: any[], preferredPkid?: number | null) => {
+    if (!Array.isArray(details) || details.length === 0) return null;
+    const sorted = sortDetailLatestFirst(details);
+
+    if (preferredPkid) {
+      const preferred = sorted.find((d: any) => Number(d?.pkid ?? d?.id) === Number(preferredPkid));
+      if (preferred) return preferred;
+    }
+
+    const withBooleanValue = sorted.find((d: any) =>
+      parseBooleanToken(d?.value1) !== null
+      || parseBooleanToken(d?.value2) !== null
+      || parseBooleanToken(d?.value3) !== null
+    );
+    if (withBooleanValue) return withBooleanValue;
+
+    const withCurrencyDesc = sorted.find((d: any) =>
+      String(d?.paramdesc || d?.param_desc || '').toLowerCase().includes('currency symbol')
+    );
+    if (withCurrencyDesc) return withCurrencyDesc;
+
+    return sorted[0];
+  }, [parseBooleanToken, sortDetailLatestFirst]);
+
   const formatPreviewAmount = useCallback((value: number, currency: 'IDR' | 'USD', showSymbol: boolean) => {
     const locale = currency === 'IDR' ? 'id-ID' : 'en-US';
     const numberText = new Intl.NumberFormat(locale, {
@@ -460,14 +505,20 @@ export default function ApplicationSettingPage() {
       setCurrencySettingLoading(true);
       const setting = await appSettingsApi.getByCode(CURRENCY_SYMBOL_PARAM_CODE);
       const details = Array.isArray(setting?.details) ? setting.details : [];
-      const prioritized = [...details].sort((a, b) => (a.paramSeq || 0) - (b.paramSeq || 0));
-      const selectedDetail = prioritized.find((d: any) =>
-        String(d?.paramdesc || '').toLowerCase().includes('currency symbol')
-      ) || prioritized[0];
-      const resolvedValue = parseBooleanSetting(selectedDetail?.value1 ?? selectedDetail?.value2 ?? selectedDetail?.paramdesc ?? '', true);
+      const selectedDetail = resolveCurrencySettingDetail(details, currencySymbolDetailId);
+      const boolFromValue1 = parseBooleanToken(selectedDetail?.value1);
+      const boolFromValue2 = parseBooleanToken(selectedDetail?.value2);
+      const boolFromValue3 = parseBooleanToken(selectedDetail?.value3);
+      const resolvedValue = boolFromValue1
+        ?? boolFromValue2
+        ?? boolFromValue3
+        ?? parseBooleanSetting(selectedDetail?.value1 ?? selectedDetail?.value2 ?? selectedDetail?.paramdesc ?? '', true);
       setCurrencySymbolEnabled(resolvedValue);
       setCurrencySymbolDetailId(selectedDetail?.pkid ?? null);
       setCurrencySettingDirty(false);
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(LOCAL_CURRENCY_SYMBOL_KEY, resolvedValue ? 'true' : 'false');
+      }
     } catch (_error) {
       const localValue = typeof window !== 'undefined' ? window.localStorage.getItem(LOCAL_CURRENCY_SYMBOL_KEY) : null;
       const resolvedLocal = parseBooleanSetting(localValue, showCurrencySymbol);
@@ -477,7 +528,7 @@ export default function ApplicationSettingPage() {
     } finally {
       setCurrencySettingLoading(false);
     }
-  }, [parseBooleanSetting, showCurrencySymbol]);
+  }, [currencySymbolDetailId, parseBooleanSetting, parseBooleanToken, resolveCurrencySettingDetail, showCurrencySymbol]);
 
   useEffect(() => {
     if (canViewApplication) {
@@ -494,7 +545,7 @@ export default function ApplicationSettingPage() {
       try {
         setting = await appSettingsApi.getByCode(targetCode);
       } catch {
-        // Fallback: query list endpoint with targeted search to avoid noisy duplicate-create requests
+        // Fallback: query list endpoint with targeted search
         try {
           const listResult = await api.applicationParameter.headers.getAll({
             search: targetCode,
@@ -515,36 +566,34 @@ export default function ApplicationSettingPage() {
             setting = await appSettingsApi.getByCode(code);
           }
         } catch {
-          // ignore lookup failures, continue to guarded create below
+          // ignore lookup failures, handled below
         }
       }
 
       if (!setting) {
-        try {
-          await api.applicationParameter.headers.create({
-            param_code: targetCode,
-            paramCode: targetCode,
-            param_name: 'Show Currency Symbol',
-            paramName: 'Show Currency Symbol',
-            param_usage: 'Global currency symbol visibility toggle',
-            paramUsage: 'Global currency symbol visibility toggle',
-            param_type: 'S',
-            paramType: 'S',
-          });
-        } catch (createErr: any) {
-          const message = getErrorMessage(createErr, '').toLowerCase();
-          // If already exists, do not surface as error. Continue with lookup.
-          if (!message.includes('already exists')) {
-            throw createErr;
-          }
-        }
-        setting = await appSettingsApi.getByCode(targetCode);
+        throw new Error('Display setting header CURRDSPLY not found. Please contact admin to initialize Application Setting CURRDSPLY.');
       }
 
       const details = Array.isArray(setting?.details) ? setting.details : [];
-      const prioritized = [...details].sort((a: any, b: any) => (a.paramSeq || 0) - (b.paramSeq || 0));
-      const selectedDetail = prioritized.find((d: any) => String(d?.paramdesc || '').toLowerCase().includes('currency symbol'))
-        || prioritized[0];
+      let selectedDetail = resolveCurrencySettingDetail(details, currencySymbolDetailId);
+      if (!selectedDetail) {
+        try {
+          const detailResult = await api.applicationParameter.details.getForHeader(targetCode);
+          const rawItems = normalizeListPayload<any>(detailResult?.data ?? detailResult);
+          const mappedItems = rawItems.map((item: any) => ({
+            pkid: item?.pkid ?? item?.id ?? item?.ID,
+            paramSeq: item?.param_seq ?? item?.paramSeq ?? item?.SeqNo ?? 0,
+            value1: item?.value1 ?? item?.Value1 ?? '',
+            value2: item?.value2 ?? item?.Value2 ?? '',
+            value3: item?.value3 ?? item?.Value3 ?? '',
+            paramdesc: item?.param_desc ?? item?.paramdesc ?? item?.Description ?? '',
+          }));
+          selectedDetail = resolveCurrencySettingDetail(mappedItems, currencySymbolDetailId);
+        } catch {
+          // ignore fallback failure; creation path below will handle empty detail state
+        }
+      }
+      const prioritized = sortDetailLatestFirst(details);
 
       if (selectedDetail?.pkid) {
         await appSettingsApi.updateDetail(selectedDetail.pkid, {
@@ -554,10 +603,8 @@ export default function ApplicationSettingPage() {
           paramdesc: 'Global currency symbol visibility toggle',
         });
       } else {
-        const nextSeq = prioritized.length > 0 ? Math.max(...prioritized.map((d: any) => Number(d?.paramSeq || 0))) + 1 : 1;
         await appSettingsApi.createDetail({
           paramCode: targetCode,
-          paramSeq: nextSeq,
           value1: nextValue,
           value2: '',
           value3: '',
@@ -566,6 +613,18 @@ export default function ApplicationSettingPage() {
       }
 
       invalidateAppSettingsCache(CURRENCY_SYMBOL_PARAM_CODE);
+      // Verify persisted state from server to prevent UI drift/local-only illusion.
+      const verifiedSetting = await appSettingsApi.getByCode(targetCode);
+      const verifiedDetail = resolveCurrencySettingDetail(Array.isArray(verifiedSetting?.details) ? verifiedSetting.details : [], selectedDetail?.pkid ?? null);
+      const verifiedBool = parseBooleanToken(verifiedDetail?.value1)
+        ?? parseBooleanToken(verifiedDetail?.value2)
+        ?? parseBooleanToken(verifiedDetail?.value3)
+        ?? parseBooleanSetting(verifiedDetail?.value1 ?? verifiedDetail?.value2 ?? verifiedDetail?.paramdesc ?? '', true);
+
+      if (verifiedBool !== currencySymbolEnabled) {
+        throw new Error('Display setting was not persisted correctly. Please retry.');
+      }
+
       if (typeof window !== 'undefined') {
         window.localStorage.setItem(LOCAL_CURRENCY_SYMBOL_KEY, nextValue);
       }
@@ -573,23 +632,17 @@ export default function ApplicationSettingPage() {
         detail: { showCurrencySymbol: currencySymbolEnabled },
       }));
       setCurrencySymbolEnabled(currencySymbolEnabled);
+      setCurrencySymbolDetailId(verifiedDetail?.pkid ?? selectedDetail?.pkid ?? null);
       setCurrencySettingDirty(false);
       setSuccess('Display setting saved. Currency symbol updated globally.');
-      // Keep UI stable to saved value; background reload can be triggered on next page load.
     } catch (err) {
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(LOCAL_CURRENCY_SYMBOL_KEY, currencySymbolEnabled ? 'true' : 'false');
-      }
-      window.dispatchEvent(new CustomEvent('currency-symbol-setting-changed', {
-        detail: { showCurrencySymbol: currencySymbolEnabled },
-      }));
-      setCurrencySettingDirty(false);
-      setSuccess('Display setting applied locally. Backend save is unavailable right now.');
-      setError(null);
+      // Do not keep local-only success state; rollback to persisted backend/local value.
+      setError(`Failed to save display setting: ${getErrorMessage(err, 'Unknown error')}`);
+      await loadCurrencySymbolSetting();
     } finally {
       setCurrencySettingSaving(false);
     }
-  }, [currencySymbolEnabled, loadCurrencySymbolSetting]);
+  }, [currencySymbolDetailId, currencySymbolEnabled, loadCurrencySymbolSetting, parseBooleanSetting, parseBooleanToken, resolveCurrencySettingDetail, sortDetailLatestFirst]);
   const normalizedSort = useMemo(
     () =>
       queryState.sort.map((item) => ({
