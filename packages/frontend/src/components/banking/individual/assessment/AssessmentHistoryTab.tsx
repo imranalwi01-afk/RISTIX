@@ -18,7 +18,6 @@ import {
   TimelineContent,
   TimelineDot,
   TimelineOppositeContent,
-  TimelinePosition
 } from '@mui/lab';
 import {
   History as HistoryIcon,
@@ -178,7 +177,7 @@ export function AssessmentHistoryTab({ account }: AssessmentHistoryTabProps) {
   const lastApprove = sortedHistory.find((e) => e.action === 'APPROVE');
   const lastReject = sortedHistory.find((e) => e.action === 'REJECT');
 
-  const timelinePosition: TimelinePosition = 'right';
+  const timelinePosition: 'left' | 'right' | 'alternate' = 'right';
 
   const currentState = (() => {
     if (lastApprove) return 'APPROVED';
