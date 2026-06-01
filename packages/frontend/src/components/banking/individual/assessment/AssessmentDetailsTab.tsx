@@ -60,6 +60,7 @@ import {
   type IndividualImpairmentAssessment,
   individualImpairmentAPI
 } from '@/services/api.individual-impairment';
+import { useCurrencyDisplay } from '@/providers/CurrencyDisplayProvider';
 
 
 
@@ -73,6 +74,7 @@ interface AssessmentDetailsTabProps {
 }
 
 export function AssessmentDetailsTab({ account, assessment, onUpdateAssessment, onTabChange, assessmentData: propAssessmentData, historyData: propHistoryData }: AssessmentDetailsTabProps) {
+  const { formatMoney } = useCurrencyDisplay();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -246,14 +248,7 @@ export function AssessmentDetailsTab({ account, assessment, onUpdateAssessment, 
     return Number.isFinite(numeric) ? numeric : fallback;
   };
 
-  const formatCurrency = (amount: unknown) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(toFiniteNumber(amount));
-  };
+  const formatCurrency = (amount: unknown) => formatMoney(toFiniteNumber(amount), 'IDR');
 
   const renderStageChip = (stage: number) => {
     const colors: Record<number, 'success' | 'warning' | 'secondary'> = { 1: 'success', 2: 'warning', 3: 'secondary' };
