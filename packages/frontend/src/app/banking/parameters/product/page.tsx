@@ -164,10 +164,10 @@ const productColumnFilterDefinitions: Record<string, EnterpriseFilterDefinition>
 export default function ProductParametersPage() {
   const { user } = useAuth();
   const { hasAnyPermission } = usePermission();
-  const canViewProduct = hasAnyPermission(['banking.parameter.product.view', 'banking.parameter.product.manage', 'banking.parameter.product', 'admin.super_admin']);
-  const canManageProduct = hasAnyPermission(['banking.parameter.product.manage', 'banking.parameter.product.create', 'banking.parameter.product.update', 'banking.parameter.product.delete', 'admin.super_admin']);
-  const canExportProduct = hasAnyPermission(['banking.parameter.product.export', 'banking.parameter.product.manage', 'admin.super_admin']);
-  const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
+  const canViewProduct = hasAnyPermission(['banking.parameter.product.view', 'banking.parameter.product.manage', 'banking.parameter.product']);
+  const canManageProduct = hasAnyPermission(['banking.parameter.product.manage', 'banking.parameter.product.create', 'banking.parameter.product.update', 'banking.parameter.product.delete']);
+  const canExportProduct = hasAnyPermission(['banking.parameter.product.export', 'banking.parameter.product.manage']);
+  const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all']);
 
   const searchParams = useSearchParams();
   const mode = searchParams.get('mode') || 'conventional';
@@ -533,7 +533,7 @@ export default function ProductParametersPage() {
 
   // State calculations
   const activeFilterCount = Object.values(filters).filter(v => v !== '' && v !== 'all').length;
-  const canSeeDebug = hasAnyPermission(['admin.super_admin']);
+  const canSeeDebug = hasAnyPermission([]);
 
   const handleCopyDebug = useCallback(async () => {
     if (!listDebug || typeof navigator === 'undefined' || !navigator.clipboard) return;

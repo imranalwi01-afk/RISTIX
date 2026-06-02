@@ -55,9 +55,9 @@ import { usePermission } from '@/hooks/usePermission';
 
 export default function FLScalarManagementPage() {
   const { hasAnyPermission } = usePermission();
-  const canViewFlScalar = hasAnyPermission(['banking.collective.fl_scalar.view', 'banking.collective.fl_scalar.manage', 'banking.collective.manage', 'banking.collective', 'admin.super_admin']);
-  const canManageFlScalar = hasAnyPermission(['banking.collective.fl_scalar.manage', 'banking.collective.fl_scalar.create', 'banking.collective.fl_scalar.update', 'banking.collective.fl_scalar.delete', 'banking.collective.manage', 'admin.super_admin']);
-  const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
+  const canViewFlScalar = hasAnyPermission(['banking.collective.fl_scalar.view', 'banking.collective.fl_scalar.manage', 'banking.collective.manage', 'banking.collective']);
+  const canManageFlScalar = hasAnyPermission(['banking.collective.fl_scalar.manage', 'banking.collective.fl_scalar.create', 'banking.collective.fl_scalar.update', 'banking.collective.fl_scalar.delete', 'banking.collective.manage']);
+  const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all']);
 
   // State Management - INITIALIZED EMPTY (NO MOCK DATA!)
   const [scalars, setScalars] = useState<FLScalarWithDetails[]>([]);

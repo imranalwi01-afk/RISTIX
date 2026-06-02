@@ -21,6 +21,7 @@ type PermissionAction =
     | 'approve_create'
     | 'approve_update'
     | 'approve_delete'
+    | 'self_approve_override'
 
 const ACTION_LABELS: Record<PermissionAction, string> = {
     access: 'Access',
@@ -38,6 +39,7 @@ const ACTION_LABELS: Record<PermissionAction, string> = {
     approve_create: 'Approve Creation',
     approve_update: 'Approve Update',
     approve_delete: 'Approve Deletion',
+    self_approve_override: 'Self-Approval Override',
 }
 
 const createPermission = (

@@ -150,9 +150,8 @@ const getRequiredPermissionCandidates = (path: string, method: string): string[]
 }
 
 const hasAnyPermission = (permissions: string[], candidates: string[]): boolean => {
-    if (permissions.includes('*')) return true
     if (permissions.includes('admin.super_admin')) return true
-    if (permissions.includes('PLATFORM_ADMIN')) return true
+    if (permissions.includes('*')) return true
     return candidates.some((candidate) => permissions.includes(candidate))
 }
 
@@ -323,11 +322,9 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
         const resolvedPermissions = normalizePermissions(payloadPermissions)
 
         const isSystemUser =
-            isPlatformSession ||
-            !!(user as any).isPlatformAdmin ||
             resolvedPermissions.includes('admin.super_admin') ||
-            resolvedPermissions.includes('PLATFORM_ADMIN') ||
-            resolvedPermissions.includes('admin.system.manage')
+            isPlatformSession ||
+            !!(user as any).isPlatformAdmin
 
         c.set('userId', user.id)
         c.set('user', user)

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { logger } from '../lib/logger'
+import { setEnvironment } from '../lib/logger'
 import { fileURLToPath } from 'node:url'
 
 /**
@@ -7,7 +8,10 @@ import { fileURLToPath } from 'node:url'
  */
 const envSchema = z.object({
     // Server
-    NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+    NODE_ENV: z.preprocess(
+        (val) => (typeof val === 'string' ? val.trim() : val),
+        z.enum(['development', 'production', 'test']).default('development')
+    ),
     PORT: z.coerce.number().default(4232),
     HOST: z.string().default('0.0.0.0'),
 
@@ -156,11 +160,17 @@ function parseEnv(): Env {
         process.exit(1)
     }
 
+    logger.info({
+        rawNodeEnv: process.env.NODE_ENV,
+        parsedNodeEnv: result.data.NODE_ENV,
+    }, 'Environment parsed')
+
     return result.data
 }
 
 
 export const env = parseEnv()
+setEnvironment(env.NODE_ENV)
 
 /**
  * Helper function to construct PostgreSQL connection URL

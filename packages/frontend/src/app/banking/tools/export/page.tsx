@@ -35,8 +35,8 @@ import { usePermission } from '@/hooks/usePermission';
 
 export default function DataExportPage() {
   const { hasAnyPermission } = usePermission();
-  const canViewToolsExport = hasAnyPermission(['banking.tools.export.view', 'banking.tools.export.manage', 'banking.tools.manage', 'admin.super_admin']);
-  const canManageToolsExport = hasAnyPermission(['banking.tools.export.manage', 'banking.tools.manage', 'admin.super_admin']);
+  const canViewToolsExport = hasAnyPermission(['banking.tools.export.view', 'banking.tools.export.manage', 'banking.tools.manage']);
+  const canManageToolsExport = hasAnyPermission(['banking.tools.export.manage', 'banking.tools.manage']);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);

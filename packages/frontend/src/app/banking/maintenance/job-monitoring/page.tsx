@@ -65,11 +65,11 @@ const SUPPORTED_JOB_TYPE_OPTIONS: Array<{ value: SupportedJobType; label: string
   { value: 'SHELL_COMMAND', label: 'Shell Command' },
 ];
 
-const JOB_VIEW_PERMISSIONS = ['jobs.view', 'jobs.manage', 'jobs.access', 'admin.system.view', 'admin.system.manage', 'admin.super_admin'];
-const JOB_CREATE_PERMISSIONS = ['jobs.create', 'jobs.manage', 'jobs.access', 'admin.system.manage', 'admin.super_admin'];
-const JOB_RUN_PERMISSIONS = ['jobs.run', 'jobs.manage', 'jobs.access', 'admin.system.manage', 'admin.super_admin'];
-const JOB_CONTROL_PERMISSIONS = ['jobs.control', 'jobs.manage', 'jobs.access', 'admin.system.manage', 'admin.super_admin'];
-const JOB_RUNTIME_PERMISSIONS = ['jobs.runtime.view', 'jobs.manage', 'admin.system.view', 'admin.system.manage', 'admin.super_admin'];
+const JOB_VIEW_PERMISSIONS = ['jobs.view', 'jobs.manage', 'jobs.access', 'admin.system.view', 'admin.system.manage'];
+const JOB_CREATE_PERMISSIONS = ['jobs.create', 'jobs.manage', 'jobs.access', 'admin.system.manage'];
+const JOB_RUN_PERMISSIONS = ['jobs.run', 'jobs.manage', 'jobs.access', 'admin.system.manage'];
+const JOB_CONTROL_PERMISSIONS = ['jobs.control', 'jobs.manage', 'jobs.access', 'admin.system.manage'];
+const JOB_RUNTIME_PERMISSIONS = ['jobs.runtime.view', 'jobs.manage', 'admin.system.view', 'admin.system.manage'];
 
 const DEFAULT_NEW_JOB_DATA: CreateJobForm = {
   name: '',

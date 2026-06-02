@@ -157,9 +157,9 @@ const DEFAULT_RULE_BASE_COLUMN_VISIBILITY = RULE_BASE_COLUMNS.reduce(
 
 export default function RuleBaseSettingPage() {
   const { hasAnyPermission } = usePermission();
-  const canViewRuleBase = hasAnyPermission(['banking.collective.rule_base.view', 'banking.collective.rule_base.manage', 'banking.collective.manage', 'banking.collective', 'admin.super_admin']);
-  const canManageRuleBase = hasAnyPermission(['banking.collective.rule_base.manage', 'banking.collective.rule_base.create', 'banking.collective.rule_base.update', 'banking.collective.rule_base.delete', 'banking.collective.manage', 'admin.super_admin']);
-  const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
+  const canViewRuleBase = hasAnyPermission(['banking.collective.rule_base.view', 'banking.collective.rule_base.manage', 'banking.collective.manage', 'banking.collective']);
+  const canManageRuleBase = hasAnyPermission(['banking.collective.rule_base.manage', 'banking.collective.rule_base.create', 'banking.collective.rule_base.update', 'banking.collective.rule_base.delete', 'banking.collective.manage']);
+  const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all']);
 
   const router = useRouter();
 

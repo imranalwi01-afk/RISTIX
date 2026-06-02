@@ -86,5 +86,9 @@ EXPOSE 4231
 
 ENV PORT=4231
 ENV HOSTNAME=0.0.0.0
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:4231/system/health || exit 1
+
 # Startup logic
 CMD ["node", "server.js"]
