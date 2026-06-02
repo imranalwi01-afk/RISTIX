@@ -315,11 +315,18 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
             baseLogger.info({ email: user.email }, '[AUTH] Platform user context loaded')
         }
 
-        // Set user context - ALWAYS use the resolved UUID from tenant object
+        // Set user context - load full permissions from Redis session (JWT only carries meta perms)
+        let session: any
+        try { session = JSON.parse(sessionData) } catch { session = {} }
+        const sessionPermissions = Array.isArray(session?.permissions)
+            ? session.permissions.filter((p: unknown): p is string => typeof p === 'string')
+            : []
         const payloadPermissions = Array.isArray((payload as any).permissions)
             ? ((payload as any).permissions as unknown[]).filter((permission): permission is string => typeof permission === 'string')
             : []
-        const resolvedPermissions = normalizePermissions(payloadPermissions)
+        const resolvedPermissions = normalizePermissions(
+            sessionPermissions.length > 0 ? sessionPermissions : payloadPermissions
+        )
 
         const isSystemUser =
             resolvedPermissions.includes('admin.super_admin') ||
