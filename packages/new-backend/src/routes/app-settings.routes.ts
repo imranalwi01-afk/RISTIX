@@ -11,6 +11,7 @@ import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 import { buildListResponse, buildOffsetPagination, ListQueryValidationError, parseListQuery } from '../lib/http/list-query'
 
 const app = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
+const CURRENCY_DISPLAY_PARAM_CODE = 'CURRDSPLY'
 
 app.use('*', authMiddleware)
 
@@ -385,6 +386,16 @@ app.openapi(
 
         const payload = { paramCode: code, parentCode: code, ...data }
         const executeCreate = () => ParametersService.createAppSettingDetail(payload, userId) as Effect.Effect<any, any, never>
+        if (String(code).toUpperCase() === CURRENCY_DISPLAY_PARAM_CODE) {
+            return runEffect(
+                c,
+                pipe(
+                    executeCreate(),
+                    Effect.map((created) => ({ success: true, approvalRequired: false, data: created }))
+                ) as any,
+                () => 201
+            )
+        }
 
         const effect = pipe(
             interceptCreate(
@@ -585,6 +596,16 @@ app.openapi(
         const userPermissions = (c.get('permissions') as string[]) || []
 
         const executeCreate = () => ParametersService.createAppSettingDetail(data, userId) as Effect.Effect<any, any, never>
+        if (String((data as any)?.paramCode || (data as any)?.param_code || '').toUpperCase() === CURRENCY_DISPLAY_PARAM_CODE) {
+            return runEffect(
+                c,
+                pipe(
+                    executeCreate(),
+                    Effect.map((created) => ({ success: true, approvalRequired: false, data: created }))
+                ) as any,
+                () => 201
+            )
+        }
 
         const effect = pipe(
             interceptCreate(
@@ -634,31 +655,39 @@ app.openapi(
         const userPermissions = (c.get('permissions') as string[]) || []
 
         const executeUpdate = () => ParametersService.updateAppSettingDetail(id, data, userId) as Effect.Effect<any, any, never>
-
-        const effect = pipe(
+        const directEffect = pipe(
             ParametersService.getAppSettingDetail(id) as Effect.Effect<any, any>,
-            Effect.flatMap((oldValues) =>
-                interceptUpdate(
-                    tenantId,
-                    userId,
-                    userPermissions,
-                    'parameter',
-                    `detail:${id}`,
-                    { ...data, detailId: id, scope: 'detail' },
-                    executeUpdate,
-                    'medium',
-                    oldValues
-                )
-            ),
-            Effect.map((response: ApprovalResponse) => {
-                if (response.approvalRequired) {
-                    return response
+            Effect.flatMap((oldValues: any) => {
+                const paramCode = String(oldValues?.param_code || oldValues?.paramCode || '').toUpperCase()
+                if (paramCode === CURRENCY_DISPLAY_PARAM_CODE) {
+                    return pipe(
+                        executeUpdate(),
+                        Effect.map((updated) => ({ success: true, approvalRequired: false, data: updated }))
+                    ) as any
                 }
-                return { success: true, approvalRequired: false, data: response.data }
+                return pipe(
+                    interceptUpdate(
+                        tenantId,
+                        userId,
+                        userPermissions,
+                        'parameter',
+                        `detail:${id}`,
+                        { ...data, detailId: id, scope: 'detail' },
+                        executeUpdate,
+                        'medium',
+                        oldValues
+                    ),
+                    Effect.map((response: ApprovalResponse) => {
+                        if (response.approvalRequired) {
+                            return response
+                        }
+                        return { success: true, approvalRequired: false, data: response.data }
+                    })
+                ) as any
             })
         )
 
-        return runEffect(c, effect as any, (result: any) => result.approvalRequired ? 202 : 200)
+        return runEffect(c, directEffect as any, (result: any) => result.approvalRequired ? 202 : 200)
     }
 )
 

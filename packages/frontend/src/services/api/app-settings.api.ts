@@ -31,7 +31,7 @@ export interface AppSettingsDetail {
 
 export interface CreateAppSettingsDetailDto {
     paramCode: string;
-    paramSeq: number;
+    paramSeq?: number;
     value1: string;
     value2: string;
     value3: string;
@@ -68,7 +68,7 @@ export const appSettingsApi = {
      * Create a new detail
      */
     async createDetail(data: CreateAppSettingsDetailDto): Promise<AppSettingsDetail> {
-        const response = await apiClient.post<any>(BASE_URL, data);
+        const response = await apiClient.post<any>(`${BASE_URL}/details`, data);
         return response.data?.data;
     },
 

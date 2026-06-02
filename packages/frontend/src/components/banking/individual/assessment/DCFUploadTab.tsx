@@ -14,7 +14,7 @@ import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { format, parse } from 'date-fns';
+import { format } from 'date-fns';
 import * as XLSX from 'xlsx';
 import {
   CloudUpload as CloudUploadIcon,
@@ -62,8 +62,65 @@ const DCF_REQUIRED_COLUMNS = [
 ] as const;
 
 type ParseResult =
-  | { ok: true; rows: Record<string, any>[]; totalRows: number }
+  | { ok: true; rows: Record<string, any>[]; totalRows: number; warning?: string }
   | { ok: false; error: string; missingCols?: string[]; extraCols?: string[] };
+
+function normalizePeriodValue(value: unknown): string | null {
+  if (value === null || value === undefined || value === '') return null;
+
+  // Excel serial date support
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0 && value < 1000000) {
+    const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+    const millis = Math.round(value * 24 * 60 * 60 * 1000);
+    const dt = new Date(excelEpoch.getTime() + millis);
+    if (!Number.isNaN(dt.getTime())) return format(dt, 'yyyy-MM-dd');
+  }
+
+  const raw = String(value).trim();
+  if (!raw) return null;
+
+  const toIso = (y: number, m: number, d: number): string | null => {
+    if (y < 1900 || y > 2100) return null;
+    if (m < 1 || m > 12) return null;
+    if (d < 1 || d > 31) return null;
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    if (dt.getUTCFullYear() !== y || dt.getUTCMonth() + 1 !== m || dt.getUTCDate() !== d) return null;
+    return `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  };
+
+  const cleaned = raw.replace(/^'+|'+$/g, '');
+
+  // Prefer explicit regex parsing to avoid dd-MM-yy being interpreted as dd-MM-yyyy (year 0019/0021).
+  const dmy2 = cleaned.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2})$/);
+  if (dmy2) {
+    const d = Number(dmy2[1]);
+    const m = Number(dmy2[2]);
+    const yy = Number(dmy2[3]);
+    const y = yy >= 50 ? 1900 + yy : 2000 + yy;
+    const iso = toIso(y, m, d);
+    if (iso) return iso;
+  }
+
+  const dmy4 = cleaned.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (dmy4) {
+    const iso = toIso(Number(dmy4[3]), Number(dmy4[2]), Number(dmy4[1]));
+    if (iso) return iso;
+  }
+
+  const ymd = cleaned.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (ymd) {
+    const iso = toIso(Number(ymd[1]), Number(ymd[2]), Number(ymd[3]));
+    if (iso) return iso;
+  }
+
+  // Last attempt: native parser
+  const fallback = new Date(cleaned);
+  if (!Number.isNaN(fallback.getTime())) {
+    return format(fallback, 'yyyy-MM-dd');
+  }
+
+  return null;
+}
 
 // ——————————————————————————————————————————————————————————————————————————————————————————————————
 // VALIDATION HELPER
@@ -111,6 +168,8 @@ function validateAndParseFile(file: File, expectedAccountNumber?: string): Promi
 
         const rows: Record<string, any>[] = [];
         const errors: string[] = [];
+        const seenPeriods = new Set<string>();
+        let hasOutOfOrderPeriods = false;
 
         for (let i = 0; i < dataRows.length; i++) {
           const row = dataRows[i];
@@ -128,14 +187,25 @@ function validateAndParseFile(file: File, expectedAccountNumber?: string): Promi
           }
 
           ['PRINCIPAL', 'INTEREST', 'COLLATERAL'].forEach(col => {
-            const val = Number(obj[col]);
+            const raw = String(obj[col] ?? '').replace(/,/g, '').trim();
+            const val = Number(raw);
             if (isNaN(val) || val < 0) {
               errors.push(`Baris ${rowNum}: Kolom ${col} harus berupa angka positif.`);
             }
+            obj[col] = Number.isFinite(val) ? val : obj[col];
           });
 
-          if (!obj.PERIODE || isNaN(Date.parse(String(obj.PERIODE)))) {
+          const normalizedPeriod = normalizePeriodValue(obj.PERIODE);
+          if (!normalizedPeriod) {
              errors.push(`Baris ${rowNum}: Format kolom PERIODE tidak valid.`);
+          } else {
+            const periodIso = normalizedPeriod;
+            if (seenPeriods.has(periodIso)) {
+              errors.push(`Baris ${rowNum}: PERIODE duplikat (${periodIso}).`);
+            }
+            seenPeriods.add(periodIso);
+
+            obj.PERIODE = periodIso;
           }
 
           if (errors.length >= 5) break; 
@@ -149,7 +219,27 @@ function validateAndParseFile(file: File, expectedAccountNumber?: string): Promi
           });
         }
 
-        resolve({ ok: true, rows, totalRows: rows.length });
+        const sortedRows = [...rows].sort((a, b) => {
+          const ta = new Date(String(a.PERIODE)).getTime();
+          const tb = new Date(String(b.PERIODE)).getTime();
+          return ta - tb;
+        });
+
+        for (let i = 0; i < rows.length; i++) {
+          if (String(rows[i]?.PERIODE || '') !== String(sortedRows[i]?.PERIODE || '')) {
+            hasOutOfOrderPeriods = true;
+            break;
+          }
+        }
+
+        resolve({
+          ok: true,
+          rows: sortedRows,
+          totalRows: sortedRows.length,
+          warning: hasOutOfOrderPeriods
+            ? 'PERIODE tidak urut. Sistem mengurutkan otomatis berdasarkan tanggal (ascending) sesuai alur kalkulasi.'
+            : undefined
+        });
       } catch (err) {
         resolve({ ok: false, error: 'Gagal memproses file.' });
       }
@@ -283,7 +373,12 @@ export function DCFUploadTab({
     if (!result.ok) {
       setSnack({ msg: result.error, sev: 'error' });
     } else {
-      setSnack({ msg: `${result.totalRows} baris cashflow terbaca.`, sev: 'success' });
+      setSnack({
+        msg: result.warning
+          ? `${result.totalRows} baris cashflow terbaca. ${result.warning}`
+          : `${result.totalRows} baris cashflow terbaca.`,
+        sev: result.warning ? 'warning' : 'success'
+      });
     }
   };
 
@@ -292,6 +387,26 @@ export function DCFUploadTab({
     if (!parseResult?.ok) {
       setSnack({ msg: 'Unggah file DCF terlebih dahulu.', sev: 'warning' });
       return;
+    }
+
+    const uploadedPeriods = parseResult.rows
+      .map((r: any) => String(r.PERIODE || ''))
+      .filter((v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v))
+      .sort();
+    const minPeriod = uploadedPeriods[0];
+    const maxPeriod = uploadedPeriods[uploadedPeriods.length - 1];
+
+    const rrPayload = periods.map(p => ({
+      periodStart: format(p.start, 'yyyy-MM-dd'),
+      periodEnd: format(p.end, 'yyyy-MM-dd'),
+      rrRate1: p.rates[0],
+      rrRate2: p.rates[1],
+      rrRate3: p.rates[2]
+    }));
+
+    if (rrPayload.length === 1 && minPeriod && maxPeriod) {
+      rrPayload[0].periodStart = minPeriod;
+      rrPayload[0].periodEnd = maxPeriod;
     }
 
     const payload = {
@@ -306,13 +421,7 @@ export function DCFUploadTab({
             poRate3: outcomeRates[2],
             method: '3'
         },
-        repaymentRates: periods.map(p => ({
-            periodStart: format(p.start, 'yyyy-MM-dd'),
-            periodEnd: format(p.end, 'yyyy-MM-dd'),
-            rrRate1: p.rates[0],
-            rrRate2: p.rates[1],
-            rrRate3: p.rates[2]
-        })),
+        repaymentRates: rrPayload,
         cashflows: parseResult.rows.map((r, idx) => ({
             mob: idx + 1,
             periode: r.PERIODE,

@@ -399,6 +399,7 @@ export const individualImpairmentAPI = {
       const response = await apiClient.get('/banking/individual/impairment/watchlist', {
         params: {
           ...params,
+          assessment_status: filterWithoutMode?.assessment_status,
           filter: filterWithoutMode,
         },
       });

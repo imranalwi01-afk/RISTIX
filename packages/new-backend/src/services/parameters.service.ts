@@ -95,7 +95,10 @@ export const ParametersService = {
             ParametersRepository.findHeaderByCode(data.paramCode),
             Effect.flatMap(existing => {
                 if (existing) {
-                    return Effect.fail(new Error(`Parameter code '${data.paramCode}' already exists`)) as any
+                    return Effect.fail(new ValidationError({
+                        message: `Parameter code '${data.paramCode}' already exists`,
+                        errors: ['paramCode already exists'],
+                    })) as any
                 }
 
                 const now = new Date().toISOString()
@@ -112,7 +115,24 @@ export const ParametersService = {
                     updatedhost: 'localhost',
                     updateddate: now,
                 }
-                return ParametersRepository.createHeader(payload as any)
+                return pipe(
+                    ParametersRepository.createHeader(payload as any),
+                    Effect.catchAll((error: any) => {
+                        const message = String(error?.message ?? '')
+                        const duplicateCode =
+                            message.includes('duplicate key value') &&
+                            (message.includes('param_code') || message.includes('frs9_param_commonh'))
+
+                        if (duplicateCode) {
+                            return Effect.fail(new ValidationError({
+                                message: `Parameter code '${data.paramCode}' already exists`,
+                                errors: ['paramCode already exists'],
+                            })) as any
+                        }
+
+                        return Effect.fail(error) as any
+                    })
+                )
             }),
             Effect.map(transformHeader)
         )

@@ -293,6 +293,39 @@ export default function IndividualAssessmentWizardPage() {
     return isChecker && assessmentData?.status === 0;
   }, [isChecker, assessmentData]);
 
+  const isCurrentAssessmentMaker = useMemo(() => {
+    if (!user || !assessmentData) return false;
+
+    const userIdentifiers = [
+      user.id,
+      user.username,
+      user.email,
+      user.fullName,
+      ...(Array.isArray((user as any).usernames) ? (user as any).usernames : []),
+    ]
+      .map((value) => String(value || '').trim().toLowerCase())
+      .filter(Boolean);
+
+    if (userIdentifiers.length === 0) return false;
+
+    const makerCandidates = [
+      assessmentData.createdby,
+      assessmentData.createdBy,
+      assessmentData.requestedBy,
+      assessmentData.updatedby,
+      selectedAccount?.createdby,
+      selectedAccount?.assigned_analyst,
+    ]
+      .map((value) => String(value || '').trim().toLowerCase())
+      .filter(Boolean);
+
+    if (makerCandidates.length === 0) return false;
+
+    return makerCandidates.some((maker) => userIdentifiers.includes(maker));
+  }, [assessmentData, selectedAccount, user]);
+
+  const canCheckerAct = canApprove && !isCurrentAssessmentMaker;
+
   // Derive active tab from URL instead of local state to prevent sync loops
   const activeTab = useMemo(() => {
     const tabParam = searchParams.get('tab');
@@ -1196,7 +1229,18 @@ export default function IndividualAssessmentWizardPage() {
               </span>
             </Tooltip>
 
-            {isChecker && accountId && assessmentData?.status === 0 && (
+            {isChecker && accountId && (
+              <Button
+                variant="outlined"
+                color="success"
+                startIcon={<ApproveIcon />}
+                onClick={() => setApprovalDialogOpen(true)}
+                sx={{ fontWeight: 700, mr: canCheckerAct ? 1 : 0 }}
+              >
+                Open Review
+              </Button>
+            )}
+            {canCheckerAct && accountId && (
               <>
                 <Button
                   variant="contained"
@@ -1417,25 +1461,28 @@ export default function IndividualAssessmentWizardPage() {
             placeholder="Add any notes for the Maker..."
             value={checkerComments}
             onChange={(e) => setCheckerComments(e.target.value)}
+            disabled={!canCheckerAct}
             sx={{ mb: 1 }}
           />
         </DialogContent>
         <DialogActions sx={{ p: 2.5, pt: 1, borderTop: '1px solid', borderColor: 'divider', justifyContent: 'space-between' }}>
           <Typography variant="caption" color="text.secondary">
-            Review all data above before making a decision
+            {canCheckerAct ? 'Review all data above before making a decision' : 'Preview mode only: decision action is not available for this account status'}
           </Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button onClick={() => setApprovalDialogOpen(false)} disabled={submittingApproval} variant="outlined">Cancel</Button>
-            <LoadingButton
-              variant="contained"
-              color="success"
-              onClick={handleApprove}
-              loading={submittingApproval}
-              startIcon={<ApproveIcon />}
-              sx={{ fontWeight: 700, px: 3 }}
-            >
-              Approve Assessment
-            </LoadingButton>
+            {canCheckerAct && (
+              <LoadingButton
+                variant="contained"
+                color="success"
+                onClick={handleApprove}
+                loading={submittingApproval}
+                startIcon={<ApproveIcon />}
+                sx={{ fontWeight: 700, px: 3 }}
+              >
+                Approve Assessment
+              </LoadingButton>
+            )}
           </Box>
         </DialogActions>
       </Dialog>

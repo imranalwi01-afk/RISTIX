@@ -61,6 +61,7 @@ import {
   type IndividualImpairmentAssessment,
   individualImpairmentAPI
 } from '@/services/api.individual-impairment';
+import { useCurrencyDisplay } from '@/providers/CurrencyDisplayProvider';
 import { DCFUploadTab } from './DCFUploadTab';
 
 interface DCFAnalysisTabProps {
@@ -80,15 +81,6 @@ function toFiniteNumber(value: unknown, fallback = 0) {
   return Number.isFinite(numeric) ? numeric : fallback;
 }
 
-function formatCurrency(amount: unknown) {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(toFiniteNumber(amount));
-}
-
 export function DCFAnalysisTab({
   account,
   assessment,
@@ -99,6 +91,8 @@ export function DCFAnalysisTab({
   stagedDCF,
   onStagedDCF,
 }: DCFAnalysisTabProps) {
+  const { formatMoney } = useCurrencyDisplay();
+  const formatCurrency = (amount: unknown) => formatMoney(toFiniteNumber(amount), 'IDR');
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [assumptions, setAssumptions] = useState({
     poRate1: 50, rrRate1: 100,
@@ -123,11 +117,28 @@ export function DCFAnalysisTab({
       ...calculationResults,
       presentValue: toFiniteNumber(calculationResults.presentValue ?? calculationResults.totalNpv ?? calculationResults.pvDcfAmt),
       outstanding: toFiniteNumber(outstanding),
+      iaProvision: toFiniteNumber(calculationResults.eclIaAmt ?? calculationResults.recommendedProvision ?? calculationResults.lgd ?? calculationResults.impairmentLoss),
       lgd: toFiniteNumber(calculationResults.lgd ?? calculationResults.eclIaAmt ?? calculationResults.impairmentLoss),
       recommendedProvision: toFiniteNumber(calculationResults.recommendedProvision ?? calculationResults.eclIaAmt),
       details: rawDetails.map((row: any) => ({
         ...row,
         period: row.period || row.periode || row.mob,
+        mob: toFiniteNumber(row.mob),
+        principal: toFiniteNumber(row.principal),
+        interest: toFiniteNumber(row.interest),
+        installment: toFiniteNumber(row.installment ?? (toFiniteNumber(row.principal) + toFiniteNumber(row.interest))),
+        collateral: toFiniteNumber(row.collateral),
+        poRate1: toFiniteNumber(row.poRate1),
+        rrRate1: toFiniteNumber(row.rrRate1),
+        default1: toFiniteNumber(row.default1),
+        poRate2: toFiniteNumber(row.poRate2),
+        rrRate2: toFiniteNumber(row.rrRate2),
+        default2: toFiniteNumber(row.default2),
+        poRate3: toFiniteNumber(row.poRate3),
+        rrRate3: toFiniteNumber(row.rrRate3),
+        default3: toFiniteNumber(row.default3),
+        discountFactor: toFiniteNumber(row.discountFactor),
+        pvAmt: toFiniteNumber(row.pvAmt),
         beginningBalance: toFiniteNumber(row.beginningBalance),
         interestAccrual: toFiniteNumber(row.interestAccrual ?? row.eirAmt),
         weightedFlow: toFiniteNumber(row.weightedFlow ?? row.pwAmt ?? row.cashflow),
@@ -426,12 +437,11 @@ export function DCFAnalysisTab({
 
                 <Grid container spacing={2} sx={{ mb: 4 }}>
                    {[
-                    { label: 'Present Value (NPV)', value: normalizedResults.presentValue, color: 'primary.main', bg: '#e3f2fd' },
+                    { label: 'PV Cashflow', value: normalizedResults.presentValue, color: 'primary.main', bg: '#e3f2fd' },
                     { label: 'Outstanding Balance', value: normalizedResults.outstanding, color: 'text.primary', bg: '#f5f5f5' },
-                    { label: 'Impairment Loss (LGD)', value: normalizedResults.lgd, color: 'error.main', bg: '#ffebee' },
-                    { label: 'Recommended Provision', value: normalizedResults.recommendedProvision, color: 'warning.dark', bg: '#fffde7' }
+                    { label: 'IA Provision', value: normalizedResults.iaProvision, color: 'error.main', bg: '#ffebee' }
                    ].map((item, i) => (
-                    <Grid size={{ xs: 12, sm: 6, md: 3 }} key={i}>
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }} key={i}>
                       <Box sx={{ p: 2, bgcolor: item.bg, borderRadius: 2, textAlign: 'center', height: '100%', border: '1px solid rgba(0,0,0,0.05)' }}>
                         <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 1 }}>{item.label}</Typography>
                         <Typography variant="h6" fontWeight="bold" sx={{ color: item.color }}>{formatCurrency(item.value)}</Typography>
@@ -450,25 +460,57 @@ export function DCFAnalysisTab({
                   <Table stickyHeader size="small">
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold' }}>Period</TableCell>
-                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold' }}>Beginning Balance</TableCell>
-                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold' }}>Interest (EIR)</TableCell>
-                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold' }}>Weighted Flow</TableCell>
-                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold' }}>Ending Balance</TableCell>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold', whiteSpace: 'nowrap' }}>MOB</TableCell>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold', whiteSpace: 'nowrap' }}>Period</TableCell>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold', whiteSpace: 'nowrap' }} align="right">Principal</TableCell>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold', whiteSpace: 'nowrap' }} align="right">Interest</TableCell>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold', whiteSpace: 'nowrap' }} align="right">Installment</TableCell>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold', whiteSpace: 'nowrap' }} align="right">Collateral</TableCell>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold', whiteSpace: 'nowrap' }} align="right">PO Rate 1</TableCell>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold', whiteSpace: 'nowrap' }} align="right">RR Rate 1</TableCell>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold', whiteSpace: 'nowrap' }} align="right">Default 1</TableCell>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold', whiteSpace: 'nowrap' }} align="right">PO Rate 2</TableCell>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold', whiteSpace: 'nowrap' }} align="right">RR Rate 2</TableCell>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold', whiteSpace: 'nowrap' }} align="right">Default 2</TableCell>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold', whiteSpace: 'nowrap' }} align="right">PO Rate 3</TableCell>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold', whiteSpace: 'nowrap' }} align="right">RR Rate 3</TableCell>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold', whiteSpace: 'nowrap' }} align="right">Default 3</TableCell>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold', whiteSpace: 'nowrap' }} align="right">Weighted Flow</TableCell>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold', whiteSpace: 'nowrap' }} align="right">Discount Factor</TableCell>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold', whiteSpace: 'nowrap' }} align="right">PV Amount</TableCell>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold', whiteSpace: 'nowrap' }} align="right">Beginning Balance</TableCell>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold', whiteSpace: 'nowrap' }} align="right">Interest (EIR)</TableCell>
+                        <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 'bold', whiteSpace: 'nowrap' }} align="right">Ending Balance</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {normalizedResults.details.length > 0 ? normalizedResults.details.map((row: any, idx: number) => (
                         <TableRow key={`${row.period || 'period'}-${idx}`} hover>
+                          <TableCell>{row.mob || '-'}</TableCell>
                           <TableCell>{row.period || '-'}</TableCell>
-                          <TableCell>{formatCurrency(row.beginningBalance)}</TableCell>
-                          <TableCell sx={{ color: 'success.main' }}>+{formatCurrency(row.interestAccrual)}</TableCell>
-                          <TableCell sx={{ color: 'error.main' }}>-{formatCurrency(row.weightedFlow)}</TableCell>
-                          <TableCell sx={{ fontWeight: 'bold' }}>{formatCurrency(row.endingBalance)}</TableCell>
+                          <TableCell align="right">{formatCurrency(row.principal)}</TableCell>
+                          <TableCell align="right">{formatCurrency(row.interest)}</TableCell>
+                          <TableCell align="right">{formatCurrency(row.installment)}</TableCell>
+                          <TableCell align="right">{formatCurrency(row.collateral)}</TableCell>
+                          <TableCell align="right">{toFiniteNumber(row.poRate1).toFixed(2)}%</TableCell>
+                          <TableCell align="right">{toFiniteNumber(row.rrRate1).toFixed(2)}%</TableCell>
+                          <TableCell align="right">{formatCurrency(row.default1)}</TableCell>
+                          <TableCell align="right">{toFiniteNumber(row.poRate2).toFixed(2)}%</TableCell>
+                          <TableCell align="right">{toFiniteNumber(row.rrRate2).toFixed(2)}%</TableCell>
+                          <TableCell align="right">{formatCurrency(row.default2)}</TableCell>
+                          <TableCell align="right">{toFiniteNumber(row.poRate3).toFixed(2)}%</TableCell>
+                          <TableCell align="right">{toFiniteNumber(row.rrRate3).toFixed(2)}%</TableCell>
+                          <TableCell align="right">{formatCurrency(row.default3)}</TableCell>
+                          <TableCell align="right" sx={{ color: 'error.main' }}>-{formatCurrency(row.weightedFlow)}</TableCell>
+                          <TableCell align="right">{toFiniteNumber(row.discountFactor).toFixed(6)}</TableCell>
+                          <TableCell align="right">{formatCurrency(row.pvAmt)}</TableCell>
+                          <TableCell align="right">{formatCurrency(row.beginningBalance)}</TableCell>
+                          <TableCell align="right" sx={{ color: 'success.main' }}>+{formatCurrency(row.interestAccrual)}</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 'bold' }}>{formatCurrency(row.endingBalance)}</TableCell>
                         </TableRow>
                       )) : (
                         <TableRow>
-                          <TableCell colSpan={5}>
+                          <TableCell colSpan={21}>
                             <Alert severity="info" sx={{ my: 1 }}>
                               No amortization schedule rows returned for this DCF calculation.
                             </Alert>

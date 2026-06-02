@@ -47,70 +47,84 @@ export class IndividualImpairmentService {
         return Number.isFinite(parsed) ? parsed : 0;
     }
 
-    private toDateString(value?: string | Date | null) {
-        if (!value) return new Date().toISOString().slice(0, 10);
-        
-        // 1. Handle Date objects
+    private toDateString(value?: string | Date | number | null) {
+        const nowIso = new Date().toISOString().slice(0, 10);
+        if (value == null || value === '') return nowIso;
+
+        const toIso = (year: number, month: number, day: number) => {
+            if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+                throw new Error(`Invalid date components: ${year}-${month}-${day}`);
+            }
+            if (year < 1900 || year > 2100) {
+                throw new Error(`Invalid date year: ${year}`);
+            }
+            if (month < 1 || month > 12) {
+                throw new Error(`Invalid date month: ${month}`);
+            }
+            if (day < 1 || day > 31) {
+                throw new Error(`Invalid date day: ${day}`);
+            }
+
+            const dt = new Date(Date.UTC(year, month - 1, day));
+            if (
+                dt.getUTCFullYear() !== year ||
+                dt.getUTCMonth() + 1 !== month ||
+                dt.getUTCDate() !== day
+            ) {
+                throw new Error(`Invalid calendar date: ${year}-${month}-${day}`);
+            }
+
+            return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        };
+
         if (value instanceof Date) {
-            if (Number.isNaN(value.getTime())) return new Date().toISOString().slice(0, 10);
-            return value.toISOString().slice(0, 10);
+            if (Number.isNaN(value.getTime())) throw new Error('Invalid Date object');
+            return `${value.getUTCFullYear()}-${String(value.getUTCMonth() + 1).padStart(2, '0')}-${String(value.getUTCDate()).padStart(2, '0')}`;
         }
 
-        // 2. Handle Numeric values (Excel Serial Dates)
-        // Excel serial dates are numbers like 43737 (Sep 2019)
-        const numericValue = Number(value);
-        if (!isNaN(numericValue) && (typeof value === 'number' || (typeof value === 'string' && /^\d+(\.\d+)?$/.test(value.trim())))) {
-            // Excel dates are usually between 1 (1900) and 100000 (2173)
-            if (numericValue > 0 && numericValue < 1000000) {
-                // 25569 is the offset between Unix epoch (1970-01-01) and Excel epoch (1899-12-30)
-                const date = new Date(Math.round((numericValue - 25569) * 86400 * 1000));
-                if (!Number.isNaN(date.getTime())) {
-                    return date.toISOString().slice(0, 10);
-                }
+        const raw = String(value).trim();
+        if (!raw) return nowIso;
+
+        const numericValue = Number(raw);
+        if (
+            !Number.isNaN(numericValue) &&
+            /^\d+(\.\d+)?$/.test(raw) &&
+            numericValue > 0 &&
+            numericValue < 1000000
+        ) {
+            const dt = new Date(Math.round((numericValue - 25569) * 86400 * 1000));
+            if (!Number.isNaN(dt.getTime())) {
+                return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
             }
         }
 
-        const str = String(value).trim();
-        if (!str) return new Date().toISOString().slice(0, 10);
+        const cleaned = raw.replace(/^'+|'+$/g, '');
 
-        // 3. Try standard ISO (YYYY-MM-DD)
-        // Pre-check to avoid bare numbers being parsed as years (e.g. "43737" -> Year 43737)
-        if (str.includes('-') || str.includes('/')) {
-             const date = new Date(str);
-             if (!Number.isNaN(date.getTime())) {
-                 // Heuristic: Ensure it's a "reasonable" year to avoid parsing errors
-                 const y = date.getFullYear();
-                 if (y > 1900 && y < 2100) {
-                     return date.toISOString().slice(0, 10);
-                 }
-             }
+        const isoMatch = cleaned.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (isoMatch) {
+            return toIso(Number(isoMatch[1]), Number(isoMatch[2]), Number(isoMatch[3]));
         }
 
-        // 4. Handle DD-MM-YYYY or DD/MM/YYYY or DD-MM-YY
-        const parts = str.split(/[-/]/);
-        if (parts.length === 3) {
-            let d, m, y;
-            
-            // Check if it's YYYY-MM-DD or DD-MM-YYYY
-            if (parts[0].length === 4) {
-                y = parseInt(parts[0], 10);
-                m = parseInt(parts[1], 10) - 1;
-                d = parseInt(parts[2], 10);
-            } else {
-                d = parseInt(parts[0], 10);
-                m = parseInt(parts[1], 10) - 1;
-                y = parseInt(parts[2], 10);
-                // Handle 2-digit years
-                if (y < 100) y += (y > 50 ? 1900 : 2000);
-            }
-
-            if (!isNaN(d) && !isNaN(m) && !isNaN(y)) {
-                // Return YYYY-MM-DD string directly to avoid timezone shifts
-                return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-            }
+        const ymdMatch = cleaned.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})$/);
+        if (ymdMatch) {
+            return toIso(Number(ymdMatch[1]), Number(ymdMatch[2]), Number(ymdMatch[3]));
         }
 
-        return str.slice(0, 10);
+        const dmyMatch = cleaned.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2}|\d{4})$/);
+        if (dmyMatch) {
+            const day = Number(dmyMatch[1]);
+            const month = Number(dmyMatch[2]);
+            let year = Number(dmyMatch[3]);
+            if (year < 100) year += year >= 50 ? 1900 : 2000;
+            return toIso(year, month, day);
+        }
+
+        const fallback = new Date(cleaned);
+        if (!Number.isNaN(fallback.getTime())) {
+            return `${fallback.getUTCFullYear()}-${String(fallback.getUTCMonth() + 1).padStart(2, '0')}-${String(fallback.getUTCDate()).padStart(2, '0')}`;
+        }
+
+        throw new Error(`Invalid date format: ${cleaned}`);
     }
 
     private getEomonth(dateStr: string): string {
@@ -1042,8 +1056,8 @@ export class IndividualImpairmentService {
                 const rrRowsPayload = boundedRows.map((row, index) => ({
                     iaId,
                     accountId,
-                    periodStart: row.periodStart || assessment.prc_date || new Date().toISOString().slice(0, 10),
-                    periodEnd: row.periodEnd || row.periodStart || assessment.prc_date || new Date().toISOString().slice(0, 10),
+                    periodStart: this.toDateString(row.periodStart || assessment.prc_date || new Date().toISOString().slice(0, 10)),
+                    periodEnd: this.toDateString(row.periodEnd || row.periodStart || assessment.prc_date || new Date().toISOString().slice(0, 10)),
                     rrRate1: index === 0 ? Number(row.repaymentRate || 0) : 0,
                     rrRate2: index === 1 ? Number(row.repaymentRate || 0) : 0,
                     rrRate3: index === 2 ? Number(row.repaymentRate || 0) : 0,
@@ -1354,6 +1368,44 @@ export class IndividualImpairmentService {
         const host = params?.host || 'localhost';
         const accountIdNum = Number(accountId);
 
+        if (!Number.isFinite(accountIdNum) || accountIdNum <= 0) {
+            throw new Error('Invalid accountId');
+        }
+        if (!Array.isArray(cashflows) || cashflows.length === 0) {
+            throw new Error('Cashflow rows are required for DCF calculation');
+        }
+        const poRate1Raw = this.toNumber(assumptions?.poRate1);
+        const poRate2Raw = this.toNumber(assumptions?.poRate2);
+        const poRate3Raw = this.toNumber(assumptions?.poRate3);
+        const poTotal = Number((poRate1Raw + poRate2Raw + poRate3Raw).toFixed(6));
+        if (Math.abs(poTotal - 100) > 0.000001) {
+            throw new Error(`Total PO rate must be exactly 100%. Current total: ${poTotal}%`);
+        }
+        if (!Array.isArray(repaymentRates) || repaymentRates.length === 0) {
+            throw new Error('Repayment rates are required for DCF calculation');
+        }
+
+        const normalizedCashflowDates = (Array.isArray(cashflows) ? cashflows : [])
+            .map((cf: any) => this.toDateString(cf?.periode))
+            .filter(Boolean)
+            .sort();
+
+        const minCashflowDate = normalizedCashflowDates[0] || null;
+        const maxCashflowDate = normalizedCashflowDates[normalizedCashflowDates.length - 1] || null;
+
+        const normalizedRepaymentRates = repaymentRates.map((rr: any) => ({
+            ...rr,
+            periodStart: this.toDateString(rr?.periodStart),
+            periodEnd: this.toDateString(rr?.periodEnd),
+        }));
+
+        // Auto-align single RR period to full cashflow horizon to prevent false unmapped errors
+        // when user uploads historical files but keeps default scenario date range.
+        if (normalizedRepaymentRates.length === 1 && minCashflowDate && maxCashflowDate) {
+            normalizedRepaymentRates[0].periodStart = minCashflowDate;
+            normalizedRepaymentRates[0].periodEnd = maxCashflowDate;
+        }
+
         return await legacyDb.transaction(async (tx) => {
             // 0. ADVISORY LOCK: Prevent concurrent processing for the same account
             await tx.execute(sql`SELECT pg_advisory_xact_lock(${accountIdNum})`);
@@ -1409,8 +1461,8 @@ export class IndividualImpairmentService {
 
             // 3. Save Repayment Rates (RR)
             await tx.delete(frs9ImpIaRr).where(eq(frs9ImpIaRr.iaId, iaId));
-            if (repaymentRates && Array.isArray(repaymentRates)) {
-                for (const rr of repaymentRates) {
+            if (normalizedRepaymentRates && Array.isArray(normalizedRepaymentRates)) {
+                for (const rr of normalizedRepaymentRates) {
                     await tx.insert(frs9ImpIaRr).values({
                         iaId: iaId,
                         accountId: accountIdNum,
@@ -1452,9 +1504,9 @@ export class IndividualImpairmentService {
             const allDcf = await tx.select().from(frs9ImpIaDcf).where(eq(frs9ImpIaDcf.iaId, iaId)).orderBy(asc(frs9ImpIaDcf.mob));
             const allRr = await tx.select().from(frs9ImpIaRr).where(eq(frs9ImpIaRr.iaId, iaId));
             
-            const poRate1 = this.toNumber(assumptions.poRate1) / 100;
-            const poRate2 = this.toNumber(assumptions.poRate2) / 100;
-            const poRate3 = this.toNumber(assumptions.poRate3) / 100;
+            const poRate1 = poRate1Raw / 100;
+            const poRate2 = poRate2Raw / 100;
+            const poRate3 = poRate3Raw / 100;
             
             const rawEir = this.toNumber(ma.effInterestRate);
             const nominalRate = this.toNumber(ma.interestRate);
@@ -1463,6 +1515,7 @@ export class IndividualImpairmentService {
 
             let totalNpv = 0;
             const detailRows = [];
+            const unmappedPeriods: string[] = [];
 
             for (const cf of allDcf) {
                 const cfDate = new Date(cf.periode);
@@ -1471,7 +1524,12 @@ export class IndividualImpairmentService {
                     const end = new Date(r.periodEnd);
                     // Match by date range
                     return cfDate >= start && cfDate <= end;
-                }) || allRr[0] || { rrRate1: 100, rrRate2: 100, rrRate3: 100 }; // Fallback to first scenario or 100%
+                });
+
+                if (!rr) {
+                    unmappedPeriods.push(String(cf.periode));
+                    continue;
+                }
 
                 const rr1 = this.toNumber(rr.rrRate1) / 100;
                 const rr2 = this.toNumber(rr.rrRate2) / 100;
@@ -1518,6 +1576,10 @@ export class IndividualImpairmentService {
                 });
             }
 
+            if (unmappedPeriods.length > 0) {
+                throw new Error(`Repayment rate period mapping not found for ${unmappedPeriods.length} cashflow row(s): ${unmappedPeriods.slice(0, 5).join(', ')}`);
+            }
+
             // 6. AMORTIZATION SCHEDULE
             let runningBalance = totalNpv;
             for (let i = 0; i < detailRows.length; i++) {
@@ -1541,6 +1603,41 @@ export class IndividualImpairmentService {
                 await tx.insert(frs9ImpIaDetail).values(detailRows);
             }
 
+            // Persist result tables as technical source of truth for IA output
+            await tx.delete(frs9ImpIaResultD).where(eq(frs9ImpIaResultD.iaId, iaId));
+            if (detailRows.length > 0) {
+                await tx.insert(frs9ImpIaResultD).values(
+                    detailRows.map((row) => ({
+                        iaId,
+                        prcDate,
+                        accountId: accountIdNum,
+                        mob: Number(row.mob),
+                        periode: this.toDateString(row.periode),
+                        principal: String(this.toNumber(row.principal)),
+                        interest: String(this.toNumber(row.interest)),
+                        installment: String(this.toNumber(row.installment)),
+                        collateral: String(this.toNumber(row.collateral)),
+                        poRate1: this.toNumber(row.poRate1),
+                        rrRate1: this.toNumber(row.rrRate1),
+                        default1: String(this.toNumber(row.default1)),
+                        poRate2: this.toNumber(row.poRate2),
+                        rrRate2: this.toNumber(row.rrRate2),
+                        default2: String(this.toNumber(row.default2)),
+                        poRate3: this.toNumber(row.poRate3),
+                        rrRate3: this.toNumber(row.rrRate3),
+                        default3: String(this.toNumber(row.default3)),
+                        pwAmt: String(this.toNumber(row.pwAmt)),
+                        discountFactor: this.toNumber(row.discountFactor),
+                        pvAmt: String(this.toNumber(row.pvAmt)),
+                        beginningBalance: String(this.toNumber(row.beginningBalance)),
+                        eirAmt: String(this.toNumber(row.interestAccrual ?? row.eirAmt)),
+                        endingBalance: String(this.toNumber(row.endingBalance)),
+                        createdby: userId,
+                        createddate: new Date().toISOString(),
+                    }))
+                );
+            }
+
             const eadAmt = this.toNumber(ma.outstanding);
             const eclIaAmt = Math.max(0, eadAmt - totalNpv);
 
@@ -1552,6 +1649,30 @@ export class IndividualImpairmentService {
                     updateddate: new Date().toISOString()
                 })
                 .where(eq(frs9ImpIaHeader.iaId, iaId));
+
+            await tx.delete(frs9ImpIaResultH).where(eq(frs9ImpIaResultH.iaId, iaId));
+            await tx.insert(frs9ImpIaResultH).values({
+                iaId,
+                prcDate,
+                accountId: accountIdNum,
+                accountNumber: ma.accountNumber || 'UNKNOWN',
+                cifNumber: ma.cifNumber || 'UNKNOWN',
+                cifName: ma.cifName || 'UNKNOWN',
+                currency: ma.currency || 'IDR',
+                dpd: this.toNumber(ma.dpd),
+                collectability: this.toNumber(ma.collectability),
+                ratingCode: ma.internalRatingCode || null,
+                interestRate: this.toNumber(ma.interestRate),
+                effInterestRate: this.toNumber(ma.effInterestRate),
+                outstanding: String(this.toNumber(ma.outstanding)),
+                accruedInterest: String(this.toNumber(ma.accruedInterest)),
+                carryingAmt: String(this.toNumber(ma.carryingAmt || ma.outstanding)),
+                eadAmt: String(eadAmt),
+                pvDcfAmt: String(totalNpv),
+                eclIaAmt: String(eclIaAmt),
+                createdby: userId,
+                createddate: new Date().toISOString(),
+            });
 
             // 8. LOG THE CALCULATION
             runAuditSafely(logCalculation({
@@ -1668,6 +1789,35 @@ export class IndividualImpairmentService {
     }) {
         try {
             const { limit = 50, offset = 0, search, stage, impaired_flag, status, priority_level, rating_code, dateFrom, dateTo } = filters;
+            const normalizedStatus = status ? String(status).toUpperCase() : undefined;
+            const normalizeWatchlistHeaderRow = (header: any) => ({
+                pkid: Number(header.pkid || 0),
+                ia_id: header.iaId ? Number(header.iaId) : null,
+                prc_date: header.prcDate,
+                eff_date: header.effDate || header.prcDate,
+                cif_number: header.cifNumber || '',
+                cif_name: header.cifName || '',
+                account_id: Number(header.accountId || 0),
+                account_number: header.accountNumber || '',
+                currency: header.currency || 'IDR',
+                eff_interest_rate: Number(header.effInterestRate || 0),
+                interest_rate: Number(header.interestRate || 0),
+                dpd: Number(header.dpd || 0),
+                collectability: Number(header.collectability || 0),
+                rating_code: header.ratingCode || '',
+                impaired_flag: header.impairedFlag === 'T' ? 'I' : 'N',
+                method: header.method || 'DCF',
+                outstanding_balance: Number(header.outstanding || 0),
+                provision_amount: Number(header.eclIaAmt || 0),
+                ecl_amount: Number(header.eclIaAmt || 0),
+                stage: header.impairedFlag === 'T' ? 3 : 1,
+                priority_level: Number(header.outstanding || 0) > 1000000000 ? 'HIGH' : 'MEDIUM',
+                assessment_status: STATUS_MAP_TO_STRING[Number(header.status)] || 'IN_PROGRESS',
+                notes: header.triggerRemarks || '',
+                createdby: header.createdby || 'SYSTEM',
+                createddate: header.createddate || header.prcDate,
+                is_override: true
+            });
 
             if (filters.paginationMode === 'cursor' || filters.cursor) {
                 const result = await Effect.runPromise(MasterAccountRepository.findAllCursor({
@@ -1683,11 +1833,55 @@ export class IndividualImpairmentService {
                 }) as any);
                 const mergedData = await this.mapWatchlistRows(result.data);
                 let filteredResponse = mergedData;
-                if (status) {
-                    filteredResponse = filteredResponse.filter(item => item.assessment_status === status);
+                if (normalizedStatus) {
+                    filteredResponse = filteredResponse.filter(item => String(item.assessment_status || '').toUpperCase() === normalizedStatus);
                 }
                 if (priority_level) {
                     filteredResponse = filteredResponse.filter(item => item.priority_level === priority_level);
+                }
+
+                // Ensure approved/rejected rows from IA header are still visible in watchlist when filtered by status/search.
+                if ((normalizedStatus || search) && filteredResponse.length < limit) {
+                    const headerConditions: any[] = [];
+                    if (search) {
+                        const normalizedSearch = String(search).replace(/^0+/, '');
+                        const digitOnlySearch = String(search).replace(/\D/g, '');
+                        headerConditions.push(or(
+                            ilike(frs9ImpIaHeader.accountNumber, `%${search}%`),
+                            ilike(frs9ImpIaHeader.cifName, `%${search}%`),
+                            ilike(frs9ImpIaHeader.cifNumber, `%${search}%`),
+                            sql`ltrim(${frs9ImpIaHeader.accountNumber}, '0') ILIKE ${`%${normalizedSearch}%`}`,
+                            sql`regexp_replace(coalesce(${frs9ImpIaHeader.accountNumber}, ''), '\D', '', 'g') ILIKE ${`%${digitOnlySearch}%`}`,
+                            sql`regexp_replace(coalesce(${frs9ImpIaHeader.cifNumber}, ''), '\D', '', 'g') ILIKE ${`%${digitOnlySearch}%`}`
+                        ));
+                    }
+                    if (normalizedStatus && STATUS_MAP_TO_INT[normalizedStatus] !== undefined) {
+                        headerConditions.push(eq(frs9ImpIaHeader.status, STATUS_MAP_TO_INT[normalizedStatus]));
+                    }
+                    if (dateFrom) {
+                        headerConditions.push(sql`${frs9ImpIaHeader.prcDate} >= ${dateFrom}`);
+                    }
+                    if (dateTo) {
+                        headerConditions.push(sql`${frs9ImpIaHeader.prcDate} <= ${dateTo}`);
+                    }
+
+                    const headerRowsQuery = legacyDb
+                        .select()
+                        .from(frs9ImpIaHeader)
+                        .orderBy(desc(frs9ImpIaHeader.updateddate), desc(frs9ImpIaHeader.createddate))
+                        .limit(limit);
+                    const headerRows = headerConditions.length > 0
+                        ? await headerRowsQuery.where(and(...headerConditions))
+                        : await headerRowsQuery;
+
+                    const existing = new Set(filteredResponse.map((r) => String(r.account_id)));
+                    const additions = headerRows
+                        .map(normalizeWatchlistHeaderRow)
+                        .filter((row) => row.account_id && !existing.has(String(row.account_id)));
+                    filteredResponse = [...filteredResponse, ...additions];
+                    if (normalizedStatus) {
+                        filteredResponse = filteredResponse.filter(item => String(item.assessment_status || '').toUpperCase() === normalizedStatus);
+                    }
                 }
 
                 return {
@@ -1715,10 +1909,15 @@ export class IndividualImpairmentService {
             ];
 
             if (search) {
+                const normalizedSearch = String(search).replace(/^0+/, '');
+                const digitOnlySearch = String(search).replace(/\D/g, '');
                 conditions.push(or(
                     ilike(frs9MasterAccount.accountNumber, `%${search}%`),
                     ilike(frs9MasterAccount.cifName, `%${search}%`),
-                    ilike(frs9MasterAccount.cifNumber, `%${search}%`)
+                    ilike(frs9MasterAccount.cifNumber, `%${search}%`),
+                    sql`ltrim(${frs9MasterAccount.accountNumber}, '0') ILIKE ${`%${normalizedSearch}%`}`,
+                    sql`regexp_replace(coalesce(${frs9MasterAccount.accountNumber}, ''), '\D', '', 'g') ILIKE ${`%${digitOnlySearch}%`}`,
+                    sql`regexp_replace(coalesce(${frs9MasterAccount.cifNumber}, ''), '\D', '', 'g') ILIKE ${`%${digitOnlySearch}%`}`
                 ));
             }
 
@@ -1763,31 +1962,75 @@ export class IndividualImpairmentService {
 
             const total = Number(countResult[0]?.count || 0);
 
-            if (total === 0) return { data: [], total: 0 };
-
             // 3. Fetch Paginated Results from Master Account
-            const results = await legacyDb.select()
-                .from(frs9MasterAccount)
-                .where(and(...conditions))
-                .orderBy(desc(frs9MasterAccount.prcDate), desc(frs9MasterAccount.outstanding))
-                .limit(limit)
-                .offset(offset);
+            const results = total > 0
+                ? await legacyDb.select()
+                    .from(frs9MasterAccount)
+                    .where(and(...conditions))
+                    .orderBy(desc(frs9MasterAccount.prcDate), desc(frs9MasterAccount.outstanding))
+                    .limit(limit)
+                    .offset(offset)
+                : [];
 
             // 4. Merge overrides (Manual Interventions): Override > Master Account
             const mergedData = await this.mapWatchlistRows(results);
 
             // 6. Final Filter (Status filtering applies to Overrides primarily)
             let filteredResponse = mergedData;
-            if (status) {
-                filteredResponse = mergedData.filter(item => item.assessment_status === status);
+            if (normalizedStatus) {
+                filteredResponse = mergedData.filter(item => String(item.assessment_status || '').toUpperCase() === normalizedStatus);
             }
             if (priority_level) {
                 filteredResponse = filteredResponse.filter(item => item.priority_level === priority_level);
             }
 
+            // Ensure approved/rejected rows from IA header are still visible in watchlist when filtered by status/search.
+            if ((normalizedStatus || search) && filteredResponse.length < limit) {
+                const headerConditions: any[] = [];
+                if (search) {
+                    const normalizedSearch = String(search).replace(/^0+/, '');
+                    const digitOnlySearch = String(search).replace(/\D/g, '');
+                    headerConditions.push(or(
+                        ilike(frs9ImpIaHeader.accountNumber, `%${search}%`),
+                        ilike(frs9ImpIaHeader.cifName, `%${search}%`),
+                        ilike(frs9ImpIaHeader.cifNumber, `%${search}%`),
+                        sql`ltrim(${frs9ImpIaHeader.accountNumber}, '0') ILIKE ${`%${normalizedSearch}%`}`,
+                        sql`regexp_replace(coalesce(${frs9ImpIaHeader.accountNumber}, ''), '\D', '', 'g') ILIKE ${`%${digitOnlySearch}%`}`,
+                        sql`regexp_replace(coalesce(${frs9ImpIaHeader.cifNumber}, ''), '\D', '', 'g') ILIKE ${`%${digitOnlySearch}%`}`
+                    ));
+                }
+                if (normalizedStatus && STATUS_MAP_TO_INT[normalizedStatus] !== undefined) {
+                    headerConditions.push(eq(frs9ImpIaHeader.status, STATUS_MAP_TO_INT[normalizedStatus]));
+                }
+                if (dateFrom) {
+                    headerConditions.push(sql`${frs9ImpIaHeader.prcDate} >= ${dateFrom}`);
+                }
+                if (dateTo) {
+                    headerConditions.push(sql`${frs9ImpIaHeader.prcDate} <= ${dateTo}`);
+                }
+
+                const headerRowsQuery = legacyDb
+                    .select()
+                    .from(frs9ImpIaHeader)
+                    .orderBy(desc(frs9ImpIaHeader.updateddate), desc(frs9ImpIaHeader.createddate))
+                    .limit(limit);
+                const headerRows = headerConditions.length > 0
+                    ? await headerRowsQuery.where(and(...headerConditions))
+                    : await headerRowsQuery;
+
+                const existing = new Set(filteredResponse.map((r) => String(r.account_id)));
+                const additions = headerRows
+                    .map(normalizeWatchlistHeaderRow)
+                    .filter((row) => row.account_id && !existing.has(String(row.account_id)));
+                filteredResponse = [...filteredResponse, ...additions];
+                if (normalizedStatus) {
+                    filteredResponse = filteredResponse.filter(item => String(item.assessment_status || '').toUpperCase() === normalizedStatus);
+                }
+            }
+
             return {
                 data: filteredResponse,
-                total: total
+                total: Math.max(total, filteredResponse.length)
             };
         } catch (error) {
             console.error('❌ Database Query Failed in getWatchlist:', error);
