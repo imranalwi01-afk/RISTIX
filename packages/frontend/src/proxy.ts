@@ -12,7 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   buildPermissionContext,
-  evaluatePermission,
+  normalizePermissionInput,
 } from './utils/permission-evaluator';
 
 // ✅ Route to Permission Mapping (Strictly Permission-Based)
@@ -212,69 +212,33 @@ function hasRouteAccess(user: any, pathname: string): {
 } {
   // 1. Platform Admin Bypass (Absolute Superuser)
   if (user?.isPlatformAdmin === true) {
-    console.log(`[ProxyDebug] Platform admin ${user.email} - access granted`);
     return { allowed: true, reason: 'platform_admin_bypass' };
   }
 
   const userPermissions = user.permissions || [];
   const permissionContext = buildPermissionContext(userPermissions);
   if (permissionContext.isSuperAdmin) {
-    console.log(`[ProxyDebug] Super admin permission for ${user.email} - access granted`);
     return { allowed: true, reason: 'super_admin_bypass' };
   }
 
   // 2. Super Admin role bypass (for tenant admins)
   const userRoles = user.roles || [];
   if (userRoles.some((r: string) => r.toUpperCase().includes('ADMIN') || r.toUpperCase().includes('SUPERUSER'))) {
-    console.log(`[ProxyDebug] Admin user ${user.email} (${userRoles.join(',')}) - access granted`);
     return { allowed: true, reason: 'admin_role_bypass' };
   }
 
-  // 3. Map-Based Permission Check
-  // Sort patterns from most specific to least specific
-  const protectedPaths = Object.keys(ROUTE_PERMISSION_MAP).sort((a, b) => b.length - a.length);
-
-  for (const routePath of protectedPaths) {
-    if (pathname === routePath || pathname.startsWith(routePath + '/')) {
-      const requiredPermission = ROUTE_PERMISSION_MAP[routePath];
-      const permissionCandidates = Array.isArray(requiredPermission) ? requiredPermission : [requiredPermission];
-      const evaluation = permissionCandidates
-        .map((candidate) => evaluatePermission(candidate, permissionContext))
-        .find((result) => result.allowed)
-        || evaluatePermission(permissionCandidates[0], permissionContext);
-      if (evaluation.allowed) {
-        return {
-          allowed: true,
-          reason: evaluation.reason,
-          matchedRoute: routePath,
-          requiredPermission: permissionCandidates[0],
-        };
-      }
-
-      // If we matched a pattern but didn't have the permission, deny access
-      console.warn(`[ProxyDebug] User ${user.email} missing required permission ${permissionCandidates.join(' OR ')} for ${pathname}`);
-      console.warn(`[ProxyDebug] User roles: ${JSON.stringify(userRoles)}, User permissions: ${JSON.stringify(userPermissions)}`);
-      return {
-        allowed: false,
-        matchedRoute: routePath,
-        requiredPermission: permissionCandidates[0],
-        reason: 'missing_required_permission',
-        debug: evaluation,
-      };
-    }
+  // 3. Stakeholder route gating (platform vs banking vs consultant)
+  if (pathname.startsWith('/platform') && user?.stakeholderType !== 'platform') {
+    return { allowed: false, reason: 'stakeholder_mismatch', requiredPermission: 'admin.system.manage' };
+  }
+  if (pathname.startsWith('/consultant') && user?.stakeholderType !== 'consultant') {
+    return { allowed: false, reason: 'stakeholder_mismatch', requiredPermission: 'consultant.access' };
+  }
+  if (pathname.startsWith('/regulator') && user?.stakeholderType !== 'regulator') {
+    return { allowed: false, reason: 'stakeholder_mismatch', requiredPermission: 'regulator.access' };
   }
 
-  // 4. Default Fallback for banking routes
-  if (pathname.startsWith('/banking')) {
-    const hasAnyPermission = (user.permissions || []).length > 0;
-    if (hasAnyPermission) {
-      console.log(`[ProxyDebug] User ${user.email} has permissions - allowing banking route ${pathname}`);
-      return { allowed: true, reason: 'banking_fallback_any_permission' };
-    }
-  }
-
-  // Allow public or un-mapped routes by default (middleware logic should catch sensitive ones)
-  return { allowed: true, reason: 'unmapped_route_default_allow' };
+  return { allowed: true, reason: 'proxy_delegated_to_backend' };
 }
 
 // ✅ SURGICAL FIX: Get token from multiple sources
