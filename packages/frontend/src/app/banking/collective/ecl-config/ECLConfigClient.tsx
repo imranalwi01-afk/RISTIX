@@ -366,7 +366,7 @@ const eclConfigurationAPI = {
 
 export default function ECLConfigurationPage() {
   const { hasAnyPermission } = usePermission();
-  const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
+  const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all']);
   const searchParams = useSearchParams();
   const bankingMode = (searchParams.get('mode') || 'conventional').toLowerCase();
   const [moduleOptions, setModuleOptions] = useState<LookupOption[]>([]);

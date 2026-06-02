@@ -622,7 +622,7 @@ export default function DashboardClient() {
         )
     }
 
-    if (!hasAnyPermission(['banking', 'banking.dashboard.view', 'banking.dashboard.manage', 'admin.super_admin'])) {
+    if (!hasAnyPermission(['banking', 'banking.dashboard.view', 'banking.dashboard.manage'])) {
         return (
             <Box sx={{ p: 3 }}>
                 <Alert severity="error" sx={{ mb: 3 }}>
@@ -685,7 +685,7 @@ export default function DashboardClient() {
             titleTooltip: renderDebugTooltipContent('High Risk (Stage 3)', summaryDebug),
         }
     ];
-    const canViewDashboardDebug = hasAnyPermission(['admin.super_admin', 'banking.dashboard.manage']);
+    const canViewDashboardDebug = hasAnyPermission(['banking.dashboard.manage']);
     const summarySourceChip = resolveSummarySourceChip();
 
     return (

@@ -124,7 +124,7 @@ export default function BusinessProcessPage() {
               </Alert>
 
               <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-                <Can permission={['banking.processing.manage', 'banking.processing', 'admin.super_admin']}>
+                <Can permission={['banking.processing.manage', 'banking.processing']}>
                   <Button
                     variant="contained"
                     startIcon={<PageIcon />}

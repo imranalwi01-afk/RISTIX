@@ -114,8 +114,8 @@ interface ProcessingStep {
 
 export default function ManualUploadPage() {
   const { hasAnyPermission } = usePermission();
-  const canViewToolsUpload = hasAnyPermission(['banking.tools.upload.view', 'banking.tools.upload.manage', 'banking.tools.manage', 'admin.super_admin']);
-  const canManageToolsUpload = hasAnyPermission(['banking.tools.upload.manage', 'banking.tools.upload.create', 'banking.tools.manage', 'admin.super_admin']);
+  const canViewToolsUpload = hasAnyPermission(['banking.tools.upload.view', 'banking.tools.upload.manage', 'banking.tools.manage']);
+  const canManageToolsUpload = hasAnyPermission(['banking.tools.upload.manage', 'banking.tools.upload.create', 'banking.tools.manage']);
 
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(0);

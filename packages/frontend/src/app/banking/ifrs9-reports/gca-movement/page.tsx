@@ -19,7 +19,7 @@ const GCAMovementReport = dynamic(() => import('@/components/ifrs9/GCAMovementRe
 export default function GCAMovementReportsPage() {
   return (
     <Can
-      permission={['banking.reports.ifrs9.gca_movement.view', 'banking.reports.ifrs9.view', 'admin.super_admin']}
+      permission={['banking.reports.ifrs9.gca_movement.view', 'banking.reports.ifrs9.view']}
       fallback={
         <Container maxWidth="xl">
           <Alert severity="error">You do not have permission to access GCA Movement Reports.</Alert>

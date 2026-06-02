@@ -12,7 +12,11 @@ import {
   Switch,
   Typography,
 } from '@mui/material';
-import { RunCircle as RunIcon } from '@mui/icons-material';
+import {
+  Delete as DeleteIcon,
+  Edit as EditIcon,
+  RunCircle as RunIcon,
+} from '@mui/icons-material';
 import { JobDefinition } from '../types';
 
 interface JobDefinitionsPanelProps {
@@ -20,8 +24,12 @@ interface JobDefinitionsPanelProps {
   loading: boolean;
   canControlJobs: boolean;
   canRunJobs: boolean;
+  canEditJobs: boolean;
+  canDeleteJobs: boolean;
   onToggle: (jobId: string, enabled: boolean) => void;
   onRunNow: (jobId: string) => void;
+  onEdit: (job: JobDefinition) => void;
+  onDelete: (job: JobDefinition) => void;
   getStatusColor: (status: string) => string;
   formatNextRun: (value?: string) => string;
 }
@@ -31,8 +39,12 @@ export const JobDefinitionsPanel = memo(function JobDefinitionsPanel({
   loading,
   canControlJobs,
   canRunJobs,
+  canEditJobs,
+  canDeleteJobs,
   onToggle,
   onRunNow,
+  onEdit,
+  onDelete,
   getStatusColor,
   formatNextRun,
 }: JobDefinitionsPanelProps) {
@@ -48,7 +60,7 @@ export const JobDefinitionsPanel = memo(function JobDefinitionsPanel({
                 <Switch
                   checked={job.isEnabled}
                   onChange={(e) => onToggle(job.id, e.target.checked)}
-                  disabled={!canControlJobs}
+                  disabled={!canControlJobs || loading}
                   size="small"
                 />
               }
@@ -97,6 +109,29 @@ export const JobDefinitionsPanel = memo(function JobDefinitionsPanel({
                 >
                   Run Now
                 </Button>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<EditIcon />}
+                    onClick={() => onEdit(job)}
+                    disabled={!canEditJobs || loading}
+                    fullWidth
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    size="small"
+                    startIcon={<DeleteIcon />}
+                    onClick={() => onDelete(job)}
+                    disabled={!canDeleteJobs || loading}
+                    fullWidth
+                  >
+                    Delete
+                  </Button>
+                </Box>
               </Stack>
             </CardContent>
           </Card>

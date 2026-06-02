@@ -287,7 +287,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   const { user } = useAuth();
   const { hasAnyPermission } = usePermission();
   const { bankingMode } = useBankingTheme();
-  const canManageReportDebug = hasAnyPermission(['admin.system.manage', 'admin.maintenance.access', 'admin.super_admin']);
+  const canManageReportDebug = hasAnyPermission(['admin.system.manage', 'admin.maintenance.access']);
 
   // Extract tenant from user data - Memoized to prevent infinite loops
   const tenant = React.useMemo(() => {
