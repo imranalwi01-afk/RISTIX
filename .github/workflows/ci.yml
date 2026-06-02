@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install backend dependencies
+        run: |
+          cd packages/new-backend
+          pnpm install --frozen-lockfile
+
+      - name: Install frontend dependencies
+        run: |
+          cd packages/frontend
+          pnpm install --frozen-lockfile
+
+      - name: Type-check Backend
+        run: cd packages/new-backend && pnpm run typecheck
+
+      - name: Type-check Frontend
+        run: cd packages/frontend && pnpm run type-check
+
+      - name: Backend Unit Tests
+        run: cd packages/new-backend && pnpm run test
