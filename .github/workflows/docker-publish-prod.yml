@@ -33,17 +33,24 @@ jobs:
       - name: Install pnpm
         run: npm install -g pnpm
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Install backend dependencies
+        run: |
+          cd packages/new-backend
+          pnpm install --frozen-lockfile
+
+      - name: Install frontend dependencies
+        run: |
+          cd packages/frontend
+          pnpm install --frozen-lockfile
 
       - name: Type-check Backend
-        run: pnpm --dir packages/new-backend run typecheck
+        run: cd packages/new-backend && pnpm run typecheck
 
       - name: Type-check Frontend
-        run: pnpm --dir packages/frontend run type-check
+        run: cd packages/frontend && pnpm run type-check
 
       - name: Backend Unit Tests
-        run: pnpm --dir packages/new-backend run test
+        run: cd packages/new-backend && pnpm run test
 
   # ==============================================================================
   # FRONTEND BUILD JOB
