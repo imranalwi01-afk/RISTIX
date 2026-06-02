@@ -40,9 +40,6 @@ export const JobControlConfirmDialog = memo(function JobControlConfirmDialog({
               <Typography variant="body2" color="text.secondary">
                 Current Status: {job.status}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Progress: {job.progress}%
-              </Typography>
             </Paper>
           </Box>
         )}

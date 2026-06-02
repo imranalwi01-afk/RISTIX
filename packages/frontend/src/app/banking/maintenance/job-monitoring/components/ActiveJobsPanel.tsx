@@ -18,7 +18,6 @@ import {
   TextField,
   Tooltip,
   Typography,
-  LinearProgress,
 } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
@@ -108,26 +107,6 @@ export const ActiveJobsPanel = memo(function ActiveJobsPanel({
       width: 130,
       renderCell: (params: GridRenderCellParams) => (
         <Chip label={params.row.status} size="small" color={getStatusColor(params.row.status) as any} variant="filled" />
-      ),
-    },
-    {
-      field: 'progress',
-      headerName: 'Progress',
-      width: 120,
-      renderCell: (params: GridRenderCellParams) => (
-        <Box sx={{ width: '100%' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <LinearProgress
-              variant="determinate"
-              value={params.row.progress}
-              sx={{ flexGrow: 1, height: 6 }}
-              color={params.row.status === 'FAILED' ? 'error' : 'primary'}
-            />
-            <Typography variant="caption" sx={{ minWidth: 35 }}>
-              {params.row.progress}%
-            </Typography>
-          </Box>
-        </Box>
       ),
     },
     {

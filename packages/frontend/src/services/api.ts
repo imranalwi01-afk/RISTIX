@@ -558,6 +558,14 @@ export const bankingAPI = {
       const response = await apiClient.post('/jobs/definitions', data)
       return response.data
     },
+    updateDefinition: async (definitionId: string, data: any) => {
+      const response = await apiClient.patch(`/jobs/definitions/${definitionId}`, data)
+      return response.data
+    },
+    deleteDefinition: async (definitionId: string) => {
+      const response = await apiClient.delete(`/jobs/definitions/${definitionId}`)
+      return response.data
+    },
   },
 
 

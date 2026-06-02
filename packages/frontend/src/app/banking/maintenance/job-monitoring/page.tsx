@@ -3,6 +3,11 @@
 
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import {
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Box,
   Typography,
   Grid,
@@ -139,14 +144,13 @@ const mapExecutionFromApi = (e: any): JobExecution => {
     priority: e.priority || 'NORMAL',
     startTime: e.startTime || new Date().toISOString(),
     endTime: e.endTime || undefined,
-    progress: typeof e.progress === 'number' ? e.progress : 0,
     resultSummary: e.result || undefined,
     errorMessage: summary || undefined,
     errorDetails: details.join('\n').trim() || undefined,
     triggeredBy: e.triggeredBy || undefined,
     userName: e.userName || e.triggeredBy || 'System',
     tenantName: e.tenantName || 'Main Tenant',
-    runtime: runtime?.available ? runtime : undefined,
+    runtime,
   };
 };
 
@@ -193,6 +197,8 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
   const canRunJobs = hasAnyPermission(JOB_RUN_PERMISSIONS);
   const canControlJobs = hasAnyPermission(JOB_CONTROL_PERMISSIONS);
   const canViewRuntime = hasAnyPermission(JOB_RUNTIME_PERMISSIONS);
+  const canEditJobDefinitions = canCreateJobs;
+  const canDeleteJobDefinitions = canControlJobs;
   const [currentTab, setCurrentTab] = useState(0);
   const [statusTab, setStatusTab] = useState(0); // 0: All, 1: Ongoing, 2: Running, 3: Completed, 4: Failed
   const [jobExecutions, setJobExecutions] = useState<JobExecution[]>([]);
@@ -227,6 +233,22 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
 
   const [createJobDialogOpen, setCreateJobDialogOpen] = useState(false);
   const [newJobData, setNewJobData] = useState<CreateJobForm>(DEFAULT_NEW_JOB_DATA);
+  const [editJobDialog, setEditJobDialog] = useState<{
+    open: boolean;
+    jobId: string | null;
+    jobData: CreateJobForm;
+  }>({
+    open: false,
+    jobId: null,
+    jobData: DEFAULT_NEW_JOB_DATA,
+  });
+  const [deleteJobDialog, setDeleteJobDialog] = useState<{
+    open: boolean;
+    job: JobDefinition | null;
+  }>({
+    open: false,
+    job: null,
+  });
   const monitoringQuery = useJobMonitoringQuery({
     enabled: canViewJobs,
     autoRefresh,
@@ -275,6 +297,58 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
     return { defaultParameters: normalized };
   };
 
+  const buildJobDefinitionPayload = (jobData: CreateJobForm) => {
+    const trimmedName = (jobData.name || '').trim();
+
+    let defaultParams: Record<string, unknown> = { ...(jobData.parameters || {}) };
+
+    if (jobData.type === 'SQL_SP') {
+      const normalized = normalizeSqlProcedureInput(jobData);
+      defaultParams = normalized.defaultParameters;
+    } else if (jobData.type === 'INTERNAL_SCRIPT' && jobData.handlerName) {
+      defaultParams.handlerName = jobData.handlerName.trim();
+    } else if (jobData.type === 'SHELL_COMMAND' && jobData.command) {
+      defaultParams.command = jobData.command.trim();
+    }
+
+    return {
+      name: trimmedName,
+      description: jobData.description?.trim() || undefined,
+      jobType: jobData.type,
+      cronExpression: jobData.scheduleExpression || undefined,
+      defaultParameters: defaultParams,
+      priority: jobData.priority,
+      maxRetries: jobData.maxRetries,
+      timeout: jobData.timeout,
+      isEnabled: jobData.isEnabled,
+    };
+  };
+
+  const validateJobDefinitionForm = (jobData: CreateJobForm) => {
+    const trimmedName = (jobData.name || '').trim();
+    if (!trimmedName) {
+      setError('Job name is required.');
+      return false;
+    }
+
+    if (jobData.type === 'SQL_SP' && !(jobData.procedureName || '').trim()) {
+      setError('Stored Procedure Name is required for Stored Procedure jobs.');
+      return false;
+    }
+
+    if (jobData.type === 'INTERNAL_SCRIPT' && !(jobData.handlerName || '').trim()) {
+      setError('Handler Name is required for Internal Script jobs.');
+      return false;
+    }
+
+    if (jobData.type === 'SHELL_COMMAND' && !(jobData.command || '').trim()) {
+      setError('Shell Command is required for Shell Command jobs.');
+      return false;
+    }
+
+    return true;
+  };
+
   const handleCreateJob = async () => {
     if (!canCreateJobs) {
       setError('You do not have permission to create job definitions.');
@@ -282,53 +356,10 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
     }
 
     try {
-      const trimmedName = (newJobData.name || '').trim();
-      if (!trimmedName) {
-        setError('Job name is required.');
-        return;
-      }
-
-      if (newJobData.type === 'SQL_SP' && !(newJobData.procedureName || '').trim()) {
-        setError('Stored Procedure Name is required for Stored Procedure jobs.');
-        return;
-      }
-
-      if (newJobData.type === 'INTERNAL_SCRIPT' && !(newJobData.handlerName || '').trim()) {
-        setError('Handler Name is required for Internal Script jobs.');
-        return;
-      }
-
-      if (newJobData.type === 'SHELL_COMMAND' && !(newJobData.command || '').trim()) {
-        setError('Shell Command is required for Shell Command jobs.');
-        return;
-      }
+      if (!validateJobDefinitionForm(newJobData)) return;
 
       setActionLoading(true);
-
-      // Construct defaultParameters based on job type
-      let defaultParams: Record<string, unknown> = { ...(newJobData.parameters || {}) };
-
-      if (newJobData.type === 'SQL_SP') {
-        const normalized = normalizeSqlProcedureInput(newJobData);
-        defaultParams = normalized.defaultParameters;
-      } else if (newJobData.type === 'INTERNAL_SCRIPT' && newJobData.handlerName) {
-        defaultParams.handlerName = newJobData.handlerName.trim();
-      } else if (newJobData.type === 'SHELL_COMMAND' && newJobData.command) {
-        defaultParams.command = newJobData.command.trim();
-      }
-
-      // Map frontend fields to backend schema
-      const payload = {
-        name: trimmedName,
-        description: newJobData.description?.trim() || undefined,
-        jobType: newJobData.type,
-        cronExpression: newJobData.scheduleExpression || undefined,
-        defaultParameters: defaultParams,
-        priority: newJobData.priority,
-        maxRetries: newJobData.maxRetries,
-        timeout: newJobData.timeout,
-        isEnabled: newJobData.isEnabled,
-      };
+      const payload = buildJobDefinitionPayload(newJobData);
 
       await bankingAPI.jobs.createDefinition(payload as any);
 
@@ -361,6 +392,12 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
     || (newJobData.type === 'SQL_SP' && !(newJobData.procedureName || '').trim())
     || (newJobData.type === 'INTERNAL_SCRIPT' && !(newJobData.handlerName || '').trim())
     || (newJobData.type === 'SHELL_COMMAND' && !(newJobData.command || '').trim());
+  const isEditJobDisabled =
+    loading
+    || !(editJobDialog.jobData.name || '').trim()
+    || (editJobDialog.jobData.type === 'SQL_SP' && !(editJobDialog.jobData.procedureName || '').trim())
+    || (editJobDialog.jobData.type === 'INTERNAL_SCRIPT' && !(editJobDialog.jobData.handlerName || '').trim())
+    || (editJobDialog.jobData.type === 'SHELL_COMMAND' && !(editJobDialog.jobData.command || '').trim());
   const fetchJobExecutions = useCallback(async () => {
     await monitoringQuery.refetch();
   }, [monitoringQuery]);
@@ -484,7 +521,7 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
   };
 
   useEffect(() => {
-    if (!runtimeQuery.data || !runtimeQuery.data.available) return;
+    if (!runtimeQuery.data) return;
 
     const runtime = runtimeQuery.data;
     const executionId = jobDetailsDialog.job?.id;
@@ -625,6 +662,100 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
       }
       console.error('Job control error:', error);
       setError(getErrorMessage(error, 'Failed to control job. Please try again.'));
+    }
+  };
+
+  const mapJobDefinitionToForm = (job: JobDefinition): CreateJobForm => {
+    const parameters = job.parameters && typeof job.parameters === 'object' ? job.parameters : {};
+    const type = SUPPORTED_JOB_TYPE_OPTIONS.some((option) => option.value === job.type)
+      ? job.type as SupportedJobType
+      : 'SQL_SP';
+
+    return {
+      name: job.name,
+      description: job.description || '',
+      type,
+      parameters: { ...parameters },
+      priority: job.priority || 'NORMAL',
+      maxRetries: job.maxRetries,
+      timeout: job.timeout,
+      isEnabled: job.isEnabled,
+      scheduleExpression: job.scheduleExpression || '',
+      targetDatabase: parameters.targetDatabase === 'LEGACY' ? 'LEGACY' : 'TENANT',
+      schemaName: typeof parameters.schemaName === 'string' ? parameters.schemaName : '',
+      procedureName: typeof parameters.procedureName === 'string' ? parameters.procedureName : '',
+      handlerName: typeof parameters.handlerName === 'string' ? parameters.handlerName : '',
+      command: typeof parameters.command === 'string' ? parameters.command : '',
+    };
+  };
+
+  const handleEditJobDefinition = (job: JobDefinition) => {
+    if (!canEditJobDefinitions) {
+      setError('You do not have permission to edit job definitions.');
+      return;
+    }
+
+    setEditJobDialog({
+      open: true,
+      jobId: job.id,
+      jobData: mapJobDefinitionToForm(job),
+    });
+  };
+
+  const handleUpdateJobDefinition = async () => {
+    if (!canEditJobDefinitions) {
+      setError('You do not have permission to edit job definitions.');
+      return;
+    }
+
+    if (!editJobDialog.jobId) return;
+
+    try {
+      if (!validateJobDefinitionForm(editJobDialog.jobData)) return;
+
+      setActionLoading(true);
+      const payload = buildJobDefinitionPayload(editJobDialog.jobData);
+      await bankingAPI.jobs.updateDefinition(editJobDialog.jobId, payload);
+      setEditJobDialog({ open: false, jobId: null, jobData: DEFAULT_NEW_JOB_DATA });
+      await fetchJobExecutions();
+    } catch (error) {
+      const statusCode = getHttpStatus(error);
+      if (statusCode === 403) {
+        setError('You do not have permission to edit job definitions.');
+        return;
+      }
+      console.error('Update job definition error:', error);
+      setError(getErrorMessage(error, 'Failed to update job definition. Please check your inputs.'));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleConfirmDeleteJobDefinition = async () => {
+    if (!canDeleteJobDefinitions) {
+      setError('You do not have permission to delete job definitions.');
+      return;
+    }
+
+    const job = deleteJobDialog.job;
+    if (!job) return;
+
+    try {
+      setActionLoading(true);
+      await bankingAPI.jobs.deleteDefinition(job.id);
+      setDeleteJobDialog({ open: false, job: null });
+      setJobDefinitions((prev) => prev.filter((definition) => definition.id !== job.id));
+      await fetchJobExecutions();
+    } catch (error) {
+      const statusCode = getHttpStatus(error);
+      if (statusCode === 403) {
+        setError('You do not have permission to delete job definitions.');
+        return;
+      }
+      console.error('Delete job definition error:', error);
+      setError(getErrorMessage(error, 'Failed to delete job definition.'));
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -921,8 +1052,12 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
           loading={loading}
           canControlJobs={canControlJobs}
           canRunJobs={canRunJobs}
+          canEditJobs={canEditJobDefinitions}
+          canDeleteJobs={canDeleteJobDefinitions}
           onToggle={toggleJobDefinition}
           onRunNow={(jobId) => handleJobAction(jobId, 'start')}
+          onEdit={handleEditJobDefinition}
+          onDelete={(job) => setDeleteJobDialog({ open: true, job })}
           getStatusColor={getStatusColor}
           formatNextRun={formatNextRun}
         />
@@ -950,9 +1085,53 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
         supportedJobTypeOptions={SUPPORTED_JOB_TYPE_OPTIONS}
         disabled={isCreateJobDisabled}
         onClose={() => setCreateJobDialogOpen(false)}
-        onCreate={handleCreateJob}
+        onSubmit={handleCreateJob}
         onChange={setNewJobData}
       />
+      <CreateJobDefinitionDialog
+        open={editJobDialog.open}
+        loading={loading}
+        jobData={editJobDialog.jobData}
+        supportedJobTypeOptions={SUPPORTED_JOB_TYPE_OPTIONS}
+        disabled={isEditJobDisabled}
+        title="Edit Job Definition"
+        submitLabel="Save Changes"
+        onClose={() => setEditJobDialog({ open: false, jobId: null, jobData: DEFAULT_NEW_JOB_DATA })}
+        onSubmit={handleUpdateJobDefinition}
+        onChange={(updater) => {
+          setEditJobDialog((prev) => ({
+            ...prev,
+            jobData: typeof updater === 'function' ? updater(prev.jobData) : updater,
+          }));
+        }}
+      />
+
+      <Dialog
+        open={deleteJobDialog.open}
+        onClose={() => setDeleteJobDialog({ open: false, job: null })}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Delete Job Definition</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Delete {deleteJobDialog.job?.name ? `"${deleteJobDialog.job.name}"` : 'this job definition'}? Existing execution history will remain available, but the definition can no longer be run.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteJobDialog({ open: false, job: null })}>
+            Cancel
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={handleConfirmDeleteJobDefinition}
+            disabled={loading}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <JobExecutionDetailsDialog
         open={jobDetailsDialog.open}
