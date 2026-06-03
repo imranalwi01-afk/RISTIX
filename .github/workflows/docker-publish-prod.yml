@@ -50,7 +50,7 @@ jobs:
         run: cd packages/frontend && pnpm run type-check
 
       - name: Backend Unit Tests
-        run: cd packages/new-backend && pnpm run test
+        run: cd packages/new-backend && JWT_SECRET=ci-test-jwt-secret-min-32-chars-long!! pnpm run test:unit
 
   # ==============================================================================
   # FRONTEND BUILD JOB
