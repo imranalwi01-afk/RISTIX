@@ -180,122 +180,6 @@ convert_dates <- function(df, threshold = 0.9,
 
 
 
-#convert_dates2 <- function(df, threshold = 0.9,
-#                          date_formats = c("%Y-%m-%d", "%d-%m-%Y", "%m/%d/%Y", "%d/%m/%Y")) {
-#  
-#  # Validasi jumlah kolom
-#  num_columns <- ncol(df)
-#  if (num_columns > 2) {
-#    message("File memiliki lebih dari 2 kolom.")
-#  }
-#  
-#  # Pengecekan apakah ada kolom tanggal
-#  is_date_col <- logical(length = ncol(df))
-#  best_formats <- character(length = ncol(df))
-#  
-#  for (i in seq_along(df)) {
-#    col <- df[[i]]
-#    
-#    # Ubah factor jadi character
-#    if (is.factor(col)) {
-#      col <- as.character(col)
-#    }
-#    
-#    # Lanjut hanya jika character
-#    if (!is.character(col)) next
-#    
-#    best_rate <- 0
-#    best_format <- NA
-#    
-#    for (fmt in date_formats) {
-#      parsed <- suppressWarnings(as.Date(col, format = fmt))
-#      rate <- mean(!is.na(parsed))
-#      
-#      if (rate > best_rate) {
-#        best_rate <- rate
-#        best_format <- fmt
-#      }
-#      
-#      if (best_rate >= 1) break
-#    }
-#    
-#    if (best_rate >= threshold) {
-#      df[[i]] <- as.Date(col, format = best_format)
-#      is_date_col[i] <- TRUE
-#      best_formats[i] <- best_format
-#    }
-#  }
-#  
-#  # Info kolom yang diubah
-#  changed_cols <- names(df)[is_date_col]
-#  if (length(changed_cols) > 0) {
-#    message("Kolom yang dikonversi ke Date:")
-#    for (j in seq_along(changed_cols)) {
-#      message(sprintf("- %s (format: %s)", changed_cols[j], best_formats[is_date_col][j]))
-#    }
-#  } else {
-#    message("Tidak ada kolom yang terdeteksi sebagai tanggal.")
-#  }
-#  
-  # Mengembalikan hasil konversi dan validasi
-#  result <- list(df = df, num_columns = num_columns, date_columns = changed_cols)
-#  return(result)
-#}
-
-#convert_dates2 <- function(df, threshold = 0.9,
-#                           date_formats = c("%Y-%m-%d", "%d-%m-%Y", "%m/%d/%Y", "%d/%m/%Y")) {
-#  
-#  if (is.null(df) || ncol(df) == 0) {
-#    warning("Data kosong atau tidak memiliki kolom.")
-#    return(list(df = df, num_columns = 0, date_columns = character()))
-#  }
-#  
-#  is_date_col <- logical(length = ncol(df))
-#  best_formats <- character(length = ncol(df))
-#  
-#  for (i in seq_along(df)) {
-#    col <- df[[i]]
-#    
-#    if (is.factor(col)) col <- as.character(col)
-#    if (!is.character(col)) next
-#    
-#    best_rate <- 0
-#    best_format <- NA
-#    
-#    for (fmt in date_formats) {
-#      parsed <- suppressWarnings(as.Date(col, format = fmt))
-#      rate <- mean(!is.na(parsed))
-#      
-#      if (rate > best_rate) {
-#        best_rate <- rate
-#        best_format <- fmt
-#      }
-#      if (best_rate >= 1) break
-#    }
-#    
-#    if (best_rate >= threshold) {
-#      df[[i]] <- as.Date(col, format = best_format)
-#      is_date_col[i] <- TRUE
-#      best_formats[i] <- best_format
-#    }
-#  }
-#  
-#  changed_cols <- names(df)[is_date_col]
-#  if (length(changed_cols) > 0) {
-#    message("Kolom yang dikonversi ke Date:")
-#    for (j in seq_along(changed_cols)) {
-#      message(sprintf("- %s (format: %s)", changed_cols[j], best_formats[is_date_col][j]))
-#    }
-#  } else {
-#    message("Tidak ada kolom yang terdeteksi sebagai tanggal.")
-#  }
-#  
-#  return(list(df = df,
-#              num_columns = ncol(df),
-#              date_columns = changed_cols))
-#}
-
-
 convert_dates2 <- function(df, threshold = 0.9,
                            date_formats = c("%Y-%m-%d", "%d-%m-%Y", "%m/%d/%Y", "%d/%m/%Y")) {
   
@@ -2826,7 +2710,11 @@ gabungkolomb <- function(datafinalmodel){
 
 #########################Boxplot Function#########################
 #########################Boxplot Function#########################
-Boxplot_Scenario=function(x,intuisi){
+Boxplot_Scenario=function(x,intuisi,varmodel){
+  
+  x1=x
+  Datey=x1[,1]
+  x=x1[,-1]
   
   library(dplyr)
   library(purrr)
@@ -2976,7 +2864,8 @@ Boxplot_Scenario=function(x,intuisi){
   category.percentage=pivot_table_percent
   
   #########################RATA-RATA PERCENTAGE###########################
-  average_per_category <- rowMeans(pivot_table_percent[, -1])
+  #average_per_category <- rowMeans(pivot_table_percent[, -1])
+  average_per_category <- rowMeans(pivot_table_percent[,varmodel])
   names(average_per_category) <- pivot_table_percent$Category
   weighted.boxplot=average_per_category
   
@@ -2993,9 +2882,11 @@ Boxplot_Scenario=function(x,intuisi){
   diff_base <- rbind(BEST = rasio_best, WORST = rasio_worst,stdev=standar_dev)
   diff.base=diff_base
   
+  df.klasifikasi2 <- data.frame(Datey,df.klasifikasi)
   
-  
-  boxplot_result=list(df.klasifikasi=df.klasifikasi,
+  boxplot_result=list(df=x1,
+                      df.klasifikasi=df.klasifikasi,
+                      df.klasifikasi2=df.klasifikasi2,
                       category.frecuency=category.frecuency,
                       category.percentage=category.percentage,
                       weighted.boxplot=weighted.boxplot,
@@ -3068,6 +2959,7 @@ preflight_scenario_inputs <- function(base_df, intuition_df, sd_vec) {
   )
 }
 
+
 make_scenario <- function(base_df, intuition_df, sd_vec) {
   
   stopifnot(is.data.frame(base_df))
@@ -3078,13 +2970,6 @@ make_scenario <- function(base_df, intuition_df, sd_vec) {
   # =========================
   base_names <- colnames(base_df)
   core_names <- unique(sapply(strsplit(base_names, "_"), `[`, 1))
-  
-  #core_names <- gsub("_LG\\d+$", "", core_names, ignore.case = TRUE)
-  #core_names <- gsub("_LAG\\d+$", "", core_names, ignore.case = TRUE)
-  #core_names <- gsub("_Ln$", "", core_names, ignore.case = TRUE)
-  #core_names <- gsub("_Y(_.*)?$", "", core_names, ignore.case = TRUE)
-  
-  
   
   
   # =========================
@@ -3125,7 +3010,8 @@ make_scenario <- function(base_df, intuition_df, sd_vec) {
   }
   
   # mapping SD ke core name model
-  matched_sd <- sd_raw[core_names]
+  
+  matched_sd <- sd_raw[base_names]
   
   if (any(is.na(matched_sd))) {
     stop(
@@ -3135,28 +3021,132 @@ make_scenario <- function(base_df, intuition_df, sd_vec) {
   }
   
   # rename SD sesuai kolom model
-  names(matched_sd) <- base_names
+  
+  base_df2 <- base_df
+  
+  idx_zero <- matched_intuition == 0
+  
+  
+  if (any(idx_zero)) {
+    
+    cols_zero <- base_names[idx_zero]
+    
+    base_df2[, cols_zero] <- abs(base_df2[, cols_zero, drop = FALSE])
+  }
+  
   
   # =========================
   # HITUNG SCENARIO
   # =========================
+  matched_intuition <- ifelse(matched_intuition==0,1,matched_intuition)
+  
   adj_worst <- matched_intuition * matched_sd
   adj_best  <- -matched_intuition * matched_sd
   
-  worst <- sweep(base_df, 2, adj_worst, "+")
-  best  <- sweep(base_df, 2, adj_best,  "+")
+  worst <- sweep(base_df2, 2, adj_worst, "+")
+  best  <- sweep(base_df2, 2, adj_best,  "+")
+  
+  
+  
+  
+  if (any(idx_zero)) {
+    
+    cols_zero <- base_names[idx_zero]
+    
+    worst[, cols_zero] <- abs(worst[, cols_zero, drop = FALSE])
+    best[, cols_zero] <- abs(best[, cols_zero, drop = FALSE])
+    
+  }
+  
   
   list(
     worst = worst,
-    best  = best
+    best  = best,
+    base=base_df2
     #intuition_used = matched_intuition,
     #sd_used = matched_sd
   )
 }
 
+adjust_scenario_by_coef <- function(mev_base,
+                                    mev_best,
+                                    mev_worst,
+                                    coef_vec) {
+  
+  stopifnot(is.data.frame(mev_base))
+  stopifnot(is.data.frame(mev_best))
+  stopifnot(is.data.frame(mev_worst))
+  
+  if(is.null(names(coef_vec))){
+    stop("coef_vec harus memiliki nama variabel")
+  }
+  
+  # variabel yang ada di semua object
+  vars <- Reduce(
+    intersect,
+    list(
+      names(mev_base),
+      names(mev_best),
+      names(mev_worst),
+      names(coef_vec)
+    )
+  )
+  
+  for(v in vars){
+    
+    beta <- coef_vec[v]
+    
+    if(is.na(beta) || beta == 0) next
+    
+    # =========================
+    # KOEF POSITIF
+    # best harus < base
+    # worst harus > base
+    # =========================
+    if(beta > 0){
+      
+      # pastikan best lebih kecil dari base
+      mev_best[[v]] <- pmin(
+        mev_best[[v]],
+        mev_base[[v]]
+      )
+      
+      # pastikan worst lebih besar dari base
+      mev_worst[[v]] <- pmax(
+        mev_worst[[v]],
+        mev_base[[v]]
+      )
+      
+      # =========================
+      # KOEF NEGATIF
+      # best harus > base
+      # worst harus < base
+      # =========================
+    } else {
+      
+      # best harus lebih besar
+      mev_best[[v]] <- pmax(
+        mev_best[[v]],
+        mev_base[[v]]
+      )
+      
+      # worst harus lebih kecil
+      mev_worst[[v]] <- pmin(
+        mev_worst[[v]],
+        mev_base[[v]]
+      )
+    }
+  }
+  
+  return(list(
+    mev_best  = mev_best,
+    mev_base  = mev_base,
+    mev_worst = mev_worst
+  ))
+}
 
 
-forecast_mev_bxp=function(mev_base,db_boxplot,modely,z,coln,intuisi,metode="boxplot"){
+forecast_mev_bxp=function(mev_base,datahistorical,db_boxplot,modely,z,coln,intuisi,metode="boxplot"){
   
   pred_vars <- all.vars(formula(modely))[-1]  # buang y
   
@@ -3164,23 +3154,9 @@ forecast_mev_bxp=function(mev_base,db_boxplot,modely,z,coln,intuisi,metode="boxp
   mev_base=mev_base[,unlist(pred_vars, use.names = FALSE)]
   mev_base=cbind(Date,mev_base)
   
+  dfsd <- apply(datahistorical[,-1],2,sd)
   db_boxplotsd <- db_boxplot[3,]
-  preflight <- preflight_scenario_inputs(mev_base[, -1, drop = FALSE], intuisi, db_boxplotsd)
-  if (!preflight$ok) {
-    if (length(preflight$missing_intuition) > 0) {
-      stop(
-        "Preflight gagal: Intuisi tidak ditemukan untuk variabel: ",
-        paste(preflight$missing_intuition, collapse = ", ")
-      )
-    }
-    if (length(preflight$missing_sd) > 0) {
-      stop(
-        "Preflight gagal: SD tidak ditemukan untuk variabel: ",
-        paste(preflight$missing_sd, collapse = ", ")
-      )
-    }
-  }
-  sdcriteria <- make_scenario(mev_base[,-1],intuisi,db_boxplotsd)
+  sdcriteria <- make_scenario(mev_base[,-1],intuisi,dfsd)
   
   db_boxplot <- db_boxplot[1:2,]
   
@@ -3224,13 +3200,40 @@ forecast_mev_bxp=function(mev_base,db_boxplot,modely,z,coln,intuisi,metode="boxp
   }else{
     mev_best=cbind(Date=mev_base[,1],sdcriteria$best)
     mev_worst=cbind(Date=mev_base[,1],sdcriteria$worst)
+    mev_base=cbind(Date=mev_base[,1],sdcriteria$base)
   }
+  
+  
+  coef_vec <- coef(modely)[-1]
+  
+  adj <- adjust_scenario_by_coef(
+    mev_base  = mev_base,
+    mev_best  = mev_best,
+    mev_worst = mev_worst,
+    coef_vec  = coef_vec
+  )
+  
+  mev_best  <- adj$mev_best
+  mev_base  <- adj$mev_base
+  mev_worst <- adj$mev_worst
+  
+  
   
   ####predict pakai model
   predict_base=predict(modely,mev_base)
   predict_best=predict(modely,mev_best)
   predict_worst=predict(modely,mev_worst)
   
+  # Fungsi pengganti nilai negatif
+  replace_negative <- function(x) {
+    x[x < 0] <- runif(sum(x < 0), min = 0, max = 0.000009)
+    return(x)
+  }
+  
+  # Terapkan ke hasil prediksi
+  predict_base  <- replace_negative(predict_base)
+  predict_best  <- replace_negative(predict_best)
+
   
   #####back transform
   back_trans=function(x,z,coln){
@@ -3269,11 +3272,41 @@ forecast_mev_bxp=function(mev_base,db_boxplot,modely,z,coln,intuisi,metode="boxp
 
 
 
-
 #################################PD ENGINE FUNCTION############
 cap_upper <- function(df, upper = 1) {
   df[] <- lapply(df, function(col) pmin(col, upper, na.rm = TRUE))
   df
+}
+
+
+buat_bucket_sum <- function(data, k) {
+  n_col <- ncol(data)
+  
+  # cek apakah jumlah kolom habis dibagi k
+  if (n_col %% k != 0) {
+    stop("Jumlah kolom tidak habis dibagi k")
+  }
+  
+  n_group <- n_col / k
+  
+  hasil <- data.frame(Bucket = 1:nrow(data))
+  
+  for (i in 1:n_group) {
+    start_col <- (i - 1) * k + 1
+    end_col   <- i * k
+    
+    hasil[[paste0("TTC.MPD.", i)]] <- rowSums(data[, start_col:end_col])
+  }
+  
+  return(hasil)
+}
+
+
+clean_row0 <- function(data) {
+  if (rownames(data)[1] == "0") {
+    data <- data[-1, ]
+  }
+  return(data)
 }
 
 
@@ -3318,9 +3351,11 @@ PD_engine1=function(forecast_odr_boxplot,actual_odr,issuer,ympd){
   }
   
   ympdx=cutoma(ympd)
+  ym_pd=buat_bucket_sum(ympdx,12)
   ympdx[5,2:ncol(ympdx)]=0
   
-  ym_pd=data.frame(Bucket=1:nrow(ympdx),TTC.MPD.1=ympdx[,1],TTC.MPD.2=ympdx[,2])
+  
+  ym_pd2=data.frame(Bucket=1:nrow(ympdx),TTC.MPD.1=ympdx[,1],TTC.MPD.2=ympdx[,2])
   Tot_ym_pd=c(crossprod(issuer[1:4],ym_pd$TTC.MPD.1[1:4])/sum(issuer[1:4]),
               crossprod(issuer[1:4],ym_pd$TTC.MPD.2[1:4])/sum(issuer[1:4]))
   
@@ -3381,14 +3416,14 @@ PD_engine1=function(forecast_odr_boxplot,actual_odr,issuer,ympd){
   )
   
   colnames(tabel4)=c("Bucket","issuer","TTC MPD+1",	
-                     "TTC MPD+2",	"PIT MPD+1",	"PIT MPD+2",
+                     "TTC MPD+2",	"FL MPD+1",	"FL MPD+2",
                      "Logit TTC+1", "Logit TTC+2",
                      "Logit PIT+1",	"Logit PIT+2")
   
   tabel5=data.frame(value=c(scaling1,scaling2))
   rownames(tabel5)=c("Scaling +1","Scaling +2")
   
-  tabel5_6=data.frame(Y1=tabel4$`PIT MPD+1`[1:5],Y2=tabel4$`PIT MPD+2`[1:5])
+  tabel5_6=data.frame(Y1=tabel4$`FL MPD+1`[1:5],Y2=tabel4$`FL MPD+2`[1:5])
   
   intp_pd=function(data){
     hasil_intp=c()
@@ -3405,10 +3440,10 @@ PD_engine1=function(forecast_odr_boxplot,actual_odr,issuer,ympd){
   }
   
   ## === YEARLY ===
-  yearly_cpd_bfl=ympd
+  yearly_cpd_bfl=t(apply(ym_pd[,-1],1,cumsum))
   colnames(yearly_cpd_bfl)=paste0("Y", 1:ncol(yearly_cpd_bfl))
   
-  yearly_mpd_bfl=ympdx
+  yearly_mpd_bfl=ym_pd[,-1]
   colnames(yearly_mpd_bfl)=paste0("Y", 1:ncol(yearly_mpd_bfl))
   
   yearly_mpd_afl=tabel5_6
@@ -3447,6 +3482,7 @@ PD_engine1=function(forecast_odr_boxplot,actual_odr,issuer,ympd){
   
   Hasil.PD
 }
+
 
 
 
