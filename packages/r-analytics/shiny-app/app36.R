@@ -2761,7 +2761,12 @@ server <- function(input, output, session) {
     hasil <- hasil_forecast6()
     hasilfulldf <- gabung_hasil_forecast1(hasil)
     dfxx <- df6()
-    dfxx$Date <- as.Date(dfxx$Date)
+    if (is.null(dfxx) || nrow(dfxx) == 0) return(NULL)
+    if (!"Date" %in% names(dfxx)) {
+      dfxx$Date <- as.Date(rownames(dfxx))
+    } else {
+      dfxx$Date <- as.Date(dfxx$Date)
+    }
     hasilfulldf$Date <- as.Date(hasilfulldf$Date)
     
     df <- bind_rows(dfxx, hasilfulldf) %>%
@@ -2794,7 +2799,12 @@ server <- function(input, output, session) {
       hasil <- hasil_forecast6()
       hasilfulldf <- gabung_hasil_forecast1(hasil)
       dfxx <- df6()
-      dfxx$Date <- as.Date(dfxx$Date)
+      if (is.null(dfxx) || nrow(dfxx) == 0) return(NULL)
+      if (!"Date" %in% names(dfxx)) {
+        dfxx$Date <- as.Date(rownames(dfxx))
+      } else {
+        dfxx$Date <- as.Date(dfxx$Date)
+      }
       hasilfulldf$Date <- as.Date(hasilfulldf$Date)
       
       df_download <- bind_rows(dfxx, hasilfulldf) %>%
