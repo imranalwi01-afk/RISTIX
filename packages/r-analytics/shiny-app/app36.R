@@ -2761,8 +2761,12 @@ server <- function(input, output, session) {
     hasil <- hasil_forecast6()
     hasilfulldf <- gabung_hasil_forecast1(hasil)
     dfxx <- df6()
-    if (is.null(dfxx) || nrow(dfxx) == 0) return(NULL)
+    if (is.null(dfxx) || nrow(dfxx) == 0) {
+      showNotification("Data tidak tersedia untuk forecast.", type = "warning")
+      return(NULL)
+    }
     if (!"Date" %in% names(dfxx)) {
+      showNotification("Kolom 'Date' tidak ditemukan, menggunakan row names sebagai tanggal.", type = "warning")
       dfxx$Date <- as.Date(rownames(dfxx))
     } else {
       dfxx$Date <- as.Date(dfxx$Date)
@@ -2799,7 +2803,10 @@ server <- function(input, output, session) {
       hasil <- hasil_forecast6()
       hasilfulldf <- gabung_hasil_forecast1(hasil)
       dfxx <- df6()
-      if (is.null(dfxx) || nrow(dfxx) == 0) return(NULL)
+      if (is.null(dfxx) || nrow(dfxx) == 0) {
+        showNotification("Data tidak tersedia untuk download.", type = "warning")
+        return(NULL)
+      }
       if (!"Date" %in% names(dfxx)) {
         dfxx$Date <- as.Date(rownames(dfxx))
       } else {
