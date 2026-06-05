@@ -2917,7 +2917,10 @@ server <- function(input, output, session) {
       
       df <- tryCatch(
         read.csv(tmpfile),
-        error = function(e) data.frame(ERROR = e$message)
+        error = function(e) {
+          showNotification(paste("❌ Gagal membaca file CSV:", e$message), type = "error")
+          data.frame(ERROR = e$message)
+        }
       )
       
       write.csv(df, file, row.names = FALSE)
@@ -3373,12 +3376,13 @@ server <- function(input, output, session) {
   observeEvent(input$refresh,
                {
                  modelupload <- tryCatch(
-                   dbGetQuery(con, 'SELECT "model_id","model_name" FROM "frs9_r_model_summary" ORDER BY created_date DESC'),
-                   error = function(e) {
-                     NULL
-                   }
-                 )
-                 if (!is.null(modelupload) && nrow(modelupload) > 0) {
+                    dbGetQuery(con, 'SELECT "model_id","model_name" FROM "frs9_r_model_summary" ORDER BY created_date DESC'),
+                    error = function(e) {
+                      showNotification("❌ Gagal memuat daftar model dari database.", type = "error")
+                      NULL
+                    }
+                  )
+                  if (!is.null(modelupload) && nrow(modelupload) > 0) {
                    choices <- setNames(modelupload$model_name, modelupload$model_name) # value = model_name
                    updateSelectInput(session, "choose_model", choices = choices)
                  }
