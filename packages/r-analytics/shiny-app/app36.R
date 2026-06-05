@@ -2638,7 +2638,17 @@ server <- function(input, output, session) {
     )
     
     hasilfulldf <- gabung_hasil_forecast(hasil_forecast_manual)
-    hasilfulldf <- rbind(dataku, hasilfulldf)
+    dataku <- convert_dates(dataku)
+    hasilfulldf$Date <- as.Date(hasilfulldf$Date,tryFormats = c("%Y-%m-%d", "%d-%m-%Y", "%m/%d/%Y", "%d/%m/%Y"))
+    #hasilfulldf$Date <- as.Date(
+    #  parse_date_time(
+    #    hasilfulldf$Date,
+    #    orders = c("ymd", "dmy", "mdy")
+    #  )
+    #)
+    hasilfulldf <- bind_rows(dataku, hasilfulldf) %>%
+      arrange(Date)
+    
     hasilfulldf
   })
   
@@ -2761,10 +2771,10 @@ server <- function(input, output, session) {
     hasil <- hasil_forecast6()
     hasilfulldf <- gabung_hasil_forecast1(hasil)
     dfxx <- df6()
-    dfxx$Date <- as.Date(dfxx$Date)
+    dfxx2 <- convert_dates(dfxx)
     hasilfulldf$Date <- as.Date(hasilfulldf$Date)
-    
-    df <- bind_rows(dfxx, hasilfulldf) %>%
+    #hasilfulldf <- convert_dates2(hasilfulldf)
+    df <- bind_rows(dfxx2, hasilfulldf) %>%
       arrange(Date)
     
     
@@ -2790,18 +2800,16 @@ server <- function(input, output, session) {
     filename = function() {
       paste0("forecast_", input$pilihmetodeforecast, ".csv")
     },
+    
     content = function(file) {
-      hasil <- hasil_forecast6()
-      hasilfulldf <- gabung_hasil_forecast1(hasil)
-      dfxx <- df6()
-      dfxx$Date <- as.Date(dfxx$Date)
-      hasilfulldf$Date <- as.Date(hasilfulldf$Date)
-      
-      df_download <- bind_rows(dfxx, hasilfulldf) %>%
-        arrange(Date)
-      
-      write.csv(df_download, file, row.names = FALSE)
+      wb <- createWorkbook()
+      safe_write_sheet(wb, "Data Forecast Pilih", transformed6_result_forecast)
+      if (!safe_save_workbook(wb, file)) {
+        showNotification("Gagal membuat file forecast manual.", type = "error")
+      }
     }
+    
+    
   )
   
   
@@ -2909,7 +2917,10 @@ server <- function(input, output, session) {
       
       df <- tryCatch(
         read.csv(tmpfile),
-        error = function(e) data.frame(ERROR = e$message)
+        error = function(e) {
+          showNotification(paste("❌ Gagal membaca file CSV:", e$message), type = "error")
+          data.frame(ERROR = e$message)
+        }
       )
       
       write.csv(df, file, row.names = FALSE)
@@ -3365,12 +3376,13 @@ server <- function(input, output, session) {
   observeEvent(input$refresh,
                {
                  modelupload <- tryCatch(
-                   dbGetQuery(con, 'SELECT "model_id","model_name" FROM "frs9_r_model_summary" ORDER BY created_date DESC'),
-                   error = function(e) {
-                     NULL
-                   }
-                 )
-                 if (!is.null(modelupload) && nrow(modelupload) > 0) {
+                    dbGetQuery(con, 'SELECT "model_id","model_name" FROM "frs9_r_model_summary" ORDER BY created_date DESC'),
+                    error = function(e) {
+                      showNotification("❌ Gagal memuat daftar model dari database.", type = "error")
+                      NULL
+                    }
+                  )
+                  if (!is.null(modelupload) && nrow(modelupload) > 0) {
                    choices <- setNames(modelupload$model_name, modelupload$model_name) # value = model_name
                    updateSelectInput(session, "choose_model", choices = choices)
                  }

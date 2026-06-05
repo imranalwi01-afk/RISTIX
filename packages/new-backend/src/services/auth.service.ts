@@ -719,12 +719,11 @@ export const refreshTokens = (
 
             const sessionInfo = JSON.parse(sessionData)
             const tokenRoles = Array.isArray(payload.roles) ? payload.roles : []
-            const tokenPermissions = Array.isArray(payload.permissions) ? payload.permissions : []
             const sessionRoles = Array.isArray(sessionInfo.roles) ? sessionInfo.roles : []
             const sessionPermissions = Array.isArray(sessionInfo.permissions) ? sessionInfo.permissions : []
 
-            const roles = tokenRoles.length > 0 ? tokenRoles : sessionRoles
-            const permissions = tokenPermissions.length > 0 ? tokenPermissions : sessionPermissions
+            const roles = sessionRoles.length > 0 ? sessionRoles : tokenRoles
+            const permissions = sessionPermissions  // Always prefer full permissions from Redis session
             const stakeholderType =
                 payload.stakeholderType ||
                 sessionInfo.stakeholderType ||

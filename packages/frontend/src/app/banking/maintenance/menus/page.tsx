@@ -480,9 +480,10 @@ export default function MenuManagement({ params }: { params: Promise<{}> }) {
 
       if (response.ok) {
         const result = await response.json();
-        if (result.success && result.data && result.data.data && result.data.data.users) {
-          // Transform database user data to UI format
-          const liveUsers: User[] = result.data.data.users.map((user: any) => ({
+        const usersData = result.data?.users || result.data?.data?.users || [];
+        if (result.success && usersData.length > 0) {
+
+          const liveUsers: User[] = usersData.map((user: any) => ({
             id: user.id,
             name: user.name || user.customer_name || user.email,
             email: user.email,
