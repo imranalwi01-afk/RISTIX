@@ -2638,7 +2638,17 @@ server <- function(input, output, session) {
     )
     
     hasilfulldf <- gabung_hasil_forecast(hasil_forecast_manual)
-    hasilfulldf <- rbind(dataku, hasilfulldf)
+    dataku <- convert_dates(dataku)
+    hasilfulldf$Date <- as.Date(hasilfulldf$Date,tryFormats = c("%Y-%m-%d", "%d-%m-%Y", "%m/%d/%Y", "%d/%m/%Y"))
+    #hasilfulldf$Date <- as.Date(
+    #  parse_date_time(
+    #    hasilfulldf$Date,
+    #    orders = c("ymd", "dmy", "mdy")
+    #  )
+    #)
+    hasilfulldf <- bind_rows(dataku, hasilfulldf) %>%
+      arrange(Date)
+    
     hasilfulldf
   })
   
@@ -2761,19 +2771,10 @@ server <- function(input, output, session) {
     hasil <- hasil_forecast6()
     hasilfulldf <- gabung_hasil_forecast1(hasil)
     dfxx <- df6()
-    if (is.null(dfxx) || nrow(dfxx) == 0) {
-      showNotification("Data tidak tersedia untuk forecast.", type = "warning")
-      return(NULL)
-    }
-    if (!"Date" %in% names(dfxx)) {
-      showNotification("Kolom 'Date' tidak ditemukan, menggunakan row names sebagai tanggal.", type = "warning")
-      dfxx$Date <- as.Date(rownames(dfxx))
-    } else {
-      dfxx$Date <- as.Date(dfxx$Date)
-    }
+    dfxx2 <- convert_dates(dfxx)
     hasilfulldf$Date <- as.Date(hasilfulldf$Date)
-    
-    df <- bind_rows(dfxx, hasilfulldf) %>%
+    #hasilfulldf <- convert_dates2(hasilfulldf)
+    df <- bind_rows(dfxx2, hasilfulldf) %>%
       arrange(Date)
     
     
@@ -2799,26 +2800,16 @@ server <- function(input, output, session) {
     filename = function() {
       paste0("forecast_", input$pilihmetodeforecast, ".csv")
     },
+    
     content = function(file) {
-      hasil <- hasil_forecast6()
-      hasilfulldf <- gabung_hasil_forecast1(hasil)
-      dfxx <- df6()
-      if (is.null(dfxx) || nrow(dfxx) == 0) {
-        showNotification("Data tidak tersedia untuk download.", type = "warning")
-        return(NULL)
+      wb <- createWorkbook()
+      safe_write_sheet(wb, "Data Forecast Pilih", transformed6_result_forecast)
+      if (!safe_save_workbook(wb, file)) {
+        showNotification("Gagal membuat file forecast manual.", type = "error")
       }
-      if (!"Date" %in% names(dfxx)) {
-        dfxx$Date <- as.Date(rownames(dfxx))
-      } else {
-        dfxx$Date <- as.Date(dfxx$Date)
-      }
-      hasilfulldf$Date <- as.Date(hasilfulldf$Date)
-      
-      df_download <- bind_rows(dfxx, hasilfulldf) %>%
-        arrange(Date)
-      
-      write.csv(df_download, file, row.names = FALSE)
     }
+    
+    
   )
   
   
