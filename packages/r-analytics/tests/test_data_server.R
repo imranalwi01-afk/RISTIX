@@ -10,7 +10,7 @@ options(tidyverse.quiet = TRUE)
 source("../shiny-app/global.R")
 source("../shiny-app/modules/server/data_server.R")
 
-test_that("data_server.R successfully simulates data load and join equivalent to app34.R", {
+test_that("data_server.R successfully simulates data load and join equivalent to app37.R", {
   
   # Stub a mock DB connection and configurations
   mock_PD <- data.frame(pkid = 1, pd_model_name = "Mock PD Model", stringsAsFactors = FALSE)
@@ -43,11 +43,11 @@ test_that("data_server.R successfully simulates data load and join equivalent to
     }, error = function(e) {})
     
     # Expected behavior: If join is clicked but no data is uploaded, 
-    # joined_data() should return an empty data.frame() natively matching app34.R's safe return
+    # joined_data() should return an empty data.frame() natively matching app37.R's safe return
     expect_true(is.data.frame(datagabung_res))
     expect_equal(nrow(datagabung_res), 0)
     
-    # Check that return lists export exactly what app34.R used globally
+    # Check that return lists export exactly what app37.R used globally
     returned_keys <- names(session$returned)
     expect_true("dependent_transformed" %in% returned_keys)
     expect_true("independent_data" %in% returned_keys)

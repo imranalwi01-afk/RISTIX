@@ -2,7 +2,7 @@
 # REACTIVE PARITY VERIFICATION SCRIPT
 # =============================================================================
 # This script uses shiny::testServer() to verify that the modular server logic
-# matches the monolithic app34.R logic without requiring a browser or modifying
+# matches the monolithic app37.R logic without requiring a browser or modifying
 # the production application.
 # =============================================================================
 
@@ -38,7 +38,7 @@ test_that("Data Server Module explicitly returns correct Dataframe reactivity", 
     
     # 4. Assert that the modular return matches Expectations
     # If datagabung is generated, it proves the reactive wiring functions exactly
-    # like the monolithic app34.R datagabung()
+    # like the monolithic app37.R datagabung()
     
     cat("Testing Modular Server Reactive Output...\n")
     if (exists("joined_data")) {

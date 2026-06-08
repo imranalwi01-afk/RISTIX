@@ -38,7 +38,7 @@ test_that("forecast_server.R successfully extracts MEV variables without date co
     
     # Internal variables test 
     # Extract MEV logic should have stripped 'prc_date' out of the sources completely
-    # like original line 1595 in app34.R did.
+    # like original line 1595 in app37.R did.
     mev_extract <- NULL
     tryCatch({
       mev_extract <- mev_variables()

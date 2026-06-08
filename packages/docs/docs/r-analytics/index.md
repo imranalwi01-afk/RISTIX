@@ -17,7 +17,7 @@ The R-Analytics package provides the statistical engine for IFRS9 calculations a
 ### Architecture Context: Legacy vs Modern
 The codebase currently contains two versions of the analytics engine:
 
-1.  **Legacy (`/modelling`)**: A monolithic structure containing `app34.R`. This is currently used by the root startup scripts (`START_R_ANALYTICS.sh/bat`).
+1.  **Legacy (`/modelling`)**: A monolithic structure containing `app37.R`. This is currently used by the root startup scripts (`START_R_ANALYTICS.sh/bat`).
 2.  **Modern (`/packages/r-analytics`)**: A modularized, production-ready implementation with proper separation of concerns (UI, Server, Config).
 
 > **Note:** The documentation below refers to the **Modern** implementation in `packages/r-analytics`. We recommend migrating usage to this package for better stability and maintainability.

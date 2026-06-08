@@ -3,7 +3,7 @@
 # =============================================================================
 # Run with: Rscript run_tests.R
 # This will execute all tests in the tests/ directory to verify parity
-# between the modular logic and app34.R.
+# between the modular logic and app37.R.
 
 if (!requireNamespace("testthat", quietly = TRUE)) {
   install.packages("testthat", repos = "http://cran.us.r-project.org")

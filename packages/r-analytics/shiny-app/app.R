@@ -15,7 +15,7 @@ if (nzchar(shiny_server_version) && !grepl("^[0-9]+(\\.[0-9]+)*$", shiny_server_
 # Note: global.R is automatically loaded by Shiny
 # Do NOT manually load it here to avoid duplicate execution
 # Database connection and configuration data are loaded from global.R
-# This sets up: con, PD, LGD (directly at top level, same as app34.R)
+# This sets up: con, PD, LGD (directly at top level, same as app37.R)
 
 # Load additional libraries (only ones not already loaded in global.R)
 suppressPackageStartupMessages({
@@ -141,7 +141,7 @@ if (length(missing_packages) > 0) {
 # This prevents using shiny objects before they're loaded
 
 # =============================================================================
-# ✅ RISTIX.PRO CUSTOM HEADER CSS (from app34.R)
+# ✅ RISTIX.PRO CUSTOM HEADER CSS (from app37.R)
 # =============================================================================
 
 customHeader <- tags$head(
@@ -208,7 +208,7 @@ customHeader <- tags$head(
 )
 
 # =============================================================================
-# ✅ WORKING UI - RISTIX.PRO DASHBOARD (matching app34.R)
+# ✅ WORKING UI - RISTIX.PRO DASHBOARD (matching app37.R)
 # =============================================================================
 
 ui <- dashboardPage(

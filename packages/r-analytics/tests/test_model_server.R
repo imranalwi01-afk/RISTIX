@@ -21,7 +21,7 @@ test_that("model_server.R variable selection logic properly excludes Y from X ch
     joined_data = mock_joined
   ), {
     
-    # 1. Provide a Y variable selection like app34.R
+    # 1. Provide a Y variable selection like app37.R
     session$setInputs(y_var = "odr")
     
     # 2. Emulate the user triggering 'Pilih Semua' (Select All)

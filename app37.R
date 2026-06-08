@@ -35,13 +35,13 @@ escape_json_text <- function(value) {
 
 send_runtime_alert <- local({
   last_sent <- new.env(parent = emptyenv())
-
+  
   function(event, message, context = list(), throttle_seconds = 60) {
     webhook_url <- Sys.getenv("R_ANALYTICS_ALERT_WEBHOOK_URL", "")
     if (!nzchar(webhook_url)) {
       return(invisible(FALSE))
     }
-
+    
     sheet_name <- if (!is.null(context$sheet)) as.character(context$sheet) else ""
     cache_key <- paste(event, sheet_name, sep = "::")
     now <- as.numeric(Sys.time())
@@ -50,12 +50,12 @@ send_runtime_alert <- local({
     } else {
       NA_real_
     }
-
+    
     if (!is.na(last_time) && (now - last_time) < throttle_seconds) {
       return(invisible(FALSE))
     }
     assign(cache_key, now, envir = last_sent)
-
+    
     timestamp <- format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z")
     is_discord_webhook <- grepl("discord(app)?\\.com/api/webhooks/", webhook_url, ignore.case = TRUE)
     payload <- if (is_discord_webhook) {
@@ -77,11 +77,11 @@ send_runtime_alert <- local({
         "\"timestamp\":\"", escape_json_text(timestamp), "\"}"
       )
     }
-
+    
     tmp_payload <- tempfile(fileext = ".json")
     writeLines(payload, tmp_payload, useBytes = TRUE)
     on.exit(unlink(tmp_payload), add = TRUE)
-
+    
     timeout <- Sys.getenv("R_ANALYTICS_ALERT_WEBHOOK_TIMEOUT", "8")
     tryCatch({
       system2(
@@ -112,7 +112,7 @@ log_sheet_error <- function(sheet_name, error_obj) {
   } else {
     "Unknown worksheet error"
   }
-
+  
   ra_log_warn("Worksheet write failed", context = list(
     sheet = sheet_name,
     error = error_message
@@ -133,11 +133,11 @@ safe_write_sheet <- function(wb, sheet_name, data_supplier) {
     log_sheet_error(sheet_name, e)
     FALSE
   })
-
+  
   if (!isTRUE(added)) {
     return(FALSE)
   }
-
+  
   payload <- tryCatch({
     data_value <- data_supplier()
     if (is.null(data_value)) {
@@ -149,7 +149,7 @@ safe_write_sheet <- function(wb, sheet_name, data_supplier) {
     log_sheet_error(sheet_name, e)
     data.frame(Note = "Data source failed, fallback sheet generated.")
   })
-
+  
   write_ok <- tryCatch({
     writeData(wb, sheet_name, payload)
     TRUE
@@ -172,7 +172,7 @@ safe_write_sheet <- function(wb, sheet_name, data_supplier) {
       FALSE
     })
   })
-
+  
   isTRUE(write_ok)
 }
 
@@ -190,11 +190,11 @@ safe_save_workbook <- function(wb, file_path) {
     )
     FALSE
   })
-
+  
   if (isTRUE(saved)) {
     return(TRUE)
   }
-
+  
   tryCatch({
     fallback_wb <- createWorkbook()
     addWorksheet(fallback_wb, "Error")
@@ -214,6 +214,37 @@ safe_save_workbook <- function(wb, file_path) {
     FALSE
   })
 }
+
+
+safe_reactive <- function(expr,
+                          title = "Error",
+                          default = NULL,
+                          notify = TRUE,
+                          traceback = TRUE) {
+  
+  tryCatch({
+    
+    force(expr)
+    
+  }, error = function(e) {
+    
+    if (traceback)
+      message(conditionMessage(e))
+    
+    if (notify)
+      showNotification(
+        paste(title, e$message),
+        type = "error",
+        duration = 10
+      )
+    
+    default
+    
+  })
+  
+}
+
+
 
 library(shiny)
 library(shinydashboard)
@@ -320,7 +351,7 @@ normalize_config_df <- function(df, prefix) {
     }
   }
   if (is.null(id_col) && ncol(df) >= 1) id_col <- names(df)[1]
-
+  
   # Identify model config name
   name_col <- NULL
   for (c in c(paste0(prefix, "_model_name"), "model_name", "name", "description")) {
@@ -344,17 +375,17 @@ if (!is.null(con)) {
     df <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_lgd_config")
     normalize_config_df(df, "lgd")
   }, error = function(e) {
-      ra_log_warn("Failed to load LGD config", context = list(error = e$message))
-      data.frame()
-    }
+    ra_log_warn("Failed to load LGD config", context = list(error = e$message))
+    data.frame()
+  }
   )
   PD <- tryCatch({
     df <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_config")
     normalize_config_df(df, "pd")
   }, error = function(e) {
-      ra_log_warn("Failed to load PD config", context = list(error = e$message))
-      data.frame()
-    }
+    ra_log_warn("Failed to load PD config", context = list(error = e$message))
+    data.frame()
+  }
   )
 } else {
   ra_log_warn("Running in offline mode: DB unavailable at startup, using empty PD/LGD config")
@@ -539,7 +570,7 @@ customHeader <- tags$head(
 
 ui <- dashboardPage(
   skin = "blue",
-
+  
   # ===== TOP NAVBAR =====
   dashboardHeader(
     title = span("RISTIX.PRO", style = "font-weight:bold"),
@@ -582,14 +613,21 @@ ui <- dashboardPage(
             "PD & AFL"
           )
         ),
+        tags$li(
+          tags$a(
+            href = "#shiny-tab-forecast_manual",
+            `data-toggle` = "tab",
+            "Forecast Manual"
+          )
+        )
       )
     )
   ),
   dashboardSidebar(disable = T),
   dashboardBody(
     customHeader,
-
-
+    
+    
     # === INI HARUS LANGSUNG tabPanels ===
     tabItems(
       tabItem(
@@ -619,11 +657,11 @@ ui <- dashboardPage(
                   condition = "input.dependent == 'OTHERS'",
                   tagList(
                     fileInput("file_upload_other1", "Upload CSV File",
-                      accept = c(".csv", ".xlsx", ".xls")
+                              accept = c(".csv", ".xlsx", ".xls")
                     ),
                     radioButtons("csv_sep1", "Separator:",
-                      choices = c("Comma" = ",", "Semicolon" = ";", "Tab" = "\t"),
-                      inline = TRUE, selected = "comma"
+                                 choices = c("Comma" = ",", "Semicolon" = ";", "Tab" = "\t"),
+                                 inline = TRUE, selected = "comma"
                     )
                   )
                 ),
@@ -654,11 +692,11 @@ ui <- dashboardPage(
               box(
                 width = 4, title = "Input Data", solidHeader = TRUE, status = "primary",
                 fileInput("file_upload_other2", "Upload CSV File",
-                  accept = c(".csv", ".xlsx", ".xls")
+                          accept = c(".csv", ".xlsx", ".xls")
                 ),
                 radioButtons("csv_sep2", "Separator:",
-                  choices = c("Comma" = ",", "Semicolon" = ";", "Tab" = "\t"),
-                  inline = TRUE
+                             choices = c("Comma" = ",", "Semicolon" = ";", "Tab" = "\t"),
+                             inline = TRUE
                 ),
                 checkboxInput("transform", "Transformasi", value = F),
                 br(),
@@ -725,7 +763,7 @@ ui <- dashboardPage(
                 radioButtons("normal", "Normality test", choices = c("shapiro", "kolmogorov", "anderson")),
                 numericInput("alpha", "alpha assumption", value = 0.05),
                 dateInput("train_start", "Tanggal Awal Insample", value = Sys.Date()),
-                dateInput("train_split", "Tanggal Akhir Insample)", value = Sys.Date()),
+                dateInput("train_split", "Tanggal Akhir Insample", value = Sys.Date()),
                 dateInput("test_end", "Tanggal Akhir Outsample", value = Sys.Date())
               ),
               box(
@@ -797,19 +835,19 @@ ui <- dashboardPage(
           title = "", width = 12,
           tabPanel(
             "Forecast X",
-
+            
             # Bungkus dalam fluidRow agar rapi di layout
             fluidRow(
               column(
                 width = 4, # Gunakan lebar 6 agar ada ruang jika ingin tambah kolom nanti
-
+                
                 box(
                   width = 12, title = "Data MEV", solidHeader = TRUE, status = "primary",
-
+                  
                   # Pilihan sumber data
                   selectInput("mevfore", "Pilih Sumber Data:", choices = c("MEV_Awal", "External_Data")),
                   br(),
-
+                  
                   # Jika MEV_Awal dipilih
                   conditionalPanel(
                     condition = "input.mevfore == 'MEV_Awal'",
@@ -818,14 +856,14 @@ ui <- dashboardPage(
                     br(),
                     actionButton("forecastX", "Forecast", class = "btn btn-success")
                   ),
-
+                  
                   # Jika External Data dipilih
                   conditionalPanel(
                     condition = "input.mevfore == 'External_Data'",
                     fileInput("forecastfile", "Upload File External", placeholder = "mevforecast.csv"),
                     radioButtons("sep3", "Pemisah Kolom",
-                      choices = c("Koma" = ",", "Titik koma" = ";", "Tab" = "\t"),
-                      inline = TRUE
+                                 choices = c("Koma" = ",", "Titik koma" = ";", "Tab" = "\t"),
+                                 inline = TRUE
                     ),
                     actionButton("submit3", "Submit", class = "btn btn-success"),
                     br(), br()
@@ -880,7 +918,7 @@ ui <- dashboardPage(
             fluidRow(
               box(
                 title = "Hasil Forecast", width = 6,
-
+                
                 # --- UI ---
                 uiOutput("core_vars_ui"), # ganti textInput lama
                 numericInput("min_match", "Minimal jumlah core match:", value = 1, min = 1),
@@ -934,20 +972,25 @@ ui <- dashboardPage(
               br(), br(),
               selectInput("choose_model", "Pilih Model Historical:", choices = NULL),
               br(), br(),
-              DT::dataTableOutput("intuisitable_pdafl")
+              DT::dataTableOutput("intuisitable_pdafl"),
+              br(),
+              selectInput(inputId = "tanggal_issuer", label = "Pilih Tanggal Issuer",choices = NULL),
+              selectInput(inputId = "tanggal_pd", label = "Pilih Tanggal PD",choices = NULL),
+              dateInput("ttcpd_date", "Tanggal TTC PD", value = Sys.Date())
             ),
-
+            
             # Box Transformasi ditaruh DI BAWAH box kiri (masih di kolom kiri)
             box(
               width = 12, solidHeader = TRUE, status = "primary",
               title = "Options:",
               selectInput("backtransform", "Transformasi data Y sebelumnya", choices = c("logit", "log", "others")),
+              selectInput("replacenegatif", "Replace Negatif Forecast Boxplot", choices = c("0","Random")),
               selectInput("outliermet", "Outlier Method", choices = c("boxplot", "sd")),
               uiOutput("segmentationPDAFLUI"),
               actionButton("runpdafl", "RUN", class = "btn-success")
             )
           ),
-
+          
           # ==== KOLUMEN KANAN (lebar 8) ====
           column(
             width = 8,
@@ -1054,6 +1097,8 @@ ui <- dashboardPage(
           )
         ),
         downloadButton("download_all_xlsx", "Download Output"),
+        downloadButton("download_all_xlsx2","Download All output Model"),
+        
         actionButton("save_pd", "Save PD To DB")
       ),
       tabItem(
@@ -1062,7 +1107,7 @@ ui <- dashboardPage(
           title = "", width = 12,
           tabPanel(
             "Forecast Pilih Metode Otomatis",
-
+            
             ## =========================
             ## ROW 1: INPUT + DATA
             ## =========================
@@ -1071,7 +1116,7 @@ ui <- dashboardPage(
                 width = 4, solidHeader = TRUE, status = "primary",
                 title = "Input Data forecast",
                 fileInput("file_upload_other5", "Upload CSV File",
-                  accept = c(".csv", ".xlsx", ".xls")
+                          accept = c(".csv", ".xlsx", ".xls")
                 ),
                 radioButtons(
                   "csv_sep5", "Separator:",
@@ -1087,7 +1132,7 @@ ui <- dashboardPage(
                 DT::dataTableOutput("df5table_output")
               )
             ),
-
+            
             ## =========================
             ## ROW 2: SETTING + SUMMARY
             ## =========================
@@ -1096,14 +1141,14 @@ ui <- dashboardPage(
                 width = 4, solidHeader = TRUE, status = "primary",
                 title = "Setting Summary",
                 selectInput("akurasi_forecastx5", "Akurasi",
-                  choices = c("MAPE", "RMSE")
+                            choices = c("MAPE", "RMSE")
                 ),
                 numericInput("jumlah_forecast5",
-                  "Forecast berapa periode ke depan",
-                  value = 12, min = 1
+                             "Forecast berapa periode ke depan",
+                             value = 12, min = 1
                 ),
                 actionButton("runpilihmetodeotomatis", "RUNSUMMARY",
-                  class = "btn-success"
+                             class = "btn-success"
                 )
               ),
               box(
@@ -1117,7 +1162,7 @@ ui <- dashboardPage(
                 )
               )
             ),
-
+            
             ## =========================
             ## ROW 3: HASIL
             ## =========================
@@ -1125,12 +1170,12 @@ ui <- dashboardPage(
               box(
                 width = 4, solidHeader = T, title = "Setting Forecast", status = "primary",
                 textInput("metode_pilihan",
-                  "Metode Pilihan (pisahkan dengan koma):",
-                  value = "2,1,1,1,2,1,1"
+                          "Metode Pilihan (pisahkan dengan koma):",
+                          value = "2,1,1,1,2,1,1"
                 ),
                 checkboxInput("transform5", "Transformasi", FALSE),
                 actionButton("runforecastmanualpilih", "RUNFORECAST",
-                  class = "btn-success"
+                             class = "btn-success"
                 ),
                 downloadButton("download_forecast_manual_pilih", "Download Output Forecast", class = "btn-success")
               ),
@@ -1149,7 +1194,7 @@ ui <- dashboardPage(
                 solidHeader = TRUE,
                 status = "primary",
                 fileInput("file_upload_other6", "Upload CSV File",
-                  accept = c(".csv", ".xlsx", ".xls")
+                          accept = c(".csv", ".xlsx", ".xls")
                 ),
                 radioButtons(
                   "csv_sep6",
@@ -1199,8 +1244,8 @@ ui <- dashboardPage(
                 checkboxInput("transform6", "Transformasi", FALSE),
                 actionButton("run_pilih_metode", "RUN Forecast", class = "btn-success"),
                 downloadButton("download_forecast_pilih_metode",
-                  "Download Output Forecast",
-                  class = "btn-success"
+                               "Download Output Forecast",
+                               class = "btn-success"
                 )
               ),
               box(
@@ -1224,7 +1269,7 @@ ui <- dashboardPage(
 server <- function(input, output, session) {
   # Gunakan 3 core, atau sesuaikan
   plan(multisession, workers = 7)
-
+  
   options(
     # Tambahkan fungsi lain untuk modularisasi
     shiny.error = function() {
@@ -1236,24 +1281,23 @@ server <- function(input, output, session) {
       )
     }
   )
-
-  # (Future plan is now handled globally, removed broken onStop hook)
-
+  
+  
   # variabel dependent
   rv_df <- reactiveVal() # Menyimpan df untuk digunakan ulang
-
+  
   output$segmentationUI <- renderUI({
     if (input$dependent == "PD") {
       selectInput("segment", "Segmentation:",
-        choices = setNames(PD$pkid, PD$pd_model_name)
+                  choices = setNames(PD$pkid, PD$pd_model_name)
       )
     } else if (input$dependent == "lgd") {
       selectInput("segment", "Segmentation:",
-        choices = setNames(LGD$pkid, LGD$lgd_model_name)
+                  choices = setNames(LGD$pkid, LGD$lgd_model_name)
       )
     }
   })
-
+  
   observeEvent(input$submit, {
     # Ambil data berdasarkan input
     df <- NULL
@@ -1281,21 +1325,21 @@ server <- function(input, output, session) {
       ra_log_info(paste("Fetching dependent data from database. Query:", query))
       df <- dbGetQuery(con, query)
     }
-
+    
     if (is.data.frame(df)) {
       names(df) <- tolower(names(df))
     }
-
+    
     # Simpan ke reactiveVal
     rv_df(df)
-
+    
     # Tampilkan ke UI
     output$dependent_data <- renderDT({
       datatable(rv_df(), options = list(scrollX = TRUE))
     })
   })
-
-
+  
+  
   data_dependent_tr <- reactive({
     req(input$dependent, rv_df(), input$submit)
     if (input$dependent == "PD") {
@@ -1306,7 +1350,7 @@ server <- function(input, output, session) {
       data_dependent <- rv_df()
       data_dependent <- convert_dates(data_dependent)
     }
-
+    
     hasildependent <- transform_y(data_dependent, input$transformasi, logit_value = 0.000001, moving_avg_window = 3)
     
     # Alert for data quality issues
@@ -1324,20 +1368,20 @@ server <- function(input, output, session) {
     
     hasildependent
   })
-
+  
   output$tabel_data_dependent_tr <- renderDT({
     req(data_dependent_tr())
     datatable(data_dependent_tr(), options = list(scrollX = TRUE))
   })
-
-
+  
+  
   observeEvent(input$submit, {
     if (input$dependent == "OTHERS") {
       # Memeriksa jumlah kolom
       result <- convert_dates2(rv_df())
       date_columns <- result$date_columns
       num_columns <- result$num_columns
-
+      
       # Jika jumlah kolom lebih dari 2, tampilkan popup
       if (num_columns > 2 && length(date_columns) == 0) {
         showModal(modalDialog(
@@ -1369,12 +1413,12 @@ server <- function(input, output, session) {
       }
     }
   })
-
-
+  
+  
   ################# 1. Data independent##################
   df1 <- reactiveVal(NULL)
-
-
+  
+  
   safe_read_data <- function(input_file, sep) {
     ext <- tools::file_ext(input_file$name)
     tryCatch(
@@ -1403,21 +1447,21 @@ server <- function(input, output, session) {
       }
     )
   }
-
-
+  
+  
   # 2. Ketika user submit/upload
   observeEvent(input$submit2, {
     req(input$file_upload_other2)
-
+    
     data <- safe_read_data(input$file_upload_other2, input$csv_sep2)
-
+    
     if (is.null(data)) {
       df1(data.frame(Pesan = "File tidak dapat dibaca."))
       return()
     }
-
+    
     df1(data)
-
+    
     # Simpan ke database
     save_upload_to_db(
       file_input = input$file_upload_other2,
@@ -1426,12 +1470,12 @@ server <- function(input, output, session) {
       user_id = "user1",
       purpose = "independent"
     )
-
+    
     # Validasi kolom tanggal dan jumlah kolom
     result <- convert_dates2(data)
     date_columns <- result$date_columns
     num_columns <- result$num_columns
-
+    
     if (num_columns < 2 && length(date_columns) == 0) {
       showModal(modalDialog(
         title = "Peringatan: Kolom Tidak Valid",
@@ -1448,19 +1492,19 @@ server <- function(input, output, session) {
       ))
     }
   })
-
+  
   # Data final (dengan transformasi opsional)
   df_final <- reactive({
     req(df1())
     result <- convert_dates2(df1())
     df2 <- result$df
     date_col <- result$date_columns
-
+    
     if (length(date_col) == 0) {
       showNotification("Tidak ada kolom tanggal terdeteksi.", type = "error")
       return(NULL)
     }
-
+    
     if (input$transform) {
       df3x <- df2[, !names(df2) %in% date_col, drop = FALSE]
       df3new <- transform(df3x)
@@ -1485,20 +1529,20 @@ server <- function(input, output, session) {
       return(df2)
     }
   })
-
+  
   # Tampilkan tabel
   output$independent_data <- renderDT({
     req(df_final())
     DT::datatable(df_final(), options = list(scrollX = TRUE))
   })
-
-
+  
+  
   observeEvent(input$submit2, {
     # Memeriksa jumlah kolom
     result <- convert_dates2(df1())
     date_columns <- result$date_columns
     num_columns <- result$num_columns
-
+    
     # Jika jumlah kolom lebih dari 2, tampilkan popup
     if (num_columns < 2 && length(date_columns) == 0) {
       showModal(modalDialog(
@@ -1520,15 +1564,15 @@ server <- function(input, output, session) {
       ))
     }
   })
-
-
+  
+  
   observe({
     uploads <- dbGetQuery(con, "SELECT id, filename FROM upload_history WHERE purpose = 'independent' ORDER BY upload_time DESC")
     choices <- setNames(uploads$id, uploads$filename)
     updateSelectInput(session, "download_upload_id", choices = choices)
   })
-
-
+  
+  
   output$upload_history_table <- renderDT({
     uploads <- dbGetQuery(con, "
     SELECT id, filename, file_type, rows, columns, upload_time
@@ -1538,11 +1582,11 @@ server <- function(input, output, session) {
   ")
     datatable(uploads, options = list(scrollX = TRUE))
   })
-
-
+  
+  
   observeEvent(input$delete_upload, {
     req(input$download_upload_id)
-
+    
     showModal(modalDialog(
       title = "Konfirmasi Hapus",
       paste("Anda yakin ingin menghapus file upload dengan ID", input$download_upload_id, "?"),
@@ -1552,21 +1596,21 @@ server <- function(input, output, session) {
       )
     ))
   })
-
+  
   observeEvent(input$confirm_delete, {
     req(input$download_upload_id)
-
+    
     # Hapus dari tabel upload_history
     dbExecute(con, "DELETE FROM upload_history WHERE id = $1",
-      params = list(input$download_upload_id)
+              params = list(input$download_upload_id)
     )
-
+    
     removeModal()
-
+    
     # Perbarui selectInput dan DT
     uploads <- dbGetQuery(con, "SELECT id, filename FROM upload_history WHERE purpose = 'independent' ORDER BY upload_time DESC")
     updateSelectInput(session, "download_upload_id", choices = setNames(uploads$id, uploads$filename))
-
+    
     output$upload_history_table <- renderDT({
       uploads_full <- dbGetQuery(con, "
       SELECT id, filename, file_type, rows, columns, upload_time
@@ -1576,11 +1620,11 @@ server <- function(input, output, session) {
     ")
       datatable(uploads_full, options = list(scrollX = TRUE))
     })
-
+    
     showNotification("File berhasil dihapus.", type = "message")
   })
-
-
+  
+  
   ################ Joint data####################
   datagabung <- eventReactive(input$join, {
     # Explicit checks instead of silent req()
@@ -1592,10 +1636,10 @@ server <- function(input, output, session) {
       showNotification("Data Dependent belum siap. Silakan klik Submit di tab Dependent Data.", type = "error")
       return(NULL)
     }
-
+    
     data_dep <- data_dependent_tr()
     data_ind <- df_final()
-
+    
     tryCatch({
       hasilgabung <- inner_join_date(data_dep, data_ind)
       if (nrow(hasilgabung) == 0) {
@@ -1607,49 +1651,49 @@ server <- function(input, output, session) {
       return(NULL)
     })
   })
-
+  
   output$tabel_hasil_join <- renderDT({
     req(datagabung())
     datatable(datagabung(), options = list(scrollX = TRUE))
   })
-
-
+  
+  
   data0 <- reactive({
     req(datagabung())
     df <- datagabung()
     return(df)
   })
-
+  
   observeEvent(input$join, {
     df <- datagabung()
     date_colx <- names(df)[sapply(df, inherits, "Date")]
     if (length(date_colx) == 0) {
       return(NULL)
     }
-
+    
     updateDateInput(session, "train_start",
-      value = df[1, date_colx],
-      min = min(df[[date_colx]]), max = max(df[[date_colx]])
+                    value = df[1, date_colx],
+                    min = min(df[[date_colx]]), max = max(df[[date_colx]])
     )
-
+    
     updateDateInput(session, "train_split",
-      value = df[round(nrow(df) / 2), date_colx],
-      min = min(df[[date_colx]]), max = max(df[[date_colx]])
+                    value = df[round(nrow(df) / 2), date_colx],
+                    min = min(df[[date_colx]]), max = max(df[[date_colx]])
     )
-
+    
     updateDateInput(session, "test_end",
-      value = df[nrow(df), date_colx],
-      min = min(df[[date_colx]]), max = max(df[[date_colx]])
+                    value = df[nrow(df), date_colx],
+                    min = min(df[[date_colx]]), max = max(df[[date_colx]])
     )
   })
-
-
+  
+  
   output$tabel1 <- DT::renderDataTable({
     req(data0())
     DT::datatable(data0(), options = list(scrollX = TRUE))
   })
-
-
+  
+  
   # Dropdown variabel Y dan X
   output$select_y <- renderUI({
     req(data_dependent_tr())
@@ -1657,28 +1701,28 @@ server <- function(input, output, session) {
     namay <- names(vary)[-1]
     selectInput("y_var", "Pilih Variabel Y", choices = namay)
   })
-
+  
   output$select_x <- renderUI({
     req(df_final())
     namax <- names(df_final())[-1]
     selectizeInput("x_var", "Pilih Variabel X",
-      choices = namax,
-      selected = NULL,
-      multiple = TRUE
+                   choices = namax,
+                   selected = NULL,
+                   multiple = TRUE
     )
   })
-
+  
   observeEvent(input$select_all_x, {
     updateSelectizeInput(session, "x_var",
-      selected = names(df_final())[-1]
+                         selected = names(df_final())[-1]
     )
   })
-
+  
   # Reset pilihan X
   observeEvent(input$reset_x, {
     updateSelectizeInput(session, "x_var", selected = character(0))
   })
-
+  
   namax <- reactive({
     req(input$x_var)
     input$x_var
@@ -1687,25 +1731,25 @@ server <- function(input, output, session) {
     req(input$y_var)
     input$y_var
   })
-
-
+  
+  
   data1 <- reactive({
     req(datagabung(), input$train_start, input$train_split, input$test_end)
-
+    
     dataawal <- batasdata(datagabung(), bb = input$train_start, bt = input$train_split, ba = input$test_end)
     datatrain <- dataawal$data1
     datatrain
   })
-
+  
   datatest1 <- reactive({
     req(datagabung(), input$train_start, input$train_split, input$test_end)
-
+    
     dataawal <- batasdata(datagabung(), bb = input$train_start, bt = input$train_split, ba = input$test_end)
     datatest <- dataawal$data2
     datatest
   })
-
-
+  
+  
   yx <- reactive({
     Date <- as.Date(datagabung()[, 1])
     namafull <- c(namay(), namax())
@@ -1713,20 +1757,20 @@ server <- function(input, output, session) {
     bosku <- data.frame(Date = Date, datafull)
     bosku
   })
-
+  
   xdata <- reactive({
     req(data1(), namax())
     data1()[, namax(), drop = FALSE] # hasilnya: data frame berisi kolom yang dipilih
   })
-
+  
   ydata <- reactive({
     req(data1(), namay())
     data1()[, namay(), drop = FALSE] # hasilnya: data frame berisi kolom yang dipilih
   })
-
-
+  
+  
   # intuisiData <- reactiveValues(data = NULL)
-
+  
   # observeEvent({
   #  input$intuisi
   #  input$sep2
@@ -1735,33 +1779,33 @@ server <- function(input, output, session) {
   #  df <- read.csv(input$intuisi$datapath, sep = input$sep2)
   #  intuisiData$data <- df
   # })
-
+  
   # Reactive expression yang menghasilkan data awal
   intuisiData_raw <- reactive({
     df <- df_final()
     req(df)
-
+    
     date_col <- names(df)[sapply(df, inherits, "Date")]
-
+    
     df3x <- df[, !names(df) %in% date_col, drop = FALSE]
     namax <- names(df3x)
-
+    
     # Get original variables from df1, excluding the Date column
     raw_names <- names(df1())
     sources <- raw_names[!(raw_names %in% c("Date", "date", "DATE"))]
-
+    
     abc <- data.frame(var = sources, sign = rep(0, length(sources)))
     return(abc)
   })
-
+  
   # Tempat menyimpan data yang bisa diedit
   intuisiData <- reactiveValues(data = NULL)
-
+  
   # Set nilai awal intuisiData$data ketika intuisiData_raw() berubah
   observeEvent(intuisiData_raw(), {
     intuisiData$data <- intuisiData_raw()
   })
-
+  
   # Tampilkan tabel
   output$intuisi_table <- renderDT({
     req(intuisiData$data)
@@ -1773,7 +1817,7 @@ server <- function(input, output, session) {
                 dom = 'ltip'
               ))
   })
-
+  
   # Update data berdasarkan edit dari user
   # observeEvent(input$intuisi_table_cell_edit, {
   #  info <- input$intuisi_table_cell_edit
@@ -1783,14 +1827,14 @@ server <- function(input, output, session) {
   #
   #  intuisiData$data[i, j] <- DT::coerceValue(v, intuisiData$data[i, j])
   # })
-
-
+  
+  
   observeEvent(input$intuisi_table_cell_edit, {
     info <- input$intuisi_table_cell_edit
     i <- info$row
     j <- info$col
     v <- as.numeric(info$value) # Pastikan nilai jadi numerik
-
+    
     # Hanya izinkan nilai -1, 0, atau 1
     if (v %in% c(-1, 0, 1)) {
       intuisiData$data[i, j] <- v
@@ -1802,14 +1846,14 @@ server <- function(input, output, session) {
       ))
     }
   })
-
-
+  
+  
   # Untuk kebutuhan downstream lainnya
   refInt <- reactive({
     req(intuisiData$data)
     intuisiData$data
   })
-
+  
   # signintuisikor <- eventReactive(input$runmodel, {
   #  req(namay(), namax(),refInt(),xdata(),ydata())
   #
@@ -1825,17 +1869,17 @@ server <- function(input, output, session) {
   #  rownames( korint) <- NULL
   #  korint
   # })
-
+  
   signintuisikor <- eventReactive(input$runmodel, {
     req(namay(), namax(), xdata(), ydata())
-
+    
     hasil_korelasi <- data.frame(
       Variabel_X = namax(),
       Korelasixy = sapply(xdata(), function(x) round(cor(x, ydata()[[1]]), 3))
     )
-
+    
     ref <- refInt()
-
+    
     if (is.null(ref) || nrow(ref) == 0) {
       # Jika referensi tidak ada → semua pass
       korint <- hasil_korelasi %>%
@@ -1844,10 +1888,10 @@ server <- function(input, output, session) {
       # Ambil kolom nama dan ekspektasi
       var_col <- names(ref)[1]
       expect_col <- names(ref)[2]
-
+      
       # Ambil nama variabel dengan konversi 0
       bebas_pass <- ref[[var_col]][ref[[expect_col]] == 0]
-
+      
       korint <- hasil_korelasi %>%
         mutate(
           var_prefix = sapply(strsplit(Variabel_X, "_"), `[`, 1),
@@ -1859,20 +1903,20 @@ server <- function(input, output, session) {
         ) %>%
         select(-var_prefix)
     }
-
+    
     rownames(korint) <- NULL
     korint
   })
-
-
+  
+  
   output$table_sign1 <- DT::renderDataTable({
     req(signintuisikor())
     DT::datatable(signintuisikor(), 10, options = list(scrollX = TRUE))
   })
-
+  
   model_reg1var <- eventReactive(input$runmodel, {
     req(namay(), namax(), input$pval, input$rsq, signintuisikor(), data1())
-
+    
     sign_data <- signintuisikor()
     newvarr0x <- sign_data[sign_data$sign == "pass", "Variabel_X"]
     models <- gen1varx(data1(), namay(), newvarr0x)
@@ -1881,49 +1925,49 @@ server <- function(input, output, session) {
     rownames(outputra1) <- NULL
     outputra1
   })
-
-
+  
+  
   output$table_reg1 <- DT::renderDataTable({
     req(model_reg1var())
     DT::datatable(model_reg1var(), options = list(scrollX = TRUE))
   })
-
-
+  
+  
   newvarr1x <- reactive({
     req(model_reg1var(), namay(), namax())
     newvarr1 <- model_reg1var()[model_reg1var()$statusreg1 == "pass", "Variables"]
     newvarr1
   })
-
+  
   newdata <- reactive({
     req(model_reg1var(), namay(), namax(), newvarr1x())
     newdata0 <- data1()[, c(namay(), newvarr1x())]
     newdata0
   })
-
+  
   newdatax <- reactive({
     req(model_reg1var(), namay(), namax(), newvarr1x())
     newdatax0 <- data1()[, newvarr1x()]
     newdatax0
   })
-
+  
   korel_reg2var <- eventReactive(input$runmodel, {
     req(namay(), namax(), newdatax(), input$corr)
     tabkorel2 <- tabel_korelasi2(newdatax())
     tabkorel2$statuskor2 <- ifelse(abs(tabkorel2$Variable12) < input$corr, "pass", "eliminate")
     tabkorel2
   })
-
-
+  
+  
   output$table_korel2 <- DT::renderDataTable({
     req(korel_reg2var())
     DT::datatable(korel_reg2var(), options = list(scrollX = TRUE))
   })
-
-
+  
+  
   korel_reg3var <- eventReactive(input$runmodel, {
     req(namay(), namax(), newdatax(), input$corr)
-
+    
     tabel_korelasix <- tryCatch(
       {
         ra_log_debug("Running tabel_korelasi() for 3-variable correlation")
@@ -1938,27 +1982,27 @@ server <- function(input, output, session) {
         return(data.frame())
       }
     )
-
+    
     ra_log_debug("tabel_korelasi() completed", context = list(rows = nrow(tabel_korelasix)))
     if (nrow(tabel_korelasix) == 0) {
       return(data.frame())
     }
-
+    
     tabel_korelasix$statuskor3 <- ifelse(
       rowSums(abs(tabel_korelasix[, c("Variable12", "Variable13", "Variable23")]) < input$corr) == 3,
       "pass", "eliminate"
     )
-
+    
     tabel_korelasix
   })
-
-
+  
+  
   output$table_korel3 <- DT::renderDataTable({
     req(korel_reg3var())
     DT::datatable(korel_reg3var(), options = list(scrollX = TRUE))
   })
-
-
+  
+  
   modreg2 <- reactive({
     req(namay(), namax(), korel_reg2var())
     barisk2 <- c() # Bisa kosong
@@ -1966,82 +2010,82 @@ server <- function(input, output, session) {
     modreg20 <- gre2(namay(), model2faktor)
     modreg20
   })
-
+  
   model_reg2var <- eventReactive(input$runmodel, {
     req(namay(), namax(), modreg2(), input$pval, newdata())
     hasilmodreg2 <- runreg2models2(newdata(), namay(), modreg2(), chunk_size = 200)
     hasilmodreg2$statusreg <- ifelse(rowSums(hasilmodreg2[, 8:9] < input$pval) == 2, "pass", "eliminate")
     hasilmodreg2
   })
-
-
+  
+  
   output$table_reg2 <- DT::renderDataTable({
     req(model_reg2var())
     DT::datatable(model_reg2var(), options = list(scrollX = TRUE))
   })
-
-
+  
+  
   modreg3 <- reactive({
     req(namay(), namax(), korel_reg3var())
-
+    
     k3data <- korel_reg3var()
-
+    
     # Cegah error jika NULL atau 0 baris
     if (is.null(k3data) || nrow(k3data) == 0 || !"statuskor3" %in% names(k3data)) {
       return(character(0))
     }
-
+    
     # Cek jika ada nilai NA di statuskor3
     if (any(is.na(k3data$statuskor3))) {
       showNotification("Peringatan: Beberapa nilai di 'statuskor3' adalah NA.", type = "warning")
       k3data <- k3data[!is.na(k3data$statuskor3), ] # Menghapus baris yang memiliki NA
     }
-
-
+    
+    
     barisk3 <- c() # jika kosong, ambil yg pass
     model3faktor <- k3data[if (length(barisk3) > 0) barisk3 else which(k3data$statuskor3 == "pass"), 1:3]
-
+    
     if (nrow(model3faktor) == 0) {
       showNotification("Tidak ada kombinasi model yang lolos untuk 3 variabel.", type = "error")
       return(character(0))
     }
-
-
+    
+    
     modreg3 <- gre3(namay(), model3faktor)
     return(modreg3)
   })
-
+  
   model_reg3var <- eventReactive(input$runmodel, {
     req(namay(), namax(), input$pval, newdata(), modreg3())
-
+    
     mod3 <- modreg3()
-
+    
     if (is.null(mod3)) {
       return(data.frame())
     }
-
-
+    
+    
     hasilmodreg3 <- runreg3models2(newdata(), namay(), mod3)
     hasilmodreg3$statusreg <- ifelse(rowSums(hasilmodreg3[, 10:12] < input$pval) == 3, "pass", "eliminate")
     return(hasilmodreg3)
   })
-
-
+  
+  
   output$table_reg3 <- DT::renderDataTable({
     DT::datatable(model_reg3var(), options = list(scrollX = TRUE))
   })
-
-
+  
+  
   model_reg23var <- eventReactive(input$runmodel, {
     # req(namay(), namax(), newdatax(), input$corr,input$pval,model_reg2var())
-
+    
     hasil <- model23(model_reg2var(), model_reg3var())
     hasil
     # hasilxx <- model_regnf(newdata(),newdatax(),namay(),runmodel2faktor = model_reg2var(),paramkorelasi =input$corr,alpha = input$pval)
     # hasilxx
   })
-
-
+  
+  
   output$table_reg23 <- DT::renderDataTable({
     df <- model_reg23var()
     if (nrow(df) == 0 || ncol(df) == 0) {
@@ -2050,8 +2094,8 @@ server <- function(input, output, session) {
       DT::datatable(df, options = list(scrollX = TRUE))
     }
   })
-
-
+  
+  
   observeEvent(input$runmodel, {
     removeNotification(id = "runmodel_notif")
     withProgress(message = 'Memulai perhitungan model...', value = 0, {
@@ -2082,15 +2126,15 @@ server <- function(input, output, session) {
       )
     })
   })
-
+  
   ############## uji asumsi########################
   ujiasumsif <- eventReactive(input$runmodel, {
     req(namay(), namax(), model_reg23var(), input$alpha, newdata(), input$normal)
     cmodelfinal <- model_reg23var()$Model
-
+    
     # Jalankan fungsi dengan data baru
     hasilujiasumsi <- ujiasumsi(newdata(), namay(), cmodelfinal, normalmethod = input$normal)
-
+    
     # Guard: if ujiasumsi returned NULL or empty, return empty frame instead of crashing mutate
     if (is.null(hasilujiasumsi) || nrow(hasilujiasumsi) == 0) {
       return(data.frame(
@@ -2100,32 +2144,32 @@ server <- function(input, output, session) {
         statasumsi = character(0), stringsAsFactors = FALSE
       ))
     }
-
+    
     # status hasil uji asumsi#
     hasilujiasumsi <- hasilujiasumsi %>%
       mutate(
         statasumsi = ifelse(normal_P >= input$pval & homogen_P >= input$alpha, "pass", "eliminate")
       )
     rownames(hasilujiasumsi) <- NULL
-
+    
     hasilujiasumsi <- hasilujiasumsi %>%
       mutate(rownames = paste0("M", row_number())) %>%
       column_to_rownames(var = "rownames")
     hasilujiasumsi
   })
-
+  
   output$table_asumsi <- DT::renderDataTable({
     req(ujiasumsif())
     DT::datatable(ujiasumsif(), options = list(scrollX = TRUE))
   })
-
+  
   ################ back testing########################
   backtestf <- eventReactive(input$runmodel, {
     req(namay(), namax(), ujiasumsif(), input$pval, newdata(), datatest1())
-
+    
     hasil_ujiasumsi <- ujiasumsif()
     hasilujiasumsipass <- hasil_ujiasumsi[hasil_ujiasumsi$statasumsi == "pass", ]
-
+    
     if (nrow(hasilujiasumsipass) > 0) {
       modelbacktesting <- hasilujiasumsipass$Model
       join_ref <- hasilujiasumsipass
@@ -2133,23 +2177,23 @@ server <- function(input, output, session) {
       modelbacktesting <- hasil_ujiasumsi$Model
       join_ref <- hasil_ujiasumsi
     }
-
+    
     datagabung <- rbind(data1(), datatest1())
-
+    
     hasilbacktest <- backtesting2(newdata(), datatest1(), data0(), namay(), modelbacktesting)
     hasilakhir <- dplyr::left_join(hasilbacktest, join_ref, by = "Model") %>%
       dplyr::select(-statasumsi, -MAPE, -RMSE)
-
+    
     return(hasilakhir)
   })
-
-
+  
+  
   output$table_backtest <- DT::renderDataTable({
     req(backtestf())
     DT::datatable(backtestf(), options = list(scrollX = TRUE))
   })
-
-
+  
+  
   finalmodel <- eventReactive(input$runmodel, {
     req(namay(), namax(), newdata(), backtestf())
     backtesto <- backtestf()
@@ -2161,26 +2205,26 @@ server <- function(input, output, session) {
       dplyr::select(-MAPEinsample, -MAPEoutsample, -RMSEinsample, -RMSEoutsample)
     hasilakhir
   })
-
+  
   output$table_finalmodel <- DT::renderDataTable({
     req(finalmodel())
     DT::datatable(finalmodel(), options = list(scrollX = TRUE))
   })
-
-
+  
+  
   # output$select_model <- renderUI({
   #  req(finalmodel())
   #  modelname <- finalmodel()$Model
   #  selectInput("model_forecast", "Pilih Model", choices = modelname)
   # })
-
-
+  
+  
   core_choices <- reactive({
     fm <- finalmodel()
     req(!is.null(fm), nrow(fm) > 0)
     gabungkolomb(fm)
   })
-
+  
   output$core_vars_ui <- renderUI({
     selectizeInput(
       "core_vars", "Core variables:",
@@ -2192,8 +2236,8 @@ server <- function(input, output, session) {
       )
     )
   })
-
-
+  
+  
   #  # terapkan filter saat tombol diklik (tetap tampilkan data awal sebelum klik)
   #  filtered_data <- eventReactive(input$apply_filter, {
   #    core_vars_input <- if (is.null(input$core_vars)) character(0) else input$core_vars
@@ -2209,13 +2253,13 @@ server <- function(input, output, session) {
   #  final_filtered_data <- reactive({
   #    if (is.null(input$apply_filter) || input$apply_filter == 0) default_filtered_data() else filtered_data()
   #  })
-
-
+  
+  
   # data awal
   default_filtered_data <- reactive({
     finalmodel()
   })
-
+  
   last_action <- reactiveVal("none")
   observeEvent(input$apply_filter, {
     last_action("apply")
@@ -2223,7 +2267,7 @@ server <- function(input, output, session) {
   observeEvent(input$reset_filter, {
     last_action("reset")
   })
-
+  
   # saat tombol Reset diklik: kosongkan pilihan & kembalikan nilai awal
   observeEvent(input$reset_filter, {
     updateSelectizeInput(session, "core_vars", selected = character(0))
@@ -2231,22 +2275,22 @@ server <- function(input, output, session) {
     updateSelectInput(session, "sort_by", selected = "R_squared")
     updateCheckboxInput(session, "exact_word", value = FALSE)
   })
-
-
+  
+  
   filtered_data <- eventReactive(input$apply_filter,
-    {
-      core_vars_input <- if (is.null(input$core_vars)) character(0) else input$core_vars
-      filter_model_by_core_vars(
-        data = finalmodel(),
-        core_vars = core_vars_input,
-        min_match = input$min_match,
-        sort_by = input$sort_by,
-        exact_word = input$exact_word
-      )
-    },
-    ignoreInit = FALSE
+                                 {
+                                   core_vars_input <- if (is.null(input$core_vars)) character(0) else input$core_vars
+                                   filter_model_by_core_vars(
+                                     data = finalmodel(),
+                                     core_vars = core_vars_input,
+                                     min_match = input$min_match,
+                                     sort_by = input$sort_by,
+                                     exact_word = input$exact_word
+                                   )
+                                 },
+                                 ignoreInit = FALSE
   )
-
+  
   # penentu data yang ditampilkan: kalau terakhir Reset -> data default, kalau terakhir Apply -> data terfilter
   final_filtered_data <- reactive({
     if (last_action() == "apply" && !is.null(input$apply_filter) && input$apply_filter > 0) {
@@ -2255,35 +2299,35 @@ server <- function(input, output, session) {
       default_filtered_data()
     }
   })
-
+  
   # dropdown pilih model hasil filter
   output$select_model <- renderUI({
     modelname <- final_filtered_data()[["Model"]]
     selectInput("model_forecast", "Pilih Model", choices = modelname)
   })
-
-
+  
+  
   dforecast <- reactiveVal(NULL)
-
-
+  
+  
   # 2. Ketika user submit/upload
   observeEvent(input$submit3, {
     req(input$forecastfile)
-
+    
     data <- safe_read_data(input$forecastfile, input$sep3)
-
+    
     if (is.null(data)) {
       dforecast(data.frame(Pesan = "File tidak dapat dibaca."))
       return()
     }
-
+    
     dforecast(data)
-
+    
     # Validasi kolom tanggal dan jumlah kolom
     result <- convert_dates2(data)
     date_columns <- result$date_columns
     num_columns <- result$num_columns
-
+    
     if (num_columns < 2 && length(date_columns) == 0) {
       showModal(modalDialog(
         title = "Peringatan: Kolom Tidak Valid",
@@ -2300,19 +2344,19 @@ server <- function(input, output, session) {
       ))
     }
   })
-
+  
   # Data final (dengan transformasi opsional)
   datainputforecast <- reactive({
     req(dforecast())
     result <- convert_dates2(dforecast())
     df2 <- result$df
     date_col <- result$date_columns
-
+    
     if (length(date_col) == 0) {
       showNotification("Tidak ada kolom tanggal terdeteksi.", type = "error")
       return(NULL)
     }
-
+    
     if (input$transform3) {
       df3x <- df2[, !names(df2) %in% date_col, drop = FALSE]
       df3new <- transform(df3x)
@@ -2323,38 +2367,38 @@ server <- function(input, output, session) {
       return(df2)
     }
   })
-
+  
   # Tampilkan tabel
   output$forecasttable <- renderDT({
     req(datainputforecast())
     DT::datatable(datainputforecast(), options = list(scrollX = TRUE))
   })
-
-
+  
+  
   transformed_result_forecast <- reactiveVal(NULL)
-
-
+  
+  
   df_forecast0 <- eventReactive(input$forecastX, {
     namax <- names(df_final())
     # Get original variables from df1, excluding the Date column
     raw_names <- names(df1())
     sources <- raw_names[!(raw_names %in% c("Date", "date", "DATE"))]
     datacorex <- df_final()[, sources, drop = FALSE]
-
+    
     list_variabel <- konversi_ke_list_forecast(datacorex)
     hasil_akurasiL <- loop_akurasi_forecast_list(list_variabel, makur = input$akurasi_forecastx)
     hasil_akurasiL
-
+    
     # hasil_forecastmetode <- forecast_dengan_metode_terbaik(list_variabel,hasil_akurasiL,input$jumlah_forecast)
     # hasilfulldf <- gabung_hasil_forecast(hasil_forecastmetode)
     # hasilfulldf
   })
-
+  
   output$summaryforecastx <- renderPrint({
     df_forecast0()
   })
-
-
+  
+  
   df_forecast1 <- eventReactive(input$forecastX, {
     namax <- names(df_final())
     # Get original variables from df1, excluding the Date column
@@ -2367,148 +2411,148 @@ server <- function(input, output, session) {
     hasilforecastgabung <- rbind(datacorex, hasilfulldf)
     hasilforecastgabung
   })
-
-
+  
+  
   output$tabelfrommevhis <- DT::renderDataTable({
     req(df_forecast1())
-
+    
     df <- df_forecast1()
-
+    
     if (input$transform4) {
       Date <- df[, 1]
       df3x <- df[, -1]
       df3new <- transform(df3x)
       df3new <- cbind(Date, df3new)
       df3new <- na.omit(df3new)
-
+      
       transformed_result_forecast(df3new) # ✅ simpan hasil transformasi
-
+      
       DT::datatable(df3new, options = list(scrollX = TRUE))
     } else {
       transformed_result_forecast(df) # ✅ simpan data asli (tanpa transformasi)
-
+      
       DT::datatable(df, options = list(scrollX = TRUE))
     }
   })
-
-
+  
+  
   forecastxxx <- reactive({
     if (input$mevfore == "MEV_Awal") {
       df <- transformed_result_forecast()
     } else if (input$mevfore == "External_Data") {
       df <- datainputforecast()
     }
-
+    
     date_col <- names(df)[sapply(df, inherits, "Date")]
     if (length(date_col) == 0) {
       showNotification("Tidak ditemukan kolom bertipe Date di df.", type = "error")
       return(NULL)
     }
-
+    
     date_col_name <- date_col[1] # ambil kolom tanggal pertama yang terdeteksi
     names(df)[names(df1) == date_col_name] <- "Date"
-
+    
     # Ambil tanggal maksimum dari data awal
     tanggal_terakhir_awal <- max(data0()[, 1])
-
+    
     # Filter data kedua agar hanya berisi data setelah tanggal terakhir di data_awal
     datafor <- subset(df, Date > tanggal_terakhir_awal)
     return(datafor)
   })
-
-
+  
+  
   forecastaveragey <- eventReactive(input$runforaveragey, {
     req(finalmodel())
-
+    
     if (input$mevfore == "MEV_Awal") {
       df <- transformed_result_forecast()
     } else if (input$mevfore == "External_Data") {
       df <- datainputforecast()
     }
-
-
+    
+    
     date_col <- names(df)[sapply(df, inherits, "Date")]
     if (length(date_col) == 0) {
       showNotification("Tidak ditemukan kolom bertipe Date di df.", type = "error")
       return(NULL)
     }
-
-
+    
+    
     date_col_name <- date_col[1] # ambil kolom tanggal pertama yang terdeteksi
     names(df)[names(df1) == date_col_name] <- "Date"
-
+    
     # Ambil tanggal maksimum dari data awal
     tanggal_terakhir_awal <- max(data0()[, 1])
-
+    
     # Filter data kedua agar hanya berisi data setelah tanggal terakhir di data_awal
     datafor <- subset(df, Date > tanggal_terakhir_awal)
-
+    
     date_vector <- datafor[[date_col_name]]
-
+    
     predictions <- predict_from_model_table_safe(
       model_tbl = finalmodel(),
       train_data = newdata(),
       new_data = datafor,
       formula_col = "Model"
     )
-
+    
     predictions
   })
-
+  
   output$table_forecastaveragey <- DT::renderDataTable({
     DT::datatable(forecastaveragey(), options = list(scrollX = TRUE))
   })
-
-
+  
+  
   averageygabmodel <- eventReactive(input$runforaveragey, {
     bbc <- add_average_forecast(forecast_df = forecastaveragey(), window_size = 12, unit = "Y")
     hasilbbc <- cbind(finalmodel(), bbc[, -1])
     hasilbbc
   })
-
+  
   output$table_averageygabmodel <- DT::renderDataTable({
     DT::datatable(averageygabmodel(), options = list(scrollX = TRUE))
   })
-
-
+  
+  
   hasilforecast <- eventReactive(input$runforecast, {
     req(input$model_forecast, newdata())
-
-
+    
+    
     if (input$mevfore == "MEV_Awal") {
       df <- transformed_result_forecast()
     } else if (input$mevfore == "External_Data") {
       df <- datainputforecast()
     }
-
-
+    
+    
     date_col <- names(df)[sapply(df, inherits, "Date")]
     if (length(date_col) == 0) {
       showNotification("Tidak ditemukan kolom bertipe Date di df.", type = "error")
       return(NULL)
     }
-
-
+    
+    
     date_col_name <- date_col[1] # ambil kolom tanggal pertama yang terdeteksi
     names(df)[names(df1) == date_col_name] <- "Date"
-
+    
     # Ambil tanggal maksimum dari data awal
     tanggal_terakhir_awal <- max(data0()[, 1])
-
+    
     # Filter data kedua agar hanya berisi data setelah tanggal terakhir di data_awal
     datafor <- subset(df, Date > tanggal_terakhir_awal)
-
+    
     date_vector <- datafor[[date_col_name]]
-
+    
     # Model regresi
     finalmodel <- lm(as.formula(input$model_forecast), data = newdata())
-
-
+    
+    
     # Prediksi dengan interval
     pred <- predict(finalmodel, newdata = datafor, interval = "prediction")
     pred <- round(pred, 8)
-
-
+    
+    
     # Gabungkan hasil prediksi dan tanggal
     hasil <- data.frame(
       Date = date_vector,
@@ -2516,50 +2560,50 @@ server <- function(input, output, session) {
       Lower = pred[, "lwr"],
       Upper = pred[, "upr"]
     )
-
+    
     return(hasil)
   })
-
+  
   output$dataforecast <- DT::renderDataTable({
     req(hasilforecast())
     DT::datatable(hasilforecast(), options = list(scrollX = TRUE))
   })
-
-
+  
+  
   tabel_pemilihan_model_akhir <- eventReactive(input$runforecast, {
     datax <- finalmodel()[finalmodel()$Model == input$model_forecast, ]
     datax
   })
-
+  
   output$pemilihan_model_akhir <- renderDataTable({
     DT::datatable(tabel_pemilihan_model_akhir(), options = list(scrollX = TRUE))
   })
-
-
+  
+  
   ###############################################################
   ######################## forecast_manual########################
   ###############################################################
-
+  
   df5 <- reactiveVal(NULL)
-
+  
   # 2. Ketika user submit/upload
   observeEvent(input$submit5, {
     req(input$file_upload_other5)
-
+    
     data <- safe_read_data(input$file_upload_other5, input$csv_sep5)
-
+    
     if (is.null(data)) {
       df5(data.frame(Pesan = "File tidak dapat dibaca."))
       return()
     }
-
+    
     df5(data)
-
+    
     # Validasi kolom tanggal dan jumlah kolom
     result <- convert_dates2(data)
     date_columns <- result$date_columns
     num_columns <- result$num_columns
-
+    
     if (num_columns < 2 && length(date_columns) == 0) {
       showModal(modalDialog(
         title = "Peringatan: Kolom Tidak Valid",
@@ -2576,37 +2620,38 @@ server <- function(input, output, session) {
       ))
     }
   })
-
-
+  
+  
   output$df5table_output <- renderDT({
     req(df5())
     DT::datatable(df5(), options = list(scrollX = TRUE))
   })
-
-
+  
+  
   forecast_manual_pilih <- eventReactive(input$runpilihmetodeotomatis, {
     list_variabel <- konversi_ke_list_forecast(df5())
     hasil_akurasiL <- loop_akurasi_forecast_list(list_variabel, makur = input$akurasi_forecastx5)
     hasil_akurasiL
   })
-
-
+  
+  
   output$out_summary_forecast_manual_pilih <- renderPrint({
     forecast_manual_pilih()
   })
-
-
+  
+  
   Hasilforecast_manual_pilih <- eventReactive(input$runforecastmanualpilih, {
     req(input$metode_pilihan)
-
+    
     metode_vec <- as.numeric(trimws(unlist(strsplit(input$metode_pilihan, ","))))
-
-
-    list_variabel <- konversi_ke_list_forecast(df5())
-
+    dataku <- df5()
+    
+    
+    list_variabel <- konversi_ke_list_forecast(dataku)
+    
     metode <- metode_vec
     n_var <- length(list_variabel)
-
+    
     validate(
       need(
         length(metode) == n_var,
@@ -2616,46 +2661,56 @@ server <- function(input, output, session) {
         )
       )
     )
-
-
+    
+    
     hasil_forecast_manual <- forecast_dengan_pilihan_metode(
       list_data = list_variabel,
       list_akurasi = forecast_manual_pilih(),
       metode_pilihan = metode_vec,
       jf = input$jumlah_forecast5
     )
-
+    
     hasilfulldf <- gabung_hasil_forecast(hasil_forecast_manual)
-    hasilfulldf <- rbind(datacorex, hasilfulldf)
+    dataku <- convert_dates(dataku)
+    hasilfulldf$Date <- as.Date(hasilfulldf$Date,tryFormats = c("%Y-%m-%d", "%d-%m-%Y", "%m/%d/%Y", "%d/%m/%Y"))
+    #hasilfulldf$Date <- as.Date(
+    #  parse_date_time(
+    #    hasilfulldf$Date,
+    #    orders = c("ymd", "dmy", "mdy")
+    #  )
+    #)
+    hasilfulldf <- bind_rows(dataku, hasilfulldf) %>%
+      arrange(Date)
+    
     hasilfulldf
   })
-
-
+  
+  
   transformed5_result_forecast <- reactiveVal(NULL)
-
+  
   output$out_hasilforecast_manual_pilih <- DT::renderDataTable({
     req(Hasilforecast_manual_pilih())
-
+    
     df <- Hasilforecast_manual_pilih()
-
+    
     if (input$transform5) {
       Date <- df[, 1]
       df3x <- df[, -1]
       df3new <- transform(df3x)
       df3new <- cbind(Date, df3new)
       df3new <- na.omit(df3new)
-
+      
       transformed5_result_forecast(df3new) # ✅ simpan hasil transformasi
-
+      
       DT::datatable(df3new, options = list(scrollX = TRUE))
     } else {
       transformed5_result_forecast(df) # ✅ simpan data asli (tanpa transformasi)
-
+      
       DT::datatable(df, options = list(scrollX = TRUE))
     }
   })
-
-
+  
+  
   output$download_forecast_manual_pilih <- downloadHandler(
     filename = function() {
       paste0("hasil_forecast_manualpilih_", format(Sys.time(), "%Y-%m-%d_%H-%M-%S"), ".xlsx")
@@ -2668,31 +2723,31 @@ server <- function(input, output, session) {
       }
     }
   )
-
-
+  
+  
   ###############################################################################################
   ###############################################################################################
   ######################################### dataforecast6#################################################
   df6 <- reactiveVal(NULL)
-
+  
   # 2. Ketika user submit/upload
   observeEvent(input$submit6, {
     req(input$file_upload_other6)
-
+    
     data <- safe_read_data(input$file_upload_other6, input$csv_sep6)
-
+    
     if (is.null(data)) {
       df6(data.frame(Pesan = "File tidak dapat dibaca."))
       return()
     }
-
+    
     df6(data)
-
+    
     # Validasi kolom tanggal dan jumlah kolom
     result <- convert_dates2(data)
     date_columns <- result$date_columns
     num_columns <- result$num_columns
-
+    
     if (num_columns < 2 && length(date_columns) == 0) {
       showModal(modalDialog(
         title = "Peringatan: Kolom Tidak Valid",
@@ -2709,27 +2764,27 @@ server <- function(input, output, session) {
       ))
     }
   })
-
-
+  
+  
   output$df6table_output <- renderDT({
     req(df6())
     DT::datatable(df6(), options = list(scrollX = TRUE))
   })
-
-
+  
+  
   # ===============================
   # 3. RUN FORECAST
   # ===============================
-
+  
   transformed6_result_forecast <- reactiveVal(NULL)
-
-
+  
+  
   hasil_forecast6 <- eventReactive(input$run_pilih_metode, {
     req(df6())
     req(input$pilihmetodeforecast)
     req(input$jumlah_forecast6)
-
-
+    
+    
     forecast_semua_variabel(
       datawide = df6(),
       metode   = input$pilihmetodeforecast,
@@ -2737,70 +2792,68 @@ server <- function(input, output, session) {
       byy      = "month"
     )
   })
-
-
+  
+  
   # ===============================
   # 4. TAMPILKAN HASIL FORECAST
   # ===============================
-
+  
   output$out_hasilforecast_pilih_metode <- DT::renderDataTable({
     req(hasil_forecast6())
-
+    
     hasil <- hasil_forecast6()
     hasilfulldf <- gabung_hasil_forecast1(hasil)
     dfxx <- df6()
-    dfxx$Date <- as.Date(dfxx$Date)
+    dfxx2 <- convert_dates(dfxx)
     hasilfulldf$Date <- as.Date(hasilfulldf$Date)
-
-    df <- bind_rows(dfxx, hasilfulldf) %>%
+    #hasilfulldf <- convert_dates2(hasilfulldf)
+    df <- bind_rows(dfxx2, hasilfulldf) %>%
       arrange(Date)
-
-
+    
+    
     if (input$transform6) {
       Date <- df[, 1]
       df3x <- df[, -1]
       df3new <- transform(df3x)
       df3new <- cbind(Date, df3new)
       df3new <- na.omit(df3new)
-
+      
       transformed6_result_forecast(df3new) # ✅ simpan hasil transformasi
-
+      
       DT::datatable(df3new, options = list(scrollX = TRUE))
     } else {
       transformed6_result_forecast(df) # ✅ simpan data asli (tanpa transformasi)
-
+      
       DT::datatable(df, options = list(scrollX = TRUE))
     }
   })
-
-
+  
+  
   output$download_forecast_pilih_metode <- downloadHandler(
     filename = function() {
       paste0("forecast_", input$pilihmetodeforecast, ".csv")
     },
+    
     content = function(file) {
-      hasil <- hasil_forecast6()
-      hasilfulldf <- gabung_hasil_forecast1(hasil)
-      dfxx <- df6()
-      dfxx$Date <- as.Date(dfxx$Date)
-      hasilfulldf$Date <- as.Date(hasilfulldf$Date)
-
-      df_download <- bind_rows(dfxx, hasilfulldf) %>%
-        arrange(Date)
-
-      write.csv(df_download, file, row.names = FALSE)
+      wb <- createWorkbook()
+      safe_write_sheet(wb, "Data Forecast Pilih", transformed6_result_forecast)
+      if (!safe_save_workbook(wb, file)) {
+        showNotification("Gagal membuat file forecast manual.", type = "error")
+      }
     }
+    
+    
   )
-
-
+  
+  
   ################################################################################################
-
-
+  
+  
   output$plot_forecast <- renderPlotly({
     req(data0(), hasilforecast(), namay())
-
+    
     df_actual <- data0()
-
+    
     # Deteksi kolom tanggal di data0
     date_cols <- names(df_actual)[sapply(df_actual, function(x) inherits(x, "Date") || inherits(x, "POSIXt"))]
     if (length(date_cols) == 0) {
@@ -2808,19 +2861,19 @@ server <- function(input, output, session) {
       return(NULL)
     }
     date_col_actual <- date_cols[1]
-
+    
     # Siapkan data historis aktual
     data_actual <- data.frame(
       Date = df_actual[[date_col_actual]],
       Actual = df_actual[[namay()]]
     )
-
+    
     # Hasil forecast
     df_forecast <- hasilforecast()
-
+    
     # Ambil 1 titik terakhir dari data aktual
     last_actual_point <- tail(data_actual, 1)
-
+    
     # Ambil semua baris forecast
     df_forecast_plot <- rbind(
       data.frame(
@@ -2831,7 +2884,7 @@ server <- function(input, output, session) {
       ),
       df_forecast
     )
-
+    
     # Plot
     g <- ggplot() +
       geom_line(data = data_actual, aes(x = Date, y = Actual), color = "red", size = 1) +
@@ -2847,64 +2900,64 @@ server <- function(input, output, session) {
       scale_x_date(date_breaks = "6 months", date_labels = "%Y-%m") +
       theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
       scale_y_continuous()
-
+    
     # Ubah ke plotly
     ggplotly(g) %>% layout(autosize = TRUE)
   })
-
-
+  
+  
   ############### download#################
   output$download_upload_csv <- downloadHandler(
     filename = function() {
       req(input$download_upload_id)
-
+      
       fname <- dbGetQuery(con, "
       SELECT filename FROM upload_history WHERE id = $1
     ", params = list(input$download_upload_id))
-
+      
       fname <- if (nrow(fname) > 0) fname$filename[1] else "file.csv"
       if (!grepl("\\.csv$", fname)) fname <- paste0(fname, ".csv")
       return(fname)
     },
     content = function(file) {
       req(input$download_upload_id)
-
+      
       result <- dbGetQuery(con, "
     SELECT data FROM upload_history WHERE id = $1
   ", params = list(input$download_upload_id))
-
+      
       # Jika kosong
       if (nrow(result) == 0 || is.null(result$data[[1]])) {
         write.csv(data.frame(WARNING = "Data tidak ditemukan atau kosong."), file, row.names = FALSE)
         return()
       }
-
+      
       raw_bytes <- result$data[[1]]
-
+      
       # Jika bukan raw → abort dan tampilkan error
       if (!inherits(raw_bytes, "raw")) {
         write.csv(data.frame(ERROR = "Format data bukan raw. Gagal menulis ulang file."), file, row.names = FALSE)
         return()
       }
-
+      
       # Proses normal
       tmpfile <- tempfile(fileext = ".csv")
       str(result$data[[1]])
       typeof(result$data[[1]])
       class(result$data[[1]])
-
+      
       writeBin(raw_bytes, tmpfile)
-
+      
       df <- tryCatch(
         read.csv(tmpfile),
         error = function(e) data.frame(ERROR = e$message)
       )
-
+      
       write.csv(df, file, row.names = FALSE)
     }
   )
-
-
+  
+  
   output$download_model <- downloadHandler(
     filename = function() {
       paste0("hasil_modeling_IFRS9_", format(Sys.time(), "%Y-%m-%d_%H-%M-%S"), ".xlsx")
@@ -2927,18 +2980,18 @@ server <- function(input, output, session) {
         list(name = "Backtest", fn = backtestf),
         list(name = "Final Model", fn = finalmodel)
       )
-
+      
       for (sheet_spec in sheet_specs) {
         safe_write_sheet(wb, sheet_spec$name, sheet_spec$fn)
       }
-
+      
       if (!safe_save_workbook(wb, file)) {
         showNotification("Gagal membuat file hasil modeling.", type = "error")
       }
     }
   )
-
-
+  
+  
   output$download_all_outputs <- downloadHandler(
     filename = function() {
       paste0("Modeling & Forecasting_IFRS9_", format(Sys.time(), "%Y-%m-%d_%H-%M-%S"), ".xlsx")
@@ -2966,27 +3019,27 @@ server <- function(input, output, session) {
         list(name = "Forecast ALL averageY", fn = averageygabmodel),
         list(name = "Forecast Y", fn = hasilforecast)
       )
-
+      
       for (sheet_spec in sheet_specs) {
         safe_write_sheet(wb, sheet_spec$name, sheet_spec$fn)
       }
-
+      
       if (!safe_save_workbook(wb, file)) {
         showNotification("Gagal membuat file output lengkap.", type = "error")
       }
     }
   )
-
-
+  
+  
   output$downloadPlot <- downloadHandler(
     filename = function() {
       paste0("forecast_plot_", Sys.Date(), ".png")
     },
     content = function(file) {
       req(data0(), hasilforecast(), namay())
-
+      
       df_actual <- data0()
-
+      
       # Deteksi kolom tanggal di data0
       date_cols <- names(df_actual)[sapply(df_actual, function(x) inherits(x, "Date") || inherits(x, "POSIXt"))]
       if (length(date_cols) == 0) {
@@ -2994,16 +3047,16 @@ server <- function(input, output, session) {
         return(NULL)
       }
       date_col_actual <- date_cols[1]
-
+      
       # Siapkan data historis aktual
       data_actual <- data.frame(
         Date = df_actual[[date_col_actual]],
         Actual = df_actual[[namay()]]
       )
-
+      
       # Hasil forecast
       df_forecast <- hasilforecast()
-
+      
       # Plot
       g <- ggplot() +
         geom_line(data = data_actual, aes(x = Date, y = Actual), color = "red", size = 1) +
@@ -3019,13 +3072,13 @@ server <- function(input, output, session) {
         scale_x_date(date_breaks = "6 months", date_labels = "%Y-%m") +
         theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
         scale_y_continuous()
-
+      
       # Simpan ke file PNG
       ggsave(file, plot = g, device = "png", width = 10, height = 6)
     }
   )
-
-
+  
+  
   #' Save R Model to Database
   #'
   #' This function captures the current state of the model building pipeline,
@@ -3047,7 +3100,7 @@ server <- function(input, output, session) {
   #' @return NULL (side effects: database insertion and UI notifications).
   save_r_model_to_db <- function(name, session) {
     ra_log_info("Starting model save process", context = list(model_name = name))
-
+    
     # Check connection health
     is_valid <- tryCatch(dbIsValid(con), error = function(e) FALSE)
     if (is.null(con) || !is_valid) {
@@ -3055,36 +3108,36 @@ server <- function(input, output, session) {
       showNotification("❌ Koneksi database tidak tersedia atau terputus.", type = "error")
       return()
     }
-
+    
     # 1. Validation Logic
     nm <- gsub("^\\s+|\\s+$", "", name)
     if (nm == "") {
       showNotification("Nama model tidak boleh kosong.", type = "error")
       return()
     }
-
+    
     # 2. Duplicate Check
     ra_log_info("Checking for duplicate model name", context = list(name = nm))
     dup <- tryCatch({
-       dbGetQuery(con,
-        "SELECT model_id FROM frs9_r_model_summary WHERE lower(model_name) = lower($1) AND id_deleted = FALSE LIMIT 1",
-        params = list(nm)
+      dbGetQuery(con,
+                 "SELECT model_id FROM frs9_r_model_summary WHERE lower(model_name) = lower($1) AND id_deleted = FALSE LIMIT 1",
+                 params = list(nm)
       )
     }, error = function(e) {
       ra_log_error("Failed to check duplicates", context = list(error = e$message))
       return(data.frame())
     })
-
+    
     if (nrow(dup) > 0) {
       showNotification(paste0("Nama model '", nm, "' sudah ada. Gunakan nama lain."), type = "error")
       return()
     }
-
+    
     # 3. Workbook Creation
     ra_log_info("Generating Excel workbook for model storage")
     file_path <- tempfile(fileext = ".xlsx")
     wb <- createWorkbook()
-
+    
     # List of all reactives to capture
     ra_log_debug("Capturing reactive data sources")
     sheet_specs <- list(
@@ -3106,24 +3159,24 @@ server <- function(input, output, session) {
       list(name = "Forecast X", fn = forecastxxx),
       list(name = "Forecast Y", fn = hasilforecast)
     )
-
+    
     for (sheet_spec in sheet_specs) {
       safe_write_sheet(wb, sheet_spec$name, sheet_spec$fn)
     }
-
+    
     # 4. Save and Read binary
     ra_log_info("Saving workbook to temporary file")
     if (!safe_save_workbook(wb, file_path)) {
       showNotification("❌ Gagal membuat file Excel.", type = "error")
       return()
     }
-
+    
     if (!file.exists(file_path)) {
       ra_log_error("Failed to write temporary Excel file")
       showNotification("❌ Gagal membuat file Excel.", type = "error")
       return()
     }
-
+    
     ra_log_info("Reading binary data from file", context = list(path = file_path, size = file.info(file_path)$size))
     raw_data <- tryCatch({
       con_file <- file(file_path, "rb")
@@ -3134,12 +3187,12 @@ server <- function(input, output, session) {
       ra_log_error("Binary read failure", context = list(error = e$message))
       return(NULL)
     })
-
+    
     if (is.null(raw_data) || length(raw_data) == 0) {
       showNotification("❌ Gagal memproses data model.", type = "error")
       return()
     }
-
+    
     # 5. Database Insertion
     ra_log_info("Executing DB Insertion")
     model_row <- tryCatch(tabel_pemilihan_model_akhir(), error = function(e) data.frame())
@@ -3147,7 +3200,7 @@ server <- function(input, output, session) {
     mape <- if ("MAPEgabung" %in% names(model_row)) model_row$MAPEgabung else NA
     dep_var <- tryCatch(namay(), error = function(e) "Unknown")
     user_name <- Sys.getenv("USERNAME", Sys.getenv("USER", "IAF_USER"))
-
+    
     tryCatch({
       query <- "
         INSERT INTO frs9_r_model_summary
@@ -3170,7 +3223,7 @@ server <- function(input, output, session) {
       if (exists("model_summary_data_DB")) {
         try(model_summary_data_DB(dbGetQuery(con, "SELECT model_id, model_name, model_status, dependent_variable, r_squared, mape, created_date FROM frs9_r_model_summary WHERE id_deleted = FALSE ORDER BY model_id DESC")))
       }
-
+      
     }, error = function(e) {
       ra_log_error("Database insertion failure", context = list(error = e$message))
       showNotification(paste("❌ Gagal simpan model:", e$message), type = "error")
@@ -3179,13 +3232,13 @@ server <- function(input, output, session) {
     # Clean up
     if (file.exists(file_path)) unlink(file_path)
   }
-
+  
   observeEvent(input$save_model_db, {
     save_r_model_to_db(input$model_name_input, session)
   })
-
-
-
+  
+  
+  
   model_summary_data_DB <- reactiveVal({
     dbGetQuery(con, "
     SELECT model_id, model_name, model_status, dependent_variable, r_squared, mape, created_date
@@ -3194,56 +3247,56 @@ server <- function(input, output, session) {
     ORDER BY model_id DESC
   ")
   })
-
-
+  
+  
   output$model_summary_table_DB <- DT::renderDT({
     DT::datatable(model_summary_data_DB(), options = list(pageLength = 5, autoWidth = TRUE), rownames = FALSE)
   })
-
-
+  
+  
   model_summary_data_DB2 <- eventReactive(input$refresh,
-    {
-      dbGetQuery(con, "
+                                          {
+                                            dbGetQuery(con, "
      SELECT model_id, model_name, model_status, dependent_variable, r_squared, mape, created_date
      FROM frs9_r_model_summary
      WHERE id_deleted = FALSE
-     ORDER BY model_id DESC
+     ORDER BY created_date DESC
    ")
-    },
-    ignoreNULL = FALSE
+                                          },
+                                          ignoreNULL = FALSE
   )
-
+  
   output$model_summary_table_DB2 <- DT::renderDT({
     DT::datatable(model_summary_data_DB2(), options = list(pageLength = 5, autoWidth = TRUE, scrollX = TRUE), rownames = FALSE)
   })
-
-
+  
+  
   output$segmentationPDAFLUI <- renderUI({
     selectInput("segmentpd", "Segmentation:", choices = setNames(PD$pkid, PD$pd_model_name))
   })
-
+  
   normalize_pdafl_column_names <- function(df) {
     if (!is.data.frame(df) || ncol(df) == 0) return(df)
     names(df) <- tolower(names(df))
     df
   }
-
+  
   normalize_pdafl_identifier <- function(value) {
     tolower(gsub("[^a-z0-9]+", "", as.character(value)))
   }
-
+  
   pick_first_existing_column <- function(df, candidates, fallback_patterns = character()) {
     if (!is.data.frame(df) || ncol(df) == 0) return(NULL)
     actual_names <- names(df)
     normalized_names <- vapply(actual_names, normalize_pdafl_identifier, character(1))
-
+    
     for (candidate in candidates) {
       hit_index <- which(normalized_names == normalize_pdafl_identifier(candidate))
       if (length(hit_index) > 0) {
         return(df[[actual_names[[hit_index[[1]]]]]])
       }
     }
-
+    
     if (length(fallback_patterns) > 0) {
       for (pattern in fallback_patterns) {
         hit_index <- grep(pattern, normalized_names, perl = TRUE)
@@ -3252,38 +3305,68 @@ server <- function(input, output, session) {
         }
       }
     }
-
+    
     NULL
   }
-
+  
+  
+  observe({
+    
+    issuerbb <- dbGetQuery(con, 'SELECT * FROM frs9_imp_ca_pd_enr')
+    
+    issuerbb$prc_date <- as.Date(issuerbb$prc_date)
+    
+    dateissuerbb2 <- sort(unique(issuerbb$prc_date), decreasing = TRUE)
+    
+    updateSelectInput(
+      session,
+      inputId = "tanggal_issuer",
+      choices = dateissuerbb2,
+      selected = max(dateissuerbb2)
+    )
+    
+  })
+  
+  
+  
   dataissuerrr0 <- eventReactive(input$runpdafl, {
-    datais <- dbGetQuery(con, "SELECT prc_date, bucket_from, calc_amount
+    safe_reactive({
+      
+      datais <- dbGetQuery(con, "SELECT prc_date, bucket_from, calc_amount
     FROM frs9_imp_ca_pd_enr
     WHERE pd_config_id = $1",
-      params = list(input$segmentpd)
-    )
-    datais <- normalize_pdafl_column_names(datais)
-    datais
+                           params = list(input$segmentpd)
+      )
+      datais <- normalize_pdafl_column_names(datais)
+      datais
+      
+    })
+    
   })
-
+  
   konfig_id <- eventReactive(input$runpdafl, {
-    datacon <- dbGetQuery(con, "SELECT population_type, observation_period, observation_start_date
+    safe_reactive({
+      
+      datacon <- dbGetQuery(con, "SELECT population_type, observation_period, observation_start_date
     FROM frs9_imp_ca_pd_config
     WHERE pkid = $1",
-      params = list(input$segmentpd)
-    )
-    datacon <- normalize_pdafl_column_names(datacon)
-    datacon
+                            params = list(input$segmentpd)
+      )
+      datacon <- normalize_pdafl_column_names(datacon)
+      datacon
+      
+    })
+    
   })
-
+  
   dataissuerrr01 <- reactive({
     dataisu <- dataissuerrr0()
     config <- konfig_id()
-
+    
     # pastikan tipe data Date
     dataisu$prc_date <- as.Date(dataisu$prc_date)
     config$observation_start_date <- as.Date(config$observation_start_date)
-
+    
     if (config$population_type == 1) {
       dataku <- dataisu
     } else if (config$population_type == 2) {
@@ -3291,47 +3374,72 @@ server <- function(input, output, session) {
       last_n_dates <- tail(unique(dataisu$prc_date), config$observation_period)
       # print(last_n_dates[1])
       dataku <- dataisu[dataisu$prc_date %in% last_n_dates, ]
-
+      
       # filter tambahan jika mulai periode lebih besar dari start date
       if (min(last_n_dates) < config$observation_start_date) {
         dataku <- dataku[dataku$prc_date >= config$observation_start_date, ]
       }
-
+      
       # } else {
       #  dataku <- dataisu
     }
-
+    
     dataku
   })
-
-
-  datammulttt0 <- eventReactive(input$runpdafl, {
-    dataemut <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_mmult
-    WHERE pd_config_id = $1",
-      params = list(input$segmentpd)
+  
+  
+  observe({
+    
+    datammult <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_mmult")
+    datammult = data.frame(datammult)
+    datemmult <- sort(unique(datammult$prc_date), decreasing = TRUE)
+    
+    updateSelectInput(
+      session,
+      inputId = "tanggal_pd",
+      choices = datemmult,
+      selected = max(datemmult)
     )
-    dataemut <- normalize_pdafl_column_names(dataemut)
-    dataemut
+    
   })
-
-
-  observeEvent(input$refresh,
-    {
-      modelupload <- tryCatch(
-        dbGetQuery(con, 'SELECT "model_id","model_name" FROM "frs9_r_model_summary" ORDER BY created_date DESC'),
-        error = function(e) {
-          NULL
-        }
+  
+  datammulttt0 <- eventReactive(input$runpdafl, {
+    safe_reactive({
+      
+      dataemut <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_mmult
+    WHERE pd_config_id = $1",
+                             params = list(input$segmentpd)
       )
-      if (!is.null(modelupload) && nrow(modelupload) > 0) {
-        choices <- setNames(modelupload$model_name, modelupload$model_name) # value = model_name
-        updateSelectInput(session, "choose_model", choices = choices)
-      }
-    },
-    ignoreNULL = FALSE
+      dataemut <- normalize_pdafl_column_names(dataemut)
+      dataemut
+      
+    })
+    
+  })
+  
+  
+  
+  
+  
+  
+  
+  observeEvent(input$refresh,
+               {
+                 modelupload <- tryCatch(
+                   dbGetQuery(con, 'SELECT "model_id","model_name" FROM "frs9_r_model_summary" ORDER BY created_date DESC'),
+                   error = function(e) {
+                     NULL
+                   }
+                 )
+                 if (!is.null(modelupload) && nrow(modelupload) > 0) {
+                   choices <- setNames(modelupload$model_name, modelupload$model_name) # value = model_name
+                   updateSelectInput(session, "choose_model", choices = choices)
+                 }
+               },
+               ignoreNULL = FALSE
   )
-
-
+  
+  
   dataydanfileexcelDB <- reactive({
     result0 <- dbGetQuery(con, '
   SELECT "dependent_variable", "data_file"
@@ -3340,75 +3448,75 @@ server <- function(input, output, session) {
 ', params = list(input$choose_model))
     result0
   })
-
+  
   # variable Y yang digunakan
   vary_pdafl <- reactive({
     dataydanfileexcelDB()$dependent_variable
   })
-
-
+  
+  
   # Reactive: path file .xlsx
   reactive_excel_path <- reactiveVal(NULL)
-
+  
   observeEvent(dataydanfileexcelDB(),
-    {
-      df0 <- dataydanfileexcelDB()
-
-      # Validasi hasil query
-      if (is.null(df0) || nrow(df0) == 0) {
-        reactive_excel_path(NULL)
-        showNotification("Model tidak ditemukan / tidak ada data_file.", type = "error")
-        return()
-      }
-
-      bin <- df0$data_file[[1]]
-      if (is.null(bin)) {
-        reactive_excel_path(NULL)
-        showNotification("Kolom data_file kosong.", type = "error")
-        return()
-      }
-
-
-      # Tulis ke tempfile .xlsx
-      path <- tempfile(fileext = ".xlsx")
-      ok <- tryCatch(
-        {
-          writeBin(bin, path)
-          TRUE
-        },
-        error = function(e) {
-          showNotification(paste("Gagal menulis file:", e$message), type = "error")
-          FALSE
-        }
-      )
-
-      if (ok && file.exists(path)) {
-        reactive_excel_path(path)
-      } else {
-        reactive_excel_path(NULL)
-      }
-    },
-    ignoreInit = TRUE
+               {
+                 df0 <- dataydanfileexcelDB()
+                 
+                 # Validasi hasil query
+                 if (is.null(df0) || nrow(df0) == 0) {
+                   reactive_excel_path(NULL)
+                   showNotification("Model tidak ditemukan / tidak ada data_file.", type = "error")
+                   return()
+                 }
+                 
+                 bin <- df0$data_file[[1]]
+                 if (is.null(bin)) {
+                   reactive_excel_path(NULL)
+                   showNotification("Kolom data_file kosong.", type = "error")
+                   return()
+                 }
+                 
+                 
+                 # Tulis ke tempfile .xlsx
+                 path <- tempfile(fileext = ".xlsx")
+                 ok <- tryCatch(
+                   {
+                     writeBin(bin, path)
+                     TRUE
+                   },
+                   error = function(e) {
+                     showNotification(paste("Gagal menulis file:", e$message), type = "error")
+                     FALSE
+                   }
+                 )
+                 
+                 if (ok && file.exists(path)) {
+                   reactive_excel_path(path)
+                 } else {
+                   reactive_excel_path(NULL)
+                 }
+               },
+               ignoreInit = TRUE
   )
-
-
+  
+  
   # mevcoba
-
+  
   datacorex <- reactive({
     temp_xlsx <- reactive_excel_path()
     req(!is.null(temp_xlsx), file.exists(temp_xlsx))
-
+    
     df <- tryCatch(
       {
-        openxlsx::read.xlsx(temp_xlsx, sheet = "Data full", detectDates = TRUE)
+        openxlsx::read.xlsx(temp_xlsx, sheet = "Data Trained", detectDates = TRUE)
       },
       error = function(e) {
-        showNotification(paste("Gagal baca sheet 'Data full':", e$message), type = "error")
+        showNotification(paste("Gagal baca sheet 'Data Trained':", e$message), type = "error")
         return(NULL)
       }
     )
     req(!is.null(df), ncol(df) >= 2)
-
+    
     namax <- names(df)
     # Robust extraction of source variables (excluding transformations)
     all_names <- names(df)
@@ -3419,14 +3527,14 @@ server <- function(input, output, session) {
     if (length(sources) == 0) {
       return(df)
     } # fallback: kembalikan df apa adanya
-
+    
     df[, sources, drop = FALSE]
   })
-
+  
   intuisi_pdafl <- reactive({
     temp_xlsx <- reactive_excel_path()
     req(!is.null(temp_xlsx), file.exists(temp_xlsx))
-
+    
     tryCatch(
       {
         openxlsx::read.xlsx(temp_xlsx, sheet = "Intuisi")
@@ -3437,28 +3545,43 @@ server <- function(input, output, session) {
       }
     )
   })
-
-
+  
+  
+  
+  observe({
+    df <- datacorex()
+    date_colx <- names(df)[sapply(df, inherits, "Date")]
+    if (length(date_colx) == 0) {
+      return(NULL)
+    }
+    
+    updateDateInput(session, "ttcpd_date",
+                    value = df[[date_colx]][1],
+                    min = min(df[[date_colx]]), max = max(df[[date_colx]])
+    )
+  })
+  
+  
   # Tempat menyimpan data yang bisa diedit
   intuisiData_pdafl <- reactiveValues(data = NULL)
-
+  
   observeEvent(intuisi_pdafl(), {
     req(intuisi_pdafl())
     intuisiData_pdafl$data <- intuisi_pdafl()
   })
-
+  
   output$intuisitable_pdafl <- DT::renderDataTable({
     req(intuisiData_pdafl$data)
     DT::datatable(intuisiData_pdafl$data, editable = TRUE, options = list(scrollX = TRUE))
   })
-
+  
   # PERBAIKI ID DI SINI
   observeEvent(input$intuisitable_pdafl_cell_edit, {
     info <- input$intuisitable_pdafl_cell_edit
     i <- info$row
     j <- info$col
     v <- suppressWarnings(as.numeric(info$value))
-
+    
     if (!is.na(v) && v %in% c(-1, 0, 1)) {
       intuisiData_pdafl$data[i, j] <- v
     } else {
@@ -3469,108 +3592,12 @@ server <- function(input, output, session) {
       ))
     }
   })
-
-
-  ################################## eksekusi mev boxplot######################################
-
-  eksekusi_mev_BPF <- eventReactive(input$runpdafl, {
-    datax <- datacorex()[, -1:-2]
-
-    intuisi <- intuisiData_pdafl$data$sign
-    # eksekusi
-    hasil_boxplot <- Boxplot_Scenario(datax, intuisi)
-    hasil_boxplot
-  })
-
-  output$df_klasifikasi_table <- DT::renderDataTable({
-    req(eksekusi_mev_BPF())
-    DT::datatable(eksekusi_mev_BPF()$df.klasifikasi, options = list(autoWidth = F, scrollX = TRUE, scrollY = "300px", dom = "t", paging = F))
-  })
-
-
-  output$category_frecuency_table <- DT::renderDataTable({
-    req(eksekusi_mev_BPF())
-    DT::datatable(eksekusi_mev_BPF()$category.frecuency, options = list(autoWidth = F, scrollX = TRUE, scrollY = "300px", dom = "t", paging = FALSE))
-  })
-
-  output$category_percentage_table <- DT::renderDataTable({
-    req(eksekusi_mev_BPF())
-    DT::datatable(eksekusi_mev_BPF()$category.percentage, options = list(autoWidth = F, scrollX = TRUE, scrollY = "300px", dom = "t", paging = FALSE), rownames = FALSE)
-  })
-
-
-  # --- reactive storage ---
-  weighted_pdafl <- reactiveValues(data = NULL)
-
-  observeEvent(eksekusi_mev_BPF(), {
-    req(eksekusi_mev_BPF())
-    weighted_pdafl$data <- data.frame(weight = eksekusi_mev_BPF()$weighted.boxplot)
-  })
-
-
-  # --- read-only table (snapshot awal) ---
-  output$weighted_boxplot_table0 <- DT::renderDT({
-    DT::datatable(data.frame(weight = eksekusi_mev_BPF()$weighted.boxplot), options = list(autoWidth = FALSE, dom = "t", paging = FALSE))
-  })
-
-  # --- editable table ---
-  output$weighted_boxplot_table <- DT::renderDT({
-    req(weighted_pdafl$data)
-    DT::datatable(
-      weighted_pdafl$data,
-      options = list(dom = "t", paging = FALSE),
-      editable = TRUE
-    )
-  })
-
-  # Proxy untuk mereset tampilan jika edit tidak valid
-  observeEvent(input$weighted_boxplot_table_cell_edit, {
-    info <- input$weighted_boxplot_table_cell_edit
-    i <- info$row
-    j <- info$col
-    v <- suppressWarnings(as.numeric(info$value))
-
-    if (!is.na(v)) {
-      # Salin data lama
-      new_data <- weighted_pdafl$data
-
-      # Update nilai di data sementara
-      new_data[i, j] <- v
-
-      # Cek total weight dengan pembulatan
-      total_weight <- round(sum(new_data$weight), 2) # Bulatkan 6 desimal
-
-      if (total_weight == 1) {
-        weighted_pdafl$data <- new_data
-      } else {
-        showModal(modalDialog(
-          title = "Input Tidak Valid",
-          paste0("Jumlah seluruh weight harus = 1. Saat ini: ", total_weight),
-          easyClose = TRUE
-        ))
-      }
-    }
-  })
-
-
-  output$avg_table_table <- DT::renderDataTable({
-    req(eksekusi_mev_BPF())
-    DT::datatable(eksekusi_mev_BPF()$avg.table, options = list(pageLength = 5, autoWidth = F, scrollX = TRUE, scrollY = "400px", dom = "t", paging = FALSE))
-  })
-
-  output$diff_base_table <- DT::renderDataTable({
-    req(eksekusi_mev_BPF())
-    DT::datatable(eksekusi_mev_BPF()$diff.base, options = list(pageLength = 5, autoWidth = F, scrollX = TRUE, scrollY = "400px", dom = "t", paging = FALSE))
-  })
-
-
-  ################### Eksekusi Forecast Mev Boxplot#################
-
-
+  
+  
   fmev_base_pdfl <- reactive({
     temp_xlsx <- reactive_excel_path()
     req(!is.null(temp_xlsx), file.exists(temp_xlsx))
-
+    
     df <- tryCatch(
       {
         openxlsx::read.xlsx(temp_xlsx, sheet = "Forecast X", detectDates = T)
@@ -3582,12 +3609,12 @@ server <- function(input, output, session) {
     )
     df
   })
-
-
+  
+  
   modelfromhisto_pdfl <- reactive({
     temp_xlsx <- reactive_excel_path()
     req(!is.null(temp_xlsx), file.exists(temp_xlsx))
-
+    
     df <- tryCatch(
       {
         openxlsx::read.xlsx(temp_xlsx, sheet = "Model Akhir", detectDates = T)
@@ -3599,209 +3626,362 @@ server <- function(input, output, session) {
     )
     df
   })
-
-
+  
+  
   datahisto_pdfl <- reactive({
     temp_xlsx <- reactive_excel_path()
     req(!is.null(temp_xlsx), file.exists(temp_xlsx))
-
+    
     df <- tryCatch(
       {
-        openxlsx::read.xlsx(temp_xlsx, sheet = "Data full", detectDates = T)
+        openxlsx::read.xlsx(temp_xlsx, sheet = "Data Trained", detectDates = T)
       },
       error = function(e) {
-        showNotification(paste("Gagal baca sheet 'Data full':", e$message), type = "error")
+        showNotification(paste("Gagal baca sheet 'Data Trained':", e$message), type = "error")
         return(NULL)
       }
     )
     df
   })
-
-
+  
+  
+  ################################## eksekusi mev boxplot######################################
+  
+  eksekusi_mev_BPF <- eventReactive(input$runpdafl, {
+    datax <- datacorex()[, -1:-2]
+    datax2 <- datacorex()[, -2]
+    
+    modelfromhisto <- modelfromhisto_pdfl()
+    vars_needed <- unique(
+      na.omit(
+        unlist(
+          modelfromhisto[, c("var1", "var2", "var3")],
+          use.names = FALSE
+        )
+      )
+    )
+    
+    vars_needed <- vars_needed[vars_needed != ""]
+    
+    
+    core_names <- unique(sapply(strsplit(vars_needed, "_"), `[`, 1))
+    
+    intuisi <- intuisiData_pdafl$data$sign
+    # eksekusi
+    hasil_boxplot <- Boxplot_Scenario(datax2, intuisi,core_names)
+    hasil_boxplot
+  })
+  
+  output$df_klasifikasi_table <- DT::renderDataTable({
+    req(eksekusi_mev_BPF())
+    DT::datatable(eksekusi_mev_BPF()$df.klasifikasi2, options = list(autoWidth = F, scrollX = TRUE, scrollY = "300px", dom = "t", paging = F))
+  })
+  
+  
+  output$category_frecuency_table <- DT::renderDataTable({
+    req(eksekusi_mev_BPF())
+    DT::datatable(eksekusi_mev_BPF()$category.frecuency, options = list(autoWidth = F, scrollX = TRUE, scrollY = "300px", dom = "t", paging = FALSE))
+  })
+  
+  output$category_percentage_table <- DT::renderDataTable({
+    req(eksekusi_mev_BPF())
+    DT::datatable(eksekusi_mev_BPF()$category.percentage, options = list(autoWidth = F, scrollX = TRUE, scrollY = "300px", dom = "t", paging = FALSE), rownames = FALSE)
+  })
+  
+  
+  # --- reactive storage ---
+  weighted_pdafl <- reactiveValues(data = NULL)
+  
+  observeEvent(eksekusi_mev_BPF(), {
+    req(eksekusi_mev_BPF())
+    weighted_pdafl$data <- data.frame(weight = eksekusi_mev_BPF()$weighted.boxplot)
+  })
+  
+  
+  # --- read-only table (snapshot awal) ---
+  output$weighted_boxplot_table0 <- DT::renderDT({
+    DT::datatable(data.frame(weight = eksekusi_mev_BPF()$weighted.boxplot), options = list(autoWidth = FALSE, dom = "t", paging = FALSE))
+  })
+  
+  # --- editable table ---
+  output$weighted_boxplot_table <- DT::renderDT({
+    req(weighted_pdafl$data)
+    DT::datatable(
+      weighted_pdafl$data,
+      options = list(dom = "t", paging = FALSE),
+      editable = TRUE
+    )
+  })
+  
+  # Proxy untuk mereset tampilan jika edit tidak valid
+  observeEvent(input$weighted_boxplot_table_cell_edit, {
+    info <- input$weighted_boxplot_table_cell_edit
+    i <- info$row
+    j <- info$col
+    v <- suppressWarnings(as.numeric(info$value))
+    
+    if (!is.na(v)) {
+      # Salin data lama
+      new_data <- weighted_pdafl$data
+      
+      # Update nilai di data sementara
+      new_data[i, j] <- v
+      
+      # Cek total weight dengan pembulatan
+      total_weight <- round(sum(new_data$weight), 2) # Bulatkan 6 desimal
+      
+      if (total_weight == 1) {
+        weighted_pdafl$data <- new_data
+      } else {
+        showModal(modalDialog(
+          title = "Input Tidak Valid",
+          paste0("Jumlah seluruh weight harus = 1. Saat ini: ", total_weight),
+          easyClose = TRUE
+        ))
+      }
+    }
+  })
+  
+  
+  output$avg_table_table <- DT::renderDataTable({
+    req(eksekusi_mev_BPF())
+    DT::datatable(eksekusi_mev_BPF()$avg.table, options = list(pageLength = 5, autoWidth = F, scrollX = TRUE, scrollY = "400px", dom = "t", paging = FALSE))
+  })
+  
+  output$diff_base_table <- DT::renderDataTable({
+    req(eksekusi_mev_BPF())
+    DT::datatable(eksekusi_mev_BPF()$diff.base, options = list(pageLength = 5, autoWidth = F, scrollX = TRUE, scrollY = "400px", dom = "t", paging = FALSE))
+  })
+  
+  
+  ################### Eksekusi Forecast Mev Boxplot#################
+  
+  
   fo_boxplot_pdafl <- eventReactive(input$runpdafl, {
     datahisto <- datahisto_pdfl()
     modelfromhisto <- modelfromhisto_pdfl()
     fmev_base <- fmev_base_pdfl()
-
+    
     modelfromhistoku <- modelfromhisto$Model
-    modelku <- lm(modelfromhistoku, data = datahisto)
-    vars_needed <- unlist(modelfromhisto[, c("var1", "var2", "var3")], use.names = FALSE)
+    modelku <- lm(
+      as.formula(modelfromhisto$Model[1]),
+      data = datahisto
+    )
+    
+    vars_needed <- unique(
+      na.omit(
+        unlist(
+          modelfromhisto[, c("var1", "var2", "var3")],
+          use.names = FALSE
+        )
+      )
+    )
+    
+    vars_needed <- vars_needed[vars_needed != ""]
+    
     vars_available <- intersect(vars_needed, names(fmev_base))
-
+    
+    
     if (length(vars_available) == 0) {
       stop("Tidak ada kolom yang cocok antara model dan fmev_base")
     }
-
+    
     fmev_base2 <- fmev_base[, vars_available, drop = FALSE]
     dateku <- fmev_base[, 1]
     fmev_base2 <- cbind(dateku, fmev_base2)
-
+    
     intuisi <- intuisiData_pdafl$data
     z <- input$backtransform
     vary <- vary_pdafl()
     # eksekusi
-    fo_boxplot <- forecast_mev_bxp(fmev_base2, eksekusi_mev_BPF()$diff.base, modelku, z, vary, intuisi, metode = input$outliermet)
+    fo_boxplot <- forecast_mev_bxp(fmev_base2,datahisto,eksekusi_mev_BPF()$diff.base, modelku, z, vary, intuisi, metode = input$outliermet,penggantinegatif=input$replacenegatif)
     fo_boxplot
   })
-
-
+  
+  
   output$fo_boxplotbase_table <- DT::renderDataTable({
     req(fo_boxplot_pdafl())
-    DT::datatable(fo_boxplot_pdafl()$f.base, options = list(pageLength = 5, autoWidth = TRUE, scrollX = TRUE, scrollY = "400px", dom = "t", paging = FALSE), rownames = FALSE)
+    DT::datatable(fo_boxplot_pdafl()$f.base, options = list(pageLength = 5, autoWidth = F, scrollX = TRUE, scrollY = "400px", dom = "t", paging = FALSE), rownames = FALSE)
   })
-
-
+  
+  
   output$fo_boxplotbest_table <- DT::renderDataTable({
     req(fo_boxplot_pdafl())
-    DT::datatable(fo_boxplot_pdafl()$f.best, options = list(pageLength = 5, autoWidth = TRUE, scrollX = TRUE, scrollY = "400px", dom = "t", paging = FALSE), rownames = FALSE)
+    DT::datatable(fo_boxplot_pdafl()$f.best, options = list(pageLength = 5, autoWidth = F, scrollX = TRUE, scrollY = "400px", dom = "t", paging = FALSE), rownames = FALSE)
   })
-
+  
   output$fo_boxplotworst_table <- DT::renderDataTable({
     req(fo_boxplot_pdafl())
-    DT::datatable(fo_boxplot_pdafl()$f.worst, options = list(pageLength = 5, autoWidth = TRUE, scrollX = TRUE, scrollY = "400px", dom = "t", paging = FALSE), rownames = FALSE)
+    DT::datatable(fo_boxplot_pdafl()$f.worst, options = list(pageLength = 5, autoWidth = F, scrollX = TRUE, scrollY = "400px", dom = "t", paging = FALSE), rownames = FALSE)
   })
-
+  
   output$fo_boxplotyjoin_table <- DT::renderDataTable({
     req(fo_boxplot_pdafl())
-    DT::datatable(fo_boxplot_pdafl()$f.yjoin, options = list(pageLength = 5, autoWidth = TRUE, scrollX = TRUE, scrollY = "400px", dom = "t", paging = FALSE), rownames = FALSE)
+    DT::datatable(fo_boxplot_pdafl()$f.yjoin, options = list(pageLength = 5, autoWidth = F, scrollX = TRUE, scrollY = "400px", dom = "t", paging = FALSE), rownames = FALSE)
   })
-
+  
   output$fo_boxplotdiff_table <- DT::renderDataTable({
     req(fo_boxplot_pdafl())
-    DT::datatable(fo_boxplot_pdafl()$diff.boxplot, options = list(pageLength = 5, autoWidth = TRUE, scrollX = TRUE, scrollY = "400px", dom = "t", paging = FALSE), rownames = FALSE)
+    DT::datatable(fo_boxplot_pdafl()$diff.boxplot, options = list(pageLength = 5, autoWidth = F, scrollX = TRUE, scrollY = "400px", dom = "t", paging = FALSE), rownames = FALSE)
   })
-
-
+  
+  
   ######################################################################################################### EKSEKUSI PD  ##################################################
-
-
+  
+  
   hasilPD <- eventReactive(input$runpdafl, {
-    fo.y.boxplot <- fo_boxplot_pdafl()$f.yjoin
-    datahisto <- datahisto_pdfl()
-    vary <- vary_pdafl()
-    datay <- datahisto[[vary]]
-    back_trans <- function(x, z) {
-      if (z == "logit") {
-        y <- exp(x) / (1 + exp(x))
-      } else if (z == "log") {
-        y <- exp(x)
-      } else {
-        y <- x
+    safe_reactive({
+      
+      req(fo_boxplot_pdafl())
+      fo.y.boxplot <- fo_boxplot_pdafl()$f.yjoin
+      datahisto <- datahisto_pdfl()
+      vary <- vary_pdafl()
+      date_colx <- names(datahisto)[sapply(datahisto, inherits, "Date")]
+      datayndate <- datahisto[,c(date_colx,vary)]
+      
+      
+      datay <- datayndate[datayndate[[date_colx]] >= as.Date(input$ttcpd_date),vary]
+      
+      
+      #datay <- datahisto[[vary]]
+      back_trans <- function(x, z) {
+        if (z == "logit") {
+          y <- exp(x) / (1 + exp(x))
+        } else if (z == "log") {
+          y <- exp(x)
+        } else {
+          y <- x
+        }
+        return(y)
       }
-      return(y)
-    }
-    datay2 <- back_trans(datay, input$backtransform)
-
-    # dataissuer2=aggregate(CALC_AMOUNT~BUCKET_FROM,data=dataissuerrr01(),sum)
-    # issuer=dataissuer2$calc_amount
-
-    dataissuer_raw <- normalize_pdafl_column_names(dataissuerrr01())
-    dataissuer2 <- dataissuer_raw %>%
-      group_by(bucket_from) %>%
-      summarise(calc_amount = sum(calc_amount), .groups = "drop") %>%
-      complete(bucket_from = 1:5, fill = list(calc_amount = 0))
-    dataissuer2 <- data.frame(dataissuer2)
-    issuer <- dataissuer2$calc_amount
-
-
-    datammult <- normalize_pdafl_column_names(as.data.frame(datammulttt0()))
-    filtered_datammult <- datammult[datammult$prc_date == datammult$prc_date[nrow(datammult)] & datammult$bucket_to == 5, ]
-    filtered_datammult$bucket_from <- factor(filtered_datammult$bucket_from, levels = 1:5)
-
-    ym.pd <- as.data.frame.matrix(xtabs(mmult ~ bucket_from + fl_seq, data = filtered_datammult))
-    ym.pd[5, 2:ncol(ym.pd)] <- 0
-
-    forecast_base_candidates <- c(
-      paste0(vary, " BASE"),
-      paste0("BT_", vary, " BASE"),
-      "ODR_60 BASE",
-      "ODR BASE"
-    )
-    forecast_best_candidates <- c(
-      paste0(vary, " BEST"),
-      paste0("BT_", vary, " BEST"),
-      "ODR_60 BEST",
-      "ODR BEST"
-    )
-    forecast_worst_candidates <- c(
-      paste0(vary, " WORST"),
-      paste0("BT_", vary, " WORST"),
-      "ODR_60 WORST",
-      "ODR WORST"
-    )
-
-    forecast_base <- pick_first_existing_column(fo.y.boxplot, forecast_base_candidates, c("base$"))
-    forecast_best <- pick_first_existing_column(fo.y.boxplot, forecast_best_candidates, c("best$"))
-    forecast_worst <- pick_first_existing_column(fo.y.boxplot, forecast_worst_candidates, c("worst$"))
-
-    if (is.null(forecast_base) || is.null(forecast_best) || is.null(forecast_worst)) {
-      stop(
-        sprintf(
-          "Forecast scenario columns not found in fo.y.boxplot. Available columns: %s",
-          paste(colnames(fo.y.boxplot), collapse = ", ")
-        )
+      datay2 <- back_trans(datay, input$backtransform)
+      
+      # dataissuer2=aggregate(CALC_AMOUNT~BUCKET_FROM,data=dataissuerrr01(),sum)
+      # issuer=dataissuer2$calc_amount
+      
+      dataissuer_raw <- normalize_pdafl_column_names(dataissuerrr01())
+      issuerbb2 <- dataissuer_raw[dataissuer_raw$prc_date<=input$tanggal_issuer,c("calc_amount","bucket_from")]
+      
+      dataissuer2 <- issuerbb2 %>%
+        group_by(bucket_from) %>%
+        summarise(calc_amount = sum(calc_amount,na.rm=T), .groups = "drop") %>%
+        complete(bucket_from = 1:5, fill = list(calc_amount = 0))
+      dataissuer2 <- data.frame(dataissuer2)
+      issuer <- dataissuer2$calc_amount
+      
+      
+      datammult <- normalize_pdafl_column_names(as.data.frame(datammulttt0()))
+      filtered_datammult <- datammult[datammult$prc_date == input$tanggal_pd & datammult$bucket_to == 5, ]
+      ym.pd <- as.data.frame.matrix(xtabs(mmult ~ bucket_from + fl_seq, data = filtered_datammult))
+      
+      ym.pd <- clean_row0(ym.pd)
+      
+      
+      PD.Base <- tryCatch(
+        PD_engine1(fo.y.boxplot[,1], datay2, issuer, ym.pd),
+        error = function(e) {
+          print(paste("BASE ERROR:", e$message))
+          NULL
+        }
       )
-    }
-
-    PD.Base <- PD_engine1(forecast_base, datay2, issuer, ym.pd)
-    PD.Best <- PD_engine1(forecast_best, datay2, issuer, ym.pd)
-    PD.Worst <- PD_engine1(forecast_worst, datay2, issuer, ym.pd)
-
-
-    list(
-      Base  = PD.Base,
-      Best  = PD.Best,
-      Worst = PD.Worst
-    )
+      
+      PD.Best <- tryCatch(
+        PD_engine1(fo.y.boxplot[,2], datay2, issuer, ym.pd),
+        error = function(e) {
+          print(paste("BEST ERROR:", e$message))
+          NULL
+        }
+      )
+      
+      PD.Worst <- tryCatch(
+        PD_engine1(fo.y.boxplot[,3], datay2, issuer, ym.pd),
+        error = function(e) {
+          print(paste("WORST ERROR:", e$message))
+          NULL
+        }
+      )
+      
+      
+      hasilbos <- list(
+        Base  = PD.Base,
+        Best  = PD.Best,
+        Worst = PD.Worst
+      )
+      
+      hasilbos
+      
+    })
+    
   })
-
-
+  
+  
   hasilFinal <- eventReactive(input$runpdafl_final, {
-    req(hasilPD()) # butuh Base, Best, Worst sudah dihitung
-
-    PD.Final <- PD_engine_final(
-      hasilPD()$Base$monthly_mpd_afl,
-      hasilPD()$Best$monthly_mpd_afl,
-      hasilPD()$Worst$monthly_mpd_afl,
-      weighted_pdafl$data$weight
-    )
-
-    # return hanya tabel Final yang relevan
-    list(
-      monthly_mpd_afl_final = PD.Final$monthly_mpd_afl_final,
-      monthly_cpd_afl_final = PD.Final$monthly_cpd_afl_final,
-      yearly_mpd_afl_final   = PD.Final$yearly_mpd_afl_final,
-      yearly_cpd_afl_final   = PD.Final$yearly_cpd_afl_final
-    )
+    safe_reactive({
+      
+      req(hasilPD()) # butuh Base, Best, Worst sudah dihitung
+      
+      PD.Final <- PD_engine_final(
+        hasilPD()$Base$monthly_mpd_afl,
+        hasilPD()$Best$monthly_mpd_afl,
+        hasilPD()$Worst$monthly_mpd_afl,
+        weighted_pdafl$data$weight
+      )
+      
+      # return hanya tabel Final yang relevan
+      list(
+        monthly_mpd_afl_final = PD.Final$monthly_mpd_afl_final,
+        monthly_cpd_afl_final = PD.Final$monthly_cpd_afl_final,
+        yearly_mpd_afl_final   = PD.Final$yearly_mpd_afl_final,
+        yearly_cpd_afl_final   = PD.Final$yearly_cpd_afl_final
+      )
+      
+    })
+    
   })
-
-
+  
+  
   # === Server untuk isi DataTable ===#
   observe({
+    
     req(hasilPD())
+    
     pd_data <- hasilPD()
-
+    
+    print(pd_data)
     for (scenario in c("Base", "Best", "Worst")) {
+      
       for (tbl_key in names(pd_tables_map)) {
+        
         local({
-          s <- tolower(scenario)
-          t <- tbl_key
-          output[[paste0("pd_", s, "_", t)]] <- DT::renderDT({
+          
+          sc <- scenario
+          tb <- tbl_key
+          
+          output_id <- paste0(
+            "pd_",
+            tolower(sc),
+            "_",
+            tb
+          )
+          
+          output[[output_id]] <- DT::renderDT({
+            
+            req(pd_data[[sc]])
+            req(pd_data[[sc]][[tb]])
+            
             DT::datatable(
-              pd_data[[scenario]][[t]],
-              options = list(scrollX = TRUE, scrollY = "250px", paging = FALSE)
-            )
-          })
-        })
-      }
-    }
-  })
-
-
+              pd_data[[sc]][[tb]],
+              options = list(
+                autoWidth = F, scrollX = TRUE, scrollY = "400px", dom = "t", paging = FALSE
+              )
+            )})})}}})
+  
+  
+  
   observe({
     req(hasilFinal())
     final_data <- hasilFinal()
-
+    
     for (tbl_key in names(pd_final_map)) {
       local({
         t <- tbl_key
@@ -3815,13 +3995,13 @@ server <- function(input, output, session) {
       })
     }
   })
-
-
+  
+  
   output$download_xlsx_pdafl <- downloadHandler(
     filename = function() paste0("PDAFL_Output_", Sys.Date(), ".xlsx"),
     content = function(file) {
       req(eksekusi_mev_BPF())
-
+      
       # Kumpulkan semua tabel yang ingin diekspor
       # (nama tabel akan ditulis sebagai judul di atas setiap tabel)
       weights_df <- tryCatch(
@@ -3830,102 +4010,102 @@ server <- function(input, output, session) {
         },
         error = function(e) NULL
       )
-
+      
       tables <- list(
-        list(name = "Df Klasifikasi", df = eksekusi_mev_BPF()$df.klasifikasi),
+        list(name = "Df Klasifikasi", df = eksekusi_mev_BPF()$df.klasifikasi2),
         list(name = "Category Frequency", df = eksekusi_mev_BPF()$category.frecuency),
         list(name = "Category Percentage", df = eksekusi_mev_BPF()$category.percentage),
         list(name = "Weighted Boxplot Weights", df = weights_df),
         list(name = "Avg Table", df = eksekusi_mev_BPF()$avg.table),
         list(name = "Diff Base", df = eksekusi_mev_BPF()$diff.base)
       )
-
+      
       wb <- createWorkbook()
       addWorksheet(wb, "Output")
-
+      
       titleStyle <- createStyle(textDecoration = "bold", fontSize = 12)
       headerStyle <- createStyle(textDecoration = "bold")
-
+      
       current_row <- 1L
       max_cols <- 1L
-
+      
       for (t in tables) {
         # Lewati jika tabel NULL atau panjang 0 kolom
         if (is.null(t$df) || is.null(ncol(t$df)) || ncol(t$df) == 0) next
-
+        
         # 1) Tulis nama tabel (judul)
         writeData(wb, "Output", x = t$name, startRow = current_row, startCol = 1, colNames = FALSE)
         addStyle(wb, "Output", style = titleStyle, rows = current_row, cols = 1, gridExpand = TRUE)
-
+        
         # 2) Tulis tabel tepat 1 baris di bawah judul
         writeData(
           wb, "Output",
           x = t$df, startRow = current_row + 1, startCol = 1,
-          headerStyle = headerStyle, borders = "rows", rowNames = FALSE
+          headerStyle = headerStyle, borders = "rows", rowNames = TRUE
         )
-
+        
         # Hitung tinggi tabel: header (1) + nrow data
         n_rows <- if (is.null(nrow(t$df))) 0L else nrow(t$df)
         block_height <- 1L + n_rows # 1 untuk header kolom
-
+        
         # Update baris berikutnya: judul(1) + tabel(block_height) + jarak kosong(3)
         current_row <- current_row + 1L + block_height + 3L
-
+        
         # Lacak jumlah kolom maksimum untuk auto width
         max_cols <- max(max_cols, ncol(t$df))
       }
-
+      
       # Auto width untuk semua kolom yang terpakai
       setColWidths(wb, "Output", cols = 1:max_cols, widths = "auto")
-
+      
       saveWorkbook(wb, file, overwrite = TRUE)
     }
   )
-
-
+  
+  
   # Helper: tulis banyak tabel ke **satu sheet** (judul + tabel + jarak 3 baris)
   write_tables_one_sheet <- function(wb, sheet, items, start_row = 1L) {
     titleStyle <- createStyle(textDecoration = "bold", fontSize = 12)
     headerStyle <- createStyle(textDecoration = "bold")
     current_row <- start_row
     max_cols <- 1L
-
+    
     for (it in items) {
       nm <- it$name
       df <- it$df
       if (is.null(df) || is.null(ncol(df)) || ncol(df) == 0) next
-
+      
       # 1) Judul
       writeData(wb, sheet, x = nm, startRow = current_row, startCol = 1, colNames = FALSE)
       addStyle(wb, sheet, titleStyle, rows = current_row, cols = 1, gridExpand = TRUE)
-
+      
       # 2) Tabel
       writeData(
         wb, sheet,
         x = df, startRow = current_row + 1, startCol = 1,
-        headerStyle = headerStyle, borders = "rows", rowNames = FALSE
+        headerStyle = headerStyle, borders = "rows", rowNames = TRUE
       )
-
+      
       n_rows <- if (is.null(nrow(df))) 0L else nrow(df)
       block_height <- 1L + n_rows # 1 untuk header
       current_row <- current_row + 1L + block_height + 3L # +3 baris kosong
       max_cols <- max(max_cols, ncol(df))
     }
-
+    
     setColWidths(wb, sheet, cols = 1:max_cols, widths = "auto")
     invisible(current_row)
   }
-
+  
   output$download_all_xlsx <- downloadHandler(
-    filename = function() paste0("PDAFL_All_", max(dataissuerrr01()$prc_date), " rep-", Sys.Date(), ".xlsx"),
+    filename = function() paste0("PDAFL_All_", input$tanggal_issuer, " rep-", Sys.Date(), ".xlsx"),
     content = function(file) {
       wb <- createWorkbook()
-
+      
       ## =========================
       ## SHEET 1: MEV Boxplot
       ## =========================
       addWorksheet(wb, "MEV Boxplot")
-
+      
       # Pastikan eksekusi_mev_BPF sudah ada
       # (kalau belum, sheet tetap dibuat, tapi tanpa tabel)
       items_sheet1 <- list()
@@ -3937,9 +4117,9 @@ server <- function(input, output, session) {
           },
           error = function(e) NULL
         )
-
+        
         items_sheet1 <- list(
-          list(name = "Df Klasifikasi", df = eksekusi_mev_BPF()$df.klasifikasi),
+          list(name = "Df Klasifikasi", df = eksekusi_mev_BPF()$df.klasifikasi2),
           list(name = "Category Frequency", df = eksekusi_mev_BPF()$category.frecuency),
           list(name = "Category Percentage", df = eksekusi_mev_BPF()$category.percentage),
           list(name = "Weighted Boxplot Weights", df = weights_df),
@@ -3947,19 +4127,19 @@ server <- function(input, output, session) {
           list(name = "Diff Base", df = eksekusi_mev_BPF()$diff.base)
         )
       }
-
+      
       # Bila tidak ada data sama sekali, tulis catatan kecil
       if (length(items_sheet1) == 0) {
         writeData(wb, "MEV Boxplot", "Belum ada data MEV Boxplot yang dieksekusi.", startRow = 1, startCol = 1)
       } else {
         write_tables_one_sheet(wb, "MEV Boxplot", items_sheet1, start_row = 1L)
       }
-
+      
       ## =========================
       ## SHEET 2: MEV Forecast Boxplot
       ## =========================
       addWorksheet(wb, "MEV Forecast Boxplot")
-
+      
       items_sheet2 <- list()
       if (!is.null(fo_boxplot_pdafl())) {
         items_sheet2 <- list(
@@ -3970,13 +4150,13 @@ server <- function(input, output, session) {
           list(name = "Difference vs Boxplot Base", df = fo_boxplot_pdafl()$diff.boxplot)
         )
       }
-
+      
       if (length(items_sheet2) == 0) {
         writeData(wb, "MEV Forecast Boxplot", "Belum ada data Forecast MEV Boxplot yang dieksekusi.", startRow = 1, startCol = 1)
       } else {
         write_tables_one_sheet(wb, "MEV Forecast Boxplot", items_sheet2, start_row = 1L)
       }
-
+      
       ## =========================
       ## SHEET 3: Eksekusi PD
       ## =========================
@@ -3984,13 +4164,13 @@ server <- function(input, output, session) {
       ## SHEET 3: Eksekusi PD
       ## =========================
       addWorksheet(wb, "Eksekusi PD")
-
+      
       # --- HEADER A1: Report PD Date <max(PRC_DATE)> ---
       report_text <- tryCatch(
         {
           x <- dataissuerrr01()
           if (!is.null(x) && "prc_date" %in% names(x)) {
-            dt <- suppressWarnings(max(as.Date(x$prc_date), na.rm = TRUE))
+            dt <- suppressWarnings(as.Date(input$tanggal_issuer), na.rm = TRUE)
             paste0("Report PD Date ", format(dt, "%Y-%m-%d"))
           } else {
             "Report PD Date -"
@@ -3998,17 +4178,17 @@ server <- function(input, output, session) {
         },
         error = function(e) "Report PD Date -"
       )
-
+      
       openxlsx::writeData(wb, "Eksekusi PD", report_text, startRow = 1, startCol = 1)
-
+      
       # (Opsional) gaya & freeze
       hdr_style <- openxlsx::createStyle(textDecoration = "bold", fontSize = 12)
       openxlsx::addStyle(wb, "Eksekusi PD", hdr_style, rows = 1, cols = 1, gridExpand = TRUE)
       openxlsx::freezePane(wb, "Eksekusi PD", firstActiveRow = 3)
-
+      
       # --- KONTEN: mulai dari baris 3 (baris 2 sengaja kosong) ---
       items_sheet3 <- list()
-
+      
       # 0) MASUKKAN tabel weighted_boxplot_table (hasil edit)
       weights_edited <- tryCatch(
         {
@@ -4023,11 +4203,11 @@ server <- function(input, output, session) {
         },
         error = function(e) NULL
       )
-
+      
       items_sheet3 <- append(items_sheet3, list(
         list(name = "Weighted Boxplot (Edited) - from weighted_boxplot_table", df = weights_edited)
       ))
-
+      
       # 1) Tabel-tabel PD per skenario (Base/Best/Worst) — seperti kode Anda semula
       pd_tables_map <- list(
         FL.P.ODR           = "Forward Looking Prediction",
@@ -4044,7 +4224,7 @@ server <- function(input, output, session) {
         monthly_mpd_bfl    = "Monthly Marginal PD Before Forward Looking",
         monthly_mpd_afl    = "Monthly Marginal PD After Forward Looking"
       )
-
+      
       if (!is.null(hasilPD())) {
         pd_data <- hasilPD()
         for (scenario in c("Base", "Best", "Worst")) {
@@ -4059,7 +4239,7 @@ server <- function(input, output, session) {
           }
         }
       }
-
+      
       # 2) Tabel FINAL (opsional)
       if (!is.null(hasilFinal())) {
         final_data <- hasilFinal()
@@ -4079,105 +4259,458 @@ server <- function(input, output, session) {
           ))
         }
       }
-
+      
       # Tulis semua tabel ke sheet, mulai baris ke-3
       if (length(items_sheet3) == 0) {
         openxlsx::writeData(wb, "Eksekusi PD", "Belum ada hasil Eksekusi PD.", startRow = 3, startCol = 1)
       } else {
         write_tables_one_sheet(wb, "Eksekusi PD", items_sheet3, start_row = 3L)
       }
-
-
+      
+      
       ## =========================
       ## Simpan workbook
       ## =========================
       saveWorkbook(wb, file, overwrite = TRUE)
     }
   )
-
+  
+  
+  output$download_all_xlsx2<- downloadHandler(
+    
+    filename = function() {
+      paste0(
+        "PDAFL_All_",
+        Sys.Date(),
+        ".xlsx"
+      )
+    },
+    
+    content = function(file) {
+      
+      # ==================================================
+      # Load workbook asli
+      # ==================================================
+      temp_xlsx <- reactive_excel_path()
+      
+      req(
+        !is.null(temp_xlsx),
+        file.exists(temp_xlsx)
+      )
+      
+      wb <- openxlsx::loadWorkbook(temp_xlsx)
+      
+      # ==================================================
+      # Hapus sheet jika sudah ada
+      # (menghindari duplicate sheet name)
+      # ==================================================
+      new_sheets <- c(
+        "MEV Boxplot",
+        "MEV Forecast Boxplot",
+        "Eksekusi PD"
+      )
+      
+      existing_sheets <- names(wb)
+      
+      for (s in intersect(new_sheets, existing_sheets)) {
+        removeWorksheet(wb, s)
+      }
+      
+      # ==================================================
+      # SHEET : MEV Boxplot
+      # ==================================================
+      addWorksheet(wb, "MEV Boxplot")
+      
+      items_sheet1 <- list()
+      
+      if (!is.null(eksekusi_mev_BPF())) {
+        
+        weights_df <- tryCatch({
+          
+          if (!is.null(eksekusi_mev_BPF()$weighted.boxplot)) {
+            data.frame(
+              weight = eksekusi_mev_BPF()$weighted.boxplot
+            )
+          } else {
+            NULL
+          }
+          
+        }, error = function(e) NULL)
+        
+        items_sheet1 <- list(
+          
+          list(
+            name = "Df Klasifikasi",
+            df = eksekusi_mev_BPF()$df.klasifikasi2
+          ),
+          
+          list(
+            name = "Category Frequency",
+            df = eksekusi_mev_BPF()$category.frecuency
+          ),
+          
+          list(
+            name = "Category Percentage",
+            df = eksekusi_mev_BPF()$category.percentage
+          ),
+          
+          list(
+            name = "Weighted Boxplot",
+            df = weights_df
+          ),
+          
+          list(
+            name = "Avg Table",
+            df = eksekusi_mev_BPF()$avg.table
+          ),
+          
+          list(
+            name = "Diff Base",
+            df = eksekusi_mev_BPF()$diff.base
+          )
+        )
+      }
+      
+      if (length(items_sheet1) == 0) {
+        
+        writeData(
+          wb,
+          "MEV Boxplot",
+          "Belum ada hasil."
+        )
+        
+      } else {
+        
+        write_tables_one_sheet(
+          wb,
+          "MEV Boxplot",
+          items_sheet1,
+          start_row = 1L
+        )
+        
+      }
+      
+      # ==================================================
+      # SHEET : MEV Forecast Boxplot
+      # ==================================================
+      addWorksheet(wb, "MEV Forecast Boxplot")
+      
+      items_sheet2 <- list()
+      
+      if (!is.null(fo_boxplot_pdafl())) {
+        
+        items_sheet2 <- list(
+          
+          list(
+            name = "Forecast Base",
+            df = fo_boxplot_pdafl()$f.base
+          ),
+          
+          list(
+            name = "Forecast Best",
+            df = fo_boxplot_pdafl()$f.best
+          ),
+          
+          list(
+            name = "Forecast Worst",
+            df = fo_boxplot_pdafl()$f.worst
+          ),
+          
+          list(
+            name = "Forecast YJoin",
+            df = fo_boxplot_pdafl()$f.yjoin
+          ),
+          
+          list(
+            name = "Difference vs Base",
+            df = fo_boxplot_pdafl()$diff.boxplot
+          )
+        )
+      }
+      
+      if (length(items_sheet2) == 0) {
+        
+        writeData(
+          wb,
+          "MEV Forecast Boxplot",
+          "Belum ada hasil."
+        )
+        
+      } else {
+        
+        write_tables_one_sheet(
+          wb,
+          "MEV Forecast Boxplot",
+          items_sheet2,
+          start_row = 1L
+        )
+        
+      }
+      
+      # ==================================================
+      # SHEET : Eksekusi PD
+      # ==================================================
+      addWorksheet(wb, "Eksekusi PD")
+      
+      report_text <- paste(
+        "Report PD Date",
+        as.character(input$tanggal_issuer)
+      )
+      
+      writeData(
+        wb,
+        "Eksekusi PD",
+        report_text,
+        startRow = 1,
+        startCol = 1
+      )
+      
+      hdr_style <- createStyle(
+        textDecoration = "bold",
+        fontSize = 12
+      )
+      
+      addStyle(
+        wb,
+        "Eksekusi PD",
+        hdr_style,
+        rows = 1,
+        cols = 1
+      )
+      
+      items_sheet3 <- list()
+      
+      # ==================================================
+      # Weight hasil edit user
+      # ==================================================
+      weights_edited <- tryCatch({
+        
+        if (!is.null(weighted_pdafl$data)) {
+          
+          data.frame(
+            Scenario = c(
+              "Base",
+              "Best",
+              "Worst"
+            ),
+            Weight = as.numeric(
+              weighted_pdafl$data$weight
+            )
+          )
+          
+        } else {
+          
+          NULL
+          
+        }
+        
+      }, error = function(e) NULL)
+      
+      items_sheet3 <- append(
+        items_sheet3,
+        list(
+          list(
+            name = "Weighted Scenario",
+            df = weights_edited
+          )
+        )
+      )
+      
+      # ==================================================
+      # Hasil PD per scenario
+      # ==================================================
+      if (!is.null(hasilPD())) {
+        
+        pd_data <- hasilPD()
+        
+        pd_tables_map <- list(
+          FL.P.ODR = "Forward Looking Prediction",
+          TTC.ODR = "True The Life Cycle",
+          MPD.Scalling = "Marginal PD Scalling",
+          Scalling = "Scalling",
+          Optimization = "Optimization",
+          yearly_cpd_bfl = "Yearly CPD Before FL",
+          yearly_mpd_bfl = "Yearly MPD Before FL",
+          yearly_mpd_afl = "Yearly MPD After FL",
+          yearly_cpd_afl = "Yearly CPD After FL",
+          monthly_cpd_bfl = "Monthly CPD Before FL",
+          monthly_cpd_afl = "Monthly CPD After FL",
+          monthly_mpd_bfl = "Monthly MPD Before FL",
+          monthly_mpd_afl = "Monthly MPD After FL"
+        )
+        
+        for (scenario in c(
+          "Base",
+          "Best",
+          "Worst"
+        )) {
+          
+          for (tbl_key in names(pd_tables_map)) {
+            
+            df_here <- tryCatch(
+              pd_data[[scenario]][[tbl_key]],
+              error = function(e) NULL
+            )
+            
+            items_sheet3 <- append(
+              items_sheet3,
+              list(
+                list(
+                  name = paste0(
+                    pd_tables_map[[tbl_key]],
+                    " (",
+                    scenario,
+                    ")"
+                  ),
+                  df = df_here
+                )
+              )
+            )
+            
+          }
+        }
+      }
+      
+      # ==================================================
+      # Final Weighted Result
+      # ==================================================
+      if (!is.null(hasilFinal())) {
+        
+        final_data <- hasilFinal()
+        
+        final_map <- list(
+          monthly_mpd_afl_final =
+            "Monthly MPD Final",
+          
+          monthly_cpd_afl_final =
+            "Monthly CPD Final",
+          
+          yearly_mpd_afl_final =
+            "Yearly MPD Final",
+          
+          yearly_cpd_afl_final =
+            "Yearly CPD Final"
+        )
+        
+        for (tbl_key in names(final_map)) {
+          
+          items_sheet3 <- append(
+            items_sheet3,
+            list(
+              list(
+                name = final_map[[tbl_key]],
+                df = final_data[[tbl_key]]
+              )
+            )
+          )
+          
+        }
+      }
+      
+      write_tables_one_sheet(
+        wb,
+        "Eksekusi PD",
+        items_sheet3,
+        start_row = 3L
+      )
+      
+      # ==================================================
+      # SAVE
+      # ==================================================
+      saveWorkbook(
+        wb,
+        file,
+        overwrite = TRUE
+      )
+      
+    }
+    
+  )
+  
+  
   current_model_id <- reactive({
     req(input$choose_model)
     res <- dbGetQuery(con,
-      "SELECT model_id FROM frs9_r_model_summary WHERE model_name = $1 LIMIT 1",
-      params = list(input$choose_model)
+                      "SELECT model_id FROM frs9_r_model_summary WHERE model_name = $1 LIMIT 1",
+                      params = list(input$choose_model)
     )
     if (nrow(res)) as.integer(res$model_id[[1]]) else NA_integer_
   })
-
+  
   observeEvent(input$save_pd,
-    {
-      req(hasilPD())
-
-      # meta
-      prc_date <- max(dataissuerrr01()$prc_date, na.rm = TRUE)
-      pd_config_id <- as.integer(input$segmentpd)
-      model_id <- current_model_id()
-      created_by <- if (!is.null(session$user) && nzchar(session$user)) session$user else if (!is.na(Sys.info()[["user"]])) Sys.info()[["user"]] else "shiny"
-
-      pd <- hasilPD() # list: Base, Best, Worst
-      pf <- try(hasilFinal(), silent = TRUE)
-      has_final <- !(inherits(pf, "try-error") || is.null(pf))
-
-      # ===== Build YEARLY (Base/Best/Worst) =====
-      df_year_base <- build_yearly_rows(pd$Base$yearly_mpd_afl, pd$Base$yearly_cpd_afl, 1L, prc_date, pd_config_id, model_id, created_by)
-      df_year_best <- build_yearly_rows(pd$Best$yearly_mpd_afl, pd$Best$yearly_cpd_afl, 2L, prc_date, pd_config_id, model_id, created_by)
-      df_year_worst <- build_yearly_rows(pd$Worst$yearly_mpd_afl, pd$Worst$yearly_cpd_afl, 3L, prc_date, pd_config_id, model_id, created_by)
-      df_year_all <- rbind(df_year_base, df_year_best, df_year_worst)
-
-      if (has_final) {
-        df_year_final <- build_yearly_rows(
-          pf$yearly_mpd_afl_final,
-          pf$yearly_cpd_afl_final %||% NULL,
-          4L, prc_date, pd_config_id, model_id, created_by
-        )
-        df_year_all <- rbind(df_year_all, df_year_final)
-      }
-
-      # ===== Build MONTHLY (Base/Best/Worst) =====
-      # Gunakan monthly_cpd_afl jika ada; jika tidak, akan dihitung otomatis di helper.
-      df_mon_base <- build_monthly_rows(pd$Base$monthly_mpd_afl, pd$Base$monthly_cpd_afl %||% NULL, 1L, prc_date, pd_config_id, model_id, created_by)
-      df_mon_best <- build_monthly_rows(pd$Best$monthly_mpd_afl, pd$Best$monthly_cpd_afl %||% NULL, 2L, prc_date, pd_config_id, model_id, created_by)
-      df_mon_worst <- build_monthly_rows(pd$Worst$monthly_mpd_afl, pd$Worst$monthly_cpd_afl %||% NULL, 3L, prc_date, pd_config_id, model_id, created_by)
-      df_mon_all <- rbind(df_mon_base, df_mon_best, df_mon_worst)
-
-      # ===== Build MONTHLY FINAL (jika tersedia) =====
-      if (has_final) {
-        df_mon_final <- build_monthly_rows(
-          pf$monthly_mpd_afl_final,
-          pf$monthly_cpd_afl_final %||% NULL,
-          4L, prc_date, pd_config_id, model_id, created_by
-        )
-        df_mon_all <- rbind(df_mon_all, df_mon_final)
-      }
-
-      # ===== Simpan ke DB (1 transaksi) =====
-      tryCatch(
-        {
-          DBI::dbWithTransaction(con, {
-            # YEARLY
-            DBI::dbAppendTable(con, "frs9_r_pd_output_yearly", df_year_all)
-
-            # MONTHLY
-
-            DBI::dbAppendTable(con, "frs9_r_pd_output_monthly", df_mon_all)
-          })
-
-          n_year <- nrow(df_year_all)
-          n_mon <- nrow(df_mon_all)
-          msg <- sprintf(
-            "Sukses simpan PD: YEARLY=%d baris, MONTHLY=%d baris%s.",
-            n_year, n_mon, if (has_final) " (dengan FINAL)" else ""
-          )
-          showNotification(msg, type = "message")
-        },
-        error = function(e) {
-          showNotification(paste("Gagal simpan PD:", e$message), type = "error")
-        }
-      )
-    },
-    ignoreInit = TRUE
+               {
+                 req(hasilPD())
+                 
+                 # meta
+                 prc_date <- input$tanggal_issuer
+                 pd_config_id <- as.integer(input$segmentpd)
+                 model_id <- current_model_id()
+                 created_by <- if (!is.null(session$user) && nzchar(session$user)) session$user else if (!is.na(Sys.info()[["user"]])) Sys.info()[["user"]] else "shiny"
+                 
+                 pd <- hasilPD() # list: Base, Best, Worst
+                 pf <- try(hasilFinal(), silent = TRUE)
+                 has_final <- !(inherits(pf, "try-error") || is.null(pf))
+                 
+                 # ===== Build YEARLY (Base/Best/Worst) =====
+                 df_year_base <- build_yearly_rows(pd$Base$yearly_mpd_afl, pd$Base$yearly_cpd_afl, 1L, prc_date, pd_config_id, model_id, created_by)
+                 df_year_best <- build_yearly_rows(pd$Best$yearly_mpd_afl, pd$Best$yearly_cpd_afl, 2L, prc_date, pd_config_id, model_id, created_by)
+                 df_year_worst <- build_yearly_rows(pd$Worst$yearly_mpd_afl, pd$Worst$yearly_cpd_afl, 3L, prc_date, pd_config_id, model_id, created_by)
+                 df_year_all <- rbind(df_year_base, df_year_best, df_year_worst)
+                 
+                 if (has_final) {
+                   df_year_final <- build_yearly_rows(
+                     pf$yearly_mpd_afl_final,
+                     pf$yearly_cpd_afl_final %||% NULL,
+                     4L, prc_date, pd_config_id, model_id, created_by
+                   )
+                   df_year_all <- rbind(df_year_all, df_year_final)
+                 }
+                 
+                 # ===== Build MONTHLY (Base/Best/Worst) =====
+                 # Gunakan monthly_cpd_afl jika ada; jika tidak, akan dihitung otomatis di helper.
+                 df_mon_base <- build_monthly_rows(pd$Base$monthly_mpd_afl, pd$Base$monthly_cpd_afl %||% NULL, 1L, prc_date, pd_config_id, model_id, created_by)
+                 df_mon_best <- build_monthly_rows(pd$Best$monthly_mpd_afl, pd$Best$monthly_cpd_afl %||% NULL, 2L, prc_date, pd_config_id, model_id, created_by)
+                 df_mon_worst <- build_monthly_rows(pd$Worst$monthly_mpd_afl, pd$Worst$monthly_cpd_afl %||% NULL, 3L, prc_date, pd_config_id, model_id, created_by)
+                 df_mon_all <- rbind(df_mon_base, df_mon_best, df_mon_worst)
+                 
+                 # ===== Build MONTHLY FINAL (jika tersedia) =====
+                 if (has_final) {
+                   df_mon_final <- build_monthly_rows(
+                     pf$monthly_mpd_afl_final,
+                     pf$monthly_cpd_afl_final %||% NULL,
+                     4L, prc_date, pd_config_id, model_id, created_by
+                   )
+                   df_mon_all <- rbind(df_mon_all, df_mon_final)
+                 }
+                 
+                 # ===== Simpan ke DB (1 transaksi) =====
+                 tryCatch(
+                   {
+                     DBI::dbWithTransaction(con, {
+                       # YEARLY
+                       DBI::dbAppendTable(con, "frs9_r_pd_output_yearly", df_year_all)
+                       
+                       # MONTHLY
+                       
+                       DBI::dbAppendTable(con, "frs9_r_pd_output_monthly", df_mon_all)
+                     })
+                     
+                     n_year <- nrow(df_year_all)
+                     n_mon <- nrow(df_mon_all)
+                     msg <- sprintf(
+                       "Sukses simpan PD: YEARLY=%d baris, MONTHLY=%d baris%s.",
+                       n_year, n_mon, if (has_final) " (dengan FINAL)" else ""
+                     )
+                     showNotification(msg, type = "message")
+                   },
+                   error = function(e) {
+                     showNotification(paste("Gagal simpan PD:", e$message), type = "error")
+                   }
+                 )
+               },
+               ignoreInit = TRUE
   )
-
+  
   # Operator %||% (helper kecil)
   # `%||%` <- function(x, y) if (!is.null(x)) x else y
 }
