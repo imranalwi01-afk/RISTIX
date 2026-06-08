@@ -236,8 +236,8 @@ export default function AccessManagementPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { hasAnyPermission } = usePermission();
-  const canManageRoles = hasAnyPermission(['admin.roles.manage', 'admin.roles.create', 'admin.super_admin']);
-  const canViewRoles = hasAnyPermission(['admin.roles.view', 'admin.roles.manage', 'admin.super_admin']);
+  const canManageRoles = hasAnyPermission(['admin.roles.manage', 'admin.roles.create']);
+  const canViewRoles = hasAnyPermission(['admin.roles.view', 'admin.roles.manage']);
 
   // Helper function to get permissions by category
   const getPermissionsByCategory = (groupedPermissions: Record<string, Permission[]>, category: string): Permission[] => {
@@ -1107,7 +1107,7 @@ export default function AccessManagementPage() {
                 >
                   Refresh
                 </Button>
-                <Can permission={['admin.roles.create', 'admin.roles.manage', 'admin.super_admin']}>
+                <Can permission={['admin.roles.create', 'admin.roles.manage']}>
                   <Button
                     variant="contained"
                     startIcon={<AddIcon />}
@@ -1399,7 +1399,7 @@ export default function AccessManagementPage() {
                   >
                     Refresh
                   </Button>
-                  <Can permission={['admin.roles.manage', 'admin.super_admin']}>
+                  <Can permission={['admin.roles.manage']}>
                     <Button
                       variant="contained"
                       startIcon={<SaveIcon />}

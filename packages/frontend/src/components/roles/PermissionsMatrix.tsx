@@ -706,6 +706,11 @@ const PermissionsMatrix: React.FC<PermissionsMatrixProps> = ({
                           checked={isPendingChange !== undefined ? isPendingChange : hasPermission}
                           disabled={!editMode || isReadonly}
                           size="small"
+                          onChange={() => {
+                            if (editMode && !isReadonly) {
+                              togglePermission(role.id, permission.id);
+                            }
+                          }}
                           sx={{
                             color: hasPermission ? getRiskLevelTextColor(permission.riskLevel) : undefined
                           }}

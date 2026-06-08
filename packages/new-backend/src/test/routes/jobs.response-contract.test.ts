@@ -29,9 +29,11 @@ const state = {
   selectQueue: {} as QueueMap,
   insertReturningQueue: {} as QueueMap,
   updateReturningQueue: {} as QueueMap,
+  deleteReturningQueue: {} as QueueMap,
   updateExecuteErrorQueue: {} as ErrorQueueMap,
   insertCalls: [] as Array<{ table: string; payload: any }>,
   updateCalls: [] as Array<{ table: string; patch: any }>,
+  deleteCalls: [] as Array<{ table: string }>,
   addJobMode: 'success' as 'success' | 'throw',
   getJobMap: new Map<string, any>(),
   legacyUnsafeQueue: [] as any[][],
@@ -150,10 +152,38 @@ class UpdateBuilder {
   }
 }
 
+class DeleteBuilder {
+  private tableName: string
+  private returningEnabled = false
+
+  constructor(table: any) {
+    this.tableName = getTableName(table)
+    state.deleteCalls.push({ table: this.tableName })
+  }
+
+  where(..._args: any[]) {
+    return this
+  }
+
+  returning(..._args: any[]) {
+    this.returningEnabled = true
+    return this
+  }
+
+  then(resolve: any, reject: any) {
+    const result = this.returningEnabled
+      ? dequeue(state.deleteReturningQueue, this.tableName)
+      : []
+
+    return Promise.resolve(result).then(resolve, reject)
+  }
+}
+
 const createFakeDb = () => ({
   select: (..._args: any[]) => new SelectBuilder(),
   insert: (table: any) => new InsertBuilder(table),
   update: (table: any) => new UpdateBuilder(table),
+  delete: (table: any) => new DeleteBuilder(table),
   query: {
     userRoles: {
       findMany: async () => [],
@@ -257,9 +287,11 @@ describe('jobs routes response contracts', () => {
     state.selectQueue = {}
     state.insertReturningQueue = {}
     state.updateReturningQueue = {}
+    state.deleteReturningQueue = {}
     state.updateExecuteErrorQueue = {}
     state.insertCalls = []
     state.updateCalls = []
+    state.deleteCalls = []
     state.addJobMode = 'success'
     state.getJobMap = new Map<string, any>()
     state.legacyUnsafeQueue = []
@@ -407,6 +439,64 @@ describe('jobs routes response contracts', () => {
     expect(body.id).toBe('job-def-created')
     expect(body.jobType).toBe('SQL_SP')
     expect(state.insertCalls[0]?.table).toBe('job_definitions')
+  })
+
+  test('PATCH /api/v1/jobs/definitions/{id} updates a job definition', async () => {
+    enqueue(state.updateReturningQueue, 'job_definitions', [
+      {
+        id: 'job-def-updated',
+        name: 'Updated SQL',
+        description: 'Updated run',
+        jobType: 'SQL_SP',
+        cronExpression: '0 1 * * *',
+        defaultParameters: { procedureName: 'sp_run' },
+        priority: 'HIGH',
+        timeout: 1800,
+        maxRetries: 2,
+        requiresApproval: false,
+        isEnabled: true,
+        tenantId: 'tenant-jobs-1',
+        createdBy: 'user-jobs-1',
+        createdAt: new Date('2026-02-24T02:00:00.000Z'),
+        updatedAt: new Date('2026-02-24T03:00:00.000Z'),
+      },
+    ])
+
+    const app = new OpenAPIHono()
+    app.route('/api/v1/jobs', jobsRoutes)
+
+    const response = await app.request('/api/v1/jobs/definitions/job-def-updated', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Updated SQL',
+        jobType: 'sql_sp',
+        priority: 'HIGH',
+      }),
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.id).toBe('job-def-updated')
+    expect(body.jobType).toBe('SQL_SP')
+    expect(state.updateCalls[0]?.table).toBe('job_definitions')
+    expect(state.updateCalls[0]?.patch.jobType).toBe('SQL_SP')
+  })
+
+  test('DELETE /api/v1/jobs/definitions/{id} deletes a job definition', async () => {
+    enqueue(state.deleteReturningQueue, 'job_definitions', [{ id: 'job-def-delete' }])
+
+    const app = new OpenAPIHono()
+    app.route('/api/v1/jobs', jobsRoutes)
+
+    const response = await app.request('/api/v1/jobs/definitions/job-def-delete', {
+      method: 'DELETE',
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.success).toBe(true)
+    expect(state.deleteCalls[0]?.table).toBe('job_definitions')
   })
 
   test('POST /api/v1/jobs/{id}/run returns 404 when definition is missing', async () => {

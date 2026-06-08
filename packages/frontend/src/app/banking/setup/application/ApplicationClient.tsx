@@ -306,9 +306,9 @@ export default function ApplicationSettingPage() {
   const [data, setData] = useState<ApplicationSettingDataTable[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [pendingApprovalRequests, setPendingApprovalRequests] = useState<any[]>([]);
-  const canViewApplication = hasAnyPermission(['banking.setup.application.view', 'banking.setup.application.manage', 'banking.setup.application', 'admin.super_admin']);
-  const canManageApplication = hasAnyPermission(['banking.setup.application.manage', 'banking.setup.application.create', 'banking.setup.application.update', 'banking.setup.application.delete', 'admin.super_admin']);
-  const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
+  const canViewApplication = hasAnyPermission(['banking.setup.application.view', 'banking.setup.application.manage', 'banking.setup.application']);
+  const canManageApplication = hasAnyPermission(['banking.setup.application.manage', 'banking.setup.application.create', 'banking.setup.application.update', 'banking.setup.application.delete']);
+  const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all']);
   const { showCurrencySymbol } = useCurrencyDisplay();
 
   // State
@@ -1330,7 +1330,7 @@ export default function ApplicationSettingPage() {
               Export
             </Button>
 
-            <Can permission={['banking.setup.application.create', 'banking.setup.application.manage', 'admin.super_admin']}>
+            <Can permission={['banking.setup.application.create', 'banking.setup.application.manage']}>
               <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreate}>
                 Add Application Setting
               </Button>

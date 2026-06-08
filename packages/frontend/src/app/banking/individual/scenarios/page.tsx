@@ -43,8 +43,8 @@ import { usePermission } from '@/hooks/usePermission';
 
 export default function ScenariosPage() {
   const { hasAnyPermission } = usePermission();
-  const canCreateScenario = hasAnyPermission(['banking.individual.create', 'banking.individual.manage', 'admin.super_admin']);
-  const canApproveScenario = hasAnyPermission(['approval.requests.approve', 'approval.all', 'banking.individual.approve', 'admin.super_admin']);
+  const canCreateScenario = hasAnyPermission(['banking.individual.create', 'banking.individual.manage']);
+  const canApproveScenario = hasAnyPermission(['approval.requests.approve', 'approval.all', 'banking.individual.approve']);
 
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any[]>([]);
@@ -198,7 +198,7 @@ export default function ScenariosPage() {
         <Typography variant="h4" component="h1" gutterBottom>
           Scenario Details
         </Typography>
-        <Can permission={['banking.individual.create', 'banking.individual.manage', 'admin.super_admin']}>
+        <Can permission={['banking.individual.create', 'banking.individual.manage']}>
           <Button
             variant="contained"
             startIcon={<AddIcon />}

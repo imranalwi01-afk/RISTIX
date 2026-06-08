@@ -73,7 +73,7 @@ interface BusinessDetailDialogProps {
 
 export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetailDialogProps) {
     const { hasAnyPermission } = usePermission();
-    const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
+    const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all']);
     const [loading, setLoading] = useState(false);
     const [details, setDetails] = useState<BusinessParameterDetail[]>([]);
     const [error, setError] = useState<string | null>(null);

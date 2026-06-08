@@ -19,7 +19,7 @@ const EADModelReport = dynamic(() => import('@/components/ifrs9/EADModelReport')
 export default function EADModelReportsPage() {
   return (
     <Can
-      permission={['banking.reports.ifrs9.ead_model.view', 'banking.reports.ifrs9.view', 'admin.super_admin']}
+      permission={['banking.reports.ifrs9.ead_model.view', 'banking.reports.ifrs9.view']}
       fallback={
         <Container maxWidth="xl">
           <Alert severity="error">You do not have permission to access EAD Model Reports.</Alert>

@@ -126,10 +126,10 @@ const STATUS_ICONS = {
 
 export default function DataUploadPage() {
   const { hasAnyPermission } = usePermission();
-  const canViewDataUpload = hasAnyPermission(['banking.data.upload.view', 'banking.data.upload.manage', 'banking.data.upload', 'admin.super_admin']);
-  const canUploadData = hasAnyPermission(['banking.data.upload.create', 'banking.data.upload.manage', 'admin.super_admin']);
-  const canValidateData = hasAnyPermission(['banking.data.validation.run', 'banking.data.upload.manage', 'admin.super_admin']);
-  const canProcessData = hasAnyPermission(['banking.data.upload.process', 'banking.data.upload.manage', 'admin.super_admin']);
+  const canViewDataUpload = hasAnyPermission(['banking.data.upload.view', 'banking.data.upload.manage', 'banking.data.upload']);
+  const canUploadData = hasAnyPermission(['banking.data.upload.create', 'banking.data.upload.manage']);
+  const canValidateData = hasAnyPermission(['banking.data.validation.run', 'banking.data.upload.manage']);
+  const canProcessData = hasAnyPermission(['banking.data.upload.process', 'banking.data.upload.manage']);
 
   const router = useRouter();
   const [loading, setLoading] = useState(false);

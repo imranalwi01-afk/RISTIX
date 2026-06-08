@@ -24,18 +24,20 @@ COPY . .
 RUN bun build src/index.ts --compile --outfile ./server
 RUN bun build src/cli.ts --compile --outfile ./ops
 
-# Stage 2: Minimal production image
-FROM gcr.io/distroless/cc-debian12 AS runner
+# Stage 2: Production image with shell support for health checks
+FROM debian:12-slim AS runner
+
+# Install ca-certificates for HTTPS connections and curl for health checks
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 # Copy the single executable
 COPY --from=builder /app/server ./server
 COPY --from=builder /app/ops ./ops
-
-# Make executable
-# Make executable (handled by builder or copy)
-# RUN chmod +x ./server
 
 ENV NODE_ENV=production
 ENV PORT=4232
@@ -44,9 +46,8 @@ ENV HOST=0.0.0.0
 EXPOSE 4232
 
 # Health check
-# Health check (Disabled in distroless as curl/wget are missing)
-# HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-#     CMD curl -f http://localhost:4232/api/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD curl -sf http://localhost:4232/api/v1/health || exit 1
 
 # Run the standalone executable
 CMD ["./server"]

@@ -19,7 +19,7 @@ const ECLResultReport = dynamic(() => import('@/components/ifrs9/ECLResultReport
 export default function ECLResultReportsPage() {
   return (
     <Can
-      permission={['banking.reports.ifrs9.ecl_result.view', 'banking.reports.ifrs9.view', 'admin.super_admin']}
+      permission={['banking.reports.ifrs9.ecl_result.view', 'banking.reports.ifrs9.view']}
       fallback={
         <Container maxWidth="xl">
           <Alert severity="error">You do not have permission to access ECL Result Reports.</Alert>

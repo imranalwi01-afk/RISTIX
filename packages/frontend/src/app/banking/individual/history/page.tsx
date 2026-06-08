@@ -170,7 +170,7 @@ export default function OverrideHistoryPage() {
               </Alert>
 
               <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-                <Can permission={['banking.individual.export', 'banking.individual.manage', 'admin.super_admin']}>
+                <Can permission={['banking.individual.export', 'banking.individual.manage']}>
                   <Button
                     variant="contained"
                     startIcon={<PageIcon />}

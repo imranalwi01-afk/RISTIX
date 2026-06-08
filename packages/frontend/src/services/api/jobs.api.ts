@@ -79,4 +79,14 @@ export const jobsAPI = {
     const response = await apiClient.post('/jobs/definitions', data);
     return response.data;
   },
+
+  updateDefinition: async (id: string, data: Partial<JobDefinition>): Promise<JobDefinition> => {
+    const response = await apiClient.patch(`/jobs/definitions/${id}`, data);
+    return response.data;
+  },
+
+  deleteDefinition: async (id: string): Promise<{ success: boolean }> => {
+    const response = await apiClient.delete(`/jobs/definitions/${id}`);
+    return response.data;
+  },
 };

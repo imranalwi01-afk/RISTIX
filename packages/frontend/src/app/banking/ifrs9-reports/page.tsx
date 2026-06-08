@@ -231,7 +231,7 @@ const IFRS9ReportsPage: React.FC = () => {
         >
           View Report
         </Button>
-        <Can permission={['banking.reports.ifrs9.export', 'banking.reports.ifrs9.manage', 'banking.reports.ifrs9', 'admin.super_admin']}>
+        <Can permission={['banking.reports.ifrs9.export', 'banking.reports.ifrs9.manage', 'banking.reports.ifrs9']}>
           <Button size="small" color="inherit">
             Export
           </Button>
@@ -242,7 +242,7 @@ const IFRS9ReportsPage: React.FC = () => {
 
   return (
     <Can
-      permission={['banking.reports.ifrs9.view', 'admin.super_admin']}
+      permission={['banking.reports.ifrs9.view']}
       fallback={<Alert severity="error">You do not have permission to access IFRS 9 Reports.</Alert>}
     >
       <Box sx={{ p: 3 }}>

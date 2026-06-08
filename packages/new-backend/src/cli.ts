@@ -25,6 +25,7 @@ import { run as listTenantCoreTables } from './scripts/ops/list-tenant-core-tabl
 import { run as listTenantRoles } from './scripts/ops/list-tenant-roles';
 import { run as createIafAdmin } from './scripts/ops/create-iaf-admin';
 import { run as createPlatformAdmin } from './scripts/ops/create-platform-admin';
+import { run as syncPermissions } from './scripts/ops/sync-permissions';
 
 const program = new Command();
 
@@ -125,6 +126,12 @@ program.command('create-iaf-admin')
 program.command('create-platform-admin')
     .description('Create or reset Platform Superadmin (Cross-tenant)')
     .action(createPlatformAdmin);
+
+program.command('sync-permissions')
+    .description('Sync all catalog permissions to DB and assign to role')
+    .argument('[role]', 'Role code (default: IAF_TENANT_SUPERADMIN)')
+    .argument('[tenantId]', 'Tenant ID (default: IAF tenant)')
+    .action(syncPermissions);
 
 // ... existing imports
 import { run as resetPassword } from './scripts/ops/reset-password';

@@ -44,7 +44,8 @@ import {
   Pagination,
   Menu,
   MenuList,
-  MenuItem as MuiMenuItem
+  MenuItem as MuiMenuItem,
+  Stack,
 } from '@mui/material';
 import {
   People as PeopleIcon,
@@ -338,6 +339,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
   // Filters and pagination
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [roleSearchTerm, setRoleSearchTerm] = useState('');
+  const [manageRoleSearchTerm, setManageRoleSearchTerm] = useState('');
   const [filterRoleType, setFilterRoleType] = useState<string>('all');
   const [approvalCoverageFilter, setApprovalCoverageFilter] = useState<'all' | 'can_approve' | 'no_approval'>('all');
   const [showInactiveUsers, setShowInactiveUsers] = useState(false);
@@ -1009,10 +1011,18 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     },
   ], [workspaceRoleColumns]);
 
-  const managedUserRoleRows = useMemo(
-    () => roles.filter((role) => role.isActive || manageUserRolesDialog.selectedRoleIds.includes(role.id)),
-    [manageUserRolesDialog.selectedRoleIds, roles]
-  );
+  const managedUserRoleRows = useMemo(() => {
+    let filtered = roles.filter((role) => role.isActive || manageUserRolesDialog.selectedRoleIds.includes(role.id));
+    if (manageRoleSearchTerm) {
+      const term = manageRoleSearchTerm.toLowerCase();
+      filtered = filtered.filter((r) =>
+        getRoleLabel(r).toLowerCase().includes(term) ||
+        (r.description || '').toLowerCase().includes(term) ||
+        (r.type || '').toLowerCase().includes(term)
+      );
+    }
+    return filtered;
+  }, [manageUserRolesDialog.selectedRoleIds, roles, manageRoleSearchTerm, getRoleLabel]);
 
   const managedUserRoleColumns = useMemo<GridColDef<Role>[]>(() => [
     {
@@ -1747,13 +1757,43 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>
-          {manageUserRolesDialog.user ? `Manage Roles: ${manageUserRolesDialog.user.fullName}` : 'Manage User Roles'}
+        <DialogTitle sx={{ pb: 1 }}>
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Avatar sx={{ bgcolor: 'primary.main', width: 36, height: 36 }}>
+              <PersonIcon />
+            </Avatar>
+            <Box>
+              <Typography variant="h6">
+                {manageUserRolesDialog.user ? manageUserRolesDialog.user.fullName : 'Manage User Roles'}
+              </Typography>
+              {manageUserRolesDialog.user && (
+                <Typography variant="body2" color="text.secondary">
+                  {manageUserRolesDialog.user.email}
+                </Typography>
+              )}
+            </Box>
+          </Stack>
         </DialogTitle>
         <DialogContent dividers>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Select the roles that should be assigned to this user, then save changes.
-          </Typography>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              Select roles to assign or deselect roles to remove.
+              <strong> {manageUserRolesDialog.selectedRoleIds.length}</strong> role{manageUserRolesDialog.selectedRoleIds.length !== 1 ? 's' : ''} selected.
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, mt: 1.5, alignItems: 'center' }}>
+              <TextField
+                size="small"
+                placeholder="Search roles..."
+                variant="outlined"
+                value={manageRoleSearchTerm}
+                onChange={(e) => setManageRoleSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>,
+                }}
+                sx={{ minWidth: 240 }}
+              />
+            </Box>
+          </Box>
           <SafeDataGrid
             rows={managedUserRoleRows}
             columns={managedUserRoleColumns}
@@ -1763,16 +1803,25 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
             disableRowSelectionOnClick
             tableStateKey="manage-user-roles-dialog-table"
             fillAvailableHeight={false}
-            maxTableHeight={420}
+            maxTableHeight={380}
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setManageUserRolesDialog({ open: false, user: null, selectedRoleIds: [], saving: false })}>
-            Cancel
-          </Button>
-          <Button variant="contained" onClick={saveManagedUserRoles} disabled={manageUserRolesDialog.saving}>
-            {manageUserRolesDialog.saving ? 'Saving...' : 'Save Role Assignment'}
-          </Button>
+        <DialogActions sx={{ px: 3, py: 2, justifyContent: 'space-between' }}>
+          <Box>
+            {manageUserRolesDialog.user && (
+              <Typography variant="caption" color="text.secondary">
+                Currently assigned: {getAssignedRoleIdsForUser(manageUserRolesDialog.user).length} role{getAssignedRoleIdsForUser(manageUserRolesDialog.user).length !== 1 ? 's' : ''}
+              </Typography>
+            )}
+          </Box>
+          <Stack direction="row" spacing={1}>
+            <Button onClick={() => setManageUserRolesDialog({ open: false, user: null, selectedRoleIds: [], saving: false })}>
+              Cancel
+            </Button>
+            <Button variant="contained" onClick={saveManagedUserRoles} disabled={manageUserRolesDialog.saving}>
+              {manageUserRolesDialog.saving ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </Stack>
         </DialogActions>
       </Dialog>
 

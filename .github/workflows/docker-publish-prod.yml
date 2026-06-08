@@ -10,10 +10,54 @@ env:
 
 jobs:
   # ==============================================================================
+  # TEST & QUALITY GATE
+  # ==============================================================================
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install backend dependencies
+        run: |
+          cd packages/new-backend
+          pnpm install --frozen-lockfile
+
+      - name: Install frontend dependencies
+        run: |
+          cd packages/frontend
+          pnpm install --frozen-lockfile
+
+      - name: Type-check Backend
+        run: cd packages/new-backend && pnpm run typecheck
+
+      - name: Type-check Frontend
+        run: cd packages/frontend && pnpm run type-check
+
+      - name: Backend Unit Tests
+        run: cd packages/new-backend && JWT_SECRET=ci-test-jwt-secret-min-32-chars-long!! pnpm run test:unit
+
+  # ==============================================================================
   # FRONTEND BUILD JOB
   # ==============================================================================
   frontend:
     runs-on: ubuntu-latest
+    needs: [test]
     permissions:
       contents: read
       packages: write
@@ -68,6 +112,7 @@ jobs:
   # ==============================================================================
   backend:
     runs-on: ubuntu-latest
+    needs: [test]
     permissions:
       contents: read
       packages: write

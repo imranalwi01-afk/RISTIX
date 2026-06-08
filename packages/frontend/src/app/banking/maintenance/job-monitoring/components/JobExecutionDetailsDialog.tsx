@@ -9,7 +9,6 @@ import {
   DialogTitle,
   Button,
   Grid,
-  LinearProgress,
   Paper,
   Stack,
   Typography,
@@ -26,6 +25,26 @@ interface JobExecutionDetailsDialogProps {
   formatDateTime: (value: string) => string;
   formatDuration: (duration?: number) => string;
 }
+
+const formatRuntimeSeconds = (seconds?: number) => {
+  if (typeof seconds !== 'number') return '-';
+  return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+};
+
+const getRuntimeReasonLabel = (reason?: string) => {
+  switch (reason) {
+    case 'not_active':
+      return 'Execution is not currently active.';
+    case 'not_sql_sp_legacy':
+      return 'Live database diagnostics are only available for running LEGACY stored procedure jobs.';
+    case 'missing_procedure_name':
+      return 'Stored procedure name is missing, so the database session cannot be matched.';
+    case 'session_not_found':
+      return 'No matching active database session was found yet.';
+    default:
+      return reason || 'Runtime diagnostics are not available for this execution.';
+  }
+};
 
 export const JobExecutionDetailsDialog = memo(function JobExecutionDetailsDialog({
   open,
@@ -103,68 +122,82 @@ export const JobExecutionDetailsDialog = memo(function JobExecutionDetailsDialog
                       : formatDuration(job.duration)}
                   </Typography>
                 </Box>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Progress
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                    <LinearProgress variant="determinate" value={job.progress} sx={{ flexGrow: 1 }} />
-                    <Typography variant="body2">{job.progress}%</Typography>
-                  </Box>
-                </Box>
               </Stack>
             </Grid>
 
-            {canViewRuntime && job.runtime?.available && (
+            {canViewRuntime && (
               <Grid size={{ xs: 12 }}>
                 <Typography variant="h6" gutterBottom>
-                  Runtime Diagnostics
+                  Debug Console
                 </Typography>
-                <Paper variant="outlined" sx={{ p: 2 }}>
-                  <Grid container spacing={2}>
-                    <Grid size={{ xs: 12, md: 4 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Backend PID
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    p: 2,
+                    bgcolor: '#111827',
+                    color: 'grey.100',
+                    fontFamily: 'monospace',
+                    overflowX: 'auto',
+                  }}
+                >
+                  <Stack spacing={0.75}>
+                    <Typography variant="body2" sx={{ fontFamily: 'inherit', color: 'inherit' }}>
+                      status: {job.status}
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontFamily: 'inherit', color: 'inherit' }}>
+                      execution_id: {job.id}
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontFamily: 'inherit', color: 'inherit' }}>
+                      job_definition_id: {job.jobId}
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontFamily: 'inherit', color: 'inherit' }}>
+                      job_type: {job.jobType}
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontFamily: 'inherit', color: 'inherit' }}>
+                      started_at: {formatDateTime(job.startTime)}
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontFamily: 'inherit', color: 'inherit' }}>
+                      elapsed: {job.status === 'RUNNING'
+                        ? formatDuration(Date.now() - new Date(job.startTime).getTime())
+                        : formatDuration(job.duration)}
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontFamily: 'inherit', color: job.runtime?.available ? 'success.light' : 'warning.light' }}>
+                      runtime_available: {job.runtime?.available ? 'true' : 'false'}
+                    </Typography>
+                    {!job.runtime?.available && (
+                      <Typography variant="body2" sx={{ fontFamily: 'inherit', color: 'warning.light' }}>
+                        runtime_reason: {getRuntimeReasonLabel(job.runtime?.reason)}
                       </Typography>
-                      <Typography variant="body2">{job.runtime.pid ?? '-'}</Typography>
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 4 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        DB State
-                      </Typography>
-                      <Typography variant="body2">{job.runtime.state || '-'}</Typography>
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 4 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Runtime
-                      </Typography>
-                      <Typography variant="body2">
-                        {typeof job.runtime.runtimeSeconds === 'number'
-                          ? `${Math.floor(job.runtime.runtimeSeconds / 60)}m ${job.runtime.runtimeSeconds % 60}s`
-                          : '-'}
-                      </Typography>
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 4 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Wait Event Type
-                      </Typography>
-                      <Typography variant="body2">{job.runtime.waitEventType || '-'}</Typography>
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 4 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Wait Event
-                      </Typography>
-                      <Typography variant="body2">{job.runtime.waitEvent || '-'}</Typography>
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 4 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Blocking PIDs
-                      </Typography>
-                      <Typography variant="body2">
-                        {job.runtime.blockedByPids?.length ? job.runtime.blockedByPids.join(', ') : '-'}
-                      </Typography>
-                    </Grid>
-                  </Grid>
+                    )}
+                    {job.runtime?.available && (
+                      <>
+                        <Typography variant="body2" sx={{ fontFamily: 'inherit', color: 'inherit' }}>
+                          backend_pid: {job.runtime.pid ?? '-'}
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontFamily: 'inherit', color: 'inherit' }}>
+                          db_state: {job.runtime.state || '-'}
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontFamily: 'inherit', color: 'inherit' }}>
+                          db_runtime: {formatRuntimeSeconds(job.runtime.runtimeSeconds)}
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontFamily: 'inherit', color: 'inherit' }}>
+                          wait_event_type: {job.runtime.waitEventType || '-'}
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontFamily: 'inherit', color: 'inherit' }}>
+                          wait_event: {job.runtime.waitEvent || '-'}
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontFamily: 'inherit', color: job.runtime.blockedByPids?.length ? 'error.light' : 'inherit' }}>
+                          blocking_pids: {job.runtime.blockedByPids?.length ? job.runtime.blockedByPids.join(', ') : '-'}
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontFamily: 'inherit', color: 'inherit' }}>
+                          db_session_start: {job.runtime.dbSessionStart ? formatDateTime(job.runtime.dbSessionStart) : '-'}
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontFamily: 'inherit', color: 'inherit' }}>
+                          query_start: {job.runtime.queryStart ? formatDateTime(job.runtime.queryStart) : '-'}
+                        </Typography>
+                      </>
+                    )}
+                  </Stack>
                 </Paper>
               </Grid>
             )}

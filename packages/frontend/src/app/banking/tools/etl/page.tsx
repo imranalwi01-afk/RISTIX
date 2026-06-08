@@ -441,8 +441,8 @@ const ETLNode = ({ data, selected, id }: { data: any; selected: boolean; id: str
 
 function ETLWorkflowDesignerContent() {
   const { hasAnyPermission } = usePermission();
-  const canViewToolsEtl = hasAnyPermission(['banking.tools.etl.view', 'banking.tools.etl.manage', 'banking.tools.manage', 'admin.super_admin']);
-  const canManageToolsEtl = hasAnyPermission(['banking.tools.etl.manage', 'banking.tools.etl.create', 'banking.tools.etl.update', 'banking.tools.etl.run', 'banking.tools.manage', 'admin.super_admin']);
+  const canViewToolsEtl = hasAnyPermission(['banking.tools.etl.view', 'banking.tools.etl.manage', 'banking.tools.manage']);
+  const canManageToolsEtl = hasAnyPermission(['banking.tools.etl.manage', 'banking.tools.etl.create', 'banking.tools.etl.update', 'banking.tools.etl.run', 'banking.tools.manage']);
 
   const router = useRouter();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);

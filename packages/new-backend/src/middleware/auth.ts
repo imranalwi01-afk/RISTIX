@@ -150,9 +150,8 @@ const getRequiredPermissionCandidates = (path: string, method: string): string[]
 }
 
 const hasAnyPermission = (permissions: string[], candidates: string[]): boolean => {
-    if (permissions.includes('*')) return true
     if (permissions.includes('admin.super_admin')) return true
-    if (permissions.includes('PLATFORM_ADMIN')) return true
+    if (permissions.includes('*')) return true
     return candidates.some((candidate) => permissions.includes(candidate))
 }
 
@@ -316,18 +315,23 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
             baseLogger.info({ email: user.email }, '[AUTH] Platform user context loaded')
         }
 
-        // Set user context - ALWAYS use the resolved UUID from tenant object
+        // Set user context - load full permissions from Redis session (JWT only carries meta perms)
+        let session: any
+        try { session = JSON.parse(sessionData) } catch { session = {} }
+        const sessionPermissions = Array.isArray(session?.permissions)
+            ? session.permissions.filter((p: unknown): p is string => typeof p === 'string')
+            : []
         const payloadPermissions = Array.isArray((payload as any).permissions)
             ? ((payload as any).permissions as unknown[]).filter((permission): permission is string => typeof permission === 'string')
             : []
-        const resolvedPermissions = normalizePermissions(payloadPermissions)
+        const resolvedPermissions = normalizePermissions(
+            sessionPermissions.length > 0 ? sessionPermissions : payloadPermissions
+        )
 
         const isSystemUser =
-            isPlatformSession ||
-            !!(user as any).isPlatformAdmin ||
             resolvedPermissions.includes('admin.super_admin') ||
-            resolvedPermissions.includes('PLATFORM_ADMIN') ||
-            resolvedPermissions.includes('admin.system.manage')
+            isPlatformSession ||
+            !!(user as any).isPlatformAdmin
 
         c.set('userId', user.id)
         c.set('user', user)

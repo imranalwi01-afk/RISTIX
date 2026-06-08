@@ -23,7 +23,6 @@ export interface JobExecution {
   startTime: string;
   endTime?: string;
   duration?: number;
-  progress: number;
   userId?: string;
   userName?: string;
   tenantId?: string;

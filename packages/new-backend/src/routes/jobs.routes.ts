@@ -49,6 +49,8 @@ const CreateJobDefinitionSchema = z.object({
     isEnabled: z.boolean().optional(),
 }).openapi('CreateJobDefinitionInput')
 
+const UpdateJobDefinitionSchema = CreateJobDefinitionSchema.partial().openapi('UpdateJobDefinitionInput')
+
 const JobRuntimeSchema = z.object({
     available: z.boolean(),
     pid: z.number().optional(),
@@ -1180,6 +1182,137 @@ jobsRoutes.openapi(
             tenantId: newDef.tenantId ?? null,
             createdBy: newDef.createdBy ?? null,
         }, 201) as any
+    }
+)
+
+/**
+ * PATCH /definitions/:id - Update job definition
+ */
+jobsRoutes.openapi(
+    createRoute({
+        method: 'patch',
+        path: '/definitions/{id}',
+        tags: ['Jobs'],
+        summary: 'Update Job Definition',
+        security: [{ BearerAuth: [] }],
+        request: {
+            params: z.object({
+                id: z.string().openapi({ param: { name: 'id', in: 'path' } }),
+            }) as any,
+            body: {
+                content: {
+                    'application/json': {
+                        schema: UpdateJobDefinitionSchema,
+                    },
+                },
+            },
+        },
+        responses: {
+            200: {
+                content: {
+                    'application/json': {
+                        schema: JobDefinitionSchema,
+                    },
+                },
+                description: 'Job definition updated',
+            },
+            404: { description: 'Job definition not found' },
+        },
+    }),
+    async (c) => {
+        if (!hasAnyRequiredPermission(c, JOB_PERMISSION_REQUIREMENTS.create)) {
+            return forbiddenForPermissions(c, JOB_PERMISSION_REQUIREMENTS.create)
+        }
+
+        const id = c.req.param('id')!
+        const tenantId = c.get('tenantId')
+        const userId = c.get('userId')
+        const body = c.req.valid('json')
+        const patch: Record<string, unknown> = { ...body, updatedBy: userId, updatedAt: new Date() }
+
+        if (typeof body.jobType === 'string') {
+            const normalizedJobType = body.jobType.toUpperCase()
+            if (!SUPPORTED_JOB_TYPES.includes(normalizedJobType as any)) {
+                return c.json({
+                    error: `Unsupported job type: ${body.jobType}. Supported types: ${SUPPORTED_JOB_TYPES.join(', ')}`
+                } as any, 400)
+            }
+            patch.jobType = normalizedJobType
+        }
+
+        const [updated] = await getDatabase(tenantId)
+            .update(jobDefinitions)
+            .set(patch as any)
+            .where(eq(jobDefinitions.id, id))
+            .returning() as any
+
+        if (!updated) {
+            return notFound(c, 'Job definition not found')
+        }
+
+        return c.json({
+            ...updated,
+            description: updated.description ?? null,
+            cronExpression: updated.cronExpression ?? null,
+            defaultParameters: updated.defaultParameters ?? null,
+            priority: updated.priority ?? null,
+            timeout: updated.timeout ?? null,
+            maxRetries: updated.maxRetries ?? null,
+            createdAt: updated.createdAt?.toISOString() ?? new Date().toISOString(),
+            updatedAt: updated.updatedAt?.toISOString() ?? new Date().toISOString(),
+            tenantId: updated.tenantId ?? null,
+            createdBy: updated.createdBy ?? null,
+        }) as any
+    }
+)
+
+/**
+ * DELETE /definitions/:id - Delete job definition
+ */
+jobsRoutes.openapi(
+    createRoute({
+        method: 'delete',
+        path: '/definitions/{id}',
+        tags: ['Jobs'],
+        summary: 'Delete Job Definition',
+        security: [{ BearerAuth: [] }],
+        request: {
+            params: z.object({
+                id: z.string().openapi({ param: { name: 'id', in: 'path' } }),
+            }) as any,
+        },
+        responses: {
+            200: {
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                        }) as any,
+                    },
+                },
+                description: 'Job definition deleted',
+            },
+            404: { description: 'Job definition not found' },
+        },
+    }),
+    async (c) => {
+        if (!hasAnyRequiredPermission(c, JOB_PERMISSION_REQUIREMENTS.control)) {
+            return forbiddenForPermissions(c, JOB_PERMISSION_REQUIREMENTS.control)
+        }
+
+        const id = c.req.param('id')!
+        const tenantId = c.get('tenantId')
+
+        const [deleted] = await getDatabase(tenantId)
+            .delete(jobDefinitions)
+            .where(eq(jobDefinitions.id, id))
+            .returning({ id: jobDefinitions.id }) as any
+
+        if (!deleted) {
+            return notFound(c, 'Job definition not found')
+        }
+
+        return c.json({ success: true }) as any
     }
 )
 

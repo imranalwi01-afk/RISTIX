@@ -22,8 +22,10 @@ interface CreateJobDefinitionDialogProps {
   jobData: CreateJobForm;
   supportedJobTypeOptions: Array<{ value: SupportedJobType; label: string }>;
   disabled: boolean;
+  title?: string;
+  submitLabel?: string;
   onClose: () => void;
-  onCreate: () => void;
+  onSubmit: () => void;
   onChange: React.Dispatch<React.SetStateAction<CreateJobForm>>;
 }
 
@@ -33,13 +35,15 @@ export const CreateJobDefinitionDialog = memo(function CreateJobDefinitionDialog
   jobData,
   supportedJobTypeOptions,
   disabled,
+  title = 'Create New Job Definition',
+  submitLabel = 'Create',
   onClose,
-  onCreate,
+  onSubmit,
   onChange,
 }: CreateJobDefinitionDialogProps) {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Create New Job Definition</DialogTitle>
+      <DialogTitle>{title}</DialogTitle>
       <DialogContent>
         <Grid container spacing={2} sx={{ mt: 1 }}>
           <Grid size={{ xs: 12 }}>
@@ -49,6 +53,16 @@ export const CreateJobDefinitionDialog = memo(function CreateJobDefinitionDialog
               value={jobData.name}
               onChange={(e) => onChange({ ...jobData, name: e.target.value })}
               required
+            />
+          </Grid>
+          <Grid size={{ xs: 12 }}>
+            <TextField
+              fullWidth
+              label="Description"
+              value={jobData.description || ''}
+              onChange={(e) => onChange({ ...jobData, description: e.target.value })}
+              multiline
+              minRows={2}
             />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
@@ -197,8 +211,8 @@ export const CreateJobDefinitionDialog = memo(function CreateJobDefinitionDialog
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        <Button onClick={onCreate} variant="contained" disabled={disabled || loading}>
-          Create
+        <Button onClick={onSubmit} variant="contained" disabled={disabled || loading}>
+          {submitLabel}
         </Button>
       </DialogActions>
     </Dialog>
