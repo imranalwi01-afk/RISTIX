@@ -2323,6 +2323,61 @@ memilih_metode=function(datku,metode,jf=12,byy="month"){
 
 
 
+########rename Date########
+rename_date_column <- function(df) {
+  
+  kemungkinan_tanggal <- names(df)[sapply(df, function(x) {
+    
+    # Sudah bertipe Date
+    if (inherits(x, "Date")) return(TRUE)
+    
+    # Cek apakah karakter menyerupai tanggal
+    x_non_na <- as.character(x[!is.na(x)])
+    
+    if (length(x_non_na) == 0) return(FALSE)
+    
+    all(grepl(
+      "^\\d{1,2}[-/]\\d{1,2}[-/]\\d{2,4}$|^\\d{4}-\\d{2}-\\d{2}$",
+      x_non_na
+    ))
+    
+  })]
+  
+  if (length(kemungkinan_tanggal) == 0) {
+    stop("Tidak ada kolom yang terdeteksi sebagai tanggal.")
+  }
+  
+  if (length(kemungkinan_tanggal) > 1) {
+    warning(
+      "Lebih dari satu kolom terdeteksi sebagai tanggal. Menggunakan kolom pertama: ",
+      kemungkinan_tanggal[1]
+    )
+  }
+  
+  kolom_tanggal <- kemungkinan_tanggal[1]
+  
+  # Konversi ke Date jika belum
+  if (!inherits(df[[kolom_tanggal]], "Date")) {
+    
+    df[[kolom_tanggal]] <- as.Date(
+      df[[kolom_tanggal]],
+      tryFormats = c(
+        "%d/%m/%Y",
+        "%d-%m-%Y",
+        "%Y-%m-%d",
+        "%m/%d/%Y"
+      )
+    )
+    
+  }
+  
+  # Rename menjadi Date
+  names(df)[names(df) == kolom_tanggal] <- "Date"
+  
+  df
+}
+
+
 
 
 konversi_ke_list_forecast <- function(datawide) {
@@ -2398,39 +2453,63 @@ loop_akurasi_forecast_list <- function(list_data, byy = "month", makur = "MAPE")
 
 
 
-
 gabung_hasil_forecast <- function(hasil_list) {
+  
   library(dplyr)
   
   df_final <- NULL
   
   for (nama_var in names(hasil_list)) {
+    
     hasil <- hasil_list[[nama_var]]
     
-    # Pastikan elemen ke-3 (forecast) ada dan berupa data.frame
-    if (length(hasil) >= 3 && is.data.frame(hasil[[3]])) {
-      df_forecast <- hasil[[3]]  # Forecast ada di elemen ke-3
-      
-      # Pastikan ada kolom "Forecast" dan "Date"
-      if (all(c("Date", "Forecast") %in% colnames(df_forecast))) {
-        df_var <- df_forecast %>%
-          rename(!!nama_var := Forecast)
-        
-        if (is.null(df_final)) {
-          df_final <- df_var
-        } else {
-          df_final <- full_join(df_final, df_var, by = "Date")
-        }
-      } else {
-        warning(paste("⛔ Format tidak sesuai untuk:", nama_var))
-      }
-    } else {
-      warning(paste("⛔ Hasil forecast kosong/tidak valid untuk variabel:", nama_var))
+    # Pastikan elemen ke-3 ada dan berupa data.frame
+    if (length(hasil) < 3 || !is.data.frame(hasil[[3]])) {
+      warning(paste("⛔ Hasil forecast kosong/tidak valid untuk:", nama_var))
+      next
     }
+    
+    df_forecast <- hasil[[3]]
+    
+    # Pastikan ada kolom Forecast
+    if (!"Forecast" %in% names(df_forecast)) {
+      warning(paste("⛔ Kolom Forecast tidak ditemukan untuk:", nama_var))
+      next
+    }
+    
+    # Ambil kolom pertama sebagai kolom tanggal
+    date_col <- names(df_forecast)[1]
+    
+    df_var <- df_forecast %>%
+      select(all_of(c(date_col, "Forecast"))) %>%
+      rename(
+        Date = all_of(date_col),
+        !!nama_var := Forecast
+      )
+    
+    if (is.null(df_final)) {
+      
+      df_final <- df_var
+      
+    } else {
+      
+      df_final <- full_join(
+        df_final,
+        df_var,
+        by = "Date"
+      )
+      
+    }
+  }
+  
+  if (!is.null(df_final)) {
+    df_final <- df_final %>%
+      arrange(Date)
   }
   
   return(df_final)
 }
+
 
 
 gabung_hasil_forecast1 <- function(hasil_list) {
