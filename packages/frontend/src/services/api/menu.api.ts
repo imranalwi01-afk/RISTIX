@@ -381,7 +381,7 @@ const menuApiService = new MenuApiService();
 // Export individual methods for convenience
 export const menuApi = {
   getUserMenu: () => menuApiService.getUserMenu(),
-  getMenuTree: (params?: { bankingMode?: 'conventional' | 'syariah' | 'dual'; includeInactive?: boolean }) =>
+  getMenuTree: (params?: { bankingMode?: 'conventional' | 'syariah' | 'dual'; includeInactive?: boolean; tenantId?: string }) =>
     menuApiService.getMenuTree(params),
   getBreadcrumbs: (path: string) => menuApiService.getBreadcrumbs(path),
   logMenuAccess: (accessData: MenuAccessLogRequest) => menuApiService.logMenuAccess(accessData),

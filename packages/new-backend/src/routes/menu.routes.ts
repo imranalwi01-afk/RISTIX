@@ -24,7 +24,8 @@ menuRoutes.openapi(
         responses: { 200: { description: 'Menu hierarchy' } },
     }),
     async (c) => {
-        const tenantId = c.get('tenantId')
+        const queryTenantId = c.req.query('tenantId')
+        const tenantId = queryTenantId || c.get('tenantId')
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
 
         const [categories, items] = await Promise.all([
@@ -54,7 +55,8 @@ menuRoutes.openapi(
         responses: { 200: { description: 'User menu' } },
     }),
     async (c) => {
-        const tenantId = c.get('tenantId')
+        const queryTenantId = c.req.query('tenantId')
+        const tenantId = queryTenantId || c.get('tenantId')
         const userPermissions = c.get('permissions') || []
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
 
@@ -93,7 +95,8 @@ menuRoutes.openapi(
         responses: { 200: { description: 'Menu initialized' } },
     }),
     async (c) => {
-        const tenantId = c.get('tenantId')
+        const queryTenantId = c.req.query('tenantId')
+        const tenantId = queryTenantId || c.get('tenantId')
         const userId = c.get('userId') || 'system'
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
 
@@ -155,7 +158,8 @@ menuRoutes.openapi(
 
 // CRUD endpoints (platform DB)
 menuRoutes.post('/admin/items', async (c) => {
-    const tenantId = c.get('tenantId')
+    const qTenant = c.req.query('tenantId')
+    const tenantId = qTenant || c.get('tenantId')
     const userId = c.get('userId') || 'system'
     if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
     const body = await c.req.json()
@@ -165,7 +169,8 @@ menuRoutes.post('/admin/items', async (c) => {
 })
 
 menuRoutes.put('/admin/items/:id', async (c) => {
-    const tenantId = c.get('tenantId')
+    const qTenant = c.req.query('tenantId')
+    const tenantId = qTenant || c.get('tenantId')
     if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
     const id = c.req.param('id')
     const body = await c.req.json()
@@ -174,7 +179,8 @@ menuRoutes.put('/admin/items/:id', async (c) => {
 })
 
 menuRoutes.delete('/admin/items/:id', async (c) => {
-    const tenantId = c.get('tenantId')
+    const qTenant = c.req.query('tenantId')
+    const tenantId = qTenant || c.get('tenantId')
     if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
     const id = c.req.param('id')
     await platformDb.delete(menuItems).where(and(eq(menuItems.id, id), eq(menuItems.tenantId, tenantId)))
