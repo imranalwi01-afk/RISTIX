@@ -187,6 +187,53 @@ menuRoutes.delete('/admin/items/:id', async (c) => {
     return c.json({ success: true })
 })
 
+// GET /menu/permissions - Get all menu permissions for a tenant
+menuRoutes.get('/permissions', async (c) => {
+    const qTenant = c.req.query('tenantId')
+    const tenantId = qTenant || c.get('tenantId')
+    if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
+    const perms = await platformDb.select().from(menuPermissions).where(eq(menuPermissions.tenantId, tenantId))
+    return c.json({ success: true, data: perms })
+})
+
+// POST /menu/permissions - Create/update a menu permission
+menuRoutes.post('/permissions', async (c) => {
+    const qTenant = c.req.query('tenantId')
+    const tenantId = qTenant || c.get('tenantId')
+    if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
+    const body = await c.req.json()
+    const existing = await platformDb.select().from(menuPermissions)
+        .where(and(
+            eq(menuPermissions.tenantId, tenantId),
+            eq(menuPermissions.menuItemId, body.menuItemId),
+            eq(menuPermissions.roleId, body.roleId),
+            eq(menuPermissions.permissionType, body.permissionType || 'view'),
+        )).limit(1)
+
+    if (existing.length > 0) {
+        await platformDb.update(menuPermissions).set({ isAllowed: body.isAllowed !== false })
+            .where(eq(menuPermissions.id, existing[0].id))
+        return c.json({ success: true, data: existing[0] })
+    }
+
+    const id = randomUUID()
+    await platformDb.insert(menuPermissions).values({
+        id, tenantId, menuItemId: body.menuItemId, roleId: body.roleId,
+        permissionType: body.permissionType || 'view',
+        isAllowed: body.isAllowed !== false,
+        createdBy: c.get('userId') || 'system',
+        createdAt: new Date(),
+    })
+    return c.json({ success: true, data: { id } })
+})
+
+// DELETE /menu/permissions/:id
+menuRoutes.delete('/permissions/:id', async (c) => {
+    const id = c.req.param('id')
+    await platformDb.delete(menuPermissions).where(eq(menuPermissions.id, id))
+    return c.json({ success: true })
+})
+
 // GET /menu/flat - Get flat menu items for sidebar (with banking mode filter)
 menuRoutes.get('/flat', async (c) => {
     const qTenant = c.req.query('tenantId')

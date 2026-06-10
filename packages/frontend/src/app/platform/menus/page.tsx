@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import {
   Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Refresh as RefreshIcon,
-  ExpandMore as ExpandMoreIcon, Menu as MenuIcon, Save as SaveIcon,
+  ExpandMore as ExpandMoreIcon, Menu as MenuIcon, Save as SaveIcon, Security as SecurityIcon,
 } from '@mui/icons-material';
 import { menuApi } from '@/services/api/menu.api';
 import { api } from '@/services/api';
@@ -44,8 +44,23 @@ export default function PlatformMenuManagementPage() {
   const [tenantId, setTenantId] = useState('');
   const [tenants, setTenants] = useState<{ id: string; name: string }[]>([]);
   const [editDialog, setEditDialog] = useState<{ open: boolean; item?: MenuItem }>({ open: false });
+  const [permDialog, setPermDialog] = useState<{ open: boolean; item: MenuItem | null; roles: { id: string; name: string }[]; selectedRoles: string[] }>({ open: false, item: null, roles: [], selectedRoles: [] });
+  const [roles, setRoles] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => { loadTenants(); }, []);
+
+  const loadRoles = useCallback(async () => {
+    if (!tenantId) return;
+    try {
+      const baseURL = api.client.defaults.baseURL || 'https://iaf-ifrs-be.danafin.com/api';
+      const token = localStorage.getItem('auth_token');
+      const res = await fetch(`${baseURL}/roles?tenantId=${tenantId}`, {
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+      }).then(r => r.json());
+      const data = Array.isArray(res) ? res : res?.data || [];
+      setRoles(data.map((r: any) => ({ id: r.id, name: r.name || r.roleCode || r.id })));
+    } catch { setRoles([]); }
+  }, [tenantId]);
 
   const loadTenants = async () => {
     try {
@@ -211,6 +226,17 @@ export default function PlatformMenuManagementPage() {
                           onClick={() => toggleItemActive(item)} />
                       </TableCell>
                       <TableCell align="right">
+                        <Tooltip title="Permissions"><IconButton size="small" color="info" onClick={() => {
+                          setPermDialog({ ...permDialog, open: true, item });
+                          loadRoles();
+                          // Load existing permissions for this item
+                          fetch(`${api.client.defaults.baseURL || 'https://iaf-ifrs-be.danafin.com/api'}/menu/permissions?tenantId=${tenantId}`, {
+                            headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+                          }).then(r => r.json()).then(res => {
+                            const perms = (res?.data || []).filter((p: any) => p.menuItemId === item.id);
+                            setPermDialog(prev => ({ ...prev, selectedRoles: perms.filter((p: any) => p.isAllowed).map((p: any) => p.roleId) }));
+                          }).catch(() => {});
+                        }}><SecurityIcon fontSize="small" /></IconButton></Tooltip>
                         <Tooltip title="Edit"><IconButton size="small" onClick={() => setEditDialog({ open: true, item })}><EditIcon fontSize="small" /></IconButton></Tooltip>
                         <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => deleteItem(item)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
                       </TableCell>
@@ -249,6 +275,50 @@ export default function PlatformMenuManagementPage() {
         <DialogActions>
           <Button onClick={() => setEditDialog({ open: false })}>Cancel</Button>
           <Button variant="contained" startIcon={<SaveIcon />} onClick={() => saveItem(editDialog.item)}>Save</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Permission Dialog */}
+      <Dialog open={permDialog.open} onClose={() => setPermDialog(p => ({ ...p, open: false }))} maxWidth="sm" fullWidth>
+        <DialogTitle>Permissions: {permDialog.item?.name}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Select roles that can access this menu item.
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            {roles.map((role) => {
+              const selected = permDialog.selectedRoles.includes(role.id);
+              return (
+                <Chip
+                  key={role.id}
+                  label={role.name}
+                  color={selected ? 'primary' : 'default'}
+                  variant={selected ? 'filled' : 'outlined'}
+                  onClick={async () => {
+                    const next = selected
+                      ? permDialog.selectedRoles.filter(r => r !== role.id)
+                      : [...permDialog.selectedRoles, role.id];
+                    setPermDialog(p => ({ ...p, selectedRoles: next }));
+                    // Save permission
+                    try {
+                      const baseURL = api.client.defaults.baseURL || 'https://iaf-ifrs-be.danafin.com/api';
+                      const token = localStorage.getItem('auth_token');
+                      await fetch(`${baseURL}/menu/permissions?tenantId=${tenantId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ menuItemId: permDialog.item?.id, roleId: role.id, isAllowed: !selected }),
+                      });
+                    } catch {}
+                  }}
+                  sx={{ cursor: 'pointer' }}
+                />
+              );
+            })}
+            {roles.length === 0 && <Typography variant="body2" color="text.secondary">No roles found. Create roles first.</Typography>}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPermDialog(p => ({ ...p, open: false }))}>Close</Button>
         </DialogActions>
       </Dialog>
 
