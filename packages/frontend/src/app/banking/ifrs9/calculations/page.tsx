@@ -10,7 +10,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   Box,
@@ -80,7 +80,7 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-export default function IFRS9CalculationDashboard() {
+function IFRS9CalculationDashboard() {
   const searchParams = useSearchParams();
   const mode = searchParams.get('mode') || 'conventional';
 
@@ -670,5 +670,13 @@ export default function IFRS9CalculationDashboard() {
         formatCurrency={formatCurrency}
       />
     </ReportPageLayout>
+  );
+}
+
+export default function IFRS9CalculationDashboardWrapper() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>}>
+      <IFRS9CalculationDashboard />
+    </Suspense>
   );
 }

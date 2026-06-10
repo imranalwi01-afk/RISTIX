@@ -1,7 +1,7 @@
 // packages/frontend/src/components/maintenance/AccessManagementPage.tsx
 'use client';
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { Suspense, useState, useCallback, useEffect, useMemo } from 'react';
 import {
   Box,
   Card,
@@ -230,7 +230,7 @@ const getTabKeyFromPath = (pathname: string): keyof typeof TAB_KEY_TO_INDEX => {
   return normalizeTabKey(segment);
 };
 
-export default function AccessManagementPage() {
+function AccessManagementPage() {
   const theme = useTheme();
   const pathname = usePathname();
   const router = useRouter();
@@ -2493,3 +2493,11 @@ export default function AccessManagementPage() {
     </Box>
   );
 };
+
+export default function AccessManagementPageWrapper() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>}>
+      <AccessManagementPage />
+    </Suspense>
+  );
+}

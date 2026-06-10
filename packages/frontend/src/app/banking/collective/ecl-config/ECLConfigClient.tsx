@@ -9,7 +9,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { Suspense, useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -364,7 +364,7 @@ const eclConfigurationAPI = {
 // Business parameters from live system
 
 
-export default function ECLConfigurationPage() {
+function ECLConfigurationPage() {
   const { hasAnyPermission } = usePermission();
   const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all']);
   const searchParams = useSearchParams();
@@ -1406,5 +1406,13 @@ export default function ECLConfigurationPage() {
         onClose={() => setApprovalNotification(createClosedApprovalNotification())}
       />
     </ReportPageLayout>
+  );
+}
+
+export default function ECLConfigurationPageWrapper() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>}>
+      <ECLConfigurationPage />
+    </Suspense>
   );
 }

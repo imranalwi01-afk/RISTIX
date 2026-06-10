@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { Alert, Box, CircularProgress, Container } from '@mui/material';
 import { SwapHoriz as PageIcon } from '@mui/icons-material';
@@ -18,7 +18,7 @@ const ECLMovementReport = dynamic(() => import('@/components/ifrs9/ECLMovementRe
   ),
 });
 
-export default function ECLMovementReportsPage() {
+function ECLMovementReportsPage() {
   const searchParams = useSearchParams();
   const { bankingMode: currentMode, setBankingMode } = useBankingTheme();
 
@@ -47,5 +47,13 @@ export default function ECLMovementReportsPage() {
         <ECLMovementReport />
       </ReportPageLayout>
     </Can>
+  );
+}
+
+export default function ECLMovementReportsPageWrapper() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>}>
+      <ECLMovementReportsPage />
+    </Suspense>
   );
 }

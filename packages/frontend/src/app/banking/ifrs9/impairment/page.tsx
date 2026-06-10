@@ -1,7 +1,7 @@
 // packages/frontend/src/app/banking/ifrs9/impairment/page.tsx
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { Suspense, useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -88,7 +88,7 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-export default function ImpairmentPage() {
+function ImpairmentPage() {
   const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -863,5 +863,13 @@ export default function ImpairmentPage() {
         onClose={() => setCalculationDialogOpen(false)}
       />
     </Box>
+  );
+}
+
+export default function ImpairmentPageWrapper() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>}>
+      <ImpairmentPage />
+    </Suspense>
   );
 }

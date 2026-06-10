@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
     Alert,
@@ -820,4 +820,12 @@ const PlatformRBACManagement = () => {
     );
 };
 
-export default PlatformRBACManagement;
+const PlatformRBACManagementWrapped = PlatformRBACManagement;
+
+export default function PlatformRBACManagementWrapper() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>}>
+      <PlatformRBACManagement />
+    </Suspense>
+  );
+}

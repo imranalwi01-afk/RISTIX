@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { Suspense, useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import type { ModernLoaderProps } from '@/components/common/ModernLoader';
 import { useSearchParams } from 'next/navigation';
@@ -53,7 +53,7 @@ interface TenantOption {
 
 const API_BASE_V1 = '/api/v1';
 
-export default function LoginPage() {
+function LoginPage() {
   // const router = useRouter(); // Unused
   const searchParams = useSearchParams();
   const { login, error, clearError } = useAuth();
@@ -517,5 +517,13 @@ export default function LoginPage() {
         </Box>
       </Box>
     </ThemeProvider>
+  );
+}
+
+export default function LoginPageWrapper() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>}>
+      <LoginPage />
+    </Suspense>
   );
 }

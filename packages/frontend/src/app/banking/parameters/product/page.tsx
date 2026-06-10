@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { Suspense, useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Container,
@@ -161,7 +161,7 @@ const productColumnFilterDefinitions: Record<string, EnterpriseFilterDefinition>
   },
 };
 
-export default function ProductParametersPage() {
+function ProductParametersPage() {
   const { user } = useAuth();
   const { hasAnyPermission } = usePermission();
   const canViewProduct = hasAnyPermission(['banking.parameter.product.view', 'banking.parameter.product.manage', 'banking.parameter.product']);
@@ -707,5 +707,13 @@ export default function ProductParametersPage() {
         onClose={() => setApprovalNotification(createClosedApprovalNotification())}
       />
     </Container>
+  );
+}
+
+export default function ProductParametersPageWrapper() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>}>
+      <ProductParametersPage />
+    </Suspense>
   );
 }

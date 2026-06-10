@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function UsersPage() {
+function UsersPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -33,5 +33,13 @@ export default function UsersPage() {
         </Typography>
       </Box>
     </Box>
+  );
+}
+
+export default function UsersPageWrapper() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>}>
+      <UsersPage />
+    </Suspense>
   );
 }

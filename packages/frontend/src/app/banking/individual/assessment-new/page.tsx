@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
+import React, { Suspense, useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import {
   Alert,
@@ -91,7 +91,7 @@ const SECTION_KEYS = [
 
 const ACCOUNT_OPTIONAL_SECTIONS = new Set<string>(['watchlist', 'individual-reports']);
 
-export default function IndividualAssessmentWizardPage() {
+function IndividualAssessmentWizardPage() {
   const [activeTab, setActiveTab] = useState(0);
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -864,5 +864,13 @@ export default function IndividualAssessmentWizardPage() {
         </Alert>
       </Snackbar>
     </Container>
+  );
+}
+
+export default function IndividualAssessmentWizardPageWrapper() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>}>
+      <IndividualAssessmentWizardPage />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Accordion, AccordionDetails, AccordionSummary, Alert, Container, Box, Button, Card, CardContent, Chip, Grid, IconButton, MenuItem, Stack, Tab, Tabs, TextField, Tooltip, Typography } from '@mui/material';
@@ -83,7 +83,7 @@ const formatDate = (value: unknown) => {
   return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
-export default function IndividualReportsPage() {
+function IndividualReportsPage() {
   const embedded = useAssessmentWorkspaceEmbedded();
   const router = useRouter();
   const pathname = usePathname();
@@ -539,5 +539,13 @@ export default function IndividualReportsPage() {
         </>
       )}
     </Container>
+  );
+}
+
+export default function IndividualReportsPageWrapper() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>}>
+      <IndividualReportsPage />
+    </Suspense>
   );
 }

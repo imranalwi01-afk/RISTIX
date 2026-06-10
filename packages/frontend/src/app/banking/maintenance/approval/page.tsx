@@ -9,7 +9,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { Suspense, useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -360,7 +360,7 @@ const resolveRoutingForRequest = (
   };
 };
 
-export default function ApprovalManagementPage() {
+function ApprovalManagementPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
@@ -1373,5 +1373,13 @@ export default function ApprovalManagementPage() {
         </Badge>
       </Fab>
     </Container>
+  );
+}
+
+export default function ApprovalManagementPageWrapper() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>}>
+      <ApprovalManagementPage />
+    </Suspense>
   );
 }

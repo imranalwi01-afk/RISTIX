@@ -10,7 +10,7 @@
 
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { Suspense, useState, useEffect, useCallback } from 'react'
 import {
     Box,
     Typography,
@@ -258,7 +258,7 @@ interface DashboardActivity {
     type: 'success' | 'warning' | 'info' | 'error';
 }
 
-export default function DashboardClient() {
+function DashboardClient() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const dispatch = useDispatch()
@@ -1351,4 +1351,12 @@ export default function DashboardClient() {
             </Container>
         </Box>
     )
+}
+
+export default function DashboardClientWrapper() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>}>
+      <DashboardClient />
+    </Suspense>
+  );
 }
