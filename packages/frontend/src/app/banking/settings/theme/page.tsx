@@ -248,82 +248,10 @@ export default function ThemeSettingsPage() {
   }), [getAuthToken]);
 
   // ✅ Load Theme Settings
-  const loadThemeSettings = useCallback(async () => {
-    if (!isAuthenticated || !currentUser?.id) return;
-
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_BASE}/user/${currentUser.id}/theme`, {
-        headers: getHeaders()
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setThemeSettings(data.data || themeSettings);
-      } else {
-        // Use defaults with current banking mode
-        const preset = themePresets[bankingMode as keyof typeof themePresets] || themePresets.conventional;
-        setThemeSettings(prev => ({
-          ...prev,
-          bankingTheme: bankingMode as 'conventional' | 'syariah' | 'dual',
-          primaryColor: preset.primary,
-          secondaryColor: preset.secondary,
-          customColors: {
-            header: preset.header,
-            sidebar: preset.sidebar,
-            cards: preset.cards,
-            background: preset.background,
-            accent: preset.accent
-          }
-        }));
-      }
-    } catch (error) {
-      console.error('Error loading theme settings:', error);
-      setSnackbar({
-        open: true,
-        message: 'Failed to load theme settings',
-        severity: 'error'
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [isAuthenticated, currentUser, bankingMode, API_BASE, getHeaders, themeSettings]);
+  // ✅ Theme loaded via React Query (useUserThemeQuery)
 
   // ✅ Save Theme Settings
-  const saveThemeSettings = async () => {
-    if (!currentUser?.id) return;
-
-    setSaving(true);
-    try {
-      const response = await fetch(`${API_BASE}/user/${currentUser.id}/theme`, {
-        method: 'PUT',
-        headers: getHeaders(),
-        body: JSON.stringify(themeSettings)
-      });
-
-      if (response.ok) {
-        setSnackbar({
-          open: true,
-          message: 'Theme settings saved successfully',
-          severity: 'success'
-        });
-
-        // Apply theme immediately
-        dispatch(setTheme(themeSettings.mode));
-      } else {
-        throw new Error('Failed to save theme settings');
-      }
-    } catch (error) {
-      console.error('Error saving theme settings:', error);
-      setSnackbar({
-        open: true,
-        message: 'Failed to save theme settings',
-        severity: 'error'
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
+  // ✅ Theme saved via React Query
 
   // ✅ Apply Theme Preview
   const applyThemePreview = () => {
@@ -379,12 +307,21 @@ export default function ThemeSettingsPage() {
     }));
   };
 
-  // ✅ Load settings on mount
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadThemeSettings();
+  // ✅ Theme loaded via React Query
+  const { data: fetchedTheme } = useUserThemeQuery(currentUser?.id);
+  const saveThemeMutation = useSaveUserThemeMutation(currentUser?.id);
+
+  useEffect(() => { if (fetchedTheme) setThemeSettings(fetchedTheme); }, [fetchedTheme]);
+
+  const saveThemeSettings = async () => {
+    if (!currentUser?.id) return;
+    try {
+      await saveThemeMutation.mutateAsync(themeSettings);
+      setSnackbar({ open: true, message: 'Theme saved successfully', severity: 'success' });
+    } catch (error: any) {
+      setSnackbar({ open: true, message: error.message || 'Failed to save theme', severity: 'error' });
     }
-  }, [isAuthenticated, loadThemeSettings]);
+  };
 
   if (!isAuthenticated) {
     return (

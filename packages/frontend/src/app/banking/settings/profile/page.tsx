@@ -215,115 +215,21 @@ export default function ProfileSettingsPage() {
     'Content-Type': 'application/json',
   }), [getAuthToken]);
 
-  // ✅ Load User Profile
-  const loadProfile = useCallback(async () => {
-    if (!isAuthenticated || !currentUser?.id) return;
+  // ✅ Profile loaded via React Query (useUserProfileQuery)
 
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_BASE}/user/profile`, {
-        headers: getHeaders()
-      });
+  // ✅ Update Profile via React Query
+  const updateProfileMutation = useUpdateProfileMutation();
 
-      if (response.ok) {
-        const data = await response.json();
-        setProfile(data.data);
-        setFormData({
-          fullName: data.data.fullName || '',
-          phoneNumber: data.data.phoneNumber || '',
-          address: data.data.address || '',
-          language: data.data.language || 'en',
-          timezone: data.data.timezone || 'Asia/Jakarta',
-          emailNotifications: data.data.emailNotifications ?? true,
-          smsNotifications: data.data.smsNotifications ?? false,
-          inAppNotifications: data.data.inAppNotifications ?? true
-        });
-      } else {
-        // Fallback to user data from auth context
-        setProfile({
-          id: currentUser.id,
-          email: currentUser.email || '',
-          username: currentUser.username || '',
-          fullName: currentUser.fullName || '',
-          employeeId: (currentUser as any)?.employeeId || 'EMP-12345',
-          department: 'Risk Management',
-          position: (currentUser as any)?.position || 'Senior Risk Analyst',
-          phoneNumber: (currentUser as any)?.phoneNumber || '',
-          address: (currentUser as any)?.address || '',
-          avatar: (currentUser as any)?.avatar || '',
-          bankingAccess: (currentUser as any)?.bankingAccess || 'CONVENTIONAL',
-          syariahCertified: (currentUser as any)?.syariahCertified || true,
-          language: 'en',
-          timezone: 'Asia/Jakarta',
-          emailNotifications: true,
-          smsNotifications: false,
-          inAppNotifications: true,
-          twoFactorEnabled: false,
-          lastLoginAt: (currentUser as any)?.lastLogin || new Date().toISOString(),
-          createdAt: new Date().toISOString()
-        });
-        setFormData({
-          fullName: currentUser.fullName || '',
-          phoneNumber: '',
-          address: '',
-          language: 'en',
-          timezone: 'Asia/Jakarta',
-          emailNotifications: true,
-          smsNotifications: false,
-          inAppNotifications: true
-        });
-      }
-    } catch (error) {
-      console.error('Error loading profile:', error);
-      setSnackbar({
-        open: true,
-        message: 'Failed to load profile data',
-        severity: 'error'
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [isAuthenticated, currentUser, API_BASE, getHeaders]);
-
-  // ✅ Update Profile
   const updateProfileData = async () => {
     if (!profile) return;
-
-    setSaving(true);
     try {
-      const response = await fetch(`${API_BASE}/user/profile`, {
-        method: 'PUT',
-        headers: getHeaders(),
-        body: JSON.stringify(formData)
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setProfile(data.data);
-        setEditMode(false);
-        setSnackbar({
-          open: true,
-          message: 'Profile updated successfully',
-          severity: 'success'
-        });
-
-        // Update auth context if available
-        if (updateProfile) {
-          updateProfile(formData);
-        }
-      } else {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to update profile');
-      }
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      setSnackbar({
-        open: true,
-        message: error instanceof Error ? error.message : 'Failed to update profile',
-        severity: 'error'
-      });
-    } finally {
-      setSaving(false);
+      const result = await updateProfileMutation.mutateAsync(formData);
+      if (result?.data) setProfile(result.data);
+      setEditMode(false);
+      setSnackbar({ open: true, message: 'Profile updated successfully', severity: 'success' });
+      if (updateProfile) updateProfile(formData);
+    } catch (error: any) {
+      setSnackbar({ open: true, message: error.message || 'Failed to update profile', severity: 'error' });
     }
   };
 
@@ -531,13 +437,27 @@ export default function ProfileSettingsPage() {
     }
   };
 
-  // ✅ Load profile and activities on mount
+  // ✅ Profile + Activities loaded via React Query
+  const { data: fetchedProfile } = useUserProfileQuery(currentUser?.id);
+  const { data: fetchedActivities } = useUserActivitiesQuery(currentUser?.id);
+
   useEffect(() => {
-    if (isAuthenticated) {
-      loadProfile();
-      loadUserActivities();
+    if (fetchedProfile) {
+      setProfile(fetchedProfile);
+      setFormData({
+        fullName: fetchedProfile.fullName || '',
+        phoneNumber: fetchedProfile.phoneNumber || '',
+        address: fetchedProfile.address || '',
+        language: fetchedProfile.language || 'en',
+        timezone: fetchedProfile.timezone || 'Asia/Jakarta',
+        emailNotifications: fetchedProfile.emailNotifications ?? true,
+        smsNotifications: fetchedProfile.smsNotifications ?? false,
+        inAppNotifications: fetchedProfile.inAppNotifications ?? true
+      });
     }
-  }, [isAuthenticated, loadProfile, loadUserActivities]);
+  }, [fetchedProfile]);
+
+  useEffect(() => { if (fetchedActivities) setUserActivities(fetchedActivities); }, [fetchedActivities]);
 
   // ✅ Handle avatar preview
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
