@@ -736,9 +736,18 @@ export const bankingAPI = {
   // Segmentation Configuration (FRS9_PARAM_SEGMENTH + FRS9_PARAM_SEGMENTD)
   segmentation: {
     // Header Operations
-    getHeaders: async (params?: { page?: number; limit?: number; search?: string }) => {
-      console.log('🎯 Fetching segmentation headers from DS2 database');
-      const response = await apiClient.get('/banking/parameters/segmentation', { params });
+    getHeaders: async (params?: {
+      page?: number; limit?: number; search?: string;
+      segmentType?: string; status?: string;
+      columnFilters?: Record<string, any>;
+    }) => {
+      console.log('🎯 Fetching segmentation headers');
+      const apiParams: Record<string, any> = { ...params };
+      if (params?.columnFilters && Object.keys(params.columnFilters).length > 0) {
+        apiParams.columnFilters = JSON.stringify(params.columnFilters);
+      }
+      delete apiParams.columnFilters;
+      const response = await apiClient.get('/banking/parameters/segmentation', { params: apiParams });
       return response.data;
     },
 
@@ -1266,9 +1275,15 @@ export const bankingAPI = {
       search?: string;
       basis?: string;
       active_only?: boolean;
+      columnFilters?: Record<string, any>;
     }) => {
-      console.log('🪣 Fetching Bucket Parameter headers from DS2 database');
-      const response = await apiClient.get('/banking/collective/bucket', { params });
+      console.log('🪣 Fetching Bucket Parameter headers');
+      const apiParams: Record<string, any> = { ...params };
+      if (params?.columnFilters && Object.keys(params.columnFilters).length > 0) {
+        apiParams.columnFilters = JSON.stringify(params.columnFilters);
+      }
+      delete apiParams.columnFilters;
+      const response = await apiClient.get('/banking/collective/bucket', { params: apiParams });
       return response.data;
     },
 

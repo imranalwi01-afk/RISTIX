@@ -11,6 +11,8 @@ import { ApprovalStatusBadge } from '@/components/approval/ApprovalStatusBadge';
 import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 
 interface SegmentationTableProps {
+  columnFilters?: Record<string, any>;
+  onColumnFiltersChange?: (filters: Record<string, any>) => void;
   data: any[];
   selectedIds: number[];
   onSelect: (id: number) => void;
@@ -48,6 +50,8 @@ export const SegmentationTable: React.FC<SegmentationTableProps> = ({
   onSaveView,
   pendingRequests = [],
   canManage = false,
+  columnFilters,
+  onColumnFiltersChange,
 }) => {
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -235,6 +239,8 @@ export const SegmentationTable: React.FC<SegmentationTableProps> = ({
         if (model.pageSize !== rowsPerPage) onRowsPerPageChange(model.pageSize);
       }}
       pageSizeOptions={[10, 25, 50]}
+      columnFilters={columnFilters}
+      onColumnFiltersChange={onColumnFiltersChange}
       tableStateKey="collective-segmentation-table"
       maxTableHeight="none"
       fillAvailableHeight

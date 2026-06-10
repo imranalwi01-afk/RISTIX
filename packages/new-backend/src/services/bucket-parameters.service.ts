@@ -16,9 +16,13 @@ export const BucketParametersService = {
      * @param query - Query parameters for search and filtering
      * @returns A promise resolving to an array of bucket headers
      */
-    listHeaders: (query: { search?: string; basis?: string }) => {
+    listHeaders: (query: { search?: string; basis?: string; columnFilters?: string }) => {
+        let parsedFilters: Record<string, any> = {}
+        if (query.columnFilters) {
+            try { parsedFilters = JSON.parse(query.columnFilters) } catch {}
+        }
         return pipe(
-            BucketParametersRepository.findHeaders(query.search, query.basis),
+            BucketParametersRepository.findHeaders(query.search, query.basis, parsedFilters),
             Effect.map(headers => headers.map(transformHeader))
         )
     },

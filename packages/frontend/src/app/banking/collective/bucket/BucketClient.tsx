@@ -269,6 +269,7 @@ export default function BucketParameterPage() {
   // Filter State
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBasis, setFilterBasis] = useState('');
+  const [columnFilters, setColumnFilters] = useState<Record<string, any>>({});
 
   // Dialog States
   const [headerDialogOpen, setHeaderDialogOpen] = useState(false);
@@ -318,7 +319,8 @@ export default function BucketParameterPage() {
         page: pagination.page,
         limit: pagination.limit,
         search: searchTerm || undefined,
-        basis: filterBasis || undefined
+        basis: filterBasis || undefined,
+        columnFilters: Object.keys(columnFilters).length > 0 ? columnFilters : undefined,
       };
 
       const response = await bucketParameterAPI.getHeaders(params);
@@ -350,7 +352,7 @@ export default function BucketParameterPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, filterBasis, pagination.page, pagination.limit]);
+  }, [searchTerm, filterBasis, columnFilters, pagination.page, pagination.limit]);
 
   const loadPendingApprovals = useCallback(async () => {
     try {
@@ -822,6 +824,8 @@ export default function BucketParameterPage() {
               disableRowSelectionOnClick
               fillAvailableHeight
               maxTableHeight="none"
+              columnFilters={columnFilters}
+              onColumnFiltersChange={setColumnFilters}
               tableStateKey="collective-bucket-parameter-table"
               getDetailPanelContent={({ row }) => (
                 <BucketDetailsPanel

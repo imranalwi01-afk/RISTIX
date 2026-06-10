@@ -1,4 +1,4 @@
-import { eq, and, desc, asc, like, or } from 'drizzle-orm'
+import { eq, and, desc, asc, like, ilike, or } from 'drizzle-orm'
 import { legacyDb as db } from '../config'
 import { frs9ParamBucketh, frs9ParamBucketd } from '../db/schema'
 import { Effect } from 'effect'
@@ -17,7 +17,7 @@ export const BucketParametersRepository = {
      * @param basis - Filter by basis
      * @returns An Effect resolving to an array of bucket headers
      */
-    findHeaders: (search?: string, basis?: string) => {
+    findHeaders: (search?: string, basis?: string, columnFilters?: Record<string, any>) => {
         return Effect.tryPromise({
             try: async () => {
                 const conditions = []
@@ -29,6 +29,20 @@ export const BucketParametersRepository = {
                 }
                 if (basis) {
                     conditions.push(eq(frs9ParamBucketh.basis, basis))
+                }
+
+                // Apply dynamic column filters
+                if (columnFilters) {
+                    const colMap: Record<string, any> = {
+                        bucketGroup: frs9ParamBucketh.bucketGroup,
+                        bucketDesc: frs9ParamBucketh.bucketDesc,
+                        basis: frs9ParamBucketh.basis,
+                    }
+                    for (const [field, value] of Object.entries(columnFilters)) {
+                        if (!value || (typeof value === 'string' && !value.trim())) continue
+                        const column = colMap[field]
+                        if (column) conditions.push(ilike(column, `%${String(value)}%`))
+                    }
                 }
 
                 return await db

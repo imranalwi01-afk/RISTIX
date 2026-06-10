@@ -301,6 +301,7 @@ segmentationRoutes.openapi(
                 search: z.string().optional(),
                 segmentType: z.string().optional(),
                 status: z.string().optional(),
+                columnFilters: z.string().optional(),
             })
         },
         responses: {
@@ -310,7 +311,7 @@ segmentationRoutes.openapi(
         }
     }),
     async (c: any) => {
-        const { limit, page, search, segmentType, status } = c.req.valid('query');
+        const { limit, page, search, segmentType, status, columnFilters } = c.req.valid('query');
         const offset = page * limit;
 
         try {
@@ -328,6 +329,28 @@ segmentationRoutes.openapi(
             if (status && status !== 'all') {
                 const active = status === 'active' || status === 'true';
                 filters.push(eq(frs9ParamSegmenth.activeFlag, active));
+            }
+
+            // Apply dynamic column filters (JSON string from frontend DataGrid)
+            if (columnFilters) {
+                try {
+                    const parsed = JSON.parse(columnFilters) as Record<string, any>;
+                    for (const [field, value] of Object.entries(parsed)) {
+                        if (!value || (typeof value === 'string' && !value.trim())) continue;
+                        const strVal = String(value);
+                        const colMap: Record<string, any> = {
+                            groupSegment: frs9ParamSegmenth.groupSegment,
+                            segment: frs9ParamSegmenth.segment,
+                            subSegment: frs9ParamSegmenth.subSegment,
+                            segmentType: frs9ParamSegmenth.segmentType,
+                            activeFlag: frs9ParamSegmenth.activeFlag,
+                            seq: frs9ParamSegmenth.seq,
+                            createdby: frs9ParamSegmenth.createdby,
+                        };
+                        const column = colMap[field];
+                        if (column) filters.push(ilike(column, `%${strVal}%`));
+                    }
+                } catch { /* ignore invalid JSON */ }
             }
 
             const whereClause = filters.length > 0 ? and(...filters as any) : undefined;

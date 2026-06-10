@@ -140,6 +140,7 @@ export default function SegmentationClient() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [columnFilters, setColumnFilters] = useState<Record<string, any>>({});
   const {
     queryState,
     setPaginationModel,
@@ -211,6 +212,7 @@ export default function SegmentationClient() {
         search: searchTerm || undefined,
         limit: queryState.paginationModel.pageSize,
         page: queryState.paginationModel.page,
+        columnFilters: Object.keys(columnFilters).length > 0 ? columnFilters : undefined,
         ...filters
       };
       const response = await api.banking.segmentation.getHeaders(params);
@@ -228,7 +230,7 @@ export default function SegmentationClient() {
     } finally {
       setLoading(false);
     }
-  }, [filters, queryState.paginationModel.page, queryState.paginationModel.pageSize, searchTerm]);
+  }, [filters, columnFilters, queryState.paginationModel.page, queryState.paginationModel.pageSize, searchTerm]);
 
   const loadPendingApprovals = useCallback(async () => {
     try {

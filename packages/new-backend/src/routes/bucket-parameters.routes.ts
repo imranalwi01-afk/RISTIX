@@ -114,7 +114,8 @@ app.openapi(
         request: {
             query: z.object({
                 search: z.string().optional(),
-                basis: z.string().optional()
+                basis: z.string().optional(),
+                columnFilters: z.string().optional(),
             })
         },
         responses: {
