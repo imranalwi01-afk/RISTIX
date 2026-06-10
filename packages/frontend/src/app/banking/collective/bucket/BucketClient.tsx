@@ -808,7 +808,7 @@ export default function BucketParameterPage() {
             <SafeDataGrid
               rows={bucketHeaders}
               columns={bucketColumns}
-              loading={bucketLoading}
+              loading={loading}
               getRowId={(row) => row.id || row.bucket_group || row.bucket_name || `${row.basis}-${row.bucket_group_desc}`}
               rowCount={pagination.totalCount}
               paginationMode="offset"
