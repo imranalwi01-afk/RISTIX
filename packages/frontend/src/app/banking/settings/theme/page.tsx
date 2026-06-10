@@ -83,6 +83,7 @@ import {
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../../providers/AuthProvider';
+import { useUserThemeQuery, useSaveUserThemeMutation } from '@/hooks/queries/useSettingsQueries';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from "../../../../store";
 import { setTheme, setLanguage } from "../../../../store";
