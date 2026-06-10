@@ -132,6 +132,8 @@ export interface NativeTableProps<T = any> {
   onSaveView?: () => void;
   onResetView?: () => void;
   onQueryChange?: (queryState: EnterpriseTableQueryState) => void;
+  /** Custom URL param key for column filters (default: 'cf'). Use different keys for multiple tables on one page. */
+  urlFilterKey?: string;
 }
 
 const COLUMN_FILTER_COMMIT_DEBOUNCE_MS = 350;
@@ -341,6 +343,7 @@ export function NativeTable<T = any>({
   onSaveView,
   onResetView,
   onQueryChange,
+  urlFilterKey = 'cf',
 }: NativeTableProps<T>) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -357,17 +360,16 @@ export function NativeTable<T = any>({
 
   const [selected, setSelected] = useState<Set<any>>(new Set(rowSelectionModel));
   const [expandedRows, setExpandedRows] = useState<Set<any>>(new Set());
-  const [internalColumnFilters, setInternalColumnFilters] = useState<Record<string, EnterpriseColumnFilterValue>>(() => {
-    // Initialize from URL search params (cf = columnFilters JSON)
+  const getInitialFilters = (): Record<string, EnterpriseColumnFilterValue> => {
     if (typeof window !== 'undefined') {
       try {
-        const key = (props as any).urlFilterKey || 'cf';
-        const raw = new URL(window.location.href).searchParams.get(key);
+        const raw = new URL(window.location.href).searchParams.get(urlFilterKey);
         if (raw) return JSON.parse(raw);
       } catch {}
     }
     return {};
-  });
+  };
+  const [internalColumnFilters, setInternalColumnFilters] = useState<Record<string, EnterpriseColumnFilterValue>>(getInitialFilters);
   const [draftColumnFilters, setDraftColumnFilters] = useState<Record<string, EnterpriseColumnFilterValue>>(columnFilters ?? internalColumnFilters);
   const [internalSortModel, setInternalSortModel] = useState<NativeTableSortModel>([]);
   const [internalColumnVisibilityModel, setInternalColumnVisibilityModel] = useState<Record<string, boolean>>({});
@@ -674,14 +676,13 @@ export function NativeTable<T = any>({
     if (typeof window !== 'undefined') {
       try {
         const url = new URL(window.location.href);
-        const key = (props as any).urlFilterKey || 'cf';
         const activeFilters = Object.fromEntries(
           Object.entries(normalizedFilters).filter(([_, v]) => !isFilterValueBlank(v))
         );
         if (Object.keys(activeFilters).length > 0) {
-          url.searchParams.set(key, JSON.stringify(activeFilters));
+          url.searchParams.set(urlFilterKey, JSON.stringify(activeFilters));
         } else {
-          url.searchParams.delete(key);
+          url.searchParams.delete(urlFilterKey);
         }
         window.history.replaceState({}, '', url.toString());
       } catch { /* ignore URL errors */ }
