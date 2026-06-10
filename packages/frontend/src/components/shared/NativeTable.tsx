@@ -375,7 +375,7 @@ export function NativeTable<T = any>({
   const effectiveColumnFilters = columnFilters ?? internalColumnFilters;
   const effectiveSortModel = sortModel ?? internalSortModel;
   const activeSort = effectiveSortModel[0];
-  const effectiveFilteringMode = filteringMode ?? (paginationMode === 'client' ? 'client' : 'server');
+  const effectiveFilteringMode = filteringMode ?? (paginationMode === 'client' || !onColumnFiltersChange ? 'client' : 'server');
 
   useEffect(() => {
     if (columnFilters !== undefined) {

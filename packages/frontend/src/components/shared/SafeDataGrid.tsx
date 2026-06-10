@@ -135,7 +135,7 @@ export function SafeDataGrid<T extends GridValidRowModel = any>(props: SafeDataG
       onColumnFiltersChange={props.onColumnFiltersChange}
       columnFilterPlaceholder={props.columnFilterPlaceholder}
       filterDefinitions={props.filterDefinitions}
-      filteringMode={props.filterMode === 'server' || props.paginationMode === 'server' || props.paginationMode === 'offset' || props.paginationMode === 'cursor' ? 'server' : 'client'}
+      filteringMode={props.filterMode === 'server' || (props.onColumnFiltersChange && (props.paginationMode === 'server' || props.paginationMode === 'offset' || props.paginationMode === 'cursor')) ? 'server' : 'client'}
       disableColumnSorting={props.disableColumnSorting}
       sortModel={nativeSortModel}
       onSortModelChange={props.onSortModelChange ? (model) => {
