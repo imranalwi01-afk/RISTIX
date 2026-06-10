@@ -86,7 +86,7 @@ import {
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../../providers/AuthProvider';
-import { useUserPreferencesQuery, useSaveUserPreferencesMutation } from '@/hooks/queries/useSettingsQueries';
+import { useUserPreferencesQuery, useSaveUserPreferencesMutation } from '@/features/settings/hooks/usePreferencesQueries';
 import { useSelector } from 'react-redux';
 import type { RootState } from "../../../../store";
 

@@ -91,7 +91,7 @@ import {
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../../providers/AuthProvider';
-import { useUserProfileQuery, useUpdateProfileMutation, useUserActivitiesQuery } from '@/hooks/queries/useSettingsQueries';
+import { useUserProfileQuery, useUpdateProfileMutation, useUserActivitiesQuery } from '@/features/profile/hooks/useProfileQueries';
 import { useSelector } from 'react-redux';
 import type { RootState } from "../../../../store";
 import { getAuthToken } from '@/utils/auth-token';
