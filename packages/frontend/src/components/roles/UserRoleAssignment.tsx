@@ -1740,13 +1740,45 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
             </Box>
           )}
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ justifyContent: 'space-between' }}>
           <Button onClick={() => setUserDetailsDialog({ open: false, user: null })}>Close</Button>
-          {userDetailsDialog.user && (
-            <Button variant="contained" onClick={() => openManageUserRolesDialog(userDetailsDialog.user!)}>
-              Manage Roles
-            </Button>
-          )}
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            {userDetailsDialog.user && (
+              <>
+                <Button
+                  variant="outlined"
+                  color="warning"
+                  onClick={async () => {
+                    const user = userDetailsDialog.user;
+                    if (!user) return;
+                    try {
+                      const token = localStorage.getItem('auth_token');
+                      const baseURL = (await import('@/services/api')).api.client.defaults.baseURL || 'https://iaf-ifrs-be.danafin.com/api';
+                      const res = await fetch(`${baseURL}/auth/impersonate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ userId: user.id }),
+                      });
+                      const data = await res.json();
+                      if (data.success && data.data?.tokens?.accessToken) {
+                        localStorage.setItem('auth_token', data.data.tokens.accessToken);
+                        window.location.href = '/banking/dashboard';
+                      } else {
+                        alert('Impersonation failed: ' + (data.message || 'Unknown error'));
+                      }
+                    } catch (err: any) {
+                      alert('Impersonation error: ' + err.message);
+                    }
+                  }}
+                >
+                  Impersonate
+                </Button>
+                <Button variant="contained" onClick={() => openManageUserRolesDialog(userDetailsDialog.user!)}>
+                  Manage Roles
+                </Button>
+              </>
+            )}
+          </Box>
         </DialogActions>
       </Dialog>
 

@@ -560,3 +560,22 @@ authRoutes.post('/hash-password', async (c) => {
         sql: `UPDATE core.users SET password_hash = '${hash}' WHERE email = 'admin@iaf.co.id';`
     });
 });
+
+/**
+ * POST /auth/impersonate - Superadmin impersonates a user
+ */
+authRoutes.post('/impersonate', async (c) => {
+    const permissions = c.get('permissions') || []
+    if (!permissions.includes('admin.super_admin')) {
+        return c.json(buildErrorResponse(c, { error: 'Forbidden', message: 'Only superadmin can impersonate', code: 'FORBIDDEN' }), 403)
+    }
+
+    const { userId } = await c.req.json()
+    if (!userId) {
+        return c.json(buildErrorResponse(c, { error: 'userId required', message: 'userId is required', code: 'BAD_REQUEST' }), 400)
+    }
+
+    const { impersonateUser } = await import('../services/impersonate.service')
+    const result = await impersonateUser(userId, c.get('tenantId')!)
+    return c.json({ success: true, data: result })
+})
