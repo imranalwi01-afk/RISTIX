@@ -1971,3 +1971,11 @@ export default function IndividualAssessmentPage() {
     </Suspense>
   );
 }
+
+export default function IndividualAssessmentPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Loading assessment...</div>}>
+      <IndividualAssessmentWizardPage />
+    </Suspense>
+  );
+}
