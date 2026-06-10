@@ -18,6 +18,7 @@ import { FullstackIndicator } from '@/components/common/feedback/FullstackIndica
 import { exportToCSV, exportToPDF, exportToXLSX } from '@/utils/exportUtils';
 import { useAuth } from '@/providers/AuthProvider';
 import { useEnterpriseTableQuery } from '@/hooks/useEnterpriseTableQuery';
+import { useSegmentationHeadersQuery, useCreateSegmentationMutation, useUpdateSegmentationMutation, useDeleteSegmentationMutation } from '@/features/segmentation/hooks/useSegmentationQueries';
 import { useSavedTableView } from '@/hooks/useSavedTableView';
 
 // New High-Fidelity Components
@@ -204,33 +205,28 @@ export default function SegmentationClient() {
   // DATA LOADING
   // ============================================================================
 
-  const loadHeaders = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const params = {
-        search: searchTerm || undefined,
-        limit: queryState.paginationModel.pageSize,
-        page: queryState.paginationModel.page,
-        columnFilters: Object.keys(columnFilters).length > 0 ? columnFilters : undefined,
-        ...filters
-      };
-      const response = await api.banking.segmentation.getHeaders(params);
+  // ✅ Segmentation headers loaded via React Query
+  const { data: segData, isLoading: segLoading, error: segError, refetch: segRefetch } = useSegmentationHeadersQuery({
+    search: searchTerm || undefined,
+    limit: queryState.paginationModel.pageSize,
+    page: queryState.paginationModel.page,
+    columnFilters: Object.keys(columnFilters || {}).length > 0 ? columnFilters : undefined,
+    ...filters
+  });
 
-      if (response && response.success) {
-        setHeaders(response.data || []);
-        setTotalCount(response.total || response.pagination?.total || (response.data?.length || 0));
-      } else {
-        setHeaders([]);
-        setTotalCount(0);
-      }
-    } catch (err) {
-      console.error('Error loading segmentation headers:', err);
-      setError('Failed to load segmentation data. Please try again.');
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (segData?.success) {
+      setHeaders(segData.data || []);
+      setTotalCount(segData.total || segData.pagination?.total || (segData.data?.length || 0));
+    } else if (segData && !segData.success) {
+      setHeaders([]);
+      setTotalCount(0);
     }
-  }, [filters, columnFilters, queryState.paginationModel.page, queryState.paginationModel.pageSize, searchTerm]);
+  }, [segData]);
+
+  useEffect(() => {
+    if (segError) setError('Failed to load segmentation data.');
+  }, [segError]);
 
   const loadPendingApprovals = useCallback(async () => {
     try {
@@ -243,9 +239,9 @@ export default function SegmentationClient() {
   }, []);
 
   useEffect(() => {
-    loadHeaders();
+    segRefetch();
     loadPendingApprovals();
-  }, [loadHeaders, loadPendingApprovals]);
+  }, [segRefetch, loadPendingApprovals]);
 
   // ============================================================================
   // KEYBOARD SHORTCUTS
@@ -275,13 +271,13 @@ export default function SegmentationClient() {
       }
       if (e.key.toLowerCase() === 'r') {
         e.preventDefault();
-        loadHeaders();
+        segRefetch();
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [filterDrawerOpen, loadHeaders, canManageSegmentation, totalCount]);
+  }, [filterDrawerOpen, segRefetch, canManageSegmentation, totalCount]);
 
 
   // ============================================================================
@@ -290,7 +286,7 @@ export default function SegmentationClient() {
 
   const handleSearch = () => {
     setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
-    loadHeaders();
+    segRefetch();
   };
 
   const handleApplyFilters = (nextFilters: typeof EMPTY_FILTERS) => {
@@ -381,7 +377,7 @@ export default function SegmentationClient() {
         setSnackbar({ open: true, message: 'Segmentation deleted successfully', type: 'success' });
       }
 
-      loadHeaders();
+      segRefetch();
       loadPendingApprovals();
     } catch (err) {
       if (!showApprovalConflict(err, 'Deletion request submitted for approval')) {
@@ -517,7 +513,7 @@ export default function SegmentationClient() {
 
       clearSegmentationDraft(payload.id || 0);
       setDetailOpen(false);
-      loadHeaders();
+      segRefetch();
       loadPendingApprovals();
     } catch (err) {
       if (!showApprovalConflict(err, 'Request submitted for approval')) {
@@ -560,7 +556,7 @@ export default function SegmentationClient() {
 
       {/* Header Section */}
       <SegmentationHeader
-        onRefresh={loadHeaders}
+        onRefresh={segRefetch}
         onExport={handleExport}
         onHelp={() => window.open('#', '_blank')}
         lastUpdated={new Date().toLocaleTimeString()}
@@ -592,7 +588,7 @@ export default function SegmentationClient() {
         <SegmentationTable
           data={headers}
           canManage={canManageSegmentation}
-          loading={loading}
+          loading={segLoading}
           page={queryState.paginationModel.page}
           rowsPerPage={queryState.paginationModel.pageSize}
           totalCount={totalCount}

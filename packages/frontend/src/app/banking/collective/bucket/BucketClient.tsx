@@ -311,7 +311,7 @@ export default function BucketParameterPage() {
     }
   }, []);
 
-  const loadBucketHeaders = useCallback(async () => {
+  const bucketRefetch = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -370,15 +370,15 @@ export default function BucketParameterPage() {
 
   const handleSearch = useCallback(() => {
     setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page when searching
-    loadBucketHeaders();
-  }, [loadBucketHeaders]);
+    bucketRefetch();
+  }, [bucketRefetch]);
 
   const handleRefresh = useCallback(() => {
     setSearchTerm('');
     setFilterBasis('');
     setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page when refreshing
-    loadBucketHeaders();
-  }, [loadBucketHeaders]);
+    bucketRefetch();
+  }, [bucketRefetch]);
 
   const handleAddHeader = useCallback(() => {
     if (!canManageBucket) return;
@@ -419,14 +419,14 @@ export default function BucketParameterPage() {
       } else {
         setSnackbar({ open: true, message: 'Bucket group deleted', type: 'success' });
       }
-      loadBucketHeaders();
+      bucketRefetch();
       loadPendingApprovals();
     } catch (error) {
       if (!showApprovalConflict(error, 'Deletion request submitted for approval')) {
         setSnackbar({ open: true, message: getErrorMessage(error, 'Error deleting bucket parameter'), type: 'error' });
       }
     }
-  }, [canManageBucket, loadBucketHeaders, loadPendingApprovals, showApprovalConflict]);
+  }, [canManageBucket, bucketRefetch, loadPendingApprovals, showApprovalConflict]);
 
   const handleAddDetail = useCallback((header: BucketParameterHeader) => {
     if (!canManageBucket) return;
@@ -465,14 +465,14 @@ export default function BucketParameterPage() {
       } else {
         setSnackbar({ open: true, message: 'Detail deleted successfully', type: 'success' });
       }
-      loadBucketHeaders();
+      bucketRefetch();
       loadPendingApprovals();
     } catch (error) {
       if (!showApprovalConflict(error, 'Deletion request submitted for approval')) {
         setSnackbar({ open: true, message: getErrorMessage(error, 'Error deleting detail'), type: 'error' });
       }
     }
-  }, [canManageBucket, loadBucketHeaders, loadPendingApprovals, showApprovalConflict]);
+  }, [canManageBucket, bucketRefetch, loadPendingApprovals, showApprovalConflict]);
 
   const handleSaveHeader = useCallback(async () => {
     if (!canManageBucket) return;
@@ -501,14 +501,14 @@ export default function BucketParameterPage() {
       }
 
       setHeaderDialogOpen(false);
-      loadBucketHeaders();
+      bucketRefetch();
       loadPendingApprovals();
     } catch (error) {
       if (!showApprovalConflict(error, 'Request submitted for approval')) {
         setSnackbar({ open: true, message: getErrorMessage(error, 'Error saving bucket parameter'), type: 'error' });
       }
     }
-  }, [canManageBucket, editMode, headerFormData, loadBucketHeaders, loadPendingApprovals, selectedHeader, showApprovalConflict]);
+  }, [canManageBucket, editMode, headerFormData, bucketRefetch, loadPendingApprovals, selectedHeader, showApprovalConflict]);
 
   const handleSaveDetail = useCallback(async () => {
     if (!canManageBucket) return;
@@ -538,14 +538,14 @@ export default function BucketParameterPage() {
       }
 
       setDetailDialogOpen(false);
-      loadBucketHeaders();
+      bucketRefetch();
       loadPendingApprovals();
     } catch (error) {
       if (!showApprovalConflict(error, 'Request submitted for approval')) {
         setSnackbar({ open: true, message: getErrorMessage(error, 'Error saving bucket detail'), type: 'error' });
       }
     }
-  }, [canManageBucket, detailFormData, editMode, loadBucketHeaders, loadPendingApprovals, selectedHeader, showApprovalConflict]);
+  }, [canManageBucket, detailFormData, editMode, bucketRefetch, loadPendingApprovals, selectedHeader, showApprovalConflict]);
 
   const getBasisDescription = useCallback((basisCode: string): string => {
     const basis = basisOptions.find((option) => option.value1 === basisCode);
@@ -665,9 +665,9 @@ export default function BucketParameterPage() {
 
   useEffect(() => {
     loadBasisOptions();
-    loadBucketHeaders();
+    bucketRefetch();
     loadPendingApprovals();
-  }, [loadBasisOptions, loadBucketHeaders, loadPendingApprovals]);
+  }, [loadBasisOptions, bucketRefetch, loadPendingApprovals]);
 
   // ============================================================================
   // RENDER
@@ -808,7 +808,7 @@ export default function BucketParameterPage() {
             <SafeDataGrid
               rows={bucketHeaders}
               columns={bucketColumns}
-              loading={loading}
+              loading={bucketLoading}
               getRowId={(row) => row.id || row.bucket_group || row.bucket_name || `${row.basis}-${row.bucket_group_desc}`}
               rowCount={pagination.totalCount}
               paginationMode="offset"
