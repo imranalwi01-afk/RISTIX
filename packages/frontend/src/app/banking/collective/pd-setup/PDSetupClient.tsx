@@ -33,6 +33,7 @@ import {
 } from '@/components/approval';
 import { bankingAPI } from '@/services/api';
 import { usePermission } from '@/hooks/usePermission';
+import { usePDCombinedQuery } from '@/features/pd-config/hooks/usePDCombinedQuery';
 import { pdConfigurationSchema, validateWithSchema } from '@/lib/validation/collective-config.validation';
 import { PDConfigGrid } from './components/PDConfigGrid';
 import { PDConfigFormDialog } from './components/PDConfigFormDialog';
@@ -99,46 +100,20 @@ const PdSetupPage = () => {
   };
   const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'error' }>({ open: false, message: '', type: 'success' });
 
-  // Load Data
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [configsRes, methodsRes, popTypesRes, bucketsRes, segmentsRes, flScalarsRes] = await Promise.all([
-        api.banking.pdConfigurations.getAll(),
-        api.banking.pdConfigurations.getMethods(),
-        api.banking.pdConfigurations.getPopulationTypes(),
-        api.banking.bucketParameter.getHeaders(),
-        api.banking.populationSegments.getAll({ active_flag: true, segment_type: 'PD' }),
-        api.banking.flScalar.getAll()
-      ]);
+  // ✅ PD Data via React Query
+  const { data: pdCombined, isLoading: pdLoading, error: pdError, refetch: pdRefetch } = usePDCombinedQuery();
 
-      setMethodOptions(methodsRes);
-      setPopTypeOptions(popTypesRes);
-      setBucketGroups(bucketsRes.data || []); // Assuming paginated response structure or direct array
-      const pdSegments = filterPopulationSegmentsByType(segmentsRes, 'PD');
-      setPopulationSegments(pdSegments);
-      setFlScalars(flScalarsRes);
+  useEffect(() => {
+    if (!pdCombined) return;
+    setMethodOptions(pdCombined.methods);
+    setPopTypeOptions(pdCombined.popTypes);
+    setBucketGroups(pdCombined.buckets);
+    setPopulationSegments(pdCombined.pdSegments);
+    setFlScalars(pdCombined.flScalars);
+    setPdConfigs(pdCombined.configs);
+  }, [pdCombined]);
 
-      const enrichedConfigs = configsRes.map(config => {
-        // Robust ID matching using String() for both pkid and business codes
-        const segment = pdSegments.find(s => String(s.id) === String(config.population_segment_id));
-        const method = methodsRes.find(m => String(m.value) === String(config.selected_method));
-        return {
-          ...config,
-          segment_name: segment?.segment_name || config.population_segment_desc || 'Unknown',
-          method_name: method?.label || String(config.selected_method)
-        };
-      });
-
-      setPdConfigs(enrichedConfigs);
-    } catch (err) {
-      console.error('Failed to load PD data:', err);
-      setError('Failed to load PD configurations.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  useEffect(() => { if (pdError) setError('Failed to load PD configurations.'); }, [pdError]);
 
   const loadPendingApprovals = useCallback(async () => {
     try {
@@ -151,9 +126,9 @@ const PdSetupPage = () => {
   }, []);
 
   useEffect(() => {
-    loadData();
+    pdRefetch();
     loadPendingApprovals();
-  }, [loadData, loadPendingApprovals]);
+  }, [pdRefetch, loadPendingApprovals]);
 
   // Filtering
   useEffect(() => {
@@ -204,7 +179,7 @@ const PdSetupPage = () => {
         });
       }
 
-      await loadData();
+      await pdRefetch();
       await loadPendingApprovals();
       setIsDialogOpen(false);
       setFormData({
@@ -247,7 +222,7 @@ const PdSetupPage = () => {
         setSnackbar({ open: true, message: 'Configuration deleted', type: 'success' });
       }
 
-      await loadData();
+      await pdRefetch();
       await loadPendingApprovals();
     } catch (err) {
       console.error('Delete failed:', err);
@@ -334,13 +309,13 @@ const PdSetupPage = () => {
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
       <PDConfigGrid
-        loading={loading}
+        loading={pdLoading}
         rows={filteredConfigs}
         searchTerm={searchTerm}
         pendingRequests={pendingRequests}
         canManage={canManagePdSetup}
         onSearchChange={setSearchTerm}
-        onRefresh={loadData}
+        onRefresh={pdRefetch}
         onCreate={() => {
           setSelectedConfig(null);
           setFormData({
@@ -373,7 +348,7 @@ const PdSetupPage = () => {
 
       <PDConfigFormDialog
         open={isDialogOpen}
-        loading={loading}
+        loading={pdLoading}
         selectedConfig={selectedConfig}
         formData={formData}
         formErrors={formErrors}
