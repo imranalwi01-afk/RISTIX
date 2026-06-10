@@ -1753,6 +1753,8 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
                     if (!user) return;
                     try {
                       const token = localStorage.getItem('auth_token');
+                      // Save original token for restore
+                      localStorage.setItem('auth_token_original', token || '');
                       const baseURL = (await import('@/services/api')).api.client.defaults.baseURL || 'https://iaf-ifrs-be.danafin.com/api';
                       const res = await fetch(`${baseURL}/auth/impersonate`, {
                         method: 'POST',

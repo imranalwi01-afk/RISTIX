@@ -276,7 +276,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
         }} />
 
         <Box sx={{ p: 2, width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
-          {children as any}
+          <Box><ImpersonationBanner />{children as any}</Box>
         </Box>
       </Box>
     </Box>
