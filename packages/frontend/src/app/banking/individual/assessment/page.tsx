@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 
-import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
+import React, { Suspense, useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import dayjs from 'dayjs';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
@@ -81,7 +81,7 @@ const livePulse = keyframes`
   100% { opacity: 1; transform: scale(1); }
 `;
 
-export default function IndividualAssessmentWizardPage() {
+function IndividualAssessmentWizardPage() {
   const theme = useTheme();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -1961,5 +1961,13 @@ export default function IndividualAssessmentWizardPage() {
         </DialogActions>
       </Dialog>
     </Container>
+  );
+}
+
+export default function IndividualAssessmentPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Loading assessment...</div>}>
+      <IndividualAssessment />
+    </Suspense>
   );
 }
