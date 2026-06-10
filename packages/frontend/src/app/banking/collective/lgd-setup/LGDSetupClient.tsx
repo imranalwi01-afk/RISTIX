@@ -56,6 +56,7 @@ import { LGDConfiguration } from '../../../../services/api/lgd-configurations.ap
 import { PopulationSegment, filterPopulationSegmentsByType } from '../../../../services/api/population-segments.api';
 import { FLScalarWithDetails } from '../../../../services/api/fl-scalar.api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
+import { useLGDCombinedQuery } from '@/features/lgd-config/hooks/useLGDCombinedQuery';
 import { usePermission } from '@/hooks/usePermission';
 import { lgdConfigurationSchema, validateWithSchema } from '@/lib/validation/collective-config.validation';
 
@@ -134,49 +135,21 @@ export default function LGDSetupPage() {
       ? formData.lgd_rate
       : '';
 
-  // Load Data
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [configsRes, methodsRes, popTypesRes, segmentsRes, flScalarsRes] = await Promise.all([
-        api.banking.lgdConfigurations.getAll(),
-        api.banking.lgdConfigurations.getMethods(),
-        api.banking.lgdConfigurations.getPopulationTypes(),
-        api.banking.populationSegments.getAll({ active_flag: true, segment_type: 'LGD' }),
-        api.banking.flScalar.getAll()
-      ]);
+  // ✅ LGD Data via React Query
+  const { data: lgdCombined, isLoading: lgdLoading, error: lgdError, refetch: lgdRefetch } = useLGDCombinedQuery();
 
-      setMethodOptions(methodsRes);
-      setPopTypeOptions(popTypesRes);
-      const lgdSegments = filterPopulationSegmentsByType(segmentsRes, 'LGD');
-      setPopulationSegments(lgdSegments);
-      setFlScalars(flScalarsRes);
+  useEffect(() => {
+    if (!lgdCombined) return;
+    setMethodOptions(lgdCombined.methods);
+    setPopTypeOptions(lgdCombined.popTypes);
+    setPopulationSegments(lgdCombined.lgdSegments);
+    setFlScalars(lgdCombined.flScalars);
+    setLgdConfigs(lgdCombined.configs);
+  }, [lgdCombined]);
 
-      const enrichedConfigs = configsRes.map(config => {
-        const segment = lgdSegments.find(s => String(s.id) === String(config.segment_id));
-        const method = methodsRes.find(m => String(m.value) === String(config.lgd_method));
-        const populationType = popTypesRes.find(m => String(m.value) === String(config.population_type));
-        // Note: flScalarsRes uses 'pkid', config uses 'fl_scalar_id'
-        const scalar = flScalarsRes.find(s => String(s.pkid) === String(config.fl_scalar_id));
-
-        return {
-          ...config,
-          segment_name: segment?.segment_name || String(config.segment_id || 'Unknown'),
-          method_name: method?.label || String(config.lgd_method),
-          population_type_name: populationType?.label || String(config.population_type || ''),
-          scalar_name: scalar?.scalar_name
-        };
-      });
-
-      setLgdConfigs(enrichedConfigs);
-    } catch (err) {
-      console.error('Failed to load LGD data:', err);
-      setError('Failed to load LGD configurations.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  useEffect(() => {
+    if (lgdError) setError('Failed to load LGD configurations.');
+  }, [lgdError]);
 
   const loadPendingApprovals = useCallback(async () => {
     try {
@@ -189,9 +162,9 @@ export default function LGDSetupPage() {
   }, []);
 
   useEffect(() => {
-    loadData();
+    lgdRefetch();
     loadPendingApprovals();
-  }, [loadData, loadPendingApprovals]);
+  }, [lgdRefetch, loadPendingApprovals]);
 
   // Filtering
   useEffect(() => {
@@ -253,7 +226,7 @@ export default function LGDSetupPage() {
         });
       }
 
-      await loadData();
+      await lgdRefetch();
       await loadPendingApprovals();
       setIsDialogOpen(false);
       setFormData(createEmptyFormData());
@@ -284,7 +257,7 @@ export default function LGDSetupPage() {
         setSnackbar({ open: true, message: 'Configuration deleted', type: 'success' });
       }
 
-      await loadData();
+      await lgdRefetch();
       await loadPendingApprovals();
     } catch (err) {
       console.error('Delete failed:', err);
@@ -400,7 +373,7 @@ export default function LGDSetupPage() {
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h4" component="h1">LGD Setup Management</Typography>
         <Box>
-          <Button startIcon={<RefreshIcon />} onClick={loadData} disabled={loading} sx={{ mr: 1 }} data-testid="refresh-lgd-btn">Refresh</Button>
+          <Button startIcon={<RefreshIcon />} onClick={() => lgdRefetch()} disabled={lgdLoading} sx={{ mr: 1 }} data-testid="refresh-lgd-btn">Refresh</Button>
           {canManageLgdSetup && (
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
               setSelectedConfig(null);
@@ -443,7 +416,7 @@ export default function LGDSetupPage() {
           <SafeDataGrid
             rows={filteredConfigs}
             columns={columns}
-            loading={loading}
+            loading={lgdLoading}
             getRowId={(row) => row.id || Math.random().toString()}
             disableRowSelectionOnClick
             fillAvailableHeight
