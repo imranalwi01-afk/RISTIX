@@ -28,6 +28,7 @@ import { useBankingTheme } from '../../providers/BankingThemeProvider';
 
 // Import extracted layout components
 import { BankingAppBar } from '../../components/banking/layout/BankingAppBar';
+import ImpersonationBanner from '../../components/common/ImpersonationBanner';
 import { BankingBreadcrumbs } from '../../components/banking/layout/BankingBreadcrumbs';
 import { NotificationProvider } from '../../providers/NotificationProvider';
 import { clearAuthTokens } from '../../utils/auth-token';
