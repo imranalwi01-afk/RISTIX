@@ -10,7 +10,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { frontendEnvironmentLoader } from '../../../../config/environment-loader-frontend';
 import {
   Box,
@@ -86,6 +86,7 @@ import {
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../../providers/AuthProvider';
+import { useUserPreferencesQuery, useSaveUserPreferencesMutation } from '@/hooks/queries/useSettingsQueries';
 import { useSelector } from 'react-redux';
 import type { RootState } from "../../../../store";
 
@@ -249,77 +250,38 @@ export default function PreferencesPage() {
   };
 
   // ✅ API Headers
-  const getHeaders = useCallback(() => ({
-    'Content-Type': 'application/json',
-  }), []); // Removed getAuthToken from dependency array as it's a function call, not a state/prop
+  const getHeaders = () => ({ 'Content-Type': 'application/json' });
 
-  // ✅ Load User Preferences
-  const loadPreferences = useCallback(async () => {
-    if (!isAuthenticated || !currentUser?.id) return;
+  // ✅ Load User Preferences via React Query
+  const { data: fetchedPreferences, isLoading: queryLoading, error: queryError } = useUserPreferencesQuery(currentUser?.id);
+  const saveMutation = useSaveUserPreferencesMutation(currentUser?.id);
 
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_BASE}/user/${currentUser.id}/preferences`, {
-        headers: getHeaders()
+  useEffect(() => {
+    if (fetchedPreferences) {
+      setPreferences(fetchedPreferences);
+    } else if (!queryLoading && !queryError) {
+      setPreferences({
+        ...defaultPreferences,
+        userId: currentUser?.id || '',
+        defaultBankingMode: bankingMode as 'conventional' | 'syariah' | 'dual'
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPreferences(data.data || {
-          ...defaultPreferences,
-          userId: currentUser.id,
-          defaultBankingMode: bankingMode as 'conventional' | 'syariah' | 'dual'
-        });
-      } else {
-        // Use defaults
-        setPreferences({
-          ...defaultPreferences,
-          userId: currentUser.id,
-          defaultBankingMode: bankingMode as 'conventional' | 'syariah' | 'dual'
-        });
-      }
-    } catch (error) {
-      console.error('Error loading preferences:', error);
-      setSnackbar({
-        open: true,
-        message: 'Failed to load preferences',
-        severity: 'error'
-      });
-    } finally {
-      setLoading(false);
     }
-  }, [isAuthenticated, currentUser, bankingMode, API_BASE, getHeaders]);
+  }, [fetchedPreferences, queryLoading]);
 
-  // ✅ Save Preferences
+  useEffect(() => {
+    if (queryError) {
+      setSnackbar({ open: true, message: 'Failed to load preferences', severity: 'error' });
+    }
+  }, [queryError]);
+
+  // ✅ Save Preferences via React Query
   const savePreferences = async () => {
     if (!currentUser?.id) return;
-
-    setSaving(true);
     try {
-      const response = await fetch(`${API_BASE}/user/${currentUser.id}/preferences`, {
-        method: 'PUT',
-        headers: getHeaders(),
-        body: JSON.stringify(preferences)
-      });
-
-      if (response.ok) {
-        setSnackbar({
-          open: true,
-          message: 'Preferences saved successfully',
-          severity: 'success'
-        });
-      } else {
-        throw new Error('Failed to save preferences');
-      }
-    } catch (error) {
-      console.error('Error saving preferences:', error);
-      setSnackbar({
-        open: true,
-        message: 'Failed to save preferences',
-        severity: 'error'
-      });
-    } finally {
-      setSaving(false);
+      await saveMutation.mutateAsync(preferences);
+      setSnackbar({ open: true, message: 'Preferences saved successfully', severity: 'success' });
+    } catch (error: any) {
+      setSnackbar({ open: true, message: error.message || 'Failed to save preferences', severity: 'error' });
     }
   };
 
@@ -350,11 +312,7 @@ export default function PreferencesPage() {
   };
 
   // ✅ Load preferences on mount
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadPreferences();
-    }
-  }, [isAuthenticated, loadPreferences]);
+  // Preferences loaded via React Query (useUserPreferencesQuery)
 
   if (!isAuthenticated) {
     return (
@@ -366,7 +324,7 @@ export default function PreferencesPage() {
     );
   }
 
-  if (loading) {
+  if (queryLoading) {
     return (
       <Container maxWidth="xl">
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
