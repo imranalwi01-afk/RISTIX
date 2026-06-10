@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 
-import React, { Suspense, Suspense, useMemo, useState, useEffect, useCallback, useRef } from 'react';
+import React, { Suspense, useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import dayjs from 'dayjs';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
@@ -1961,22 +1961,6 @@ function IndividualAssessmentWizardPage() {
         </DialogActions>
       </Dialog>
     </Container>
-  );
-}
-
-export default function IndividualAssessmentPage() {
-  return (
-    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Loading assessment...</div>}>
-      <IndividualAssessment />
-    </Suspense>
-  );
-}
-
-export default function IndividualAssessmentPage() {
-  return (
-    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Loading assessment...</div>}>
-      <IndividualAssessmentWizardPage />
-    </Suspense>
   );
 }
 
