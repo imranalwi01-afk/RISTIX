@@ -449,12 +449,9 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
     handleFlyoutClose();
   };
 
-  // ✅ RTK Query: Auto-fetch and cache
-  // 🚫 DISABLED: Skip menu hierarchy fetch to prevent 401 errors
-  const shouldSkip = true; // Force skip menu API call
+  // ✅ RTK Query: Auto-fetch and cache menu from database
   const { data: menuData, isLoading: isMenuLoading, error: menuQueryError } = useGetMenuTreeQuery(
-    { bankingMode, includeInactive: false },
-    { skip: shouldSkip }
+    { bankingMode, includeInactive: false }
   );
 
   // ✅ MEMOIZED MENU PROCESSING

@@ -187,6 +187,41 @@ menuRoutes.delete('/admin/items/:id', async (c) => {
     return c.json({ success: true })
 })
 
+// GET /menu/flat - Get flat menu items for sidebar (with banking mode filter)
+menuRoutes.get('/flat', async (c) => {
+    const qTenant = c.req.query('tenantId')
+    const tenantId = qTenant || c.get('tenantId')
+    const bankingMode = c.req.query('bankingMode') || 'conventional'
+    const includeInactive = c.req.query('includeInactive') !== 'false'
+    if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
+
+    const conditions = [eq(menuItems.tenantId, tenantId)]
+    if (!includeInactive) conditions.push(eq(menuItems.isActive, true))
+    if (bankingMode !== 'both') conditions.push(eq(menuItems.bankingType, bankingMode))
+
+    const items = await platformDb.select().from(menuItems).where(and(...conditions)).orderBy(asc(menuItems.sortOrder))
+
+    // Transform to flat format with parent_id for sidebar hierarchy building
+    const flatItems = items.map(i => ({
+        id: i.id,
+        menu_key: i.id,
+        title: i.name,
+        label: i.name,
+        description: i.description || '',
+        icon: i.icon || 'Circle',
+        url: i.path || '',
+        href: i.path || '',
+        parent_id: i.parentId || null,
+        sort_order: i.sortOrder,
+        type: i.parentId ? 'item' : 'group',
+        level: i.level || 0,
+        is_active: i.isActive,
+        banking_type: i.bankingType,
+    }))
+
+    return c.json({ success: true, data: flatItems })
+})
+
 // GET /menu/health
 menuRoutes.get('/health', (c) => c.json({ status: 'ok', service: 'menu' }))
 

@@ -119,7 +119,7 @@ export const menuQueryApi = createApi({
                 }
 
                 const result = await baseQuery({
-                    url: '/menu/hierarchy',
+                    url: '/menu/flat',
                     params: { bankingMode, includeInactive },
                 });
 
