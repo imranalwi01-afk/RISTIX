@@ -251,6 +251,8 @@ class CentralizedLoggingService {
 
     if (this.config.features.auditTrail && typeof window !== 'undefined') {
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
         const response = await fetch(`${this.config.api.baseUrl}/monitoring/frontend-errors`, {
           method: 'POST',
           headers: {
@@ -258,17 +260,20 @@ class CentralizedLoggingService {
             'Authorization': `Bearer ${getAuthToken() || ''}`
           },
           body: JSON.stringify({ logs: errorLogs }),
-          keepalive: true
+          keepalive: true,
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
 
         if (!response.ok && this.config.app.environment === 'development') {
           console.warn('Failed to send logs to backend:', response.statusText);
         }
-      } catch (error) {
+      } catch (error: any) {
+        if (error?.name === 'AbortError') return;
+        if (this.config.app.environment === 'production') return;
         if (this.config.app.environment === 'development') {
           console.warn('Error sending logs to backend:', error);
         }
-        // Put logs back in buffer if sending failed
         this.logBuffer = [...errorLogs, ...this.logBuffer];
       }
     }
