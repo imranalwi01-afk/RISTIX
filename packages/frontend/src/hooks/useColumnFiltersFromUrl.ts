@@ -3,17 +3,17 @@
 import { useState, useEffect } from 'react';
 
 /**
- * Reads columnFilters from URL search param 'cf' (JSON-encoded).
- * Uses window.location directly (no useSearchParams dependency) so it works
- * without Suspense boundary.
+ * Reads columnFilters from URL search param (default key: 'cf').
+ * Supports custom key for pages with multiple tables.
+ * Uses window.location directly so it works without Suspense boundary.
  */
-export function useColumnFiltersFromUrl(): Record<string, any> {
+export function useColumnFiltersFromUrl(key: string = 'cf'): Record<string, any> {
   const [filters, setFilters] = useState<Record<string, any>>({});
 
   useEffect(() => {
     const readFromUrl = () => {
       try {
-        const raw = new URL(window.location.href).searchParams.get('cf');
+        const raw = new URL(window.location.href).searchParams.get(key);
         if (raw) {
           const parsed = JSON.parse(raw);
           setFilters(parsed);
@@ -26,12 +26,10 @@ export function useColumnFiltersFromUrl(): Record<string, any> {
     };
 
     readFromUrl();
-
-    // Re-read when URL changes (popstate = browser back/forward)
     const handler = () => readFromUrl();
     window.addEventListener('popstate', handler);
     return () => window.removeEventListener('popstate', handler);
-  }, []);
+  }, [key]);
 
   return filters;
 }

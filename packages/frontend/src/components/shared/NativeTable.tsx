@@ -361,8 +361,9 @@ export function NativeTable<T = any>({
     // Initialize from URL search params (cf = columnFilters JSON)
     if (typeof window !== 'undefined') {
       try {
-        const cf = new URL(window.location.href).searchParams.get('cf');
-        if (cf) return JSON.parse(cf);
+        const key = (props as any).urlFilterKey || 'cf';
+        const raw = new URL(window.location.href).searchParams.get(key);
+        if (raw) return JSON.parse(raw);
       } catch {}
     }
     return {};
@@ -673,13 +674,14 @@ export function NativeTable<T = any>({
     if (typeof window !== 'undefined') {
       try {
         const url = new URL(window.location.href);
+        const key = (props as any).urlFilterKey || 'cf';
         const activeFilters = Object.fromEntries(
           Object.entries(normalizedFilters).filter(([_, v]) => !isFilterValueBlank(v))
         );
         if (Object.keys(activeFilters).length > 0) {
-          url.searchParams.set('cf', JSON.stringify(activeFilters));
+          url.searchParams.set(key, JSON.stringify(activeFilters));
         } else {
-          url.searchParams.delete('cf');
+          url.searchParams.delete(key);
         }
         window.history.replaceState({}, '', url.toString());
       } catch { /* ignore URL errors */ }

@@ -58,6 +58,8 @@ export interface SafeDataGridProps<T extends GridValidRowModel = any> extends Om
   onSaveView?: () => void;
   onResetView?: () => void;
   onQueryChange?: (queryState: EnterpriseTableQueryState) => void;
+  /** Custom URL param key for column filters (default: 'cf'). Use different keys for multiple tables on one page. */
+  urlFilterKey?: string;
 }
 
 /**
@@ -134,6 +136,7 @@ export function SafeDataGrid<T extends GridValidRowModel = any>(props: SafeDataG
       columnFilters={props.columnFilters}
       onColumnFiltersChange={props.onColumnFiltersChange}
       columnFilterPlaceholder={props.columnFilterPlaceholder}
+      urlFilterKey={props.urlFilterKey}
       filterDefinitions={props.filterDefinitions}
       filteringMode={props.filterMode === 'server' || (props.onColumnFiltersChange && (props.paginationMode === 'server' || props.paginationMode === 'offset' || props.paginationMode === 'cursor')) ? 'server' : 'client'}
       disableColumnSorting={props.disableColumnSorting}
