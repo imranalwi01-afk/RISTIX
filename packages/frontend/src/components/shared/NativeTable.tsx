@@ -357,8 +357,17 @@ export function NativeTable<T = any>({
 
   const [selected, setSelected] = useState<Set<any>>(new Set(rowSelectionModel));
   const [expandedRows, setExpandedRows] = useState<Set<any>>(new Set());
-  const [internalColumnFilters, setInternalColumnFilters] = useState<Record<string, EnterpriseColumnFilterValue>>({});
-  const [draftColumnFilters, setDraftColumnFilters] = useState<Record<string, EnterpriseColumnFilterValue>>(columnFilters ?? {});
+  const [internalColumnFilters, setInternalColumnFilters] = useState<Record<string, EnterpriseColumnFilterValue>>(() => {
+    // Initialize from URL search params (cf = columnFilters JSON)
+    if (typeof window !== 'undefined') {
+      try {
+        const cf = new URL(window.location.href).searchParams.get('cf');
+        if (cf) return JSON.parse(cf);
+      } catch {}
+    }
+    return {};
+  });
+  const [draftColumnFilters, setDraftColumnFilters] = useState<Record<string, EnterpriseColumnFilterValue>>(columnFilters ?? internalColumnFilters);
   const [internalSortModel, setInternalSortModel] = useState<NativeTableSortModel>([]);
   const [internalColumnVisibilityModel, setInternalColumnVisibilityModel] = useState<Record<string, boolean>>({});
   const [internalDensity, setInternalDensity] = useState<EnterpriseDensity>('standard');
@@ -659,6 +668,22 @@ export function NativeTable<T = any>({
       setInternalColumnFilters(normalizedFilters);
     }
     onColumnFiltersChange?.(normalizedFilters);
+
+    // Sync to URL search params so filters persist across navigation
+    if (typeof window !== 'undefined') {
+      try {
+        const url = new URL(window.location.href);
+        const activeFilters = Object.fromEntries(
+          Object.entries(normalizedFilters).filter(([_, v]) => !isFilterValueBlank(v))
+        );
+        if (Object.keys(activeFilters).length > 0) {
+          url.searchParams.set('cf', JSON.stringify(activeFilters));
+        } else {
+          url.searchParams.delete('cf');
+        }
+        window.history.replaceState({}, '', url.toString());
+      } catch { /* ignore URL errors */ }
+    }
 
     if (propOnPageChange) {
       propOnPageChange(null, 0);

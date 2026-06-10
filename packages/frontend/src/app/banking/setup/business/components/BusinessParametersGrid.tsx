@@ -1,5 +1,6 @@
 'use client';
 
+import { useColumnFiltersFromUrl } from '@/hooks/useColumnFiltersFromUrl';
 import React, { memo, useMemo } from 'react';
 import {
   Box,
@@ -53,6 +54,8 @@ interface BusinessParametersGridProps {
   onAddDetail: (paramCode: string, nextSeq: number) => void;
   onDeleteDetail: (detail: BusinessParameterDetail, reload: () => void) => void;
 }
+
+const columnFilters = useColumnFiltersFromUrl();
 
 const BusinessParametersGrid = memo(function BusinessParametersGrid({
   rows,

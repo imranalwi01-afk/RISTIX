@@ -1,5 +1,6 @@
 'use client'
 
+import { useColumnFiltersFromUrl } from '@/hooks/useColumnFiltersFromUrl';
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Alert,
@@ -48,6 +49,7 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
 }
 
 export default function NotificationsPage() {
+  const columnFilters = useColumnFiltersFromUrl();
   const router = useRouter()
   const { refreshNotifications } = useNotifications()
 

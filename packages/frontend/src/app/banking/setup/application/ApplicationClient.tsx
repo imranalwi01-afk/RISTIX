@@ -11,6 +11,7 @@
 
 'use client';
 
+import { useColumnFiltersFromUrl } from '@/hooks/useColumnFiltersFromUrl';
 import React, { useState, useEffect, useMemo, useCallback, useDeferredValue } from 'react';
 import {
   Box,
@@ -83,6 +84,8 @@ import {
   type ApplicationSettingFormData,
   type DetailFormData
 } from './components';
+
+const columnFilters = useColumnFiltersFromUrl();
 
 const APPLICATION_EXPORT_COLUMNS = [
   { field: 'CommonCode', headerName: 'Common Code' },

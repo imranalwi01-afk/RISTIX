@@ -123,6 +123,8 @@ const AuditLogList: React.FC = () => {
         }
     };
 
+    const [columnFilters, setColumnFilters] = useState<Record<string, any>>({});
+
     const resetFilters = () => {
         setSearchQuery('');
         setRequestIdQuery('');
@@ -450,6 +452,8 @@ const AuditLogList: React.FC = () => {
                     loading={loading}
                     getRowId={(row) => row.id}
                     rowCount={total}
+                    columnFilters={columnFilters}
+                    onColumnFiltersChange={setColumnFilters}
                     paginationMode="offset"
                     paginationModel={{ page, pageSize: rowsPerPage }}
                     onPaginationModelChange={(model) => {

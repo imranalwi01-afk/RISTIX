@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useColumnFiltersFromUrl } from '@/hooks/useColumnFiltersFromUrl';
 import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import {
     Box,
@@ -109,6 +110,8 @@ interface PermissionOption {
     category?: string;
     isActive?: boolean;
 }
+
+const columnFilters = useColumnFiltersFromUrl();
 
 const extractCollection = <T,>(payload: unknown, keys: string[] = []): T[] => {
     if (Array.isArray(payload)) return payload as T[];

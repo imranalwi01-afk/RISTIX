@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useColumnFiltersFromUrl } from '@/hooks/useColumnFiltersFromUrl';
 import React, { useDeferredValue, useState, useMemo } from 'react';
 import {
     Box,
@@ -63,6 +64,8 @@ interface PlatformUserFormData {
     phone?: string;
     isActive?: boolean;
 }
+
+const columnFilters = useColumnFiltersFromUrl();
 
 const PlatformUserManagement = () => {
     // State for data

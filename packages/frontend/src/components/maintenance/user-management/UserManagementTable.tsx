@@ -1,5 +1,6 @@
 'use client';
 
+import { useColumnFiltersFromUrl } from '@/hooks/useColumnFiltersFromUrl';
 import React, { memo, useMemo } from 'react';
 import { Box, Chip, Typography } from '@mui/material';
 import {
@@ -26,6 +27,8 @@ interface UserManagementTableProps {
   onEdit: (user: User) => void;
   onToggleStatus: (userId: string, currentStatus: boolean) => void;
 }
+
+const columnFilters = useColumnFiltersFromUrl();
 
 const UserManagementTable = memo(function UserManagementTable({
   users,

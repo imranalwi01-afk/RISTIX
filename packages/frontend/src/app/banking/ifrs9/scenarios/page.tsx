@@ -5,6 +5,7 @@
 
 'use client';
 
+import { useColumnFiltersFromUrl } from '@/hooks/useColumnFiltersFromUrl';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
@@ -74,6 +75,7 @@ function TabPanel(props: TabPanelProps) {
 }
 
 export default function IFRS9ScenariosPage() {
+  const columnFilters = useColumnFiltersFromUrl();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [scenarios, setScenarios] = useState<any[]>([]);

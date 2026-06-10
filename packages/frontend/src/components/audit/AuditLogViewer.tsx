@@ -1,5 +1,6 @@
 'use client'
 
+import { useColumnFiltersFromUrl } from '@/hooks/useColumnFiltersFromUrl';
 import React, { useState, useEffect, useMemo } from 'react'
 import {
     Box,
@@ -65,6 +66,8 @@ export const AuditLogViewer: React.FC = () => {
     useEffect(() => {
         loadLogs()
     }, [page, rowsPerPage, eventType, action, riskLevel, search, startDate, endDate])
+
+    const columnFilters = useColumnFiltersFromUrl();
 
     const loadLogs = async () => {
         setLoading(true)
