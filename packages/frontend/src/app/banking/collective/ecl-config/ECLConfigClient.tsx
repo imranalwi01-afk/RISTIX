@@ -55,6 +55,7 @@ import {
   type ApprovalNotificationState,
 } from '@/components/approval';
 import { usePermission } from '@/hooks/usePermission';
+import { useECLCombinedQuery } from '@/features/ecl-config/hooks/useECLCombinedQuery';
 
 // Premium Layout Components
 import ReportPageLayout from '@/components/ifrs9/ReportPageLayout';
@@ -420,97 +421,68 @@ function ECLConfigurationPage() {
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-  const loadEclConfigurations = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [
-        moduleResponse,
-        periodTypeResponse,
-        segmentResponse,
-        ruleResponse,
-        pdResponse,
-        lgdResponse,
-        eadResponse,
-        headers,
-      ] = await Promise.all([
-        api.banking.businessSetup.getHeaderDetails('B0024'),
-        api.banking.businessSetup.getHeaderDetails('B0025'),
-        api.banking.populationSegments.getAll({ active_flag: true, segment_type: ECL_PORTFOLIO_SEGMENT_TYPE }),
-        bankingAPI.ruleBaseSetting.getHeaders({ limit: 200, active_flag: true, rule_type: ECL_STAGE_RULE_TYPE }),
-        api.banking.pdConfigurations.getAll({ is_active: true }),
-        api.banking.lgdConfigurations.getAll({ is_active: true }),
-        api.banking.eadConfigurations.getAll({ is_active: true }),
-        eclConfigurationAPI.getHeaders(),
-      ]);
+  // ✅ ECL Configurations via React Query
+  const { data: eclData, isLoading: eclLoading, error: eclError, refetch: eclRefetch } = useECLCombinedQuery(bankingMode);
 
-      const filteredSegments = filterPopulationSegmentsByType(
-        filterRowsByBankingMode(segmentResponse, bankingMode),
-        ECL_PORTFOLIO_SEGMENT_TYPE
-      );
-      const filteredStageRules = filterRowsByBankingMode(getResponseRows(ruleResponse), bankingMode);
-      const filteredPdConfigs = filterRowsByBankingMode(pdResponse, bankingMode);
-      const filteredLgdConfigs = filterRowsByBankingMode(lgdResponse, bankingMode);
-      const filteredEadConfigs = filterRowsByBankingMode(eadResponse, bankingMode);
+  useEffect(() => {
+    if (!eclData) return;
+    const {
+      moduleResponse, periodTypeResponse, segmentResponse,
+      ruleResponse, pdResponse, lgdResponse, eadResponse, headers,
+    } = eclData;
 
-      const modules = normalizeBusinessSettingOptions(moduleResponse);
-      const periodTypes = normalizeBusinessSettingOptions(periodTypeResponse);
-      const segments = normalizePopulationSegmentOptions(filteredSegments);
-      const segmentLookup = createLabelLookup(segments);
-      const stageRules = normalizeRuleOptions(filteredStageRules);
-      const pdModels = normalizeModelOptions(filteredPdConfigs, (config) => config.population_segment_id ?? config.segment_id, segmentLookup);
-      const lgdModels = normalizeModelOptions(filteredLgdConfigs, (config) => config.segment_id, segmentLookup);
-      const eadModels = normalizeModelOptions(filteredEadConfigs, (config) => config.segment_id, segmentLookup);
+    const filteredSegments = filterPopulationSegmentsByType(
+      filterRowsByBankingMode(segmentResponse, bankingMode),
+      ECL_PORTFOLIO_SEGMENT_TYPE
+    );
+    const filteredStageRules = filterRowsByBankingMode(getResponseRows(ruleResponse), bankingMode);
+    const filteredPdConfigs = filterRowsByBankingMode(pdResponse, bankingMode);
+    const filteredLgdConfigs = filterRowsByBankingMode(lgdResponse, bankingMode);
+    const filteredEadConfigs = filterRowsByBankingMode(eadResponse, bankingMode);
 
-      setModuleOptions(modules);
-      setPeriodTypeOptions(periodTypes);
-      setSegmentOptions(segments);
-      setStageRuleOptions(stageRules);
-      setPdModelOptions(pdModels);
-      setLgdModelOptions(lgdModels);
-      setEadModelOptions(eadModels);
+    const modules = normalizeBusinessSettingOptions(moduleResponse);
+    const periodTypes = normalizeBusinessSettingOptions(periodTypeResponse);
+    const segments = normalizePopulationSegmentOptions(filteredSegments);
+    const segmentLookup = createLabelLookup(segments);
+    const stageRules = normalizeRuleOptions(filteredStageRules);
+    const pdModels = normalizeModelOptions(filteredPdConfigs, (config) => config.population_segment_id ?? config.segment_id, segmentLookup);
+    const lgdModels = normalizeModelOptions(filteredLgdConfigs, (config) => config.segment_id, segmentLookup);
+    const eadModels = normalizeModelOptions(filteredEadConfigs, (config) => config.segment_id, segmentLookup);
 
-      const lookups = {
-        modules: createLabelLookup(modules),
-        segments: createLabelLookup(segments),
-        stageRules: createLabelLookup(stageRules),
-        pdModels: createLabelLookup(pdModels),
-        lgdModels: createLabelLookup(lgdModels),
-        eadModels: createLabelLookup(eadModels),
-        periodTypes: createLabelLookup(periodTypes),
-      };
+    setModuleOptions(modules);
+    setPeriodTypeOptions(periodTypes);
+    setSegmentOptions(segments);
+    setStageRuleOptions(stageRules);
+    setPdModelOptions(pdModels);
+    setLgdModelOptions(lgdModels);
+    setEadModelOptions(eadModels);
 
+    const lookups = {
+      modules: createLabelLookup(modules), segments: createLabelLookup(segments),
+      stageRules: createLabelLookup(stageRules), pdModels: createLabelLookup(pdModels),
+      lgdModels: createLabelLookup(lgdModels), eadModels: createLabelLookup(eadModels),
+      periodTypes: createLabelLookup(periodTypes),
+    };
+
+    (async () => {
       const hydratedConfigs = await Promise.all(
-        headers.map(async (config) => {
+        headers.map(async (config: any) => {
           try {
             const detailResponse: any = await api.banking.eclConfigurations.getById(config.pkid);
             const detailPayload = detailResponse?.data || detailResponse;
             const details = hydrateEclDetails(detailPayload?.details || [], lookups);
-            return {
-              ...config,
-              module_name: lookups.modules.get(String(config.module ?? '')) || config.module_name,
-              details,
-            };
-          } catch (detailError) {
-            console.warn('Failed to hydrate ECL details for config', config.pkid, detailError);
-            return {
-              ...config,
-              module_name: lookups.modules.get(String(config.module ?? '')) || config.module_name,
-              details: config.details || [],
-            };
+            return { ...config, module_name: lookups.modules.get(String(config.module ?? '')) || config.module_name, details };
+          } catch {
+            return { ...config, module_name: lookups.modules.get(String(config.module ?? '')) || config.module_name, details: config.details || [] };
           }
         })
       );
-
       setEclConfigs(hydratedConfigs);
-    } catch (error) {
-      console.error('❌ [ECL-CONFIG] Error loading configurations:', error);
-      setError('Failed to load ECL configurations. Please try again.');
-      setEclConfigs([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [bankingMode]);
+    })();
+  }, [eclData]);
+
+  useEffect(() => { if (eclError) setError('Failed to load ECL configurations.'); }, [eclError]);
+
 
   const loadConfigDetail = useCallback(async (configId: number): Promise<ECLConfigHeader | null> => {
     try {
@@ -561,7 +533,7 @@ function ECLConfigurationPage() {
   }, []);
 
   useEffect(() => {
-    loadEclConfigurations();
+    eclRefetch();
     loadPendingApprovals();
   }, [loadPendingApprovals]);
 
@@ -790,7 +762,7 @@ function ECLConfigurationPage() {
       }
 
       // Reload all configurations to get the latest data
-      await loadEclConfigurations();
+      await eclRefetch();
       await loadPendingApprovals();
 
       setIsDialogOpen(false);
@@ -831,7 +803,7 @@ function ECLConfigurationPage() {
       }
 
       // Reload all configurations to get the latest data
-      await loadEclConfigurations();
+      await eclRefetch();
       await loadPendingApprovals();
     } catch (error) {
       console.error('❌ [ECL-CONFIG] Error deleting configuration:', error);
@@ -841,7 +813,7 @@ function ECLConfigurationPage() {
     } finally {
       setLoading(false);
     }
-  }, [loadEclConfigurations, loadPendingApprovals, showApprovalConflict]);
+  }, [eclRefetch, loadPendingApprovals, showApprovalConflict]);
 
   const buildEclRunPayload = useCallback(async (eclConfig?: ECLConfigHeader) => {
     const processDate = new Date().toISOString().split('T')[0];
@@ -1188,7 +1160,7 @@ function ECLConfigurationPage() {
         {
           label: 'Refresh',
           icon: <RefreshIcon />,
-          onClick: loadEclConfigurations,
+          onClick: () => void eclRefetch(),
           variant: 'outlined',
           disabled: loading,
           dataTestId: 'refresh-ecl-config-btn'
@@ -1348,7 +1320,7 @@ function ECLConfigurationPage() {
               rows={filteredConfigs}
               columns={columns}
               getRowId={(row: any) => row.pkid}
-              loading={loading}
+              loading={eclLoading}
               pageSizeOptions={[10, 25, 50, 100]}
               initialState={{
                 pagination: { paginationModel: { pageSize: 25 } }
@@ -1361,7 +1333,7 @@ function ECLConfigurationPage() {
 
       <ECLConfigDialog
         open={isDialogOpen}
-        loading={loading}
+        loading={eclLoading}
         isViewOnly={isViewOnly}
         isEditing={isEditing}
         currentTab={currentTab}
