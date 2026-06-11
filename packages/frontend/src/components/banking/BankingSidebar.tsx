@@ -75,7 +75,8 @@ import {
 
 import { MenuItem, DatabaseMenuItem } from './types';
 
-import { Menu as MuiMenu, MenuItem as MuiMenuItem } from '@mui/material'; // ✅ Import Menu components
+import MuiMenu from '@mui/material/Menu';
+import MuiMenuItem from '@mui/material/MenuItem';
 
 // Import menu service for database-driven menus
 import { useGetMenuTreeQuery } from '@/store/api/menuApi';
