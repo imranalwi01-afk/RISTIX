@@ -10,41 +10,37 @@
 'use client';
 
 import React, { Suspense, useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import {
-  Box,
-  Typography,
-  Container,
-  Paper,
-  Button,
-  Breadcrumbs,
-  Link,
-  Tabs,
-  Tab,
-  Alert,
-  Snackbar,
-  Badge,
-  Fab,
-  CircularProgress,
-} from '@mui/material';
-import {
-  Home as HomeIcon,
-  Gavel as ApprovalIcon,
-  Search as SearchIcon,
-  FilterList as FilterIcon,
-  Refresh as RefreshIcon,
-  CheckCircle as ApproveIcon,
-  Cancel as RejectIcon,
-  Info as InfoIcon,
-  Forward as DelegateIcon,
-  History as HistoryIcon,
-  Assessment as StatsIcon,
-  PendingActions as PendingIcon,
-  TableChart as MatrixIcon,
-  AccountTree as RoutingIcon,
-  Notifications as NotificationIcon,
-  CloudDownload as ExportIcon,
-  Security as SecurityIcon,
-} from '@mui/icons-material';
+import Box from '@mui/material/Box'
+import Typography from '@mui/material/Typography'
+import Container from '@mui/material/Container'
+import Paper from '@mui/material/Paper'
+import Button from '@mui/material/Button'
+import Breadcrumbs from '@mui/material/Breadcrumbs'
+import Link from '@mui/material/Link'
+import Tabs from '@mui/material/Tabs'
+import Tab from '@mui/material/Tab'
+import Alert from '@mui/material/Alert'
+import Snackbar from '@mui/material/Snackbar'
+import Badge from '@mui/material/Badge'
+import Fab from '@mui/material/Fab'
+import CircularProgress from '@mui/material/CircularProgress'
+import HomeIcon from '@mui/icons-material/Home'
+import ApprovalIcon from '@mui/icons-material/Gavel'
+import SearchIcon from '@mui/icons-material/Search'
+import FilterIcon from '@mui/icons-material/FilterList'
+import RefreshIcon from '@mui/icons-material/Refresh'
+import ApproveIcon from '@mui/icons-material/CheckCircle'
+import RejectIcon from '@mui/icons-material/Cancel'
+import InfoIcon from '@mui/icons-material/Info'
+import DelegateIcon from '@mui/icons-material/Forward'
+import HistoryIcon from '@mui/icons-material/History'
+import StatsIcon from '@mui/icons-material/Assessment'
+import PendingIcon from '@mui/icons-material/PendingActions'
+import MatrixIcon from '@mui/icons-material/TableChart'
+import RoutingIcon from '@mui/icons-material/AccountTree'
+import NotificationIcon from '@mui/icons-material/Notifications'
+import ExportIcon from '@mui/icons-material/CloudDownload'
+import SecurityIcon from '@mui/icons-material/Security'
 import { useRouter, useSearchParams } from 'next/navigation';
 import { bankingAPI } from '@/services/api';
 import { useAuth } from '@/providers/AuthProvider';

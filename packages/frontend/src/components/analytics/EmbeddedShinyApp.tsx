@@ -420,7 +420,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       const rawData = data.data || data;
 
       // ✅ NORMALIZE: Handle mixed snake_case (legacy) and camelCase (new) keys
-      let sessionData: RSessionData = {
+      const sessionData: RSessionData = {
         sessionId: rawData.sessionId || rawData.session_id,
         tenantSlug: rawData.tenantSlug || rawData.tenant_id || rawData.tenantId,
         bankingType: rawData.bankingType || rawData.banking_mode || rawData.bankingMode,
@@ -663,7 +663,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       console.error('❌ R Analytics Dashboard URL is NOT set in environment variables (NEXT_PUBLIC_R_ANALYTICS_URL)');
     }
 
-    let domainBase = currentDashboardUrl || '';
+    const domainBase = currentDashboardUrl || '';
 
 
     // Mark as initialized to prevent loops

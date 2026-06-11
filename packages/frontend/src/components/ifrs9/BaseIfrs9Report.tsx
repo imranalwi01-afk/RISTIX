@@ -1,66 +1,60 @@
 // packages/frontend/src/components/ifrs9/BaseIfrs9Report.tsx
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Grid,
-  TextField,
-  Button,
-  Card,
-  CardContent,
-  CircularProgress,
-  Alert,
-  Chip,
-  Switch,
-  FormControlLabel,
-  Autocomplete,
-  Checkbox,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Drawer,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  IconButton,
-  Tooltip,
-  InputAdornment,
-  alpha,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails
-} from '@mui/material';
-import {
-  CheckBox as CheckBoxIcon,
-  CheckBoxOutlineBlank as CheckBoxOutlineBlankIcon,
-  Visibility as ViewIcon,
-  Info as InfoIcon,
-  Launch as LaunchIcon,
-  SettingsSuggest as SettingsIcon,
-} from '@mui/icons-material';
+import Box from '@mui/material/Box'
+import Paper from '@mui/material/Paper'
+import Typography from '@mui/material/Typography'
+import Grid from '@mui/material/Grid'
+import TextField from '@mui/material/TextField'
+import Button from '@mui/material/Button'
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import CircularProgress from '@mui/material/CircularProgress'
+import Alert from '@mui/material/Alert'
+import Chip from '@mui/material/Chip'
+import Switch from '@mui/material/Switch'
+import FormControlLabel from '@mui/material/FormControlLabel'
+import Autocomplete from '@mui/material/Autocomplete'
+import Checkbox from '@mui/material/Checkbox'
+import Dialog from '@mui/material/Dialog'
+import DialogTitle from '@mui/material/DialogTitle'
+import DialogContent from '@mui/material/DialogContent'
+import DialogActions from '@mui/material/DialogActions'
+import Drawer from '@mui/material/Drawer'
+import Divider from '@mui/material/Divider'
+import List from '@mui/material/List'
+import ListItem from '@mui/material/ListItem'
+import ListItemText from '@mui/material/ListItemText'
+import FormControl from '@mui/material/FormControl'
+import InputLabel from '@mui/material/InputLabel'
+import Select from '@mui/material/Select'
+import MenuItem from '@mui/material/MenuItem'
+import IconButton from '@mui/material/IconButton'
+import Tooltip from '@mui/material/Tooltip'
+import InputAdornment from '@mui/material/InputAdornment'
+import { alpha } from '@mui/material/styles'
+import Accordion from '@mui/material/Accordion'
+import AccordionSummary from '@mui/material/AccordionSummary'
+import AccordionDetails from '@mui/material/AccordionDetails'
+import CheckBoxIcon from '@mui/icons-material/CheckBox'
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
+import ViewIcon from '@mui/icons-material/Visibility'
+import InfoIcon from '@mui/icons-material/Info'
+import LaunchIcon from '@mui/icons-material/Launch'
+import SettingsIcon from '@mui/icons-material/SettingsSuggest'
 import {
   DatePicker,
   LocalizationProvider
 } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import {
-  Download as DownloadIcon,
-  Refresh as RefreshIcon,
-  FilterList as FilterIcon,
-  BarChart as ChartIcon,
-  Search as SearchIcon,
-  ClearAll as ClearIcon,
-  Assessment as AssessmentIcon,
-  ExpandMore as ExpandMoreIcon,
-  Tune as TuneIcon
-} from '@mui/icons-material';
+import DownloadIcon from '@mui/icons-material/Download'
+import RefreshIcon from '@mui/icons-material/Refresh'
+import FilterIcon from '@mui/icons-material/FilterList'
+import ChartIcon from '@mui/icons-material/BarChart'
+import SearchIcon from '@mui/icons-material/Search'
+import ClearIcon from '@mui/icons-material/ClearAll'
+import AssessmentIcon from '@mui/icons-material/Assessment'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import TuneIcon from '@mui/icons-material/Tune'
 import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { useAuth } from '../../providers/AuthProvider';

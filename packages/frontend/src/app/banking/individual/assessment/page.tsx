@@ -4,47 +4,43 @@
 import React, { Suspense, useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import dayjs from 'dayjs';
 import { useSearchParams, useRouter } from 'next/navigation';
-import {
-  Alert,
-  Box,
-  Chip,
-  Container,
-  Divider,
-  Tab,
-  Tabs,
-  Typography,
-  Card,
-  CardContent,
-  Button,
-  Snackbar,
-  Tooltip,
-  Stack,
-  Grid,
-  Avatar,
-  Stepper,
-  Step,
-  StepLabel,
-  Backdrop,
-  CircularProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Paper,
-  TextField
-} from '@mui/material';
-import {
-  OpenInNew as OpenInNewIcon,
-  ContentCopy as CopyIcon,
-  FileDownload as DownloadIcon,
-  Assignment as AssignmentIcon,
-  Assessment as AssessmentIcon,
-  Calculate as CalculateIcon,
-  MonetizationOn as MonetizationOnIcon,
-  History as HistoryIcon,
-  Folder as FolderIcon,
-  CloudUpload as UploadIcon
-} from '@mui/icons-material';
+import Alert from '@mui/material/Alert'
+import Box from '@mui/material/Box'
+import Chip from '@mui/material/Chip'
+import Container from '@mui/material/Container'
+import Divider from '@mui/material/Divider'
+import Tab from '@mui/material/Tab'
+import Tabs from '@mui/material/Tabs'
+import Typography from '@mui/material/Typography'
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import Button from '@mui/material/Button'
+import Snackbar from '@mui/material/Snackbar'
+import Tooltip from '@mui/material/Tooltip'
+import Stack from '@mui/material/Stack'
+import Grid from '@mui/material/Grid'
+import Avatar from '@mui/material/Avatar'
+import Stepper from '@mui/material/Stepper'
+import Step from '@mui/material/Step'
+import StepLabel from '@mui/material/StepLabel'
+import Backdrop from '@mui/material/Backdrop'
+import CircularProgress from '@mui/material/CircularProgress'
+import Dialog from '@mui/material/Dialog'
+import DialogTitle from '@mui/material/DialogTitle'
+import DialogContent from '@mui/material/DialogContent'
+import DialogActions from '@mui/material/DialogActions'
+import Paper from '@mui/material/Paper'
+import TextField from '@mui/material/TextField'
+import OpenInNewIcon from '@mui/icons-material/OpenInNew'
+import CopyIcon from '@mui/icons-material/ContentCopy'
+import DownloadIcon from '@mui/icons-material/FileDownload'
+import AssignmentIcon from '@mui/icons-material/Assignment'
+import AssessmentIcon from '@mui/icons-material/Assessment'
+import CalculateIcon from '@mui/icons-material/Calculate'
+import MonetizationOnIcon from '@mui/icons-material/MonetizationOn'
+import HistoryIcon from '@mui/icons-material/History'
+import FolderIcon from '@mui/icons-material/Folder'
+import UploadIcon from '@mui/icons-material/CloudUpload'
 import PageHeader from '@/components/banking/shared/PageHeader';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import { AssessmentWorkspaceEmbeddedProvider } from './embedded-context';
@@ -54,7 +50,9 @@ import { AssessmentFilters } from '@/components/banking/individual/assessment/As
 import { AssessmentDetailsTab } from '@/components/banking/individual/assessment/AssessmentDetailsTab';
 import { FILTER_DEFAULTS } from './constants';
 import { individualImpairmentAPI, IndividualImpairmentWatchlistItem } from '@/services/api.individual-impairment';
-import { Send as SendIcon, CheckCircle as ApproveIcon, Cancel as RejectIcon } from '@mui/icons-material';
+import SendIcon from '@mui/icons-material/Send'
+import ApproveIcon from '@mui/icons-material/CheckCircle'
+import RejectIcon from '@mui/icons-material/Cancel'
 import { DCFAnalysisTab } from '@/components/banking/individual/assessment/DCFAnalysisTab';
 import { ProvisionCalculationTab } from '@/components/banking/individual/assessment/ProvisionCalculationTab';
 import { AssessmentHistoryTab } from '@/components/banking/individual/assessment/AssessmentHistoryTab';
