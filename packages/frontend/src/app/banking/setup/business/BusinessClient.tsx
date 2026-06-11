@@ -1,20 +1,12 @@
 'use client';
 
-// packages/frontend/src/app/banking/setup/business/BusinessClient.tsx
-// ============================================================================
-// 🔧 IMPLEMENTATION: BUSINESS SETTING PAGE
-// ============================================================================
-// ✅ MASTER-DETAIL: Headers table with expandable detail rows using SafeDataGrid
-// ✅ CRUD OPERATIONS: Create, Read, Update, Delete for both headers and details
-// ✅ SAFE DATA GRID: Replaces manual table implementation
-// ============================================================================
-
-'use client';
-
 import React, { useState, useEffect, useMemo, useCallback, useDeferredValue } from 'react';
-import {
-    Alert, Button, Container, Snackbar, Menu, MenuItem
-} from '@mui/material';
+import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
+import Container from '@mui/material/Container';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import Snackbar from '@mui/material/Snackbar';
 import {
     Add as AddIcon,
     Download as DownloadIcon,

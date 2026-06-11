@@ -1,9 +1,9 @@
+'use client'
+
 // packages/frontend/src/app/banking/dashboard/loading.tsx
 // ============================================================================
 // Dashboard Loading State - Shown during Suspense
 // ============================================================================
-
-'use client'
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';

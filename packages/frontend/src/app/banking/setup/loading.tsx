@@ -1,7 +1,6 @@
-// packages/frontend/src/app/banking/setup/loading.tsx
-// Shared loading state for setup pages
-
 'use client'
+
+// packages/frontend/src/app/banking/setup/loading.tsx
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';

@@ -1,9 +1,9 @@
+'use client'
+
 // packages/frontend/src/app/banking/collective/loading.tsx
 // ============================================================================
 // Collective Pages Loading State - Shared Suspense Fallback
 // ============================================================================
-
-'use client'
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
