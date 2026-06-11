@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/app/banking/setup/business/BusinessClient.tsx
 // ============================================================================
 // 🔧 IMPLEMENTATION: BUSINESS SETTING PAGE

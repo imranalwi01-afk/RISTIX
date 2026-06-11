@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/app/banking/collective/bucket-parameter/page.tsx
 // ============================================================================
 // IFRS9 FRONTEND - BUCKET PARAMETER PAGE

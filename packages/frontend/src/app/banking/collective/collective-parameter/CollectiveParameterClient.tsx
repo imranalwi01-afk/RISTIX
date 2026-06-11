@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/app/banking/collective/collective-parameter/page.tsx
 // ============================================================================
 // 🎯 COLLECTIVE PARAMETER - PHASE 3 MODULE 3.4 FRONTEND

@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/app/banking/collective/fl-scalar/page.tsx
 // ============================================================================
 // FL SCALAR MANAGEMENT - IFRS 9 COLLECTIVE IMPAIRMENT

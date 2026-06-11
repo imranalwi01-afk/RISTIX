@@ -1,3 +1,5 @@
+'use client';
+
 
 // packages/frontend/src/app/banking/collective/segmentation/SegmentationClient.tsx
 // ============================================================================
