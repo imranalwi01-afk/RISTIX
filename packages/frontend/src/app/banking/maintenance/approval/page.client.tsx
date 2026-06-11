@@ -854,7 +854,7 @@ function ApprovalManagementPage() {
   ]);
 
   const getHistoryRequestsForExport = (): ApprovalRequest[] => {
-    let historyRequests = approvalUniverse.filter(
+    const historyRequests = approvalUniverse.filter(
       (req) => req.status === 'approved' || req.status === 'rejected' || req.status === 'completed' || req.status === 'cancelled'
     );
 
@@ -1031,7 +1031,7 @@ function ApprovalManagementPage() {
   }, [resetPendingFilters, savedView, showSnackbar]);
 
   const historyRequests = useMemo(() => {
-    let requests = approvalUniverse.filter(
+    const requests = approvalUniverse.filter(
       (req) => req.status === 'approved' || req.status === 'rejected' || req.status === 'completed' || req.status === 'cancelled'
     );
 
