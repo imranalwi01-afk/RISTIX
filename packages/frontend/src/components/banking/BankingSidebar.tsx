@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/components/banking/BankingSidebar.tsx
 // ============================================================================
 // 🔄 DATABASE-DRIVEN HIERARCHICAL MENU SYSTEM

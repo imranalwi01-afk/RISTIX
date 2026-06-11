@@ -14,7 +14,7 @@ WORKDIR /app
 COPY package.json bunfig.toml bun.lockb* pnpm-lock.yaml* ./
 
 # Layer 2: Install dependencies (cached unless package.json changes)
-RUN bun install --frozen-lockfile
+RUN bun install --no-frozen-lockfile
 
 # Layer 3: Copy source (invalidated on every code change)
 COPY . .
