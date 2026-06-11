@@ -1,5 +1,10 @@
 import React, { memo } from 'react';
-import { Box, Button, Chip, Paper, Tooltip, Typography } from '@mui/material';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
+import Paper from '@mui/material/Paper';
+import Tooltip from '@mui/material/Tooltip';
+import Typography from '@mui/material/Typography';
 import { GridColDef, GridRowId, GridToolbar } from '@mui/x-data-grid';
 import {
   Add as AddIcon,

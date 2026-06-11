@@ -5,7 +5,13 @@
 
 'use client'
 
-import { Box, CircularProgress, Typography, Skeleton, Grid, Card, CardContent } from '@mui/material'
+import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import CircularProgress from '@mui/material/CircularProgress';
+import Grid from '@mui/material/Grid';
+import Skeleton from '@mui/material/Skeleton';
+import Typography from '@mui/material/Typography';
 
 export default function DashboardLoading() {
     return (

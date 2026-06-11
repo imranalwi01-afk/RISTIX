@@ -1,7 +1,12 @@
 'use client';
 
 import React from 'react';
-import { Box, Typography, Paper, Alert, AlertTitle, Button } from '@mui/material';
+import Alert from '@mui/material/Alert';
+import AlertTitle from '@mui/material/AlertTitle';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
 import { Construction as ConstructionIcon, ArrowBack } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 

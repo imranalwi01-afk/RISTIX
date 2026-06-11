@@ -2,7 +2,8 @@
 
 import React from 'react';
 import AuditLogList from '@/components/audit/AuditLogList';
-import { Box, Typography } from '@mui/material';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
 
 export default function AuditPage() {
     return (

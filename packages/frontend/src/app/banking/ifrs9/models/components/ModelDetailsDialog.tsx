@@ -1,7 +1,13 @@
 'use client';
 
 import React, { memo } from 'react';
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Grid, TextField } from '@mui/material';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import Grid from '@mui/material/Grid';
+import TextField from '@mui/material/TextField';
 import type { ModelRecord } from './types';
 
 interface ModelDetailsDialogProps {

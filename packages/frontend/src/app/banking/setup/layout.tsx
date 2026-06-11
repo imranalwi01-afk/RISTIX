@@ -7,7 +7,9 @@
 // ============================================================================
 
 import React from 'react';
-import { Box, Typography, Container } from '@mui/material';
+import Box from '@mui/material/Box';
+import Container from '@mui/material/Container';
+import Typography from '@mui/material/Typography';
 import SetupIcon from '@mui/icons-material/Settings';
 
 export default function SetupLayout({

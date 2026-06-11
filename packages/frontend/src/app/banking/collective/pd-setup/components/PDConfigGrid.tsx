@@ -1,5 +1,10 @@
 import React, { memo } from 'react';
-import { Box, Button, Card, CardContent, Chip, TextField } from '@mui/material';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Chip from '@mui/material/Chip';
+import TextField from '@mui/material/TextField';
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Refresh as RefreshIcon, Search as SearchIcon, Assessment as ResultsIcon } from '@mui/icons-material';
 import { GridColDef } from '@mui/x-data-grid';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
