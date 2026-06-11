@@ -1,7 +1,17 @@
+# ============================================================================
+# 🚀 IFRS9 Frontend - Optimized Multi-Stage Docker Build
+# ============================================================================
+# Uses pnpm with content-addressable store for faster installs.
+# Layer ordering maximizes build cache hits:
+#   1. pnpm version + store location (rarely changes)
+#   2. package.json + lockfile (changes only on dependency updates)
+#   3. Source code (changes on every push)
+# ============================================================================
+
 FROM node:20-alpine AS base
 
-# Install pnpm
-RUN npm install -g pnpm
+# Pin pnpm version for reproducible builds
+RUN npm install -g pnpm@10.14.0
 
 # Accept build arguments
 ARG NEXT_PUBLIC_API_URL
@@ -31,30 +41,42 @@ ENV NEXT_PUBLIC_DOMAIN=$NEXT_PUBLIC_DOMAIN
 ENV NEXT_PUBLIC_APP_NAME=$NEXT_PUBLIC_APP_NAME
 ENV NEXT_PUBLIC_RAPI_BASE_URL=$NEXT_PUBLIC_RAPI_BASE_URL
 
-# Install dependencies only when needed (package-level build)
+# ============================================================================
+# DEPENDENCIES LAYER
+# Changes only when package.json or lockfile changes
+# ============================================================================
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
+# Configure pnpm store to use /tmp (writable and cacheable)
+ENV PNPM_HOME=/tmp/pnpm-store
+ENV npm_config_store_dir=/tmp/pnpm-store
+
 # Copy package files (make lockfiles optional with wildcard)
-COPY package.json pnpm-lock.yaml* package-lock.json* bun.lockb* ./
+COPY package.json pnpm-lock.yaml* ./
 
-# Install dependencies for frontend package
-RUN pnpm install --no-frozen-lockfile
+# Install dependencies
+RUN pnpm install --no-frozen-lockfile --store-dir=/tmp/pnpm-store
 
-# Rebuild the source code only when needed
+# ============================================================================
+# BUILDER LAYER
+# Changes on every source code modification
+# ============================================================================
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Next.js telemetry
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build
 RUN pnpm run build
 
-# Production image
+# ============================================================================
+# PRODUCTION LAYER
+# Minimal runtime image with only what's needed
+# ============================================================================
 FROM base AS runner
 WORKDIR /app
 
