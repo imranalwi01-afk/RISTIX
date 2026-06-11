@@ -50,6 +50,7 @@ import {
 import type { GridColDef } from '@mui/x-data-grid';
 import { useRouter } from 'next/navigation';
 import { bankingAPI } from '../../../../services/api';
+import { useRuleBaseHeadersQuery } from '@/features/rule-base/hooks/useRuleBaseQueries';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import {
   ApprovalNotification,
@@ -280,37 +281,21 @@ export default function RuleBaseSettingPage() {
   }, [headers]);
 
   // Load rule base setting headers
-  const loadHeaders = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  // ✅ Rule Base via React Query
+  const { data: ruleData, isLoading: ruleLoading, error: ruleError, refetch: ruleRefetch } = useRuleBaseHeadersQuery({
+    limit: 100, search: searchTerm || undefined,
+  });
 
-    try {
-      console.log('🔄 Loading Rule Base Setting headers from DS2 FRS9PRO database...');
-
-      const result = await bankingAPI.ruleBaseSetting.getHeaders({
-        page: 1,
-        limit: 100
-      });
-
-      if (result.success && result.data) {
-        console.log('✅ Successfully loaded rule headers:', result.data.length);
-        setHeaders(result.data);
-        setFilteredHeaders(result.data);
-        setSuccess('Rule Base Settings loaded successfully');
-      } else {
-        throw new Error(result.error || 'Failed to load rule base settings');
-      }
-
-    } catch (error) {
-      console.error('❌ Failed to load rule base settings:', error);
-      const errorMessage = getErrorMessage(error, 'Unknown error occurred');
-      setError(`Failed to load rule base settings: ${errorMessage}`);
-      setHeaders([]);
-      setFilteredHeaders([]);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (ruleData?.success) {
+      setHeaders(ruleData.data || []);
+    } else if (ruleData && !ruleData.success) {
+      setError(ruleData.error || 'Failed to load');
     }
-  }, []);
+  }, [ruleData]);
+
+  useEffect(() => { if (ruleError) setError('Failed to load rule base settings'); }, [ruleError]);
+
 
   const loadPendingApprovals = useCallback(async () => {
     try {
@@ -433,7 +418,7 @@ export default function RuleBaseSettingPage() {
 
   // Component lifecycle
   useEffect(() => {
-    loadHeaders();
+    ruleRefetch();
     loadMetadata();
     loadPendingApprovals();
     loadBusinessTables();
@@ -524,7 +509,7 @@ export default function RuleBaseSettingPage() {
         setSuccess('Rule header deleted successfully');
       }
 
-      await loadHeaders();
+      await ruleRefetch();
       await loadPendingApprovals();
 
     } catch (error) {
@@ -536,7 +521,7 @@ export default function RuleBaseSettingPage() {
     } finally {
       setLoading(false);
     }
-  }, [canManageRuleBase, loadHeaders, loadPendingApprovals, showApprovalConflict]);
+  }, [canManageRuleBase, ruleRefetch, loadPendingApprovals, showApprovalConflict]);
 
   const ruleBaseColumns = useMemo<GridColDef<RuleBaseHeader>[]>(() => [
     {
@@ -708,7 +693,7 @@ export default function RuleBaseSettingPage() {
       }
 
       setHeaderDialogOpen(false);
-      await loadHeaders();
+      await ruleRefetch();
       await loadPendingApprovals();
 
     } catch (error) {
@@ -720,7 +705,7 @@ export default function RuleBaseSettingPage() {
     } finally {
       setLoading(false);
     }
-  }, [canManageRuleBase, headerFormData, headerValidationMessage, loadHeaders, loadPendingApprovals, selectedHeader, showApprovalConflict]);
+  }, [canManageRuleBase, headerFormData, headerValidationMessage, ruleRefetch, loadPendingApprovals, selectedHeader, showApprovalConflict]);
 
   // Detail CRUD operations
   const handleCreateDetail = useCallback((headerId: number) => {
@@ -810,7 +795,7 @@ export default function RuleBaseSettingPage() {
       }
 
       triggerRefresh(detail.rule_id);
-      await loadHeaders();
+      await ruleRefetch();
       await loadPendingApprovals();
 
     } catch (error) {
@@ -822,7 +807,7 @@ export default function RuleBaseSettingPage() {
     } finally {
       setLoading(false);
     }
-  }, [canManageRuleBase, loadHeaders, loadPendingApprovals, showApprovalConflict, triggerRefresh]);
+  }, [canManageRuleBase, ruleRefetch, loadPendingApprovals, showApprovalConflict, triggerRefresh]);
 
   const handleSaveDetail = useCallback(async () => {
     if (!canManageRuleBase) return;
@@ -871,7 +856,7 @@ export default function RuleBaseSettingPage() {
         triggerRefresh(selectedHeaderId);
       }
 
-      await loadHeaders();
+      await ruleRefetch();
       await loadPendingApprovals();
 
     } catch (error) {
@@ -883,7 +868,7 @@ export default function RuleBaseSettingPage() {
     } finally {
       setLoading(false);
     }
-  }, [canManageRuleBase, detailFormData, detailValidationMessage, loadHeaders, loadPendingApprovals, selectedDetail, selectedHeaderId, showApprovalConflict, triggerRefresh]);
+  }, [canManageRuleBase, detailFormData, detailValidationMessage, ruleRefetch, loadPendingApprovals, selectedDetail, selectedHeaderId, showApprovalConflict, triggerRefresh]);
 
   // Clear all filters
   const handleClearFilters = useCallback(() => {
@@ -1027,7 +1012,7 @@ export default function RuleBaseSettingPage() {
             })}
           </Menu>
           <Tooltip title="Refresh Data">
-            <IconButton onClick={loadHeaders} color="primary" disabled={loading}>
+            <IconButton onClick={() => ruleRefetch()} color="primary" disabled={loading}>
               <RefreshIcon />
             </IconButton>
           </Tooltip>
@@ -1142,7 +1127,7 @@ export default function RuleBaseSettingPage() {
                 <Button
                   variant="outlined"
                   startIcon={<RefreshIcon />}
-                  onClick={loadHeaders}
+                  onClick={() => ruleRefetch()}
                   disabled={loading}
                   size="small"
                 >
@@ -1170,7 +1155,7 @@ export default function RuleBaseSettingPage() {
             <SafeDataGrid
               rows={filteredHeaders}
               columns={ruleBaseColumns}
-              loading={loading}
+              loading={ruleLoading}
               getRowId={(row) => row.id}
               disableRowSelectionOnClick
               hideFooterPagination
@@ -1196,7 +1181,7 @@ export default function RuleBaseSettingPage() {
                   onCreateDetail={handleCreateDetail}
                   onEditDetail={handleEditDetail}
                   onDeleteDetail={handleDeleteDetail}
-                  loading={loading}
+                  loading={ruleLoading}
                   refreshTrigger={refreshTriggers[row.id]}
                 />
               )}
@@ -1207,7 +1192,7 @@ export default function RuleBaseSettingPage() {
 
       <RuleBaseHeaderDialog
         open={headerDialogOpen}
-        loading={loading}
+        loading={ruleLoading}
         selectedHeader={selectedHeader}
         headerFormData={headerFormData}
         headerValidationMessage={headerValidationMessage}
@@ -1231,7 +1216,7 @@ export default function RuleBaseSettingPage() {
       />
       <RuleBaseDetailDialog
         open={detailDialogOpen}
-        loading={loading}
+        loading={ruleLoading}
         selectedDetail={selectedDetail}
         detailFormData={detailFormData}
         detailValidationMessage={detailValidationMessage}
