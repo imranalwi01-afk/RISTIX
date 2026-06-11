@@ -1,5 +1,5 @@
-// packages/frontend/src/app/banking/maintenance/user-activity/page.tsx
 'use client';
+// packages/frontend/src/app/banking/maintenance/user-activity/page.tsx
 
 import React, { useState, useCallback, useMemo } from 'react';
 import Box from '@mui/material/Box'

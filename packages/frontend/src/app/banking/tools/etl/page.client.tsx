@@ -1,3 +1,4 @@
+'use client';
 // packages/frontend/src/app/banking/tools/etl/page.tsx
 // ============================================================================
 // IFRS9 FRONTEND - ETL WORKFLOW DESIGNER WITH REACT FLOW
@@ -7,7 +8,6 @@
 // Updated: 2025-01-11T15:30:00Z
 // ============================================================================
 
-'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Box from '@mui/material/Box'

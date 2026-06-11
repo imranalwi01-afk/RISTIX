@@ -1,3 +1,4 @@
+'use client'
 // packages/frontend/src/app/banking/dashboard/page.tsx
 // ============================================================================
 // 🩹 SURGICAL FIX: Banking Dashboard with Real Database Integration
@@ -8,7 +9,6 @@
 // ✅ FIXED: Proper tenant-aware data loading
 // ============================================================================
 
-'use client'
 
 import React, { Suspense, useState, useEffect, useCallback } from 'react'
 import Box from '@mui/material/Box'

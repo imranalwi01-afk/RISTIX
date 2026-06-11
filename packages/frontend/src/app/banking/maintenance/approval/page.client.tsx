@@ -1,3 +1,4 @@
+'use client';
 // packages/frontend/src/app/banking/maintenance/approval/page.tsx
 // ============================================================================
 // IFRS9 FRONTEND - APPROVAL MANAGEMENT SYSTEM
@@ -7,7 +8,6 @@
 // Updated: 2025-01-11T16:00:00Z
 // ============================================================================
 
-'use client';
 
 import React, { Suspense, useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Box from '@mui/material/Box'

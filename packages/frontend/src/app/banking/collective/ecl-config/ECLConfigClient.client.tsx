@@ -1,3 +1,4 @@
+'use client';
 // packages/frontend/src/app/banking/collective/ecl-config/page.tsx
 // ============================================================================
 // IFRS9 FRONTEND - ECL CONFIGURATION PAGE
@@ -7,7 +8,6 @@
 // Legacy Reference: Master-detail pattern for ECL Model configuration
 // ============================================================================
 
-'use client';
 
 import React, { Suspense, useState, useEffect, useCallback, useMemo } from 'react';
 import Box from '@mui/material/Box'

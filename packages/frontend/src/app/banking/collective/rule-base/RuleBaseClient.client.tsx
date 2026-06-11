@@ -1,3 +1,4 @@
+'use client';
 // packages/frontend/src/app/banking/collective/rule-base/page.tsx
 // ============================================================================
 // IFRS9 FRONTEND - RULE BASE SETTING PAGE - MASTER-DETAIL PATTERN
@@ -8,7 +9,6 @@
 // UI Pattern: Matches /banking/setup/application with master-detail expandable rows
 // ============================================================================
 
-'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Box from '@mui/material/Box'

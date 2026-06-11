@@ -1,3 +1,4 @@
+'use client';
 // packages/frontend/src/app/banking/setup/application/ApplicationClient.tsx
 // ============================================================================
 // 🔧 IMPLEMENTATION: COMPLETE LEGACY ASP.NET APPLICATIONSETTING REPLICA
@@ -9,7 +10,6 @@
 // ✅ PERMISSIONS: Role-based UI rendering with ViewBag-style permission checks
 // ============================================================================
 
-'use client';
 
 import { useColumnFiltersFromUrl } from '@/hooks/useColumnFiltersFromUrl';
 import React, { useState, useEffect, useMemo, useCallback, useDeferredValue } from 'react';
