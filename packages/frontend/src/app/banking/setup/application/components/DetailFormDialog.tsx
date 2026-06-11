@@ -1,9 +1,9 @@
+'use client';
+
 // packages/frontend/src/app/banking/setup/application/components/DetailFormDialog.tsx
 // ============================================================================
 // Parameter Detail Create/Edit Dialog - Memoized for performance
 // ============================================================================
-
-'use client';
 
 import React, { memo, useCallback, useState, useEffect } from 'react';
 import {
