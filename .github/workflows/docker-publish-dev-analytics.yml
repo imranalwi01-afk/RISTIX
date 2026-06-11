@@ -72,7 +72,7 @@ jobs:
           tags: ${{ steps.meta-analytics.outputs.tags }}
           labels: ${{ steps.meta-analytics.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min
 
   # ==============================================================================
   # DEPLOY TO DEVELOPMENT (SELF-HOSTED WINDOWS RUNNER)

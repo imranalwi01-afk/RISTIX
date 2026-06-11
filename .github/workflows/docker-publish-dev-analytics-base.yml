@@ -59,4 +59,4 @@ jobs:
           tags: ${{ steps.meta-r-base.outputs.tags }}
           labels: ${{ steps.meta-r-base.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min
