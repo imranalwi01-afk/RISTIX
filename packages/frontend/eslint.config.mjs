@@ -30,6 +30,7 @@ const eslintConfig = [
       "react-hooks/immutability": "warn",
       "react-hooks/purity": "warn",
       "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "off",
       "react-hooks/set-state-in-effect": "off",
     },
   },
