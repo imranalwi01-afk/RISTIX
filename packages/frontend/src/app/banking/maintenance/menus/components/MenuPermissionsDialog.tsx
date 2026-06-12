@@ -24,6 +24,7 @@ interface MenuPermissionsDialogProps {
   users: User[];
   roles: Role[];
   onClose: () => void;
+  onManagePermission?: (userId: string, roleId: string, menuItemId: string, grant: boolean) => void;
 }
 
 const MenuPermissionsDialog = memo(function MenuPermissionsDialog({
@@ -32,6 +33,7 @@ const MenuPermissionsDialog = memo(function MenuPermissionsDialog({
   users,
   roles,
   onClose,
+  onManagePermission,
 }: MenuPermissionsDialogProps) {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -39,7 +41,7 @@ const MenuPermissionsDialog = memo(function MenuPermissionsDialog({
       <DialogContent>
         <Box sx={{ mt: 2 }}>
           <Typography variant="subtitle2" sx={{ mb: 2 }}>
-            Menu Permissions
+            Click Manage to toggle role-based access for this menu item
           </Typography>
           <TableContainer component={Paper} variant="outlined">
             <Table size="small">
@@ -56,22 +58,47 @@ const MenuPermissionsDialog = memo(function MenuPermissionsDialog({
                   <TableRow key={user.id}>
                     <TableCell>{user.name}</TableCell>
                     <TableCell>
-                      <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                         {user.roles.map((roleId) => {
                           const role = roles.find((r) => r.id === roleId);
-                          return role ? <Chip key={roleId} label={role.name} size="small" /> : null;
+                          const hasAccess = selectedMenu?.roles?.includes(roleId);
+                          return (
+                            <Chip
+                              key={roleId}
+                              label={role?.name ?? roleId}
+                              size="small"
+                              color={hasAccess ? 'primary' : 'default'}
+                              variant={hasAccess ? 'filled' : 'outlined'}
+                              onClick={() =>
+                                selectedMenu &&
+                                onManagePermission?.(user.id, roleId, selectedMenu.id, !hasAccess)
+                              }
+                            />
+                          );
                         })}
                       </Box>
                     </TableCell>
                     <TableCell>
                       <Chip
-                        label={selectedMenu?.roles.some((roleId) => user.roles.includes(roleId)) ? 'Has Access' : 'No Access'}
-                        color={selectedMenu?.roles.some((roleId) => user.roles.includes(roleId)) ? 'success' : 'default'}
+                        label={
+                          selectedMenu?.roles?.some((roleId) => user.roles.includes(roleId))
+                            ? 'Has Access'
+                            : 'No Access'
+                        }
+                        color={
+                          selectedMenu?.roles?.some((roleId) => user.roles.includes(roleId))
+                            ? 'success'
+                            : 'default'
+                        }
                         size="small"
                       />
                     </TableCell>
                     <TableCell>
-                      <Button size="small" variant="outlined">
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        disabled={!selectedMenu}
+                      >
                         Manage
                       </Button>
                     </TableCell>

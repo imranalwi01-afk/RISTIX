@@ -1010,6 +1010,29 @@ export default function MenuManagement({ params }: { params: Promise<{}> }) {
         users={users}
         roles={roles}
         onClose={() => setPermissionDialogOpen(false)}
+        onManagePermission={async (userId, roleId, menuItemId, grant) => {
+          try {
+            const token = localStorage.getItem('auth_token');
+            const baseURL = api?.client?.defaults?.baseURL ?? 'http://localhost:4232/api';
+            await fetch(`${baseURL}/menu/permissions`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                tenantId: selectedMenu?.id?.split('-')[0] ?? 'default',
+                menuItemId,
+                roleId,
+                permissionType: 'view',
+                isAllowed: grant,
+              }),
+            });
+            showNotification(`Permission ${grant ? 'granted' : 'revoked'} successfully`, 'success');
+          } catch {
+            showNotification('Failed to update permission', 'error');
+          }
+        }}
       />
 
       {/* Notification */}

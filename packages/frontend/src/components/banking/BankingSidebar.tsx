@@ -11,8 +11,6 @@
 // ✅ VISUALS: Ported "Glassmorphism" & Gradients from IAF Main
 // ============================================================================
 
-'use client';
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 import { usePathname, useRouter } from 'next/navigation';

@@ -793,8 +793,8 @@ export const convertIconStringToElement = (iconString: string): React.ReactEleme
         case 'folder': return <Folder />;
         case 'description': return <Description />;
         case 'insert_chart': return <InsertChart />;
-        case 'error_outline': <ErrorOutline />;
-        case 'refresh': <Refresh />;
+        case 'error_outline': return <ErrorOutline />;
+        case 'refresh': return <Refresh />;
         case 'check_circle': <CheckCircle />;
         case 'warning': <Warning />;
         case 'error': <Error />;
