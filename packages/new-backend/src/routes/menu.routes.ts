@@ -3,6 +3,7 @@ import { Effect, pipe } from 'effect'
 import { eq, and, asc } from 'drizzle-orm'
 import { getDatabase } from '@/config/database'
 import { menuCategories, menuItems, menuPermissions } from '@/db/schema/menu.schema'
+import { TenantRepository } from '@/repositories/tenant.repository'
 import { authMiddleware } from '@/middleware/auth'
 import type { AppContext } from '@/app'
 import { runEffect } from '@/lib/effect'
@@ -11,6 +12,24 @@ import { openApiValidationHook } from '@/lib/http/openapi-validation-hook'
 import { randomUUID } from 'node:crypto'
 
 const platformDb = getDatabase(null)
+
+// Helper: resolve tenant slug to UUID
+async function resolveTenantId(c: any): Promise<string | null> {
+    const qTenant = c.req.query('tenantId')
+    const tenantId = qTenant || c.get('tenantId')
+    if (!tenantId) return null
+
+    // Check if it's already a UUID (contains hyphens)
+    if (tenantId.includes('-')) return tenantId
+
+    // Resolve slug to UUID via TenantRepository
+    try {
+        const tenant = await TenantRepository.findBySlug(tenantId)
+        return tenant?.id ?? null
+    } catch {
+        return null
+    }
+}
 
 export const menuRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
@@ -282,10 +301,9 @@ menuRoutes.delete('/permissions/:id', async (c) => {
     return c.json({ success: true })
 })
 
-// GET /menu/flat - Get flat menu items for sidebar (with banking mode filter)
+// GET /menu/flat - Get flat menu items for sidebar
 menuRoutes.get('/flat', async (c) => {
-    const qTenant = c.req.query('tenantId')
-    const tenantId = qTenant || c.get('tenantId')
+    const tenantId = await resolveTenantId(c)
     const includeInactive = c.req.query('includeInactive') !== 'false'
     if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
 
