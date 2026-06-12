@@ -457,6 +457,13 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   // ✅ MEMOIZED MENU PROCESSING
   const hierarchicalMenu = React.useMemo(() => {
     let rawItems: HierarchicalMenuItem[] = [];
+
+    // Debug: log menuData state
+    if (menuData && Array.isArray(menuData)) {
+      console.log('[Sidebar Debug] menuData length:', menuData.length);
+    } else {
+      console.log('[Sidebar Debug] menuData type:', typeof menuData, menuData);
+    }
     const idsToRemove = new Set([
       'assessment-workspace-old',
       'assessment-workspace-old-imran'
@@ -481,6 +488,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
 
     // Determine source: RTK Query data or Cache
     if (menuData && Array.isArray(menuData) && menuData.length > 0) {
+      console.log('[Sidebar] menuData items:', menuData.length, 'first:', menuData[0]?.title);
       rawItems = menuData.map((item: any) => {
         const mapToHierarchical = (dbItem: any, level: number): HierarchicalMenuItem => ({
           id: dbItem.id,
@@ -516,8 +524,13 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
       rawItems = stripMenuItems(rawItems);
     }
 
+    console.log('[Sidebar] rawItems before filter:', rawItems.length, 'first:', rawItems[0]?.title);
+
     // Filter by role/permissions/banking mode (IAF logic moved to utility)
-    return filterHierarchicalMenu(rawItems, bankingMode, userPermissions);
+    const result = filterHierarchicalMenu(rawItems, bankingMode, userPermissions);
+    console.log('[Sidebar] hierarchicalMenu result:', result.length, 'items, userPermissions:', userPermissions?.length, 'bankingMode:', bankingMode);
+    console.log('[Sidebar] first result item:', result[0]?.title);
+    return result;
   }, [menuData, isMenuLoading, bankingMode, userPermissions, buildNavigationUrl]);
 
   // ✅ Inject live pending badge into Approval menu items
@@ -561,7 +574,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
 
   // ✅ TOP-LEVEL RENDER: Recursive calls replaced by SidebarItem component
   const menuItems = React.useMemo(() => {
-    return menuWithBadges.map(item => (
+    const items = menuWithBadges.map(item => (
       <SidebarItem
         key={item.id}
         item={item}
@@ -577,6 +590,8 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
         onMenuClick={onMenuClick}
       />
     ));
+    console.log('[Sidebar] menuItems rendered:', items.length);
+    return items;
   }, [menuWithBadges, collapsed, menuState.expandedItems, menuState.activeItems, menuState.selectedItem, handleNavigate, handleFlyoutOpen, onMenuClick, menuState.toggleExpansion, handlePrefetch]);
 
   // Get top level page URL for logo link
