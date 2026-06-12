@@ -310,27 +310,52 @@ menuRoutes.get('/flat', async (c) => {
     const conditions = [eq(menuItems.tenantId, tenantId)]
     if (!includeInactive) conditions.push(eq(menuItems.isActive, true))
 
-    const items = await platformDb.select().from(menuItems).where(and(...conditions)).orderBy(asc(menuItems.sortOrder))
+    const [categories, items] = await Promise.all([
+        platformDb.select().from(menuCategories).where(
+            and(eq(menuCategories.tenantId, tenantId), eq(menuCategories.isActive, true))
+        ).orderBy(asc(menuCategories.sortOrder)),
+        platformDb.select().from(menuItems).where(and(...conditions)).orderBy(asc(menuItems.sortOrder)),
+    ])
 
-    // Transform to flat format with parent_id for sidebar hierarchy building
-    const flatItems = items.map(i => ({
-        id: i.id,
-        menu_key: i.id,
-        title: i.name,
-        label: i.name,
-        description: i.description || '',
-        icon: i.icon || 'Circle',
-        url: i.path || '',
-        href: i.path || '',
-        parent_id: i.parentId || null,
-        sort_order: i.sortOrder,
-        type: 'item',
-        level: i.level || 0,
-        is_active: i.isActive,
-        banking_type: i.bankingType,
-    }))
+    // Build hierarchical menu: categories as groups, items as children
+    const menuTree = categories.map(cat => {
+        const catItems = items.filter(i => i.categoryId === cat.id)
+        return {
+            id: cat.id,
+            menu_key: cat.id,
+            title: cat.name,
+            label: cat.name,
+            description: cat.description || '',
+            icon: cat.icon || 'Folder',
+            url: '',
+            href: '',
+            parent_id: null,
+            sort_order: cat.sortOrder,
+            type: 'group',
+            level: 0,
+            is_active: cat.isActive,
+            banking_type: null,
+            children: catItems.map(i => ({
+                id: i.id,
+                menu_key: i.id,
+                title: i.name,
+                label: i.name,
+                description: i.description || '',
+                icon: i.icon || 'Circle',
+                url: i.path || '',
+                href: i.path || '',
+                parent_id: cat.id,
+                sort_order: i.sortOrder,
+                type: 'item',
+                level: 1,
+                is_active: i.isActive,
+                banking_type: i.bankingType,
+                children: [] as any[],
+            })),
+        }
+    })
 
-    return c.json({ success: true, data: flatItems })
+    return c.json({ success: true, data: menuTree })
 })
 
 // GET /menu/health
