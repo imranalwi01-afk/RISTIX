@@ -126,20 +126,68 @@ menuRoutes.openapi(
         }
 
         const items = [
+            // Dashboard
             { cat: 'Dashboard', name: 'Overview', path: '/banking/dashboard', icon: 'Dashboard', sortOrder: 1 },
+            // Banking - Setup
             { cat: 'Banking', name: 'Application Settings', path: '/banking/setup/application', icon: 'Settings', sortOrder: 1 },
             { cat: 'Banking', name: 'Business Settings', path: '/banking/setup/business', icon: 'Business', sortOrder: 2 },
-            { cat: 'Banking', name: 'Parameters', path: '/banking/parameters/product', icon: 'Settings', sortOrder: 3 },
-            { cat: 'IFRS 9', name: 'Collective Impairment', path: '/banking/collective/segmentation', icon: 'Visibility', sortOrder: 1 },
-            { cat: 'IFRS 9', name: 'Individual Impairment', path: '/banking/individual/assessment', icon: 'Person', sortOrder: 2 },
-            { cat: 'IFRS 9', name: 'ECL Calculations', path: '/banking/ifrs9/calculations', icon: 'Calculate', sortOrder: 3 },
-            { cat: 'Analytics', name: 'R Analytics', path: '/banking/analytics/r-analytics', icon: 'Analytics', sortOrder: 1 },
-            { cat: 'Reports', name: 'IFRS 9 Reports', path: '/banking/ifrs9-reports', icon: 'Assessment', sortOrder: 1 },
-            { cat: 'Administration', name: 'Approval', path: '/banking/maintenance/approval', icon: 'Approval', sortOrder: 1 },
-            { cat: 'Administration', name: 'Access Management', path: '/banking/maintenance/access-management', icon: 'Security', sortOrder: 2 },
-            { cat: 'Administration', name: 'Job Monitoring', path: '/banking/maintenance/job-monitoring', icon: 'Build', sortOrder: 3 },
-            { cat: 'Administration', name: 'Menu Management', path: '/banking/maintenance/menus', icon: 'Menu', sortOrder: 4 },
-            { cat: 'Administration', name: 'Audit Log', path: '/banking/maintenance/audit', icon: 'Visibility', sortOrder: 5 },
+            // Banking - Parameters
+            { cat: 'Banking', name: 'Product Parameters', path: '/banking/parameters/product', icon: 'Inventory2', sortOrder: 3 },
+            { cat: 'Banking', name: 'Journal Parameters', path: '/banking/parameters/journal', icon: 'Book', sortOrder: 4 },
+            // Banking - Modes
+            { cat: 'Banking', name: 'Conventional Mode', path: '/banking/mode/conventional', icon: 'AccountBalance', sortOrder: 5 },
+            { cat: 'Banking', name: 'Syariah Mode', path: '/banking/mode/syariah', icon: 'Mosque', sortOrder: 6 },
+            { cat: 'Banking', name: 'Compliance', path: '/banking/mode/compliance', icon: 'Verified', sortOrder: 7 },
+            // Banking - Tools
+            { cat: 'Banking', name: 'Upload Data', path: '/banking/tools/upload', icon: 'Upload', sortOrder: 8 },
+            { cat: 'Banking', name: 'Export Data', path: '/banking/tools/export', icon: 'Download', sortOrder: 9 },
+            // IFRS 9 - Collective
+            { cat: 'IFRS 9', name: 'Segmentation', path: '/banking/collective/segmentation', icon: 'AccountTree', sortOrder: 1 },
+            { cat: 'IFRS 9', name: 'Bucket Parameter', path: '/banking/collective/bucket', icon: 'Layers', sortOrder: 2 },
+            { cat: 'IFRS 9', name: 'PD Setup', path: '/banking/collective/pd-setup', icon: 'TrendingUp', sortOrder: 3 },
+            { cat: 'IFRS 9', name: 'LGD Setup', path: '/banking/collective/lgd-setup', icon: 'MoneyOff', sortOrder: 4 },
+            { cat: 'IFRS 9', name: 'EAD Setup', path: '/banking/collective/ead-setup', icon: 'CreditCard', sortOrder: 5 },
+            { cat: 'IFRS 9', name: 'FL Scalar', path: '/banking/collective/fl-scalar', icon: 'Tune', sortOrder: 6 },
+            { cat: 'IFRS 9', name: 'Rule Base', path: '/banking/collective/rule-base', icon: 'Rule', sortOrder: 7 },
+            { cat: 'IFRS 9', name: 'ECL Config', path: '/banking/collective/ecl-config', icon: 'SettingsApplications', sortOrder: 8 },
+            // IFRS 9 - Individual
+            { cat: 'IFRS 9', name: 'Individual Assessment', path: '/banking/individual/assessment', icon: 'Person', sortOrder: 9 },
+            { cat: 'IFRS 9', name: 'Individual Provision', path: '/banking/individual/provision', icon: 'Savings', sortOrder: 10 },
+            { cat: 'IFRS 9', name: 'DCF Upload Report', path: '/banking/individual/review/dcf-upload-report', icon: 'Description', sortOrder: 11 },
+            // IFRS 9 - Processing
+            { cat: 'IFRS 9', name: 'ECL Calculations', path: '/banking/ifrs9/calculations', icon: 'Calculate', sortOrder: 12 },
+            { cat: 'IFRS 9', name: 'Staging', path: '/banking/ifrs9/staging', icon: 'Schema', sortOrder: 13 },
+            { cat: 'IFRS 9', name: 'Models', path: '/banking/ifrs9/models', icon: 'ModelTraining', sortOrder: 14 },
+            { cat: 'IFRS 9', name: 'Scenarios', path: '/banking/ifrs9/scenarios', icon: 'Science', sortOrder: 15 },
+            // IFRS 9 - Data
+            { cat: 'IFRS 9', name: 'Data Upload', path: '/banking/data/upload', icon: 'UploadFile', sortOrder: 16 },
+            { cat: 'IFRS 9', name: 'Data Validation', path: '/banking/data/validation', icon: 'VerifiedUser', sortOrder: 17 },
+            // Analytics
+            { cat: 'Analytics', name: 'Dashboard', path: '/banking/analytics/dashboard', icon: 'Dashboard', sortOrder: 1 },
+            { cat: 'Analytics', name: 'R Analytics', path: '/banking/analytics/r-analytics', icon: 'Analytics', sortOrder: 2 },
+            { cat: 'Analytics', name: 'Reports', path: '/banking/analytics/reports', icon: 'Assessment', sortOrder: 3 },
+            { cat: 'Analytics', name: 'Export', path: '/banking/analytics/export', icon: 'Download', sortOrder: 4 },
+            // Reports
+            { cat: 'Reports', name: 'ECL Movement', path: '/banking/ifrs9-reports/ecl-movement', icon: 'Timeline', sortOrder: 1 },
+            { cat: 'Reports', name: 'GCA Movement', path: '/banking/ifrs9-reports/gca-movement', icon: 'ShowChart', sortOrder: 2 },
+            { cat: 'Reports', name: 'Lifetime PD', path: '/banking/ifrs9-reports/lifetime-pd', icon: 'TrendingUp', sortOrder: 3 },
+            { cat: 'Reports', name: 'Lifetime LGD', path: '/banking/ifrs9-reports/lifetime-lgd', icon: 'MoneyOff', sortOrder: 4 },
+            { cat: 'Reports', name: 'EAD Model', path: '/banking/ifrs9-reports/ead-model', icon: 'CreditCard', sortOrder: 5 },
+            { cat: 'Reports', name: 'ECL Result', path: '/banking/ifrs9-reports/ecl-result', icon: 'Summarize', sortOrder: 6 },
+            { cat: 'Reports', name: 'Nominative', path: '/banking/ifrs9-reports/nominative', icon: 'TableChart', sortOrder: 7 },
+            // Workflow
+            { cat: 'Administration', name: 'Workflow - Business', path: '/banking/workflow/business', icon: 'Business', sortOrder: 1 },
+            { cat: 'Administration', name: 'Workflow - Approval', path: '/banking/workflow/approval', icon: 'Approval', sortOrder: 2 },
+            { cat: 'Administration', name: 'Workflow - Monitoring', path: '/banking/workflow/monitoring', icon: 'Monitoring', sortOrder: 3 },
+            { cat: 'Administration', name: 'Workflow - Configuration', path: '/banking/workflow/configuration', icon: 'Settings', sortOrder: 4 },
+            { cat: 'Administration', name: 'Access Management', path: '/banking/maintenance/access-management', icon: 'Security', sortOrder: 5 },
+            { cat: 'Administration', name: 'Job Monitoring', path: '/banking/maintenance/job-monitoring', icon: 'Build', sortOrder: 6 },
+            { cat: 'Administration', name: 'Menu Management', path: '/banking/maintenance/menus', icon: 'Menu', sortOrder: 7 },
+            { cat: 'Administration', name: 'Approval Matrix', path: '/banking/maintenance/approval', icon: 'Checklist', sortOrder: 8 },
+            { cat: 'Administration', name: 'User Activity', path: '/banking/maintenance/user-activity', icon: 'People', sortOrder: 9 },
+            { cat: 'Administration', name: 'Audit Log', path: '/banking/maintenance/audit', icon: 'Visibility', sortOrder: 10 },
+            { cat: 'Administration', name: 'Assignments', path: '/banking/maintenance/assignments', icon: 'Assignment', sortOrder: 11 },
+            { cat: 'Administration', name: 'Users', path: '/banking/maintenance/users', icon: 'Group', sortOrder: 12 },
         ]
 
         for (const item of items) {
