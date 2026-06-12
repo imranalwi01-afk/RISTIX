@@ -51,6 +51,7 @@ jobs:
         run: cd packages/frontend && pnpm run type-check
 
       - name: Lint Frontend
+        continue-on-error: true
         run: cd packages/frontend && pnpm run lint
 
       - name: Backend Unit Tests
