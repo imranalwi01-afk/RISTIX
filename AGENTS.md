@@ -19,7 +19,26 @@ Before finishing a frontend change that touches MUI components, run:
 ```bash
 rg -n "<Grid\\s+item|\\bitem\\s+xs=|@mui/system|Unstable_Grid2|Grid2" packages/frontend/src
 pnpm --dir packages/frontend run type-check
+pnpm --dir packages/frontend run lint
 pnpm --dir packages/frontend run build
 ```
 
 If the grep finds matches, fix them using the current Material UI v7 API rather than changing package versions.
+
+## Known Pitfalls
+
+### ❌ Module-Level Hook Calls
+React hooks (`useState`, `useEffect`, etc.) and custom hooks starting with `use` MUST be called inside a React function component or a custom hook — NEVER at the module level.
+
+```tsx
+// WRONG — hooks at module level:
+import { useColumnFiltersFromUrl } from '@/hooks/useColumnFiltersFromUrl';
+const columnFilters = useColumnFiltersFromUrl(); // ❌ Invalid hook call
+
+// CORRECT — inside component:
+export default function MyComponent() {
+  const columnFilters = useColumnFiltersFromUrl(); // ✅
+}
+```
+
+The ESLint rule `react-hooks/rules-of-hooks` catches this. Run `pnpm run lint` before pushing.
