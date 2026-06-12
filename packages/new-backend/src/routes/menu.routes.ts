@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import { Effect, pipe } from 'effect'
-import { eq, and, asc } from 'drizzle-orm'
+import { eq, and, asc, or } from 'drizzle-orm'
 import { getDatabase } from '@/config/database'
 import { menuCategories, menuItems, menuPermissions } from '@/db/schema/menu.schema'
 import { authMiddleware } from '@/middleware/auth'
@@ -292,7 +292,7 @@ menuRoutes.get('/flat', async (c) => {
 
     const conditions = [eq(menuItems.tenantId, tenantId)]
     if (!includeInactive) conditions.push(eq(menuItems.isActive, true))
-    if (bankingMode !== 'both') conditions.push(eq(menuItems.bankingType, bankingMode))
+    if (bankingMode !== 'both') conditions.push(or(eq(menuItems.bankingType, bankingMode), eq(menuItems.bankingType, 'both')))
 
     const items = await platformDb.select().from(menuItems).where(and(...conditions)).orderBy(asc(menuItems.sortOrder))
 
