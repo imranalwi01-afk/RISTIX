@@ -324,7 +324,7 @@ menuRoutes.get('/flat', async (c) => {
         href: i.path || '',
         parent_id: i.parentId || null,
         sort_order: i.sortOrder,
-        type: i.parentId ? 'item' : 'group',
+        type: 'item',
         level: i.level || 0,
         is_active: i.isActive,
         banking_type: i.bankingType,
