@@ -1,6 +1,5 @@
 'use client';
 
-import { useColumnFiltersFromUrl } from '@/hooks/useColumnFiltersFromUrl';
 import React, { useMemo } from 'react';
 import { Chip } from '@mui/material';
 import type { GridColDef } from '@mui/x-data-grid';
@@ -21,7 +20,6 @@ interface ImpairmentModuleTableProps {
 }
 
 function formatCurrency(amount: number, currency: string | null | undefined = 'IDR') {
-  const columnFilters = useColumnFiltersFromUrl();
   const normalizedCurrency = currency ?? 'IDR';
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
