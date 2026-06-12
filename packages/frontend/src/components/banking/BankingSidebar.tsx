@@ -68,7 +68,6 @@ import {
 
 import {
   getIconFromDatabaseString,
-  getStaticFallbackMenu
 } from './BankingSidebarUtils';
 
 import { MenuItem, DatabaseMenuItem } from './types';
@@ -515,11 +514,6 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
     if (rawItems.length > 0) {
       rawItems = normalizeLegacyUrls(rawItems);
       rawItems = stripMenuItems(rawItems);
-    }
-
-    if (rawItems.length === 0 && !isMenuLoading) {
-      const fallbackMenu = getStaticFallbackMenu();
-      rawItems = transformFlatToHierarchical(fallbackMenu);
     }
 
     // Filter by role/permissions/banking mode (IAF logic moved to utility)

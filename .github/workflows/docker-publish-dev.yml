@@ -77,6 +77,7 @@ jobs:
             NEXT_PUBLIC_RAPI_BASE_URL=${{ vars.STAGING_RAPI_BASE_URL || 'https://iaf-ifrs-analytics-calc.ifrspro.id/api' }}
             NEXT_PUBLIC_DOMAIN=${{ vars.STAGING_DOMAIN || 'ifrspro' }}
             NEXT_PUBLIC_APP_NAME=${{ vars.STAGING_APP_NAME || 'IFRS9 Staging' }}
+            NEXT_PUBLIC_DYNAMIC_MENU_ENABLED=true
           cache-from: type=gha
 
           cache-to: type=gha,mode=min
