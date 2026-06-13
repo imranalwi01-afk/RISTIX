@@ -3,16 +3,39 @@ name: Docker Production Publish
 on:
   push:
     tags: [ 'v*.*.*' ]
+  workflow_dispatch:
+    inputs:
+      seed_menu:
+        description: 'Run menu seed against production DB (verifies tenant first, idempotent)'
+        type: boolean
+        default: false
+      sync_permissions:
+        description: 'Sync permissions catalog to DB and assign to SUPERADMIN role'
+        type: boolean
+        default: false
+      seed_approval_matrices:
+        description: 'Seed approval matrices + assign approval permissions to roles'
+        type: boolean
+        default: false
+      setup_danafin_users:
+        description: 'Create roles (SUPERADMIN/MAKER/CHECKER/APPROVER) + users for IAF tenant'
+        type: boolean
+        default: false
+      rebuild:
+        description: 'Force rebuild + deploy containers (use when CLI commands changed)'
+        type: boolean
+        default: false
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # ==============================================================================
-  # TEST & QUALITY GATE
-  # ==============================================================================
+  # =============================================================================
+  # TEST & QUALITY GATE (skip when only running seed)
+  # =============================================================================
   test:
+    if: github.event_name != 'workflow_dispatch' || inputs.rebuild
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -52,10 +75,197 @@ jobs:
       - name: Backend Unit Tests
         run: cd packages/new-backend && JWT_SECRET=ci-test-jwt-secret-min-32-chars-long!! pnpm run test:unit
 
+  # =============================================================================
+  # 🌱 SEED MENU (workflow_dispatch only – one-time, idempotent)
+  # =============================================================================
+  seed-menu:
+    name: Seed Menu (Production)
+    if: github.event_name == 'workflow_dispatch' && inputs.seed_menu
+    runs-on: [self-hosted, X64, Linux, iaf-prod]
+    env:
+      SEED_TENANT_ID: 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify tenant exists before seeding
+        run: |
+          set -euo pipefail
+
+          # Get DATABASE_URL from running backend container
+          DATABASE_URL=$(docker inspect ifrs9-backend-prod --format '{{range .Config.Env}}{{println .}}{{end}}' | grep '^DATABASE_URL=' | sed 's/^DATABASE_URL=//')
+          if [ -z "$DATABASE_URL" ]; then
+            echo "❌ Could not read DATABASE_URL from running ifrs9-backend-prod container"
+            exit 1
+          fi
+
+          # Parse connection components
+          DB_HOST=$(echo "$DATABASE_URL" | sed -n 's|.*@\([^:/]*\).*|\1|p')
+          DB_PORT=$(echo "$DATABASE_URL" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
+          DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
+          DB_USER=$(echo "$DATABASE_URL" | sed -n 's|.*://\([^:]*\):.*|\1|p')
+          PGPASSWORD=$(echo "$DATABASE_URL" | sed -n 's|.*://[^:]*:\(.*\)@[^@]*$|\1|p')
+
+          # Write .pgpass file — avoids all shell quoting / URI parsing issues with special chars
+          echo "${DB_HOST}:${DB_PORT}:${DB_NAME}:${DB_USER}:${PGPASSWORD}" > /tmp/.pgpass
+          chmod 600 /tmp/.pgpass
+
+          echo "🔍 Verifying tenant ${{ env.SEED_TENANT_ID }} exists in prod DB (${DB_HOST}:${DB_PORT}/${DB_NAME})..."
+
+          RESULT=$(docker run --rm --network host \
+            -v /tmp/.pgpass:/root/.pgpass:ro \
+            -e PGPASSFILE=/root/.pgpass \
+            postgres:16-alpine \
+            psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
+            -t -A -c "SELECT count(*) FROM platform_admin.tenants WHERE id = '${{ env.SEED_TENANT_ID }}';")
+
+          if [ "$RESULT" = "0" ]; then
+            echo "❌ Tenant ${{ env.SEED_TENANT_ID }} NOT FOUND in prod DB!"
+            echo ""
+            echo "Available tenants:"
+            docker run --rm --network host \
+              -v /tmp/.pgpass:/root/.pgpass:ro \
+              -e PGPASSFILE=/root/.pgpass \
+              postgres:16-alpine \
+              psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
+              -c "SELECT id, code, name FROM platform_admin.tenants;"
+            echo ""
+            echo "⚠️ Update SEED_TENANT_ID in the workflow before running seed."
+            exit 1
+          fi
+
+          TENANT_NAME=$(docker run --rm --network host \
+            -v /tmp/.pgpass:/root/.pgpass:ro \
+            -e PGPASSFILE=/root/.pgpass \
+            postgres:16-alpine \
+            psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
+            -t -A -c "SELECT name FROM platform_admin.tenants WHERE id = '${{ env.SEED_TENANT_ID }}';")
+
+          echo "✅ Tenant found: $TENANT_NAME (${{ env.SEED_TENANT_ID }})"
+
+      - name: Run menu seed SQL
+        run: |
+          set -euo pipefail
+
+          # Get DATABASE_URL from running backend container
+          DATABASE_URL=$(docker inspect ifrs9-backend-prod --format '{{range .Config.Env}}{{println .}}{{end}}' | grep '^DATABASE_URL=' | sed 's/^DATABASE_URL=//')
+
+          # Parse connection components
+          DB_HOST=$(echo "$DATABASE_URL" | sed -n 's|.*@\([^:/]*\).*|\1|p')
+          DB_PORT=$(echo "$DATABASE_URL" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
+          DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
+          DB_USER=$(echo "$DATABASE_URL" | sed -n 's|.*://\([^:]*\):.*|\1|p')
+          PGPASSWORD=$(echo "$DATABASE_URL" | sed -n 's|.*://[^:]*:\(.*\)@[^@]*$|\1|p')
+
+          # Write .pgpass file
+          echo "${DB_HOST}:${DB_PORT}:${DB_NAME}:${DB_USER}:${PGPASSWORD}" > /tmp/.pgpass
+          chmod 600 /tmp/.pgpass
+
+          echo "🌱 Seeding menus for tenant ${{ env.SEED_TENANT_ID }}..."
+
+          docker run --rm \
+            --network host \
+            -v /tmp/.pgpass:/root/.pgpass:ro \
+            -e PGPASSFILE=/root/.pgpass \
+            -v "${{ github.workspace }}/packages/new-backend/src/db/seeds/002_seed_menus.sql:/seed.sql:ro" \
+            postgres:16-alpine \
+            psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f /seed.sql
+
+          echo ""
+          echo "📋 Menu categories after seed:"
+          docker run --rm --network host \
+            -v /tmp/.pgpass:/root/.pgpass:ro \
+            -e PGPASSFILE=/root/.pgpass \
+            postgres:16-alpine \
+            psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
+            -c "SELECT mc.name, mc.sort_order, mc.is_active, t.code as tenant FROM menu.menu_categories mc LEFT JOIN platform_admin.tenants t ON mc.tenant_id = t.id WHERE mc.tenant_id = '${{ env.SEED_TENANT_ID }}' ORDER BY mc.sort_order;"
+
+          echo ""
+          echo "📋 Menu items count:"
+          docker run --rm --network host \
+            -v /tmp/.pgpass:/root/.pgpass:ro \
+            -e PGPASSFILE=/root/.pgpass \
+            postgres:16-alpine \
+            psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
+            -c "SELECT c.name as category, COUNT(mi.id) as items FROM menu.menu_items mi JOIN menu.menu_categories c ON mi.category_id = c.id WHERE mi.tenant_id = '${{ env.SEED_TENANT_ID }}' GROUP BY c.name ORDER BY c.name;"
+
+          # Cleanup
+          rm -f /tmp/.pgpass
+
+          echo "✅ Menu seed completed successfully!"
+
+  # =============================================================================
+  # 🔄 SYNC PERMISSIONS (workflow_dispatch only – re-sync catalog + role assignment)
+  # =============================================================================
+  sync-permissions:
+    name: Sync Permissions (Production)
+    if: github.event_name == 'workflow_dispatch' && inputs.sync_permissions
+    runs-on: [self-hosted, X64, Linux, iaf-prod]
+
+    steps:
+      - name: Sync all permissions and assign to SUPERADMIN role
+        run: |
+          set -euo pipefail
+
+          echo "🔄 Syncing permissions catalog to production DB..."
+          echo "   Running: docker exec ifrs9-backend-prod ./ops sync-permissions"
+          echo ""
+
+          docker exec ifrs9-backend-prod ./ops sync-permissions
+
+          echo ""
+          echo "✅ Permissions sync completed!"
+
+  # =============================================================================
+  # 🌱 SEED APPROVAL MATRICES (workflow_dispatch only)
+  # =============================================================================
+  seed-approval-matrices:
+    name: Seed Approval Matrices (Production)
+    if: github.event_name == 'workflow_dispatch' && inputs.seed_approval_matrices
+    runs-on: [self-hosted, X64, Linux, iaf-prod]
+
+    steps:
+      - name: Seed approval matrices and assign permissions
+        run: |
+          set -euo pipefail
+
+          echo "🌱 Seeding approval matrices for production..."
+          echo "   Running: docker exec ifrs9-backend-prod ./ops seed-approval-matrices"
+          echo ""
+
+          docker exec ifrs9-backend-prod ./ops seed-approval-matrices
+
+          echo ""
+          echo "✅ Approval matrices seeding completed!"
+
+  # =============================================================================
+  # 👥 SETUP DANAFIN USERS (workflow_dispatch only)
+  # =============================================================================
+  setup-danafin-users:
+    name: Setup DANAFIN Users (Production)
+    if: github.event_name == 'workflow_dispatch' && inputs.setup_danafin_users
+    runs-on: [self-hosted, X64, Linux, iaf-prod]
+
+    steps:
+      - name: Create roles and users for IAF tenant
+        run: |
+          set -euo pipefail
+
+          echo "👥 Setting up IAF tenant users..."
+          echo "   Running: docker exec ifrs9-backend-prod ./ops setup-tenant-users IAF"
+          echo ""
+
+          docker exec ifrs9-backend-prod ./ops setup-tenant-users IAF ChangeMe123!
+
+          echo ""
+          echo "✅ IAF users setup completed!"
+
   # ==============================================================================
   # FRONTEND BUILD JOB
   # ==============================================================================
   frontend:
+    if: github.event_name != 'workflow_dispatch' || inputs.rebuild
     runs-on: ubuntu-latest
     needs: [test]
     permissions:
@@ -111,6 +321,7 @@ jobs:
   # BACKEND BUILD JOB
   # ==============================================================================
   backend:
+    if: github.event_name != 'workflow_dispatch' || inputs.rebuild
     runs-on: ubuntu-latest
     needs: [test]
     permissions:
@@ -155,6 +366,7 @@ jobs:
   # ==============================================================================
   deploy:
     name: Deploy to Production Server
+    if: github.event_name != 'workflow_dispatch' || inputs.rebuild
     runs-on: [self-hosted, X64, Linux, iaf-prod]
     needs: [frontend, backend]
 

@@ -26,6 +26,8 @@ import { run as listTenantRoles } from './scripts/ops/list-tenant-roles';
 import { run as createIafAdmin } from './scripts/ops/create-iaf-admin';
 import { run as createPlatformAdmin } from './scripts/ops/create-platform-admin';
 import { run as syncPermissions } from './scripts/ops/sync-permissions';
+import { run as setupTenantUsers } from './scripts/ops/setup-tenant-users';
+import { seedApprovalMatrices, assignApprovalPermissionsToRoles } from './scripts/../db/seeds/seed-approval-matrices';
 
 const program = new Command();
 
@@ -132,6 +134,24 @@ program.command('sync-permissions')
     .argument('[role]', 'Role code (default: IAF_TENANT_SUPERADMIN)')
     .argument('[tenantId]', 'Tenant ID (default: IAF tenant)')
     .action(syncPermissions);
+
+program.command('setup-tenant-users')
+    .description('Create roles (SUPERADMIN, MAKER, CHECKER, APPROVER) + users for any tenant')
+    .argument('<tenantCode>', 'Tenant code (e.g., DANAFIN)')
+    .argument('[password]', 'Password for all users (default: ChangeMe123!)')
+    .action(setupTenantUsers);
+
+program.command('seed-approval-matrices')
+    .description('Seed approval matrices + permissions for a tenant (idempotent)')
+    .argument('[tenantId]', 'Tenant UUID (default: IAF tenant)')
+    .action(async (tenantId?: string) => {
+        const tid = tenantId || 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
+        console.log(`🌱 Seeding approval matrices for tenant: ${tid}`)
+        await seedApprovalMatrices(tid)
+        await assignApprovalPermissionsToRoles()
+        console.log('✅ Done!')
+        process.exit(0)
+    });
 
 // ... existing imports
 import { run as resetPassword } from './scripts/ops/reset-password';
