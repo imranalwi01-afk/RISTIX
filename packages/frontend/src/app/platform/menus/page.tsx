@@ -55,7 +55,7 @@ export default function PlatformMenuManagementPage() {
       const baseURL = api.client.defaults.baseURL || 'https://iaf-ifrs-be.danafin.com/api/v1';
       const token = localStorage.getItem('auth_token');
       const res = await fetch(`${baseURL}/roles?tenantId=${tenantId}`, {
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+        headers: { 'Authorization': `Bearer ${token}`, 'X-Tenant-ID': tenantId, 'Content-Type': 'application/json' }
       }).then(r => r.json());
       const data = Array.isArray(res) ? res : res?.data || [];
       setRoles(data.map((r: any) => ({ id: r.id, name: r.name || r.roleCode || r.id })));
