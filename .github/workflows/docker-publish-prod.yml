@@ -9,6 +9,10 @@ on:
         description: 'Run menu seed against production DB (one-time, idempotent)'
         type: boolean
         default: false
+      check_tenants:
+        description: 'List existing tenants in prod DB (dry-run, no changes)'
+        type: boolean
+        default: false
 
 env:
   REGISTRY: ghcr.io
@@ -60,18 +64,15 @@ jobs:
         run: cd packages/new-backend && JWT_SECRET=ci-test-jwt-secret-min-32-chars-long!! pnpm run test:unit
 
   # =============================================================================
-  # 🌱 SEED MENU (workflow_dispatch only – one-time, idempotent)
+  # 🔍 CHECK TENANTS (workflow_dispatch only – read-only, no changes)
   # =============================================================================
-  seed-menu:
-    name: Seed Menu (Production)
-    if: github.event_name == 'workflow_dispatch' && inputs.seed_menu
+  check-tenants:
+    name: List Production Tenants
+    if: github.event_name == 'workflow_dispatch' && inputs.check_tenants
     runs-on: [self-hosted, X64, Linux, iaf-prod]
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Run menu seed SQL
+      - name: List tenants from prod DB
         run: |
           set -euo pipefail
 
@@ -80,7 +81,7 @@ jobs:
           source /opt/ifrspro/ops/prod/env/backend.env
           set +a
 
-          # Extract connection params from DATABASE_URL if individual vars not set
+          # Extract connection params from DATABASE_URL
           if [ -n "${DATABASE_URL:-}" ] && [ -z "${DB_HOST:-}" ]; then
             DB_HOST=$(echo "$DATABASE_URL" | sed -n 's|.*@\([^:]*\):.*|\1|p')
             DB_PORT=$(echo "$DATABASE_URL" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
@@ -90,13 +91,113 @@ jobs:
             export PGPASSWORD
           fi
 
-          echo "🌱 Seeding menus on ${DB_HOST:-localhost}:${DB_PORT:-5432}/${DB_NAME:-ifrspro_platform_admin}..."
+          echo "🔍 Listing tenants from ${DB_HOST:-localhost}:${DB_PORT:-5432}/${DB_NAME:-ifrspro_platform_admin}..."
+
+          docker run --rm \
+            --network host \
+            postgres:16-alpine \
+            psql -h "${DB_HOST:-localhost}" -p "${DB_PORT:-5432}" -U "${DB_USER:-postgres}" -d "${DB_NAME:-ifrspro_platform_admin}" \
+            -c "SELECT id, code, name, slug, banking_mode, is_active FROM platform_admin.tenants ORDER BY created_at;"
+
+          echo ""
+          echo "📋 Menu categories already in DB:"
+          docker run --rm \
+            --network host \
+            postgres:16-alpine \
+            psql -h "${DB_HOST:-localhost}" -p "${DB_PORT:-5432}" -U "${DB_USER:-postgres}" -d "${DB_NAME:-ifrspro_platform_admin}" \
+            -c "SELECT mc.id, mc.name, mc.tenant_id, t.code as tenant_code FROM menu.menu_categories mc LEFT JOIN platform_admin.tenants t ON mc.tenant_id = t.id ORDER BY mc.sort_order;"
+
+  # =============================================================================
+  # 🌱 SEED MENU (workflow_dispatch only – one-time, idempotent)
+  # =============================================================================
+  seed-menu:
+    name: Seed Menu (Production)
+    if: github.event_name == 'workflow_dispatch' && inputs.seed_menu
+    runs-on: [self-hosted, X64, Linux, iaf-prod]
+    env:
+      SEED_TENANT_ID: 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify tenant exists before seeding
+        run: |
+          set -euo pipefail
+
+          set -a
+          source /opt/ifrspro/ops/prod/env/backend.env
+          set +a
+
+          if [ -n "${DATABASE_URL:-}" ] && [ -z "${DB_HOST:-}" ]; then
+            DB_HOST=$(echo "$DATABASE_URL" | sed -n 's|.*@\([^:]*\):.*|\1|p')
+            DB_PORT=$(echo "$DATABASE_URL" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
+            DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
+            DB_USER=$(echo "$DATABASE_URL" | sed -n 's|.*://\([^:]*\):.*|\1|p')
+            PGPASSWORD=$(echo "$DATABASE_URL" | sed -n 's|.*://[^:]*:\([^@]*\)@.*|\1|p')
+            export PGPASSWORD DB_HOST DB_PORT DB_NAME DB_USER
+          fi
+
+          echo "🔍 Verifying tenant ${{ env.SEED_TENANT_ID }} exists in prod DB..."
+
+          RESULT=$(docker run --rm --network host postgres:16-alpine \
+            psql -h "${DB_HOST:-localhost}" -p "${DB_PORT:-5432}" -U "${DB_USER:-postgres}" -d "${DB_NAME:-ifrspro_platform_admin}" \
+            -t -A -c "SELECT count(*) FROM platform_admin.tenants WHERE id = '${{ env.SEED_TENANT_ID }}';")
+
+          if [ "$RESULT" = "0" ]; then
+            echo "❌ Tenant ${{ env.SEED_TENANT_ID }} NOT FOUND in prod DB!"
+            echo ""
+            echo "Available tenants:"
+            docker run --rm --network host postgres:16-alpine \
+              psql -h "${DB_HOST:-localhost}" -p "${DB_PORT:-5432}" -U "${DB_USER:-postgres}" -d "${DB_NAME:-ifrspro_platform_admin}" \
+              -c "SELECT id, code, name FROM platform_admin.tenants;"
+            echo ""
+            echo "⚠️ Update the tenant ID in 002_seed_menus.sql before running seed."
+            exit 1
+          fi
+
+          TENANT_NAME=$(docker run --rm --network host postgres:16-alpine \
+            psql -h "${DB_HOST:-localhost}" -p "${DB_PORT:-5432}" -U "${DB_USER:-postgres}" -d "${DB_NAME:-ifrspro_platform_admin}" \
+            -t -A -c "SELECT name FROM platform_admin.tenants WHERE id = '${{ env.SEED_TENANT_ID }}';")
+
+          echo "✅ Tenant found: $TENANT_NAME (${{ env.SEED_TENANT_ID }})"
+
+      - name: Run menu seed SQL
+        run: |
+          set -euo pipefail
+
+          set -a
+          source /opt/ifrspro/ops/prod/env/backend.env
+          set +a
+
+          if [ -n "${DATABASE_URL:-}" ] && [ -z "${DB_HOST:-}" ]; then
+            DB_HOST=$(echo "$DATABASE_URL" | sed -n 's|.*@\([^:]*\):.*|\1|p')
+            DB_PORT=$(echo "$DATABASE_URL" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
+            DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
+            DB_USER=$(echo "$DATABASE_URL" | sed -n 's|.*://\([^:]*\):.*|\1|p')
+            PGPASSWORD=$(echo "$DATABASE_URL" | sed -n 's|.*://[^:]*:\([^@]*\)@.*|\1|p')
+            export PGPASSWORD
+          fi
+
+          echo "🌱 Seeding menus for tenant ${{ env.SEED_TENANT_ID }}..."
 
           docker run --rm \
             --network host \
             -v "${{ github.workspace }}/packages/new-backend/src/db/seeds/002_seed_menus.sql:/seed.sql:ro" \
             postgres:16-alpine \
             psql -h "${DB_HOST:-localhost}" -p "${DB_PORT:-5432}" -U "${DB_USER:-postgres}" -d "${DB_NAME:-ifrspro_platform_admin}" -v ON_ERROR_STOP=1 -f /seed.sql
+
+          echo ""
+          echo "📋 Menu categories after seed:"
+          docker run --rm --network host postgres:16-alpine \
+            psql -h "${DB_HOST:-localhost}" -p "${DB_PORT:-5432}" -U "${DB_USER:-postgres}" -d "${DB_NAME:-ifrspro_platform_admin}" \
+            -c "SELECT mc.name, mc.sort_order, mc.is_active, t.code as tenant FROM menu.menu_categories mc LEFT JOIN platform_admin.tenants t ON mc.tenant_id = t.id WHERE mc.tenant_id = '${{ env.SEED_TENANT_ID }}' ORDER BY mc.sort_order;"
+
+          echo ""
+          echo "📋 Menu items count:"
+          docker run --rm --network host postgres:16-alpine \
+            psql -h "${DB_HOST:-localhost}" -p "${DB_PORT:-5432}" -U "${DB_USER:-postgres}" -d "${DB_NAME:-ifrspro_platform_admin}" \
+            -c "SELECT c.name as category, COUNT(mi.id) as items FROM menu.menu_items mi JOIN menu.menu_categories c ON mi.category_id = c.id WHERE mi.tenant_id = '${{ env.SEED_TENANT_ID }}' GROUP BY c.name ORDER BY c.name;"
 
           echo "✅ Menu seed completed successfully!"
 
