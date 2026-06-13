@@ -18,7 +18,7 @@ on:
         type: boolean
         default: false
       setup_danafin_users:
-        description: 'Create roles (SUPERADMIN/MAKER/CHECKER/APPROVER) + users for DANAFIN tenant'
+        description: 'Create roles (SUPERADMIN/MAKER/CHECKER/APPROVER) + users for IAF tenant'
         type: boolean
         default: false
       rebuild:
@@ -248,18 +248,18 @@ jobs:
     runs-on: [self-hosted, X64, Linux, iaf-prod]
 
     steps:
-      - name: Create roles and users for DANAFIN tenant
+      - name: Create roles and users for IAF tenant
         run: |
           set -euo pipefail
 
-          echo "👥 Setting up DANAFIN tenant users..."
-          echo "   Running: docker exec ifrs9-backend-prod ./ops setup-tenant-users DANAFIN"
+          echo "👥 Setting up IAF tenant users..."
+          echo "   Running: docker exec ifrs9-backend-prod ./ops setup-tenant-users IAF"
           echo ""
 
-          docker exec ifrs9-backend-prod ./ops setup-tenant-users DANAFIN ChangeMe123!
+          docker exec ifrs9-backend-prod ./ops setup-tenant-users IAF ChangeMe123!
 
           echo ""
-          echo "✅ DANAFIN users setup completed!"
+          echo "✅ IAF users setup completed!"
 
   # ==============================================================================
   # FRONTEND BUILD JOB
