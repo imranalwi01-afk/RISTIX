@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/components/banking/BankingSidebar.tsx
 // ============================================================================
 // 🔄 DATABASE-DRIVEN HIERARCHICAL MENU SYSTEM
@@ -8,8 +10,6 @@
 // ✅ FALLBACK: Static menu structure when database unavailable
 // ✅ VISUALS: Ported "Glassmorphism" & Gradients from IAF Main
 // ============================================================================
-
-'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
@@ -68,12 +68,12 @@ import {
 
 import {
   getIconFromDatabaseString,
-  getStaticFallbackMenu
 } from './BankingSidebarUtils';
 
 import { MenuItem, DatabaseMenuItem } from './types';
 
-import { Menu as MuiMenu, MenuItem as MuiMenuItem } from '@mui/material'; // ✅ Import Menu components
+import MuiMenu from '@mui/material/Menu';
+import MuiMenuItem from '@mui/material/MenuItem';
 
 // Import menu service for database-driven menus
 import { useGetMenuTreeQuery } from '@/store/api/menuApi';
@@ -83,7 +83,6 @@ import { menuConfig, getMenuIcon } from '@/config/menu-config';
 
 // Import hierarchical menu utilities
 import {
-  transformFlatToHierarchical,
   findMenuItemByPath,
   filterHierarchicalMenu,
   HierarchicalMenuItem,
@@ -514,11 +513,6 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
     if (rawItems.length > 0) {
       rawItems = normalizeLegacyUrls(rawItems);
       rawItems = stripMenuItems(rawItems);
-    }
-
-    if (rawItems.length === 0 && !isMenuLoading) {
-      const fallbackMenu = getStaticFallbackMenu();
-      rawItems = transformFlatToHierarchical(fallbackMenu);
     }
 
     // Filter by role/permissions/banking mode (IAF logic moved to utility)

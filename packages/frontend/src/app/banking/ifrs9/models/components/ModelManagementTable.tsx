@@ -1,8 +1,8 @@
 'use client';
 
-import { useColumnFiltersFromUrl } from '@/hooks/useColumnFiltersFromUrl';
 import React, { memo, useMemo } from 'react';
-import { Chip, Typography } from '@mui/material';
+import Chip from '@mui/material/Chip';
+import Typography from '@mui/material/Typography';
 import {
   Delete as DeleteIcon,
   Edit as EditIcon,
@@ -12,7 +12,6 @@ import type { GridColDef } from '@mui/x-data-grid';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import type { ModelManagementTableProps, ModelRecord } from './types';
 
-const columnFilters = useColumnFiltersFromUrl();
 
 const getStatusColor = (status: boolean) => (status ? '#4caf50' : '#f44336');
 const getStatusLabel = (status: boolean) => (status ? 'Active' : 'Inactive');

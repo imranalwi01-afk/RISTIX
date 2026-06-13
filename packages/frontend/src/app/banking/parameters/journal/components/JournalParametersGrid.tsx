@@ -1,7 +1,12 @@
 'use client';
 
 import React, { memo, useMemo } from 'react';
-import { Alert, Box, Card, CardContent, Chip, Snackbar } from '@mui/material';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Chip from '@mui/material/Chip';
+import Snackbar from '@mui/material/Snackbar';
 import { Delete as DeleteIcon, Edit as EditIcon, Error as ErrorIcon } from '@mui/icons-material';
 import { GridColDef, GridRowParams } from '@mui/x-data-grid';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';

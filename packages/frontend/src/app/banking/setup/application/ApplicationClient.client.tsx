@@ -11,7 +11,7 @@
 // ============================================================================
 
 
-import { useColumnFiltersFromUrl } from '@/hooks/useColumnFiltersFromUrl';
+
 import React, { useState, useEffect, useMemo, useCallback, useDeferredValue } from 'react';
 import Box from '@mui/material/Box'
 import Container from '@mui/material/Container'
@@ -81,7 +81,6 @@ import {
   type DetailFormData
 } from './components';
 
-const columnFilters = useColumnFiltersFromUrl();
 
 const APPLICATION_EXPORT_COLUMNS = [
   { field: 'CommonCode', headerName: 'Common Code' },

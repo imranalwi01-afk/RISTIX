@@ -1,8 +1,14 @@
 'use client';
 
 import React, { memo } from 'react';
+import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Chip from '@mui/material/Chip';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
+import Typography from '@mui/material/Typography';
 import { alpha } from '@mui/material/styles';
-import { Box, Card, CardContent, Chip, IconButton, Tooltip, Typography } from '@mui/material';
 import { Delete, Edit, ExpandLess, ExpandMore, Security, Visibility, VisibilityOff } from '@mui/icons-material';
 import type { MenuItem, Role } from './types';
 

@@ -1,8 +1,7 @@
-// packages/frontend/src/app/banking/setup/application/page.tsx
-import { Suspense } from 'react'
-import ApplicationClient from './ApplicationClient'
-import SetupLoading from '../loading'
-import type { Metadata } from 'next'
+import { Suspense } from 'react';
+import ApplicationClient from './ApplicationClient';
+import SetupLoading from '../loading';
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Application Setup | IFRS 9 Platform',

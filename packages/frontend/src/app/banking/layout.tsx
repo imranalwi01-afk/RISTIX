@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/app/banking/layout.tsx
 // ============================================================================
 // 🔧 REFACTORED: BankingLayout
@@ -6,8 +8,6 @@
 // ✅ CLEAN: No more massive console logs
 // ✅ MAINTAINABLE: Separation of concerns
 // ============================================================================
-
-'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';

@@ -3,7 +3,10 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
-import { Alert, Box, CircularProgress, Container } from '@mui/material';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import CircularProgress from '@mui/material/CircularProgress';
+import Container from '@mui/material/Container';
 import { Assessment as PageIcon } from '@mui/icons-material';
 import ReportPageLayout from '@/components/ifrs9/ReportPageLayout';
 import { Can } from '@/components/rbac/Can';

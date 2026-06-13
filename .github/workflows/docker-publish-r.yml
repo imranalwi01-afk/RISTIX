@@ -53,7 +53,7 @@ jobs:
           tags: ${{ steps.meta-r.outputs.tags }}
           labels: ${{ steps.meta-r.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min
 
   # ==============================================================================
   # DEPLOY TO PRODUCTION (SELF-HOSTED RUNNER)

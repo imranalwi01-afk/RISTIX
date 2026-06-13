@@ -2,7 +2,8 @@ import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import { Effect, pipe } from 'effect'
 import { eq, and, asc } from 'drizzle-orm'
 import { getDatabase } from '@/config/database'
-import { menuCategories, menuItems, menuPermissions, menuConfigurations, menuAnalytics } from '@/db/schema/menu.schema'
+import { menuCategories, menuItems, menuPermissions } from '@/db/schema/menu.schema'
+import { TenantRepository } from '@/repositories/tenant.repository'
 import { authMiddleware } from '@/middleware/auth'
 import type { AppContext } from '@/app'
 import { runEffect } from '@/lib/effect'
@@ -11,6 +12,24 @@ import { openApiValidationHook } from '@/lib/http/openapi-validation-hook'
 import { randomUUID } from 'node:crypto'
 
 const platformDb = getDatabase(null)
+
+// Helper: resolve tenant slug to UUID
+async function resolveTenantId(c: any): Promise<string | null> {
+    const qTenant = c.req.query('tenantId')
+    const tenantId = qTenant || c.get('tenantId')
+    if (!tenantId) return null
+
+    // Check if it's already a UUID (contains hyphens)
+    if (tenantId.includes('-')) return tenantId
+
+    // Resolve slug to UUID via TenantRepository
+    try {
+        const tenant = await TenantRepository.findBySlug(tenantId)
+        return tenant?.id ?? null
+    } catch {
+        return null
+    }
+}
 
 export const menuRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
@@ -108,11 +127,16 @@ menuRoutes.openapi(
         const now = new Date()
         const cats = [
             { name: 'Dashboard', icon: 'Dashboard', sortOrder: 1 },
-            { name: 'Banking', icon: 'AccountBalance', sortOrder: 2 },
-            { name: 'IFRS 9', icon: 'Calculate', sortOrder: 3 },
-            { name: 'Analytics', icon: 'Analytics', sortOrder: 4 },
-            { name: 'Reports', icon: 'Assessment', sortOrder: 5 },
-            { name: 'Administration', icon: 'AdminPanelSettings', sortOrder: 6 },
+            { name: 'System Setup', icon: 'Settings', sortOrder: 2 },
+            { name: 'Parameter Management', icon: 'Category', sortOrder: 3 },
+            { name: 'Collective Impairment', icon: 'TrendingUp', sortOrder: 4 },
+            { name: 'Individual Impairment', icon: 'Person', sortOrder: 5 },
+            { name: 'IFRS 9 Processing', icon: 'Calculate', sortOrder: 6 },
+            { name: 'IFRS 9 Reports', icon: 'TableChart', sortOrder: 7 },
+            { name: 'Advanced Analytics', icon: 'Analytics', sortOrder: 8 },
+            { name: 'Workflow Management', icon: 'AccountTree', sortOrder: 9 },
+            { name: 'Tools', icon: 'CloudUpload', sortOrder: 10 },
+            { name: 'Admin & Maintenance', icon: 'Build', sortOrder: 11 },
         ]
 
         const catIds: Record<string, string> = {}
@@ -126,20 +150,77 @@ menuRoutes.openapi(
         }
 
         const items = [
+            // Dashboard
             { cat: 'Dashboard', name: 'Overview', path: '/banking/dashboard', icon: 'Dashboard', sortOrder: 1 },
-            { cat: 'Banking', name: 'Application Settings', path: '/banking/setup/application', icon: 'Settings', sortOrder: 1 },
-            { cat: 'Banking', name: 'Business Settings', path: '/banking/setup/business', icon: 'Business', sortOrder: 2 },
-            { cat: 'Banking', name: 'Parameters', path: '/banking/parameters/product', icon: 'Settings', sortOrder: 3 },
-            { cat: 'IFRS 9', name: 'Collective Impairment', path: '/banking/collective/segmentation', icon: 'Visibility', sortOrder: 1 },
-            { cat: 'IFRS 9', name: 'Individual Impairment', path: '/banking/individual/assessment', icon: 'Person', sortOrder: 2 },
-            { cat: 'IFRS 9', name: 'ECL Calculations', path: '/banking/ifrs9/calculations', icon: 'Calculate', sortOrder: 3 },
-            { cat: 'Analytics', name: 'R Analytics', path: '/banking/analytics/r-analytics', icon: 'Analytics', sortOrder: 1 },
-            { cat: 'Reports', name: 'IFRS 9 Reports', path: '/banking/ifrs9-reports', icon: 'Assessment', sortOrder: 1 },
-            { cat: 'Administration', name: 'Approval', path: '/banking/maintenance/approval', icon: 'Approval', sortOrder: 1 },
-            { cat: 'Administration', name: 'Access Management', path: '/banking/maintenance/access-management', icon: 'Security', sortOrder: 2 },
-            { cat: 'Administration', name: 'Job Monitoring', path: '/banking/maintenance/job-monitoring', icon: 'Build', sortOrder: 3 },
-            { cat: 'Administration', name: 'Menu Management', path: '/banking/maintenance/menus', icon: 'Menu', sortOrder: 4 },
-            { cat: 'Administration', name: 'Audit Log', path: '/banking/maintenance/audit', icon: 'Visibility', sortOrder: 5 },
+
+            // System Setup
+            { cat: 'System Setup', name: 'Application Configuration', path: '/banking/setup/application', icon: 'Settings', sortOrder: 1 },
+            { cat: 'System Setup', name: 'Business Configuration', path: '/banking/setup/business', icon: 'Business', sortOrder: 2 },
+
+            // Parameter Management
+            { cat: 'Parameter Management', name: 'Product Parameters', path: '/banking/parameters/product', icon: 'AccountBalance', sortOrder: 1 },
+            { cat: 'Parameter Management', name: 'Accounting Parameters', path: '/banking/parameters/journal', icon: 'Assessment', sortOrder: 2 },
+
+            // Collective Impairment
+            { cat: 'Collective Impairment', name: 'Segmentation Configuration', path: '/banking/collective/segmentation', icon: 'Category', sortOrder: 1 },
+            { cat: 'Collective Impairment', name: 'Rule Base Setting', path: '/banking/collective/rule-base', icon: 'Assessment', sortOrder: 2 },
+            { cat: 'Collective Impairment', name: 'Bucket Parameter', path: '/banking/collective/bucket', icon: 'Layers', sortOrder: 3 },
+            { cat: 'Collective Impairment', name: 'PD Setup', path: '/banking/collective/pd-setup', icon: 'TrendingUp', sortOrder: 4 },
+            { cat: 'Collective Impairment', name: 'FL Scalar', path: '/banking/collective/fl-scalar', icon: 'Functions', sortOrder: 5 },
+            { cat: 'Collective Impairment', name: 'LGD Setup', path: '/banking/collective/lgd-setup', icon: 'MonetizationOn', sortOrder: 6 },
+            { cat: 'Collective Impairment', name: 'EAD Setup', path: '/banking/collective/ead-setup', icon: 'AccountBalance', sortOrder: 7 },
+            { cat: 'Collective Impairment', name: 'ECL Configuration', path: '/banking/collective/ecl-config', icon: 'Calculate', sortOrder: 8 },
+
+            // Individual Impairment
+            { cat: 'Individual Impairment', name: 'Assessment Workspace', path: '/banking/individual/assessment', icon: 'Assessment', sortOrder: 1 },
+            { cat: 'Individual Impairment', name: 'Individual Provision', path: '/banking/individual/provision', icon: 'Savings', sortOrder: 2 },
+            { cat: 'Individual Impairment', name: 'DCF Upload Report', path: '/banking/individual/review/dcf-upload-report', icon: 'Description', sortOrder: 3 },
+
+            // IFRS 9 Processing
+            { cat: 'IFRS 9 Processing', name: 'ECL Calculations', path: '/banking/ifrs9/calculations', icon: 'Calculate', sortOrder: 1 },
+            { cat: 'IFRS 9 Processing', name: 'IFRS 9 Staging', path: '/banking/ifrs9/staging', icon: 'Layers', sortOrder: 2 },
+            { cat: 'IFRS 9 Processing', name: 'Model Management', path: '/banking/ifrs9/models', icon: 'ViewModule', sortOrder: 3 },
+            { cat: 'IFRS 9 Processing', name: 'Forecast', path: '/banking/ifrs9/scenarios', icon: 'AutoGraph', sortOrder: 4 },
+            { cat: 'IFRS 9 Processing', name: 'Data Upload', path: '/banking/data/upload', icon: 'UploadFile', sortOrder: 5 },
+            { cat: 'IFRS 9 Processing', name: 'Data Validation', path: '/banking/data/validation', icon: 'VerifiedUser', sortOrder: 6 },
+
+            // IFRS 9 Reports
+            { cat: 'IFRS 9 Reports', name: 'ECL Movement', path: '/banking/ifrs9-reports/ecl-movement', icon: 'SwapHoriz', sortOrder: 1 },
+            { cat: 'IFRS 9 Reports', name: 'GCA Movement', path: '/banking/ifrs9-reports/gca-movement', icon: 'Timeline', sortOrder: 2 },
+            { cat: 'IFRS 9 Reports', name: 'Lifetime PD', path: '/banking/ifrs9-reports/lifetime-pd', icon: 'TrendingUp', sortOrder: 3 },
+            { cat: 'IFRS 9 Reports', name: 'Lifetime LGD', path: '/banking/ifrs9-reports/lifetime-lgd', icon: 'MonetizationOn', sortOrder: 4 },
+            { cat: 'IFRS 9 Reports', name: 'EAD Model', path: '/banking/ifrs9-reports/ead-model', icon: 'Functions', sortOrder: 5 },
+            { cat: 'IFRS 9 Reports', name: 'ECL Result', path: '/banking/ifrs9-reports/ecl-result', icon: 'Calculate', sortOrder: 6 },
+            { cat: 'IFRS 9 Reports', name: 'Nominative Report', path: '/banking/ifrs9-reports/nominative', icon: 'TableChart', sortOrder: 7 },
+
+            // Advanced Analytics
+            { cat: 'Advanced Analytics', name: 'R Analytics', path: '/banking/analytics/r-analytics', icon: 'DataUsage', sortOrder: 1 },
+            { cat: 'Advanced Analytics', name: 'Financial Reports', path: '/banking/analytics/reports', icon: 'Assessment', sortOrder: 2 },
+            { cat: 'Advanced Analytics', name: 'Executive Dashboard', path: '/banking/analytics/dashboard', icon: 'Dashboard', sortOrder: 3 },
+            { cat: 'Advanced Analytics', name: 'Advanced Export', path: '/banking/analytics/export', icon: 'GetApp', sortOrder: 4 },
+
+            // Workflow Management
+            { cat: 'Workflow Management', name: 'Approval System', path: '/banking/workflow/approval', icon: 'Approval', sortOrder: 1 },
+            { cat: 'Workflow Management', name: 'Notifications', path: '/banking/notifications', icon: 'NotificationImportant', sortOrder: 2 },
+            { cat: 'Workflow Management', name: 'Workflow Configuration', path: '/banking/workflow/configuration', icon: 'Settings', sortOrder: 3 },
+            { cat: 'Workflow Management', name: 'Process Monitoring', path: '/banking/workflow/monitoring', icon: 'Monitor', sortOrder: 4 },
+            { cat: 'Workflow Management', name: 'Staging Management', path: '/banking/workflow/staging', icon: 'TableView', sortOrder: 5 },
+            { cat: 'Workflow Management', name: 'Business Process', path: '/banking/workflow/business', icon: 'Business', sortOrder: 6 },
+
+            // Tools
+            { cat: 'Tools', name: 'Manual Upload', path: '/banking/tools/upload', icon: 'CloudUpload', sortOrder: 1 },
+            { cat: 'Tools', name: 'Data Export', path: '/banking/tools/export', icon: 'GetApp', sortOrder: 2 },
+            { cat: 'Tools', name: 'ETL Tools', path: '/banking/tools/etl', icon: 'Transform', sortOrder: 3 },
+
+            // Admin & Maintenance
+            { cat: 'Admin & Maintenance', name: 'Access Management', path: '/banking/maintenance/access-management', icon: 'ManageAccounts', sortOrder: 1 },
+            { cat: 'Admin & Maintenance', name: 'Approval', path: '/banking/maintenance/approval', icon: 'Approval', sortOrder: 2 },
+            { cat: 'Admin & Maintenance', name: 'Job Monitoring', path: '/banking/maintenance/job-monitoring', icon: 'Monitor', sortOrder: 3 },
+            { cat: 'Admin & Maintenance', name: 'Menu Management', path: '/banking/maintenance/menus', icon: 'Menu', sortOrder: 4 },
+            { cat: 'Admin & Maintenance', name: 'Audit Log', path: '/banking/maintenance/audit', icon: 'History', sortOrder: 5 },
+            { cat: 'Admin & Maintenance', name: 'User Activity', path: '/banking/maintenance/user-activity', icon: 'People', sortOrder: 6 },
+            { cat: 'Admin & Maintenance', name: 'Assignments', path: '/banking/maintenance/assignments', icon: 'Assignment', sortOrder: 7 },
+            { cat: 'Admin & Maintenance', name: 'Users', path: '/banking/maintenance/users', icon: 'Group', sortOrder: 8 },
         ]
 
         for (const item of items) {
@@ -234,39 +315,61 @@ menuRoutes.delete('/permissions/:id', async (c) => {
     return c.json({ success: true })
 })
 
-// GET /menu/flat - Get flat menu items for sidebar (with banking mode filter)
+// GET /menu/flat - Get flat menu items for sidebar
 menuRoutes.get('/flat', async (c) => {
-    const qTenant = c.req.query('tenantId')
-    const tenantId = qTenant || c.get('tenantId')
-    const bankingMode = c.req.query('bankingMode') || 'conventional'
+    const tenantId = await resolveTenantId(c)
     const includeInactive = c.req.query('includeInactive') !== 'false'
     if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
 
     const conditions = [eq(menuItems.tenantId, tenantId)]
     if (!includeInactive) conditions.push(eq(menuItems.isActive, true))
-    if (bankingMode !== 'both') conditions.push(eq(menuItems.bankingType, bankingMode))
 
-    const items = await platformDb.select().from(menuItems).where(and(...conditions)).orderBy(asc(menuItems.sortOrder))
+    const [categories, items] = await Promise.all([
+        platformDb.select().from(menuCategories).where(
+            and(eq(menuCategories.tenantId, tenantId), eq(menuCategories.isActive, true))
+        ).orderBy(asc(menuCategories.sortOrder)),
+        platformDb.select().from(menuItems).where(and(...conditions)).orderBy(asc(menuItems.sortOrder)),
+    ])
 
-    // Transform to flat format with parent_id for sidebar hierarchy building
-    const flatItems = items.map(i => ({
-        id: i.id,
-        menu_key: i.id,
-        title: i.name,
-        label: i.name,
-        description: i.description || '',
-        icon: i.icon || 'Circle',
-        url: i.path || '',
-        href: i.path || '',
-        parent_id: i.parentId || null,
-        sort_order: i.sortOrder,
-        type: i.parentId ? 'item' : 'group',
-        level: i.level || 0,
-        is_active: i.isActive,
-        banking_type: i.bankingType,
-    }))
+    // Build hierarchical menu: categories as groups, items as children
+    const menuTree = categories.map(cat => {
+        const catItems = items.filter(i => i.categoryId === cat.id)
+        return {
+            id: cat.id,
+            menu_key: cat.id,
+            title: cat.name,
+            label: cat.name,
+            description: cat.description || '',
+            icon: cat.icon || 'Folder',
+            url: '',
+            href: '',
+            parent_id: null,
+            sort_order: cat.sortOrder,
+            type: 'group',
+            level: 0,
+            is_active: cat.isActive,
+            banking_type: null,
+            children: catItems.map(i => ({
+                id: i.id,
+                menu_key: i.id,
+                title: i.name,
+                label: i.name,
+                description: i.description || '',
+                icon: i.icon || 'Circle',
+                url: i.path || '',
+                href: i.path || '',
+                parent_id: cat.id,
+                sort_order: i.sortOrder,
+                type: 'item',
+                level: 1,
+                is_active: i.isActive,
+                banking_type: i.bankingType,
+                children: [] as any[],
+            })),
+        }
+    })
 
-    return c.json({ success: true, data: flatItems })
+    return c.json({ success: true, data: menuTree })
 })
 
 // GET /menu/health

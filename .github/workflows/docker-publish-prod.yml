@@ -105,7 +105,7 @@ jobs:
             NEXT_PUBLIC_APP_NAME=${{ vars.NEXT_PUBLIC_APP_NAME || 'IFRS9 Platform' }}
           cache-from: type=gha
 
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min
 
   # ==============================================================================
   # BACKEND BUILD JOB
@@ -149,7 +149,7 @@ jobs:
           tags: ${{ steps.meta-backend.outputs.tags }}
           labels: ${{ steps.meta-backend.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min
   # ==============================================================================
   # DEPLOY TO PRODUCTION (SELF-HOSTED RUNNER)
   # ==============================================================================

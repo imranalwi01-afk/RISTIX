@@ -57,6 +57,8 @@ const PivotTableTemplate: React.FC<PivotTableTemplateProps> = ({
   formatBaseCell = defaultFormatBaseCell,
   maxHeight = 600
 }) => {
+  const { bankingMode } = useBankingTheme();
+
   if (!data || data.length === 0) return null;
 
   const baseColumns = columns.filter(col => !col.match(dynamicColumnPattern));
@@ -65,7 +67,6 @@ const PivotTableTemplate: React.FC<PivotTableTemplateProps> = ({
   const finalBase = dynamicColumns.length > 0 ? baseColumns : columns;
   const finalDynamic = dynamicColumns.length > 0 ? dynamicColumns : [];
 
-  const { bankingMode } = useBankingTheme();
   const headerBg = bankingMode === 'syariah' ? '#004d40' : bankingMode === 'dual' ? '#263238' : '#0D47A1';
 
   return (

@@ -2,19 +2,17 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Box,
-  Typography,
-  Container,
-  Card,
-  CardContent,
-  CircularProgress,
-  Alert,
-  Breadcrumbs,
-  Link,
-  Grid,
-} from '@mui/material';
-import { Snackbar } from '@mui/material';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Breadcrumbs from '@mui/material/Breadcrumbs';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import CircularProgress from '@mui/material/CircularProgress';
+import Container from '@mui/material/Container';
+import Grid from '@mui/material/Grid';
+import Link from '@mui/material/Link';
+import Snackbar from '@mui/material/Snackbar';
+import Typography from '@mui/material/Typography';
 import {
   Home as HomeIcon,
 } from '@mui/icons-material';
