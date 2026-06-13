@@ -6,11 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       seed_menu:
-        description: 'Run menu seed against production DB (one-time, idempotent)'
-        type: boolean
-        default: false
-      check_tenants:
-        description: 'List existing tenants in prod DB (dry-run, no changes)'
+        description: 'Run menu seed against production DB (verifies tenant first, idempotent)'
         type: boolean
         default: false
 
@@ -62,50 +58,6 @@ jobs:
 
       - name: Backend Unit Tests
         run: cd packages/new-backend && JWT_SECRET=ci-test-jwt-secret-min-32-chars-long!! pnpm run test:unit
-
-  # =============================================================================
-  # 🔍 CHECK TENANTS (workflow_dispatch only – read-only, no changes)
-  # =============================================================================
-  check-tenants:
-    name: List Production Tenants
-    if: github.event_name == 'workflow_dispatch' && inputs.check_tenants
-    runs-on: [self-hosted, X64, Linux, iaf-prod]
-
-    steps:
-      - name: List tenants from prod DB
-        run: |
-          set -euo pipefail
-
-          # Load DB connection from prod backend env
-          set -a
-          source /opt/ifrspro/ops/prod/env/backend.env
-          set +a
-
-          # Extract connection params from DATABASE_URL
-          if [ -n "${DATABASE_URL:-}" ] && [ -z "${DB_HOST:-}" ]; then
-            DB_HOST=$(echo "$DATABASE_URL" | sed -n 's|.*@\([^:]*\):.*|\1|p')
-            DB_PORT=$(echo "$DATABASE_URL" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
-            DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
-            DB_USER=$(echo "$DATABASE_URL" | sed -n 's|.*://\([^:]*\):.*|\1|p')
-            PGPASSWORD=$(echo "$DATABASE_URL" | sed -n 's|.*://[^:]*:\([^@]*\)@.*|\1|p')
-            export PGPASSWORD
-          fi
-
-          echo "🔍 Listing tenants from ${DB_HOST:-localhost}:${DB_PORT:-5432}/${DB_NAME:-ifrspro_platform_admin}..."
-
-          docker run --rm \
-            --network host \
-            postgres:16-alpine \
-            psql -h "${DB_HOST:-localhost}" -p "${DB_PORT:-5432}" -U "${DB_USER:-postgres}" -d "${DB_NAME:-ifrspro_platform_admin}" \
-            -c "SELECT id, code, name, slug, banking_mode, is_active FROM platform_admin.tenants ORDER BY created_at;"
-
-          echo ""
-          echo "📋 Menu categories already in DB:"
-          docker run --rm \
-            --network host \
-            postgres:16-alpine \
-            psql -h "${DB_HOST:-localhost}" -p "${DB_PORT:-5432}" -U "${DB_USER:-postgres}" -d "${DB_NAME:-ifrspro_platform_admin}" \
-            -c "SELECT mc.id, mc.name, mc.tenant_id, t.code as tenant_code FROM menu.menu_categories mc LEFT JOIN platform_admin.tenants t ON mc.tenant_id = t.id ORDER BY mc.sort_order;"
 
   # =============================================================================
   # 🌱 SEED MENU (workflow_dispatch only – one-time, idempotent)
