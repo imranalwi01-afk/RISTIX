@@ -93,7 +93,7 @@ jobs:
 
           echo "🔍 Verifying tenant ${{ env.SEED_TENANT_ID }} exists in prod DB (${DB_HOST}:${DB_PORT}/${DB_NAME})..."
 
-          RESULT=$(docker run --rm --network host postgres:16-alpine \
+          RESULT=$(docker run --rm --network host -e PGPASSWORD="$PGPASSWORD" postgres:16-alpine \
             psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
             -t -A -c "SELECT count(*) FROM platform_admin.tenants WHERE id = '${{ env.SEED_TENANT_ID }}';")
 
@@ -101,7 +101,7 @@ jobs:
             echo "❌ Tenant ${{ env.SEED_TENANT_ID }} NOT FOUND in prod DB!"
             echo ""
             echo "Available tenants:"
-            docker run --rm --network host postgres:16-alpine \
+            docker run --rm --network host -e PGPASSWORD="$PGPASSWORD" postgres:16-alpine \
               psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
               -c "SELECT id, code, name FROM platform_admin.tenants;"
             echo ""
@@ -109,7 +109,7 @@ jobs:
             exit 1
           fi
 
-          TENANT_NAME=$(docker run --rm --network host postgres:16-alpine \
+          TENANT_NAME=$(docker run --rm --network host -e PGPASSWORD="$PGPASSWORD" postgres:16-alpine \
             psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
             -t -A -c "SELECT name FROM platform_admin.tenants WHERE id = '${{ env.SEED_TENANT_ID }}';")
 
@@ -133,19 +133,20 @@ jobs:
 
           docker run --rm \
             --network host \
+            -e PGPASSWORD="$PGPASSWORD" \
             -v "${{ github.workspace }}/packages/new-backend/src/db/seeds/002_seed_menus.sql:/seed.sql:ro" \
             postgres:16-alpine \
             psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f /seed.sql
 
           echo ""
           echo "📋 Menu categories after seed:"
-          docker run --rm --network host postgres:16-alpine \
+          docker run --rm --network host -e PGPASSWORD="$PGPASSWORD" postgres:16-alpine \
             psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
             -c "SELECT mc.name, mc.sort_order, mc.is_active, t.code as tenant FROM menu.menu_categories mc LEFT JOIN platform_admin.tenants t ON mc.tenant_id = t.id WHERE mc.tenant_id = '${{ env.SEED_TENANT_ID }}' ORDER BY mc.sort_order;"
 
           echo ""
           echo "📋 Menu items count:"
-          docker run --rm --network host postgres:16-alpine \
+          docker run --rm --network host -e PGPASSWORD="$PGPASSWORD" postgres:16-alpine \
             psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
             -c "SELECT c.name as category, COUNT(mi.id) as items FROM menu.menu_items mi JOIN menu.menu_categories c ON mi.category_id = c.id WHERE mi.tenant_id = '${{ env.SEED_TENANT_ID }}' GROUP BY c.name ORDER BY c.name;"
 
