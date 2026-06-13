@@ -9,6 +9,10 @@ on:
         description: 'Run menu seed against production DB (verifies tenant first, idempotent)'
         type: boolean
         default: false
+      sync_permissions:
+        description: 'Sync permissions catalog to DB and assign to SUPERADMIN role'
+        type: boolean
+        default: false
 
 env:
   REGISTRY: ghcr.io
@@ -178,6 +182,28 @@ jobs:
           rm -f /tmp/.pgpass
 
           echo "✅ Menu seed completed successfully!"
+
+  # =============================================================================
+  # 🔄 SYNC PERMISSIONS (workflow_dispatch only – re-sync catalog + role assignment)
+  # =============================================================================
+  sync-permissions:
+    name: Sync Permissions (Production)
+    if: github.event_name == 'workflow_dispatch' && inputs.sync_permissions
+    runs-on: [self-hosted, X64, Linux, iaf-prod]
+
+    steps:
+      - name: Sync all permissions and assign to SUPERADMIN role
+        run: |
+          set -euo pipefail
+
+          echo "🔄 Syncing permissions catalog to production DB..."
+          echo "   Running: docker exec ifrs9-backend-prod ./ops sync-permissions"
+          echo ""
+
+          docker exec ifrs9-backend-prod ./ops sync-permissions
+
+          echo ""
+          echo "✅ Permissions sync completed!"
 
   # ==============================================================================
   # FRONTEND BUILD JOB
