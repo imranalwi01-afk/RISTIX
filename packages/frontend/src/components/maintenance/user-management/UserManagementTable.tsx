@@ -14,6 +14,7 @@ import {
 import type { GridColDef } from '@mui/x-data-grid';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import type { User } from './types';
+import { useColumnFiltersFromUrl } from '@/hooks/useColumnFiltersFromUrl';
 
 interface UserManagementTableProps {
   users: User[];
@@ -27,7 +28,6 @@ interface UserManagementTableProps {
   onEdit: (user: User) => void;
   onResetPassword: (user: User) => void;
   onToggleStatus: (userId: string, currentStatus: boolean) => void;
-  onResetPassword: (user: User) => void;
 }
 
 
@@ -43,7 +43,6 @@ const UserManagementTable = memo(function UserManagementTable({
   onEdit,
   onResetPassword,
   onToggleStatus,
-  onResetPassword,
 }: UserManagementTableProps) {
   const columnFilters = useColumnFiltersFromUrl();
   const columns = useMemo<GridColDef<User>[]>(() => [

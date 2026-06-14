@@ -457,7 +457,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
         onEdit={handleEdit}
         onResetPassword={handleResetPassword}
         onToggleStatus={toggleUserStatus}
-        onResetPassword={handleResetPassword}
+       
       />
 
       <UserFormDialog
