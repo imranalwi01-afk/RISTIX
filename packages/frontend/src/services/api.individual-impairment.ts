@@ -365,7 +365,6 @@ export const individualImpairmentAPI = {
   watchlist: {
     // Get watchlist summary
     getSummary: async (date?: string, mode?: string) => {
-        console.log('📊 Fetching watchlist summary');
         const response = await apiClient.get('/banking/individual/impairment/watchlist/summary', { params: { date, mode } });
         return response.data;
     },
@@ -394,7 +393,6 @@ export const individualImpairmentAPI = {
         order?: 'asc' | 'desc';
       };
     }) => {
-      console.log('🔍 Fetching Individual Impairment watchlist from FRS9PRO database', params);
       const { mode: _mode, ...filterWithoutMode } = params?.filter ?? {};
       const response = await apiClient.get('/banking/individual/impairment/watchlist', {
         params: {
@@ -408,7 +406,6 @@ export const individualImpairmentAPI = {
 
     // Get specific account details for impairment assessment
     getById: async (accountId: number) => {
-      console.log(`📄 Fetching Individual Impairment details for account ${accountId}`);
       const response = await apiClient.get(`/banking/individual/impairment/${accountId}`);
       return response.data;
     },
@@ -420,8 +417,6 @@ export const individualImpairmentAPI = {
       columns?: string[];
       includeFilters?: boolean;
     }) => {
-      console.log(`📤 Exporting Individual Impairment watchlist as ${format}`);
-
       try {
         // Make request with blob response type
         const response = await apiClient.post('/banking/individual/impairment/watchlist/export', {
@@ -469,8 +464,6 @@ export const individualImpairmentAPI = {
           window.URL.revokeObjectURL(url);
         }, 100);
 
-        console.log(`✅ Export completed: ${filename}`);
-
         return {
           success: true,
           fileName: filename,
@@ -498,7 +491,6 @@ export const individualImpairmentAPI = {
 
     // Remove account from watchlist
     remove: async (id: string, mode?: string) => {
-      console.log(`🗑️ Removing account ${id} from Individual Impairment watchlist`, { mode });
       const response = await apiClient.delete(`/banking/individual/impairment/watchlist/${id}`, { params: { mode } });
       return response.data;
     }
@@ -508,35 +500,30 @@ export const individualImpairmentAPI = {
   assessment: {
     // Get impairment assessment data for an account
     get: async (accountId: number) => {
-      console.log(`📊 Fetching impairment assessment for account ${accountId}`);
       const response = await apiClient.get(`/banking/individual/impairment/${accountId}`);
       return response.data;
     },
 
     // Create or update impairment assessment
     create: async (assessmentData: Partial<IndividualImpairmentAssessment>) => {
-      console.log('➕ Creating impairment assessment');
       const response = await apiClient.post('/banking/individual/impairment/assessment', assessmentData);
       return response.data;
     },
 
     // Update impairment assessment
     update: async (id: number, assessmentData: Partial<IndividualImpairmentAssessment>) => {
-      console.log(`✏️ Updating impairment assessment ${id}`);
       const response = await apiClient.put(`/banking/individual/impairment/assessment/${id}`, assessmentData);
       return response.data;
     },
 
     // Get assessment history for an account
     getHistory: async (accountId: number) => {
-      console.log(`📜 Fetching assessment history for account ${accountId}`);
       const response = await apiClient.get(`/banking/individual/impairment/assessment/${accountId}/history`);
       return response.data;
     },
 
     // Submit assessment for approval
     submit: async (id: number, comments?: string) => {
-      console.log(`📤 Submitting assessment ${id} for approval`);
       const response = await apiClient.post(`/banking/individual/impairment/assessment/${id}/submit`, {
         comments
       });
@@ -545,7 +532,6 @@ export const individualImpairmentAPI = {
 
     // Approve assessment
     approve: async (id: number, comments?: string) => {
-      console.log(`✅ Approving assessment ${id}`);
       const response = await apiClient.post(`/banking/individual/impairment/assessment/${id}/approve`, {
         comments
       });
@@ -554,7 +540,6 @@ export const individualImpairmentAPI = {
 
     // Reject assessment
     reject: async (id: number, reason: string) => {
-      console.log(`❌ Rejecting assessment ${id}`);
       const response = await apiClient.post(`/banking/individual/impairment/assessment/${id}/reject`, {
         reason
       });
@@ -563,7 +548,6 @@ export const individualImpairmentAPI = {
 
     // Reset assessment
     reset: async (id: number) => {
-      console.log(`🔄 Resetting assessment ${id}`);
       const response = await apiClient.post(`/banking/individual/impairment/assessment/${id}/reset`);
       return response.data;
     }
@@ -577,14 +561,12 @@ export const individualImpairmentAPI = {
       effective_date?: string;
       include_historical?: boolean;
     }) => {
-      console.log(`📈 Fetching DCF analysis data for account ${accountId}`);
       const response = await apiClient.get(`/banking/individual/impairment/dcf/${accountId}`, { params });
       return response.data;
     },
 
     // Calculate DCF present value and ECL
     calculate: async (accountId: number, dcfPayload: any) => {
-      console.log(`🧮 Calculating DCF for account ${accountId}`, dcfPayload);
       // Send payload directly - already formatted by page.tsx
       const response = await apiClient.post(`/banking/individual/impairment/dcf/calculate`, dcfPayload);
       return response.data;
@@ -592,7 +574,6 @@ export const individualImpairmentAPI = {
 
     // Run DCF scenario analysis
     runScenarioAnalysis: async (accountId: number, scenarios: string[]) => {
-      console.log(`🎭 Running DCF scenario analysis for account ${accountId}`);
       const response = await apiClient.post(`/banking/individual/impairment/dcf/scenario-analysis`, {
         account_id: accountId,
         scenarios
@@ -602,7 +583,6 @@ export const individualImpairmentAPI = {
 
     // Compare DCF results across scenarios
     compareScenarios: async (accountId: number, scenarios: string[]) => {
-      console.log(`📊 Comparing DCF scenarios for account ${accountId}`);
       const response = await apiClient.post(`/banking/individual/impairment/dcf/compare-scenarios`, {
         account_id: accountId,
         scenarios
@@ -635,7 +615,6 @@ export const individualImpairmentAPI = {
 
   // History / Audit Trail
   getHistory: async (params: HistoryParams) => {
-    console.log('📜 Fetching individual impairment history', params);
     const response = await apiClient.get('/banking/individual/impairment/history', { params });
     return response.data;
   },
@@ -682,7 +661,6 @@ export const individualImpairmentAPI = {
       effective_date?: string;
       include_regulatory?: boolean;
     }) => {
-      console.log(`💰 Fetching provision calculation for account ${accountId}`);
       const response = await apiClient.get(`/banking/individual/impairment/provision`, {
         params: { account_id: accountId, ...params }
       });
@@ -695,7 +673,6 @@ export const individualImpairmentAPI = {
       include_regulatory_adjustments?: boolean;
       assumptions?: Partial<DCFAssumptions>;
     }) => {
-      console.log(`🧮 Calculating provision for account ${accountId}`);
       const response = await apiClient.post(`/banking/individual/impairment/provision`, {
         account_id: accountId,
         ...params
@@ -705,7 +682,6 @@ export const individualImpairmentAPI = {
 
     // Get provision recommendations
     getRecommendations: async (accountId: number) => {
-      console.log(`💡 Getting provision recommendations for account ${accountId}`);
       const response = await apiClient.get(`/banking/individual/impairment/provision/${accountId}/recommendations`);
       return response.data;
     }
@@ -715,7 +691,6 @@ export const individualImpairmentAPI = {
   triggers: {
     // Get impairment trigger conditions
     get: async (accountId?: number) => {
-      console.log(`🚨 Fetching impairment triggers${accountId ? ` for account ${accountId}` : ''}`);
       const response = await apiClient.get('/banking/individual/impairment/trigger', {
         params: accountId ? { account_id: accountId } : {}
       });
@@ -728,14 +703,12 @@ export const individualImpairmentAPI = {
       current_value?: number;
       notes?: string;
     }) => {
-      console.log(`🔄 Updating impairment trigger ${triggerId}`);
       const response = await apiClient.put(`/banking/individual/impairment/trigger/${triggerId}`, updateData);
       return response.data;
     },
 
     // Check trigger conditions for all accounts
     checkAll: async () => {
-      console.log('🔍 Checking impairment triggers for all accounts');
       const response = await apiClient.post('/banking/individual/impairment/trigger/check-all');
       return response.data;
     },
@@ -746,7 +719,6 @@ export const individualImpairmentAPI = {
       severity_level?: string;
       date_range?: { start?: string; end?: string };
     }) => {
-      console.log('📊 Getting impairment trigger analytics');
       const response = await apiClient.get('/banking/individual/impairment/trigger/analytics', { params });
       return response.data;
     }
@@ -756,7 +728,6 @@ export const individualImpairmentAPI = {
   scenario: {
     // Get DCF scenario analysis data
     get: async (scenarioId?: number) => {
-      console.log(`🎭 Fetching scenario analysis${scenarioId ? ` ${scenarioId}` : ''}`);
       const response = await apiClient.get('/banking/individual/impairment/scenario', {
         params: scenarioId ? { scenario_id: scenarioId } : {}
       });
@@ -771,28 +742,24 @@ export const individualImpairmentAPI = {
       assumptions: ScenarioAssumptions;
       affected_accounts: number[];
     }) => {
-      console.log('➕ Creating scenario analysis');
       const response = await apiClient.post('/banking/individual/impairment/scenario', scenarioData);
       return response.data;
     },
 
     // Update scenario analysis
     update: async (id: number, scenarioData: Partial<ImpairmentScenario>) => {
-      console.log(`✏️ Updating scenario analysis ${id}`);
       const response = await apiClient.put(`/banking/individual/impairment/scenario/${id}`, scenarioData);
       return response.data;
     },
 
     // Run scenario analysis
     run: async (scenarioId: number) => {
-      console.log(`🏃 Running scenario analysis ${scenarioId}`);
       const response = await apiClient.post(`/banking/individual/impairment/scenario/${scenarioId}/run`);
       return response.data;
     },
 
     // Compare scenarios
     compare: async (scenarioIds: number[]) => {
-      console.log('📊 Comparing scenarios');
       const response = await apiClient.post('/banking/individual/impairment/scenario/compare', {
         scenario_ids: scenarioIds
       });
@@ -804,7 +771,6 @@ export const individualImpairmentAPI = {
   reports: {
     // Get all reports with filtering
     getAll: async (params?: any) => {
-      console.log('📋 Fetching all Individual Impairment reports');
       const response = await apiClient.get('/banking/individual/impairment/reports', { params });
       return response.data;
     },
@@ -818,7 +784,6 @@ export const individualImpairmentAPI = {
       include_scenarios?: boolean;
       format?: 'PDF' | 'EXCEL' | 'JSON';
     }) => {
-      console.log('📋 Generating Individual Impairment report');
       const response = await apiClient.post('/banking/individual/impairment/report', reportParams);
       return response.data;
     },
@@ -829,14 +794,12 @@ export const individualImpairmentAPI = {
       date_range?: { start?: string; end?: string };
       limit?: number;
     }) => {
-      console.log('📜 Getting report history');
       const response = await apiClient.get('/banking/individual/impairment/report/history', { params });
       return response.data;
     },
 
     // Download report
     download: async (reportId: string) => {
-      console.log(`📥 Downloading report ${reportId}`);
       const response = await apiClient.get(`/banking/individual/impairment/report/${reportId}/download`, {
         responseType: 'blob'
       });
@@ -883,14 +846,12 @@ export const individualImpairmentAPI = {
 
   // Get assessment summary statistics
     getAssessmentSummary: async (date?: string) => {
-    console.log('📊 Fetching assessment summary statistics');
     const response = await apiClient.get('/banking/individual/impairment/reports-summary', { params: { date } });
     return response.data;
   },
 
   // Health Check
   health: async () => {
-    console.log('🏥 Checking Individual Impairment service health');
     const response = await apiClient.get('/banking/individual/impairment/health');
     return response.data;
   }
