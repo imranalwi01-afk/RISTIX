@@ -4,11 +4,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Card, CardContent, Typography, Button, Dialog, DialogTitle, DialogContent,
-  DialogActions, TextField, Grid, IconButton, Chip, FormControl, InputLabel, Select,
+  DialogActions, TextField, IconButton, Chip, FormControl, InputLabel, Select,
   MenuItem, Switch, FormControlLabel, Alert, Snackbar, Tooltip, Paper,
   CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Accordion, AccordionSummary, AccordionDetails,
 } from '@mui/material';
+import Grid from '@mui/material/Grid';
 import {
   Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Refresh as RefreshIcon,
   ExpandMore as ExpandMoreIcon, Menu as MenuIcon, Save as SaveIcon, Security as SecurityIcon,
@@ -34,6 +35,39 @@ interface MenuItem {
   is_active: boolean;
   parent_id?: string;
 }
+
+interface MenuCategoryApi {
+  id: string;
+  name: string;
+  icon?: string | null;
+  sortOrder?: number | null;
+  sort_order?: number | null;
+  isActive?: boolean | null;
+  is_active?: boolean | null;
+  items?: MenuItemApi[];
+}
+
+interface MenuItemApi {
+  id: string;
+  categoryId?: string | null;
+  category_id?: string | null;
+  parentId?: string | null;
+  parent_id?: string | null;
+  name: string;
+  path?: string | null;
+  icon?: string | null;
+  sortOrder?: number | null;
+  sort_order?: number | null;
+  isActive?: boolean | null;
+  is_active?: boolean | null;
+  children?: MenuItemApi[];
+}
+
+const readSortOrder = (value: { sortOrder?: number | null; sort_order?: number | null }) =>
+  value.sortOrder ?? value.sort_order ?? 0;
+
+const readIsActive = (value: { isActive?: boolean | null; is_active?: boolean | null }) =>
+  value.isActive ?? value.is_active ?? true;
 
 export default function PlatformMenuManagementPage() {
   const [categories, setCategories] = useState<MenuCategory[]>([]);
@@ -87,14 +121,29 @@ export default function PlatformMenuManagementPage() {
       if (res?.success && res?.data) {
         const cats: MenuCategory[] = [];
         const its: MenuItem[] = [];
-        for (const cat of res.data) {
-          cats.push({ id: cat.id, name: cat.name, icon: cat.icon, sort_order: cat.sort_order, is_active: cat.is_active });
-          for (const item of cat.items || []) {
-            its.push({ id: item.id, category_id: cat.id, name: item.name, path: item.path, icon: item.icon, sort_order: item.sort_order, is_active: item.is_active });
-            for (const child of item.children || []) {
-              its.push({ id: child.id, category_id: cat.id, name: child.name, path: child.path, icon: child.icon, sort_order: child.sort_order, is_active: child.is_active, parent_id: item.id });
-            }
-          }
+        const appendItem = (item: MenuItemApi, categoryId: string, parentId?: string) => {
+          its.push({
+            id: item.id,
+            category_id: item.categoryId ?? item.category_id ?? categoryId,
+            name: item.name,
+            path: item.path ?? '',
+            icon: item.icon ?? '',
+            sort_order: readSortOrder(item),
+            is_active: readIsActive(item),
+            parent_id: item.parentId ?? item.parent_id ?? parentId ?? undefined,
+          });
+          for (const child of item.children || []) appendItem(child, categoryId, item.id);
+        };
+
+        for (const cat of res.data as MenuCategoryApi[]) {
+          cats.push({
+            id: cat.id,
+            name: cat.name,
+            icon: cat.icon ?? '',
+            sort_order: readSortOrder(cat),
+            is_active: readIsActive(cat),
+          });
+          for (const item of cat.items || []) appendItem(item, cat.id);
         }
         setCategories(cats);
         setItems(its);
@@ -110,7 +159,7 @@ export default function PlatformMenuManagementPage() {
 
   const toggleItemActive = async (item: MenuItem) => {
     try {
-      await menuApi.updateMenuItem(item.id, { isActive: !item.is_active });
+      await menuApi.updateMenuItem(item.id, { isActive: !item.is_active }, tenantId);
       setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_active: !i.is_active } : i));
       setSnackbar({ open: true, message: 'Menu item updated', severity: 'success' });
     } catch { setSnackbar({ open: true, message: 'Failed to update', severity: 'error' }); }
@@ -119,7 +168,7 @@ export default function PlatformMenuManagementPage() {
   const deleteItem = async (item: MenuItem) => {
     if (!confirm(`Delete "${item.name}"?`)) return;
     try {
-      await menuApi.deleteMenuItem(item.id);
+      await menuApi.deleteMenuItem(item.id, tenantId);
       setItems(prev => prev.filter(i => i.id !== item.id));
       setSnackbar({ open: true, message: 'Menu item deleted', severity: 'success' });
     } catch { setSnackbar({ open: true, message: 'Failed to delete', severity: 'error' }); }
@@ -130,6 +179,8 @@ export default function PlatformMenuManagementPage() {
       // Map snake_case from local state to camelCase expected by backend
       const payload = {
         name: data.name,
+        categoryId: data.category_id,
+        parentId: data.parent_id || null,
         description: data.description,
         path: data.path,
         icon: data.icon,
@@ -140,9 +191,9 @@ export default function PlatformMenuManagementPage() {
         bankingType: data.banking_type,
       };
       if (data.id) {
-        await menuApi.updateMenuItem(data.id, payload);
+        await menuApi.updateMenuItem(data.id, payload, tenantId);
       } else {
-        await menuApi.createMenuItem(payload);
+        await menuApi.createMenuItem(payload, tenantId);
       }
       setSnackbar({ open: true, message: 'Menu item saved', severity: 'success' });
       setEditDialog({ open: false });
@@ -168,7 +219,18 @@ export default function PlatformMenuManagementPage() {
           <Button variant="contained" startIcon={<RefreshIcon />} onClick={loadMenu} disabled={!tenantId || loading}>
             Refresh
           </Button>
-          <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setEditDialog({ open: true })}
+          <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setEditDialog({
+            open: true,
+            item: {
+              id: '',
+              category_id: categories[0]?.id || '',
+              name: '',
+              path: '',
+              icon: '',
+              sort_order: 0,
+              is_active: true,
+            },
+          })}
             disabled={!tenantId}>
             Add Item
           </Button>
@@ -187,7 +249,7 @@ export default function PlatformMenuManagementPage() {
           No menu found for this tenant. 
           <Button size="small" sx={{ ml: 2 }} variant="outlined" onClick={async () => {
             try {
-              await menuApi.initializeMenuStructure();
+              await menuApi.initializeMenuStructure(tenantId);
               setSnackbar({ open: true, message: 'Default menu initialized', severity: 'success' });
               await loadMenu();
             } catch (err: any) {
@@ -226,7 +288,7 @@ export default function PlatformMenuManagementPage() {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           {item.parent_id && <Typography variant="caption" color="text.disabled">↳</Typography>}
                           <Typography variant="body2" sx={{ fontWeight: item.parent_id ? 400 : 600 }}>
-                            {item.icon && <>{item.icon} </>}{item.name}
+                            {item.name}
                           </Typography>
                         </Box>
                       </TableCell>
@@ -263,9 +325,28 @@ export default function PlatformMenuManagementPage() {
 
       {/* Edit Dialog */}
       <Dialog open={editDialog.open} onClose={() => setEditDialog({ open: false })} maxWidth="sm" fullWidth>
-        <DialogTitle>{editDialog.item ? 'Edit Menu Item' : 'Add Menu Item'}</DialogTitle>
+        <DialogTitle>{editDialog.item?.id ? 'Edit Menu Item' : 'Add Menu Item'}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid size={{ xs: 12 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Category</InputLabel>
+                <Select
+                  value={editDialog.item?.category_id || ''}
+                  label="Category"
+                  onChange={(e) => {
+                    setEditDialog((current) => ({
+                      ...current,
+                      item: { ...current.item, category_id: e.target.value } as MenuItem,
+                    }));
+                  }}
+                >
+                  {categories.map((category) => (
+                    <MenuItem key={category.id} value={category.id}>{category.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
             <Grid size={{ xs: 12 }}>
               <TextField fullWidth label="Name" defaultValue={editDialog.item?.name || ''} size="small"
                 onChange={(e) => editDialog.item = { ...editDialog.item, name: e.target.value } as any} />

@@ -54,7 +54,7 @@ menuRoutes.openapi(
 
         const tree = categories.map((cat) => ({
             ...cat,
-            items: items.filter((i) => i.categoryId === cat.id).map((item) => ({
+            items: items.filter((i) => i.categoryId === cat.id && !i.parentId).map((item) => ({
                 ...item,
                 children: buildItemTree(items, item.id),
             })),
@@ -94,7 +94,7 @@ menuRoutes.openapi(
 
         const tree = categories.map((cat) => ({
             ...cat,
-            items: items.filter((i) => i.categoryId === cat.id && hasAccess(i.id)).map((item) => ({
+            items: items.filter((i) => i.categoryId === cat.id && !i.parentId && hasAccess(i.id)).map((item) => ({
                 ...item,
                 children: buildItemTree(items.filter((i) => hasAccess(i.id)), item.id),
             })),
@@ -418,7 +418,8 @@ menuRoutes.openapi(
     }),
     async (c) => {
         const tenantId = await resolveTenantId(c)
-        const includeInactive = c.req.query('includeInactive') !== 'false'
+        const includeInactive = c.req.query('includeInactive') === 'true'
+        const bankingMode = c.req.query('bankingMode')
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
 
         const conditions = [eq(menuItems.tenantId, tenantId)]
@@ -431,9 +432,40 @@ menuRoutes.openapi(
             platformDb.select().from(menuItems).where(and(...conditions)).orderBy(asc(menuItems.sortOrder)),
         ])
 
-        // Build hierarchical menu: categories as groups, items as children
+        const visibleItems = items.filter((item) =>
+            item.isVisible !== false &&
+            (!bankingMode || !item.bankingType || item.bankingType === 'both' || item.bankingType === bankingMode)
+        )
+
+        const buildFlatItemTree = (parentId: string): any[] =>
+            visibleItems
+                .filter((item) => item.parentId === parentId)
+                .map((item) => mapFlatItem(item))
+
+        const mapFlatItem = (item: typeof menuItems.$inferSelect): any => ({
+            id: item.id,
+            menu_key: item.id,
+            title: item.name,
+            label: item.name,
+            description: item.description || '',
+            icon: item.icon || 'Circle',
+            url: item.path || '',
+            href: item.path || '',
+            parent_id: item.parentId || item.categoryId,
+            sort_order: item.sortOrder,
+            type: visibleItems.some((candidate) => candidate.parentId === item.id) ? 'group' : 'item',
+            level: item.level,
+            is_active: item.isActive,
+            banking_type: item.bankingType,
+            banking_types: item.bankingType === 'both'
+                ? ['conventional', 'syariah', 'dual']
+                : item.bankingType ? [item.bankingType] : [],
+            children: buildFlatItemTree(item.id),
+        })
+
+        // Build hierarchical menu: categories as groups, items as children.
         const menuTree = categories.map(cat => {
-            const catItems = items.filter(i => i.categoryId === cat.id)
+            const catItems = visibleItems.filter(i => i.categoryId === cat.id && !i.parentId)
             return {
                 id: cat.id,
                 menu_key: cat.id,
@@ -449,25 +481,9 @@ menuRoutes.openapi(
                 level: 0,
                 is_active: cat.isActive,
                 banking_type: null,
-                children: catItems.map(i => ({
-                    id: i.id,
-                    menu_key: i.id,
-                    title: i.name,
-                    label: i.name,
-                    description: i.description || '',
-                    icon: i.icon || 'Circle',
-                    url: i.path || '',
-                    href: i.path || '',
-                    parent_id: cat.id,
-                    sort_order: i.sortOrder,
-                    type: 'item',
-                    level: 1,
-                    is_active: i.isActive,
-                    banking_type: i.bankingType,
-                    children: [] as any[],
-                })),
+                children: catItems.map(i => mapFlatItem(i)),
             }
-        })
+        }).filter((category) => category.children.length > 0)
 
         return c.json({ success: true, data: menuTree })
     }

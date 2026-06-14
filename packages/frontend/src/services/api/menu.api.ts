@@ -342,35 +342,35 @@ export class MenuApiService {
   /**
    * Create a new menu item (Admin only)
    */
-  async createMenuItem(menuItem: any): Promise<MenuApiResponse<any>> {
-    const response = await menuApiClient.post('/menu/admin/items', menuItem);
+  async createMenuItem(menuItem: any, tenantId?: string): Promise<MenuApiResponse<any>> {
+    const response = await menuApiClient.post('/menu/admin/items', menuItem, { params: { tenantId } });
     return response.data;
   }
 
   /**
    * Update an existing menu item (Admin only)
    */
-  async updateMenuItem(id: string, menuItem: any): Promise<MenuApiResponse<any>> {
-    const response = await menuApiClient.put(`/menu/admin/items/${id}`, menuItem);
+  async updateMenuItem(id: string, menuItem: any, tenantId?: string): Promise<MenuApiResponse<any>> {
+    const response = await menuApiClient.put(`/menu/admin/items/${id}`, menuItem, { params: { tenantId } });
     return response.data;
   }
 
   /**
    * Delete a menu item (Admin only)
    */
-  async deleteMenuItem(id: string): Promise<MenuApiResponse<void>> {
-    const response = await menuApiClient.delete(`/menu/admin/items/${id}`);
+  async deleteMenuItem(id: string, tenantId?: string): Promise<MenuApiResponse<void>> {
+    const response = await menuApiClient.delete(`/menu/admin/items/${id}`, { params: { tenantId } });
     return response.data;
   }
 
   /**
    * Initialize menu structure from seed data (Admin only)
    */
-  async initializeMenuStructure(): Promise<MenuApiResponse<{
+  async initializeMenuStructure(tenantId?: string): Promise<MenuApiResponse<{
     message: string;
     items_created: number;
   }>> {
-    const response = await menuApiClient.post('/menu/admin/initialize');
+    const response = await menuApiClient.post('/menu/admin/initialize', undefined, { params: { tenantId } });
     return response.data;
   }
 }
@@ -395,10 +395,11 @@ export const menuApi = {
   getMenuHealth: () => menuApiService.getMenuHealth(),
   getMenuInfo: () => menuApiService.getMenuInfo(),
   // CRUD methods
-  createMenuItem: (menuItem: any) => menuApiService.createMenuItem(menuItem),
-  updateMenuItem: (id: string, menuItem: any) => menuApiService.updateMenuItem(id, menuItem),
-  deleteMenuItem: (id: string) => menuApiService.deleteMenuItem(id),
-  initializeMenuStructure: () => menuApiService.initializeMenuStructure()
+  createMenuItem: (menuItem: any, tenantId?: string) => menuApiService.createMenuItem(menuItem, tenantId),
+  updateMenuItem: (id: string, menuItem: any, tenantId?: string) =>
+    menuApiService.updateMenuItem(id, menuItem, tenantId),
+  deleteMenuItem: (id: string, tenantId?: string) => menuApiService.deleteMenuItem(id, tenantId),
+  initializeMenuStructure: (tenantId?: string) => menuApiService.initializeMenuStructure(tenantId)
 };
 
 export default menuApiService;

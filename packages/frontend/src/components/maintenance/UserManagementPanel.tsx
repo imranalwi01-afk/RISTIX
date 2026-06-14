@@ -12,17 +12,29 @@ import {
   Snackbar,
   Breadcrumbs,
   Link,
-  Fab
+  Fab,
+  TextField,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Visibility as ViewIcon,
+  LockReset as LockResetIcon,
+  Key as KeyIcon,
   People as PeopleIcon,
   Home as HomeIcon,
 } from '@mui/icons-material';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
 import { getErrorMessage } from '@/utils/error-message';
+import { usersAPI } from '@/services/api/users.api';
+import InputAdornment from '@mui/material/InputAdornment';
+import IconButton from '@mui/material/IconButton';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import {
   UserFormDialog,
   UserManagementFilters,
@@ -57,6 +69,25 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openViewDialog, setOpenViewDialog] = useState(false);
+  const [passwordResetDialog, setPasswordResetDialog] = useState<{
+    open: boolean;
+    user: User | null;
+    newPassword: string;
+    confirmPassword: string;
+    showPassword: boolean;
+    saving: boolean;
+    error: string | null;
+    success: boolean;
+  }>({
+    open: false,
+    user: null,
+    newPassword: '',
+    confirmPassword: '',
+    showPassword: false,
+    saving: false,
+    error: null,
+    success: false,
+  });
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedUserRoles, setSelectedUserRoles] = useState<UserRoleSummary[]>([]);
   const [loadingUserRoles, setLoadingUserRoles] = useState(false);
@@ -282,6 +313,43 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
     setOpenViewDialog(true);
   };
 
+  // ✅ Handle Reset Password
+  const handleResetPassword = (user: User) => {
+    setPasswordResetDialog({
+      open: true,
+      user,
+      newPassword: '',
+      confirmPassword: '',
+      showPassword: false,
+      saving: false,
+      error: null,
+      success: false,
+    });
+  };
+
+  const handleSaveResetPassword = async () => {
+    const dialog = passwordResetDialog;
+    if (!dialog.user) return;
+    if (dialog.newPassword.length < 6) {
+      setPasswordResetDialog(prev => ({ ...prev, error: 'Password must be at least 6 characters' }));
+      return;
+    }
+    if (dialog.newPassword !== dialog.confirmPassword) {
+      setPasswordResetDialog(prev => ({ ...prev, error: 'Passwords do not match' }));
+      return;
+    }
+    setPasswordResetDialog(prev => ({ ...prev, saving: true, error: null }));
+    try {
+      await usersAPI.resetPassword(dialog.user.id, { newPassword: dialog.newPassword });
+      setPasswordResetDialog(prev => ({ ...prev, saving: false, success: true }));
+    } catch (err: any) {
+      setPasswordResetDialog(prev => ({
+        ...prev, saving: false,
+        error: err?.message || err?.response?.data?.message || 'Failed to reset password',
+      }));
+    }
+  };
+
   // ✅ Load users on mount and filter changes
   useEffect(() => {
     if (isAuthenticated) {
@@ -382,6 +450,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
         onView={handleView}
         onEdit={handleEdit}
         onToggleStatus={toggleUserStatus}
+        onResetPassword={handleResetPassword}
       />
 
       <UserFormDialog
@@ -440,6 +509,73 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Reset Password Dialog */}
+      <Dialog
+        open={passwordResetDialog.open}
+        onClose={() => passwordResetDialog.success || setPasswordResetDialog(prev => ({ ...prev, open: false }))}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <KeyIcon />
+            <span>Reset Password — {passwordResetDialog.user?.fullName || passwordResetDialog.user?.email}</span>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {passwordResetDialog.success ? (
+            <Alert severity="success" sx={{ mt: 2 }}>
+              Password reset successfully for {passwordResetDialog.user?.fullName || passwordResetDialog.user?.email}
+            </Alert>
+          ) : (
+            <>
+              {passwordResetDialog.error && (
+                <Alert severity="error" sx={{ mb: 2 }}>{passwordResetDialog.error}</Alert>
+              )}
+              <TextField
+                fullWidth
+                label="New Password"
+                type={passwordResetDialog.showPassword ? 'text' : 'password'}
+                value={passwordResetDialog.newPassword}
+                onChange={(e) => setPasswordResetDialog(prev => ({ ...prev, newPassword: e.target.value, error: null }))}
+                sx={{ mb: 2, mt: 1 }}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setPasswordResetDialog(prev => ({ ...prev, showPassword: !prev.showPassword }))} edge="end">
+                        {passwordResetDialog.showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <TextField
+                fullWidth
+                label="Confirm Password"
+                type={passwordResetDialog.showPassword ? 'text' : 'password'}
+                value={passwordResetDialog.confirmPassword}
+                onChange={(e) => setPasswordResetDialog(prev => ({ ...prev, confirmPassword: e.target.value, error: null }))}
+              />
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPasswordResetDialog(prev => ({ ...prev, open: false }))} disabled={passwordResetDialog.saving}>
+            {passwordResetDialog.success ? 'Close' : 'Cancel'}
+          </Button>
+          {!passwordResetDialog.success && (
+            <Button
+              variant="contained"
+              onClick={handleSaveResetPassword}
+              disabled={passwordResetDialog.saving || !passwordResetDialog.newPassword || !passwordResetDialog.confirmPassword}
+              startIcon={passwordResetDialog.saving ? undefined : <LockResetIcon />}
+            >
+              {passwordResetDialog.saving ? 'Resetting...' : 'Reset Password'}
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
 
       {!embedded && (
         <Fab

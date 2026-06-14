@@ -222,6 +222,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
             userRole={userRole}
             roleCodes={authState?.user?.roleCodes || []}
             userPermissions={authState?.user?.permissions || []}
+            tenantContext={authState?.tenantId || authState?.tenantSlug || undefined}
             collapsed={false}
             appBarHeight={COMPACT_APPBAR_HEIGHT}
             onMenuClick={() => setMobileOpen(false)}
@@ -251,6 +252,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
             userRole={userRole}
             roleCodes={authState?.user?.roleCodes || []}
             userPermissions={authState?.user?.permissions || []}
+            tenantContext={authState?.tenantId || authState?.tenantSlug || undefined}
             collapsed={sidebarCollapsed}
             appBarHeight={COMPACT_APPBAR_HEIGHT}
             onMenuClick={() => { }} // No-op for desktop

@@ -107,6 +107,7 @@ interface BankingSidebarProps {
   userRole?: string;
   roleCodes?: string[];
   userPermissions?: string[]; // ✅ Add userPermissions for granular menu filtering
+  tenantContext?: string;
   collapsed?: boolean;
   appBarHeight?: number;
   onMenuClick?: (menuId: string, href?: string) => void;
@@ -380,6 +381,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   userRole = '',
   roleCodes = [], // ✅ Add roleCodes parameter
   userPermissions = [], // ✅ Add userPermissions parameter
+  tenantContext,
   collapsed = false,
   appBarHeight = 50,
   onMenuClick
@@ -450,7 +452,8 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
 
   // ✅ RTK Query: Auto-fetch and cache menu from database
   const { data: menuData, isLoading: isMenuLoading, error: menuQueryError } = useGetMenuTreeQuery(
-    { bankingMode, includeInactive: false }
+    { bankingMode, includeInactive: false, tenantContext },
+    { refetchOnMountOrArgChange: true }
   );
 
   // ✅ MEMOIZED MENU PROCESSING
@@ -479,7 +482,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
     };
 
     // Determine source: RTK Query data or Cache
-    if (menuData && Array.isArray(menuData) && menuData.length > 0) {
+    if (Array.isArray(menuData)) {
       rawItems = menuData.map((item: any) => {
         const mapToHierarchical = (dbItem: any, level: number): HierarchicalMenuItem => ({
           id: dbItem.id,

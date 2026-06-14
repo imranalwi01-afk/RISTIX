@@ -7,6 +7,7 @@ import {
   Cancel as InactiveIcon,
   CheckCircle as ActiveIcon,
   Edit as EditIcon,
+  LockReset as LockResetIcon,
   Security as SecurityIcon,
   Visibility as ViewIcon,
 } from '@mui/icons-material';
@@ -25,6 +26,7 @@ interface UserManagementTableProps {
   onView: (user: User) => void;
   onEdit: (user: User) => void;
   onToggleStatus: (userId: string, currentStatus: boolean) => void;
+  onResetPassword: (user: User) => void;
 }
 
 
@@ -39,6 +41,7 @@ const UserManagementTable = memo(function UserManagementTable({
   onView,
   onEdit,
   onToggleStatus,
+  onResetPassword,
 }: UserManagementTableProps) {
   const columns = useMemo<GridColDef<User>[]>(() => [
     {
@@ -122,6 +125,12 @@ const UserManagementTable = memo(function UserManagementTable({
           label={params.row.isActive ? 'Disable User' : 'Enable User'}
           icon={params.row.isActive ? <InactiveIcon color="error" /> : <ActiveIcon color="success" />}
           onClick={() => onToggleStatus(params.row.id, params.row.isActive)}
+        />,
+        <SafeGridActionsCellItem
+          key="password"
+          label="Reset Password"
+          icon={<LockResetIcon />}
+          onClick={() => onResetPassword(params.row)}
         />,
       ],
     },
