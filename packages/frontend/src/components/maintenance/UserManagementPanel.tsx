@@ -126,22 +126,29 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
   // ✅ Open manage roles dialog
   const handleManageRoles = async (user: User) => {
     try {
-      const [rolesRes, userRolesRes] = await Promise.all([
-        api.roles.getAll({ includeInactive: true }),
-        api.roles.getUserRoles(user.id),
-      ]);
-      const rawRoles = Array.isArray(rolesRes) ? rolesRes : Array.isArray((rolesRes as any).data) ? (rolesRes as any).data : [];
-      const userRoleRows = userRolesRes?.data?.roles || userRolesRes?.roles || userRolesRes?.data || [];
-      const userRoleIds: string[] = (Array.isArray(userRoleRows) ? userRoleRows : []).map((row: any) => {
-        const r = row?.role || row;
-        return String(r?.roleId || r?.role_id || r?.id || row?.roleId || row?.role_id || '');
-      }).filter(Boolean);
+      const rolesRes = await api.roles.getAll({ includeInactive: true });
+      const rawRoles = Array.isArray(rolesRes)
+        ? rolesRes
+        : Array.isArray((rolesRes as any).data)
+          ? (rolesRes as any).data
+          : (rolesRes as any).roles || [];
+      let userRoleIds: string[] = [];
+      try {
+        const userRolesRes = await api.roles.getUserRoles(user.id);
+        const userRoleRows = userRolesRes?.data?.roles || userRolesRes?.roles || userRolesRes?.data || [];
+        userRoleIds = (Array.isArray(userRoleRows) ? userRoleRows : []).map((row: any) => {
+          const r = row?.role || row;
+          return String(r?.roleId || r?.role_id || r?.id || row?.roleId || row?.role_id || '');
+        }).filter(Boolean);
+      } catch {
+        // User roles fetch is optional — dialog still shows all roles
+      }
       setManageRolesDialog({
         open: true, user, roles: rawRoles,
         selectedRoleIds: userRoleIds, saving: false, search: '',
       });
-    } catch {
-      setSnackbar({ open: true, message: 'Failed to load roles', severity: 'error' });
+    } catch (err: any) {
+      setSnackbar({ open: true, message: 'Failed to load roles: ' + (err?.message || err), severity: 'error' });
     }
   };
 
