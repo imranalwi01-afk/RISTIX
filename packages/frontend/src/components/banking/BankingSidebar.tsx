@@ -15,6 +15,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 
 import {
   Box,
@@ -730,9 +731,11 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
                 '&:hover': { transform: 'scale(1.02)' },
                 transition: 'transform 0.2s'
               }}>
-                <img 
+                <Image 
                   src="/images/logo-iaf.png" 
                   alt="IAF Logo" 
+                  height={28}
+                  width={120}
                   style={{ 
                     height: '28px', 
                     width: 'auto',
@@ -793,13 +796,15 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
          {collapsed && (
           <Link href={getTopLevelRoute()} style={{ textDecoration: 'none' }}>
              <Box sx={{ display: 'flex', justifyContent: 'center', cursor: 'pointer' }}>
-                <img 
-                  src="/images/logo-iaf.png" 
-                  alt="IAF" 
-                  style={{ 
-                    height: '24px', 
-                    width: 'auto',
-                    filter: 'brightness(0) invert(1)' 
+                 <Image 
+                   src="/images/logo-iaf.png" 
+                   alt="IAF" 
+                   height={24}
+                   width={24}
+                   style={{ 
+                     height: '24px', 
+                     width: 'auto',
+                     filter: 'brightness(0) invert(1)'
                   }} 
                 />
              </Box>

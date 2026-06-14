@@ -392,7 +392,7 @@ function LoginPage() {
             {/* Mobile Logo (Visible only on xs) */}
             <Box sx={{ display: { xs: 'flex', md: 'none' }, mb: 4, justifyContent: 'center' }}>
               {settings.logoUrl ? (
-                <img src={settings.logoUrl} alt={settings.platformName || "Platform Logo"} style={{ height: 40, objectFit: 'contain' }} />
+                <img src={settings.logoUrl} alt={settings.platformName || "Platform Logo"} style={{ height: 40, objectFit: 'contain' }} loading="lazy" />
               ) : (
                 <Typography variant="h5" sx={{ fontWeight: 800, color: '#1976D2' }}>{settings.platformName}</Typography>
               )}
