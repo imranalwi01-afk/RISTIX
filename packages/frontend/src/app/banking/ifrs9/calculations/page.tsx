@@ -238,13 +238,10 @@ function IFRS9CalculationDashboard() {
     setError(null);
 
     try {
-      console.log('🚀 Starting ECL calculation...');
-      console.log('Configuration:', runConfig);
 
       // Use selectedProcessDate if available, otherwise use runConfig date
       const processDate = selectedProcessDate || runConfig.process_date;
       
-      console.log('Using process date:', processDate);
 
       // Call real ECL calculation API
       const response = await api.ifrs9.runECLCalculation({
@@ -282,7 +279,6 @@ function IFRS9CalculationDashboard() {
   };
 
   const handleViewResults = async (processData: ProcessDate) => {
-    console.log("Viewing results for:", processData);
     setSelectedProcessDate(processData.currdate);
     setLoading(true);
     try {
@@ -309,7 +305,6 @@ function IFRS9CalculationDashboard() {
   const fetchBatchResults = async (date: string) => {
     try {
       const response = await api.ifrs9.getCalculationResults(date, mode);
-      console.log(`📊 Batch results for ${date} [Mode: ${mode}]:`, response);
 
       // Standarized: response is body, response.data.items is the array
       // Also being defensive to support direct array mapping if structure varies
@@ -340,7 +335,6 @@ function IFRS9CalculationDashboard() {
   };
 
   const handleExportResults = async (processData: ProcessDate) => {
-    console.log("Exporting results for:", processData);
     setLoading(true);
     try {
       // Always fetch fresh data for the selected batch to ensure correct export
@@ -407,7 +401,6 @@ function IFRS9CalculationDashboard() {
 
     try {
       const prcDate = date || selectedProcessDate || undefined;
-      console.log(`🔄 Loading IFRS9 calculation data${prcDate ? ' for ' + prcDate : ' (latest)'} [Mode: ${mode}]...`);
 
       // Load calculation summary from real API
       const summaryResponse = await api.ifrs9.getCalculationsSummary(prcDate, mode);
@@ -428,14 +421,12 @@ function IFRS9CalculationDashboard() {
         if (summaryResponse.data.lastUpdated && !selectedProcessDate) {
           setSelectedProcessDate(summaryResponse.data.lastUpdated);
         }
-        console.log('✅ Loaded calculation summary:', summaryData);
       }
 
       // Load trend data
       const trendResponse = await api.ifrs9.getPortfolioTrend(prcDate, mode);
       if (trendResponse.success && trendResponse.data) {
         setEclTrendData(trendResponse.data);
-        console.log(`✅ Loaded trend data: ${trendResponse.data.length} points`);
       }
 
       // Load available dates for the selector
@@ -460,7 +451,6 @@ function IFRS9CalculationDashboard() {
           createddate: batch.createdAt || new Date().toISOString()
         }));
         setProcessHistory(historyData);
-        console.log(`✅ Loaded ${historyData.length} calculation batches`);
       }
 
       // Note: Individual calculation results would need a separate API endpoint

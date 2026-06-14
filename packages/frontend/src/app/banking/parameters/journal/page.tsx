@@ -151,7 +151,6 @@ export default function JournalParametersPage() {
     setError(null);
 
     try {
-      console.log('🔄 Loading journal parameters from real database...');
 
       const requestFilters: Record<string, unknown> = {};
       if (filterGlGroup) requestFilters.glGroup = filterGlGroup;
@@ -185,7 +184,6 @@ export default function JournalParametersPage() {
       const pagination = payload?.pagination ?? {};
 
       if (result.success && rows) {
-        console.log('✅ Successfully loaded journal data:', rows.length, 'parameters');
 
         // Fetch pending approvals for journal parameters
         try {
@@ -245,7 +243,6 @@ export default function JournalParametersPage() {
   const loadDropdownOptions = useCallback(async () => {
     setOptionsLoading(true);
     try {
-      console.log('🔄 Loading dropdown options from FRS9PRO database...');
 
       const [glGroup, currency, journalType, journalCode, dbcr] = await Promise.all([
         api.banking.journalParameters.getGlGroupOptions(),
@@ -304,12 +301,10 @@ export default function JournalParametersPage() {
 
     try {
       setLoading(true);
-      console.log('🗑️ Deleting journal entry:', journal.glCode);
       const result = await api.banking.journalParameters.delete(journal.pkid);
       if (result.approvalRequired) {
         setApprovalNotification(buildApprovalNotification(result, 'Deletion submitted for approval'));
       } else {
-        console.log('✅ Journal entry deleted successfully');
         setSuccess('Journal entry deleted successfully');
       }
       await loadData();
@@ -344,7 +339,6 @@ export default function JournalParametersPage() {
       };
 
       if (selectedJournal) {
-        console.log('✏️ Updating journal entry:', payload.glCode);
         const result = await api.banking.journalParameters.update(selectedJournal.pkid, payload);
         if (result.approvalRequired) {
           setApprovalNotification(buildApprovalNotification(result, 'Update submitted for approval'));
@@ -352,7 +346,6 @@ export default function JournalParametersPage() {
           setSuccess('Journal entry updated successfully');
         }
       } else {
-        console.log('➕ Creating journal entry:', payload.glCode);
         const result = await api.banking.journalParameters.create(payload);
         if (result.approvalRequired) {
           setApprovalNotification(buildApprovalNotification(result, 'Creation submitted for approval'));

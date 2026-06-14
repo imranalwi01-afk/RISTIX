@@ -117,7 +117,6 @@ export const MenuAdmin: React.FC<MenuAdminProps> = ({
   const handleViewConfiguration = async (config: MenuConfiguration) => {
     try {
       const menuItems = await menuApi.getMenuItems(config.id);
-      console.log('Menu items for', config.name, menuItems.data.menu_items);
       // Could open a detailed view dialog here
     } catch (error) {
       console.error('Failed to load menu items:', error);

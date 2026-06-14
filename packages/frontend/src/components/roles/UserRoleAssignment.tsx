@@ -387,7 +387,6 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     setError(null);
 
     try {
-      console.log('👥 Fetching user-role assignment data...');
       const [usersResponse, rolesResponse] = await Promise.all([
         api.users.getAll({}),
         api.roles.getAll({})
@@ -477,7 +476,6 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
       setSelectedUserIds((prev) => prev.filter((id) => normalizedUsers.some((user) => user.id === id)));
       setSelectedRoleIds((prev) => prev.filter((id) => normalizedRoles.some((role) => role.id === id)));
 
-      console.log(`✅ Fetched ${normalizedUsers.length} users and ${normalizedRoles.length} roles`);
 
     } catch (error) {
       console.error('❌ Error fetching user-role assignment data:', error);
@@ -614,7 +612,6 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
   // Handle role assignment
   const handleAssignRole = async (userId: string, roleId: string) => {
     try {
-      console.log(`🔗 Assigning role ${roleId} to user ${userId}`);
       const response = await api.roles.assignUser(roleId, userId);
       const approvalRequired = Boolean(response?.approvalRequired);
       const requestId = response?.requestId;
@@ -632,7 +629,6 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
 
   const handleRemoveRole = async (userId: string, roleId: string) => {
     try {
-      console.log(`❌ Removing role ${roleId} from user ${userId}`);
       const response = await api.roles.removeUser(roleId, userId);
       const approvalRequired = Boolean(response?.approvalRequired);
       const requestId = response?.requestId;
@@ -662,7 +658,6 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     let done = 0;
 
     try {
-      console.log(`🔗 Bulk assigning ${bulkDialog.selectedRoles.length} roles to ${bulkDialog.selectedUsers.length} users`);
       approvalCount = 0;
 
       for (const roleId of bulkDialog.selectedRoles) {
@@ -701,7 +696,6 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     let done = 0;
 
     try {
-      console.log(`❌ Bulk removing ${bulkDialog.selectedRoles.length} roles from ${bulkDialog.selectedUsers.length} users`);
       approvalCount = 0;
 
       for (const roleId of bulkDialog.selectedRoles) {

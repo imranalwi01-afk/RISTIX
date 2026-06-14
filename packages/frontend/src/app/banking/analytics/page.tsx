@@ -80,7 +80,6 @@ export default function BankingAnalyticsPage() {
         bankingType
       }));
 
-      console.log('🔬 Analytics configured for:', { tenantSlug, bankingType, user: user.email });
     }
   }, [user]);
 
@@ -89,7 +88,6 @@ export default function BankingAnalyticsPage() {
   // ============================================================================
 
   const handleSessionCreate = (session: any) => {
-    console.log('✅ R Analytics session created:', session);
   };
 
   const handleSessionError = (error: string) => {
@@ -97,7 +95,6 @@ export default function BankingAnalyticsPage() {
   };
 
   const handleMessage = (message: any) => {
-    console.log('📨 R Analytics message:', message);
   };
 
   const handleModelTypeChange = (newModelType: 'ifrs9' | 'pd' | 'lgd' | 'ecl') => {

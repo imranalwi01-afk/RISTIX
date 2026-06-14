@@ -1132,7 +1132,6 @@ export class SessionControlService {
 
   private log(message: string, data?: any): void {
     if (this.options.enableLogging) {
-      console.log(`[SessionControl] ${message}`, data || '');
     }
   }
 
@@ -1366,7 +1365,6 @@ export class SessionControlService {
   private showOfflineIndicator() {
     // Implement offline indicator display
     if (typeof window !== 'undefined') {
-      console.log('📵 Showing offline indicator');
       // TODO: Show offline banner/component
       this.broadcastEvent({
         type: 'offline_indicator_shown',

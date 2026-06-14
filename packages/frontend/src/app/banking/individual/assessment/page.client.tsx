@@ -1280,7 +1280,9 @@ function IndividualAssessmentWizardPage() {
                 try {
                   const res = await individualImpairmentAPI.documents.get(Number(selectedAccount.account_id));
                   if (res.success) setReviewDocuments(res.data || []);
-                } catch {}
+                } catch (err) {
+            console.error('Failed to create placement', err);
+          }
               })();
             }, [approvalDialogOpen]);
             return null;

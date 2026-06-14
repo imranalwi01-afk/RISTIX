@@ -63,7 +63,6 @@ export async function prewarmApp(): Promise<void> {
     if (warmed) return;
     warmed = true;
 
-    console.log('[prewarm] warming primary routes...');
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
@@ -74,7 +73,6 @@ export async function prewarmApp(): Promise<void> {
     const successCount = results.filter(
         (r) => r.status === 'fulfilled' && r.value === true
     ).length;
-    console.log(`[prewarm] primary: ${successCount}/${PRIMARY_ROUTES.length} routes warmed`);
 
     // Trigger lazy secondary warming (non-blocking)
     setTimeout(() => prewarmSecondary(), 1000);
@@ -87,7 +85,6 @@ async function prewarmSecondary(): Promise<void> {
     if (secondaryWarmed) return;
     secondaryWarmed = true;
 
-    console.log('[prewarm] warming secondary routes...');
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
@@ -100,7 +97,6 @@ async function prewarmSecondary(): Promise<void> {
         await new Promise((resolve) => setTimeout(resolve, 200));
     }
 
-    console.log(`[prewarm] secondary: ${successCount}/${SECONDARY_ROUTES.length} routes warmed`);
 }
 
 /**

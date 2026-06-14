@@ -22,11 +22,9 @@ export async function getCachedAppSettings(): Promise<AppSettingsWithDetails[]> 
 
     const cached = getCache<AppSettingsWithDetails[]>(cacheKey);
     if (cached) {
-        console.log('[cache] app-settings hit');
         return cached;
     }
 
-    console.log('[cache] app-settings miss, fetching...');
     const data = await appSettingsApi.getAll();
     setCache(cacheKey, data, SETTINGS_CACHE_TTL);
 
@@ -41,11 +39,9 @@ export async function getCachedAppSettingsByCode(code: string): Promise<AppSetti
 
     const cached = getCache<AppSettingsWithDetails>(cacheKey);
     if (cached) {
-        console.log(`[cache] app-settings:${code} hit`);
         return cached;
     }
 
-    console.log(`[cache] app-settings:${code} miss, fetching...`);
     const data = await appSettingsApi.getByCode(code);
     setCache(cacheKey, data, SETTINGS_CACHE_TTL);
 
@@ -67,5 +63,4 @@ export function invalidateAppSettingsCache(code?: string): void {
         // Clear the entire cache to be safe
         clearCache();
     }
-    console.log('[cache] app-settings invalidated');
 }

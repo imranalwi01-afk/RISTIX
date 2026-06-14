@@ -166,7 +166,6 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
   const loadTables = useCallback(async () => {
     try {
       setLoading(prev => ({ ...prev, tables: true }));
-      console.log('🗃️ Loading tables from B0012');
 
       const response = await api.banking.businessSettings.getTables();
 
@@ -178,7 +177,6 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
           label: tableName
         }));
         setTables(tableOptions);
-        console.log(`✅ Loaded ${response.data.length} tables from B0012`);
       } else {
         throw new Error('Invalid response format');
       }
@@ -204,7 +202,6 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
 
     try {
       setLoading(prev => ({ ...prev, columns: true }));
-      console.log(`🗂️ Loading columns from B0013 for table: ${selectedTable}`);
 
       const response = await api.banking.businessSettings.getColumns(selectedTable);
 
@@ -216,7 +213,6 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
           label: colName
         }));
         setColumns(columnOptions);
-        console.log(`✅ Loaded ${response.data.length} columns from B0013 for table ${selectedTable}`);
       } else {
         throw new Error('Invalid response format');
       }
@@ -242,20 +238,17 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
 
     try {
       setLoading(prev => ({ ...prev, dataType: true }));
-      console.log(`🔢 Loading data type from B0013 for column: ${selectedColumn}, table: ${selectedTable}`);
 
       const response = await api.banking.businessSettings.getDataType(selectedColumn, selectedTable);
 
       if (response.success && response.data) {
         const dataType = response.data.data_type;
         setFormData(prev => ({ ...prev, data_type: dataType }));
-        console.log(`✅ Auto-populated data type: ${dataType} for column ${selectedColumn}, table ${selectedTable}`);
 
         // Auto-load operators for this data type
         loadOperators(dataType);
       } else {
         setFormData(prev => ({ ...prev, data_type: '' }));
-        console.log('ℹ️ No data type found for this column-table combination');
       }
     } catch (error) {
       console.error('❌ Error loading data type:', error);
@@ -274,7 +267,6 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
 
     try {
       setLoading(prev => ({ ...prev, operators: true }));
-      console.log(`⚙️ Loading operators from B0014 for data type: ${selectedDataType}`);
 
       const response = await api.banking.businessSettings.getOperators(selectedDataType);
 
@@ -286,7 +278,6 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
           label: opName
         }));
         setOperators(operatorOptions);
-        console.log(`✅ Loaded ${response.data.length} operators from B0014 for data type ${selectedDataType}`);
       } else {
         throw new Error('Invalid response format');
       }
@@ -307,13 +298,11 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
   const loadConditions = useCallback(async () => {
     try {
       setLoading(prev => ({ ...prev, conditions: true }));
-      console.log('🔗 Loading conditions from B0015');
 
       const response = await api.banking.businessSettings.getConditions();
 
       if (response.success && response.data) {
         setConditions(response.data);
-        console.log(`✅ Loaded ${response.data.length} conditions from B0015`);
       } else {
         throw new Error('Invalid response format');
       }
@@ -339,16 +328,13 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
 
     try {
       setLoading(prev => ({ ...prev, columnValues: true }));
-      console.log(`📋 Loading column values from B0016 for column: ${selectedColumn}, table: ${selectedTable}`);
 
       const response = await api.banking.businessSettings.getColumnValues(selectedColumn, selectedTable);
 
       if (response.success && response.data) {
         setColumnValues(response.data);
-        console.log(`✅ Loaded ${response.data.length} column values from B0016 for column ${selectedColumn}, table ${selectedTable}`);
       } else {
         setColumnValues([]);
-        console.log('ℹ️ No column values found for this column-table combination');
       }
     } catch (error) {
       console.error('❌ Error loading column values:', error);
@@ -431,7 +417,6 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
 
   // Handle table selection change
   const handleTableChange = useCallback((newTable: string) => {
-    console.log(`🗃️ Table changed to: ${newTable}`);
 
     setFormData(prev => ({
       ...prev,
@@ -459,7 +444,6 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
 
   // Handle column selection change
   const handleColumnChange = useCallback((newColumn: string) => {
-    console.log(`🗂️ Column changed to: ${newColumn}`);
 
     setFormData(prev => ({
       ...prev,
@@ -486,7 +470,6 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
 
   // Handle operator selection change - EXACT LEGACY setOperatorChange() function
   const handleOperatorChange = useCallback((newOperator: string) => {
-    console.log(`⚙️ Operator changed to: ${newOperator}`);
 
     setFormData(prev => ({
       ...prev,
@@ -602,7 +585,6 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
         condition: formData.condition
       };
 
-      console.log('💾 Submitting segmentation detail:', submitData);
 
       await onSave(submitData);
 
@@ -1027,6 +1009,5 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
   );
 };
 
-console.log('✅ Business Parameter Segmentation Modal loaded - EXACT user specifications implemented');
 
 export default BusinessParameterSegmentationModal;

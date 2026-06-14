@@ -24,7 +24,6 @@ export async function GET() {
 
   for (const url of candidates) {
     try {
-      console.log(`[Health Proxy] Trying: ${url}`);
       const response = await fetch(url, {
         cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },

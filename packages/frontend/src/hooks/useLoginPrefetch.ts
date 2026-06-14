@@ -80,12 +80,10 @@ export const useLoginPrefetch = () => {
   const router = useRouter();
 
   const prefetchRoutes = useCallback(() => {
-    console.log('🚀 [LOGIN PREFETCH] Starting route prefetch...');
     
     PREFETCH_ROUTES.forEach((route) => {
       try {
         router.prefetch(route);
-        console.log(`✅ Prefetched: ${route}`);
       } catch (error) {
         console.warn(`⚠️ Failed to prefetch ${route}:`, error);
       }
@@ -93,7 +91,6 @@ export const useLoginPrefetch = () => {
   }, [router]);
 
   const warmupAPIs = useCallback(async () => {
-    console.log('🔥 [LOGIN PREFETCH] Warming up APIs...');
     const apiBaseUrl = resolveApiBaseUrl();
 
     // Fire-and-forget API calls to warm up backend connections
@@ -109,7 +106,6 @@ export const useLoginPrefetch = () => {
         }).catch(() => {
           // Ignore errors - this is just warmup
         });
-        console.log(`🔥 Warming up: ${warmupUrl}`);
       } catch (error) {
         // Ignore - this is optional optimization
       }
@@ -134,7 +130,6 @@ export const useLoginPrefetch = () => {
     prefetchRoute: (route: string) => {
       try {
         router.prefetch(route);
-        console.log(`✅ Manually prefetched: ${route}`);
       } catch (error) {
         console.warn(`⚠️ Failed to prefetch ${route}:`, error);
       }

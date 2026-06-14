@@ -351,13 +351,6 @@ const AuthLoading = () => (
 // 🩹 SURGICAL FIX: Enhanced ClientProviders with Suspense and Error Recovery
 // ============================================================================
 export default function ClientProviders({ children }: { children: ReactNode }) {
-  console.log('🔧 Enhanced ClientProviders initializing with surgical fixes:');
-  console.log('  1. Enhanced Error Boundary with auto-recovery ✅');
-  console.log('  2. Redux Provider with persistence ✅');
-  console.log('  3. Suspense boundaries for isolation ✅');
-  console.log('  4. AuthProvider with error handling ✅');
-  console.log('  5. SSR-safe MUI ThemeProvider ✅');
-  console.log('  6. React 18 concurrent features ✅');
 
   // ✅ SURGICAL FIX: Create theme outside of render for consistency
   const theme = React.useMemo(() => createSSRSafeTheme(), []);

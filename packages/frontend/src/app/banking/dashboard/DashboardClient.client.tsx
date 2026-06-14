@@ -446,7 +446,6 @@ function DashboardClient() {
         setIsLoading(true)
         setError(null)
         try {
-            console.log('🔄 Loading dashboard data for:', date || 'all');
             // Explicitly handle 'all' or empty to call API with 'all' or undefined
             const apiDate = date === 'all' ? 'all' : (date === '' ? undefined : date);
 

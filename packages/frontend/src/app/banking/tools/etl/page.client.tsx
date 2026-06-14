@@ -487,7 +487,6 @@ function ETLWorkflowDesignerContent() {
 
   // Handle node selection
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-    console.log('Node clicked:', node.id);
     setSelectedNodeId(node.id);
   }, []);
 

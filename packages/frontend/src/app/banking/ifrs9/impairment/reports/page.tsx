@@ -36,7 +36,6 @@ export default function ReportsPage() {
     const [reportFormat, setReportFormat] = useState('xlsx');
 
     const handleExport = () => {
-        console.log('Exporting report:', { reportType, reportPeriod, reportFormat });
         // Implementation for report export
     };
 

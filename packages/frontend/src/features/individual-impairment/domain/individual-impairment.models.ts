@@ -1,5 +1,3 @@
-'use client';
-
 import type { AssessmentSummaryDto, AssessmentWatchlistItemDto } from '../api/individual-impairment.api';
 
 export type AssessmentWatchlistItemViewModel = AssessmentWatchlistItemDto;

@@ -91,7 +91,9 @@ export default function RuleEditorDialog({ open, onClose, onSave, initialRule }:
       // Mock or API
       const ops = ['=', '>', '<', '>=', '<=', 'IN', 'LIKE', 'BETWEEN'];
       setOperators(ops.map(o => ({ id: o, label: o, value: o })));
-    } catch (err) { }
+    } catch (err) {
+      console.error('Failed to load operators', err);
+    }
   };
 
   // --- Handlers ---

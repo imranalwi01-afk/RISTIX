@@ -227,7 +227,6 @@ export default function PreferencesPage() {
     try {
       // Use centralized environment loader
       const config = frontendEnvironmentLoader.getConfiguration();
-      console.log('✅ Preferences Page: Using centralized API base URL:', config.api.base);
       return config.api.base;
     } catch (error) {
       console.warn('⚠️ Preferences Page: Failed to load centralized API base URL, using fallback:', error);
@@ -237,7 +236,7 @@ export default function PreferencesPage() {
       const fallbackUrl = process.env.NEXT_PUBLIC_API_URL ||
         (isProductionDomain ? 'https://iaf-ifrs-be.danafin.com/api/v1' : 'https://iaf-ifrs-be.ifrspro.id/api/v1');
 
-      console.log('🔧 Preferences Page: Using fallback API base URL:', fallbackUrl);
+
       return fallbackUrl;
     }
   };

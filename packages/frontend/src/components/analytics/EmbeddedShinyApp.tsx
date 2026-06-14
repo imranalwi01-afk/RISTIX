@@ -347,12 +347,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
         theme: bankingType === 'syariah' ? 'islamic' : 'conventional'
       };
 
-      console.log('🔬 Creating R session with request:', sessionRequest, { requestId });
-      console.log('🌐 Using API URL:', API_CONFIG.R_ANALYTICS_API);
-
-      // Validate URL construction
       const sessionUrl = `${API_CONFIG.R_ANALYTICS_API}/session`;
-      console.log('🔗 Full session URL:', sessionUrl);
 
       // Check for double slashes or malformed URLs
       if (sessionUrl.includes('//api') || sessionUrl.includes('/api/v1/api')) {
@@ -413,7 +408,6 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       const data = await response.json();
       const responseRequestId = data?.requestId || response.headers.get('X-Request-Id');
       if (responseRequestId) {
-        console.log('🧩 R session trace IDs', { requestId, responseRequestId });
       }
 
       // 🛡️ DEFENSIVE: Handle both data.data and direct data response structures
@@ -473,27 +467,16 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
         sessionData.domainUrl = `http://localhost:${actualPort}`;
       }
 
-      console.log(`✅ R session created:`, sessionData);
-      console.log(`🖼️ Iframe URL:`, sessionData.iframeUrl);
-
       setSession(sessionData);
       onSessionCreate?.(sessionData);
 
-      // Handle session reuse case
       if (sessionData.reused) {
-        console.log('♻️ R session reused:', sessionData);
-        console.log('🖼️ Iframe URL:', sessionData.iframeUrl);
-
         setSession(sessionData);
         onSessionCreate?.(sessionData);
 
-        // Immediately remove loading since session is already running
         setLoading(false);
         return;
       }
-
-      console.log('✅ R session created:', sessionData);
-      console.log('🖼️ Iframe URL:', sessionData.iframeUrl);
 
       setSession(sessionData);
       onSessionCreate?.(sessionData);
@@ -527,7 +510,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       });
 
       if (response.ok) {
-        console.log('🛑 R session terminated:', session.sessionId);
+
         setSession(null);
         setError(null);
         // Reset initialization on error or termination if needed
@@ -584,30 +567,23 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
         const message: CrossFrameMessage = event.data;
 
         if (message.source === 'r_analytics') {
-          console.log('📨 Received message from R Analytics:', message);
-
           setMessages(prev => [...prev.slice(-9), message]); // Keep last 10 messages
           onMessage?.(message);
 
           // Handle specific message types
           switch (message.type) {
             case 'r_analytics_ready':
-              console.log('✅ R Analytics ready');
               setLoading(false);
               break;
             case 'r_analytics_loaded':
-              console.log('✅ R Analytics fully loaded');
               setLoading(false);
               break;
             case 'session_ended':
-              console.log('🔚 R Analytics session ended');
               setSession(null);
               break;
             case 'navigation_sync':
-              console.log('🧭 Navigation sync from R:', message.data?.route);
               break;
             case 'connection_status':
-              console.log('📡 Connection status update:', message.data);
               break;
           }
         }
@@ -632,7 +608,6 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       };
 
       iframeRef.current.contentWindow.postMessage(message, '*');
-      console.log('📤 Sent message to R Analytics:', messageType);
     }
   }, [tenantSlug, bankingType]);
 
@@ -652,12 +627,6 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
 
     const config = frontendEnvironmentLoader.getConfiguration();
     const currentDashboardUrl = API_CONFIG.R_DASHBOARD_URL;
-
-    console.log('🔍 EmbeddedShinyApp - Strict URL Resolution:', {
-      configDashboard: currentDashboardUrl,
-      connectionMode,
-      managedSession: shouldUseManagedSession,
-    });
 
     if (!currentDashboardUrl) {
       console.error('❌ R Analytics Dashboard URL is NOT set in environment variables (NEXT_PUBLIC_R_ANALYTICS_URL)');
@@ -683,7 +652,6 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
         domainUrl: buildDirectEmbedUrl(domainBase, false)
       };
 
-      console.log('📡 DIRECT EMBED - Final URL:', directSession.iframeUrl, { connectionMode });
       setSession(directSession);
       onSessionCreate?.(directSession);
       return;
@@ -691,7 +659,6 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
 
     // Use managed session handshake (API mode)
     if (autoStart && shouldUseManagedSession) {
-      console.log('🔐 Using managed session mode for R Analytics');
       createRSession().catch(() => {
         // Optional: Reset initialization on failure if retry is desired
         isInitialized.current = false;
@@ -752,13 +719,10 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       openUrl += `/?session=${session.sessionId}&iframe=false`;
     }
 
-    console.log(`🚀 Opening R Analytics in new tab: ${openUrl}`);
     window.open(openUrl, '_blank');
   }, [session]);
 
   const handleIframeLoad = useCallback(() => {
-    console.log('🖼️ R Analytics iframe loaded');
-
     // Send initial configuration to R
     setTimeout(() => {
       sendMessageToR('parent_ready', {
@@ -1007,7 +971,6 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
                   domainUrl: buildDirectEmbedUrl(productionDomain, false)
                 };
 
-                console.log('🔄 RETRY - Direct embed to production URL:', productionDomain);
                 setSession(directSession);
                 onSessionCreate?.(directSession);
               }}

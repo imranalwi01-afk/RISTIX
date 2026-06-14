@@ -29,7 +29,6 @@ export const portfolioApi = {
      */
     async getProducts(): Promise<{ success: boolean; data: Product[] }> {
         try {
-            console.log('📊 Fetching portfolio products from API');
             const response = await apiClient.get('/banking/portfolio/products');
             return response.data;
         } catch (error) {
@@ -71,7 +70,6 @@ export const portfolioApi = {
      */
     async getAccounts(): Promise<{ success: boolean; data: Account[] }> {
         try {
-            console.log('📊 Fetching portfolio accounts from API');
             const response = await apiClient.get('/banking/portfolio/accounts');
             return response.data;
         } catch (error) {
@@ -102,7 +100,6 @@ export const portfolioApi = {
      * Create product
      */
     async createProduct(data: Partial<Product>): Promise<{ success: boolean; data: Product }> {
-        console.log('➕ Creating product');
         try {
             const response = await apiClient.post('/banking/portfolio/products', data);
             return response.data;
@@ -126,7 +123,6 @@ export const portfolioApi = {
      * Update product
      */
     async updateProduct(id: string, data: Partial<Product>): Promise<{ success: boolean; message: string }> {
-        console.log(`🔄 Updating product: ${id}`);
         try {
             const response = await apiClient.put(`/banking/portfolio/products/${id}`, data);
             return response.data;
@@ -142,7 +138,6 @@ export const portfolioApi = {
      * Delete product
      */
     async deleteProduct(id: string): Promise<{ success: boolean; message: string }> {
-        console.log(`🗑️ Deleting product: ${id}`);
         try {
             const response = await apiClient.delete(`/banking/portfolio/products/${id}`);
             return response.data;

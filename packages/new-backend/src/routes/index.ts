@@ -34,23 +34,7 @@ import { jobsRoutes } from './jobs.routes'
 import { consultantsRoutes } from './consultants.routes'
 import { platformUsersRoutes } from './platform-users.routes'
 import { individualImpairmentRoutes } from './individual-impairment.routes'
-
-// NEW STUB ROUTES
-import { bankingRoutes } from './banking.routes'
-import { portfolioRoutes } from './portfolio-management.routes'
-import { workflowRoutes } from './workflow.routes'
-import { rAnalyticsRoutes } from './r-analytics.routes'
-import { formsRoutes } from './forms.routes'
-import { securityRoutes } from './security.routes'
-import { userActivityRoutes } from './user-activity.routes'
-import { userRegistrationRoutes } from './user-registration.routes'
-import { tenantRegistryRoutes } from './tenant-registry.routes'
-import { platformSettingsRoutes } from './platform-settings.routes'
-import { platformInfrastructureRoutes } from './platform-infrastructure.routes'
-import { adminDashboardRoutes } from './admin-dashboard.routes'
 import { ifrs9Routes } from './ifrs9.routes'
-import { securityConfigRoutes } from './security-config.routes'
-import { bankingResourceRoutes } from './banking-resource.routes'
 import { monitoringRoutes } from './monitoring.routes'
 import { menuRoutes } from './menu.routes'
 
@@ -102,33 +86,7 @@ routes.route('/banking/ifrs9/impairment-module', impairmentRoutes)
 routes.route('/banking/ifrs9/amortization-module', amortizationRoutes)
 routes.route('/banking/ifrs9/forecast', forecastRoutes)
 
-// NEW STUB ROUTES - Main banking operations
-routes.route('/banking', bankingRoutes)
-routes.route('/banking-resource', bankingResourceRoutes)
-
-// NEW STUB ROUTES - Portfolio & Workflow
-routes.route('/portfolio-management', portfolioRoutes)
-routes.route('/workflow', workflowRoutes)
-
-// NEW STUB ROUTES - Analytics & Forms
-routes.route('/r-analytics', rAnalyticsRoutes)
-routes.route('/forms', formsRoutes)
-
-// NEW STUB ROUTES - Security
-routes.route('/security', securityRoutes)
-routes.route('/security-config', securityConfigRoutes)
-
-// NEW STUB ROUTES - User Management
-routes.route('/user-activity', userActivityRoutes)
-routes.route('/user-registration', userRegistrationRoutes)
-
-// NEW STUB ROUTES - Platform Management
-routes.route('/tenant-registry', tenantRegistryRoutes)
-routes.route('/platform/settings', platformSettingsRoutes)
-routes.route('/platform-infrastructure', platformInfrastructureRoutes)
-routes.route('/admin-dashboard', adminDashboardRoutes)
-
-// NEW STUB ROUTES - IFRS9
+// IFRS9 Reports
 routes.route('/ifrs9', ifrs9Routes)
 routes.route('/ifrs9/reports', reportsRoutes)
 

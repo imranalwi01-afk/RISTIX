@@ -19,7 +19,6 @@ export const TokenInjector: React.FC = () => {
   const isAuthenticated = auth?.isAuthenticated;
 
   useEffect(() => {
-    console.log('🔐 TokenInjector: Auth state changed', { isAuthenticated, hasToken: !!token });
 
     if (isAuthenticated && token) {
       try {
@@ -28,7 +27,6 @@ export const TokenInjector: React.FC = () => {
         const cookieValue = `auth-token=${token}; path=/; ${isSecure ? 'secure;' : ''} samesite=strict; max-age=${7 * 24 * 60 * 60}`;
 
         document.cookie = cookieValue;
-        console.log('✅ Token cookie set for middleware access');
       } catch (error) {
         console.error('❌ Failed to set auth cookie:', error);
       }
@@ -36,7 +34,6 @@ export const TokenInjector: React.FC = () => {
       try {
         // ✅ SURGICAL FIX: Clear auth cookie when not authenticated
         document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        console.log('🗑️ Auth cookie cleared');
       } catch (error) {
         console.error('❌ Failed to clear auth cookie:', error);
       }

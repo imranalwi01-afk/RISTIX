@@ -151,7 +151,6 @@ const PermissionsMatrix: React.FC<PermissionsMatrixProps> = ({
     setError(null);
 
     try {
-      console.log('🔑 Fetching permissions matrix data...');
       const [rolesResponse, permissionsResponse] = await Promise.all([
         api.roles.getAll({}),
         api.roles.getPermissions()
@@ -167,7 +166,6 @@ const PermissionsMatrix: React.FC<PermissionsMatrixProps> = ({
       const categories = groupPermissionsByCategory(permissionsData);
       setPermissionCategories(categories);
 
-      console.log(`✅ Fetched ${rolesData.length} roles and ${permissionsData.length} permissions`);
 
     } catch (error) {
       console.error('❌ Error fetching permissions matrix data:', error);
@@ -295,7 +293,6 @@ const PermissionsMatrix: React.FC<PermissionsMatrixProps> = ({
     setError(null);
 
     try {
-      console.log('💾 Saving permission changes...');
 
       for (const [roleId, permissionIds] of pendingChanges) {
         const foundRole = filteredRoles.find(r => r.id === roleId);
@@ -311,7 +308,6 @@ const PermissionsMatrix: React.FC<PermissionsMatrixProps> = ({
       setEditMode(false);
       await fetchData();
 
-      console.log('✅ Permission changes saved successfully');
 
     } catch (error) {
       console.error('❌ Error saving permission changes:', error);

@@ -302,12 +302,8 @@ export default function ProductSegmentPage() {
         setError(null);
 
         try {
-            console.log('🔄 Loading product segments...');
             const segments = await productSegmentsApi.getAll();
-            console.log('✅ Successfully loaded segments:', segments.length, segments);
-            console.log('📊 First segment:', segments[0]);
             setData(segments);
-            console.log('✅ Data state updated');
 
         } catch (error: any) {
             console.error('❌ Failed to load product segments:', error);
@@ -326,9 +322,7 @@ export default function ProductSegmentPage() {
 
     // Debug: Log data changes
     useEffect(() => {
-        console.log('📊 Data state changed:', data.length, 'segments');
         if (data.length > 0) {
-            console.log('📊 Sample row:', data[0]);
         }
     }, [data]);
 
@@ -348,7 +342,6 @@ export default function ProductSegmentPage() {
     };
 
     const handleEdit = (segment: ProductSegment) => {
-        console.log('✏️ Editing segment:', segment);
         setSelectedSegment(segment);
         setFormData({
             groupSegment: segment.groupSegment,
@@ -369,11 +362,9 @@ export default function ProductSegmentPage() {
 
         try {
             setLoading(true);
-            console.log('🗑️ Deleting segment:', segment.id);
 
             await productSegmentsApi.delete(segment.id);
 
-            console.log('✅ Segment deleted successfully');
             setSuccess('Segment deleted successfully');
             await loadData();
 
@@ -420,12 +411,10 @@ export default function ProductSegmentPage() {
 
             if (selectedSegment) {
                 // Update existing segment
-                console.log('✏️ Updating segment:', selectedSegment.id);
                 await productSegmentsApi.update(selectedSegment.id, payload);
                 setSuccess('Segment updated successfully');
             } else {
                 // Create new segment
-                console.log('➕ Creating segment');
                 await productSegmentsApi.create(payload);
                 setSuccess('Segment created successfully');
             }
