@@ -338,11 +338,15 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     user: User | null;
     selectedRoleIds: string[];
     saving: boolean;
+    error: string | null;
+    success: boolean;
   }>({
     open: false,
     user: null,
     selectedRoleIds: [],
-    saving: false
+    saving: false,
+    error: null,
+    success: false,
   });
   const [manageRoleUsersDialog, setManageRoleUsersDialog] = useState<{
     open: boolean;
@@ -722,7 +726,9 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
       open: true,
       user,
       selectedRoleIds: getAssignedRoleIdsForUser(user),
-      saving: false
+      saving: false,
+      error: null,
+      success: false,
     });
   };
 
@@ -1186,31 +1192,36 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     const rolesToAssign = Array.from(nextAssigned).filter((roleId) => !currentAssigned.has(roleId));
     const rolesToRemove = Array.from(currentAssigned).filter((roleId) => !nextAssigned.has(roleId));
 
+    if (rolesToAssign.length === 0 && rolesToRemove.length === 0) {
+      setManageUserRolesDialog((prev) => ({ ...prev, error: 'No changes to save' }));
+      return;
+    }
+
     try {
-      setManageUserRolesDialog((prev) => ({ ...prev, saving: true }));
+      setManageUserRolesDialog((prev) => ({ ...prev, saving: true, error: null }));
 
       for (const roleId of rolesToAssign) {
         const response = await api.roles.assignUser(roleId, user.id);
         if (response?.approvalRequired) {
-          setNotice('User role assignment change submitted for approval.');
+          setManageUserRolesDialog((prev) => ({ ...prev, success: true }));
         }
       }
 
       for (const roleId of rolesToRemove) {
         const response = await api.roles.removeUser(roleId, user.id);
         if (response?.approvalRequired) {
-          setNotice('User role assignment change submitted for approval.');
+          setManageUserRolesDialog((prev) => ({ ...prev, success: true }));
         }
       }
 
       onAssignmentChange?.();
       await fetchData();
-      setManageUserRolesDialog({ open: false, user: null, selectedRoleIds: [], saving: false });
+      setManageUserRolesDialog({ open: false, user: null, selectedRoleIds: [], saving: false, error: null, success: false });
       setUserDetailsDialog({ open: false, user: null });
-    } catch (err) {
-      console.error('❌ Failed saving user role assignment:', err);
-      setError('Failed to save role assignment for user');
-      setManageUserRolesDialog((prev) => ({ ...prev, saving: false }));
+      setNotice('Role assignment saved successfully');
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to save role assignment';
+      setManageUserRolesDialog((prev) => ({ ...prev, saving: false, error: message }));
     }
   };
 
@@ -1852,7 +1863,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
       {/* Manage User Roles Dialog */}
       <Dialog
         open={manageUserRolesDialog.open}
-        onClose={() => setManageUserRolesDialog({ open: false, user: null, selectedRoleIds: [], saving: false })}
+        onClose={() => setManageUserRolesDialog({ open: false, user: null, selectedRoleIds: [], saving: false, error: null, success: false })}
         maxWidth="md"
         fullWidth
       >
@@ -1874,6 +1885,12 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
           </Stack>
         </DialogTitle>
         <DialogContent dividers>
+          {manageUserRolesDialog.error && (
+            <Alert severity="error" sx={{ mb: 2 }}>{manageUserRolesDialog.error}</Alert>
+          )}
+          {manageUserRolesDialog.success && (
+            <Alert severity="success" sx={{ mb: 2 }}>Role assignment saved successfully</Alert>
+          )}
           <Box sx={{ mb: 2 }}>
             <Typography variant="body2" color="text.secondary">
               Select roles to assign or deselect roles to remove.
@@ -1914,7 +1931,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
             )}
           </Box>
           <Stack direction="row" spacing={1}>
-            <Button onClick={() => setManageUserRolesDialog({ open: false, user: null, selectedRoleIds: [], saving: false })}>
+            <Button onClick={() => setManageUserRolesDialog({ open: false, user: null, selectedRoleIds: [], saving: false, error: null, success: false })}>
               Cancel
             </Button>
             <Button variant="contained" onClick={saveManagedUserRoles} disabled={manageUserRolesDialog.saving}>
