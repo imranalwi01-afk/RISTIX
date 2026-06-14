@@ -181,13 +181,12 @@ interface PermissionSelectionGroup {
 const TAB_KEY_TO_INDEX: Record<string, number> = {
   roles: 0,
   users: 1,
-  people: 1,
   permissions: 2,
   matrix: 2,
   assignments: 1,
 };
 
-const TAB_INDEX_TO_KEY = ['roles', 'people', 'access-review'] as const;
+const TAB_INDEX_TO_KEY = ['roles', 'users', 'access-review'] as const;
 const ACCESS_MANAGEMENT_BASE_PATH = '/banking/maintenance/access-management';
 
 interface RoleFilters {
@@ -1073,7 +1072,7 @@ const [permissionSearch, setPermissionSearch] = useState('');
             iconPosition="start"
           />
           <Tab
-            label="People"
+            label="Users"
             icon={<PeopleIcon />}
             iconPosition="start"
           />
@@ -1198,7 +1197,7 @@ const [permissionSearch, setPermissionSearch] = useState('');
         </Card>
       </TabPanel>
 
-      {/* People Tab (Users + Assignments merged) */}
+      {/* Users Tab (Users + Assignments merged) */}
       <TabPanel value={currentTab} index={1}>
         <UserManagementPanel embedded />
         <Box sx={{ mt: 4 }}>
@@ -1216,7 +1215,7 @@ const [permissionSearch, setPermissionSearch] = useState('');
               Review effective access, high-risk grants, and assignment coverage.
             </Typography>
             <Grid container spacing={3}>
-              <Grid size={{ xs: 12, md: 4 }}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <Card variant="outlined">
                   <CardContent>
                     <Typography variant="h4" color="primary">{roles.length}</Typography>
@@ -1224,7 +1223,7 @@ const [permissionSearch, setPermissionSearch] = useState('');
                   </CardContent>
                 </Card>
               </Grid>
-              <Grid size={{ xs: 12, md: 4 }}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <Card variant="outlined">
                   <CardContent>
                     <Typography variant="h4" color="primary">
@@ -1234,18 +1233,96 @@ const [permissionSearch, setPermissionSearch] = useState('');
                   </CardContent>
                 </Card>
               </Grid>
-              <Grid size={{ xs: 12, md: 4 }}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <Card variant="outlined">
                   <CardContent>
-                    <Typography variant="h4" color="primary">
-                      {roles.filter(r => r.permissions?.some((p: any) => p.riskLevel === 'CRITICAL')).length}
+                    <Typography variant="h4" color="error.main">
+                      {permissions.filter(p => p.riskLevel === 'CRITICAL').length}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">High-Risk Roles</Typography>
+                    <Typography variant="body2" color="text.secondary">Critical Permissions</Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid size={{ xs: 12, md: 3 }}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Typography variant="h4" color="warning.main">
+                      {permissions.filter(p => p.requiresApproval).length}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">Approval Required</Typography>
                   </CardContent>
                 </Card>
               </Grid>
             </Grid>
           </CardContent>
+        </Card>
+
+        {/* High-Risk Permissions List */}
+        <Card>
+          <CardHeader title="Critical & High-Risk Permissions" />
+          <Divider />
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Permission</TableCell>
+                  <TableCell>Risk</TableCell>
+                  <TableCell>Roles Assigned</TableCell>
+                  <TableCell>Approval</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {permissions.filter(p => p.riskLevel === 'CRITICAL' || p.riskLevel === 'HIGH').map((perm) => {
+                  const assignedRoles = roles.filter(r =>
+                    r.permissions?.some((p2: any) => p2.id === perm.id || p2.code === perm.code)
+                  );
+                  return (
+                    <TableRow key={perm.id}>
+                      <TableCell>
+                        <Typography variant="body2">{perm.displayName}</Typography>
+                        <Typography variant="caption" color="text.secondary">{perm.code}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={perm.riskLevel}
+                          size="small"
+                          color={perm.riskLevel === 'CRITICAL' ? 'error' : 'warning'}
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {assignedRoles.length > 0 ? (
+                          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                            {assignedRoles.map(r => (
+                              <Chip key={r.id} label={r.displayName} size="small" variant="outlined" />
+                            ))}
+                          </Box>
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">Not assigned</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {perm.requiresApproval ? (
+                          <Chip label={`Level ${perm.requiredApprovalLevel || 1}`} size="small" color="warning" variant="outlined" />
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">—</Typography>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {permissions.filter(p => p.riskLevel === 'CRITICAL' || p.riskLevel === 'HIGH').length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} align="center">
+                      <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
+                        No high-risk permissions found.
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </Card>
       </TabPanel>
 
