@@ -689,10 +689,10 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
           />
           <List dense sx={{ maxHeight: 400, overflow: 'auto' }}>
             {manageRolesDialog.roles
-              .filter((r: any) => r.isActive !== false && (!manageRolesDialog.search || (r.displayName || r.name || '').toLowerCase().includes(manageRolesDialog.search.toLowerCase())))
+              .filter((r: any) => r.isActive !== false && (!manageRolesDialog.search || (r.roleName || r.roleCode || '').toLowerCase().includes(manageRolesDialog.search.toLowerCase())))
               .map((role: any) => {
                 const roleId = role.id;
-                const label = role.displayName || role.name || 'Unnamed Role';
+                const label = role.roleName || role.roleCode || 'Unnamed Role';
                 return (
                   <ListItem key={roleId} disablePadding>
                     <ListItemIcon sx={{ minWidth: 36 }}>
@@ -707,7 +707,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
                         }))}
                       />
                     </ListItemIcon>
-                    <ListItemText primary={label} secondary={role.type || 'CUSTOM'} />
+                    <ListItemText primary={label} secondary={role.roleCode || (role.isSystemRole ? 'SYSTEM' : 'CUSTOM')} />
                   </ListItem>
                 );
               })}
