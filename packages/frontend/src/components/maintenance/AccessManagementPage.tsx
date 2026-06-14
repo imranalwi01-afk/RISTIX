@@ -81,7 +81,6 @@ import { RolePermissionsEditor } from '@/components/rbac/RolePermissionsEditor';
 import { Can } from '@/components/rbac/Can';
 import { usePermission } from '@/hooks/usePermission';
 import UserManagementPanel from '@/components/maintenance/UserManagementPanel';
-import UserRoleAssignment from '@/components/roles/UserRoleAssignment';
 import { getRoleResponsibility } from '@/components/roles/role-responsibility.utils';
 import {
   buildPermissionMatrixItem,
@@ -446,7 +445,7 @@ const [permissionSearch, setPermissionSearch] = useState('');
     nextQuery.delete('tab');
 
     const nextPath = nextTabKey === 'roles'
-      ? ACCESS_MANAGEMENT_BASE_PATH
+      ? `${ACCESS_MANAGEMENT_BASE_PATH}/roles`
       : `${ACCESS_MANAGEMENT_BASE_PATH}/${nextTabKey}`;
     const nextQueryString = nextQuery.toString();
     router.replace(nextQueryString ? `${nextPath}?${nextQueryString}` : nextPath, { scroll: false });
@@ -1174,10 +1173,6 @@ const [permissionSearch, setPermissionSearch] = useState('');
       {/* Users Tab (Users + Assignments merged) */}
       <TabPanel value={currentTab} index={1}>
         <UserManagementPanel embedded />
-        <Box sx={{ mt: 4 }}>
-          <Typography variant="h6" sx={{ mb: 2 }}>Role Assignments</Typography>
-          <UserRoleAssignment onAssignmentChange={() => accessManagementQuery.refetch()} />
-        </Box>
       </TabPanel>
 
       {/* Access Review Tab */}

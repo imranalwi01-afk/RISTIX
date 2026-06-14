@@ -41,7 +41,8 @@
                 "./src/middleware/*"
             ]
         },
-        "baseUrl": "."
+        "baseUrl": ".",
+        "ignoreDeprecations": "6.0"
     },
     "include": [
         "src/**/*"
