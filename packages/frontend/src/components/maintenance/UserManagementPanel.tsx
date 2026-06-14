@@ -111,8 +111,8 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
   const [loadingUserRoles, setLoadingUserRoles] = useState(false);
   const [openResetPasswordDialog, setOpenResetPasswordDialog] = useState(false);
   const [manageRolesDialog, setManageRolesDialog] = useState<{
-    open: boolean; user: User | null; roles: any[]; selectedRoleIds: string[]; saving: boolean; search: string;
-  }>({ open: false, user: null, roles: [], selectedRoleIds: [], saving: false, search: '' });
+    open: boolean; user: User | null; roles: any[]; selectedRoleIds: string[]; saving: boolean; search: string; key: number;
+  }>({ open: false, user: null, roles: [], selectedRoleIds: [], saving: false, search: '', key: 0 });
   const [formData, setFormData] = useState<UserFormData>({
     email: '',
     username: '',
@@ -150,7 +150,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       }
       setManageRolesDialog({
         open: true, user, roles: rawRoles,
-        selectedRoleIds: userRoleIds, saving: false, search: '',
+        selectedRoleIds: userRoleIds, saving: false, search: '', key: Date.now(),
       });
     } catch (err: any) {
       setSnackbar({ open: true, message: 'Failed to load roles: ' + (err?.message || err), severity: 'error' });
@@ -680,7 +680,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       )}
 
       {/* Manage Roles Dialog */}
-      <Dialog open={manageRolesDialog.open} onClose={() => setManageRolesDialog(prev => ({ ...prev, open: false }))} maxWidth="sm" fullWidth>
+      <Dialog key={manageRolesDialog.key} open={manageRolesDialog.open} onClose={() => setManageRolesDialog(prev => ({ ...prev, open: false }))} maxWidth="sm" fullWidth>
         <DialogTitle>
           <Stack direction="row" spacing={1.5} alignItems="center">
             <Box>
