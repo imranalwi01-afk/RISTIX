@@ -127,7 +127,6 @@ const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'access-management': ['admin.users.manage', 'admin.roles.manage', 'admin.maintenance.access'],
     'user-management': 'admin.users.manage',
     'role-management': 'admin.roles.manage',
-    'menu-management': 'admin.system.manage',
     'job-monitoring': ['jobs.view', 'jobs.manage', 'admin.system.manage'],
     'assessment-workspace': 'banking.individual.view',
     'assessment-workspace-v1': 'banking.individual.view',
@@ -701,13 +700,6 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 href: '/banking/maintenance/job-monitoring',
                 icon: <Monitor />,
                 description: '/IFRS9N/JobMonitoring'
-            },
-            {
-                id: 'menu-management',
-                label: 'Menu Management',
-                href: '/banking/maintenance/menus',
-                icon: <Menu />,
-                description: 'Database-driven menu configuration',
             }
         ]
     }
@@ -959,7 +951,6 @@ export const getIconForMenuItem = (code: string, level: number): React.ReactElem
         'access-management': <ManageAccounts />,
         'user-management': <ManageAccounts />,
         'role-management': <VpnKey />,
-        'menu-management': <Menu />
     };
 
     return iconMap[code] || (level === 0 ? <Category /> : <Assessment />);
@@ -1035,7 +1026,6 @@ const MENU_ICON_MAP: Record<string, string> = {
     'approval': 'approval',
     'audit-logs': 'history',
     'job-monitoring': 'monitor',
-    'menu-management': 'menu'
 };
 
 // Helper function to convert static menu to database format for fallback

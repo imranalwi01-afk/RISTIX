@@ -201,8 +201,8 @@ const SIDEBAR_GROUP_LABELS: Record<string, { label: string; breadcrumb: string }
     breadcrumb: 'Admin & Maintenance > Role Management',
   },
   'admin.system': {
-    label: 'Menu Management',
-    breadcrumb: 'Admin & Maintenance > Menu Management',
+    label: 'System Administration',
+    breadcrumb: 'Admin & Maintenance > System Administration',
   },
   'jobs': {
     label: 'Job Monitoring',

@@ -121,6 +121,11 @@ Successful initialization, category, item, and permission mutations emit
 tenant audit records. Each mutation invalidates the runtime menu cache so the
 banking sidebar re-reads the canonical projection.
 
+Menu administration is a platform-only capability. The banking navigation
+must not expose a separate Menu Management page or route. Existing platform
+records for the retired banking route are removed with
+`pnpm --dir packages/new-backend menu:retire-banking-admin`.
+
 ## Consequences
 
 ### Positive

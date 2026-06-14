@@ -217,7 +217,6 @@ menuRoutes.openapi(
             { cat: 'Admin & Maintenance', name: 'Access Management', path: '/banking/maintenance/access-management', icon: 'ManageAccounts', sortOrder: 1 },
             { cat: 'Admin & Maintenance', name: 'Approval', path: '/banking/maintenance/approval', icon: 'Approval', sortOrder: 2 },
             { cat: 'Admin & Maintenance', name: 'Job Monitoring', path: '/banking/maintenance/job-monitoring', icon: 'Monitor', sortOrder: 3 },
-            { cat: 'Admin & Maintenance', name: 'Menu Management', path: '/banking/maintenance/menus', icon: 'Menu', sortOrder: 4 },
             { cat: 'Admin & Maintenance', name: 'Audit Log', path: '/banking/maintenance/audit', icon: 'History', sortOrder: 5 },
             { cat: 'Admin & Maintenance', name: 'User Activity', path: '/banking/maintenance/user-activity', icon: 'People', sortOrder: 6 },
             { cat: 'Admin & Maintenance', name: 'Assignments', path: '/banking/maintenance/assignments', icon: 'Assignment', sortOrder: 7 },
