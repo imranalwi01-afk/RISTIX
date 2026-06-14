@@ -28,6 +28,8 @@ import {
   GridToolbar
 } from '@mui/x-data-grid';
 import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
+
+export const dynamic = 'force-dynamic';
 import {
   CloudUpload as CloudUploadIcon,
   Home as HomeIcon,

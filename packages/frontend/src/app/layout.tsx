@@ -16,8 +16,8 @@ import './globals.css'
 // METADATA CONFIGURATION
 // ============================================================================
 export const metadata: Metadata = {
-  title: 'IFRS9 Pro Platform - Multi-Stakeholder Banking System',
-  description: 'Multi-Tenant Islamic Banking IFRS 9 Compliance Platform with Platform Admin, Banking Institution, Consultant, and Regulator interfaces',
+  title: 'IFRS9 Banking Platform',
+  description: 'Multi-Tenant Banking IFRS 9 Compliance Platform',
   keywords: [
     'IFRS 9',
     'Banking Platform',
@@ -106,6 +106,8 @@ interface RootLayoutProps {
 // ============================================================================
 // ROOT LAYOUT COMPONENT
 // ============================================================================
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html 
