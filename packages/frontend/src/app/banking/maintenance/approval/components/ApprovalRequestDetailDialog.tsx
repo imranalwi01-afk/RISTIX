@@ -38,6 +38,7 @@ import {
 } from '@mui/icons-material';
 import { ApprovalRequest, RequestRoutingMatch } from '../types';
 import { ConsolidatedAssessmentApprovalContent } from './ConsolidatedAssessmentApprovalContent';
+import { RAnalyticsComprehensiveDetail } from './RAnalyticsComprehensiveDetail';
 import { useCurrencyDisplay } from '@/providers/CurrencyDisplayProvider';
 
 const DETAIL_CANDIDATE_VISIBLE_LIMIT = 24;
@@ -507,6 +508,13 @@ export const ApprovalRequestDetailDialog = memo(function ApprovalRequestDetailDi
                       formatDate={formatDate} 
                     />
                   </Box>
+                </Grid>
+              )}
+
+              {/* SPECIALIZED CONTENT: R ANALYTICS */}
+              {String(request.entityType || request.requestType || '').toLowerCase() === 'r_analytics_comprehensive' && (
+                <Grid size={12}>
+                  <RAnalyticsComprehensiveDetail data={request.requestData} />
                 </Grid>
               )}
 

@@ -81,6 +81,20 @@ export default function AnalyticsLayout({ children }: AnalyticsLayoutProps) {
       icon: <Timeline sx={{ fontSize: 16 }} />,
       description: 'Statistical modeling and R integration'
     },
+    {
+      id: 'r-analytics-approval',
+      label: 'Approval Submission',
+      href: '/banking/analytics/r-analytics-approval',
+      icon: <Assessment sx={{ fontSize: 16 }} />,
+      description: 'Submit R Analytics results for approval'
+    },
+    {
+      id: 'r-analytics-detail',
+      label: 'Approval Detail',
+      href: '/banking/analytics/r-analytics-detail',
+      icon: <Assessment sx={{ fontSize: 16 }} />,
+      description: 'View full details of approval request'
+    },
     // {
     //   id: 'reports',
     //   label: 'Reports',
@@ -106,6 +120,8 @@ export default function AnalyticsLayout({ children }: AnalyticsLayoutProps) {
 
   // ✅ Get current tab from pathname
   const getCurrentTab = () => {
+    if (pathname.includes('/banking/analytics/r-analytics-detail')) return 2;
+    if (pathname.includes('/banking/analytics/r-analytics-approval')) return 1;
     if (pathname === '/banking/analytics') return 0;
     if (pathname.includes('/banking/analytics/r-analytics')) return 0;
     // if (pathname.includes('/r-analytics')) return 1;

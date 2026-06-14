@@ -2,6 +2,7 @@
 
 import React, { Suspense, useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import type { ModernLoaderProps } from '@/components/common/ModernLoader';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -479,8 +480,16 @@ function LoginPage() {
                         </InputAdornment>
                       ),
                     }}
-                    sx={{ mb: 4 }}
+                    sx={{ mb: 2 }}
                   />
+
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 4 }}>
+                    <Link href="/forgot-password" style={{ textDecoration: 'none' }}>
+                      <Typography variant="body2" sx={{ color: 'primary.main', fontWeight: 600, '&:hover': { textDecoration: 'underline' } }}>
+                        Forgot Password?
+                      </Typography>
+                    </Link>
+                  </Box>
 
                   <Button
                     type="submit"

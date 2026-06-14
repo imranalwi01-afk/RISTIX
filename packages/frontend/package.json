@@ -29,7 +29,7 @@
     "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
-    "@hookform/resolvers": "^3.9.0",
+    "@hookform/resolvers": "^3.10.0",
     "@mui/icons-material": "^7.3.7",
     "@mui/lab": "7.0.1-beta.21",
     "@mui/material": "^7.3.7",
@@ -57,6 +57,7 @@
     "react-dom": "19.2.3",
     "react-dropzone": "^14.3.8",
     "react-hook-form": "^7.53.0",
+    "react-hot-toast": "^2.6.0",
     "react-redux": "^9.1.2",
     "reactflow": "^11.11.4",
     "recharts": "^2.12.7",
@@ -64,6 +65,7 @@
     "socket.io-client": "^4.8.3",
     "styled-jsx": "5.1.6",
     "xlsx": "^0.18.5",
+    "yup": "^1.7.1",
     "zod": "^3.23.8"
   },
   "devDependencies": {

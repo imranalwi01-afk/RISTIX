@@ -63,6 +63,7 @@ import {
     Task,
     Menu, // Icon
     VpnKey,
+    Email,
 
     // Additional icons
     BarChart,
@@ -708,6 +709,13 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 href: '/banking/maintenance/menus',
                 icon: <Menu />,
                 description: 'Database-driven menu configuration',
+            },
+            {
+                id: 'smtp-settings',
+                label: 'SMTP Settings',
+                href: '/banking/maintenance/smtp',
+                icon: <Email />,
+                description: 'Platform email server configuration',
             }
         ]
     }
@@ -780,6 +788,7 @@ export const convertIconStringToElement = (iconString: string): React.ReactEleme
         case 'task': return <Task />;
         case 'menu': return <Menu />;
         case 'vpn_key': return <VpnKey />;
+        case 'email': return <Email />;
         case 'mosque': return <Mosque />;
         case 'security': return <Security />;
         case 'swap_horiz': return <SwapHoriz />;
@@ -878,6 +887,7 @@ export const getIconFromDatabaseString = (iconString: string, bankingMode?: stri
         'task': <Task />,
         'menu': <Menu />,
         'vpn_key': <VpnKey />,
+        'email': <Email />,
 
         // Additional icons for comprehensive coverage
         'mosque': <Mosque />,
@@ -959,7 +969,8 @@ export const getIconForMenuItem = (code: string, level: number): React.ReactElem
         'access-management': <ManageAccounts />,
         'user-management': <ManageAccounts />,
         'role-management': <VpnKey />,
-        'menu-management': <Menu />
+        'menu-management': <Menu />,
+        'smtp-settings': <Email />
     };
 
     return iconMap[code] || (level === 0 ? <Category /> : <Assessment />);
@@ -1035,7 +1046,8 @@ const MENU_ICON_MAP: Record<string, string> = {
     'approval': 'approval',
     'audit-logs': 'history',
     'job-monitoring': 'monitor',
-    'menu-management': 'menu'
+    'menu-management': 'menu',
+    'smtp-settings': 'email'
 };
 
 // Helper function to convert static menu to database format for fallback

@@ -33,4 +33,5 @@ export interface UserFormData {
   position: string;
   bankingAccess: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
   syariahCertified: boolean;
+  sendWelcomeEmail?: boolean;
 }

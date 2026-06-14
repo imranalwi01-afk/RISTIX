@@ -1,4 +1,4 @@
-import { pgTable, date, varchar, numeric, integer, bigserial, timestamp, serial, bigint, doublePrecision, smallint, smallserial, boolean, char, text, check, pgView, pgSchema } from "drizzle-orm/pg-core"
+import { pgTable, date, varchar, numeric, integer, bigserial, timestamp, serial, bigint, doublePrecision, smallint, smallserial, boolean, char, text, check, pgView, pgSchema, customType } from "drizzle-orm/pg-core"
 import { sql, relations } from "drizzle-orm"
 
 
@@ -2342,4 +2342,25 @@ export const uploadHistory = pgTable("upload_history", {
 	columns: integer(),
 	uploadTime: timestamp("upload_time", { mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
 	pociFlag: boolean("poci_flag"),
+});
+
+export const frs9RPdAfl = pgTable("frs9_r_pd_afl", {
+	id: serial("id").primaryKey(),
+	requestId: varchar("request_id", { length: 100 }), // Reference to approval_requests
+	modelId: integer("model_id"),
+	modelName: varchar("model_name", { length: 255 }),
+	modelStatus: varchar("model_status", { length: 50 }),
+	dependentVariable: varchar("dependent_variable", { length: 100 }),
+	rSquared: doublePrecision("r_squared"),
+	mape: doublePrecision("mape"),
+	dataFile: customType<{ data: Buffer; driverData: Buffer }>({
+		dataType() {
+			return 'bytea';
+		},
+	})("data_file"),
+	isDeleted: boolean("is_deleted").default(false),
+	createdDate: timestamp("created_date", { mode: 'string' }).defaultNow(),
+	updatedDate: timestamp("updated_date", { mode: 'string' }),
+	createdBy: varchar("created_by", { length: 100 }),
+	updatedBy: varchar("updated_by", { length: 100 }),
 });

@@ -171,6 +171,75 @@ rAnalyticsRoutes.openapi(
     }
 )
 
+// Get history of PD-AFL submissions
+rAnalyticsRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/pd-afl-history',
+        tags: ['R Analytics'],
+        summary: 'Get PD-AFL Submission History',
+        responses: {
+            200: {
+                description: 'History retrieved successfully',
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            data: z.array(z.any())
+                        })
+                    }
+                }
+            },
+            500: {
+                description: 'Server error',
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            error: z.string(),
+                            code: z.string().optional()
+                        })
+                    }
+                }
+            }
+        }
+    }),
+    async (c) => {
+        try {
+            const [{ legacyDb }, schema, { desc }] = await Promise.all([
+                import('../config'),
+                import('../db/schema'),
+                import('drizzle-orm')
+            ])
+
+            const history = await legacyDb
+                .select({
+                    id: schema.frs9RPdAfl.id,
+                    modelId: schema.frs9RPdAfl.modelId,
+                    modelName: schema.frs9RPdAfl.modelName,
+                    rSquared: schema.frs9RPdAfl.rSquared,
+                    mape: schema.frs9RPdAfl.mape,
+                    modelStatus: schema.frs9RPdAfl.modelStatus,
+                    createdBy: schema.frs9RPdAfl.createdBy,
+                    createdDate: schema.frs9RPdAfl.createdDate,
+                    updatedDate: schema.frs9RPdAfl.updatedDate,
+                    isDeleted: schema.frs9RPdAfl.isDeleted
+                })
+                .from(schema.frs9RPdAfl)
+                .orderBy(desc(schema.frs9RPdAfl.id))
+                .limit(50)
+
+            return c.json({
+                success: true,
+                data: history
+            }, 200)
+        } catch (error: any) {
+            console.error('Error fetching PD-AFL history:', error)
+            return c.json(buildErrorResponse(c, { error: error.message, message: 'Failed to fetch history', code: 'HISTORY_ERROR' }) as any, 500)
+        }
+    }
+)
+
 // List available R scripts
 rAnalyticsRoutes.openapi(
     createRoute({
@@ -218,5 +287,178 @@ rAnalyticsRoutes.openapi(
             },
             message: 'R script details - stub implementation',
         })
+    }
+)
+
+// ============================================================================
+// INTEGRATION ENDPOINTS (PLAN B)
+// ============================================================================
+
+import { legacyDb } from '../config/database';
+import { frs9RModelSummary, frs9RPdAfl } from '../db/schema';
+import { desc } from 'drizzle-orm';
+
+const SavedModelResponse = z.object({
+    success: z.boolean(),
+    data: z.any(),
+    message: z.string().optional()
+}).openapi('SavedModelResponse');
+
+// Get latest saved model summary for approval submission
+rAnalyticsRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/saved',
+        tags: ['R Analytics'],
+        summary: 'Get Latest Saved Model',
+        responses: {
+            200: { content: { 'application/json': { schema: SavedModelResponse } }, description: 'Latest Model' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c): Promise<any> => {
+        try {
+            // Fetch the most recent model saved by R Shiny
+            const latestModel = await legacyDb.query.frs9RModelSummary.findFirst({
+                orderBy: [desc(frs9RModelSummary.modelId)],
+                columns: {
+                    modelId: true,
+                    modelName: true,
+                    rSquared: true,
+                    mape: true,
+                    createdDate: true
+                }
+            });
+
+            if (!latestModel) {
+                return c.json({ success: true, data: null, message: 'No models found' });
+            }
+
+            return c.json({
+                success: true,
+                data: {
+                    id: latestModel.modelId,
+                    model_name: latestModel.modelName,
+                    r_squared: latestModel.rSquared,
+                    mape: latestModel.mape,
+                    created_date: latestModel.createdDate
+                }
+            });
+        } catch (error: any) {
+            console.error('Error fetching latest saved model:', error);
+            return c.json(buildErrorResponse(c, { error: error.message, message: 'Failed to fetch saved model', code: 'FETCH_ERROR' }), 500);
+        }
+    }
+)
+
+const SubmitApprovalSchema = z.object({
+    id: z.number(),
+    model_name: z.string().optional(),
+    r_squared: z.number().optional(),
+    mape: z.number().optional(),
+    snapshot_date: z.string().optional()
+});
+
+// Submit model to frs9_r_pd_afl
+rAnalyticsRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/submit',
+        tags: ['R Analytics'],
+        summary: 'Submit Model for Approval',
+        request: {
+            body: { content: { 'application/json': { schema: SubmitApprovalSchema } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: SavedModelResponse } }, description: 'Success' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c): Promise<any> => {
+        try {
+            const body = await c.req.json();
+            
+            // Ambil data_file dari frs9_r_model_summary (Shiny App)
+            const sourceModel = await legacyDb.query.frs9RModelSummary.findFirst({
+                where: eq(frs9RModelSummary.modelId, body.id)
+            });
+
+            // Insert into the new frs9_r_pd_afl table
+            const inserted = await legacyDb.insert(frs9RPdAfl).values({
+                modelId: body.id,
+                modelName: body.model_name,
+                rSquared: body.r_squared,
+                mape: body.mape,
+                dataFile: sourceModel?.dataFile ? Buffer.from(sourceModel.dataFile) : null as any, // Convert string to Buffer
+                modelStatus: 'PENDING_APPROVAL',
+                createdBy: 'System/Maker', // Hardcoded temporarily, usually from session
+                isDeleted: false
+            }).returning({
+                id: frs9RPdAfl.id,
+                modelId: frs9RPdAfl.modelId,
+                modelName: frs9RPdAfl.modelName,
+                rSquared: frs9RPdAfl.rSquared,
+                mape: frs9RPdAfl.mape,
+                modelStatus: frs9RPdAfl.modelStatus,
+                createdBy: frs9RPdAfl.createdBy,
+                createdDate: frs9RPdAfl.createdDate
+            });
+
+            return c.json({
+                success: true,
+                data: inserted[0],
+                message: 'Model successfully submitted to frs9_r_pd_afl'
+            });
+        } catch (error: any) {
+            console.error('Error submitting model:', error);
+            return c.json(buildErrorResponse(c, { error: error.message, message: 'Failed to submit model', code: 'SUBMIT_ERROR' }), 500);
+        }
+    }
+)
+
+import { eq } from 'drizzle-orm';
+
+// Download bytea data_file from frs9_r_pd_afl
+rAnalyticsRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/pd-afl-history/{id}/download',
+        tags: ['R Analytics'],
+        summary: 'Download Model Data File',
+        request: {
+            params: z.object({ id: z.string() })
+        },
+        responses: {
+            200: { description: 'File download' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c): Promise<any> => {
+        try {
+            const idParam = c.req.param('id');
+            const id = parseInt(idParam, 10);
+            if (isNaN(id)) {
+                return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'INVALID_ID' }), 400);
+            }
+
+            const record = await legacyDb.query.frs9RPdAfl.findFirst({
+                where: eq(frs9RPdAfl.id, id)
+            });
+
+            if (!record || !record.dataFile) {
+                return c.json(buildErrorResponse(c, { error: 'File not found', message: 'File not found', code: 'FILE_NOT_FOUND' }), 404);
+            }
+
+            // Hono response for file download
+            const buffer = Buffer.from(record.dataFile as any);
+            
+            c.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            c.header('Content-Disposition', `attachment; filename="ModelOutput_${id}.xlsx"`);
+            return c.body(buffer);
+        } catch (error: any) {
+            console.error('Error downloading model data:', error);
+            return c.json(buildErrorResponse(c, { error: error.message, message: 'Failed to download file', code: 'DOWNLOAD_ERROR' }), 500);
+        }
     }
 )

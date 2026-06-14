@@ -60,6 +60,34 @@ export type PlatformTenant = typeof platformTenants.$inferSelect
 export type NewPlatformTenant = typeof platformTenants.$inferInsert
 
 // =============================================================================
+// PLATFORM EMAIL TEMPLATES TABLE
+// =============================================================================
+
+/**
+ * Platform Email Templates table definition.
+ * Stores dynamic email templates (HTML and Text) for various system notifications.
+ */
+export const platformEmailTemplates = platformSchema.table(
+    'email_templates',
+    {
+        id: uuid('id').primaryKey().defaultRandom(),
+        code: varchar('code', { length: 100 }).notNull().unique(), // e.g. welcome_email, forgot_password
+        subject: varchar('subject', { length: 255 }).notNull(),
+        bodyHtml: text('body_html').notNull(),
+        bodyText: text('body_text').notNull(),
+        availableVariables: jsonb('available_variables').default([]).notNull(),
+        createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    },
+    (table) => [
+        uniqueIndex('platform_email_templates_code_idx').on(table.code),
+    ]
+)
+
+export type PlatformEmailTemplate = typeof platformEmailTemplates.$inferSelect
+export type NewPlatformEmailTemplate = typeof platformEmailTemplates.$inferInsert
+
+// =============================================================================
 // PLATFORM SETTINGS TABLE
 // =============================================================================
 

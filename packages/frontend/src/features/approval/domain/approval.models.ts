@@ -48,6 +48,10 @@ export function getApprovalRequestTypeLabel(requestType: unknown): string {
     return 'Individual Assessment Consolidated';
   }
 
+  if (value.toLowerCase() === 'r_analytics_comprehensive') {
+    return 'R Analytics Comprehensive Results';
+  }
+
   return value.replace(/_/g, ' ').toUpperCase();
 }
 

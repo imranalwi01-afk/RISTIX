@@ -1,5 +1,9 @@
 import { Effect } from 'effect'
 import { ApprovalNotificationJob, queueApprovalNotification } from '../queue/bull-setup'
+import { db } from '../config/database'
+import { platformSettings } from '../db/schema'
+import { eq } from 'drizzle-orm'
+import { platformEmailTemplates } from '../db/schema/platform.schema'
 
 // Simple SMTP client for Bun
 interface SMTPConfig {
@@ -12,98 +16,126 @@ interface SMTPConfig {
     }
 }
 
-const smtpConfig: SMTPConfig = {
-    host: process.env.SMTP_HOST || 'localhost',
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth:
-        process.env.SMTP_USER && process.env.SMTP_PASS
-            ? {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS,
-            }
-            : undefined,
+export async function getSmtpConfig() {
+    try {
+        const [setting] = await db
+            .select()
+            .from(platformSettings)
+            .where(eq(platformSettings.key, 'smtp'))
+            .limit(1)
+
+        const dbConfig = setting ? setting.value as any : {}
+
+        return {
+            host: dbConfig.host || process.env.SMTP_HOST || 'localhost',
+            port: parseInt(dbConfig.port || process.env.SMTP_PORT || '587'),
+            secure: dbConfig.secure !== undefined ? dbConfig.secure : process.env.SMTP_SECURE === 'true',
+            auth:
+                (dbConfig.user || process.env.SMTP_USER) && (dbConfig.pass || process.env.SMTP_PASS)
+                    ? {
+                        user: dbConfig.user || process.env.SMTP_USER,
+                        pass: dbConfig.pass || process.env.SMTP_PASS,
+                    }
+                    : undefined,
+            from: dbConfig.fromEmail || process.env.SMTP_FROM || 'noreply@ifrs9-app.local',
+            fromName: dbConfig.fromName || 'IFRS9 System',
+        }
+    } catch (e) {
+        console.error('Failed to get SMTP config from DB, falling back to ENV:', e)
+        return {
+            host: process.env.SMTP_HOST || 'localhost',
+            port: parseInt(process.env.SMTP_PORT || '587'),
+            secure: process.env.SMTP_SECURE === 'true',
+            auth:
+                process.env.SMTP_USER && process.env.SMTP_PASS
+                    ? {
+                        user: process.env.SMTP_USER,
+                        pass: process.env.SMTP_PASS,
+                    }
+                    : undefined,
+            from: process.env.SMTP_FROM || 'noreply@ifrs9-app.local',
+            fromName: 'IFRS9 System',
+        }
+    }
+}
+
+import * as nodemailer from 'nodemailer'
+
+let etherealAccount: nodemailer.TestAccount | null = null;
+
+export async function testSmtpConnection(config: any): Promise<boolean> {
+    const transporter = nodemailer.createTransport({
+        host: config.host,
+        port: parseInt(config.port || '587'),
+        secure: config.secure === true,
+        auth: config.user && config.pass ? {
+            user: config.user,
+            pass: config.pass,
+        } : undefined,
+    });
+
+    try {
+        await transporter.verify();
+        return true;
+    } catch (error) {
+        console.error('SMTP test connection failed:', error);
+        throw error;
+    }
 }
 
 async function sendSMTPEmail(to: string, subject: string, text: string, html?: string): Promise<string> {
-    const from = process.env.SMTP_FROM || 'noreply@ifrs9-app.local'
+    const config = await getSmtpConfig();
+    const from = config.from;
 
     try {
-        // Connect to SMTP server using Bun.connect
-        const socket = await Bun.connect({
-            hostname: smtpConfig.host,
-            port: smtpConfig.port,
-            socket: {
-                data(socket, data) {
-                    console.log('SMTP Response:', new TextDecoder().decode(data))
+        let transporter;
+        // In development without real SMTP config, use Ethereal Email!
+        if (process.env.NODE_ENV === 'development' && (!process.env.SMTP_USER || !process.env.SMTP_PASS)) {
+            if (!etherealAccount) {
+                console.log('Generating Ethereal email test account for preview...');
+                etherealAccount = await nodemailer.createTestAccount();
+            }
+            transporter = nodemailer.createTransport({
+                host: 'smtp.ethereal.email',
+                port: 587,
+                secure: false,
+                auth: {
+                    user: etherealAccount.user,
+                    pass: etherealAccount.pass,
                 },
-                error(socket, error) {
-                    console.error('SMTP Error:', error)
-                },
-            },
-        })
-
-        // Build email message
-        const messageId = `<${Date.now()}.${Math.random().toString(36).substring(7)}@${smtpConfig.host}>`
-        const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36).substring(7)}`
-
-        const emailContent = html
-            ? [
-                `From: ${from}`,
-                `To: ${to}`,
-                `Subject: ${subject}`,
-                `Message-ID: ${messageId}`,
-                `MIME-Version: 1.0`,
-                `Content-Type: multipart/alternative; boundary="${boundary}"`,
-                '',
-                `--${boundary}`,
-                'Content-Type: text/plain; charset=utf-8',
-                '',
-                text,
-                '',
-                `--${boundary}`,
-                'Content-Type: text/html; charset=utf-8',
-                '',
-                html,
-                '',
-                `--${boundary}--`,
-            ].join('\r\n')
-            : [
-                `From: ${from}`,
-                `To: ${to}`,
-                `Subject: ${subject}`,
-                `Message-ID: ${messageId}`,
-                '',
-                text,
-            ].join('\r\n')
-
-        // Send SMTP commands
-        const sendCommand = async (cmd: string) => {
-            socket.write(cmd + '\r\n')
-            await Bun.sleep(100) // Wait for response
+            });
+        } else {
+            transporter = nodemailer.createTransport({
+                host: config.host,
+                port: config.port,
+                secure: config.secure,
+                auth: config.auth,
+            });
         }
 
-        // SMTP handshake
-        await Bun.sleep(500) // Wait for server greeting
-        await sendCommand(`EHLO ${smtpConfig.host}`)
-
-        if (smtpConfig.auth) {
-            await sendCommand('AUTH LOGIN')
-            await sendCommand(btoa(smtpConfig.auth.user))
-            await sendCommand(btoa(smtpConfig.auth.pass))
-        }
-
-        await sendCommand(`MAIL FROM:<${from}>`)
-        await sendCommand(`RCPT TO:<${to}>`)
-        await sendCommand('DATA')
-        await sendCommand(emailContent)
-        await sendCommand('.')
-        await sendCommand('QUIT')
-
-        socket.end()
+        const info = await transporter.sendMail({
+            from: `${config.fromName} <${from}>`,
+            to,
+            subject,
+            text,
+            html,
+        });
 
         console.log('📧 Email sent successfully via SMTP')
-        return messageId
+        
+        // If using Ethereal, print the preview URL directly to terminal
+        const previewUrl = nodemailer.getTestMessageUrl(info);
+        if (previewUrl) {
+            console.log('\n=====================================================')
+            console.log('💌 BUKA LINK INI UNTUK MELIHAT ISI EMAIL (SIMULASI):')
+            console.log('🔗 ' + previewUrl)
+            console.log('=====================================================\n')
+            
+            // Simpan ke file agar Antigravity bisa membacanya
+            require('fs').writeFileSync('last_email_link.txt', previewUrl);
+        }
+
+        return info.messageId || `msg_${Date.now()}`
     } catch (error) {
         console.error('❌ SMTP Error:', error)
 
@@ -112,7 +144,7 @@ async function sendSMTPEmail(to: string, subject: string, text: string, html?: s
             from,
             to,
             subject,
-            text: text.substring(0, 100) + '...',
+            text,
         })
 
         return `msg_${Date.now()}_${Math.random().toString(36).substring(7)}`
@@ -129,7 +161,7 @@ interface NotificationTemplate {
  * Build notification template based on approval action
  */
 function buildTemplate(
-    template: 'approval_pending' | 'approval_approved' | 'approval_rejected',
+    template: 'approval_pending' | 'approval_approved' | 'approval_rejected' | 'forgot_password' | 'welcome_email' | string,
     context: Record<string, unknown>
 ): NotificationTemplate {
     const { approverName, requesterName, workflowName, approvalUrl } = context
@@ -155,7 +187,60 @@ function buildTemplate(
                 body: `Hi ${requesterName},\n\nYour approval request has been rejected by ${approverName}. Please review feedback and resubmit if needed.\n\nWorkflow: ${workflowName}`,
                 htmlBody: `<p>Hi <strong>${requesterName}</strong>,</p><p>Your approval request has been <strong>rejected</strong> by <strong>${approverName}</strong>. Please review feedback and resubmit if needed.</p><p>Workflow: <strong>${workflowName}</strong></p>`,
             }
+
+        case 'forgot_password':
+            return {
+                subject: `🔑 Reset Your Password`,
+                body: `Hi ${context.userName || 'there'},\n\nWe received a request to reset your password. Please click the link below to set a new password:\n\n${context.resetUrl}\n\nIf you did not request this, please ignore this email.\nThis link will expire in 30 minutes.`,
+                htmlBody: `<p>Hi <strong>${context.userName || 'there'}</strong>,</p><p>We received a request to reset your password. Please click the link below to set a new password:</p><p><a href="${context.resetUrl}" style="display:inline-block;padding:10px 20px;background-color:#0055FF;color:#fff;text-decoration:none;border-radius:5px;">Reset Password</a></p><p>If you did not request this, please ignore this email.<br>This link will expire in 30 minutes.</p>`,
+            }
+
+        case 'welcome_email':
+            return {
+                subject: `🎉 Welcome to IFRS 9 Platform, ${context.fullName || context.username}`,
+                body: `Hi ${context.fullName || context.username},\n\nAn administrator has created an account for you on the IFRS 9 Platform.\n\nYour login credentials are:\nUsername: ${context.username}\nPassword: ${context.password}\n\nPlease login at: ${context.loginUrl}\n\nWe recommend changing your password after your first login.`,
+                htmlBody: `<p>Hi <strong>${context.fullName || context.username}</strong>,</p><p>An administrator has created an account for you on the IFRS 9 Platform.</p><p>Your login credentials are:</p><ul><li>Username: <strong>${context.username}</strong></li><li>Password: <strong>${context.password}</strong></li></ul><p><a href="${context.loginUrl}" style="display:inline-block;padding:10px 20px;background-color:#0055FF;color:#fff;text-decoration:none;border-radius:5px;">Login Now</a></p><p><em>We recommend changing your password after your first login.</em></p>`,
+            }
+            
+        default:
+             return {
+                 subject: `Notification: ${template}`,
+                 body: `You have a new notification.`,
+                 htmlBody: `<p>You have a new notification.</p>`,
+             }
     }
+}
+
+async function buildTemplateAsync(
+    templateCode: string,
+    context: Record<string, unknown>
+): Promise<NotificationTemplate> {
+    try {
+        const [dbTemplate] = await db
+            .select()
+            .from(platformEmailTemplates)
+            .where(eq(platformEmailTemplates.code, templateCode))
+            .limit(1);
+
+        if (dbTemplate) {
+            let subject = dbTemplate.subject;
+            let text = dbTemplate.bodyText;
+            let html = dbTemplate.bodyHtml;
+
+            for (const key of Object.keys(context)) {
+                const val = String(context[key] || '');
+                const regex = new RegExp(`{{${key}}}`, 'g');
+                subject = subject.replace(regex, val);
+                text = text.replace(regex, val);
+                html = html.replace(regex, val);
+            }
+            return { subject, body: text, htmlBody: html };
+        }
+    } catch (e) {
+        console.error('Failed to fetch template from DB, using fallback', e);
+    }
+
+    return buildTemplate(templateCode, context);
 }
 
 /**
@@ -167,7 +252,7 @@ export const sendEmailNotification = Effect.gen(function* (_) {
         toEmail: string,
         templateContext: Record<string, unknown>
     ): Promise<string> => {
-        const template = buildTemplate(job.template, templateContext)
+        const template = await buildTemplateAsync(job.template, templateContext)
 
         try {
             const messageId = await sendSMTPEmail(
@@ -316,4 +401,23 @@ export async function notifyApprovalRejected(
 
     await queueApprovalNotification(job)
     console.log(`📤 Queued approval_rejected notification for ${requesterUserId}`)
+}
+
+/**
+ * Send a forgot password email directly
+ */
+export async function sendForgotPasswordEmail(toEmail: string, userName: string, resetUrl: string): Promise<void> {
+    const template = buildTemplate('forgot_password', { userName, resetUrl })
+    try {
+        const messageId = await sendSMTPEmail(
+            toEmail,
+            template.subject,
+            template.body,
+            template.htmlBody
+        )
+        console.log(`📧 Forgot password email sent: ${messageId}`)
+    } catch (err) {
+        console.error(`❌ Forgot password email send failed: ${err}`)
+        throw err
+    }
 }

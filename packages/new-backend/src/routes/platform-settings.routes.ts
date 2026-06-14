@@ -66,7 +66,7 @@ platformSettingsRoutes.get('/public', async (c) => {
  *     security:
  *       - BearerAuth: []
  */
-platformSettingsRoutes.put('/:key', authMiddleware, async (c: any, next: any) => {
+const requirePlatformAdmin = async (c: any, next: any) => {
     const permissions = ((c.get('permissions') as string[]) || []).filter((item): item is string => typeof item === 'string')
     const canManagePlatformSettings =
         Boolean(c.get('isSystemUser')) ||
@@ -87,7 +87,162 @@ platformSettingsRoutes.put('/:key', authMiddleware, async (c: any, next: any) =>
     }
 
     await next()
-}, async (c) => {
+}
+
+/**
+ * @openapi
+ * /api/platform/settings/smtp/test:
+ *   post:
+ *     tags: [Platform Settings]
+ *     summary: Test SMTP configuration
+ *     description: Tests the provided SMTP credentials without saving them. Requires SUPER ADMIN.
+ *     security:
+ *       - BearerAuth: []
+ */
+platformSettingsRoutes.post('/smtp/test', authMiddleware, requirePlatformAdmin, async (c) => {
+    try {
+        const body = await c.req.json()
+        const { testSmtpConnection } = await import('../services/notification.service')
+        
+        const success = await testSmtpConnection(body)
+        if (success) {
+            return c.json({ success: true, message: 'SMTP connection successful' })
+        } else {
+            return c.json({ success: false, error: 'SMTP connection failed' }, 400)
+        }
+    } catch (error: any) {
+        console.error('SMTP Test Failed:', error)
+        return c.json({ success: false, error: error.message || 'SMTP connection failed' }, 500)
+    }
+})
+
+/**
+ * @openapi
+ * /api/platform/settings/templates:
+ *   get:
+ *     tags: [Platform Settings]
+ *     summary: Get all email templates
+ *     description: Retrieves all dynamic email templates. Requires SUPER ADMIN.
+ *     security:
+ *       - BearerAuth: []
+ */
+platformSettingsRoutes.get('/templates', authMiddleware, requirePlatformAdmin, async (c) => {
+    try {
+        const { platformEmailTemplates } = await import('../db/schema/platform.schema');
+        const templates = await db
+            .select()
+            .from(platformEmailTemplates)
+            .orderBy(platformEmailTemplates.code);
+
+        return c.json({
+            success: true,
+            data: templates,
+        })
+    } catch (error) {
+        console.error('Failed to fetch platform email templates:', error)
+        return c.json({ success: false, error: 'Failed to fetch templates' }, 500)
+    }
+})
+
+/**
+ * @openapi
+ * /api/platform/settings/templates/{code}:
+ *   put:
+ *     tags: [Platform Settings]
+ *     summary: Update an email template
+ *     description: Updates or creates an email template. Requires SUPER ADMIN.
+ *     security:
+ *       - BearerAuth: []
+ */
+platformSettingsRoutes.put('/templates/:code', authMiddleware, requirePlatformAdmin, async (c) => {
+    try {
+        const code = c.req.param('code')
+        const body = await c.req.json()
+        const { platformEmailTemplates } = await import('../db/schema/platform.schema');
+
+        const [existing] = await db
+            .select()
+            .from(platformEmailTemplates)
+            .where(eq(platformEmailTemplates.code, code))
+            .limit(1)
+
+        let updatedTemplate;
+
+        if (existing) {
+            [updatedTemplate] = await db
+                .update(platformEmailTemplates)
+                .set({
+                    subject: body.subject,
+                    bodyHtml: body.bodyHtml,
+                    bodyText: body.bodyText,
+                    availableVariables: body.availableVariables || existing.availableVariables,
+                    updatedAt: new Date(),
+                })
+                .where(eq(platformEmailTemplates.code, code))
+                .returning()
+        } else {
+            [updatedTemplate] = await db
+                .insert(platformEmailTemplates)
+                .values({
+                    code,
+                    subject: body.subject,
+                    bodyHtml: body.bodyHtml,
+                    bodyText: body.bodyText,
+                    availableVariables: body.availableVariables || [],
+                })
+                .returning()
+        }
+
+        return c.json({
+            success: true,
+            data: updatedTemplate,
+        })
+    } catch (error) {
+        console.error('Failed to update platform email template:', error)
+        return c.json({ success: false, error: 'Failed to update template' }, 500)
+    }
+})
+
+/**
+ * @openapi
+ * /api/platform/settings/{key}:
+ *   get:
+ *     tags: [Platform Settings]
+ *     summary: Get a specific platform setting
+ *     description: Retrieves a key-value setting. Requires SUPER ADMIN.
+ *     security:
+ *       - BearerAuth: []
+ */
+platformSettingsRoutes.get('/:key', authMiddleware, requirePlatformAdmin, async (c) => {
+    try {
+        const key = c.req.param('key')
+        const [setting] = await db
+            .select()
+            .from(platformSettings)
+            .where(eq(platformSettings.key, key))
+            .limit(1)
+
+        return c.json({
+            success: true,
+            data: setting ? setting.value : null,
+        })
+    } catch (error) {
+        console.error('Failed to fetch platform setting:', error)
+        return c.json({ success: false, error: 'Failed to fetch setting' }, 500)
+    }
+})
+
+/**
+ * @openapi
+ * /api/platform/settings/{key}:
+ *   put:
+ *     tags: [Platform Settings]
+ *     summary: Update a specific platform setting
+ *     description: Updates a key-value setting in the platform configuration. Requires SUPER ADMIN.
+ *     security:
+ *       - BearerAuth: []
+ */
+platformSettingsRoutes.put('/:key', authMiddleware, requirePlatformAdmin, async (c) => {
     try {
         const key = c.req.param('key')
         const body = await c.req.json()

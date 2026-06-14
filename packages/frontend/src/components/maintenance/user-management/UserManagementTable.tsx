@@ -25,10 +25,9 @@ interface UserManagementTableProps {
   onRowsPerPageChange: (rowsPerPage: number) => void;
   onView: (user: User) => void;
   onEdit: (user: User) => void;
+  onResetPassword: (user: User) => void;
   onToggleStatus: (userId: string, currentStatus: boolean) => void;
 }
-
-const columnFilters = useColumnFiltersFromUrl();
 
 const UserManagementTable = memo(function UserManagementTable({
   users,
@@ -40,8 +39,10 @@ const UserManagementTable = memo(function UserManagementTable({
   onRowsPerPageChange,
   onView,
   onEdit,
+  onResetPassword,
   onToggleStatus,
 }: UserManagementTableProps) {
+  const columnFilters = useColumnFiltersFromUrl();
   const columns = useMemo<GridColDef<User>[]>(() => [
     {
       field: 'fullName',
@@ -118,6 +119,12 @@ const UserManagementTable = memo(function UserManagementTable({
           label="Edit User"
           icon={<EditIcon />}
           onClick={() => onEdit(params.row)}
+        />,
+        <SafeGridActionsCellItem
+          key="reset"
+          label="Reset Password"
+          icon={<SecurityIcon color="warning" />}
+          onClick={() => onResetPassword(params.row)}
         />,
         <SafeGridActionsCellItem
           key="toggle"

@@ -23,6 +23,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
 import { getErrorMessage } from '@/utils/error-message';
+import { ResetPasswordDialog } from '@/components/users/ResetPasswordDialog';
 import {
   UserFormDialog,
   UserManagementFilters,
@@ -60,6 +61,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedUserRoles, setSelectedUserRoles] = useState<UserRoleSummary[]>([]);
   const [loadingUserRoles, setLoadingUserRoles] = useState(false);
+  const [openResetPasswordDialog, setOpenResetPasswordDialog] = useState(false);
   const [formData, setFormData] = useState<UserFormData>({
     email: '',
     username: '',
@@ -69,7 +71,8 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
     department: '',
     position: '',
     bankingAccess: 'CONVENTIONAL',
-    syariahCertified: false
+    syariahCertified: false,
+    sendWelcomeEmail: true
   });
 
   // ✅ UI States
@@ -228,7 +231,8 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       department: '',
       position: '',
       bankingAccess: 'CONVENTIONAL',
-      syariahCertified: false
+      syariahCertified: false,
+      sendWelcomeEmail: true
     });
   };
 
@@ -280,6 +284,12 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
     setSelectedUser(user);
     await loadUserRoles(user.id);
     setOpenViewDialog(true);
+  };
+
+  // ✅ Handle Reset Password
+  const handleResetPassword = (user: User) => {
+    setSelectedUser(user);
+    setOpenResetPasswordDialog(true);
   };
 
   // ✅ Load users on mount and filter changes
@@ -381,6 +391,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
         }}
         onView={handleView}
         onEdit={handleEdit}
+        onResetPassword={handleResetPassword}
         onToggleStatus={toggleUserStatus}
       />
 
@@ -424,6 +435,17 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
           router.push(`/banking/maintenance/access-management/assignments?${query.toString()}`);
         }}
         onEdit={handleEdit}
+      />
+
+      <ResetPasswordDialog
+        open={openResetPasswordDialog}
+        onClose={() => setOpenResetPasswordDialog(false)}
+        userId={selectedUser?.id || null}
+        userName={selectedUser?.fullName || null}
+        onSuccess={() => {
+            setOpenResetPasswordDialog(false);
+            setSelectedUser(null);
+        }}
       />
 
       {/* Snackbar */}

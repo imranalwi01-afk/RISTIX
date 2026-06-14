@@ -48,6 +48,7 @@ const CreateUserSchema = z.object({
     phone: z.string().optional(),
     department: z.string().optional(),
     position: z.string().optional(),
+    sendWelcomeEmail: z.boolean().optional(),
 }).openapi('CreateUserInput')
 
 const UpdateUserSchema = z.object({
@@ -362,10 +363,30 @@ usersRoutes.openapi(
         const body = c.req.valid('json')
 
         // Define the actual user creation operation
-        const executeCreate = () => usersService.createUser({
-            ...body,
-            tenantId,
-        })
+        const executeCreate = () => pipe(
+            usersService.createUser({
+                ...body,
+                tenantId,
+            }),
+            Effect.tap((user) => Effect.sync(() => {
+                if (body.sendWelcomeEmail) {
+                    import('../services/notification.service').then(({ sendEmailNotification }) => {
+                        import('../config/env').then(({ env: config }) => {
+                            const loginUrl = `${(config as any).FRONTEND_URL || 'http://localhost:4231'}/login`;
+                            const job = { template: 'welcome_email' } as any;
+                            Effect.runPromise(sendEmailNotification).then(sendFn => {
+                                sendFn(job, body.email, {
+                                    fullName: body.fullName,
+                                    username: body.username,
+                                    password: body.password,
+                                    loginUrl,
+                                }).catch(e => console.error('Failed to send welcome email', e));
+                            });
+                        });
+                    });
+                }
+            }))
+        )
 
         // Use approval interceptor
         const effect = pipe(
