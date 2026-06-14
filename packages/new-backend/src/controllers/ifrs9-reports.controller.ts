@@ -965,7 +965,80 @@ export const ifrs9ReportsController = {
     },
 
     exportReport: async (c: Context) => {
-        // Mock export - return usage of text for now
-        return c.text("Export function placeholder");
+        try {
+            const tenantId = (c as any).get('tenantId');
+            const body = await c.req.json().catch(() => ({}));
+            const reportType = body.reportType || c.req.query('reportType') || 'ecl-result';
+            const format = body.format || c.req.query('format') || 'csv';
+            const prc_date = body.prc_date || c.req.query('prc_date') || '2023-12-31';
+
+            const EXPORT_LIMIT = 10000;
+            let data: any[] = [];
+
+            switch (reportType) {
+                case 'lifetime-pd-yearly': {
+                    const result = await ifrs9ReportsService.getLifetimePDYearly(tenantId, 1, EXPORT_LIMIT, { prc_date });
+                    data = result.data || [];
+                    break;
+                }
+                case 'lifetime-pd-monthly': {
+                    const result = await ifrs9ReportsService.getLifetimePDMonthly(tenantId, 1, EXPORT_LIMIT, { prc_date });
+                    data = result.data || [];
+                    break;
+                }
+                case 'lifetime-pd-account-details': {
+                    const result = await ifrs9ReportsService.getLifetimePDAccountDetails(tenantId, 1, EXPORT_LIMIT, { prc_date });
+                    data = result.data || [];
+                    break;
+                }
+                case 'ecl-result': {
+                    const result = await ifrs9ReportsService.getECLResult(tenantId, 1, EXPORT_LIMIT, { prc_date });
+                    data = result.data || [];
+                    break;
+                }
+                case 'nominative-report': {
+                    const result = await ifrs9ReportsService.getNominativeReport(tenantId, 1, EXPORT_LIMIT, prc_date);
+                    data = result.data || [];
+                    break;
+                }
+                default:
+                    return c.json({
+                        success: false,
+                        message: `Unknown report type: ${reportType}. Valid types: lifetime-pd-yearly, lifetime-pd-monthly, lifetime-pd-account-details, ecl-result, nominative-report`,
+                    }, 400);
+            }
+
+            if (format === 'csv') {
+                if (data.length === 0) {
+                    return c.text('No data available for export', 200, {
+                        'Content-Type': 'text/csv',
+                    });
+                }
+                const headers = Object.keys(data[0]);
+                const csvRows = data.map(row =>
+                    headers.map(header => {
+                        const value = row[header];
+                        if (value === null || value === undefined) return '';
+                        if (typeof value === 'object') return JSON.stringify(value);
+                        return `"${String(value).replace(/"/g, '""')}"`;
+                    }).join(',')
+                );
+                const csv = [headers.join(','), ...csvRows].join('\n');
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                return c.text(csv, 200, {
+                    'Content-Type': 'text/csv',
+                    'Content-Disposition': `attachment; filename="${reportType}-export-${timestamp}.csv"`,
+                });
+            }
+
+            return c.json({
+                success: true,
+                data,
+                total: data.length,
+                reportType,
+            });
+        } catch (error: any) {
+            return ifrs9ReportsController.handleError(c, error);
+        }
     }
 };

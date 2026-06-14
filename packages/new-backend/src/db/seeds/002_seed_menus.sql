@@ -92,12 +92,14 @@ INSERT INTO menu.menu_items (id, tenant_id, category_id, name, path, icon, sort_
     ('b1000000-0011-4000-8000-000000000001', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000011', 'Access Management', '/banking/maintenance/access-management', 'ManageAccounts', 1, 0, true, true, true, 'both', '550e8400-1111-2222-3333-444455555201'),
     ('b1000000-0011-4000-8000-000000000002', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000011', 'Approval', '/banking/maintenance/approval', 'Approval', 2, 0, true, true, true, 'both', '550e8400-1111-2222-3333-444455555201'),
     ('b1000000-0011-4000-8000-000000000003', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000011', 'Job Monitoring', '/banking/maintenance/job-monitoring', 'Monitor', 3, 0, true, true, true, 'both', '550e8400-1111-2222-3333-444455555201'),
-    ('b1000000-0011-4000-8000-000000000004', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000011', 'Menu Management', '/banking/maintenance/menus', 'Menu', 4, 0, true, true, true, 'both', '550e8400-1111-2222-3333-444455555201'),
     ('b1000000-0011-4000-8000-000000000005', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000011', 'Audit Log', '/banking/maintenance/audit', 'History', 5, 0, true, true, true, 'both', '550e8400-1111-2222-3333-444455555201'),
     ('b1000000-0011-4000-8000-000000000006', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000011', 'User Activity', '/banking/maintenance/user-activity', 'People', 6, 0, true, true, true, 'both', '550e8400-1111-2222-3333-444455555201'),
     ('b1000000-0011-4000-8000-000000000007', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000011', 'Assignments', '/banking/maintenance/assignments', 'Assignment', 7, 0, true, true, true, 'both', '550e8400-1111-2222-3333-444455555201'),
     ('b1000000-0011-4000-8000-000000000008', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000011', 'Users', '/banking/maintenance/users', 'Group', 8, 0, true, true, true, 'both', '550e8400-1111-2222-3333-444455555201')
 ON CONFLICT (id) DO NOTHING;
+
+DELETE FROM menu.menu_items
+WHERE path = '/banking/maintenance/menus';
 
 SELECT 'SUCCESS: IAF menu structure seeded!' as result;
 COMMIT;

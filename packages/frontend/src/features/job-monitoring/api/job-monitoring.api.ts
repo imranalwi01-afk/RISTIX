@@ -1,5 +1,3 @@
-'use client';
-
 import { bankingAPI } from '@/services/api';
 
 export async function fetchJobExecutions() {

@@ -33,6 +33,11 @@ import {
     Security as SecurityIcon,
     Add as AddIcon,
     Delete as DeleteIcon,
+    FactCheck as FactCheckIcon,
+    ToggleOff as ToggleOffIcon,
+    VerifiedUser as VerifiedUserIcon,
+    VpnKey as VpnKeyIcon,
+    AssignmentInd as AssignmentIndIcon,
 } from '@mui/icons-material';
 import { bankingAPI, api } from '@/services/api';
 import { getErrorMessage } from '@/utils/error-message';
@@ -77,6 +82,8 @@ interface MatrixPayload {
     name?: string;
     description?: string | null;
     entityType?: string;
+    operationType?: string | null;
+    bankingMode?: string | null;
     isActive?: boolean;
     levels?: MatrixPayloadLevel[];
 }
@@ -103,6 +110,11 @@ const ENTITY_TYPES = [
     { value: 'ead_configuration', label: 'EAD Configuration', icon: <BuildIcon />, desc: 'Set Exposure at Default models and parameters' },
     { value: 'ecl_configuration', label: 'ECL Configuration', icon: <BuildIcon />, desc: 'Configure Expected Credit Loss calculation rules' },
     { value: 'fl_scalar', label: 'FL Scalar', icon: <BuildIcon />, desc: 'Configure forward-looking scalar adjustments' },
+    { value: 'individual_assessment_consolidated', label: 'Individual Assessment Consolidated', icon: <FactCheckIcon />, desc: 'Approve consolidated individual impairment assessment results' },
+    { value: 'user_status', label: 'User Status', icon: <ToggleOffIcon />, desc: 'Activate, deactivate, or suspend user accounts' },
+    { value: 'role', label: 'Role', icon: <VerifiedUserIcon />, desc: 'Create, update, or delete role definitions' },
+    { value: 'role_permission', label: 'Role Permission', icon: <VpnKeyIcon />, desc: 'Assign or revoke permissions associated with roles' },
+    { value: 'role_assignment', label: 'Role Assignment', icon: <AssignmentIndIcon />, desc: 'Assign or remove roles assigned to users' },
 ];
 
 const LEVEL_TEMPLATES: Record<string, { name: string; permissionHint: string }[]> = {
@@ -120,6 +132,21 @@ const LEVEL_TEMPLATES: Record<string, { name: string; permissionHint: string }[]
         { name: 'Inputter', permissionHint: 'Submit parameter updates' },
         { name: 'Reviewer', permissionHint: 'Review parameter changes' },
         { name: 'Authorizer', permissionHint: 'Approve parameter changes' },
+    ],
+    segmentation: [
+        { name: 'Staging Analyst', permissionHint: 'Submit segmentation changes' },
+        { name: 'Staging Reviewer', permissionHint: 'Review segmentation criteria' },
+        { name: 'Staging Approver', permissionHint: 'Approve segmentation configuration' },
+    ],
+    rule_base_setting: [
+        { name: 'Rule Analyst', permissionHint: 'Submit rule base changes' },
+        { name: 'Rule Reviewer', permissionHint: 'Review rule base logic' },
+        { name: 'Rule Approver', permissionHint: 'Approve rule base settings' },
+    ],
+    bucket_parameter: [
+        { name: 'Bucket Analyst', permissionHint: 'Submit bucket parameter changes' },
+        { name: 'Bucket Reviewer', permissionHint: 'Review bucket thresholds' },
+        { name: 'Bucket Approver', permissionHint: 'Approve bucket configuration' },
     ],
 };
 
@@ -178,6 +205,8 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
     const [entityType, setEntityType] = useState('configuration');
     const [description, setDescription] = useState('');
     const [isActive, setIsActive] = useState(true);
+    const [operationType, setOperationType] = useState('create,update,delete');
+    const [bankingMode, setBankingMode] = useState('');
     const [levels, setLevels] = useState<MatrixLevelEditor[]>([]);
     const [saving, setSaving] = useState(false);
     const [availableRoles, setAvailableRoles] = useState<RoleOption[]>([]);
@@ -207,6 +236,8 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
             setDescription(matrix.description || '');
             setEntityType(matrix.entityType || 'configuration');
             setIsActive(Boolean(matrix.isActive ?? true));
+            setOperationType(matrix.operationType || 'create,update,delete');
+            setBankingMode(matrix.bankingMode || '');
             const initialLevels = [...(matrix.levels || [])].sort((a, b) => (a.level || 0) - (b.level || 0)).map((level) => ({
                 level: Number(level.level || 0),
                 name: String(level.name || `Level ${level.level || '-'}`),
@@ -221,6 +252,8 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
             setDescription('');
             setEntityType('configuration');
             setIsActive(true);
+            setOperationType('create,update,delete');
+            setBankingMode('');
             setLevels([{ level: 1, name: 'Level 1', requiredRoleCodes: [], requiredPermissionCodes: ['approval.requests.approve'], requiredCount: 1, timeoutHours: '' }]);
         }
     }, [open, matrix]);
@@ -287,6 +320,8 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
             const payload = {
                 name: name.trim(),
                 description: description.trim() || null,
+                operationType: operationType || null,
+                bankingMode: bankingMode || null,
                 isActive,
                 levels: levels.sort((a, b) => a.level - b.level).map((l) => ({
                     level: Math.max(1, Number(l.level || 1)),
@@ -368,7 +403,7 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
                         </Grid>
 
                         {/* Status */}
-                        <Grid size={{ xs: 12, md: 4 }}>
+                        <Grid size={{ xs: 12, md: 3 }}>
                             <FormControl fullWidth>
                                 <InputLabel>Status</InputLabel>
                                 <Select label="Status" value={isActive ? 'active' : 'inactive'} onChange={(e) => setIsActive(e.target.value === 'active')} disabled={saving}>
@@ -378,8 +413,35 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
                             </FormControl>
                         </Grid>
 
+                        {/* Operation Type */}
+                        <Grid size={{ xs: 12, md: 3 }}>
+                            <FormControl fullWidth>
+                                <InputLabel>Operation Type</InputLabel>
+                                <Select label="Operation Type" value={operationType} onChange={(e) => setOperationType(e.target.value)} disabled={saving}>
+                                    <MenuItem value="create,update,delete">All Operations</MenuItem>
+                                    <MenuItem value="create">Create Only</MenuItem>
+                                    <MenuItem value="update">Update Only</MenuItem>
+                                    <MenuItem value="delete">Delete Only</MenuItem>
+                                    <MenuItem value="create,update">Create & Update</MenuItem>
+                                    <MenuItem value="update,delete">Update & Delete</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Grid>
+
+                        {/* Banking Mode */}
+                        <Grid size={{ xs: 12, md: 3 }}>
+                            <FormControl fullWidth>
+                                <InputLabel>Banking Mode</InputLabel>
+                                <Select label="Banking Mode" value={bankingMode} onChange={(e) => setBankingMode(e.target.value)} disabled={saving}>
+                                    <MenuItem value="">All Modes</MenuItem>
+                                    <MenuItem value="conventional">Conventional</MenuItem>
+                                    <MenuItem value="dual">Dual</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Grid>
+
                         {/* Description */}
-                        <Grid size={{ xs: 12, md: 8 }}>
+                        <Grid size={{ xs: 12, md: 12 }}>
                             <TextField fullWidth label="Description" multiline minRows={1} value={description} onChange={(e) => setDescription(e.target.value)} disabled={saving} />
                         </Grid>
 

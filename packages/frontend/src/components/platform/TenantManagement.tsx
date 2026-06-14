@@ -88,14 +88,14 @@ const normalizeTenantType = (tenant: Tenant): 'banking' | 'fintech' | 'insurance
     return 'banking';
 };
 
-const normalizeBankingMode = (tenant: Tenant): 'conventional' | 'syariah' | 'dual' => {
+const normalizeBankingMode = (tenant: Tenant): 'conventional' | 'dual' => {
     const raw = String(
         tenant.bankingMode ??
         (tenant as any).banking_mode ??
         'conventional'
     ).trim().toLowerCase();
 
-    if (raw === 'syariah' || raw === 'dual') return raw;
+    if (raw === 'dual') return raw;
     return 'conventional';
 };
 
@@ -384,7 +384,7 @@ const TenantManagement = () => {
             </Box>
 
             {error && (
-                <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+                <Alert severity="error" sx={{ mb: 3 }} role="alert" onClose={() => setError(null)}>
                     {error}
                 </Alert>
             )}
@@ -545,7 +545,6 @@ const TenantManagement = () => {
                                     onChange={(e) => setFormData({ ...formData, bankingMode: e.target.value })}
                                 >
                                     <MenuItem value="conventional">Conventional</MenuItem>
-                                    <MenuItem value="syariah">Syariah</MenuItem>
                                     <MenuItem value="dual">Dual</MenuItem>
                                 </TextField>
                             </Grid>

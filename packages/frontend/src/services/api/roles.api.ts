@@ -25,7 +25,6 @@ export const rolesAPI = {
     isActive?: boolean;
     includeInactive?: boolean;
   }, tenantId?: string) => {
-    console.log(`🔒 Fetching roles from tenant database with real API${tenantId ? ` (tenant: ${tenantId})` : ''}`, params);
     const config: any = { params };
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.get('/roles', config);
@@ -34,7 +33,6 @@ export const rolesAPI = {
 
   // Get role by ID from tenant database
   getById: async (id: string, tenantId?: string) => {
-    console.log(`🔒 Fetching role ${id} from tenant database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.get(`/roles/${id}`, config);
@@ -54,7 +52,6 @@ export const rolesAPI = {
     hierarchyLevel?: number;
     isActive?: boolean;
   }, tenantId?: string) => {
-    console.log(`➕ Creating role in tenant database${tenantId ? ` (tenant: ${tenantId})` : ''}`, roleData.name);
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const payload = {
@@ -80,7 +77,6 @@ export const rolesAPI = {
     hierarchyLevel?: number;
     isActive?: boolean;
   }, tenantId?: string) => {
-    console.log(`✏️ Updating role ${id} in tenant database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const payload = {
@@ -97,7 +93,6 @@ export const rolesAPI = {
 
   // Delete role from tenant database
   delete: async (id: string, tenantId?: string) => {
-    console.log(`🗑️ Deleting role ${id} from tenant database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.delete(`/roles/${id}`, config);
@@ -106,7 +101,6 @@ export const rolesAPI = {
 
   // Toggle role active status
   toggle: async (id: string, tenantId?: string) => {
-    console.log(`🔄 Toggling role ${id} active status${tenantId ? ` (tenant: ${tenantId})` : ''}`);
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.post(`/roles/${id}/toggle`, {}, config);
@@ -115,7 +109,6 @@ export const rolesAPI = {
 
   // Get all available permissions
   getPermissions: async (tenantId?: string) => {
-    console.log(`🔑 Fetching permissions from tenant database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.get('/roles/permissions', config);
@@ -129,7 +122,6 @@ export const rolesAPI = {
     tenantId?: string,
     options?: { submitForApproval?: boolean; approvalReason?: string }
   ) => {
-    console.log(`🔑 Updating permissions for role ${id}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.put(`/roles/${id}/permissions`, {
@@ -142,7 +134,6 @@ export const rolesAPI = {
 
   // Get users assigned to role
   getUsers: async (roleId: string, tenantId?: string) => {
-    console.log(`👥 Fetching users for role ${roleId}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.get(`/roles/${roleId}/users`, config);
@@ -151,7 +142,6 @@ export const rolesAPI = {
 
   // Get roles assigned to user
   getUserRoles: async (userId: string, tenantId?: string) => {
-    console.log(`👤 Fetching role assignments for user ${userId}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.get(`/roles/users/${userId}/roles`, config);
@@ -160,7 +150,6 @@ export const rolesAPI = {
 
   // Assign role to user
   assignUser: async (roleId: string, userId: string, tenantId?: string) => {
-    console.log(`👤 Assigning role ${roleId} to user ${userId}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const payload = { isTemporary: false };
@@ -180,7 +169,6 @@ export const rolesAPI = {
 
   // Remove role from user
   removeUser: async (roleId: string, userId: string, tenantId?: string) => {
-    console.log(`👤 Removing role ${roleId} from user ${userId}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     try {
@@ -202,7 +190,6 @@ export const rolesAPI = {
     input: { resource: string; action: string },
     tenantId?: string
   ) => {
-    console.log(`🔍 Checking permission for user ${userId}${tenantId ? ` (tenant: ${tenantId})` : ''}`, input);
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.post(`/roles/users/${userId}/permissions/check`, input, config);

@@ -237,7 +237,6 @@ const eclConfigurationAPI = {
   getHeaders: async (): Promise<ECLConfigHeader[]> => {
     try {
       const data = await api.banking.eclConfigurations.getAll();
-      console.log('🔍 [ECL-API] Raw API Response:', JSON.stringify(data, null, 2));
 
       // Handle case where data might be nested in { data: [...] } if API client behaves unexpectedly
       const resultData = Array.isArray(data) ? data : (data as any).data || [];
@@ -264,7 +263,6 @@ const eclConfigurationAPI = {
           details: []
         };
       });
-      console.log('✅ [ECL-API] Transformed Data:', transformed.length, 'records');
       return transformed;
     } catch (error) {
       console.error('Error fetching ECL configurations:', error);
@@ -1150,7 +1148,7 @@ function ECLConfigurationPage() {
         {
           label: 'Schedule',
           icon: <ScheduleIcon />,
-          onClick: () => console.log('Schedule ECL batch job'),
+          onClick: () => {},
           variant: 'outlined',
         },
         {

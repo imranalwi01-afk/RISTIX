@@ -445,7 +445,7 @@ const PlatformRBACManagement = () => {
             </Stack>
 
             {error && (
-                <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+                <Alert severity="error" sx={{ mb: 2 }} role="alert" onClose={() => setError(null)}>
                     {error}
                 </Alert>
             )}

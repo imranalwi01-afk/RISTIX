@@ -1132,7 +1132,6 @@ export class SessionControlService {
 
   private log(message: string, data?: any): void {
     if (this.options.enableLogging) {
-      console.log(`[SessionControl] ${message}`, data || '');
     }
   }
 
@@ -1351,10 +1350,12 @@ export class SessionControlService {
   }
 
   private showNetworkWarning(message: string) {
-    // Implement network warning display
+    // Display network warning and dispatch UI event
     if (typeof window !== 'undefined') {
       console.warn('🌐 Network Warning:', message);
-      // TODO: Show toast notification or banner
+      window.dispatchEvent(
+        new CustomEvent('session:network-warning', { detail: { message, timestamp: Date.now() } })
+      );
       this.broadcastEvent({
         type: 'network_warning',
         timestamp: Date.now(),
@@ -1364,10 +1365,12 @@ export class SessionControlService {
   }
 
   private showOfflineIndicator() {
-    // Implement offline indicator display
+    // Display offline indicator and dispatch UI event
     if (typeof window !== 'undefined') {
-      console.log('📵 Showing offline indicator');
-      // TODO: Show offline banner/component
+      console.warn('📡 Connection lost – showing offline indicator');
+      window.dispatchEvent(
+        new CustomEvent('session:offline-indicator', { detail: { isOffline: true, timestamp: Date.now() } })
+      );
       this.broadcastEvent({
         type: 'offline_indicator_shown',
         timestamp: Date.now()
@@ -1376,10 +1379,12 @@ export class SessionControlService {
   }
 
   private showSlowConnectionWarning() {
-    // Implement slow connection warning
+    // Display slow connection warning and dispatch UI event
     if (typeof window !== 'undefined') {
       console.warn('🐌 Slow connection detected');
-      // TODO: Show slow connection warning
+      window.dispatchEvent(
+        new CustomEvent('session:slow-connection', { detail: { isSlow: true, timestamp: Date.now() } })
+      );
       this.broadcastEvent({
         type: 'slow_connection_warning',
         timestamp: Date.now()

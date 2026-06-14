@@ -27,7 +27,6 @@ const makePermission = (
   requiredApprovalLevel: overrides.requiredApprovalLevel ?? null,
   requiredApprovers: overrides.requiredApprovers ?? 1,
   bankingSpecific: overrides.bankingSpecific ?? true,
-  syariahRequired: overrides.syariahRequired ?? false,
 });
 
 describe('access-management utils', () => {

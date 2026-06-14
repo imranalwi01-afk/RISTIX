@@ -7,12 +7,15 @@ import {
   Cancel as InactiveIcon,
   CheckCircle as ActiveIcon,
   Edit as EditIcon,
+  LockReset as LockResetIcon,
   Security as SecurityIcon,
   Visibility as ViewIcon,
+  AssignmentInd as ManageRolesIcon,
 } from '@mui/icons-material';
 import type { GridColDef } from '@mui/x-data-grid';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import type { User } from './types';
+import { useColumnFiltersFromUrl } from '@/hooks/useColumnFiltersFromUrl';
 
 interface UserManagementTableProps {
   users: User[];
@@ -24,7 +27,9 @@ interface UserManagementTableProps {
   onRowsPerPageChange: (rowsPerPage: number) => void;
   onView: (user: User) => void;
   onEdit: (user: User) => void;
+  onResetPassword: (user: User) => void;
   onToggleStatus: (userId: string, currentStatus: boolean) => void;
+  onManageRoles: (user: User) => void;
 }
 
 
@@ -38,8 +43,11 @@ const UserManagementTable = memo(function UserManagementTable({
   onRowsPerPageChange,
   onView,
   onEdit,
+  onResetPassword,
   onToggleStatus,
+  onManageRoles,
 }: UserManagementTableProps) {
+  const columnFilters = useColumnFiltersFromUrl();
   const columns = useMemo<GridColDef<User>[]>(() => [
     {
       field: 'fullName',
@@ -72,9 +80,9 @@ const UserManagementTable = memo(function UserManagementTable({
       renderCell: (params) => (
         <Chip
           label={params.row.bankingAccess}
-          color={params.row.bankingAccess === 'SYARIAH' ? 'success' : 'primary'}
+          color={params.row.bankingAccess === 'BOTH' ? 'success' : 'primary'}
           size="small"
-          icon={params.row.syariahCertified ? <SecurityIcon /> : <BankingIcon />}
+          icon={params.row.dualModeCertified ? <SecurityIcon /> : <BankingIcon />}
         />
       ),
     },
@@ -101,7 +109,7 @@ const UserManagementTable = memo(function UserManagementTable({
       field: 'actions',
       headerName: 'Actions',
       type: 'actions',
-      width: 144,
+      width: 220,
       filterable: false,
       sortable: false,
       getActions: (params) => [
@@ -118,6 +126,18 @@ const UserManagementTable = memo(function UserManagementTable({
           onClick={() => onEdit(params.row)}
         />,
         <SafeGridActionsCellItem
+          key="roles"
+          label="Manage Roles"
+          icon={<ManageRolesIcon />}
+          onClick={() => onManageRoles(params.row)}
+        />,
+        <SafeGridActionsCellItem
+          key="reset"
+          label="Reset Password"
+          icon={<SecurityIcon color="warning" />}
+          onClick={() => onResetPassword(params.row)}
+        />,
+        <SafeGridActionsCellItem
           key="toggle"
           label={params.row.isActive ? 'Disable User' : 'Enable User'}
           icon={params.row.isActive ? <InactiveIcon color="error" /> : <ActiveIcon color="success" />}
@@ -125,7 +145,7 @@ const UserManagementTable = memo(function UserManagementTable({
         />,
       ],
     },
-  ], [onEdit, onToggleStatus, onView]);
+  ], [onEdit, onToggleStatus, onView, onResetPassword, onManageRoles]);
 
   return (
     <SafeDataGrid

@@ -173,12 +173,10 @@ export function useNotificationSocket() {
 
         // Connection handlers
         socket.on('connect', () => {
-            console.log('📱 Connected to notification socket')
             setIsConnected(true)
         })
 
         socket.on('disconnect', () => {
-            console.log('📴 Disconnected from notification socket')
             setIsConnected(false)
         })
 
@@ -193,7 +191,6 @@ export function useNotificationSocket() {
                 category: notification.category || getNotificationCategory(notification.type),
             }
 
-            console.log('🔔 Notification received:', normalizedNotification)
             void loadPersistedNotifications()
 
             // Keep temporary in-memory entry for immediate UI feedback while DB state refreshes.

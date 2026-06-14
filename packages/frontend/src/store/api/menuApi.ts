@@ -50,21 +50,34 @@ export const menuQueryApi = createApi({
     }),
     tagTypes: ['Menu'],
     endpoints: (builder) => ({
-        getMenuTree: builder.query<MenuItem[], { bankingMode?: string; includeInactive?: boolean }>({
-            async queryFn({ bankingMode = 'conventional', includeInactive = false }, _api, _extraOptions, baseQuery) {
+        getMenuTree: builder.query<MenuItem[], {
+            bankingMode?: string;
+            includeInactive?: boolean;
+            tenantContext?: string;
+        }>({
+            async queryFn({ bankingMode = 'conventional', includeInactive = false, tenantContext }, _api, _extraOptions, baseQuery) {
                 const result = await baseQuery({
                     url: '/menu/flat',
-                    params: { bankingMode, includeInactive },
+                    params: { bankingMode, includeInactive, tenantId: tenantContext },
                 })
 
                 if ('data' in result) {
                     const payload = result.data as { data?: MenuItem[] }
-                    if (Array.isArray(payload?.data) && payload.data.length > 0) {
+                    if (Array.isArray(payload?.data)) {
                         return { data: payload.data }
                     }
                 }
 
-                return { data: [] }
+                if (result.error) {
+                    return { error: result.error }
+                }
+
+                return {
+                    error: {
+                        status: 'CUSTOM_ERROR',
+                        error: 'Invalid menu response',
+                    },
+                }
             },
             providesTags: ['Menu'],
             // Keep unused data for 5 minutes

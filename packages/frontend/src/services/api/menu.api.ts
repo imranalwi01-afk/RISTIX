@@ -9,7 +9,7 @@
 // ============================================================================
 
 import { AxiosResponse } from 'axios';
-import { apiClient, apiClient as menuApiClient } from '../api-client';
+import { apiClient as menuApiClient } from '../api-client';
 import '../api-setup'; // Ensure interceptors are registered
 import { getStaticFallbackMenu } from '@/components/banking/BankingSidebarUtils';
 import { frontendEnvironmentLoader } from '@/config/environment-loader-frontend';
@@ -96,7 +96,7 @@ export interface MenuConfigurationRequest {
   name: string;
   description?: string;
   target_audience: 'banking_staff' | 'consultant' | 'regulator' | 'platform_admin';
-  banking_mode?: 'conventional' | 'syariah' | 'dual';
+  banking_mode?: 'conventional' | 'dual';
   tenant_specific?: boolean;
   is_default?: boolean;
   is_active?: boolean;
@@ -242,10 +242,9 @@ export class MenuApiService {
    * Get hierarchical menu tree for current user
    */
   async getMenuTree(params?: {
-    bankingMode?: 'conventional' | 'syariah' | 'dual';
+    bankingMode?: 'conventional' | 'dual';
     includeInactive?: boolean;
   }): Promise<MenuApiResponse<MenuItem[]>> {
-    console.log('🚀 [MENU API] Fetching menu tree...', params);
     if (!isDynamicMenuEnabled()) {
       console.warn('⚠️ [MENU API] Dynamic menu disabled by configuration, using static fallback menu');
       return {
@@ -262,7 +261,6 @@ export class MenuApiService {
 
     try {
       const response = await menuApiClient.get('/menu/hierarchy', { params });
-      console.log('✅ [MENU API] Menu tree response:', response.status, response.data?.success);
       return response.data;
     } catch (error: any) {
       const status = error?.response?.status;
@@ -342,35 +340,50 @@ export class MenuApiService {
   /**
    * Create a new menu item (Admin only)
    */
-  async createMenuItem(menuItem: any): Promise<MenuApiResponse<any>> {
-    const response = await menuApiClient.post('/menu/admin/items', menuItem);
+  async createMenuItem(menuItem: any, tenantId?: string): Promise<MenuApiResponse<any>> {
+    const response = await menuApiClient.post('/menu/admin/items', menuItem, { params: { tenantId } });
+    return response.data;
+  }
+
+  async createMenuCategory(category: any, tenantId?: string): Promise<MenuApiResponse<any>> {
+    const response = await menuApiClient.post('/menu/admin/categories', category, { params: { tenantId } });
+    return response.data;
+  }
+
+  async updateMenuCategory(id: string, category: any, tenantId?: string): Promise<MenuApiResponse<any>> {
+    const response = await menuApiClient.put(`/menu/admin/categories/${id}`, category, { params: { tenantId } });
+    return response.data;
+  }
+
+  async deleteMenuCategory(id: string, tenantId?: string): Promise<MenuApiResponse<void>> {
+    const response = await menuApiClient.delete(`/menu/admin/categories/${id}`, { params: { tenantId } });
     return response.data;
   }
 
   /**
    * Update an existing menu item (Admin only)
    */
-  async updateMenuItem(id: string, menuItem: any): Promise<MenuApiResponse<any>> {
-    const response = await menuApiClient.put(`/menu/admin/items/${id}`, menuItem);
+  async updateMenuItem(id: string, menuItem: any, tenantId?: string): Promise<MenuApiResponse<any>> {
+    const response = await menuApiClient.put(`/menu/admin/items/${id}`, menuItem, { params: { tenantId } });
     return response.data;
   }
 
   /**
    * Delete a menu item (Admin only)
    */
-  async deleteMenuItem(id: string): Promise<MenuApiResponse<void>> {
-    const response = await menuApiClient.delete(`/menu/admin/items/${id}`);
+  async deleteMenuItem(id: string, tenantId?: string): Promise<MenuApiResponse<void>> {
+    const response = await menuApiClient.delete(`/menu/admin/items/${id}`, { params: { tenantId } });
     return response.data;
   }
 
   /**
    * Initialize menu structure from seed data (Admin only)
    */
-  async initializeMenuStructure(): Promise<MenuApiResponse<{
+  async initializeMenuStructure(tenantId?: string): Promise<MenuApiResponse<{
     message: string;
     items_created: number;
   }>> {
-    const response = await menuApiClient.post('/menu/admin/initialize');
+    const response = await menuApiClient.post('/menu/admin/initialize', undefined, { params: { tenantId } });
     return response.data;
   }
 }
@@ -381,7 +394,7 @@ const menuApiService = new MenuApiService();
 // Export individual methods for convenience
 export const menuApi = {
   getUserMenu: () => menuApiService.getUserMenu(),
-  getMenuTree: (params?: { bankingMode?: 'conventional' | 'syariah' | 'dual'; includeInactive?: boolean; tenantId?: string }) =>
+  getMenuTree: (params?: { bankingMode?: 'conventional' | 'dual'; includeInactive?: boolean; tenantId?: string }) =>
     menuApiService.getMenuTree(params),
   getBreadcrumbs: (path: string) => menuApiService.getBreadcrumbs(path),
   logMenuAccess: (accessData: MenuAccessLogRequest) => menuApiService.logMenuAccess(accessData),
@@ -395,10 +408,15 @@ export const menuApi = {
   getMenuHealth: () => menuApiService.getMenuHealth(),
   getMenuInfo: () => menuApiService.getMenuInfo(),
   // CRUD methods
-  createMenuItem: (menuItem: any) => menuApiService.createMenuItem(menuItem),
-  updateMenuItem: (id: string, menuItem: any) => menuApiService.updateMenuItem(id, menuItem),
-  deleteMenuItem: (id: string) => menuApiService.deleteMenuItem(id),
-  initializeMenuStructure: () => menuApiService.initializeMenuStructure()
+  createMenuCategory: (category: any, tenantId?: string) => menuApiService.createMenuCategory(category, tenantId),
+  updateMenuCategory: (id: string, category: any, tenantId?: string) =>
+    menuApiService.updateMenuCategory(id, category, tenantId),
+  deleteMenuCategory: (id: string, tenantId?: string) => menuApiService.deleteMenuCategory(id, tenantId),
+  createMenuItem: (menuItem: any, tenantId?: string) => menuApiService.createMenuItem(menuItem, tenantId),
+  updateMenuItem: (id: string, menuItem: any, tenantId?: string) =>
+    menuApiService.updateMenuItem(id, menuItem, tenantId),
+  deleteMenuItem: (id: string, tenantId?: string) => menuApiService.deleteMenuItem(id, tenantId),
+  initializeMenuStructure: (tenantId?: string) => menuApiService.initializeMenuStructure(tenantId)
 };
 
 export default menuApiService;

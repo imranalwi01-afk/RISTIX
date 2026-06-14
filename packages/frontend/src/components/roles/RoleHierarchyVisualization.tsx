@@ -90,7 +90,6 @@ interface Permission {
   requiredApprovalLevel?: number | null;
   requiredApprovers?: number;
   bankingSpecific: boolean;
-  syariahRequired?: boolean;
 }
 
 interface User {
@@ -151,7 +150,6 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
     setError(null);
 
     try {
-      console.log('🔒 Fetching roles and users for hierarchy visualization...');
       const [rolesResponse, usersResponse] = await Promise.all([
         api.roles.getAll({}),
         api.users.getAll({})
@@ -159,7 +157,6 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
 
       setRoles(rolesResponse.data || []);
       setUsers(usersResponse.data || []);
-      console.log(`✅ Fetched ${rolesResponse.data?.length || 0} roles and ${usersResponse.data?.length || 0} users`);
 
     } catch (error) {
       console.error('❌ Error fetching hierarchy data:', error);
@@ -326,6 +323,7 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
                 {hasChildren && (
                   <IconButton
                     size="small"
+                    aria-label={expanded ? 'Collapse role children' : 'Expand role children'}
                     onClick={(e) => {
                       e.stopPropagation();
                       node.expanded = !expanded;
@@ -412,6 +410,7 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
                   <Tooltip title="View Details">
                     <IconButton
                       size="small"
+                      aria-label="View role details"
                       onClick={(e) => {
                         e.stopPropagation();
                         onRoleView?.(role);
@@ -425,6 +424,7 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
                     <Tooltip title="Edit Role">
                       <IconButton
                         size="small"
+                        aria-label="Edit role"
                         onClick={(e) => {
                           e.stopPropagation();
                           onRoleEdit?.(role);
@@ -438,6 +438,7 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
                   <Tooltip title="Manage Permissions">
                     <IconButton
                       size="small"
+                      aria-label="Manage permissions"
                       onClick={(e) => {
                         e.stopPropagation();
                         onPermissionManage?.(role);
@@ -476,7 +477,7 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
 
   if (error) {
     return (
-      <Alert severity="error" sx={{ mb: 2 }}>
+      <Alert severity="error" sx={{ mb: 2 }} role="alert">
         {error}
       </Alert>
     );
@@ -491,13 +492,13 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
           Role Hierarchy Visualization
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <IconButton onClick={() => setZoomLevel(prev => Math.min(prev + 0.1, 1.5))}>
+          <IconButton onClick={() => setZoomLevel(prev => Math.min(prev + 0.1, 1.5))} aria-label="Zoom in">
             <ZoomInIcon />
           </IconButton>
-          <IconButton onClick={() => setZoomLevel(prev => Math.max(prev - 0.1, 0.7))}>
+          <IconButton onClick={() => setZoomLevel(prev => Math.max(prev - 0.1, 0.7))} aria-label="Zoom out">
             <ZoomOutIcon />
           </IconButton>
-          <IconButton onClick={fetchData}>
+          <IconButton onClick={fetchData} aria-label="Refresh hierarchy data">
             <RefreshIcon />
           </IconButton>
         </Box>

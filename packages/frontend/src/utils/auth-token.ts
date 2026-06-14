@@ -137,7 +137,6 @@ export const clearAuthTokens = () => {
             }
         });
 
-        console.log('🗑️ All authentication tokens cleared');
     } catch (error) {
         console.warn('⚠️ Error clearing auth tokens:', error);
     }

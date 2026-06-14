@@ -1,5 +1,3 @@
-'use client';
-
 import { auditAPI } from '@/services/api';
 
 export interface AuditLogDto {

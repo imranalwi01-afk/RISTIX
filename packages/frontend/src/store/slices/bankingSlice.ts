@@ -4,7 +4,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 interface BankingState {
-  mode: 'conventional' | 'syariah' | 'dual';
+  mode: 'conventional' | 'dual';
   currentTenant: string | null;
   bankingFeatures: Record<string, boolean>;
   calculations: any[];
@@ -23,7 +23,7 @@ const bankingSlice = createSlice({
   name: 'banking',
   initialState,
   reducers: {
-    setBankingMode: (state, action: PayloadAction<'conventional' | 'syariah' | 'dual'>) => {
+    setBankingMode: (state, action: PayloadAction<'conventional' | 'dual'>) => {
       state.mode = action.payload;
     },
     setCurrentTenant: (state, action: PayloadAction<string>) => {

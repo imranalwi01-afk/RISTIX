@@ -22,11 +22,6 @@ export const ROLE_TO_STAKEHOLDER_MAP: Record<string, StakeholderType> = {
   'BANK_PORTFOLIO_MANAGER': 'banking',
   'BANK_DATA_ADMIN': 'banking',
 
-  // Banking Institution Roles (Syariah)
-  'SYARIAH_BANK_CRO': 'banking',
-  'SYARIAH_COMPLIANCE_OFFICER': 'banking',
-  'SYARIAH_IFRS_SPECIALIST': 'banking',
-  'SYARIAH_PORTFOLIO_MANAGER': 'banking',
   'DPS_BOARD_MEMBER': 'banking',
 
   // Universal Banking Roles
@@ -46,7 +41,6 @@ export const ROLE_TO_STAKEHOLDER_MAP: Record<string, StakeholderType> = {
   'BANKING_SUPERVISION_HEAD': 'regulator',
   'IFRS_SUPERVISOR': 'regulator',
   'ISLAMIC_BANKING_DIRECTOR': 'regulator',
-  'SYARIAH_COMPLIANCE_AUDITOR': 'regulator',
   'MARKET_RISK_SUPERVISOR': 'regulator',
 };
 
@@ -60,31 +54,16 @@ export const STAKEHOLDER_DASHBOARDS: Record<StakeholderType, string> = {
 
 // ✅ Banking redirect validation for YOUR direct folder structure
 export const validateBankingRedirect = (path: string, userRole: string): string => {
-  console.group('🔍 Banking Redirect Validation - YOUR STRUCTURE');
-  console.log('Input path:', path);
-  console.log('User role:', userRole);
-  console.log('YOUR Structure: src/app/banking/dashboard/page.tsx → URL: /banking/dashboard');
-
-  // ✅ For YOUR structure, banking users should go to /banking/dashboard
-  if ((userRole.includes('BANK_') || userRole.includes('SYARIAH_'))) {
+  if ((userRole.includes('BANK_'))) {
     if (path !== '/banking/dashboard') {
-      console.log('🔧 Banking user detected, redirecting to /banking/dashboard');
-      console.log('✅ Matches YOUR direct folder structure');
-      console.groupEnd();
       return '/banking/dashboard';
     }
   }
 
-  // ✅ If someone mistakenly expects route group URLs, correct them
-  if (path === '/dashboard' && (userRole.includes('BANK_') || userRole.includes('SYARIAH_'))) {
-    console.warn('🚨 ROUTE GROUP EXPECTATION: /dashboard detected for banking user');
-    console.log('✅ CORRECTED: Redirecting to /banking/dashboard (YOUR structure)');
-    console.groupEnd();
+  if (path === '/dashboard' && (userRole.includes('BANK_'))) {
     return '/banking/dashboard';
   }
 
-  console.log('✅ Path validation passed:', path);
-  console.groupEnd();
   return path;
 };
 
@@ -105,39 +84,18 @@ export const getSmartRedirect = (
   requestedPath?: string,
   fallbackPath?: string
 ): string => {
-  console.group('🎯 Smart Redirect - YOUR STRUCTURE');
-  console.log('User role:', userRole);
-  console.log('Requested path:', requestedPath);
-  console.log('Fallback path:', fallbackPath);
-  console.log('YOUR Banking Structure: direct folders → /banking/dashboard');
-
   const stakeholderType = getStakeholderType(userRole);
 
   if (!stakeholderType) {
-    console.log('❌ Unknown role, redirecting to login');
-    console.groupEnd();
     return '/login';
   }
 
   let targetPath = requestedPath || fallbackPath || STAKEHOLDER_DASHBOARDS[stakeholderType];
 
-  // ✅ Banking route validation for YOUR structure
   if (stakeholderType === 'banking') {
     targetPath = validateBankingRedirect(targetPath, userRole);
   }
 
-  console.log('✅ Final redirect path:', targetPath);
-  console.log('🏢 Stakeholder type:', stakeholderType);
-
-  // ✅ Validation for YOUR banking structure
-  if (stakeholderType === 'banking' && targetPath === '/banking/dashboard') {
-    console.log('📁 YOUR Route structure validation:');
-    console.log('  - File: src/app/banking/dashboard/page.tsx');
-    console.log('  - URL: /banking/dashboard');
-    console.log('  - Direct folder structure correctly used');
-  }
-
-  console.groupEnd();
   return targetPath;
 };
 
@@ -189,33 +147,7 @@ export const BANKING_ROUTE_MAPPING = {
   // etc.
 };
 
-// ✅ Development debugging helper for YOUR structure
 export const debugRouting = (userRole: string, requestedPath: string) => {
-  if (process.env.NODE_ENV === 'development') {
-    console.group('🔧 Routing Debug - YOUR STRUCTURE');
-    console.log('User Role:', userRole);
-    console.log('Requested Path:', requestedPath);
-    console.log('Stakeholder Type:', getStakeholderType(userRole));
-    console.log('Default Dashboard:', getDefaultDashboard(userRole));
-    console.log('Has Access:', hasAccessToPath(userRole, requestedPath));
-    console.log('Smart Redirect:', getSmartRedirect(userRole, requestedPath));
-
-    if (userRole.includes('BANK_') || userRole.includes('SYARIAH_')) {
-      console.log('🏦 Banking User - YOUR STRUCTURE:');
-      console.log('  - YOUR Correct Routes:', Object.values(BANKING_ROUTE_MAPPING));
-      console.log('  - YOUR File Structure: src/app/banking/[page]/page.tsx');
-      console.log('  - YOUR URL Generation: Direct folders with /banking/ prefix');
-      console.log('  - YOUR Dashboard: /banking/dashboard');
-
-      if (requestedPath === '/dashboard') {
-        console.error('🚨 ROUTE GROUP EXPECTATION:', requestedPath);
-        console.log('✅ Should be:', '/banking/dashboard');
-        console.log('✅ This matches YOUR actual direct folder implementation');
-      }
-    }
-
-    console.groupEnd();
-  }
 };
 
 // ✅ Aliases for backward compatibility

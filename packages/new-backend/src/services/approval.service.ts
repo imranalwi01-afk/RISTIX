@@ -317,6 +317,16 @@ export const createApprovalRequest = (
                 return request;
             });
         },
+        catch: (error) => {
+            if (error instanceof ConflictError) {
+                return error;
+            }
+            return new DatabaseError({
+                message: error instanceof Error ? error.message : 'Failed to create approval request',
+                operation: 'transaction',
+                cause: error,
+            });
+        },
     })
     .pipe(
         Effect.andThen((request) =>
@@ -639,6 +649,11 @@ export const processApprovalAction = (
                     completedBy: input.approverId,
                 })
 
+                // If this is an R Analytics approval request, trigger the rejected logic
+                if (request.entityType === 'r_analytics_comprehensive') {
+                    await executeRAnalyticsComprehensiveAction(request.requestData.operation, request.requestData, 'REJECTED')
+                }
+
                 await notifyApprovalCompletion(request, 'rejected', input.approverId)
                 return { completed: true, status: 'rejected' }
             }
@@ -780,6 +795,9 @@ async function executeApprovedAction(request: any, approvedBy?: string): Promise
 
         // Map entity types to their service executors
         switch (effectiveEntityType) {
+            case 'r_analytics_comprehensive':
+                await executeRAnalyticsComprehensiveAction(operation, requestData, 'APPROVED')
+                break
             case 'user':
                 await executeUserAction(
                     operation,
@@ -2659,4 +2677,52 @@ async function loadApproverContext(approverId: string, tenantId: string): Promis
         userRolesRepository.findByUser(db, approverId, tenantId)
     )
     return buildApproverContext(userRolesData as any[])
+}
+
+
+// --------------------------------------------------------------------------------
+// R-Analytics Comprehensive Action Executor
+// --------------------------------------------------------------------------------
+async function executeRAnalyticsComprehensiveAction(
+    operation: string,
+    requestData: any,
+    status: 'APPROVED' | 'REJECTED'
+) {
+    console.log(`[ApprovalService] Executing RAnalyticsComprehensiveAction with status ${status}`)
+    
+    let parsedData = requestData;
+    if (typeof requestData === 'string') {
+        try {
+            parsedData = JSON.parse(requestData);
+        } catch (e) {
+            console.error('[ApprovalService] Failed to parse requestData string', e);
+        }
+    }
+    const data = parsedData?.data ?? parsedData;
+
+    console.log(`[ApprovalService] Extracted data for r_analytics_comprehensive:`, JSON.stringify(data));
+
+    if (!data || !data.id) {
+        console.warn('[ApprovalService] No ID provided for r_analytics_comprehensive')
+        return
+    }
+
+    try {
+        const [{ legacyDb: db }, schema, { eq }] = await Promise.all([
+            import('../config'),
+            import('../db/schema'),
+            import('drizzle-orm')
+        ])
+
+        // Update frs9_r_pd_afl model_status based on Approval Result
+        await db.update(schema.frs9RPdAfl)
+            .set({ modelStatus: status })
+            .where(eq(schema.frs9RPdAfl.id, Number(data.id)))
+
+        console.log(`[ApprovalService] Successfully updated frs9_r_pd_afl ID ${data.id} to ${status}`)
+    } catch (error) {
+        console.error('[ApprovalService] Failed to update frs9_r_pd_afl:', error)
+        // We shouldn't throw here if we want the main approval to succeed even if legacy sync fails,
+        // but for now let's just log it.
+    }
 }

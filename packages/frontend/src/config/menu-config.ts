@@ -177,13 +177,8 @@ export class MenuConfigurationService {
 
         banking: {
           defaultMode: bankingType,
-          supportedModes: ['conventional', 'syariah', 'dual'],
+          supportedModes: ['conventional', 'dual'],
           modeSpecificIcons: {
-            'syariah': {
-              'banking': 'mosque',
-              'portfolio': 'account_balance',
-              'compliance': 'security'
-            },
             'conventional': {
               'banking': 'account_balance',
               'portfolio': 'account_balance',
@@ -250,7 +245,7 @@ export class MenuConfigurationService {
 
       banking: {
         defaultMode: 'conventional',
-        supportedModes: ['conventional', 'syariah', 'dual'],
+        supportedModes: ['conventional', 'dual'],
         modeSpecificIcons: {}
       }
     };

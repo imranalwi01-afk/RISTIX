@@ -1,5 +1,3 @@
-'use client';
-
 import { menuApi, type MenuConfigurationRequest } from '@/services/api/menu.api';
 
 export async function fetchMenuConfigurations() {

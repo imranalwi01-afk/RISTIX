@@ -70,7 +70,7 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
 
   const getThemeColors = () => {
     switch (bankingMode) {
-      case 'syariah':
+      case 'conventional':
         return {
           primaryGradient: 'linear-gradient(135deg, #00695c 0%, #004d40 100%)',
           secondaryGradient: 'linear-gradient(135deg, #00897b 0%, #00796b 100%)',
@@ -303,7 +303,6 @@ const EADModelReport: React.FC = () => {
   const [pivotMonths, setPivotMonths] = useState<string[]>([]);
 
   const handleDataLoaded = React.useCallback((data: Record<string, unknown>[], summary?: any) => {
-    console.log("📊 [EADModelReport] handleDataLoaded called", { dataLength: data?.length, summary });
     const { rows, monthColumns } = processEADPivotData(data);
     setPivotRows(rows);
     setPivotMonths(monthColumns);

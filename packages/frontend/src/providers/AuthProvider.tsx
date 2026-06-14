@@ -43,8 +43,6 @@ const getLandingPageUrl = (user: any): string => {
     const stakeholderType = user?.stakeholderType || (user?.isPlatformAdmin ? 'platform' : 'banking');
     const email = user?.email || '';
 
-    console.log(`🔍 Determining landing page for user: ${email} with stakeholderType: ${stakeholderType}`);
-
     switch (stakeholderType) {
       // case 'platform':
       //   return '/platform/admin';
@@ -75,14 +73,6 @@ const syncTokenToCookie = (token: string | null, user: any = null, refreshToken?
         // ✅ Get cookie config with domain detection (supports localhost, ifrspro.id, danafin.com)
         const cookieConfig = getCookieConfig(7);
 
-        console.log('🍪 [Cookie Setup] Configuration:', {
-          hostname: window.location.hostname,
-          protocol: window.location.protocol,
-          cookieConfig,
-          hasToken: !!token,
-          hasRefreshToken: !!refreshToken
-        });
-
         // Store auth_token (matches middleware.ts expectation)
         Cookies.set('auth_token', token, {
           path: '/',
@@ -95,7 +85,6 @@ const syncTokenToCookie = (token: string | null, user: any = null, refreshToken?
             path: '/',
             ...cookieConfig
           });
-          console.log('🔐 Refresh token synced to cookie');
         }
 
         // Optionally store basic user data for SSR if needed
@@ -114,13 +103,6 @@ const syncTokenToCookie = (token: string | null, user: any = null, refreshToken?
         // Verify cookies were actually set
         const verifyToken = Cookies.get('auth_token');
         const verifyRefresh = Cookies.get('refresh_token');
-        console.log('🔐 Authentication cookies synced successfully', {
-          domain: cookieConfig.domain || 'localhost',
-          authTokenSet: !!verifyToken,
-          refreshTokenSet: !!verifyRefresh,
-          authTokenLength: verifyToken?.length,
-          refreshTokenLength: verifyRefresh?.length
-        });
       } else {
         // Clear cookies with dynamic domain detection
         const cookieConfig = getCookieConfig();
@@ -129,7 +111,6 @@ const syncTokenToCookie = (token: string | null, user: any = null, refreshToken?
         Cookies.remove('auth_token', removeOptions);
         Cookies.remove('refresh_token', removeOptions);
         Cookies.remove('auth_user', removeOptions);
-        console.log('🗑️ Authentication cookies cleared');
       }
     }
   } catch (error: any) {
@@ -138,53 +119,10 @@ const syncTokenToCookie = (token: string | null, user: any = null, refreshToken?
 };
 
 // ✅ SURGICAL ENHANCEMENT: Banking mode detection from user data
-const detectBankingModeFromUser = (user: any): 'conventional' | 'syariah' | null => {
+const detectBankingModeFromUser = (user: any): 'conventional' | null => {
   try {
     if (!user) return null;
 
-    // Check explicit banking type
-    if (user.bankingType) {
-      if (user.bankingType.toLowerCase().includes('syariah') ||
-        user.bankingType.toLowerCase().includes('islamic')) {
-        return 'syariah';
-      }
-      if (user.bankingType.toLowerCase().includes('conventional')) {
-        return 'conventional';
-      }
-    }
-
-    // Check tenant slug
-    if (user.tenantSlug) {
-      if (user.tenantSlug.toLowerCase().includes('syariah') ||
-        user.tenantSlug.toLowerCase().includes('islamic')) {
-        return 'syariah';
-      }
-      if (user.tenantSlug.toLowerCase().includes('conventional')) {
-        return 'conventional';
-      }
-    }
-
-    // Check user preferences or certification for banking type indicators
-    if (user.syariahCertified || user.syariahCertification) {
-      return 'syariah';
-    }
-
-    // Check email domain for banking type
-    if (user.email) {
-      if (user.email.includes('syariah') || user.email.includes('islamic')) {
-        return 'syariah';
-      }
-    }
-
-    // Check company name
-    if (user.company) {
-      if (user.company.toLowerCase().includes('syariah') ||
-        user.company.toLowerCase().includes('islamic')) {
-        return 'syariah';
-      }
-    }
-
-    // Default to conventional if no clear indicators
     return 'conventional';
   } catch (error) {
     console.warn('⚠️ Error detecting banking mode from user:', error);
@@ -259,7 +197,6 @@ const safeNavigate = (router: any, url: string, retries = 3) => {
       return;
     }
 
-    console.log(`🚀 Safe navigation to: ${url}`);
     router.push(url);
   } catch (error) {
     console.error(`❌ Navigation error (${retries} retries left):`, error);
@@ -269,7 +206,6 @@ const safeNavigate = (router: any, url: string, retries = 3) => {
         safeNavigate(router, url, retries - 1);
       }, 500);
     } else {
-      console.log('🔄 Fallback: Using window.location.href');
       window.location.href = url;
     }
   }
@@ -310,7 +246,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (authState?.user) {
       const detectedBankingMode = detectBankingModeFromUser(authState.user);
       if (detectedBankingMode) {
-        console.log(`🎨 AuthProvider: Detected banking mode "${detectedBankingMode}" from user data`);
         dispatch(setBankingMode(detectedBankingMode));
       }
     }
@@ -329,8 +264,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const initializeAuthOnce = async () => {
       try {
         setLocalLoading(true)
-        console.log('🔐 Initializing authentication state...')
-
         const token = localStorage.getItem('auth_token')
         const userData = localStorage.getItem('user_data')
         const refreshToken = localStorage.getItem('refresh_token')
@@ -339,12 +272,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         if (token && userData && !authState?.isAuthenticated) {
           const parsedUser = JSON.parse(userData)
-          console.log('✅ Found stored auth data for:', parsedUser.email)
-
           const accessTokenExpired = !!tokenExpiry && tokenExpiry <= Date.now()
           if (accessTokenExpired && refreshToken) {
-            console.log('🔄 Stored access token expired, attempting session restore via refresh token')
-
             const restored = await sessionControlService.restoreSessionFromStoredRefreshToken()
             if (restored) {
               const restoredToken = localStorage.getItem('auth_token')
@@ -381,7 +310,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // ✅ SURGICAL ENHANCEMENT: Detect and set banking mode
           const detectedBankingMode = detectBankingModeFromUser(parsedUser);
           if (detectedBankingMode) {
-            console.log(`🎨 AuthProvider: Setting banking mode to "${detectedBankingMode}" during initialization`);
             dispatch(setBankingMode(detectedBankingMode));
           }
 
@@ -406,7 +334,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               }
               const config = frontendEnvironmentLoader.getConfiguration();
               backendUrl = config.api.backend;
-              console.log('✅ Using centralized backend URL for token validation:', backendUrl);
             } catch (error) {
               console.warn('⚠️ Failed to load centralized backend URL, using fallback:', error);
               // Fallback to environment variable or hostname-based detection
@@ -434,8 +361,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               ? `${backendUrl}/auth/verify`
               : `${backendUrl}/api/v1/auth/verify`;
 
-            console.log('🔐 Verifying token at:', verifyUrl);
-
             const response = await fetch(verifyUrl, {
               headers: {
                 'Authorization': `Bearer ${token}`,
@@ -444,11 +369,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             })
 
             if (response.ok) {
-              console.log('✅ Token validation successful')
-
               // ✅ SURGICAL FIX: Enhanced redirect handling to prevent loops
               const currentPath = pathname || '/'
-              console.log(`Current path: ${currentPath}`)
 
               // ✅ LOOP PREVENTION: Only redirect if user is explicitly on login page AND has logout parameter
               // This prevents auto-redirect loops when users visit login page
@@ -457,7 +379,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
               // Only redirect from login page if user explicitly logged out, not on page refresh
               if (currentPath === '/login' && hasLogoutParam) {
-                console.log('🔄 User explicitly logged out - staying on login page')
                 return; // Stay on login page for users who logged out
               }
 
@@ -465,17 +386,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               // This prevents auto-redirect when users visit login URL directly
               if (currentPath === '/' || currentPath === '') {
                 const landingUrl = getLandingPageUrl(parsedUser)
-                console.log(`✅ Redirecting authenticated user from home to: ${landingUrl}`)
-
                 setTimeout(() => {
                   safeNavigate(router, landingUrl);
                 }, 100);
               } else if (currentPath === '/login') {
                 // ✅ LOOP PREVENTION: Stay on login page if user navigates there manually
-                console.log('🔄 User manually navigated to login page - staying put')
               }
             } else if (response.status === 401) {
-              console.log('❌ Token validation returned 401, attempting refresh-token restore before cleanup')
               const restored = refreshToken
                 ? await sessionControlService.restoreSessionFromStoredRefreshToken()
                 : false
@@ -484,7 +401,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 if (refreshToken) {
                   console.warn('⚠️ Refresh-token restore failed during auth bootstrap; preserving stored session to avoid false logout on manual refresh')
                 } else {
-                  console.log('❌ Token validation returned 401 without refresh token, clearing auth data')
                   handleLogoutCleanup()
                   dispatch(logoutAction())
                 }
@@ -496,11 +412,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               })
             }
           } catch (validationError) {
-            console.log('⚠️ Token validation error (network issue):', validationError)
             // Don't clear auth data on network errors
           }
         } else if (!token || !userData) {
-          console.log('❌ No stored authentication data found')
           syncTokenToCookie(null); // Clear any stale cookies
 
           // ✅ SURGICAL FIX: Still mark as initialized even without auth data
@@ -531,8 +445,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       dispatch(loginStart())
       dispatch(clearError())
 
-      console.log('🔐 Login attempt for:', credentials.email)
-
       const loginPayload: any = {
         email: credentials.email,
         password: credentials.password,
@@ -540,7 +452,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (credentials.tenantId) {
         loginPayload.tenantId = credentials.tenantId
-        console.log(`✅ Including tenantId: ${credentials.tenantId}`)
       }
 
       const response = await fetch(`/api/v1/auth/login`, {
@@ -583,19 +494,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (authData.success && authData.data) {
         // 🔍 DEBUG: Log full response structure
-        console.log('🔍 Full login response:', JSON.stringify(authData, null, 2));
-
         const { user: userData, accessToken: token, refreshToken, expiresIn } = authData.data
-
-        console.log('✅ Login successful for:', userData.email)
-        console.log('🔐 Login response:', {
-          hasToken: !!token,
-          tokenLength: token?.length || 0,
-          hasRefreshToken: !!refreshToken,
-          refreshTokenLength: refreshToken?.length || 0,
-          expiresIn,
-          dataKeys: Object.keys(authData.data)
-        })
 
         // ✅ CRITICAL FIX: Also try to extract `token` field for compatibility
         const actualToken = token || authData.data.token;
@@ -640,7 +539,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // ✅ SURGICAL ENHANCEMENT: Detect and set banking mode from login data
         const detectedBankingMode = detectBankingModeFromUser(userData);
         if (detectedBankingMode) {
-          console.log(`🎨 AuthProvider: Setting banking mode to "${detectedBankingMode}" after login`);
           dispatch(setBankingMode(detectedBankingMode));
         }
 
@@ -655,11 +553,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // ✅ SURGICAL FIX: Enhanced role-based redirect
         try {
           const landingUrl = getLandingPageUrl(userData)
-          console.log(`🚀 Login successful - preparing redirect to: ${landingUrl}`)
-
           setTimeout(() => {
             try {
-              console.log(`🚀 Executing navigation to: ${landingUrl}`);
               safeNavigate(router, landingUrl);
             } catch (navError) {
               console.error('❌ Navigation Error:', navError);
@@ -705,15 +600,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = useCallback(async (reason?: string): Promise<void> => {
     const logoutReason = reason || 'user_initiated';
     const redirectUrl = `/login?logout=true&reason=${encodeURIComponent(logoutReason)}&ts=${Date.now()}`;
-    console.log('🚪 Starting logout through centralized session control...', { reason: logoutReason });
-
     try {
       // Try server-side revocation, but do not let an expired token block local logout.
       await Promise.race([
         sessionControlService.logout(logoutReason),
         new Promise<void>((resolve) => window.setTimeout(resolve, 2000))
       ]);
-      console.log('✅ Centralized logout completed successfully');
     } catch (error) {
       console.error('❌ Centralized logout failed:', error);
     } finally {
@@ -737,8 +629,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Helper function for logout cleanup (NOT useCallback to avoid circular dependency)
   const handleLogoutCleanup = () => {
-    console.log('🧹 Starting comprehensive logout cleanup...');
-
     try {
       clearAuthTokens();
     } catch (error) {
@@ -788,7 +678,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       });
 
-      console.log('🧹 Session storage cleared');
     }
 
     // ✅ ENHANCED FIX: Clear ALL possible auth cookies for middleware
@@ -824,13 +713,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       });
 
-      console.log('🧹 All auth cookies cleared for middleware');
     }
 
     // ✅ ENHANCED FIX: Clear Redux store auth state completely
     try {
       dispatch(logoutAction());
-      console.log('🧹 Redux auth state cleared');
     } catch (error) {
       console.warn('⚠️ Failed to clear Redux state:', error);
     }
@@ -846,13 +733,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           newValue: null,
           storageArea: localStorage
         }));
-        console.log('🔄 Storage event dispatched to clear auth state across tabs');
       } catch (error) {
         console.warn('⚠️ Failed to dispatch storage event:', error);
       }
     }
 
-    console.log('✅ Comprehensive logout cleanup completed');
   };
 
   const checkAuth = useCallback(async (): Promise<boolean> => {
@@ -877,7 +762,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const { frontendEnvironmentLoader } = require('../config/environment-loader-frontend');
         const config = frontendEnvironmentLoader.getConfiguration();
         backendUrl = config.api.backend;
-        console.log('✅ Using centralized backend URL for auth check:', backendUrl);
       } catch (error) {
         console.warn('⚠️ Failed to load centralized backend URL, using fallback:', error);
         // Fallback to environment variable or hostname-based detection

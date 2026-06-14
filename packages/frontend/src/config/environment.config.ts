@@ -56,7 +56,7 @@ export const getArrayConfig = (key: string, defaultValue: string[] = []): string
 
 // ✅ Types
 export type StakeholderType = 'admin' | 'business' | 'consultant' | 'auditor';
-export type BankingType = 'conventional' | 'syariah' | 'dual';
+export type BankingType = 'conventional' | 'dual';
 
 export enum ConfigCategory {
   APP = 'app',
@@ -81,7 +81,7 @@ export interface EnvironmentConfig {
     retries: number;
   };
   banking: {
-    mode: 'conventional' | 'syariah' | 'dual';
+    mode: 'conventional' | 'dual';
     supportedModes: string[];
   };
   features: {
@@ -118,7 +118,7 @@ export const getEnvironmentConfig = (): EnvironmentConfig => {
     },
     banking: {
       mode: getConfigValue('BANKING_MODE', 'conventional') as any,
-      supportedModes: ['conventional', 'syariah', 'dual']
+      supportedModes: ['conventional', 'dual']
     },
     features: {
       rAnalytics: getConfigValue('FEATURE_R_ANALYTICS', 'true') === 'true',
@@ -141,7 +141,6 @@ export const getEnvironmentConfig = (): EnvironmentConfig => {
 // ✅ ADDED: Initialize configuration function (required by providers)
 export const initializeConfiguration = async (): Promise<EnvironmentConfig> => {
   try {
-    console.log('🔧 Initializing IFRS9 configuration...');
 
     const config = getEnvironmentConfig();
 
@@ -155,7 +154,6 @@ export const initializeConfiguration = async (): Promise<EnvironmentConfig> => {
       (window as any).__IFRS9_CONFIG__ = config;
     }
 
-    console.log('✅ IFRS9 configuration initialized successfully');
     return config;
 
   } catch (error) {
@@ -186,14 +184,13 @@ export const diagnoseEnvironment = (): {
     issues.push('Invalid environment value');
   }
 
-  if (!['conventional', 'syariah', 'dual'].includes(config.banking.mode)) {
+  if (!['conventional', 'dual'].includes(config.banking.mode)) {
     issues.push('Invalid banking mode');
   }
 
   const isValid = issues.length === 0;
 
   if (isValid) {
-    console.log('✅ Environment diagnosis: All checks passed');
   } else {
     console.warn('⚠️ Environment diagnosis: Issues found:', issues);
   }
@@ -248,7 +245,7 @@ export const isStaging = (): boolean => getConfigValue('ENVIRONMENT') === 'stagi
 // ✅ Banking Mode Helpers
 export const isIslamicBankingEnabled = (): boolean => {
   const mode = getConfigValue('BANKING_MODE');
-  return mode === 'syariah' || mode === 'dual';
+  return mode === 'dual';
 }
 export const isConventionalBankingEnabled = (): boolean => {
   const mode = getConfigValue('BANKING_MODE');

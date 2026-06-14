@@ -8,6 +8,9 @@ import { redis } from '@/config/redis' // ✅ Import Redis for session managemen
 import {
     type User,
     type NewUser,
+    users,
+    platformUsers,
+    passwordResetTokens
 } from '@/db/schema'
 
 /**
@@ -799,6 +802,147 @@ export const refreshTokens = (
                 reason: 'invalid_token',
                 code: 'INVALID_REFRESH_TOKEN',
             }),
+    })
+
+// =============================================================================
+// FORGOT & RESET PASSWORD
+// =============================================================================
+
+import { eq, and, gt, isNull } from 'drizzle-orm'
+import { sendForgotPasswordEmail } from './notification.service'
+
+export const forgotPassword = (
+    email: string,
+    originUrl: string
+): Effect.Effect<boolean, DatabaseError> =>
+    Effect.tryPromise({
+        try: async () => {
+            let db = getDatabase(null) // default to platformDb
+            
+            // Search in platform users first
+            let user = await AuthRepository.findPlatformUserByEmail(db, email) as User | undefined
+            
+            // If not found, fallback to search in regular users (banking users) on platformDb
+            if (!user) {
+                user = await AuthRepository.findUserByEmail(db, email) as User | undefined
+            }
+
+            // If still not found, search in tenantDb
+            if (!user) {
+                const tenantDb = getDatabase(env.TENANT_ID)
+                user = await AuthRepository.findUserByEmail(tenantDb, email) as User | undefined
+                if (user) {
+                    db = tenantDb // switch db context to tenantDb
+                }
+            }
+            
+            if (!user) {
+                console.log(`[ForgotPassword] Email not found: ${email}`)
+                return false
+            }
+
+            // Generate token
+            const rawToken = crypto.randomBytes(32).toString('hex')
+            const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex')
+
+            // Save token
+            await db.insert(passwordResetTokens).values({
+                userId: user.id,
+                token: hashedToken,
+                expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
+            })
+
+            // Send email
+            const resetUrl = `${originUrl}/reset-password?token=${rawToken}&email=${encodeURIComponent(email)}`
+            await sendForgotPasswordEmail(email, user.fullName || user.email, resetUrl)
+            
+            return true
+        },
+        catch: (error: unknown) => new DatabaseError({
+            message: 'Failed to process forgot password',
+            operation: 'insert',
+            cause: error
+        })
+    })
+
+export const resetPasswordWithToken = (
+    email: string,
+    rawToken: string,
+    newPassword: string
+): Effect.Effect<void, DatabaseError | AuthenticationError> =>
+    Effect.tryPromise({
+        try: async () => {
+            let db = getDatabase(null)
+            
+            // Search in platform users first
+            let user = await AuthRepository.findPlatformUserByEmail(db, email) as User | undefined
+            let isPlatformUser = true
+            
+            // If not found, fallback to search in regular users (banking users) on platformDb
+            if (!user) {
+                user = await AuthRepository.findUserByEmail(db, email) as User | undefined
+                isPlatformUser = false
+            }
+
+            // If still not found, search in tenantDb
+            if (!user) {
+                const tenantDb = getDatabase(env.TENANT_ID)
+                user = await AuthRepository.findUserByEmail(tenantDb, email) as User | undefined
+                if (user) {
+                    db = tenantDb // switch db context
+                    isPlatformUser = false
+                }
+            }
+            
+            if (!user) throw new Error('Invalid or expired token')
+
+            const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex')
+
+            // Verify token
+            const tokens = await db.select().from(passwordResetTokens).where(
+                and(
+                    eq(passwordResetTokens.userId, user.id),
+                    eq(passwordResetTokens.token, hashedToken),
+                    isNull(passwordResetTokens.usedAt),
+                    gt(passwordResetTokens.expiresAt, new Date())
+                )
+            ).limit(1)
+
+            if (tokens.length === 0) {
+                throw new Error('Invalid or expired token')
+            }
+
+            const tokenId = tokens[0].id
+
+            // Hash new password
+            const newPasswordHash = await hashPassword(newPassword)
+
+            // Update password and mark token as used
+            await db.transaction(async (tx) => {
+                if (isPlatformUser) {
+                    await tx.update(platformUsers).set({ passwordHash: newPasswordHash, updatedAt: new Date() }).where(eq(platformUsers.id, user.id as string))
+                } else {
+                    await tx.update(users).set({ passwordHash: newPasswordHash, updatedAt: new Date() }).where(eq(users.id, user.id as string))
+                }
+                await tx.update(passwordResetTokens).set({ usedAt: new Date() }).where(eq(passwordResetTokens.id, tokenId))
+            })
+            
+            console.log(`[ResetPassword] Password successfully reset for user: ${email}`)
+        },
+        catch: (error: any) => {
+            if (error.message === 'Invalid or expired token') {
+                return new AuthenticationError({
+                    message: error.message,
+                    reason: 'invalid_token',
+                    code: 'INVALID_RESET_TOKEN'
+                })
+            }
+            return new DatabaseError({
+                message: 'Failed to reset password',
+                operation: 'update',
+                cause: error
+            })
+        }
     })
 
 /**

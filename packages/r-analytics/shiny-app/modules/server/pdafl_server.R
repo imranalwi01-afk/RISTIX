@@ -2599,6 +2599,129 @@ pdafl_server <- function(input, output, session, con, PD) {
                      n_year, n_mon, if (has_final) " (dengan FINAL)" else "")
       showNotification(msg, type = "default")
 
+      # GENERATE THE COMPREHENSIVE WORKBOOK TO SAVE TO DB
+      tryCatch({
+        wb <- createWorkbook()
+        
+        ## MEV Boxplot Sheet
+        addWorksheet(wb, "MEV Boxplot")
+        items_sheet1 <- list()
+        if (!is.null(eksekusi_mev_BPF())) {
+          weights_df <- tryCatch(
+            { if (!is.null(eksekusi_mev_BPF()$weighted.boxplot)) data.frame(weight=eksekusi_mev_BPF()$weighted.boxplot) else NULL },
+            error = function(e) NULL
+          )
+          items_sheet1 <- list(
+            list(name = "Df Klasifikasi",           df = eksekusi_mev_BPF()$df.klasifikasi),
+            list(name = "Category Frequency",       df = eksekusi_mev_BPF()$category.frecuency),
+            list(name = "Category Percentage",      df = eksekusi_mev_BPF()$category.percentage),
+            list(name = "Weighted Boxplot Weights", df = weights_df),
+            list(name = "Avg Table",                df = eksekusi_mev_BPF()$avg.table),
+            list(name = "Diff Base",                df = eksekusi_mev_BPF()$diff.base)
+          )
+        }
+        if (length(items_sheet1) == 0) {
+          writeData(wb, "MEV Boxplot", "Belum ada data MEV Boxplot yang dieksekusi.", startRow = 1, startCol = 1)
+        } else {
+          write_tables_one_sheet(wb, "MEV Boxplot", items_sheet1, start_row = 1L)
+        }
+  
+        ## MEV Forecast Boxplot Sheet
+        addWorksheet(wb, "MEV Forecast Boxplot")
+        items_sheet2 <- list()
+        if (!is.null(fo_boxplot_pdafl())) {
+          items_sheet2 <- list(
+            list(name = "Forecast Base",              df = fo_boxplot_pdafl()$f.base),
+            list(name = "Forecast Best",              df = fo_boxplot_pdafl()$f.best),
+            list(name = "Forecast Worst",             df = fo_boxplot_pdafl()$f.worst),
+            list(name = "Forecast YJoin (Gabungan)",  df = fo_boxplot_pdafl()$f.yjoin),
+            list(name = "Difference vs Boxplot Base", df = fo_boxplot_pdafl()$diff.boxplot)
+          )
+        }
+        if (length(items_sheet2) == 0) {
+          writeData(wb, "MEV Forecast Boxplot", "Belum ada data Forecast MEV Boxplot yang dieksekusi.", startRow = 1, startCol = 1)
+        } else {
+          write_tables_one_sheet(wb, "MEV Forecast Boxplot", items_sheet2, start_row = 1L)
+        }
+  
+        ## PD Execution Sheet
+        addWorksheet(wb, "Eksekusi PD")
+        report_text <- tryCatch({
+          x <- dataissuerrr01()
+          if (!is.null(x) && "prc_date" %in% names(x)) {
+            dt <- suppressWarnings(max(as.Date(x$prc_date), na.rm = TRUE))
+            paste0("Report PD Date ", format(dt, "%Y-%m-%d"))
+          } else { "Report PD Date -" }
+        }, error = function(e) "Report PD Date -")
+        openxlsx::writeData(wb, "Eksekusi PD", report_text, startRow = 1, startCol = 1)
+        hdr_style <- openxlsx::createStyle(textDecoration = "bold", fontSize = 12)
+        openxlsx::addStyle(wb, "Eksekusi PD", hdr_style, rows = 1, cols = 1, gridExpand = TRUE)
+        openxlsx::freezePane(wb, "Eksekusi PD", firstActiveRow = 3)
+        items_sheet3 <- list()
+        weights_edited <- tryCatch({
+          if (!is.null(weighted_pdafl$data)) {
+            dfw <- weighted_pdafl$data
+            dfw <- data.frame(weight = dfw)
+            dfw$weight <- as.numeric(dfw$weight)
+            data.frame(Index = c("Base","Best","Worst"), Weight = dfw$weight)
+          } else NULL
+        }, error = function(e) NULL)
+        items_sheet3 <- append(items_sheet3, list(
+          list(name = "Weighted Boxplot (Edited) - from weighted_boxplot_table", df = weights_edited)
+        ))
+        if (!is.null(hasilPD())) {
+          pd_data <- hasilPD()
+          for (scenario in c("Base","Best","Worst")) {
+            items_sheet3 <- append(items_sheet3, list(
+              list(name = paste("Scenario:", scenario), df = data.frame(Info = " "))
+            ))
+            for (tbl_key in names(pd_tables_map)) {
+              df_here <- tryCatch(pd_data[[scenario]][[tbl_key]], error = function(e) NULL)
+              items_sheet3 <- append(items_sheet3, list(
+                list(name = paste0(pd_tables_map[[tbl_key]], " (", scenario, ")"), df = df_here)
+              ))
+            }
+          }
+        }
+        if (!is.null(hasilFinal())) {
+          final_data <- hasilFinal()
+          items_sheet3 <- append(items_sheet3, list(
+            list(name = "Section: FINAL (Weighted Combination)", df = data.frame(Info = " "))
+          ))
+          for (tbl_key in names(pd_final_map)) {
+            df_here <- tryCatch(final_data[[tbl_key]], error = function(e) NULL)
+            items_sheet3 <- append(items_sheet3, list(
+              list(name = pd_final_map[[tbl_key]], df = df_here)
+            ))
+          }
+        }
+        if (length(items_sheet3) == 0) {
+          openxlsx::writeData(wb, "Eksekusi PD", "Belum ada hasil Eksekusi PD.", startRow = 3, startCol = 1)
+        } else {
+          write_tables_one_sheet(wb, "Eksekusi PD", items_sheet3, start_row = 3L)
+        }
+
+        # Write to temporary file, read binary, and save to DB
+        tmp <- tempfile(fileext = ".xlsx")
+        saveWorkbook(wb, tmp, overwrite = TRUE)
+        bin_data <- readBin(tmp, "raw", file.info(tmp)$size)
+        
+        # Update frs9_r_model_summary so next time Maker Submits, this combined file is copied!
+        # And if there is already a row in frs9_r_pd_afl pending, update that too!
+        if (!is.na(model_id)) {
+           DBI::dbExecute(con, 'UPDATE "frs9_r_model_summary" SET "data_file" = $1 WHERE "model_id" = $2', 
+                          params = list(list(bin_data), model_id))
+           # Attempt to update frs9_r_pd_afl if it exists
+           tryCatch({
+              DBI::dbExecute(con, 'UPDATE "frs9_r_pd_afl" SET "data_file" = $1 WHERE "model_id" = $2', 
+                             params = list(list(bin_data), model_id))
+           }, error = function(e) {})
+        }
+        showNotification("File Output Excel berhasil digabungkan dan disimpan ke Database!", type = "message")
+      }, error = function(e) {
+        cat("Error updating Excel to DB:", e$message, "\n")
+      })
+
     }, error = function(e) {
       showNotification(paste("Gagal simpan PD:", e$message), type = "error")
     })

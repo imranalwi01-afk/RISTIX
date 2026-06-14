@@ -25,3 +25,6 @@ logs/
 
 # Test coverage
 coverage/
+
+# Local database comparison and rollback exports
+artifacts/

@@ -10,7 +10,6 @@ const CREDENTIALS = {
 
 async function checkApi() {
   try {
-    console.log(`Logging in to ${LOGIN_URL}...`);
     const loginResponse = await fetch(LOGIN_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -28,9 +27,7 @@ async function checkApi() {
     if (!token) {
         throw new Error('No token found in login response');
     }
-    console.log('Login successful. Token obtained.');
 
-    console.log(`Fetching tables from ${TABLES_URL}...`);
     const tablesResponse = await fetch(TABLES_URL, {
       headers: {
         Authorization: `Bearer ${token}`
@@ -43,8 +40,6 @@ async function checkApi() {
     }
 
     const tablesData = await tablesResponse.json();
-    console.log('Tables API Response:');
-    console.log(JSON.stringify(tablesData, null, 2));
 
   } catch (error) {
     console.error('Error:', error.message);

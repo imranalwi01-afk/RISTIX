@@ -17,7 +17,6 @@ export async function bootstrap(): Promise<void> {
     if (booted) return;
     booted = true;
 
-    console.log('[bootstrap] loading critical data...');
 
     try {
         await Promise.all([
@@ -25,7 +24,6 @@ export async function bootstrap(): Promise<void> {
             // Add more pre-loading functions as needed
         ]);
 
-        console.log('[bootstrap] critical data loaded');
     } catch (error) {
         console.error('[bootstrap] failed to load critical data:', error);
     }

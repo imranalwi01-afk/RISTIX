@@ -646,12 +646,12 @@ const LifetimePDReport: React.FC = () => {
               </Button>
             </Tooltip>
             <Tooltip title="Refresh Data">
-              <IconButton color="primary" onClick={() => fetchData(currentFilters)} disabled={loading}>
+              <IconButton color="primary" onClick={() => fetchData(currentFilters)} disabled={loading} aria-label="Refresh data">
                 <RefreshIcon />
               </IconButton>
             </Tooltip>
             <Tooltip title="Reset Filter">
-              <IconButton color="primary" onClick={handleResetFilters} disabled={loading}>
+              <IconButton color="primary" onClick={handleResetFilters} disabled={loading} aria-label="Reset filters">
                 <ClearAllIcon />
               </IconButton>
             </Tooltip>

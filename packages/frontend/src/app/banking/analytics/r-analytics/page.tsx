@@ -80,7 +80,7 @@ export default function RAnalyticsPage() {
   const user = useSelector(selectUser);
 
   // Component state
-  const [bankingType, setBankingType] = useState<'conventional' | 'syariah' | 'dual'>('conventional');
+  const [bankingType, setBankingType] = useState<'conventional' | 'dual'>('conventional');
   const [tenantSlug, setTenantSlug] = useState('iaf');
 
   // Initialization
@@ -90,9 +90,7 @@ export default function RAnalyticsPage() {
       setTenantSlug(slug);
 
       // Determine banking type
-      if (slug.includes('syariah') || (user as any).bankingAccess === 'SYARIAH') {
-        setBankingType('syariah');
-      } else if ((user as any).bankingAccess === 'BOTH') {
+      if ((user as any).bankingAccess === 'BOTH') {
         setBankingType('dual');
       }
     }
@@ -132,3 +130,4 @@ export default function RAnalyticsPage() {
     </Can>
   );
 }
+

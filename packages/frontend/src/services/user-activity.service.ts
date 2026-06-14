@@ -49,7 +49,7 @@ export interface UserActivityLog {
   osVersion?: string;
   moduleAccessed?: string;
   businessProcess?: string;
-  bankingType?: 'conventional' | 'syariah' | 'dual';
+  bankingType?: 'conventional' | 'dual';
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   complianceRelevant: boolean;
   regulatoryImpact: boolean;
@@ -93,7 +93,7 @@ export interface SessionTracking {
   maxResponseTimeMs?: number;
   minResponseTimeMs?: number;
   totalDataTransferredMb?: number;
-  bankingType?: 'conventional' | 'syariah' | 'dual';
+  bankingType?: 'conventional' | 'dual';
   modulesAccessed?: string[];
   failedLoginAttempts?: number;
   securityEvents?: number;
@@ -142,7 +142,7 @@ export interface ActivityFilters {
   activityType?: string;
   actionResult?: 'SUCCESS' | 'FAILURE' | 'PARTIAL';
   riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  bankingType?: 'conventional' | 'syariah' | 'dual';
+  bankingType?: 'conventional' | 'dual';
   complianceRelevant?: boolean;
   moduleAccessed?: string;
   ipAddress?: string;
@@ -213,7 +213,7 @@ export interface SecurityEvent {
   requestPath?: string;
   requestMethod?: string;
   moduleAccessed?: string;
-  bankingType?: 'conventional' | 'syariah' | 'dual';
+  bankingType?: 'conventional' | 'dual';
   assignedTo?: string;
   investigationNotes?: string;
   resolutionDetails?: string;
@@ -290,7 +290,7 @@ export interface UserActivityInput {
   osVersion?: string;
   moduleAccessed?: string;
   businessProcess?: string;
-  bankingType?: 'conventional' | 'syariah' | 'dual';
+  bankingType?: 'conventional' | 'dual';
   riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   complianceRelevant?: boolean;
   regulatoryImpact?: boolean;
@@ -327,7 +327,7 @@ export interface SessionTrackingInput {
   maxResponseTimeMs?: number;
   minResponseTimeMs?: number;
   totalDataTransferredMb?: number;
-  bankingType?: 'conventional' | 'syariah' | 'dual';
+  bankingType?: 'conventional' | 'dual';
   modulesAccessed?: string[];
   failedLoginAttempts?: number;
   securityEvents?: number;
@@ -362,7 +362,7 @@ export interface PerformanceMetricsInput {
   largestContentfulPaintTimeMs?: number;
   moduleAccessed?: string;
   businessProcess?: string;
-  bankingType?: 'conventional' | 'syariah' | 'dual';
+  bankingType?: 'conventional' | 'dual';
   performanceCategory?: 'EXCELLENT' | 'GOOD' | 'AVERAGE' | 'POOR' | 'CRITICAL';
   slaCompliance?: boolean;
   metadata?: any;
@@ -381,7 +381,7 @@ export interface SecurityEventInput {
   requestPath?: string;
   requestMethod?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   moduleAccessed?: string;
-  bankingType?: 'conventional' | 'syariah' | 'dual';
+  bankingType?: 'conventional' | 'dual';
   assignedTo?: string;
   investigationNotes?: string;
   resolutionDetails?: string;

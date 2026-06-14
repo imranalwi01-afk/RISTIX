@@ -16,6 +16,7 @@ import {
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { PasswordInput } from './PasswordInput';
 
 // Type definition based on backend schema
 export interface UserFormData {
@@ -28,6 +29,7 @@ export interface UserFormData {
     department?: string;
     position?: string;
     isActive?: boolean;
+    sendWelcomeEmail?: boolean;
 }
 
 // Zod schemas for create and edit modes
@@ -40,6 +42,7 @@ const createUserSchema = z.object({
     department: z.string().optional(),
     position: z.string().optional(),
     isActive: z.boolean().default(true),
+    sendWelcomeEmail: z.boolean().default(true).optional(),
 });
 
 const editUserSchema = z.object({
@@ -131,9 +134,9 @@ const UserForm: React.FC<UserFormProps> = ({
     }, [open, initialData, mode, reset]);
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth aria-labelledby="user-form-dialog-title">
             <form onSubmit={handleSubmit(onFormSubmit)}>
-                <DialogTitle>
+                <DialogTitle id="user-form-dialog-title">
                     {mode === 'create' ? 'Create New User' : 'Edit User'}
                 </DialogTitle>
                 <DialogContent dividers>
@@ -186,13 +189,13 @@ const UserForm: React.FC<UserFormProps> = ({
                                 name="password"
                                 control={control}
                                 render={({ field }) => (
-                                    <TextField
-                                        {...field}
+                                    <PasswordInput
                                         fullWidth
                                         label={mode === 'edit' ? "Password (Leave blank to keep)" : "Password"}
-                                        type="password"
                                         error={!!errors.password}
                                         helperText={errors.password?.message}
+                                        value={field.value ?? ''}
+                                        onChange={field.onChange}
                                     />
                                 )}
                             />
@@ -293,6 +296,28 @@ const UserForm: React.FC<UserFormProps> = ({
                                 />
                             </Box>
                         </Grid>
+                        
+                        {mode === 'create' && (
+                            <Grid size={{ xs: 12 }}>
+                                <Controller
+                                    name="sendWelcomeEmail"
+                                    control={control}
+                                    defaultValue={true}
+                                    render={({ field }) => (
+                                        <FormControlLabel
+                                            control={
+                                                <Switch
+                                                    checked={field.value !== false}
+                                                    onChange={(e) => field.onChange(e.target.checked)}
+                                                    color="primary"
+                                                />
+                                            }
+                                            label="Send welcome email with login credentials"
+                                        />
+                                    )}
+                                />
+                            </Grid>
+                        )}
 
                     </Grid>
                 </DialogContent>

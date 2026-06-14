@@ -67,7 +67,7 @@ const PivotTableTemplate: React.FC<PivotTableTemplateProps> = ({
   const finalBase = dynamicColumns.length > 0 ? baseColumns : columns;
   const finalDynamic = dynamicColumns.length > 0 ? dynamicColumns : [];
 
-  const headerBg = bankingMode === 'syariah' ? '#004d40' : bankingMode === 'dual' ? '#263238' : '#0D47A1';
+  const headerBg = bankingMode === 'dual' ? '#263238' : '#0D47A1';
 
   return (
     <Box sx={{ width: '100%', overflow: 'hidden' }}>

@@ -84,29 +84,6 @@ export const authDebugger = {
   logAuthInfo(): void {
     const info = this.getAuthInfo();
 
-    console.group('🔍 AUTHENTICATION DEBUG INFORMATION');
-    console.log('🔐 Token Status:', info.hasToken ? '✅ Present' : '❌ Missing');
-    console.log('👤 User Data Status:', info.hasUserData ? '✅ Present' : '❌ Missing');
-    console.log('🔄 Refresh Token Status:', info.hasRefreshToken ? '✅ Present' : '❌ Missing');
-    console.log('🌐 Backend URL:', info.backendUrl);
-
-    if (info.tokenInfo) {
-      console.log('🔑 Token Info:', {
-        length: info.tokenInfo.length,
-        preview: info.tokenInfo.preview,
-        validFormat: info.tokenInfo.isValidFormat ? '✅' : '❌'
-      });
-    }
-
-    if (info.userInfo) {
-      console.log('👤 User Info:', info.userInfo);
-    }
-
-    if (info.lastActivity) {
-      console.log('⏰ Last Activity:', new Date(info.lastActivity).toISOString());
-    }
-
-    console.groupEnd();
   },
 
   // Test current token validity with backend
@@ -121,7 +98,6 @@ export const authDebugger = {
       : 'https://iaf-ifrs-be.ifrspro.id';
 
     try {
-      console.log('🔍 Testing token validity...');
       const response = await fetch(`${backendUrl}/api/v1/auth/verify`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -131,11 +107,9 @@ export const authDebugger = {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Token is valid:', data);
         return { valid: true, details: data };
       } else {
         const errorData = await response.json().catch(() => ({}));
-        console.log('❌ Token is invalid:', errorData);
         return {
           valid: false,
           error: errorData.message || `HTTP ${response.status}`,
@@ -150,7 +124,6 @@ export const authDebugger = {
 
   // Clear all authentication data
   clearAuthData(): void {
-    console.log('🗑️ Clearing all authentication data...');
     localStorage.removeItem('auth_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user_data');
@@ -159,15 +132,12 @@ export const authDebugger = {
     // Clear cookie as well
     document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
 
-    console.log('✅ Authentication data cleared');
   },
 
   // Fix common authentication issues
   async fixAuthIssues(): Promise<{ fixed: boolean; actions: string[] }> {
     const actions: string[] = [];
     const info = this.getAuthInfo();
-
-    console.log('🔧 Attempting to fix authentication issues...');
 
     // Test token validity
     const tokenTest = await this.testTokenValidity();
@@ -203,8 +173,6 @@ export const authDebugger = {
     const issues: string[] = [];
     const recommendations: string[] = [];
     const authInfo = this.getAuthInfo();
-
-    console.log('🏥 Running authentication health check...');
 
     // Check token presence
     if (!authInfo.hasToken) {
@@ -245,12 +213,6 @@ export const authDebugger = {
 
     const healthy = issues.length === 0;
 
-    console.log(`🏥 Authentication Health: ${healthy ? '✅ Healthy' : '❌ Issues Found'}`);
-    if (issues.length > 0) {
-      console.log('🚨 Issues:', issues);
-      console.log('💡 Recommendations:', recommendations);
-    }
-
     return {
       healthy,
       issues,
@@ -265,8 +227,6 @@ export const authDebugger = {
 // ============================================================================
 if (typeof window !== 'undefined') {
   (window as any).__AUTH_DEBUGGER__ = authDebugger;
-  console.log('🔍 Auth debugger available: window.__AUTH_DEBUGGER__');
-  console.log('🔍 Run window.__AUTH_DEBUGGER__.healthCheck() for full diagnosis');
 }
 
 export default authDebugger;

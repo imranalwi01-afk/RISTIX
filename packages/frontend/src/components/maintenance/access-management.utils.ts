@@ -12,7 +12,6 @@ export interface AccessManagementPermission {
   requiredApprovalLevel?: number | null;
   requiredApprovers?: number;
   bankingSpecific?: boolean;
-  syariahRequired?: boolean;
 }
 
 export interface AccessManagementRole {
@@ -201,8 +200,8 @@ const SIDEBAR_GROUP_LABELS: Record<string, { label: string; breadcrumb: string }
     breadcrumb: 'Admin & Maintenance > Role Management',
   },
   'admin.system': {
-    label: 'Menu Management',
-    breadcrumb: 'Admin & Maintenance > Menu Management',
+    label: 'System Administration',
+    breadcrumb: 'Admin & Maintenance > System Administration',
   },
   'jobs': {
     label: 'Job Monitoring',
@@ -442,8 +441,7 @@ export const normalizePermissionFromApi = (perm: Record<string, unknown>): Acces
     typeof perm.bankingSpecific === 'boolean'
       ? perm.bankingSpecific
       : perm.module === 'banking',
-  syariahRequired:
-    typeof perm.syariahRequired === 'boolean' ? perm.syariahRequired : false,
+
 });
 
 export const normalizeRoleFromApi = (role: Record<string, unknown>): AccessManagementRole => {

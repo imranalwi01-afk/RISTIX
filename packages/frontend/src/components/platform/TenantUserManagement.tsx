@@ -38,13 +38,15 @@ import {
     CheckCircle as CheckCircleIcon,
     Cancel as CancelIcon,
     Business as TenantIcon,
-    LockReset as LockResetIcon,
     ManageAccounts as ManageAccountsIcon,
+    LockReset as LockResetIcon,
     VpnKey as VpnKeyIcon
 } from '@mui/icons-material';
 import type { GridColDef } from '@mui/x-data-grid';
 import { format } from 'date-fns';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
+import { ResetPasswordDialog } from '@/components/users/ResetPasswordDialog';
+import { PasswordInput } from '@/components/users/PasswordInput';
 import { exportToCsv } from '@/utils/export-csv';
 import { getErrorMessage } from '@/utils/error-message';
 import { usePlatformTenantsQuery } from '@/features/platform-tenants/hooks/usePlatformTenantsQueries';
@@ -692,7 +694,7 @@ const TenantUserManagement = () => {
             </Box>
 
             {error && (
-                <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+                <Alert severity="error" sx={{ mb: 3 }} role="alert" onClose={() => setError(null)}>
                     {error}
                 </Alert>
             )}
@@ -883,12 +885,11 @@ const TenantUserManagement = () => {
                             </Grid>
                             {formMode === 'create' && (
                                 <Grid size={12}>
-                                    <TextField
+                                    <PasswordInput
                                         fullWidth
                                         label="Password"
-                                        type="password"
-                                        value={formData.password}
-                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                        value={formData.password || ''}
+                                        onChange={(value) => setFormData({ ...formData, password: value })}
                                         required
                                         helperText="Min. 8 characters"
                                     />
@@ -982,7 +983,7 @@ const TenantUserManagement = () => {
                                                     />
                                                 )}
                                                 <Tooltip title="Edit Role Permissions">
-                                                    <IconButton size="small" onClick={() => openPermissionDialog(role)}>
+                                                    <IconButton size="small" onClick={() => openPermissionDialog(role)} aria-label="Edit role permissions">
                                                         <VpnKeyIcon fontSize="small" />
                                                     </IconButton>
                                                 </Tooltip>
@@ -1115,45 +1116,17 @@ const TenantUserManagement = () => {
                 </DialogActions>
             </Dialog>
 
-            <Dialog
+            <ResetPasswordDialog
                 open={isResetPasswordOpen}
                 onClose={() => setIsResetPasswordOpen(false)}
-                maxWidth="sm"
-                fullWidth
-            >
-                <DialogTitle>
-                    Reset Password {resetTargetUser ? `for ${resetTargetUser.fullName}` : ''}
-                </DialogTitle>
-                <DialogContent>
-                    <TextField
-                        fullWidth
-                        autoFocus
-                        margin="normal"
-                        label="New Password"
-                        type="password"
-                        value={resetPasswordValue}
-                        onChange={(e) => setResetPasswordValue(e.target.value)}
-                        helperText="Minimum 8 characters"
-                    />
-                    <FormControlLabel
-                        control={
-                            <Switch
-                                checked={resetForceChange}
-                                onChange={(e) => setResetForceChange(e.target.checked)}
-                            />
-                        }
-                        label="Force password change on next login"
-                    />
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setIsResetPasswordOpen(false)} disabled={resetLoading}>
-                        Cancel
-                    </Button>
-                    <Button variant="contained" onClick={handleResetPassword} disabled={resetLoading}>
-                        {resetLoading ? 'Resetting...' : 'Reset Password'}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+                userId={resetTargetUser?.id || null}
+                userName={resetTargetUser?.fullName || null}
+                tenantId={selectedTenant?.id}
+                onSuccess={() => {
+                    setIsResetPasswordOpen(false);
+                    setResetTargetUser(null);
+                }}
+            />
         </Box>
     );
 };

@@ -12,7 +12,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 
 // Types
-export type BankingType = 'conventional' | 'syariah' | 'dual';
+export type BankingType = 'conventional' | 'dual';
 export type ThemeMode = 'light' | 'dark';
 export type LanguageType = 'en' | 'id' | 'ar';
 

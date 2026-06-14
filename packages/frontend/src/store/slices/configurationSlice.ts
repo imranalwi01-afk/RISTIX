@@ -18,13 +18,12 @@ interface ConfigurationState {
   environment: 'development' | 'staging' | 'production';
 
   // Banking Mode Configuration
-  bankingMode: 'conventional' | 'syariah' | 'dual';
-  defaultBankingMode: 'conventional' | 'syariah';
+  bankingMode: 'conventional' | 'dual';
+  defaultBankingMode: 'conventional';
 
   // Feature Flags
   features: {
     analytics: boolean;
-    syariahMode: boolean;
     realTime: boolean;
     mobileView: boolean;
     islamicBanking: boolean;
@@ -78,7 +77,6 @@ const initialState: ConfigurationState = {
   // Feature Flags
   features: {
     analytics: true,
-    syariahMode: true,
     realTime: true,
     mobileView: true,
     islamicBanking: true,
@@ -125,7 +123,7 @@ const configurationSlice = createSlice({
     },
 
     // Banking mode actions
-    setBankingMode: (state, action: PayloadAction<'conventional' | 'syariah' | 'dual'>) => {
+    setBankingMode: (state, action: PayloadAction<'conventional' | 'dual'>) => {
       state.bankingMode = action.payload;
       state.lastUpdated = new Date().toISOString();
     },

@@ -63,6 +63,7 @@ import {
     Task,
     Menu, // Icon
     VpnKey,
+    Email,
 
     // Additional icons
     BarChart,
@@ -127,7 +128,6 @@ const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'access-management': ['admin.users.manage', 'admin.roles.manage', 'admin.maintenance.access'],
     'user-management': 'admin.users.manage',
     'role-management': 'admin.roles.manage',
-    'menu-management': 'admin.system.manage',
     'job-monitoring': ['jobs.view', 'jobs.manage', 'admin.system.manage'],
     'assessment-workspace': 'banking.individual.view',
     'assessment-workspace-v1': 'banking.individual.view',
@@ -141,7 +141,6 @@ const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'manual-upload': 'banking.configuration.ifrs9.manage',
     'bulk-data-import': 'banking.configuration.ifrs9.manage',
     'data-export': 'banking.configuration.ifrs9.manage',
-    'etl-tools': 'banking.configuration.ifrs9.manage',
     'direct-db-connection': 'banking.configuration.ifrs9.manage',
     'data-scheduler': 'banking.configuration.ifrs9.manage',
 };
@@ -310,7 +309,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         label: 'Collective Impairment',
         icon: <TrendingUp />,
         description: 'Portfolio Assessment',
-        banking_modes: ['conventional', 'syariah', 'dual'],
+        banking_modes: ['conventional', 'dual'],
         // roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_PORTFOLIO_MANAGER'],
         children: [
             {
@@ -379,7 +378,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         label: 'Individual Impairment',
         icon: <Person />,
         description: 'Account Assessment',
-        banking_modes: ['conventional', 'syariah', 'dual'],
+        banking_modes: ['conventional', 'dual'],
         roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_PORTFOLIO_MANAGER'],
         children: [
             {
@@ -407,7 +406,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         label: 'IFRS 9',
         icon: <Calculate />,
         description: 'Processing Modules',
-        banking_modes: ['conventional', 'syariah', 'dual'],
+        banking_modes: ['conventional', 'dual'],
         roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST'],
         children: [
             {
@@ -465,7 +464,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         label: 'IFRS 9 Reports',
         icon: <TableChart />,
         description: 'Comprehensive IFRS 9 Reporting Suite',
-        banking_modes: ['conventional', 'syariah', 'dual'],
+        banking_modes: ['conventional', 'dual'],
         roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_REPORT_ANALYST'],
 
         children: [
@@ -527,7 +526,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         label: 'Advanced Analytics',
         icon: <Analytics />,
         description: 'R Analytics & BI',
-        banking_modes: ['conventional', 'syariah', 'dual'],
+        banking_modes: ['conventional', 'dual'],
         roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_REPORT_ANALYST'],
         children: [
             {
@@ -643,13 +642,6 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 description: 'Multi-format Export'
             },
             {
-                id: 'etl-tools',
-                label: 'ETL Tools',
-                href: '/banking/tools/etl',
-                icon: <Transform />,
-                description: 'Extract Transform Load'
-            },
-            {
                 id: 'direct-db-connection',
                 label: 'Direct DB Connection',
                 href: '/banking/tools/database',
@@ -708,6 +700,13 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 href: '/banking/maintenance/menus',
                 icon: <Menu />,
                 description: 'Database-driven menu configuration',
+            },
+            {
+                id: 'smtp-settings',
+                label: 'SMTP Settings',
+                href: '/banking/maintenance/smtp',
+                icon: <Email />,
+                description: 'Platform email server configuration',
             }
         ]
     }
@@ -780,6 +779,7 @@ export const convertIconStringToElement = (iconString: string): React.ReactEleme
         case 'task': return <Task />;
         case 'menu': return <Menu />;
         case 'vpn_key': return <VpnKey />;
+        case 'email': return <Email />;
         case 'mosque': return <Mosque />;
         case 'security': return <Security />;
         case 'swap_horiz': return <SwapHoriz />;
@@ -878,6 +878,7 @@ export const getIconFromDatabaseString = (iconString: string, bankingMode?: stri
         'task': <Task />,
         'menu': <Menu />,
         'vpn_key': <VpnKey />,
+        'email': <Email />,
 
         // Additional icons for comprehensive coverage
         'mosque': <Mosque />,
@@ -953,13 +954,13 @@ export const getIconForMenuItem = (code: string, level: number): React.ReactElem
         'manual-upload': <CloudUpload />,
         'bulk-data-import': <CloudUpload />,
         'data-export': <GetApp />,
-        'etl-tools': <Transform />,
         'direct-db-connection': <Storage />,
         'data-scheduler': <Schedule />,
         'access-management': <ManageAccounts />,
         'user-management': <ManageAccounts />,
         'role-management': <VpnKey />,
-        'menu-management': <Menu />
+        'menu-management': <Menu />,
+        'smtp-settings': <Email />
     };
 
     return iconMap[code] || (level === 0 ? <Category /> : <Assessment />);
@@ -1024,7 +1025,6 @@ const MENU_ICON_MAP: Record<string, string> = {
     'manual-upload': 'cloud_upload',
     'bulk-data-import': 'cloud_upload',
     'data-export': 'get_app',
-    'etl-tools': 'transform',
     'direct-db-connection': 'storage',
     'data-scheduler': 'schedule',
     'maintenance': 'build',
@@ -1035,7 +1035,8 @@ const MENU_ICON_MAP: Record<string, string> = {
     'approval': 'approval',
     'audit-logs': 'history',
     'job-monitoring': 'monitor',
-    'menu-management': 'menu'
+    'menu-management': 'menu',
+    'smtp-settings': 'email'
 };
 
 // Helper function to convert static menu to database format for fallback
@@ -1059,7 +1060,7 @@ export const convertStaticToDatabaseFormat = (staticMenu: MenuItem[]): DatabaseM
             sort_order: item.sort_order || 999,
             is_active: true,
             user_types: item.roles || [],
-            banking_types: item.banking_modes || ['conventional', 'syariah', 'dual'],
+            banking_types: item.banking_modes || ['conventional', 'dual'],
             requiredPermissions: permissionCodes,
             parent_id: parentId
         };
@@ -1122,7 +1123,7 @@ export const convertDatabaseMenuToMenuItem = (dbMenuItems: DatabaseMenuItem[], b
             path: item.key,
             // Use centralized icon configuration with banking mode awareness
             icon: item.icon ? getIconFromDatabaseString(item.icon, bankingMode) : <Menu />,
-            banking_modes: item.banking_types as ('conventional' | 'syariah' | 'dual')[],
+            banking_modes: item.banking_types as ('conventional' | 'dual')[],
             roles: item.user_types,
             requiredPermissions: item.requiredPermissions,
             // ✅ CRITICAL: Preserve children from database - DON'T RECURSIVELY CONVERT
@@ -1137,7 +1138,7 @@ export const convertDatabaseMenuToMenuItem = (dbMenuItems: DatabaseMenuItem[], b
                 level: 3, // Children are level 3
                 path: child.key,
                 icon: child.icon ? getIconFromDatabaseString(child.icon, bankingMode) : <Menu />,
-                banking_modes: child.banking_types as ('conventional' | 'syariah' | 'dual')[],
+                banking_modes: child.banking_types as ('conventional' | 'dual')[],
                 roles: child.user_types,
                 requiredPermissions: child.requiredPermissions,
                 status: child.is_active ? 'active' : 'disabled'

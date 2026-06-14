@@ -15,6 +15,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 
 import {
   Box,
@@ -103,10 +104,11 @@ import { usePendingApprovalCount } from '@/hooks/usePendingApprovalCount'; // �
 // ✅ Enhanced Sidebar Props
 interface BankingSidebarProps {
   width?: number;
-  bankingMode?: 'conventional' | 'syariah' | 'dual';
+  bankingMode?: 'conventional' | 'dual';
   userRole?: string;
   roleCodes?: string[];
   userPermissions?: string[]; // ✅ Add userPermissions for granular menu filtering
+  tenantContext?: string;
   collapsed?: boolean;
   appBarHeight?: number;
   onMenuClick?: (menuId: string, href?: string) => void;
@@ -380,6 +382,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   userRole = '',
   roleCodes = [], // ✅ Add roleCodes parameter
   userPermissions = [], // ✅ Add userPermissions parameter
+  tenantContext,
   collapsed = false,
   appBarHeight = 50,
   onMenuClick
@@ -450,7 +453,8 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
 
   // ✅ RTK Query: Auto-fetch and cache menu from database
   const { data: menuData, isLoading: isMenuLoading, error: menuQueryError } = useGetMenuTreeQuery(
-    { bankingMode, includeInactive: false }
+    { bankingMode, includeInactive: false, tenantContext },
+    { refetchOnMountOrArgChange: true }
   );
 
   // ✅ MEMOIZED MENU PROCESSING
@@ -479,7 +483,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
     };
 
     // Determine source: RTK Query data or Cache
-    if (menuData && Array.isArray(menuData) && menuData.length > 0) {
+    if (Array.isArray(menuData)) {
       rawItems = menuData.map((item: any) => {
         const mapToHierarchical = (dbItem: any, level: number): HierarchicalMenuItem => ({
           id: dbItem.id,
@@ -497,7 +501,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
           visible: true,
           permissions: dbItem.user_types || dbItem.roles || [],
           requiredPermissions: dbItem.requiredPermissions,
-          banking_modes: dbItem.banking_types || dbItem.banking_modes || ['conventional', 'syariah', 'dual'],
+          banking_modes: dbItem.banking_types || dbItem.banking_modes || ['conventional', 'dual'],
           user_types: dbItem.user_types || dbItem.roles || [],
           tenant_types: [],
           children: dbItem.children?.map((child: any) => mapToHierarchical(child, level + 1)) || [],
@@ -507,7 +511,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
       });
     } else if (typeof window !== 'undefined') {
       const cached = localStorage.getItem('cached_menu_structure');
-      if (cached) try { rawItems = JSON.parse(cached); } catch (e) { }
+      if (cached) try { rawItems = JSON.parse(cached); } catch (e) { console.warn('Failed to parse cached menu', e); }
     }
 
     if (rawItems.length > 0) {
@@ -588,7 +592,6 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   // ✅ SURGICAL FIX: Dynamic banking mode functions
   const getBankingModeLabel = () => {
     switch (bankingMode) {
-      case 'syariah': return 'Syariah Compliant';
       case 'dual': return 'Dual Banking';
       default: return 'Conventional Banking';
     }
@@ -596,7 +599,6 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
 
   const getBankingModeIcon = () => {
     switch (bankingMode) {
-      case 'syariah': return <Mosque sx={{ fontSize: '0.7rem' }} />;
       case 'dual': return <SwapHoriz sx={{ fontSize: '0.7rem' }} />;
       default: return <AccountBalance sx={{ fontSize: '0.7rem' }} />;
     }
@@ -608,9 +610,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
         width,
         height: '100%',
         // ✅ MODERN UI: Dynamic Gradient Backgrounds
-        background: bankingMode === 'syariah'
-          ? 'linear-gradient(135deg, #00695c 0%, #004d40 100%)' // Deep Teal for Syariah
-          : bankingMode === 'dual'
+        background: bankingMode === 'dual'
           ? 'linear-gradient(135deg, #37474f 0%, #263238 100%)' // Blue Grey for Dual
           : 'linear-gradient(135deg, #1976D2 0%, #0D47A1 100%)', // Classic Professional Blue
         color: '#ffffff',
@@ -727,9 +727,11 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
                 '&:hover': { transform: 'scale(1.02)' },
                 transition: 'transform 0.2s'
               }}>
-                <img 
+                <Image 
                   src="/images/logo-iaf.png" 
                   alt="IAF Logo" 
+                  height={28}
+                  width={120}
                   style={{ 
                     height: '28px', 
                     width: 'auto',
@@ -760,7 +762,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
             <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5, mt: 0.5 }}>
               <Chip
                 icon={getBankingModeIcon()}
-                label={bankingMode === 'syariah' ? 'Halal' : 'Compliant'}
+                label={bankingMode === 'conventional' ? 'Compliant' : bankingMode}
                 size="small"
                 variant="outlined"
                 sx={{ 
@@ -790,13 +792,15 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
          {collapsed && (
           <Link href={getTopLevelRoute()} style={{ textDecoration: 'none' }}>
              <Box sx={{ display: 'flex', justifyContent: 'center', cursor: 'pointer' }}>
-                <img 
-                  src="/images/logo-iaf.png" 
-                  alt="IAF" 
-                  style={{ 
-                    height: '24px', 
-                    width: 'auto',
-                    filter: 'brightness(0) invert(1)' 
+                 <Image 
+                   src="/images/logo-iaf.png" 
+                   alt="IAF" 
+                   height={24}
+                   width={24}
+                   style={{ 
+                     height: '24px', 
+                     width: 'auto',
+                     filter: 'brightness(0) invert(1)'
                   }} 
                 />
              </Box>

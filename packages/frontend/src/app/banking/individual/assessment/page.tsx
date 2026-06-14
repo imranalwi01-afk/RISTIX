@@ -1,10 +1,11 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { TableSkeleton } from '@/components/common/LoadingSkeleton';
 
 const PageContent = dynamic(() => import('./page.client'), {
   ssr: false,
-  loading: () => <div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>
+  loading: () => <TableSkeleton />
 });
 
 export default function AssessmentPageWrapper() {

@@ -25,8 +25,7 @@ export interface UserProfile {
   phoneNumber?: string;
   address?: string;
   avatar?: string;
-  bankingAccess: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
-  syariahCertified: boolean;
+  bankingAccess: 'CONVENTIONAL' | 'BOTH';
   language: string;
   timezone: string;
   emailNotifications: boolean;
@@ -41,7 +40,7 @@ export interface UserProfile {
 // ✅ Theme Settings Interface
 export interface ThemeSettings {
   mode: 'light' | 'dark';
-  bankingTheme: 'conventional' | 'syariah' | 'dual';
+  bankingTheme: 'conventional' | 'dual';
   primaryColor: string;
   secondaryColor: string;
   fontSize: 'small' | 'medium' | 'large';
@@ -105,10 +104,10 @@ export interface UserPreferences {
   defaultApprovalRoute: string;
 
   // Banking Preferences
-  defaultBankingMode: 'conventional' | 'syariah' | 'dual';
+  defaultBankingMode: 'conventional' | 'dual';
   showIslamicIndicators: boolean;
   complianceWarnings: boolean;
-  syariahBoardNotifications: boolean;
+
 
   // Advanced Preferences
   enableBetaFeatures: boolean;

@@ -81,14 +81,14 @@ const ColumnPickerDialog: React.FC<ColumnPickerDialogProps> = ({
   const visibleCount = selectedColumns.filter(col => col.visible).length;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth aria-labelledby="column-picker-dialog-title">
       <DialogTitle>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <ColumnIcon sx={{ mr: 1, color: 'primary.main' }} />
-            <Typography variant="h6">Column Visibility</Typography>
+            <Typography variant="h6" id="column-picker-dialog-title">Column Visibility</Typography>
           </Box>
-          <IconButton onClick={onClose} size="small">
+          <IconButton onClick={onClose} size="small" aria-label="Close column picker">
             <CloseIcon />
           </IconButton>
         </Box>

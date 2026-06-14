@@ -91,7 +91,9 @@ export default function RuleEditorDialog({ open, onClose, onSave, initialRule }:
       // Mock or API
       const ops = ['=', '>', '<', '>=', '<=', 'IN', 'LIKE', 'BETWEEN'];
       setOperators(ops.map(o => ({ id: o, label: o, value: o })));
-    } catch (err) { }
+    } catch (err) {
+      console.error('Failed to load operators', err);
+    }
   };
 
   // --- Handlers ---
@@ -110,8 +112,8 @@ export default function RuleEditorDialog({ open, onClose, onSave, initialRule }:
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{initialRule ? 'Edit Rule' : 'Add New Rule'}</DialogTitle>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth aria-labelledby="rule-editor-dialog-title">
+      <DialogTitle id="rule-editor-dialog-title">{initialRule ? 'Edit Rule' : 'Add New Rule'}</DialogTitle>
       <DialogContent dividers>
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, md: 6 }}>

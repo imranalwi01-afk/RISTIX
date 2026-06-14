@@ -1,5 +1,3 @@
-'use client';
-
 import { individualImpairmentAPI, type IndividualImpairmentWatchlistItem } from '@/services/api.individual-impairment';
 import { individualImpairmentAPI as individualImpairmentFlatAPI } from '@/services/api/individual-impairment.api';
 

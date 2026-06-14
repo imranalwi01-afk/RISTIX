@@ -1,5 +1,3 @@
-'use client';
-
 import { rolesAPI, usersAPI } from '@/services/api';
 
 export interface TenantUsersListParams {

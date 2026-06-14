@@ -1,7 +1,11 @@
 'use client';
 
-import React from 'react';
 import { useEffect } from 'react';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import Alert from '@mui/material/Alert';
+import AlertTitle from '@mui/material/AlertTitle';
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -14,25 +18,27 @@ export default function Error({ error, reset }: ErrorProps) {
   }, [error]);
 
   return (
-    <div style={{
-      padding: '2rem',
-      textAlign: 'center'
-    }}>
-      <h1>Something went wrong!</h1>
-      <p>{error.message || 'An unexpected error occurred.'}</p>
-      <button
-        onClick={reset}
-        style={{
-          padding: '0.5rem 1rem',
-          backgroundColor: '#0070f3',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: 'pointer'
-        }}
-      >
-        Try again
-      </button>
-    </div>
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '60vh',
+        p: 4,
+        maxWidth: 600,
+        mx: 'auto',
+      }}
+    >
+      <Alert severity="error" sx={{ width: '100%', mb: 3 }}>
+        <AlertTitle>Something went wrong!</AlertTitle>
+        <Typography variant="body2" sx={{ mt: 1 }}>
+          {error.message || 'An unexpected error occurred.'}
+        </Typography>
+      </Alert>
+      <Button variant="contained" onClick={reset}>
+        Try Again
+      </Button>
+    </Box>
   );
 }

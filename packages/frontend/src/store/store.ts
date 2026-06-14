@@ -45,12 +45,11 @@ const authSlice = createSlice({
 
 // ✅ Banking Slice
 interface BankingState {
-  currentType: 'conventional' | 'syariah' | 'dual';
+  currentType: 'conventional' | 'dual';
   tenantConfig: any | null;
   features: {
     eclCalculation: boolean;
     portfolioManagement: boolean;
-    syariahCompliance: boolean;
   };
 }
 
@@ -60,7 +59,6 @@ const initialBankingState: BankingState = {
   features: {
     eclCalculation: true,
     portfolioManagement: true,
-    syariahCompliance: false,
   },
 };
 
@@ -68,9 +66,8 @@ const bankingSlice = createSlice({
   name: 'banking',
   initialState: initialBankingState,
   reducers: {
-    setBankingType: (state, action: PayloadAction<'conventional' | 'syariah' | 'dual'>) => {
+    setBankingType: (state, action: PayloadAction<'conventional' | 'dual'>) => {
       state.currentType = action.payload;
-      state.features.syariahCompliance = action.payload === 'syariah';
     },
     setTenantConfig: (state, action: PayloadAction<any>) => {
       state.tenantConfig = action.payload;
@@ -80,7 +77,7 @@ const bankingSlice = createSlice({
 
 // ✅ Theme Slice
 interface ThemeState {
-  bankingType: 'conventional' | 'syariah';
+  bankingType: 'conventional';
   isDarkMode: boolean;
   preferences: Record<string, any>;
 }
@@ -95,7 +92,7 @@ const themeSlice = createSlice({
   name: 'theme',
   initialState: initialThemeState,
   reducers: {
-    setBankingType: (state, action: PayloadAction<'conventional' | 'syariah'>) => {
+    setBankingType: (state, action: PayloadAction<'conventional'>) => {
       state.bankingType = action.payload;
     },
     setDarkMode: (state, action: PayloadAction<boolean>) => {

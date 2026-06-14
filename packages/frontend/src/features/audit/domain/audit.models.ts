@@ -1,5 +1,3 @@
-'use client';
-
 import type { AuditLogDto, AuditStatsDto } from '../api/audit.api';
 
 export type AuditLogViewModel = AuditLogDto;

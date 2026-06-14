@@ -16,14 +16,11 @@ import './globals.css'
 // METADATA CONFIGURATION
 // ============================================================================
 export const metadata: Metadata = {
-  title: 'IFRS9 Pro Platform - Multi-Stakeholder Banking System',
-  description: 'Multi-Tenant Islamic Banking IFRS 9 Compliance Platform with Platform Admin, Banking Institution, Consultant, and Regulator interfaces',
+  title: 'IFRS9 Banking Platform',
+  description: 'Multi-Tenant Banking IFRS 9 Compliance Platform',
   keywords: [
     'IFRS 9',
-    'Islamic Banking', 
-    'Multi-tenant',
     'Banking Platform',
-    'Syariah Banking',
     'Platform Admin',
     'Consultant',
     'Regulator',
@@ -109,6 +106,8 @@ interface RootLayoutProps {
 // ============================================================================
 // ROOT LAYOUT COMPONENT
 // ============================================================================
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html 
@@ -143,7 +142,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
       <body 
         className="h-full antialiased"
         style={{ 
-          margin: 0, 
+          margin: 0,
           fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
           backgroundColor: '#fafafa',
           minHeight: '100vh',
@@ -154,6 +153,37 @@ export default function RootLayout({ children }: RootLayoutProps) {
       >
         {/* ✅ SURGICAL FIX: Use ClientProviders with correct import */}
         <ClientProviders>
+          {/* Skip to content link for keyboard/screen reader users */}
+          <a
+            href="#main-content"
+            style={{
+              position: 'absolute',
+              left: -9999,
+              top: 'auto',
+              width: 1,
+              height: 1,
+              overflow: 'hidden',
+              zIndex: 9999,
+              padding: '8px 16px',
+              background: '#1976D2',
+              color: '#fff',
+              textDecoration: 'none',
+              fontSize: 14,
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.left = '8px';
+              e.currentTarget.style.top = '8px';
+              e.currentTarget.style.width = 'auto';
+              e.currentTarget.style.height = 'auto';
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.left = '-9999px';
+              e.currentTarget.style.width = '1px';
+              e.currentTarget.style.height = '1px';
+            }}
+          >
+            Skip to main content
+          </a>
           <div id="__next" className="h-full">
             {children as any}
           </div>

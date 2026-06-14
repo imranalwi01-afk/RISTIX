@@ -105,11 +105,14 @@ export * from './legacy'
 export {
     platformSchema,
     platformUsers,
+    platformEmailTemplates,
     platformSettings,
     tenants,
     tenantsRelations, // ✅ Export tenantsRelations
     type PlatformUser,
     type NewPlatformUser,
+    type PlatformEmailTemplate,
+    type NewPlatformEmailTemplate,
     type PlatformSetting,
     type NewPlatformSetting,
     type Tenant,

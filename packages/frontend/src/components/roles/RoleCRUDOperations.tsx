@@ -105,7 +105,6 @@ interface Permission {
   requiredApprovalLevel?: number | null;
   requiredApprovers?: number;
   bankingSpecific: boolean;
-  syariahRequired?: boolean;
 }
 
 interface RoleFormData {
@@ -207,7 +206,6 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
     setSuccess(null);
 
     try {
-      console.log('🔧 Fetching roles and permissions for CRUD operations...');
       const [rolesResponse, permissionsResponse] = await Promise.all([
         api.roles.getAll({}),
         api.roles.getPermissions()
@@ -216,7 +214,6 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
       setRoles(rolesResponse.data || []);
       setPermissions(permissionsResponse.data || []);
 
-      console.log(`✅ Fetched ${rolesResponse.data?.length || 0} roles and ${permissionsResponse.data?.length || 0} permissions`);
 
     } catch (error) {
       console.error('❌ Error fetching CRUD data:', error);
@@ -366,7 +363,6 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
     setSuccess(null);
 
     try {
-      console.log(`💾 ${crudDialog.mode === 'create' ? 'Creating' : 'Updating'} role:`, formData.name);
 
       let response;
       if (crudDialog.mode === 'create') {
@@ -405,7 +401,6 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
     setSuccess(null);
 
     try {
-      console.log(`🗑️ Deleting role:`, crudDialog.role.name);
       const response = await api.roles.delete(crudDialog.role.id);
       const approvalRequired = Boolean(response?.approvalRequired);
       const requestId = response?.requestId;

@@ -11,6 +11,7 @@
 
 import React, { Suspense, useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Box from '@mui/material/Box'
+import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import Container from '@mui/material/Container'
 import Paper from '@mui/material/Paper'
@@ -21,26 +22,15 @@ import Tabs from '@mui/material/Tabs'
 import Tab from '@mui/material/Tab'
 import Alert from '@mui/material/Alert'
 import Snackbar from '@mui/material/Snackbar'
-import Badge from '@mui/material/Badge'
-import Fab from '@mui/material/Fab'
 import CircularProgress from '@mui/material/CircularProgress'
 import HomeIcon from '@mui/icons-material/Home'
 import ApprovalIcon from '@mui/icons-material/Gavel'
-import SearchIcon from '@mui/icons-material/Search'
-import FilterIcon from '@mui/icons-material/FilterList'
 import RefreshIcon from '@mui/icons-material/Refresh'
-import ApproveIcon from '@mui/icons-material/CheckCircle'
-import RejectIcon from '@mui/icons-material/Cancel'
-import InfoIcon from '@mui/icons-material/Info'
-import DelegateIcon from '@mui/icons-material/Forward'
 import HistoryIcon from '@mui/icons-material/History'
 import StatsIcon from '@mui/icons-material/Assessment'
 import PendingIcon from '@mui/icons-material/PendingActions'
 import MatrixIcon from '@mui/icons-material/TableChart'
-import RoutingIcon from '@mui/icons-material/AccountTree'
-import NotificationIcon from '@mui/icons-material/Notifications'
 import ExportIcon from '@mui/icons-material/CloudDownload'
-import SecurityIcon from '@mui/icons-material/Security'
 import { useRouter, useSearchParams } from 'next/navigation';
 import { bankingAPI } from '@/services/api';
 import { useAuth } from '@/providers/AuthProvider';
@@ -114,22 +104,6 @@ const getRequestedByDisplay = (req: any): string => {
   if (fallbackCandidates.length > 0) return fallbackCandidates[0];
 
   return 'Unknown User';
-};
-
-const matchesApprovalSearch = (request: ApprovalRequest, rawSearchTerm: string): boolean => {
-  const searchLower = rawSearchTerm.trim().toLowerCase();
-  if (!searchLower) return true;
-
-  return [
-    request.id,
-    request.entityId,
-    request.requestTitle,
-    request.requestedByName,
-    request.description,
-    request.requestType,
-  ]
-    .filter((value): value is string => typeof value === 'string' && value.length > 0)
-    .some((value) => value.toLowerCase().includes(searchLower));
 };
 
 const normalizeApprovalFilterValue = (value: EnterpriseColumnFilterValue): string => {
@@ -523,7 +497,7 @@ function ApprovalManagementPage() {
     }
 
     handledDeepLinkRef.current = deepLinkedRequestId;
-    setActiveTab(matchedRequest.status === 'pending' ? 0 : 2);
+    setActiveTab(matchedRequest.status === 'pending' ? 0 : 1);
     handleViewDetails(matchedRequest);
   }, [deepLinkedRequestId, approvalRequests]);
 
@@ -592,7 +566,7 @@ function ApprovalManagementPage() {
       operationType: matrix.operationType || matrix.operation_type || null,
       bankingMode: matrix.bankingMode || matrix.banking_mode || null,
       isActive: matrix.isActive ?? matrix.is_active ?? true,
-      syariahBoardRequired: matrix.syariahBoardRequired ?? matrix.syariah_board_required ?? false,
+      shariahCompliance: false,
       autoApprovalRules: matrix.autoApprovalRules ?? matrix.auto_approval_rules ?? null,
       levels: Array.isArray(matrix.levels)
         ? matrix.levels.map((level: any) => {
@@ -884,7 +858,7 @@ function ApprovalManagementPage() {
       return;
     }
 
-    if (activeTab === 2) {
+    if (activeTab === 1) {
       const historyRequests = getHistoryRequestsForExport();
       const headers = ['id', 'requestTitle', 'requestType', 'requestedByName', 'requestedAt', 'completedAt', 'status', 'approvalsReceived', 'approvalsRequired'];
       const rows = historyRequests.map((request) => ({
@@ -903,7 +877,7 @@ function ApprovalManagementPage() {
       return;
     }
 
-    if (activeTab === 3) {
+    if (activeTab === 2) {
       const headers = ['id', 'name', 'entityType', 'operationType', 'bankingMode', 'isActive', 'levels'];
       const rows: Record<string, unknown>[] = approvalMatrices.map((matrix) => ({
         id: matrix.id,
@@ -919,41 +893,7 @@ function ApprovalManagementPage() {
       return;
     }
 
-    if (activeTab === 4) {
-      const headers = ['matrixName', 'entityType', 'operationType', 'isActive', 'level', 'levelName', 'requiredRoles', 'requiredPermissions', 'candidateCount', 'candidates'];
-      const rows: Record<string, unknown>[] = approvalRouting.flatMap((routing) =>
-        routing.levels.length > 0
-          ? routing.levels.map((level) => ({
-              matrixName: routing.matrixName,
-              entityType: routing.entityType,
-              operationType: routing.operationType,
-              isActive: routing.isActive ? 'active' : 'inactive',
-              level: String(level.level),
-              levelName: level.name,
-              requiredRoles: (level.requiredRoleCodes || []).join('|'),
-              requiredPermissions: (level.requiredPermissionCodes || []).join('|'),
-              candidateCount: level.candidateCount,
-              candidates: level.candidates.map((candidate) => `${candidate.fullName}<${candidate.email}>`).join(' | '),
-            }))
-          : [{
-              matrixName: routing.matrixName,
-              entityType: routing.entityType,
-              operationType: routing.operationType,
-              isActive: routing.isActive ? 'active' : 'inactive',
-              level: '',
-              levelName: '',
-              requiredRoles: '',
-              requiredPermissions: '',
-              candidateCount: 0,
-              candidates: '',
-            }]
-      );
-      downloadCsv(`approval-routing-${dateSuffix}.csv`, headers, rows);
-      showSnackbar('Approval routing exported.', 'success');
-      return;
-    }
-
-    showSnackbar('Export is only available for Pending, History, Approval Matrix, and Routing tabs.', 'info');
+    showSnackbar('Export is only available for Pending, Insights, and Matrix tabs.', 'info');
   }, [activeTab, approvalMatrices, approvalRouting, approvalUniverse, fetchAllApprovalRowsForCurrentQuery, showSnackbar]);
 
   const handleRefresh = useCallback(() => {
@@ -1130,27 +1070,15 @@ function ApprovalManagementPage() {
           />
           <Tab
             icon={<StatsIcon />}
-            label="Statistics"
+            label="Insights"
             iconPosition="start"
-            data-testid="approval-tab-statistics"
-          />
-          <Tab
-            icon={<HistoryIcon />}
-            label="History"
-            iconPosition="start"
-            data-testid="approval-tab-history"
+            data-testid="approval-tab-insights"
           />
           <Tab
             icon={<MatrixIcon />}
             label="Approval Matrix"
             iconPosition="start"
             data-testid="approval-tab-matrix"
-          />
-          <Tab
-            icon={<RoutingIcon />}
-            label="Routing"
-            iconPosition="start"
-            data-testid="approval-tab-routing"
           />
         </Tabs>
       </Paper>
@@ -1225,44 +1153,54 @@ function ApprovalManagementPage() {
             onSortChange={setSort}
           />
         )}
-        {activeTab === 1 && <ApprovalStatisticsPanel statistics={statistics} />}
+        {activeTab === 1 && (
+          <Box>
+            <ApprovalStatisticsPanel statistics={statistics} />
+            <Box sx={{ mt: 3 }}>
+              <ApprovalHistoryTable
+                rows={historyRequests}
+                searchTerm={searchTerm}
+                statusFilter={statusFilter}
+                onSearchChange={setSearchTerm}
+                onStatusFilterChange={setStatusFilter}
+                onViewDetails={handleViewDetails}
+                onOpenRolePermission={openRolePermissionInRBAC}
+                isRolePermissionRequest={isRolePermissionRequest}
+                getRowSx={getDeepLinkedRowSx}
+                formatDate={formatDate}
+                getStatusColor={getStatusColor}
+              />
+            </Box>
+          </Box>
+        )}
         {activeTab === 2 && (
-          <ApprovalHistoryTable
-            rows={historyRequests}
-            searchTerm={searchTerm}
-            statusFilter={statusFilter}
-            onSearchChange={setSearchTerm}
-            onStatusFilterChange={setStatusFilter}
-            onViewDetails={handleViewDetails}
-            onOpenRolePermission={openRolePermissionInRBAC}
-            isRolePermissionRequest={isRolePermissionRequest}
-            getRowSx={getDeepLinkedRowSx}
-            formatDate={formatDate}
-            getStatusColor={getStatusColor}
-          />
-        )}
-        {activeTab === 3 && (
-          <ApprovalMatrixList
-            matrices={approvalMatrices}
-            loading={matricesLoading}
-            onRefresh={loadApprovalMatrices}
-            onEdit={(matrix) => setMatrixEditDialog({ open: true, matrix })}
-            formatDate={formatDate}
-          />
-        )}
-        {activeTab === 4 && (
-          <ApprovalRoutingList
-            routingItems={approvalRouting}
-            loading={routingLoading}
-            entityOptions={routingEntityOptions}
-            routingEntityFilter={routingEntityFilter}
-            routingOperationFilter={routingOperationFilter}
-            routingDepartmentFilter={routingDepartmentFilter}
-            onEntityFilterChange={setRoutingEntityFilter}
-            onOperationFilterChange={setRoutingOperationFilter}
-            onDepartmentFilterChange={setRoutingDepartmentFilter}
-            onApply={handleRoutingApply}
-          />
+          <Box>
+            <ApprovalMatrixList
+              matrices={approvalMatrices}
+              loading={matricesLoading}
+              onRefresh={loadApprovalMatrices}
+              onEdit={(matrix) => setMatrixEditDialog({ open: true, matrix })}
+              formatDate={formatDate}
+            />
+            <Paper sx={{ mt: 4, p: 2.5 }}>
+              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
+                <HistoryIcon color="action" />
+                <Typography variant="h6">Routing Explorer</Typography>
+              </Stack>
+              <ApprovalRoutingList
+                routingItems={approvalRouting}
+                loading={routingLoading}
+                entityOptions={routingEntityOptions}
+                routingEntityFilter={routingEntityFilter}
+                routingOperationFilter={routingOperationFilter}
+                routingDepartmentFilter={routingDepartmentFilter}
+                onEntityFilterChange={setRoutingEntityFilter}
+                onOperationFilterChange={setRoutingOperationFilter}
+                onDepartmentFilterChange={setRoutingDepartmentFilter}
+                onApply={handleRoutingApply}
+              />
+            </Paper>
+          </Box>
         )}
       </Box>
 
@@ -1356,18 +1294,6 @@ function ApprovalManagementPage() {
           {snackbar.message}
         </Alert>
       </Snackbar>
-
-      {/* Floating Notification Button */}
-      <Fab
-        color="primary"
-        size="medium"
-        sx={{ position: 'fixed', bottom: 20, right: 20 }}
-        onClick={() => showSnackbar(`${statistics?.pendingRequests || 0} pending approvals`, 'info')}
-      >
-        <Badge badgeContent={statistics?.pendingRequests || 0} color="error">
-          <NotificationIcon />
-        </Badge>
-      </Fab>
     </Container>
   );
 }

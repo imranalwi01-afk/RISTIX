@@ -23,7 +23,7 @@ export interface MenuItem {
   level: number;
   path: string;
   is_active: boolean;
-  banking_modes?: ('conventional' | 'syariah' | 'dual')[];
+  banking_modes?: ('conventional' | 'dual')[];
   roles?: string[];
   badge?: {
     content?: string | number;
@@ -88,7 +88,7 @@ export interface CreateMenuItemRequest {
   description?: string;
   icon?: string;
   parent_id?: string;
-  banking_modes?: ('conventional' | 'syariah' | 'dual')[];
+  banking_modes?: ('conventional' | 'dual')[];
   roles?: string[];
   badge?: {
     content?: string | number;
@@ -107,7 +107,7 @@ export interface UpdateMenuItemRequest {
   description?: string;
   icon?: string;
   parent_id?: string;
-  banking_modes?: ('conventional' | 'syariah' | 'dual')[];
+  banking_modes?: ('conventional' | 'dual')[];
   roles?: string[];
   badge?: {
     content?: string | number;
@@ -129,7 +129,7 @@ export interface ReorderMenuItemsRequest {
 }
 
 export interface MenuQueryParams {
-  bankingMode?: 'conventional' | 'syariah' | 'dual';
+  bankingMode?: 'conventional' | 'dual';
   includeInactive?: boolean;
   parentId?: string;
   level?: number;
@@ -156,7 +156,7 @@ const buildStaticFallbackMenuTree = (): MenuItem[] => {
       level: Number(item.level || 1),
       path: String(item.key || item.id),
       is_active: item.is_active !== false,
-      banking_modes: item.banking_types || ['conventional', 'syariah', 'dual'],
+      banking_modes: item.banking_types || ['conventional', 'dual'],
       roles: Array.isArray(item.user_types) ? item.user_types : [],
       status: item.is_active === false ? 'disabled' : 'active',
       children: [],
@@ -214,7 +214,6 @@ export class MenuService {
   async getMenuTree(params?: MenuQueryParams): Promise<MenuTreeResponse> {
     try {
       if (isDynamicMenuEnabled()) {
-        console.log('📋 Fetching menu hierarchy from backend', params);
         const queryParams = new URLSearchParams();
         if (params?.bankingMode) queryParams.append('bankingMode', params.bankingMode);
         if (params?.includeInactive !== undefined) queryParams.append('includeInactive', params.includeInactive.toString());
@@ -239,7 +238,6 @@ export class MenuService {
         }
       }
 
-      console.log('📋 Backend menu endpoints are unavailable in prod, using static fallback hierarchy', params);
       return {
         success: true,
         data: buildStaticFallbackMenuTree(),
@@ -260,8 +258,6 @@ export class MenuService {
    */
   async getMenuItems(params?: MenuQueryParams): Promise<MenuItemsResponse> {
     try {
-      console.log('📋 Fetching menu items from backend', params);
-
       const queryParams = new URLSearchParams();
       if (params?.bankingMode) {
         queryParams.append('bankingType', params.bankingMode);
@@ -293,12 +289,6 @@ export class MenuService {
       // Extract data from axios response wrapper
       const apiResponse = response.data;
 
-      console.log('✅ Menu items fetched successfully:', {
-        itemCount: Array.isArray(apiResponse.data) ? apiResponse.data.length : 0,
-        success: apiResponse.success,
-        pagination: apiResponse.pagination
-      });
-
       // Transform response to match expected format
       const transformedResponse: MenuItemsResponse = {
         success: apiResponse.success,
@@ -325,17 +315,10 @@ export class MenuService {
    */
   async getMenuItem(id: string): Promise<MenuItemResponse> {
     try {
-      console.log(`📋 Fetching menu item ${id} from backend`);
-
       const response = await api.client.get<MenuItemResponse>(`/menu/${id}`);
 
       // Extract data from axios response wrapper
       const apiResponse = response.data;
-
-      console.log('✅ Menu item fetched successfully:', {
-        success: apiResponse.success,
-        itemId: apiResponse.data?.id
-      });
 
       return apiResponse;
     } catch (error) {
@@ -349,17 +332,10 @@ export class MenuService {
    */
   async createMenuItem(menuData: CreateMenuItemRequest): Promise<MenuItemResponse> {
     try {
-      console.log('➕ Creating menu item:', menuData.label);
-
       const response = await api.client.post<MenuItemResponse>('/menu', menuData);
 
       // Extract data from axios response wrapper
       const apiResponse = response.data;
-
-      console.log('✅ Menu item created successfully:', {
-        success: apiResponse.success,
-        itemId: apiResponse.data?.id
-      });
 
       // Clear cache to force refresh
       this.clearCache();
@@ -376,17 +352,10 @@ export class MenuService {
    */
   async updateMenuItem(id: string, updateData: UpdateMenuItemRequest): Promise<MenuItemResponse> {
     try {
-      console.log(`✏️ Updating menu item ${id}:`, updateData);
-
       const response = await api.client.put<MenuItemResponse>(`/menu/${id}`, updateData);
 
       // Extract data from axios response wrapper
       const apiResponse = response.data;
-
-      console.log('✅ Menu item updated successfully:', {
-        success: apiResponse.success,
-        itemId: apiResponse.data?.id
-      });
 
       // Clear cache to force refresh
       this.clearCache();
@@ -403,16 +372,10 @@ export class MenuService {
    */
   async deleteMenuItem(id: string): Promise<ApiResponse> {
     try {
-      console.log(`🗑️ Deleting menu item ${id}`);
-
       const response = await api.client.delete<ApiResponse>(`/menu/${id}`);
 
       // Extract data from axios response wrapper
       const apiResponse = response.data;
-
-      console.log('✅ Menu item deleted successfully:', {
-        success: apiResponse.success
-      });
 
       // Clear cache to force refresh
       this.clearCache();
@@ -429,16 +392,10 @@ export class MenuService {
    */
   async reorderMenuItems(items: ReorderMenuItemsRequest): Promise<ApiResponse> {
     try {
-      console.log('🔄 Reordering menu items:', items);
-
       const response = await api.client.post<ApiResponse>('/menu/reorder', { items });
 
       // Extract data from axios response wrapper
       const apiResponse = response.data;
-
-      console.log('✅ Menu items reordered successfully:', {
-        success: apiResponse.success
-      });
 
       // Clear cache to force refresh
       this.clearCache();
@@ -455,16 +412,10 @@ export class MenuService {
    */
   async initializeMenuStructure(): Promise<ApiResponse> {
     try {
-      console.log('🏗️ Initializing default menu structure');
-
       const response = await api.client.post<ApiResponse>('/menu/initialize');
 
       // Extract data from axios response wrapper
       const apiResponse = response.data;
-
-      console.log('✅ Menu structure initialized successfully:', {
-        success: apiResponse.success
-      });
 
       // Clear cache to force refresh
       this.clearCache();
@@ -487,7 +438,6 @@ export class MenuService {
     if (this.menuCache.has(cacheKey)) {
       const cached = this.menuCache.get(cacheKey)!;
       if (now - cached.timestamp < this.CACHE_DURATION) {
-        console.log('📋 Using cached menu hierarchy');
         return cached.data;
       }
     }
@@ -614,7 +564,6 @@ export class MenuService {
    */
   clearCache(): void {
     this.menuCache.clear();
-    console.log('🗑️ Menu cache cleared');
   }
 
   /**

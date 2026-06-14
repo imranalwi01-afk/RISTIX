@@ -57,7 +57,6 @@ export class ApiClient {
     // ✅ SURGICAL FIX: Add demo token fallback for development
     if (!token && process.env.NODE_ENV === 'development') {
       token = 'demo_token_PLATFORM_SUPER_ADMIN';
-      console.log('🎭 [API CLIENT] Using demo token fallback for development');
     }
 
     if (token) {

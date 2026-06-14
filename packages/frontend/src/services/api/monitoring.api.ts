@@ -21,7 +21,6 @@ export const monitoringApi = {
      */
     async getMonitoringData(): Promise<{ success: boolean; data: MonitoringData[] }> {
         try {
-            console.log('📊 Fetching monitoring data from API');
             const response = await apiClient.get('/banking/monitoring/tasks');
             return response.data;
         } catch (error) {
@@ -62,7 +61,6 @@ export const monitoringApi = {
      * Trigger a monitoring task
      */
     async triggerMonitoringTask(taskId: string): Promise<{ success: boolean; message: string }> {
-        console.log(`🚀 Triggering monitoring task: ${taskId}`);
         try {
             const response = await apiClient.post(`/banking/monitoring/tasks/${taskId}/run`, {});
             return response.data;

@@ -277,9 +277,9 @@ const ECLCalculationPanel: React.FC = () => {
       </Box>
 
       {/* ✅ Banking Type Alert */}
-      {bankingType === 'syariah' && (
+      {bankingType === 'dual' && (
         <Alert severity="info" sx={{ mb: 3 }} icon={<Info />}>
-          Syariah Banking Mode: ECL calculations will apply Islamic banking principles and exclude conventional interest calculations.
+          ECL calculations will apply Islamic banking principles and exclude conventional interest calculations.
         </Alert>
       )}
 

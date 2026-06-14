@@ -5,7 +5,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 interface ThemeState {
   mode: 'light' | 'dark';
-  bankingTheme: 'conventional' | 'syariah';
+  bankingTheme: 'conventional';
   primaryColor: string;
   language: string;
   rtl: boolean;
@@ -26,10 +26,8 @@ const themeSlice = createSlice({
     setThemeMode: (state, action: PayloadAction<'light' | 'dark'>) => {
       state.mode = action.payload;
     },
-    setBankingTheme: (state, action: PayloadAction<'conventional' | 'syariah'>) => {
+    setBankingTheme: (state, action: PayloadAction<'conventional'>) => {
       state.bankingTheme = action.payload;
-      state.primaryColor = action.payload === 'syariah' ? '#2e7d32' : '#1976d2';
-      state.rtl = action.payload === 'syariah';
     },
     setLanguage: (state, action: PayloadAction<string>) => {
       state.language = action.payload;

@@ -384,7 +384,6 @@ export default function PageContent() {
   // Load dropdown metadata from DS2 database
   const loadMetadata = useCallback(async () => {
     try {
-      console.log('🔄 Loading Rule Base Setting metadata from DS2 database...');
 
       // Load all metadata in parallel
       const [ruleTypesRes, conditionsRes, stagesRes] = await Promise.all([
@@ -405,7 +404,6 @@ export default function PageContent() {
         setStages(stagesRes.data.map((item: any) => ({ label: item.label || item.name, value: item.value })));
       }
 
-      console.log('✅ Rule Base Setting metadata loaded successfully');
 
     } catch (error) {
       console.error('❌ Error loading metadata:', error);

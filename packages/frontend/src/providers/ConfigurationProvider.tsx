@@ -41,7 +41,6 @@ export const ConfigurationProvider: React.FC<ConfigurationProviderProps> = ({ ch
 
   const loadConfiguration = async () => {
     try {
-      console.log('🔧 ConfigurationProvider: Loading configuration...');
 
       // Initialize configuration service
       initializeConfiguration();
@@ -61,7 +60,6 @@ export const ConfigurationProvider: React.FC<ConfigurationProviderProps> = ({ ch
         bankingMode: envConfig.banking.mode,
         features: {
           analytics: envConfig.features.rAnalytics,
-          syariahMode: envConfig.banking.mode !== 'conventional',
           realTime: false,
           mobileView: true,
           islamicBanking: envConfig.banking.mode !== 'conventional',
@@ -87,7 +85,6 @@ export const ConfigurationProvider: React.FC<ConfigurationProviderProps> = ({ ch
 
       setConfig(envConfig);
       setError(null);
-      console.log('✅ ConfigurationProvider: Configuration loaded successfully');
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown configuration error';

@@ -39,6 +39,16 @@ const RefreshInput = z.object({
     refreshToken: z.string().min(1, 'Refresh token is required'),
 }).openapi('RefreshInput')
 
+const ForgotPasswordInput = z.object({
+    email: z.string().email('Valid email is required'),
+}).openapi('ForgotPasswordInput')
+
+const ResetPasswordInput = z.object({
+    email: z.string().email('Valid email is required'),
+    token: z.string().min(1, 'Token is required'),
+    newPassword: z.string().min(8, 'Password must be at least 8 characters long'),
+}).openapi('ResetPasswordInput')
+
 const TokenPairSchema = z.object({
     accessToken: z.string(),
     refreshToken: z.string(),
@@ -255,6 +265,137 @@ authRoutes.openapi(
             message: 'Auth service is healthy',
             timestamp: new Date().toISOString(),
         } as any)
+    }
+)
+
+/**
+ * POST /auth/forgot-password - Request a password reset email
+ */
+authRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/forgot-password',
+        tags: ['Auth'],
+        summary: 'Forgot Password',
+        request: {
+            body: {
+                content: {
+                    'application/json': {
+                        schema: ForgotPasswordInput,
+                    },
+                },
+            },
+        },
+        responses: {
+            200: {
+                content: {
+                    'application/json': {
+                        schema: SuccessResponse,
+                    },
+                },
+                description: 'Password reset request processed',
+            },
+            400: {
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            message: z.string()
+                        })
+                    }
+                },
+                description: 'Bad Request'
+            },
+            500: {
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            message: z.string()
+                        })
+                    }
+                },
+                description: 'Internal Server Error'
+            }
+        },
+    }),
+    async (c) => {
+        const { email } = c.req.valid('json')
+        // We need the frontend origin URL to construct the reset link
+        const originUrl = c.req.header('origin') || 'http://localhost:4231'
+
+        const effect = pipe(
+            authService.forgotPassword(email, originUrl),
+            Effect.flatMap((isFound) => {
+                if (!isFound) {
+                    return Effect.fail('Alamat email tidak terdaftar di sistem kami.')
+                }
+                return Effect.succeed({
+                    success: true,
+                    message: 'Tautan pengaturan ulang sandi telah dikirim ke email Anda.',
+                })
+            }),
+            Effect.catchAll((err) => {
+                if (typeof err === 'string') {
+                    // Fast path to return 400 for our custom error string
+                    return Effect.succeed(c.json({ success: false, message: err }, 400))
+                }
+                // Otherwise rethrow or fail
+                return Effect.fail(err)
+            })
+        )
+
+        // If the effect returned a Response (like from c.json), return it directly
+        return Effect.runPromise(effect).then((res) => {
+            if (res instanceof Response) return res;
+            return c.json(res, 200);
+        }).catch((err) => {
+            return c.json({ success: false, message: 'Internal Server Error' }, 500)
+        })
+    }
+)
+
+/**
+ * POST /auth/reset-password - Reset password using token
+ */
+authRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/reset-password',
+        tags: ['Auth'],
+        summary: 'Reset Password',
+        request: {
+            body: {
+                content: {
+                    'application/json': {
+                        schema: ResetPasswordInput,
+                    },
+                },
+            },
+        },
+        responses: {
+            200: {
+                content: {
+                    'application/json': {
+                        schema: SuccessResponse,
+                    },
+                },
+                description: 'Password successfully reset',
+            },
+        },
+    }),
+    async (c) => {
+        const { email, token, newPassword } = c.req.valid('json')
+
+        const effect = pipe(
+            authService.resetPasswordWithToken(email, token, newPassword),
+            Effect.map(() => ({
+                success: true,
+                message: 'Password has been successfully reset. You can now login.',
+            }))
+        )
+
+        return runEffect(c, effect)
     }
 )
 

@@ -3,23 +3,28 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Box, Card, CardContent, Typography, Button, Dialog, DialogTitle, DialogContent,
-  DialogActions, TextField, Grid, IconButton, Chip, FormControl, InputLabel, Select,
+  Box, Typography, Button, Dialog, DialogTitle, DialogContent,
+  DialogActions, TextField, IconButton, Chip, FormControl, InputLabel, Select,
   MenuItem, Switch, FormControlLabel, Alert, Snackbar, Tooltip, Paper,
   CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Accordion, AccordionSummary, AccordionDetails,
 } from '@mui/material';
+import Grid from '@mui/material/Grid';
 import {
   Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Refresh as RefreshIcon,
-  ExpandMore as ExpandMoreIcon, Menu as MenuIcon, Save as SaveIcon, Security as SecurityIcon,
+  ExpandMore as ExpandMoreIcon, Save as SaveIcon, Security as SecurityIcon,
 } from '@mui/icons-material';
 import { menuApi } from '@/services/api/menu.api';
 import { api } from '@/services/api';
+import { useAppDispatch } from '@/store/hooks';
+import { menuQueryApi } from '@/store/api/menuApi';
 
 interface MenuCategory {
   id: string;
   name: string;
   icon: string;
+  description?: string;
+  color?: string;
   sort_order: number;
   is_active: boolean;
 }
@@ -35,7 +40,41 @@ interface MenuItem {
   parent_id?: string;
 }
 
+interface MenuCategoryApi {
+  id: string;
+  name: string;
+  icon?: string | null;
+  sortOrder?: number | null;
+  sort_order?: number | null;
+  isActive?: boolean | null;
+  is_active?: boolean | null;
+  items?: MenuItemApi[];
+}
+
+interface MenuItemApi {
+  id: string;
+  categoryId?: string | null;
+  category_id?: string | null;
+  parentId?: string | null;
+  parent_id?: string | null;
+  name: string;
+  path?: string | null;
+  icon?: string | null;
+  sortOrder?: number | null;
+  sort_order?: number | null;
+  isActive?: boolean | null;
+  is_active?: boolean | null;
+  children?: MenuItemApi[];
+}
+
+const readSortOrder = (value: { sortOrder?: number | null; sort_order?: number | null }) =>
+  value.sortOrder ?? value.sort_order ?? 0;
+
+const readIsActive = (value: { isActive?: boolean | null; is_active?: boolean | null }) =>
+  value.isActive ?? value.is_active ?? true;
+
 export default function PlatformMenuManagementPage() {
+  const dispatch = useAppDispatch();
   const [categories, setCategories] = useState<MenuCategory[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,32 +83,30 @@ export default function PlatformMenuManagementPage() {
   const [tenantId, setTenantId] = useState('');
   const [tenants, setTenants] = useState<{ id: string; name: string }[]>([]);
   const [editDialog, setEditDialog] = useState<{ open: boolean; item?: MenuItem }>({ open: false });
+  const [categoryDialog, setCategoryDialog] = useState<{ open: boolean; category?: MenuCategory }>({ open: false });
   const [permDialog, setPermDialog] = useState<{ open: boolean; item: MenuItem | null; roles: { id: string; name: string }[]; selectedRoles: string[] }>({ open: false, item: null, roles: [], selectedRoles: [] });
   const [roles, setRoles] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => { loadTenants(); }, []);
 
+  const invalidateRuntimeMenu = useCallback(() => {
+    dispatch(menuQueryApi.util.invalidateTags(['Menu']));
+    localStorage.removeItem('cached_menu_structure');
+  }, [dispatch]);
+
   const loadRoles = useCallback(async () => {
     if (!tenantId) return;
     try {
-      const baseURL = api.client.defaults.baseURL || 'https://iaf-ifrs-be.danafin.com/api/v1';
-      const token = localStorage.getItem('auth_token');
-      const res = await fetch(`${baseURL}/roles?tenantId=${tenantId}`, {
-        headers: { 'Authorization': `Bearer ${token}`, 'X-Tenant-ID': tenantId, 'Content-Type': 'application/json' }
-      }).then(r => r.json());
-      const data = Array.isArray(res) ? res : res?.data || [];
+      const res = await api.client.get('/roles', { params: { tenantId } });
+      const data = Array.isArray(res.data) ? res.data : Array.isArray(res.data?.data) ? res.data.data : [];
       setRoles(data.map((r: any) => ({ id: r.id, name: r.name || r.roleCode || r.id })));
     } catch { setRoles([]); }
   }, [tenantId]);
 
   const loadTenants = async () => {
     try {
-      const baseURL = api.client.defaults.baseURL || 'https://iaf-ifrs-be.danafin.com/api/v1';
-      const token = localStorage.getItem('auth_token');
-      const res = await fetch(`${baseURL}/tenants`, {
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
-      }).then(r => r.json());
-      const data = Array.isArray(res) ? res : res?.data || [];
+      const res = await api.client.get('/tenants');
+      const data = Array.isArray(res.data) ? res.data : Array.isArray(res.data?.data) ? res.data.data : [];
       setTenants(data.map((t: any) => ({ id: t.id, name: t.name || t.code || t.id })));
     } catch { setTenants([]); }
   };
@@ -79,22 +116,36 @@ export default function PlatformMenuManagementPage() {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('auth_token');
-      const baseURL = (await import('@/services/api')).api.client.defaults.baseURL || 'https://iaf-ifrs-be.danafin.com/api/v1';
-      const res = await fetch(`${baseURL}/menu/hierarchy`, {
-        headers: { 'Authorization': `Bearer ${token}`, 'X-Tenant-ID': tenantId, 'Content-Type': 'application/json' }
-      }).then(r => r.json());
-      if (res?.success && res?.data) {
+      const res = await api.client.get('/menu/hierarchy', { params: { tenantId } });
+      const payload = res.data;
+      if (payload?.success && payload?.data) {
         const cats: MenuCategory[] = [];
         const its: MenuItem[] = [];
-        for (const cat of res.data) {
-          cats.push({ id: cat.id, name: cat.name, icon: cat.icon, sort_order: cat.sort_order, is_active: cat.is_active });
-          for (const item of cat.items || []) {
-            its.push({ id: item.id, category_id: cat.id, name: item.name, path: item.path, icon: item.icon, sort_order: item.sort_order, is_active: item.is_active });
-            for (const child of item.children || []) {
-              its.push({ id: child.id, category_id: cat.id, name: child.name, path: child.path, icon: child.icon, sort_order: child.sort_order, is_active: child.is_active, parent_id: item.id });
-            }
-          }
+        const appendItem = (item: MenuItemApi, categoryId: string, parentId?: string) => {
+          its.push({
+            id: item.id,
+            category_id: item.categoryId ?? item.category_id ?? categoryId,
+            name: item.name,
+            path: item.path ?? '',
+            icon: item.icon ?? '',
+            sort_order: readSortOrder(item),
+            is_active: readIsActive(item),
+            parent_id: item.parentId ?? item.parent_id ?? parentId ?? undefined,
+          });
+          for (const child of item.children || []) appendItem(child, categoryId, item.id);
+        };
+
+        for (const cat of res.data as MenuCategoryApi[]) {
+          cats.push({
+            id: cat.id,
+            name: cat.name,
+            icon: cat.icon ?? '',
+            description: (cat as MenuCategoryApi & { description?: string }).description ?? '',
+            color: (cat as MenuCategoryApi & { color?: string }).color ?? '',
+            sort_order: readSortOrder(cat),
+            is_active: readIsActive(cat),
+          });
+          for (const item of cat.items || []) appendItem(item, cat.id);
         }
         setCategories(cats);
         setItems(its);
@@ -110,8 +161,9 @@ export default function PlatformMenuManagementPage() {
 
   const toggleItemActive = async (item: MenuItem) => {
     try {
-      await menuApi.updateMenuItem(item.id, { is_active: !item.is_active });
+      await menuApi.updateMenuItem(item.id, { isActive: !item.is_active }, tenantId);
       setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_active: !i.is_active } : i));
+      invalidateRuntimeMenu();
       setSnackbar({ open: true, message: 'Menu item updated', severity: 'success' });
     } catch { setSnackbar({ open: true, message: 'Failed to update', severity: 'error' }); }
   };
@@ -119,23 +171,75 @@ export default function PlatformMenuManagementPage() {
   const deleteItem = async (item: MenuItem) => {
     if (!confirm(`Delete "${item.name}"?`)) return;
     try {
-      await menuApi.deleteMenuItem(item.id);
+      await menuApi.deleteMenuItem(item.id, tenantId);
       setItems(prev => prev.filter(i => i.id !== item.id));
+      invalidateRuntimeMenu();
       setSnackbar({ open: true, message: 'Menu item deleted', severity: 'success' });
     } catch { setSnackbar({ open: true, message: 'Failed to delete', severity: 'error' }); }
   };
 
   const saveItem = async (data: any) => {
     try {
+      // Map snake_case from local state to camelCase expected by backend
+      const payload = {
+        name: data.name,
+        categoryId: data.category_id,
+        parentId: data.parent_id || null,
+        description: data.description,
+        path: data.path,
+        icon: data.icon,
+        sortOrder: data.sort_order,
+        isActive: data.is_active,
+        isVisible: data.is_visible,
+        requiresAuth: data.requires_auth,
+        bankingType: data.banking_type,
+      };
       if (data.id) {
-        await menuApi.updateMenuItem(data.id, data);
+        await menuApi.updateMenuItem(data.id, payload, tenantId);
       } else {
-        await menuApi.createMenuItem(data);
+        await menuApi.createMenuItem(payload, tenantId);
       }
+      invalidateRuntimeMenu();
       setSnackbar({ open: true, message: 'Menu item saved', severity: 'success' });
       setEditDialog({ open: false });
       await loadMenu();
     } catch { setSnackbar({ open: true, message: 'Failed to save', severity: 'error' }); }
+  };
+
+  const saveCategory = async (category: MenuCategory) => {
+    try {
+      const payload = {
+        name: category.name,
+        description: category.description || undefined,
+        icon: category.icon || undefined,
+        color: category.color || undefined,
+        sortOrder: category.sort_order,
+        isActive: category.is_active,
+      };
+      if (category.id) {
+        await menuApi.updateMenuCategory(category.id, payload, tenantId);
+      } else {
+        await menuApi.createMenuCategory(payload, tenantId);
+      }
+      invalidateRuntimeMenu();
+      setCategoryDialog({ open: false });
+      setSnackbar({ open: true, message: 'Menu category saved', severity: 'success' });
+      await loadMenu();
+    } catch (err: any) {
+      setSnackbar({ open: true, message: err?.response?.data?.error || 'Failed to save category', severity: 'error' });
+    }
+  };
+
+  const deleteCategory = async (category: MenuCategory) => {
+    if (!confirm(`Delete category "${category.name}"?`)) return;
+    try {
+      await menuApi.deleteMenuCategory(category.id, tenantId);
+      invalidateRuntimeMenu();
+      setSnackbar({ open: true, message: 'Menu category deleted', severity: 'success' });
+      await loadMenu();
+    } catch (err: any) {
+      setSnackbar({ open: true, message: err?.response?.data?.error || 'Failed to delete category', severity: 'error' });
+    }
   };
 
   return (
@@ -156,7 +260,32 @@ export default function PlatformMenuManagementPage() {
           <Button variant="contained" startIcon={<RefreshIcon />} onClick={loadMenu} disabled={!tenantId || loading}>
             Refresh
           </Button>
-          <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setEditDialog({ open: true })}
+          <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setCategoryDialog({
+            open: true,
+            category: {
+              id: '',
+              name: '',
+              icon: 'Folder',
+              description: '',
+              color: '',
+              sort_order: categories.length + 1,
+              is_active: true,
+            },
+          })} disabled={!tenantId}>
+            Add Category
+          </Button>
+          <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setEditDialog({
+            open: true,
+            item: {
+              id: '',
+              category_id: categories[0]?.id || '',
+              name: '',
+              path: '',
+              icon: '',
+              sort_order: 0,
+              is_active: true,
+            },
+          })}
             disabled={!tenantId}>
             Add Item
           </Button>
@@ -175,7 +304,8 @@ export default function PlatformMenuManagementPage() {
           No menu found for this tenant. 
           <Button size="small" sx={{ ml: 2 }} variant="outlined" onClick={async () => {
             try {
-              await menuApi.initializeMenuStructure();
+              await menuApi.initializeMenuStructure(tenantId);
+              invalidateRuntimeMenu();
               setSnackbar({ open: true, message: 'Default menu initialized', severity: 'success' });
               await loadMenu();
             } catch (err: any) {
@@ -190,9 +320,27 @@ export default function PlatformMenuManagementPage() {
       {categories.map((cat) => (
         <Accordion key={cat.id} defaultExpanded sx={{ mb: 1 }}>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
               <Chip label={cat.name} color="primary" size="small" />
               <Chip label={`${items.filter(i => i.category_id === cat.id).length} items`} size="small" variant="outlined" />
+              <Chip
+                label={cat.is_active ? 'Active' : 'Inactive'}
+                color={cat.is_active ? 'success' : 'default'}
+                size="small"
+                variant="outlined"
+              />
+              <Box sx={{ ml: 'auto', mr: 1 }} onClick={(event) => event.stopPropagation()}>
+                <Tooltip title="Edit category">
+                  <IconButton size="small" onClick={() => setCategoryDialog({ open: true, category: { ...cat } })}>
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Delete category">
+                  <IconButton size="small" color="error" onClick={() => deleteCategory(cat)}>
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Box>
             </Box>
           </AccordionSummary>
           <AccordionDetails>
@@ -214,7 +362,7 @@ export default function PlatformMenuManagementPage() {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           {item.parent_id && <Typography variant="caption" color="text.disabled">↳</Typography>}
                           <Typography variant="body2" sx={{ fontWeight: item.parent_id ? 400 : 600 }}>
-                            {item.icon && <>{item.icon} </>}{item.name}
+                            {item.name}
                           </Typography>
                         </Box>
                       </TableCell>
@@ -226,16 +374,16 @@ export default function PlatformMenuManagementPage() {
                           onClick={() => toggleItemActive(item)} />
                       </TableCell>
                       <TableCell align="right">
-                        <Tooltip title="Permissions"><IconButton size="small" color="info" onClick={() => {
+                          <Tooltip title="Permissions"><IconButton size="small" color="info" onClick={async () => {
                           setPermDialog({ ...permDialog, open: true, item });
                           loadRoles();
-                          // Load existing permissions for this item
-                          fetch(`${api.client.defaults.baseURL || 'https://iaf-ifrs-be.danafin.com/api/v1'}/menu/permissions?tenantId=${tenantId}`, {
-                            headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
-                          }).then(r => r.json()).then(res => {
-                            const perms = (res?.data || []).filter((p: any) => p.menuItemId === item.id);
+                          try {
+                            const permsRes = await api.client.get('/menu/permissions', { params: { tenantId } });
+                            const perms = (permsRes.data?.data || []).filter((p: any) => p.menuItemId === item.id);
                             setPermDialog(prev => ({ ...prev, selectedRoles: perms.filter((p: any) => p.isAllowed).map((p: any) => p.roleId) }));
-                          }).catch(() => {});
+                          } catch (e) {
+                            console.warn('Failed to load permissions', e);
+                          }
                         }}><SecurityIcon fontSize="small" /></IconButton></Tooltip>
                         <Tooltip title="Edit"><IconButton size="small" onClick={() => setEditDialog({ open: true, item })}><EditIcon fontSize="small" /></IconButton></Tooltip>
                         <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => deleteItem(item)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
@@ -251,9 +399,28 @@ export default function PlatformMenuManagementPage() {
 
       {/* Edit Dialog */}
       <Dialog open={editDialog.open} onClose={() => setEditDialog({ open: false })} maxWidth="sm" fullWidth>
-        <DialogTitle>{editDialog.item ? 'Edit Menu Item' : 'Add Menu Item'}</DialogTitle>
+        <DialogTitle>{editDialog.item?.id ? 'Edit Menu Item' : 'Add Menu Item'}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid size={{ xs: 12 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Category</InputLabel>
+                <Select
+                  value={editDialog.item?.category_id || ''}
+                  label="Category"
+                  onChange={(e) => {
+                    setEditDialog((current) => ({
+                      ...current,
+                      item: { ...current.item, category_id: e.target.value } as MenuItem,
+                    }));
+                  }}
+                >
+                  {categories.map((category) => (
+                    <MenuItem key={category.id} value={category.id}>{category.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
             <Grid size={{ xs: 12 }}>
               <TextField fullWidth label="Name" defaultValue={editDialog.item?.name || ''} size="small"
                 onChange={(e) => editDialog.item = { ...editDialog.item, name: e.target.value } as any} />
@@ -275,6 +442,88 @@ export default function PlatformMenuManagementPage() {
         <DialogActions>
           <Button onClick={() => setEditDialog({ open: false })}>Cancel</Button>
           <Button variant="contained" startIcon={<SaveIcon />} onClick={() => saveItem(editDialog.item)}>Save</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={categoryDialog.open} onClose={() => setCategoryDialog({ open: false })} maxWidth="sm" fullWidth>
+        <DialogTitle>{categoryDialog.category?.id ? 'Edit Menu Category' : 'Add Menu Category'}</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid size={{ xs: 12 }}>
+              <TextField
+                fullWidth
+                label="Name"
+                size="small"
+                value={categoryDialog.category?.name || ''}
+                onChange={(event) => setCategoryDialog((current) => ({
+                  ...current,
+                  category: { ...current.category, name: event.target.value } as MenuCategory,
+                }))}
+              />
+            </Grid>
+            <Grid size={{ xs: 12 }}>
+              <TextField
+                fullWidth
+                label="Description"
+                size="small"
+                value={categoryDialog.category?.description || ''}
+                onChange={(event) => setCategoryDialog((current) => ({
+                  ...current,
+                  category: { ...current.category, description: event.target.value } as MenuCategory,
+                }))}
+              />
+            </Grid>
+            <Grid size={{ xs: 6 }}>
+              <TextField
+                fullWidth
+                label="Icon"
+                size="small"
+                value={categoryDialog.category?.icon || ''}
+                onChange={(event) => setCategoryDialog((current) => ({
+                  ...current,
+                  category: { ...current.category, icon: event.target.value } as MenuCategory,
+                }))}
+              />
+            </Grid>
+            <Grid size={{ xs: 6 }}>
+              <TextField
+                fullWidth
+                label="Sort Order"
+                type="number"
+                size="small"
+                value={categoryDialog.category ? categoryDialog.category.sort_order : 0}
+                onChange={(event) => setCategoryDialog((current) => ({
+                  ...current,
+                  category: { ...current.category, sort_order: Number(event.target.value) } as MenuCategory,
+                }))}
+              />
+            </Grid>
+            <Grid size={{ xs: 12 }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={categoryDialog.category ? categoryDialog.category.is_active : true}
+                    onChange={(event) => setCategoryDialog((current) => ({
+                      ...current,
+                      category: { ...current.category, is_active: event.target.checked } as MenuCategory,
+                    }))}
+                  />
+                }
+                label="Active"
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCategoryDialog({ open: false })}>Cancel</Button>
+          <Button
+            variant="contained"
+            startIcon={<SaveIcon />}
+            disabled={!categoryDialog.category?.name.trim()}
+            onClick={() => categoryDialog.category && saveCategory(categoryDialog.category)}
+          >
+            Save
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -301,14 +550,11 @@ export default function PlatformMenuManagementPage() {
                     setPermDialog(p => ({ ...p, selectedRoles: next }));
                     // Save permission
                     try {
-                      const baseURL = api.client.defaults.baseURL || 'https://iaf-ifrs-be.danafin.com/api/v1';
-                      const token = localStorage.getItem('auth_token');
-                      await fetch(`${baseURL}/menu/permissions?tenantId=${tenantId}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                        body: JSON.stringify({ menuItemId: permDialog.item?.id, roleId: role.id, isAllowed: !selected }),
-                      });
-                    } catch {}
+                      await api.client.post('/menu/permissions', { menuItemId: permDialog.item?.id, roleId: role.id, isAllowed: !selected }, { params: { tenantId } });
+                      invalidateRuntimeMenu();
+                    } catch (err) {
+                      console.error('Failed to toggle menu permission', err);
+                    }
                   }}
                   sx={{ cursor: 'pointer' }}
                 />

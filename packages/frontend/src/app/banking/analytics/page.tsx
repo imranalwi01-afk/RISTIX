@@ -65,12 +65,10 @@ export default function BankingAnalyticsPage() {
     if (user) {
       // Extract tenant and banking information from user context
       const tenantSlug = user.tenantSlug || 'demo-conventional';
-      let bankingType: 'conventional' | 'syariah' | 'dual' = 'conventional';
+      let bankingType: 'conventional' | 'dual' = 'conventional';
 
       // Determine banking type from tenant slug or user context
-      if (tenantSlug.includes('syariah') || user.bankingType === 'syariah') {
-        bankingType = 'syariah';
-      } else if (user.bankingType === 'dual') {
+      if (user.bankingType === 'dual') {
         bankingType = 'dual';
       }
 
@@ -80,7 +78,6 @@ export default function BankingAnalyticsPage() {
         bankingType
       }));
 
-      console.log('🔬 Analytics configured for:', { tenantSlug, bankingType, user: user.email });
     }
   }, [user]);
 
@@ -89,7 +86,6 @@ export default function BankingAnalyticsPage() {
   // ============================================================================
 
   const handleSessionCreate = (session: any) => {
-    console.log('✅ R Analytics session created:', session);
   };
 
   const handleSessionError = (error: string) => {
@@ -97,7 +93,6 @@ export default function BankingAnalyticsPage() {
   };
 
   const handleMessage = (message: any) => {
-    console.log('📨 R Analytics message:', message);
   };
 
   const handleModelTypeChange = (newModelType: 'ifrs9' | 'pd' | 'lgd' | 'ecl') => {
@@ -109,16 +104,15 @@ export default function BankingAnalyticsPage() {
   // ============================================================================
 
   const getBankingIcon = () => {
-    return analyticsConfig.bankingType === 'syariah' ? <Mosque /> : <AccountBalance />;
+    return analyticsConfig.bankingType === 'conventional' ? <Mosque /> : <AccountBalance />;
   };
 
   const getBankingColor = () => {
-    return analyticsConfig.bankingType === 'syariah' ? 'success' : 'primary';
+    return 'primary';
   };
 
   const getBankingLabel = () => {
     switch (analyticsConfig.bankingType) {
-      case 'syariah': return 'Syariah Banking';
       case 'dual': return 'Dual Banking';
       default: return 'Conventional Banking';
     }
@@ -161,7 +155,7 @@ export default function BankingAnalyticsPage() {
                 color={getBankingColor() as any}
                 size="small"
               />
-              {analyticsConfig.bankingType === 'syariah' && (
+              {analyticsConfig.bankingType === 'dual' && (
                 <Chip
                   label="HALAL CERTIFIED"
                   color="success"
@@ -221,9 +215,8 @@ export default function BankingAnalyticsPage() {
       </Card>
 
       {/* Banking Type Information */}
-      {analyticsConfig.bankingType === 'syariah' && (
+      {analyticsConfig.bankingType === 'dual' && (
         <Alert severity="info" sx={{ mb: 3 }}>
-          <AlertTitle>🕌 Syariah Banking Analytics</AlertTitle>
           All calculations and models comply with Islamic banking principles and AAOIFI standards.
           Features include Profit-Loss Sharing analysis, Zakat calculations, and Halal investment screening.
         </Alert>

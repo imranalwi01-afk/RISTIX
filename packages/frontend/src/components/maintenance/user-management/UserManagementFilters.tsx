@@ -70,7 +70,6 @@ const UserManagementFilters = memo(function UserManagementFilters({
             <Select value={filterBankingAccess} onChange={(e) => onBankingAccessChange(e.target.value)} label="Banking Access">
               <MenuItem value="">All</MenuItem>
               <MenuItem value="CONVENTIONAL">Conventional</MenuItem>
-              <MenuItem value="SYARIAH">Syariah</MenuItem>
               <MenuItem value="BOTH">Both</MenuItem>
             </Select>
           </FormControl>

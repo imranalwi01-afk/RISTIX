@@ -10,8 +10,10 @@ import { runEffect } from '@/lib/effect'
 import { buildErrorResponse } from '@/lib/http/error-response'
 import { openApiValidationHook } from '@/lib/http/openapi-validation-hook'
 import { randomUUID } from 'node:crypto'
+import { logDataChange, runAuditSafely } from '@/services/audit.service'
 
 const platformDb = getDatabase(null)
+const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000'
 
 // Helper: resolve tenant slug to UUID
 async function resolveTenantId(c: any): Promise<string | null> {
@@ -54,7 +56,7 @@ menuRoutes.openapi(
 
         const tree = categories.map((cat) => ({
             ...cat,
-            items: items.filter((i) => i.categoryId === cat.id).map((item) => ({
+            items: items.filter((i) => i.categoryId === cat.id && !i.parentId).map((item) => ({
                 ...item,
                 children: buildItemTree(items, item.id),
             })),
@@ -94,7 +96,7 @@ menuRoutes.openapi(
 
         const tree = categories.map((cat) => ({
             ...cat,
-            items: items.filter((i) => i.categoryId === cat.id && hasAccess(i.id)).map((item) => ({
+            items: items.filter((i) => i.categoryId === cat.id && !i.parentId && hasAccess(i.id)).map((item) => ({
                 ...item,
                 children: buildItemTree(items.filter((i) => hasAccess(i.id)), item.id),
             })),
@@ -114,10 +116,9 @@ menuRoutes.openapi(
         responses: { 200: { description: 'Menu initialized' } },
     }),
     async (c) => {
-        const queryTenantId = c.req.query('tenantId')
-        const tenantId = queryTenantId || c.get('tenantId')
-        const userId = c.get('userId') || 'system'
+        const tenantId = await resolveTenantId(c)
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
+        const userId = c.get('userId') || SYSTEM_USER_ID
 
         const existing = await platformDb.select().from(menuCategories).where(eq(menuCategories.tenantId, tenantId)).limit(1)
         if (existing.length > 0) {
@@ -216,7 +217,6 @@ menuRoutes.openapi(
             { cat: 'Admin & Maintenance', name: 'Access Management', path: '/banking/maintenance/access-management', icon: 'ManageAccounts', sortOrder: 1 },
             { cat: 'Admin & Maintenance', name: 'Approval', path: '/banking/maintenance/approval', icon: 'Approval', sortOrder: 2 },
             { cat: 'Admin & Maintenance', name: 'Job Monitoring', path: '/banking/maintenance/job-monitoring', icon: 'Monitor', sortOrder: 3 },
-            { cat: 'Admin & Maintenance', name: 'Menu Management', path: '/banking/maintenance/menus', icon: 'Menu', sortOrder: 4 },
             { cat: 'Admin & Maintenance', name: 'Audit Log', path: '/banking/maintenance/audit', icon: 'History', sortOrder: 5 },
             { cat: 'Admin & Maintenance', name: 'User Activity', path: '/banking/maintenance/user-activity', icon: 'People', sortOrder: 6 },
             { cat: 'Admin & Maintenance', name: 'Assignments', path: '/banking/maintenance/assignments', icon: 'Assignment', sortOrder: 7 },
@@ -233,6 +233,13 @@ menuRoutes.openapi(
             }).onConflictDoNothing()
         }
 
+        auditCreate(
+            'menu_structure',
+            tenantId,
+            { categoriesCreated: cats.length, itemsCreated: items.length },
+            c,
+            tenantId,
+        )
         return c.json({ success: true, data: { categories: cats.length, items: items.length } })
     }
 )
@@ -253,12 +260,151 @@ const menuItemSchema = z.object({
     bankingType: z.enum(['conventional', 'syariah', 'both']).optional(),
 })
 
+const menuCategorySchema = z.object({
+    name: z.string().min(1).max(100),
+    description: z.string().max(500).optional(),
+    icon: z.string().max(50).optional(),
+    color: z.string().max(20).optional(),
+    sortOrder: z.number().int().optional(),
+    isActive: z.boolean().optional(),
+})
+
 const permissionSchema = z.object({
     menuItemId: z.string().uuid(),
     roleId: z.string().min(1),
     permissionType: z.enum(['view', 'edit', 'delete', 'manage']).default('view'),
     isAllowed: z.boolean().default(true),
 })
+
+const auditCreate = (entityType: string, entityId: string, values: unknown, c: any, tenantId: string) => {
+    runAuditSafely(
+        logDataChange.create(entityType, entityId, values, c.get('userId') || SYSTEM_USER_ID, tenantId),
+        `${entityType}.create`,
+    )
+}
+
+const auditUpdate = (
+    entityType: string,
+    entityId: string,
+    oldValues: unknown,
+    newValues: unknown,
+    c: any,
+    tenantId: string,
+) => {
+    runAuditSafely(
+        logDataChange.update(entityType, entityId, oldValues, newValues, c.get('userId') || SYSTEM_USER_ID, tenantId),
+        `${entityType}.update`,
+    )
+}
+
+const auditDelete = (entityType: string, entityId: string, oldValues: unknown, c: any, tenantId: string) => {
+    runAuditSafely(
+        logDataChange.delete(entityType, entityId, oldValues, c.get('userId') || SYSTEM_USER_ID, tenantId),
+        `${entityType}.delete`,
+    )
+}
+
+menuRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/admin/categories',
+        tags: ['Menu'],
+        summary: 'Create menu category',
+        request: {
+            body: { content: { 'application/json': { schema: menuCategorySchema } } },
+        },
+        responses: { 200: { description: 'Menu category created' } },
+    }),
+    async (c) => {
+        const tenantId = await resolveTenantId(c)
+        if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
+
+        const id = randomUUID()
+        const [category] = await platformDb.insert(menuCategories).values({
+            id,
+            tenantId,
+            ...c.req.valid('json'),
+            createdBy: c.get('userId') || SYSTEM_USER_ID,
+            createdAt: new Date(),
+        }).returning()
+
+        auditCreate('menu_category', id, category, c, tenantId)
+        return c.json({ success: true, data: category })
+    }
+)
+
+menuRoutes.openapi(
+    createRoute({
+        method: 'put',
+        path: '/admin/categories/{id}',
+        tags: ['Menu'],
+        summary: 'Update menu category',
+        request: {
+            params: z.object({ id: z.string().uuid() }),
+            body: { content: { 'application/json': { schema: menuCategorySchema.partial() } } },
+        },
+        responses: {
+            200: { description: 'Menu category updated' },
+            404: { description: 'Menu category not found' },
+        },
+    }),
+    async (c) => {
+        const tenantId = await resolveTenantId(c)
+        if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
+
+        const { id } = c.req.valid('param')
+        const [existing] = await platformDb.select().from(menuCategories)
+            .where(and(eq(menuCategories.id, id), eq(menuCategories.tenantId, tenantId)))
+            .limit(1)
+        if (!existing) return c.json({ success: false, error: 'Menu category not found' }, 404)
+
+        const [category] = await platformDb.update(menuCategories)
+            .set({ ...c.req.valid('json'), updatedBy: c.get('userId') || undefined, updatedAt: new Date() })
+            .where(and(eq(menuCategories.id, id), eq(menuCategories.tenantId, tenantId)))
+            .returning()
+
+        auditUpdate('menu_category', id, existing, category, c, tenantId)
+        return c.json({ success: true, data: category })
+    }
+)
+
+menuRoutes.openapi(
+    createRoute({
+        method: 'delete',
+        path: '/admin/categories/{id}',
+        tags: ['Menu'],
+        summary: 'Delete an empty menu category',
+        request: { params: z.object({ id: z.string().uuid() }) },
+        responses: {
+            200: { description: 'Menu category deleted' },
+            404: { description: 'Menu category not found' },
+            409: { description: 'Menu category is not empty' },
+        },
+    }),
+    async (c) => {
+        const tenantId = await resolveTenantId(c)
+        if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
+
+        const { id } = c.req.valid('param')
+        const [existing] = await platformDb.select().from(menuCategories)
+            .where(and(eq(menuCategories.id, id), eq(menuCategories.tenantId, tenantId)))
+            .limit(1)
+        if (!existing) return c.json({ success: false, error: 'Menu category not found' }, 404)
+
+        const [categoryItem] = await platformDb.select({ id: menuItems.id }).from(menuItems)
+            .where(and(eq(menuItems.categoryId, id), eq(menuItems.tenantId, tenantId)))
+            .limit(1)
+        if (categoryItem) {
+            return c.json({ success: false, error: 'Move or delete category items before deleting the category' }, 409)
+        }
+
+        await platformDb.delete(menuCategories)
+            .where(and(eq(menuCategories.id, id), eq(menuCategories.tenantId, tenantId)))
+
+        auditDelete('menu_category', id, existing, c, tenantId)
+        return c.json({ success: true })
+    }
+)
 
 menuRoutes.openapi(
     createRoute({
@@ -272,14 +418,22 @@ menuRoutes.openapi(
         responses: { 200: { description: 'Menu item created' } },
     }),
     async (c) => {
-        const qTenant = c.req.query('tenantId')
-        const tenantId = qTenant || c.get('tenantId')
-        const userId = c.get('userId') || 'system'
+        const tenantId = await resolveTenantId(c)
+        const userId = c.get('userId') || SYSTEM_USER_ID
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
         const body = c.req.valid('json')
+        if (body.categoryId) {
+            const [category] = await platformDb.select({ id: menuCategories.id }).from(menuCategories)
+                .where(and(eq(menuCategories.id, body.categoryId), eq(menuCategories.tenantId, tenantId)))
+                .limit(1)
+            if (!category) return c.json({ success: false, error: 'Menu category not found for tenant' }, 400)
+        }
         const id = randomUUID()
-        await platformDb.insert(menuItems).values({ id, tenantId, ...body, createdBy: userId, createdAt: new Date() })
-        return c.json({ success: true, data: { id } })
+        const [item] = await platformDb.insert(menuItems)
+            .values({ id, tenantId, ...body, createdBy: userId, createdAt: new Date() })
+            .returning()
+        auditCreate('menu_item', id, item, c, tenantId)
+        return c.json({ success: true, data: item })
     }
 )
 
@@ -301,8 +455,22 @@ menuRoutes.openapi(
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
         const { id } = c.req.valid('param')
         const body = c.req.valid('json')
-        await platformDb.update(menuItems).set({ ...body, updatedAt: new Date() }).where(and(eq(menuItems.id, id), eq(menuItems.tenantId, tenantId)))
-        return c.json({ success: true })
+        const [existing] = await platformDb.select().from(menuItems)
+            .where(and(eq(menuItems.id, id), eq(menuItems.tenantId, tenantId)))
+            .limit(1)
+        if (!existing) return c.json({ success: false, error: 'Menu item not found' }, 404)
+        if (body.categoryId) {
+            const [category] = await platformDb.select({ id: menuCategories.id }).from(menuCategories)
+                .where(and(eq(menuCategories.id, body.categoryId), eq(menuCategories.tenantId, tenantId)))
+                .limit(1)
+            if (!category) return c.json({ success: false, error: 'Menu category not found for tenant' }, 400)
+        }
+        const [item] = await platformDb.update(menuItems)
+            .set({ ...body, updatedBy: c.get('userId') || undefined, updatedAt: new Date() })
+            .where(and(eq(menuItems.id, id), eq(menuItems.tenantId, tenantId)))
+            .returning()
+        auditUpdate('menu_item', id, existing, item, c, tenantId)
+        return c.json({ success: true, data: item })
     }
 )
 
@@ -318,11 +486,15 @@ menuRoutes.openapi(
         responses: { 200: { description: 'Menu item deleted' } },
     }),
     async (c) => {
-        const qTenant = c.req.query('tenantId')
-        const tenantId = qTenant || c.get('tenantId')
+        const tenantId = await resolveTenantId(c)
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
         const { id } = c.req.valid('param')
+        const [existing] = await platformDb.select().from(menuItems)
+            .where(and(eq(menuItems.id, id), eq(menuItems.tenantId, tenantId)))
+            .limit(1)
+        if (!existing) return c.json({ success: false, error: 'Menu item not found' }, 404)
         await platformDb.delete(menuItems).where(and(eq(menuItems.id, id), eq(menuItems.tenantId, tenantId)))
+        auditDelete('menu_item', id, existing, c, tenantId)
         return c.json({ success: true })
     }
 )
@@ -358,8 +530,7 @@ menuRoutes.openapi(
         responses: { 200: { description: 'Permission created/updated' } },
     }),
     async (c) => {
-        const qTenant = c.req.query('tenantId')
-        const tenantId = qTenant || c.get('tenantId')
+        const tenantId = await resolveTenantId(c)
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
         const body = c.req.valid('json')
         const existing = await platformDb.select().from(menuPermissions)
@@ -371,20 +542,30 @@ menuRoutes.openapi(
             )).limit(1)
 
         if (existing.length > 0) {
-            await platformDb.update(menuPermissions).set({ isAllowed: body.isAllowed !== false })
+            const [permission] = await platformDb.update(menuPermissions).set({ isAllowed: body.isAllowed !== false })
                 .where(eq(menuPermissions.id, existing[0].id))
-            return c.json({ success: true, data: existing[0] })
+                .returning()
+            auditUpdate(
+                'menu_permission',
+                existing[0].id,
+                existing[0],
+                permission,
+                c,
+                tenantId,
+            )
+            return c.json({ success: true, data: permission })
         }
 
         const id = randomUUID()
-        await platformDb.insert(menuPermissions).values({
+        const [permission] = await platformDb.insert(menuPermissions).values({
             id, tenantId, menuItemId: body.menuItemId, roleId: body.roleId,
             permissionType: body.permissionType || 'view',
             isAllowed: body.isAllowed !== false,
-            createdBy: c.get('userId') || 'system',
+            createdBy: c.get('userId') || SYSTEM_USER_ID,
             createdAt: new Date(),
-        })
-        return c.json({ success: true, data: { id } })
+        }).returning()
+        auditCreate('menu_permission', id, permission, c, tenantId)
+        return c.json({ success: true, data: permission })
     }
 )
 
@@ -401,8 +582,18 @@ menuRoutes.openapi(
         responses: { 200: { description: 'Permission deleted' } },
     }),
     async (c) => {
+        const tenantId = await resolveTenantId(c)
+        if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
+
         const { id } = c.req.valid('param')
-        await platformDb.delete(menuPermissions).where(eq(menuPermissions.id, id))
+        const [existing] = await platformDb.select().from(menuPermissions)
+            .where(and(eq(menuPermissions.id, id), eq(menuPermissions.tenantId, tenantId)))
+            .limit(1)
+        if (!existing) return c.json({ success: false, error: 'Menu permission not found' }, 404)
+
+        await platformDb.delete(menuPermissions)
+            .where(and(eq(menuPermissions.id, id), eq(menuPermissions.tenantId, tenantId)))
+        auditDelete('menu_permission', id, existing, c, tenantId)
         return c.json({ success: true })
     }
 )
@@ -418,7 +609,8 @@ menuRoutes.openapi(
     }),
     async (c) => {
         const tenantId = await resolveTenantId(c)
-        const includeInactive = c.req.query('includeInactive') !== 'false'
+        const includeInactive = c.req.query('includeInactive') === 'true'
+        const bankingMode = c.req.query('bankingMode')
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
 
         const conditions = [eq(menuItems.tenantId, tenantId)]
@@ -431,9 +623,40 @@ menuRoutes.openapi(
             platformDb.select().from(menuItems).where(and(...conditions)).orderBy(asc(menuItems.sortOrder)),
         ])
 
-        // Build hierarchical menu: categories as groups, items as children
+        const visibleItems = items.filter((item) =>
+            item.isVisible !== false &&
+            (!bankingMode || !item.bankingType || item.bankingType === 'both' || item.bankingType === bankingMode)
+        )
+
+        const buildFlatItemTree = (parentId: string): any[] =>
+            visibleItems
+                .filter((item) => item.parentId === parentId)
+                .map((item) => mapFlatItem(item))
+
+        const mapFlatItem = (item: typeof menuItems.$inferSelect): any => ({
+            id: item.id,
+            menu_key: item.id,
+            title: item.name,
+            label: item.name,
+            description: item.description || '',
+            icon: item.icon || 'Circle',
+            url: item.path || '',
+            href: item.path || '',
+            parent_id: item.parentId || item.categoryId,
+            sort_order: item.sortOrder,
+            type: visibleItems.some((candidate) => candidate.parentId === item.id) ? 'group' : 'item',
+            level: item.level,
+            is_active: item.isActive,
+            banking_type: item.bankingType,
+            banking_types: item.bankingType === 'both'
+                ? ['conventional', 'syariah', 'dual']
+                : item.bankingType ? [item.bankingType] : [],
+            children: buildFlatItemTree(item.id),
+        })
+
+        // Build hierarchical menu: categories as groups, items as children.
         const menuTree = categories.map(cat => {
-            const catItems = items.filter(i => i.categoryId === cat.id)
+            const catItems = visibleItems.filter(i => i.categoryId === cat.id && !i.parentId)
             return {
                 id: cat.id,
                 menu_key: cat.id,
@@ -449,25 +672,9 @@ menuRoutes.openapi(
                 level: 0,
                 is_active: cat.isActive,
                 banking_type: null,
-                children: catItems.map(i => ({
-                    id: i.id,
-                    menu_key: i.id,
-                    title: i.name,
-                    label: i.name,
-                    description: i.description || '',
-                    icon: i.icon || 'Circle',
-                    url: i.path || '',
-                    href: i.path || '',
-                    parent_id: cat.id,
-                    sort_order: i.sortOrder,
-                    type: 'item',
-                    level: 1,
-                    is_active: i.isActive,
-                    banking_type: i.bankingType,
-                    children: [] as any[],
-                })),
+                children: catItems.map(i => mapFlatItem(i)),
             }
-        })
+        }).filter((category) => category.children.length > 0)
 
         return c.json({ success: true, data: menuTree })
     }

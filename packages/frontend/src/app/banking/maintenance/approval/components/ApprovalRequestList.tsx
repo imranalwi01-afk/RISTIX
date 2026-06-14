@@ -397,7 +397,6 @@ export const ApprovalRequestList = memo(function ApprovalRequestList({
             <Select value={bankingTypeFilter} label="Banking Type" onChange={(e) => onBankingTypeFilterChange(e.target.value)} data-testid="approval-banking-type-select">
               <MenuItem value="all">All</MenuItem>
               <MenuItem value="conventional">Conventional</MenuItem>
-              <MenuItem value="syariah">Syariah</MenuItem>
             </Select>
           </FormControl>
 

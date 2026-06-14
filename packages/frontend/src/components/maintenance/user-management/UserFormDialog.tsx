@@ -20,6 +20,7 @@ import {
   TextField,
 } from '@mui/material';
 import { Edit as EditIcon, PersonAdd as PersonAddIcon, Visibility as ViewIcon, VisibilityOff as HideIcon } from '@mui/icons-material';
+import { PasswordInput } from '@/components/users/PasswordInput';
 import type { UserFormData } from './types';
 
 interface UserFormDialogProps {
@@ -44,6 +45,7 @@ const UserFormDialog = memo(function UserFormDialog({
   onSubmit,
 }: UserFormDialogProps) {
   const isCreate = mode === 'create';
+  const sendWelcomeEmail = formData.sendWelcomeEmail ?? true;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -66,20 +68,13 @@ const UserFormDialog = memo(function UserFormDialog({
           </Grid>
           {isCreate && (
             <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
+              <PasswordInput
                 fullWidth
                 label="Password"
-                type={showPassword ? 'text' : 'password'}
-                value={formData.password}
-                onChange={(e) => onChange({ ...formData, password: e.target.value })}
+                value={formData.password || ''}
+                onChange={(value) => onChange({ ...formData, password: value })}
                 required
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton onClick={onTogglePassword}>{showPassword ? <HideIcon /> : <ViewIcon />}</IconButton>
-                    </InputAdornment>
-                  ),
-                }}
+                helperText="Minimum 8 characters"
               />
             </Grid>
           )}
@@ -101,17 +96,24 @@ const UserFormDialog = memo(function UserFormDialog({
                 label="Banking Access"
               >
                 <MenuItem value="CONVENTIONAL">Conventional</MenuItem>
-                <MenuItem value="SYARIAH">Syariah</MenuItem>
                 <MenuItem value="BOTH">Both</MenuItem>
               </Select>
             </FormControl>
           </Grid>
-          <Grid size={{ xs: 12 }}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <FormControlLabel
-              control={<Switch checked={formData.syariahCertified} onChange={(e) => onChange({ ...formData, syariahCertified: e.target.checked })} />}
-              label="Syariah Certified"
+              control={<Switch checked={formData.dualModeCertified} onChange={(e) => onChange({ ...formData, dualModeCertified: e.target.checked })} />}
+              label="Dual Mode Certified"
             />
           </Grid>
+          {isCreate && (
+            <Grid size={{ xs: 12 }}>
+              <FormControlLabel
+                control={<Switch checked={sendWelcomeEmail} onChange={(e) => onChange({ ...formData, sendWelcomeEmail: e.target.checked })} />}
+                label="Send welcome email with login credentials"
+              />
+            </Grid>
+          )}
         </Grid>
       </DialogContent>
       <DialogActions>

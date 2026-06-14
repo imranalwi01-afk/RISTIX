@@ -111,8 +111,8 @@ const ModelFormDialog = memo(function ModelFormDialog({
   const formId = `${mode}-model-form`;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>{mode === 'create' ? `Create New ${modelType} Model` : `Edit ${modelType} Model`}</DialogTitle>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth aria-labelledby="model-form-dialog-title">
+      <DialogTitle id="model-form-dialog-title">{mode === 'create' ? `Create New ${modelType} Model` : `Edit ${modelType} Model`}</DialogTitle>
       <DialogContent>
         <form
           id={formId}

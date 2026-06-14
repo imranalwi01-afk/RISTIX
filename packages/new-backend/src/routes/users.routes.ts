@@ -48,6 +48,7 @@ const CreateUserSchema = z.object({
     phone: z.string().optional(),
     department: z.string().optional(),
     position: z.string().optional(),
+    sendWelcomeEmail: z.boolean().optional(),
 }).openapi('CreateUserInput')
 
 const UpdateUserSchema = z.object({
@@ -362,10 +363,30 @@ usersRoutes.openapi(
         const body = c.req.valid('json')
 
         // Define the actual user creation operation
-        const executeCreate = () => usersService.createUser({
-            ...body,
-            tenantId,
-        })
+        const executeCreate = () => pipe(
+            usersService.createUser({
+                ...body,
+                tenantId,
+            }),
+            Effect.tap((user) => Effect.sync(() => {
+                if (body.sendWelcomeEmail) {
+                    import('../services/notification.service').then(({ sendEmailNotification }) => {
+                        import('../config/env').then(({ env: config }) => {
+                            const loginUrl = `${(config as any).FRONTEND_URL || 'http://localhost:4231'}/login`;
+                            const job = { template: 'welcome_email' } as any;
+                            Effect.runPromise(sendEmailNotification).then(sendFn => {
+                                sendFn(job, body.email, {
+                                    fullName: body.fullName,
+                                    username: body.username,
+                                    password: body.password,
+                                    loginUrl,
+                                }).catch(e => console.error('Failed to send welcome email', e));
+                            });
+                        });
+                    });
+                }
+            }))
+        )
 
         // Use approval interceptor
         const effect = pipe(
@@ -467,9 +488,10 @@ usersRoutes.openapi(
     }),
     async (c: any) => {
         const userId = c.get('userId')!
+        const tenantId = c.get('tenantId')
 
         const effect = pipe(
-            usersService.getUserById(userId),
+            usersService.getUserById(userId, tenantId),
             Effect.map((user) => ({
                 id: user.id,
                 email: user.email,
@@ -525,20 +547,43 @@ usersRoutes.openapi(
         }
     }),
     async (c: any) => {
-        const { id } = c.req.valid('param')
-        return c.json({
-            success: true,
-            data: {
-                personalization: {
-                    userId: id,
-                    defaultView: 'default',
-                    widgetConfig: {},
-                    customSettings: {},
-                    themePreferences: {},
-                    notificationSettings: {}
-                }
+        try {
+            const { id } = c.req.valid('param')
+            const tenantId = (c as any).get('tenantId') || 'iaf'
+            const DASHBOARD_SCOPE = '__dashboard_personalization__'
+            const views = await UserTableViewsRepository.list(tenantId, id, DASHBOARD_SCOPE)
+            const settings = views.length > 0 ? (views[0].config || {}) : {
+                defaultView: 'default',
+                widgetConfig: {},
+                customSettings: {},
+                themePreferences: {},
+                notificationSettings: {},
             }
-        })
+            return c.json({
+                success: true,
+                data: {
+                    personalization: {
+                        userId: id,
+                        ...settings,
+                    }
+                }
+            })
+        } catch (error: any) {
+            console.error('Error fetching dashboard personalization:', error)
+            return c.json({
+                success: true,
+                data: {
+                    personalization: {
+                        userId: c.req.param('id'),
+                        defaultView: 'default',
+                        widgetConfig: {},
+                        customSettings: {},
+                        themePreferences: {},
+                        notificationSettings: {},
+                    }
+                }
+            })
+        }
     }
 )
 
@@ -576,10 +621,38 @@ usersRoutes.openapi(
         }
     }),
     async (c: any) => {
-        return c.json({
-            success: true,
-            data: { message: 'Settings saved (mock)' }
-        })
+        try {
+            const { id } = c.req.valid('param')
+            const tenantId = (c as any).get('tenantId') || 'iaf'
+            const body = await c.req.json()
+            const DASHBOARD_SCOPE = '__dashboard_personalization__'
+            await UserTableViewsRepository.upsert({
+                tenantId,
+                userId: id,
+                scope: DASHBOARD_SCOPE,
+                viewKey: 'dashboard-personalization',
+                viewName: 'Dashboard Personalization',
+                isDefault: true,
+                config: body.personalization || body,
+                filterModel: null,
+                sortModel: null,
+                columnState: null,
+            })
+            return c.json({
+                success: true,
+                data: {
+                    message: 'Dashboard personalization saved successfully',
+                    personalization: body.personalization || body,
+                }
+            })
+        } catch (error: any) {
+            console.error('Error saving dashboard personalization:', error)
+            return c.json({
+                success: false,
+                data: null,
+                message: error.message || 'Failed to save settings',
+            }, 500)
+        }
     }
 )
 

@@ -16,7 +16,6 @@ export const riskApi = {
      */
     async getRiskParameters(): Promise<{ success: boolean; data: RiskParameter[] }> {
         try {
-            console.log('📊 Fetching risk parameters from API');
             const response = await apiClient.get('/banking/parameters/risk');
             return response.data;
         } catch (error) {
@@ -49,7 +48,6 @@ export const riskApi = {
      * Update risk parameter
      */
     async updateRiskParameter(id: string, data: Partial<RiskParameter>): Promise<{ success: boolean; message: string }> {
-        console.log(`🔄 Updating risk parameter: ${id}`);
         try {
             const response = await apiClient.put(`/banking/parameters/risk/${id}`, data);
             return response.data;
@@ -65,7 +63,6 @@ export const riskApi = {
      * Create risk parameter
      */
     async createRiskParameter(data: Partial<RiskParameter>): Promise<{ success: boolean; data: RiskParameter }> {
-        console.log('➕ Creating risk parameter');
         try {
             const response = await apiClient.post('/banking/parameters/risk', data);
             return response.data;
@@ -88,7 +85,6 @@ export const riskApi = {
      * Delete risk parameter
      */
     async deleteRiskParameter(id: string): Promise<{ success: boolean; message: string }> {
-        console.log(`🗑️ Deleting risk parameter: ${id}`);
         try {
             const response = await apiClient.delete(`/banking/parameters/risk/${id}`);
             return response.data;

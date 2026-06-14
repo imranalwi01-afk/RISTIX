@@ -29,6 +29,8 @@ import { format } from 'date-fns';
 import { usersAPI } from '@/services/api';
 import { getErrorMessage } from '@/utils/error-message';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
+import { ResetPasswordDialog } from './ResetPasswordDialog';
+import { LockReset as LockResetIcon } from '@mui/icons-material';
 import UserForm, { UserFormData } from './UserForm';
 
 // Since the API type might be inferred, let's define a local interface matching usage
@@ -63,6 +65,10 @@ const UserManagement = () => {
     const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
     const [selectedUser, setSelectedUser] = useState<UserFormData | null>(null);
     const [formLoading, setFormLoading] = useState(false);
+
+    // State for Reset Password
+    const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
+    const [resetTargetUser, setResetTargetUser] = useState<User | null>(null);
 
     // Fetch users
     const fetchUsers = useCallback(async () => {
@@ -128,6 +134,11 @@ const UserManagement = () => {
             isActive: user.isActive,
         });
         setIsFormOpen(true);
+    };
+
+    const handleResetPassword = (user: User) => {
+        setResetTargetUser(user);
+        setIsResetPasswordOpen(true);
     };
 
     const handleDelete = async (id: string) => {
@@ -207,6 +218,12 @@ const UserManagement = () => {
             sortable: false,
             getActions: (params) => [
                 <SafeGridActionsCellItem
+                    key="reset"
+                    label="Reset Password"
+                    icon={<LockResetIcon fontSize="small" color="warning" />}
+                    onClick={() => handleResetPassword(params.row)}
+                />,
+                <SafeGridActionsCellItem
                     key="edit"
                     label="Edit User"
                     icon={<EditIcon fontSize="small" />}
@@ -263,7 +280,7 @@ const UserManagement = () => {
             </Box>
 
             {error && (
-                <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+                <Alert severity="error" sx={{ mb: 3 }} role="alert" onClose={() => setError(null)}>
                     {error}
                 </Alert>
             )}
@@ -324,6 +341,17 @@ const UserManagement = () => {
                 initialData={selectedUser}
                 mode={formMode}
                 loading={formLoading}
+            />
+
+            <ResetPasswordDialog
+                open={isResetPasswordOpen}
+                onClose={() => setIsResetPasswordOpen(false)}
+                userId={resetTargetUser?.id || null}
+                userName={resetTargetUser?.fullName || null}
+                onSuccess={() => {
+                    setIsResetPasswordOpen(false);
+                    setResetTargetUser(null);
+                }}
             />
         </Box>
     );

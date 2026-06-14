@@ -32,6 +32,7 @@ export const menuCategories = menuSchema.table('menu_categories', {
     updatedBy: uuid('updated_by'),
 }, (table) => [
     index('menu_categories_tenant_idx').on(table.tenantId),
+    uniqueIndex('menu_categories_tenant_name_idx').on(table.tenantId, table.name),
 ])
 
 // =============================================================================
