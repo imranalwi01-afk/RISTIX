@@ -381,7 +381,9 @@ export default function PlatformMenuManagementPage() {
                             const permsRes = await api.client.get('/menu/permissions', { params: { tenantId } });
                             const perms = (permsRes.data?.data || []).filter((p: any) => p.menuItemId === item.id);
                             setPermDialog(prev => ({ ...prev, selectedRoles: perms.filter((p: any) => p.isAllowed).map((p: any) => p.roleId) }));
-                          } catch {}
+                          } catch (e) {
+                            console.warn('Failed to load permissions', e);
+                          }
                         }}><SecurityIcon fontSize="small" /></IconButton></Tooltip>
                         <Tooltip title="Edit"><IconButton size="small" onClick={() => setEditDialog({ open: true, item })}><EditIcon fontSize="small" /></IconButton></Tooltip>
                         <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => deleteItem(item)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>

@@ -363,7 +363,9 @@ export function NativeTable<T = any>({
       try {
         const raw = new URL(window.location.href).searchParams.get(urlFilterKey);
         if (raw) return JSON.parse(raw);
-      } catch {}
+      } catch (e) {
+        console.warn('Failed to parse URL filter', e);
+      }
     }
     return {};
   };
