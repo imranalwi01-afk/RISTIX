@@ -530,8 +530,7 @@ menuRoutes.openapi(
         responses: { 200: { description: 'Permission created/updated' } },
     }),
     async (c) => {
-        const qTenant = c.req.query('tenantId')
-        const tenantId = qTenant || c.get('tenantId')
+        const tenantId = await resolveTenantId(c)
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
         const body = c.req.valid('json')
         const existing = await platformDb.select().from(menuPermissions)
@@ -562,7 +561,7 @@ menuRoutes.openapi(
             id, tenantId, menuItemId: body.menuItemId, roleId: body.roleId,
             permissionType: body.permissionType || 'view',
             isAllowed: body.isAllowed !== false,
-            createdBy: c.get('userId') || 'system',
+            createdBy: c.get('userId') || SYSTEM_USER_ID,
             createdAt: new Date(),
         }).returning()
         auditCreate('menu_permission', id, permission, c, tenantId)
