@@ -110,7 +110,7 @@ export default function PlatformMenuManagementPage() {
 
   const toggleItemActive = async (item: MenuItem) => {
     try {
-      await menuApi.updateMenuItem(item.id, { is_active: !item.is_active });
+      await menuApi.updateMenuItem(item.id, { isActive: !item.is_active });
       setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_active: !i.is_active } : i));
       setSnackbar({ open: true, message: 'Menu item updated', severity: 'success' });
     } catch { setSnackbar({ open: true, message: 'Failed to update', severity: 'error' }); }
@@ -127,10 +127,22 @@ export default function PlatformMenuManagementPage() {
 
   const saveItem = async (data: any) => {
     try {
+      // Map snake_case from local state to camelCase expected by backend
+      const payload = {
+        name: data.name,
+        description: data.description,
+        path: data.path,
+        icon: data.icon,
+        sortOrder: data.sort_order,
+        isActive: data.is_active,
+        isVisible: data.is_visible,
+        requiresAuth: data.requires_auth,
+        bankingType: data.banking_type,
+      };
       if (data.id) {
-        await menuApi.updateMenuItem(data.id, data);
+        await menuApi.updateMenuItem(data.id, payload);
       } else {
-        await menuApi.createMenuItem(data);
+        await menuApi.createMenuItem(payload);
       }
       setSnackbar({ open: true, message: 'Menu item saved', severity: 'success' });
       setEditDialog({ open: false });
