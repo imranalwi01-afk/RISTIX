@@ -317,6 +317,16 @@ export const createApprovalRequest = (
                 return request;
             });
         },
+        catch: (error) => {
+            if (error instanceof ConflictError) {
+                return error;
+            }
+            return new DatabaseError({
+                message: error instanceof Error ? error.message : 'Failed to create approval request',
+                operation: 'transaction',
+                cause: error,
+            });
+        },
     })
     .pipe(
         Effect.andThen((request) =>

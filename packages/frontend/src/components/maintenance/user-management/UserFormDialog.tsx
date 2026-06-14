@@ -103,7 +103,7 @@ const UserFormDialog = memo(function UserFormDialog({
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <FormControlLabel
-              control={<Switch checked={formData.syariahCertified} onChange={(e) => onChange({ ...formData, syariahCertified: e.target.checked })} />}
+              control={<Switch checked={!!formData.syariahCertified} onChange={(e) => onChange({ ...formData, syariahCertified: e.target.checked })} />}
               label="Syariah Certified"
             />
           </Grid>

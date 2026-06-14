@@ -488,9 +488,10 @@ usersRoutes.openapi(
     }),
     async (c: any) => {
         const userId = c.get('userId')!
+        const tenantId = c.get('tenantId')
 
         const effect = pipe(
-            usersService.getUserById(userId),
+            usersService.getUserById(userId, tenantId),
             Effect.map((user) => ({
                 id: user.id,
                 email: user.email,
