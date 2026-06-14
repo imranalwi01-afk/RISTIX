@@ -76,6 +76,11 @@ import type { GridColDef } from '@mui/x-data-grid';
 import { format, parseISO } from 'date-fns';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/services/api';
+import { usersAPI } from '@/services/api/users.api';
+import LockResetIcon from '@mui/icons-material/LockReset';
+import KeyIcon from '@mui/icons-material/Key';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { getRoleResponsibility } from '@/components/roles/role-responsibility.utils';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 
@@ -308,6 +313,25 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
   }>({
     open: false,
     user: null
+  });
+  const [passwordResetDialog, setPasswordResetDialog] = useState<{
+    open: boolean;
+    user: User | null;
+    newPassword: string;
+    confirmPassword: string;
+    showPassword: boolean;
+    saving: boolean;
+    error: string | null;
+    success: boolean;
+  }>({
+    open: false,
+    user: null,
+    newPassword: '',
+    confirmPassword: '',
+    showPassword: false,
+    saving: false,
+    error: null,
+    success: false,
   });
   const [manageUserRolesDialog, setManageUserRolesDialog] = useState<{
     open: boolean;
@@ -702,6 +726,44 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     });
   };
 
+  const openPasswordResetDialog = (user: User) => {
+    setPasswordResetDialog({
+      open: true,
+      user,
+      newPassword: '',
+      confirmPassword: '',
+      showPassword: false,
+      saving: false,
+      error: null,
+      success: false,
+    });
+  };
+
+  const handleResetPassword = async () => {
+    const dialog = passwordResetDialog;
+    if (!dialog.user) return;
+
+    if (dialog.newPassword.length < 6) {
+      setPasswordResetDialog(prev => ({ ...prev, error: 'Password must be at least 6 characters' }));
+      return;
+    }
+    if (dialog.newPassword !== dialog.confirmPassword) {
+      setPasswordResetDialog(prev => ({ ...prev, error: 'Passwords do not match' }));
+      return;
+    }
+
+    setPasswordResetDialog(prev => ({ ...prev, saving: true, error: null }));
+    try {
+      await usersAPI.resetPassword(dialog.user.id, { newPassword: dialog.newPassword });
+      setPasswordResetDialog(prev => ({ ...prev, saving: false, success: true }));
+    } catch (err: any) {
+      setPasswordResetDialog(prev => ({
+        ...prev, saving: false,
+        error: err?.message || err?.response?.data?.message || 'Failed to reset password'
+      }));
+    }
+  };
+
   const openRoleDetailsPage = (role: Role) => {
     const mode = searchParams.get('mode');
     const nextQuery = new URLSearchParams();
@@ -905,7 +967,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
       field: 'actions',
       type: 'actions',
       headerName: 'Actions',
-      width: 112,
+      width: 196,
       getActions: (params) => [
         <SafeGridActionsCellItem
           key="view"
@@ -919,6 +981,13 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
           icon={<EditIcon fontSize="small" />}
           label="Manage Roles"
           onClick={() => openManageUserRolesDialog(params.row)}
+          showInMenu={false}
+        />,
+        <SafeGridActionsCellItem
+          key="password"
+          icon={<LockResetIcon fontSize="small" />}
+          label="Reset Password"
+          onClick={() => openPasswordResetDialog(params.row)}
           showInMenu={false}
         />,
       ],
@@ -1943,6 +2012,73 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
               }}
             >
               {assignmentDialog.mode === 'assign' ? 'Assign' : 'Remove'}
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog
+        open={passwordResetDialog.open}
+        onClose={() => passwordResetDialog.success || setPasswordResetDialog(prev => ({ ...prev, open: false }))}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <KeyIcon />
+            <span>Reset Password — {passwordResetDialog.user?.fullName || passwordResetDialog.user?.email}</span>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {passwordResetDialog.success ? (
+            <Alert severity="success" sx={{ mt: 2 }}>
+              Password reset successfully for {passwordResetDialog.user?.fullName || passwordResetDialog.user?.email}
+            </Alert>
+          ) : (
+            <>
+              {passwordResetDialog.error && (
+                <Alert severity="error" sx={{ mb: 2 }}>{passwordResetDialog.error}</Alert>
+              )}
+              <TextField
+                fullWidth
+                label="New Password"
+                type={passwordResetDialog.showPassword ? 'text' : 'password'}
+                value={passwordResetDialog.newPassword}
+                onChange={(e) => setPasswordResetDialog(prev => ({ ...prev, newPassword: e.target.value, error: null }))}
+                sx={{ mb: 2, mt: 1 }}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setPasswordResetDialog(prev => ({ ...prev, showPassword: !prev.showPassword }))} edge="end">
+                        {passwordResetDialog.showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <TextField
+                fullWidth
+                label="Confirm Password"
+                type={passwordResetDialog.showPassword ? 'text' : 'password'}
+                value={passwordResetDialog.confirmPassword}
+                onChange={(e) => setPasswordResetDialog(prev => ({ ...prev, confirmPassword: e.target.value, error: null }))}
+              />
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPasswordResetDialog(prev => ({ ...prev, open: false }))} disabled={passwordResetDialog.saving}>
+            {passwordResetDialog.success ? 'Close' : 'Cancel'}
+          </Button>
+          {!passwordResetDialog.success && (
+            <Button
+              variant="contained"
+              onClick={handleResetPassword}
+              disabled={passwordResetDialog.saving || !passwordResetDialog.newPassword || !passwordResetDialog.confirmPassword}
+              startIcon={passwordResetDialog.saving ? undefined : <LockResetIcon />}
+            >
+              {passwordResetDialog.saving ? 'Resetting...' : 'Reset Password'}
             </Button>
           )}
         </DialogActions>
