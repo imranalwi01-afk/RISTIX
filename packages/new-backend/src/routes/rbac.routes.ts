@@ -6,6 +6,7 @@ import { runEffect } from '../lib/effect'
 import * as rbacService from '../services/rbac.service'
 import * as auditService from '../services/audit.service'
 import { createApprovalRequest } from '../services/approval.service'
+import * as userService from '../services/users.service'
 import { buildDefaultFourEyesRouting } from '../lib/approval-helpers'
 import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
@@ -224,6 +225,15 @@ const buildApprovalAcceptedResponse = (
 
 const getApprovalResponseStatus = (request: { status?: string }, nonPendingStatus = 200): number =>
     isPendingApprovalRequest(request) ? 202 : nonPendingStatus
+
+const resolveUserName = async (userId: string, tenantId: string): Promise<string> => {
+    try {
+        const user = await Effect.runPromise(userService.getUserById(userId, tenantId))
+        return (user as any)?.fullName || (user as any)?.email || userId
+    } catch {
+        return userId
+    }
+}
 
 const createStrictApprovalRequest = async (input: {
     tenantId: string
@@ -1190,7 +1200,10 @@ rbacRoutes.openapi(
             const tenantId = c.get('tenantId')!
             const assignedBy = c.get('userId')
             const body = c.req.valid('json')
-            const role = await Effect.runPromise(rbacService.getRoleById(roleId, tenantId))
+            const [role, user] = await Promise.all([
+                Effect.runPromise(rbacService.getRoleById(roleId, tenantId)),
+                resolveUserName(userId, tenantId),
+            ])
 
             const request = await createStrictApprovalRequest({
                 tenantId,
@@ -1198,7 +1211,7 @@ rbacRoutes.openapi(
                 entityType: 'role_assignment',
                 entityId: `${userId}:${roleId}`,
                 operation: 'create',
-                title: `Assign role ${role.roleName} to user ${userId}`,
+                title: `Assign role ${role.roleName} to user ${user}`,
                 description: `Role assignment requested for ${role.roleName}.`,
                 oldValues: {},
                 payload: {
@@ -1263,7 +1276,10 @@ rbacRoutes.openapi(
             const { userId, roleId } = c.req.valid('param')
             const tenantId = c.get('tenantId')!
             const removedBy = c.get('userId') || 'system'
-            const role = await Effect.runPromise(rbacService.getRoleById(roleId, tenantId))
+            const [role, user] = await Promise.all([
+                Effect.runPromise(rbacService.getRoleById(roleId, tenantId)),
+                resolveUserName(userId, tenantId),
+            ])
 
             const request = await createStrictApprovalRequest({
                 tenantId,
@@ -1271,7 +1287,7 @@ rbacRoutes.openapi(
                 entityType: 'role_assignment',
                 entityId: `${userId}:${roleId}`,
                 operation: 'delete',
-                title: `Remove role ${role.roleName} from user ${userId}`,
+                title: `Remove role ${role.roleName} from user ${user}`,
                 description: `Role removal requested for ${role.roleName}.`,
                 oldValues: {
                     userId,
