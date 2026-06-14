@@ -31,6 +31,15 @@ import { useAuth } from '@/providers/AuthProvider';
 import { getErrorMessage } from '@/utils/error-message';
 import { ResetPasswordDialog } from '@/components/users/ResetPasswordDialog';
 import { usersAPI } from '@/services/api/users.api';
+
+const extractRolesArray = (res: any): any[] => {
+  if (Array.isArray(res)) return res;
+  if (!res || typeof res !== 'object') return [];
+  if (Array.isArray(res.data)) return res.data;
+  if (res.data && typeof res.data === 'object' && Array.isArray(res.data.data)) return res.data.data;
+  if (Array.isArray(res.roles)) return res.roles;
+  return [];
+};
 import InputAdornment from '@mui/material/InputAdornment';
 import IconButton from '@mui/material/IconButton';
 import Dialog from '@mui/material/Dialog';
@@ -127,11 +136,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
   const handleManageRoles = async (user: User) => {
     try {
       const rolesRes = await api.roles.getAll({ includeInactive: true });
-      const rawRoles = Array.isArray(rolesRes)
-        ? rolesRes
-        : Array.isArray((rolesRes as any).data)
-          ? (rolesRes as any).data
-          : (rolesRes as any).roles || [];
+      const rawRoles = extractRolesArray(rolesRes);
       let userRoleIds: string[] = [];
       try {
         const userRolesRes = await api.roles.getUserRoles(user.id);
