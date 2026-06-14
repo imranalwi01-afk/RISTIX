@@ -700,6 +700,9 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
           </Stack>
         </DialogTitle>
         <DialogContent>
+          <Alert severity="info" sx={{ mb: 2, mt: 1 }}>
+            Role changes require approval. Assigned roles will only take effect after an approver reviews this request.
+          </Alert>
           <TextField
             fullWidth size="small" placeholder="Search roles..."
             value={manageRolesDialog.search}
