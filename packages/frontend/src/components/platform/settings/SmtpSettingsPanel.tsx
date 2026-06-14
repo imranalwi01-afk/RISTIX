@@ -45,6 +45,7 @@ export default function SmtpSettingsPanel() {
         setValue,
         watch,
         reset,
+        getValues,
         formState: { errors },
     } = useForm<SmtpFormData>({
         defaultValues: {
@@ -73,7 +74,11 @@ export default function SmtpSettingsPanel() {
         try {
             const response = await api.client.get('/platform/settings/smtp');
             if (response.data?.data) {
-                reset(response.data.data);
+                const fetchedData = response.data.data;
+                if (typeof fetchedData.port === 'string') {
+                    fetchedData.port = parseInt(fetchedData.port, 10);
+                }
+                reset(fetchedData);
             }
         } catch (error) {
             enqueueSnackbar('Failed to load SMTP settings', { variant: 'error' });
@@ -89,22 +94,37 @@ export default function SmtpSettingsPanel() {
     const onSubmit = async (data: SmtpFormData) => {
         setSaving(true);
         try {
-            await api.client.put('/platform/settings/smtp', data);
+            // Ensure port is a number before sending
+            const submitData = { ...data, port: Number(data.port) };
+            await api.client.put('/platform/settings/smtp', submitData);
             enqueueSnackbar('SMTP Settings saved successfully', { variant: 'success' });
         } catch (error: any) {
-            enqueueSnackbar(error.response?.data?.error || 'Failed to save settings', { variant: 'error' });
+            const errData = error.response?.data?.error;
+            const errMsg = typeof errData === 'object' ? JSON.stringify(errData) : errData;
+            enqueueSnackbar(errMsg || 'Failed to save settings', { variant: 'error' });
         } finally {
             setSaving(false);
         }
     };
 
-    const handleTestConnection = async (data: SmtpFormData) => {
+    const handleTestConnection = async () => {
+        const data = getValues();
+        
+        if (!data.host || !data.port || !data.user || !data.pass) {
+            enqueueSnackbar('Harap isi SMTP Host, Port, Username, dan Password terlebih dahulu.', { variant: 'warning' });
+            return;
+        }
+
         setTesting(true);
         try {
-            await api.client.post('/platform/settings/smtp/test', data);
+            // Ensure port is a number before sending
+            const testData = { ...data, port: Number(data.port) };
+            await api.client.post('/platform/settings/smtp/test', testData);
             enqueueSnackbar('Test connection successful! Settings are valid.', { variant: 'success' });
         } catch (error: any) {
-            enqueueSnackbar(error.response?.data?.error || 'Test connection failed', { variant: 'error' });
+            const errData = error.response?.data?.error;
+            const errMsg = typeof errData === 'object' ? JSON.stringify(errData) : errData;
+            enqueueSnackbar(errMsg || 'Test connection failed', { variant: 'error' });
         } finally {
             setTesting(false);
         }
@@ -284,11 +304,12 @@ export default function SmtpSettingsPanel() {
                 {/* ACTION BUTTONS */}
                 <Box sx={{ mt: 5, pt: 3, display: 'flex', gap: 2, justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0' }}>
                     <Button
+                        type="button"
                         variant="outlined"
                         color="secondary"
                         size="large"
                         startIcon={testing ? <CircularProgress size={20} /> : <SendIcon />}
-                        onClick={handleSubmit(handleTestConnection)}
+                        onClick={handleTestConnection}
                         disabled={testing || saving}
                         sx={{ borderRadius: 2, px: 3, textTransform: 'none', fontWeight: 600 }}
                     >

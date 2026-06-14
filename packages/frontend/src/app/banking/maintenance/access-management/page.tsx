@@ -1,17 +1,12 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { use } from 'react';
 
 const AccessManagementPage = dynamic(
   () => import('@/components/maintenance/AccessManagementPage'),
   { ssr: false, loading: () => <div style={{ padding: 40, textAlign: 'center' }}>Loading...</div> }
 );
 
-export default function AccessManagementRoutePage({
-  params,
-}: {
-  params: Promise<{ tab: string }> | { tab: string };
-}) {
+export default function AccessManagementRoutePage() {
   return <AccessManagementPage />;
 }

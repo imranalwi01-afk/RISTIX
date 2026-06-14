@@ -90,7 +90,7 @@ async function sendSMTPEmail(to: string, subject: string, text: string, html?: s
     try {
         let transporter;
         // In development without real SMTP config, use Ethereal Email!
-        if (process.env.NODE_ENV === 'development' && (!process.env.SMTP_USER || !process.env.SMTP_PASS)) {
+        if (process.env.NODE_ENV === 'development' && !config.auth?.user) {
             if (!etherealAccount) {
                 console.log('Generating Ethereal email test account for preview...');
                 etherealAccount = await nodemailer.createTestAccount();

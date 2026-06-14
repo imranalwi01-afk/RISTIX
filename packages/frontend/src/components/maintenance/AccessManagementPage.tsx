@@ -184,6 +184,7 @@ const TAB_KEY_TO_INDEX: Record<string, number> = {
   permissions: 2,
   matrix: 2,
   assignments: 1,
+  'access-review': 2,
 };
 
 const TAB_INDEX_TO_KEY = ['roles', 'users', 'access-review'] as const;
