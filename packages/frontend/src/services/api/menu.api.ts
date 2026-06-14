@@ -9,7 +9,7 @@
 // ============================================================================
 
 import { AxiosResponse } from 'axios';
-import { apiClient, apiClient as menuApiClient } from '../api-client';
+import { apiClient as menuApiClient } from '../api-client';
 import '../api-setup'; // Ensure interceptors are registered
 import { getStaticFallbackMenu } from '@/components/banking/BankingSidebarUtils';
 import { frontendEnvironmentLoader } from '@/config/environment-loader-frontend';
@@ -347,6 +347,21 @@ export class MenuApiService {
     return response.data;
   }
 
+  async createMenuCategory(category: any, tenantId?: string): Promise<MenuApiResponse<any>> {
+    const response = await menuApiClient.post('/menu/admin/categories', category, { params: { tenantId } });
+    return response.data;
+  }
+
+  async updateMenuCategory(id: string, category: any, tenantId?: string): Promise<MenuApiResponse<any>> {
+    const response = await menuApiClient.put(`/menu/admin/categories/${id}`, category, { params: { tenantId } });
+    return response.data;
+  }
+
+  async deleteMenuCategory(id: string, tenantId?: string): Promise<MenuApiResponse<void>> {
+    const response = await menuApiClient.delete(`/menu/admin/categories/${id}`, { params: { tenantId } });
+    return response.data;
+  }
+
   /**
    * Update an existing menu item (Admin only)
    */
@@ -395,6 +410,10 @@ export const menuApi = {
   getMenuHealth: () => menuApiService.getMenuHealth(),
   getMenuInfo: () => menuApiService.getMenuInfo(),
   // CRUD methods
+  createMenuCategory: (category: any, tenantId?: string) => menuApiService.createMenuCategory(category, tenantId),
+  updateMenuCategory: (id: string, category: any, tenantId?: string) =>
+    menuApiService.updateMenuCategory(id, category, tenantId),
+  deleteMenuCategory: (id: string, tenantId?: string) => menuApiService.deleteMenuCategory(id, tenantId),
   createMenuItem: (menuItem: any, tenantId?: string) => menuApiService.createMenuItem(menuItem, tenantId),
   updateMenuItem: (id: string, menuItem: any, tenantId?: string) =>
     menuApiService.updateMenuItem(id, menuItem, tenantId),

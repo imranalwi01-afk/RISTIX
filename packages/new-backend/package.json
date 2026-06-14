@@ -52,6 +52,7 @@
         "db:push": "drizzle-kit push",
         "db:studio": "drizzle-kit studio",
         "db:seed": "bun run src/db/seed.ts",
+        "menu:legacy-report": "bun run scripts/menu-legacy-report.ts",
         "docs": "typedoc",
         "docs:serve": "npx serve docs",
         "ops": "bun run src/cli.ts",

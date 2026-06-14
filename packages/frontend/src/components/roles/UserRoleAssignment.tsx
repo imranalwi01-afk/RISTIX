@@ -301,11 +301,17 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     mode: 'assign' | 'remove';
     selectedUsers: string[];
     selectedRoles: string[];
+    progress: number;
+    total: number;
+    saving: boolean;
   }>({
     open: false,
     mode: 'assign',
     selectedUsers: [],
-    selectedRoles: []
+    selectedRoles: [],
+    progress: 0,
+    total: 0,
+    saving: false,
   });
   const [userDetailsDialog, setUserDetailsDialog] = useState<{
     open: boolean;
@@ -649,16 +655,22 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
       return;
     }
 
+    const total = bulkDialog.selectedRoles.length * bulkDialog.selectedUsers.length;
+    setBulkDialog(prev => ({ ...prev, saving: true, progress: 0, total }));
+
+    let approvalCount = 0;
+    let done = 0;
+
     try {
       console.log(`🔗 Bulk assigning ${bulkDialog.selectedRoles.length} roles to ${bulkDialog.selectedUsers.length} users`);
-      let approvalCount = 0;
+      approvalCount = 0;
 
       for (const roleId of bulkDialog.selectedRoles) {
         for (const userId of bulkDialog.selectedUsers) {
           const response = await api.roles.assignUser(roleId, userId);
-          if (response?.approvalRequired) {
-            approvalCount += 1;
-          }
+          if (response?.approvalRequired) approvalCount += 1;
+          done++;
+          setBulkDialog(prev => ({ ...prev, progress: done }));
         }
       }
 
@@ -668,10 +680,11 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
 
       onAssignmentChange?.();
       await fetchData();
-      setBulkDialog({ open: false, mode: 'assign', selectedUsers: [], selectedRoles: [] });
+      setBulkDialog({ open: false, mode: 'assign', selectedUsers: [], selectedRoles: [], progress: 0, total: 0, saving: false });
     } catch (error) {
       console.error('❌ Error in bulk assignment:', error);
-      setError('Failed to complete bulk assignment');
+      setError(`Failed after ${done}/${total} assignments`);
+      setBulkDialog(prev => ({ ...prev, saving: false }));
     }
   };
 
@@ -681,16 +694,22 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
       return;
     }
 
+    const total = bulkDialog.selectedRoles.length * bulkDialog.selectedUsers.length;
+    setBulkDialog(prev => ({ ...prev, saving: true, progress: 0, total }));
+
+    let approvalCount = 0;
+    let done = 0;
+
     try {
       console.log(`❌ Bulk removing ${bulkDialog.selectedRoles.length} roles from ${bulkDialog.selectedUsers.length} users`);
-      let approvalCount = 0;
+      approvalCount = 0;
 
       for (const roleId of bulkDialog.selectedRoles) {
         for (const userId of bulkDialog.selectedUsers) {
           const response = await api.roles.removeUser(roleId, userId);
-          if (response?.approvalRequired) {
-            approvalCount += 1;
-          }
+          if (response?.approvalRequired) approvalCount += 1;
+          done++;
+          setBulkDialog(prev => ({ ...prev, progress: done }));
         }
       }
 
@@ -700,10 +719,11 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
 
       onAssignmentChange?.();
       await fetchData();
-      setBulkDialog({ open: false, mode: 'remove', selectedUsers: [], selectedRoles: [] });
+      setBulkDialog({ open: false, mode: 'remove', selectedUsers: [], selectedRoles: [], progress: 0, total: 0, saving: false });
     } catch (error) {
       console.error('❌ Error in bulk removal:', error);
-      setError('Failed to complete bulk removal');
+      setError(`Failed after ${done}/${total} removals`);
+      setBulkDialog(prev => ({ ...prev, saving: false }));
     }
   };
 
@@ -1382,7 +1402,10 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
               open: true,
               mode: 'assign',
               selectedUsers: selectedUserIds,
-              selectedRoles: selectedRoleIds
+              selectedRoles: selectedRoleIds,
+              progress: 0,
+              total: selectedUserIds.length * selectedRoleIds.length,
+              saving: false,
             })}
             disabled={selectedUserIds.length === 0 || selectedRoleIds.length === 0}
           >
@@ -1395,7 +1418,10 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
               open: true,
               mode: 'remove',
               selectedUsers: selectedUserIds,
-              selectedRoles: selectedRoleIds
+              selectedRoles: selectedRoleIds,
+              progress: 0,
+              total: selectedUserIds.length * selectedRoleIds.length,
+              saving: false,
             })}
             disabled={selectedUserIds.length === 0 || selectedRoleIds.length === 0}
           >
@@ -2104,14 +2130,30 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
       {/* Bulk Assignment Dialog */}
       <Dialog
         open={bulkDialog.open}
-        onClose={() => setBulkDialog({ open: false, mode: 'assign', selectedUsers: [], selectedRoles: [] })}
+        onClose={() => !bulkDialog.saving && setBulkDialog({ open: false, mode: 'assign', selectedUsers: [], selectedRoles: [], progress: 0, total: 0, saving: false })}
         maxWidth="md"
         fullWidth
       >
         <DialogTitle>
-          Bulk {bulkDialog.mode === 'assign' ? 'Assignment' : 'Removal'}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography>Bulk {bulkDialog.mode === 'assign' ? 'Assignment' : 'Removal'}</Typography>
+            {bulkDialog.saving && (
+              <Chip label={`${bulkDialog.progress}/${bulkDialog.total}`} size="small" color="primary" />
+            )}
+          </Box>
         </DialogTitle>
         <DialogContent>
+          {bulkDialog.saving && (
+            <Box sx={{ mb: 2 }}>
+              <LinearProgress
+                variant="determinate"
+                value={bulkDialog.total > 0 ? (bulkDialog.progress / bulkDialog.total) * 100 : 0}
+              />
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                Processing {bulkDialog.progress} of {bulkDialog.total} assignments...
+              </Typography>
+            </Box>
+          )}
           <Typography variant="body2" sx={{ mb: 2 }}>
             {bulkDialog.mode === 'assign'
               ? `Assign ${bulkDialog.selectedRoles.length} roles to ${bulkDialog.selectedUsers.length} users`
@@ -2161,16 +2203,18 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
           </Accordion>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setBulkDialog({ open: false, mode: 'assign', selectedUsers: [], selectedRoles: [] })}>
+          <Button onClick={() => setBulkDialog({ open: false, mode: 'assign', selectedUsers: [], selectedRoles: [], progress: 0, total: 0, saving: false })} disabled={bulkDialog.saving}>
             Cancel
           </Button>
           <Button
             variant="contained"
             color={bulkDialog.mode === 'remove' ? 'error' : 'primary'}
             onClick={bulkDialog.mode === 'assign' ? handleBulkAssign : handleBulkRemove}
-            disabled={bulkDialog.selectedUsers.length === 0 || bulkDialog.selectedRoles.length === 0}
+            disabled={bulkDialog.saving || bulkDialog.selectedUsers.length === 0 || bulkDialog.selectedRoles.length === 0}
           >
-            {bulkDialog.mode === 'assign' ? 'Assign' : 'Remove'}
+            {bulkDialog.saving
+              ? `Processing ${bulkDialog.progress}/${bulkDialog.total}...`
+              : bulkDialog.mode === 'assign' ? 'Assign' : 'Remove'}
           </Button>
         </DialogActions>
       </Dialog>

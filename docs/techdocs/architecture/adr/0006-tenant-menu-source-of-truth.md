@@ -92,6 +92,31 @@ consumers when the dynamic menu feature is disabled or its endpoint is
 unavailable. They are not a substitute for a valid tenant-specific empty
 response.
 
+### Legacy Tenant Tables
+
+The tenant database tables `core.menu_categories`, `core.menu_items`, and
+`core.role_menu_access` are retired. They are not synchronized with the
+platform source and must not be used by application runtime code.
+
+Before migration, operators must run `pnpm --dir packages/new-backend
+menu:legacy-report`. The report exports the legacy rows and compares menu items
+with the canonical platform records by normalized path.
+
+Migration `0049_retire_legacy_tenant_menu_tables.sql`:
+
+- refuses to proceed when unexpected foreign keys or dependent views exist;
+- copies the legacy rows into `legacy_archive.*_pre_platform_source`; and
+- drops the tenant-local tables without `CASCADE`.
+
+The archive tables are rollback data, not an alternate runtime source.
+
+### Administration and Audit
+
+Platform administrators can manage both menu categories and menu items.
+Successful initialization, category, item, and permission mutations emit
+tenant audit records. Each mutation invalidates the runtime menu cache so the
+banking sidebar re-reads the canonical projection.
+
 ## Consequences
 
 ### Positive
@@ -111,6 +136,8 @@ response.
 - Tenant identity becomes part of menu-query and mutation contracts.
 - Legacy consumers that rely on static fallback behavior require explicit
   migration.
+- Tenant database migrations retain archive copies until the rollback
+  retention period has elapsed.
 
 ### Neutral
 
@@ -143,4 +170,6 @@ same drift this decision is intended to prevent.
 - [`packages/frontend/src/app/platform/menus/page.tsx`](../../../../packages/frontend/src/app/platform/menus/page.tsx)
 - [`packages/frontend/src/components/banking/BankingSidebar.tsx`](../../../../packages/frontend/src/components/banking/BankingSidebar.tsx)
 - [`packages/frontend/src/store/api/menuApi.ts`](../../../../packages/frontend/src/store/api/menuApi.ts)
+- [`packages/new-backend/src/db/migrations/0049_retire_legacy_tenant_menu_tables.sql`](../../../../packages/new-backend/src/db/migrations/0049_retire_legacy_tenant_menu_tables.sql)
+- [`packages/new-backend/scripts/menu-legacy-report.ts`](../../../../packages/new-backend/scripts/menu-legacy-report.ts)
 - [`docs/techdocs/specs/menu.md`](../../specs/menu.md)

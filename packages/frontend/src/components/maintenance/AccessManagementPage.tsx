@@ -13,7 +13,8 @@ import IconButton from '@mui/material/IconButton'
 import Tabs from '@mui/material/Tabs'
 import Tab from '@mui/material/Tab'
 import FormControl from '@mui/material/FormControl'
-import InputLabel from '@mui/material/InputLabel'
+ import InputLabel from '@mui/material/InputLabel'
+import InputAdornment from '@mui/material/InputAdornment'
 import Select from '@mui/material/Select'
 import MenuItem from '@mui/material/MenuItem'
 import TextField from '@mui/material/TextField'
@@ -246,6 +247,7 @@ function AccessManagementPage() {
   const [currentTab, setCurrentTab] = useState(0);
   const [permissionsTab, setPermissionsTab] = useState(0);
   const [permissionGroupingMode, setPermissionGroupingMode] = useState<PermissionGroupingMode>('resource');
+const [permissionSearch, setPermissionSearch] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -2349,6 +2351,18 @@ function AccessManagementPage() {
         </DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 2 }}>
+            {/* Search */}
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Search permissions..."
+              value={permissionSearch}
+              onChange={(e) => setPermissionSearch(e.target.value)}
+              InputProps={{
+                startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>,
+              }}
+              sx={{ mb: 2 }}
+            />
             {/* Category Selection Controls */}
             <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
               <FormControlLabel
@@ -2399,7 +2413,19 @@ function AccessManagementPage() {
             </Box>
 
             {/* Permission Groups */}
-            {permissionSelectionGroups.map((group) => {
+            {permissionSelectionGroups
+              .map((group) => {
+                const filtered = permissionSearch
+                  ? group.permissions.filter(p =>
+                      (p.displayName || '').toLowerCase().includes(permissionSearch.toLowerCase()) ||
+                      (p.code || '').toLowerCase().includes(permissionSearch.toLowerCase()) ||
+                      (p.description || '').toLowerCase().includes(permissionSearch.toLowerCase())
+                    )
+                  : group.permissions;
+                return { ...group, permissions: filtered };
+              })
+              .filter((group) => group.permissions.length > 0)
+              .map((group) => {
               const groupPermissions = group.permissions;
               const selectedInGroup = groupPermissions.filter(p => permissionDialog.selectedPermissions.includes(p.id)).length;
               const isGroupFullySelected = selectedInGroup === groupPermissions.length;
