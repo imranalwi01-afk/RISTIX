@@ -510,7 +510,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
       });
     } else if (typeof window !== 'undefined') {
       const cached = localStorage.getItem('cached_menu_structure');
-      if (cached) try { rawItems = JSON.parse(cached); } catch (e) { }
+      if (cached) try { rawItems = JSON.parse(cached); } catch (e) { console.warn('Failed to parse cached menu', e); }
     }
 
     if (rawItems.length > 0) {
