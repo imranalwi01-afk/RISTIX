@@ -42,11 +42,11 @@ const extractRolesArray = (res: any): any[] => {
 };
 import InputAdornment from '@mui/material/InputAdornment';
 import IconButton from '@mui/material/IconButton';
+import Checkbox from '@mui/material/Checkbox';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-import Checkbox from '@mui/material/Checkbox';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
@@ -162,9 +162,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
     if (!d.user) return;
     setManageRolesDialog(prev => ({ ...prev, saving: true }));
     try {
-      const [userRolesRes] = await Promise.all([
-        api.roles.getUserRoles(d.user.id),
-      ]);
+      const userRolesRes = await api.roles.getUserRoles(d.user.id);
       const userRoleRows = userRolesRes?.data?.roles || userRolesRes?.roles || userRolesRes?.data || [];
       const currentIds: string[] = (Array.isArray(userRoleRows) ? userRoleRows : []).map((row: any) => {
         const r = row?.role || row;
@@ -172,13 +170,23 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       }).filter(Boolean);
       const toAdd = d.selectedRoleIds.filter((id: string) => !currentIds.includes(id));
       const toRemove = currentIds.filter((id: string) => !d.selectedRoleIds.includes(id));
-      await Promise.all([
+      const results = await Promise.allSettled([
         ...toAdd.map((roleId: string) => api.roles.assignUser(roleId, d.user!.id)),
         ...toRemove.map((roleId: string) => api.roles.removeUser(roleId, d.user!.id)),
       ]);
-      setManageRolesDialog(prev => ({ ...prev, saving: false, open: false }));
-      await loadUsers();
-      setSnackbar({ open: true, message: 'Roles updated successfully', severity: 'success' });
+      const anyFailure = results.some(r => r.status === 'rejected');
+      const anyApproval = results.some(r => r.status === 'fulfilled' && (r.value as any)?.approvalRequired);
+      if (anyFailure && !anyApproval) {
+        setManageRolesDialog(prev => ({ ...prev, saving: false }));
+        setSnackbar({ open: true, message: 'Failed to update some roles', severity: 'error' });
+      } else {
+        setManageRolesDialog(prev => ({ ...prev, saving: false, open: false }));
+        setSnackbar({
+          open: true,
+          message: anyApproval ? 'Role changes submitted for approval.' : 'Roles updated successfully',
+          severity: anyApproval ? 'info' : 'success',
+        });
+      }
     } catch {
       setManageRolesDialog(prev => ({ ...prev, saving: false }));
       setSnackbar({ open: true, message: 'Failed to update roles', severity: 'error' });
