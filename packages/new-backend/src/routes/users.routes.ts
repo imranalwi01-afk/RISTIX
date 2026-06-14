@@ -552,7 +552,7 @@ usersRoutes.openapi(
             const tenantId = (c as any).get('tenantId') || 'iaf'
             const DASHBOARD_SCOPE = '__dashboard_personalization__'
             const views = await UserTableViewsRepository.list(tenantId, id, DASHBOARD_SCOPE)
-            const settings = views.length > 0 ? (views[0].config || {}) : {
+            const settings = views.length > 0 ? ((views[0] as any).state || {}) : {
                 defaultView: 'default',
                 widgetConfig: {},
                 customSettings: {},
@@ -631,12 +631,9 @@ usersRoutes.openapi(
                 userId: id,
                 scope: DASHBOARD_SCOPE,
                 viewKey: 'dashboard-personalization',
-                viewName: 'Dashboard Personalization',
+                name: 'Dashboard Personalization',
                 isDefault: true,
-                config: body.personalization || body,
-                filterModel: null,
-                sortModel: null,
-                columnState: null,
+                state: body.personalization || body,
             })
             return c.json({
                 success: true,
