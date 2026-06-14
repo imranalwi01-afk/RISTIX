@@ -10,8 +10,6 @@ const nextConfig = {
   // PERFORMANCE OPTIMIZATIONS
   // ============================================================================
   // Enable standalone output for Docker
-  // Force webpack for bundle analyzer compatibility
-  turbopack: {},
   output: 'standalone',
   allowedDevOrigins: [
     'localhost',
