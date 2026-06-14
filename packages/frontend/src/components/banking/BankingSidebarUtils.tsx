@@ -141,7 +141,6 @@ const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'manual-upload': 'banking.configuration.ifrs9.manage',
     'bulk-data-import': 'banking.configuration.ifrs9.manage',
     'data-export': 'banking.configuration.ifrs9.manage',
-    'etl-tools': 'banking.configuration.ifrs9.manage',
     'direct-db-connection': 'banking.configuration.ifrs9.manage',
     'data-scheduler': 'banking.configuration.ifrs9.manage',
 };
@@ -643,13 +642,6 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 description: 'Multi-format Export'
             },
             {
-                id: 'etl-tools',
-                label: 'ETL Tools',
-                href: '/banking/tools/etl',
-                icon: <Transform />,
-                description: 'Extract Transform Load'
-            },
-            {
                 id: 'direct-db-connection',
                 label: 'Direct DB Connection',
                 href: '/banking/tools/database',
@@ -962,7 +954,6 @@ export const getIconForMenuItem = (code: string, level: number): React.ReactElem
         'manual-upload': <CloudUpload />,
         'bulk-data-import': <CloudUpload />,
         'data-export': <GetApp />,
-        'etl-tools': <Transform />,
         'direct-db-connection': <Storage />,
         'data-scheduler': <Schedule />,
         'access-management': <ManageAccounts />,
@@ -1034,7 +1025,6 @@ const MENU_ICON_MAP: Record<string, string> = {
     'manual-upload': 'cloud_upload',
     'bulk-data-import': 'cloud_upload',
     'data-export': 'get_app',
-    'etl-tools': 'transform',
     'direct-db-connection': 'storage',
     'data-scheduler': 'schedule',
     'maintenance': 'build',
