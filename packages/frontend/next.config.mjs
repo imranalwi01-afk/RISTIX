@@ -61,7 +61,12 @@ const nextConfig = {
     optimizePackageImports: [
       'recharts',
       'lucide-react',
-      'notistack'
+      'notistack',
+      '@mui/material',
+      '@mui/icons-material',
+      '@mui/x-data-grid',
+      '@mui/x-date-pickers',
+      'date-fns',
     ],
     // Enable server actions for better performance
     serverActions: {
