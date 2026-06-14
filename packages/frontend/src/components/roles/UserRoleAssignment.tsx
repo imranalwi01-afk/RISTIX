@@ -2,84 +2,85 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Paper,
-  Chip,
-  IconButton,
-  Tooltip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Alert,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  TextField,
-  InputAdornment,
-  Badge,
-  LinearProgress,
-  Grid,
-  Avatar,
-  Switch,
-  FormControlLabel,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Divider,
-  Tabs,
-  Tab,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  ListItemSecondaryAction,
-  Checkbox,
-  Pagination,
-  Menu,
-  MenuList,
-  MenuItem as MuiMenuItem,
-  Stack,
-} from '@mui/material';
-import {
-  People as PeopleIcon,
-  Person as PersonIcon,
-  Security as SecurityIcon,
-  Add as AddIcon,
-  Remove as RemoveIcon,
-  Edit as EditIcon,
-  Visibility as ViewIcon,
-  Search as SearchIcon,
-  FilterList as FilterIcon,
-  Refresh as RefreshIcon,
-  Assignment as AssignmentIcon,
-  Business as BusinessIcon,
-  Settings as SettingsIcon,
-  CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
-  Warning as WarningIcon,
-  Info as InfoIcon,
-  PersonAdd as PersonAddIcon,
-  PersonRemove as PersonRemoveIcon,
-  Group as GroupIcon,
-  SupervisorAccount as SupervisorIcon,
-  AdminPanelSettings as AdminIcon,
-  Assessment as ReportIcon,
-  AccountBalance as BankingIcon,
-  MonetizationOn as MoneyIcon,
-  ExpandMore as ExpandMoreIcon
-} from '@mui/icons-material';
+import Box from '@mui/material/Box'
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import Typography from '@mui/material/Typography'
+import Paper from '@mui/material/Paper'
+import Chip from '@mui/material/Chip'
+import IconButton from '@mui/material/IconButton'
+import Tooltip from '@mui/material/Tooltip'
+import Dialog from '@mui/material/Dialog'
+import DialogTitle from '@mui/material/DialogTitle'
+import DialogContent from '@mui/material/DialogContent'
+import DialogActions from '@mui/material/DialogActions'
+import Button from '@mui/material/Button'
+import Alert from '@mui/material/Alert'
+import FormControl from '@mui/material/FormControl'
+import InputLabel from '@mui/material/InputLabel'
+import Select from '@mui/material/Select'
+import MenuItem from '@mui/material/MenuItem'
+import TextField from '@mui/material/TextField'
+import InputAdornment from '@mui/material/InputAdornment'
+import Badge from '@mui/material/Badge'
+import LinearProgress from '@mui/material/LinearProgress'
+import Grid from '@mui/material/Grid'
+import Avatar from '@mui/material/Avatar'
+import Switch from '@mui/material/Switch'
+import FormControlLabel from '@mui/material/FormControlLabel'
+import Accordion from '@mui/material/Accordion'
+import AccordionSummary from '@mui/material/AccordionSummary'
+import AccordionDetails from '@mui/material/AccordionDetails'
+import Divider from '@mui/material/Divider'
+import Tabs from '@mui/material/Tabs'
+import Tab from '@mui/material/Tab'
+import List from '@mui/material/List'
+import ListItem from '@mui/material/ListItem'
+import ListItemText from '@mui/material/ListItemText'
+import ListItemIcon from '@mui/material/ListItemIcon'
+import ListItemSecondaryAction from '@mui/material/ListItemSecondaryAction'
+import Checkbox from '@mui/material/Checkbox'
+import Pagination from '@mui/material/Pagination'
+import Menu from '@mui/material/Menu'
+import MenuList from '@mui/material/MenuList'
+import MuiMenuItem from '@mui/material/MenuItem'
+import Stack from '@mui/material/Stack'
+import PeopleIcon from '@mui/icons-material/People'
+import PersonIcon from '@mui/icons-material/Person'
+import SecurityIcon from '@mui/icons-material/Security'
+import AddIcon from '@mui/icons-material/Add'
+import RemoveIcon from '@mui/icons-material/Remove'
+import EditIcon from '@mui/icons-material/Edit'
+import ViewIcon from '@mui/icons-material/Visibility'
+import SearchIcon from '@mui/icons-material/Search'
+import FilterIcon from '@mui/icons-material/FilterList'
+import RefreshIcon from '@mui/icons-material/Refresh'
+import AssignmentIcon from '@mui/icons-material/Assignment'
+import BusinessIcon from '@mui/icons-material/Business'
+import SettingsIcon from '@mui/icons-material/Settings'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import CancelIcon from '@mui/icons-material/Cancel'
+import WarningIcon from '@mui/icons-material/Warning'
+import InfoIcon from '@mui/icons-material/Info'
+import PersonAddIcon from '@mui/icons-material/PersonAdd'
+import PersonRemoveIcon from '@mui/icons-material/PersonRemove'
+import GroupIcon from '@mui/icons-material/Group'
+import SupervisorIcon from '@mui/icons-material/SupervisorAccount'
+import AdminIcon from '@mui/icons-material/AdminPanelSettings'
+import ReportIcon from '@mui/icons-material/Assessment'
+import BankingIcon from '@mui/icons-material/AccountBalance'
+import MoneyIcon from '@mui/icons-material/MonetizationOn'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { useTheme } from '@mui/material/styles';
 import type { GridColDef } from '@mui/x-data-grid';
 import { format, parseISO } from 'date-fns';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/services/api';
+import { usersAPI } from '@/services/api/users.api';
+import LockResetIcon from '@mui/icons-material/LockReset';
+import KeyIcon from '@mui/icons-material/Key';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { getRoleResponsibility } from '@/components/roles/role-responsibility.utils';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 
@@ -300,11 +301,17 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     mode: 'assign' | 'remove';
     selectedUsers: string[];
     selectedRoles: string[];
+    progress: number;
+    total: number;
+    saving: boolean;
   }>({
     open: false,
     mode: 'assign',
     selectedUsers: [],
-    selectedRoles: []
+    selectedRoles: [],
+    progress: 0,
+    total: 0,
+    saving: false,
   });
   const [userDetailsDialog, setUserDetailsDialog] = useState<{
     open: boolean;
@@ -313,16 +320,39 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     open: false,
     user: null
   });
+  const [passwordResetDialog, setPasswordResetDialog] = useState<{
+    open: boolean;
+    user: User | null;
+    newPassword: string;
+    confirmPassword: string;
+    showPassword: boolean;
+    saving: boolean;
+    error: string | null;
+    success: boolean;
+  }>({
+    open: false,
+    user: null,
+    newPassword: '',
+    confirmPassword: '',
+    showPassword: false,
+    saving: false,
+    error: null,
+    success: false,
+  });
   const [manageUserRolesDialog, setManageUserRolesDialog] = useState<{
     open: boolean;
     user: User | null;
     selectedRoleIds: string[];
     saving: boolean;
+    error: string | null;
+    success: boolean;
   }>({
     open: false,
     user: null,
     selectedRoleIds: [],
-    saving: false
+    saving: false,
+    error: null,
+    success: false,
   });
   const [manageRoleUsersDialog, setManageRoleUsersDialog] = useState<{
     open: boolean;
@@ -625,16 +655,22 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
       return;
     }
 
+    const total = bulkDialog.selectedRoles.length * bulkDialog.selectedUsers.length;
+    setBulkDialog(prev => ({ ...prev, saving: true, progress: 0, total }));
+
+    let approvalCount = 0;
+    let done = 0;
+
     try {
       console.log(`🔗 Bulk assigning ${bulkDialog.selectedRoles.length} roles to ${bulkDialog.selectedUsers.length} users`);
-      let approvalCount = 0;
+      approvalCount = 0;
 
       for (const roleId of bulkDialog.selectedRoles) {
         for (const userId of bulkDialog.selectedUsers) {
           const response = await api.roles.assignUser(roleId, userId);
-          if (response?.approvalRequired) {
-            approvalCount += 1;
-          }
+          if (response?.approvalRequired) approvalCount += 1;
+          done++;
+          setBulkDialog(prev => ({ ...prev, progress: done }));
         }
       }
 
@@ -644,10 +680,11 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
 
       onAssignmentChange?.();
       await fetchData();
-      setBulkDialog({ open: false, mode: 'assign', selectedUsers: [], selectedRoles: [] });
+      setBulkDialog({ open: false, mode: 'assign', selectedUsers: [], selectedRoles: [], progress: 0, total: 0, saving: false });
     } catch (error) {
       console.error('❌ Error in bulk assignment:', error);
-      setError('Failed to complete bulk assignment');
+      setError(`Failed after ${done}/${total} assignments`);
+      setBulkDialog(prev => ({ ...prev, saving: false }));
     }
   };
 
@@ -657,16 +694,22 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
       return;
     }
 
+    const total = bulkDialog.selectedRoles.length * bulkDialog.selectedUsers.length;
+    setBulkDialog(prev => ({ ...prev, saving: true, progress: 0, total }));
+
+    let approvalCount = 0;
+    let done = 0;
+
     try {
       console.log(`❌ Bulk removing ${bulkDialog.selectedRoles.length} roles from ${bulkDialog.selectedUsers.length} users`);
-      let approvalCount = 0;
+      approvalCount = 0;
 
       for (const roleId of bulkDialog.selectedRoles) {
         for (const userId of bulkDialog.selectedUsers) {
           const response = await api.roles.removeUser(roleId, userId);
-          if (response?.approvalRequired) {
-            approvalCount += 1;
-          }
+          if (response?.approvalRequired) approvalCount += 1;
+          done++;
+          setBulkDialog(prev => ({ ...prev, progress: done }));
         }
       }
 
@@ -676,10 +719,11 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
 
       onAssignmentChange?.();
       await fetchData();
-      setBulkDialog({ open: false, mode: 'remove', selectedUsers: [], selectedRoles: [] });
+      setBulkDialog({ open: false, mode: 'remove', selectedUsers: [], selectedRoles: [], progress: 0, total: 0, saving: false });
     } catch (error) {
       console.error('❌ Error in bulk removal:', error);
-      setError('Failed to complete bulk removal');
+      setError(`Failed after ${done}/${total} removals`);
+      setBulkDialog(prev => ({ ...prev, saving: false }));
     }
   };
 
@@ -702,8 +746,48 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
       open: true,
       user,
       selectedRoleIds: getAssignedRoleIdsForUser(user),
-      saving: false
+      saving: false,
+      error: null,
+      success: false,
     });
+  };
+
+  const openPasswordResetDialog = (user: User) => {
+    setPasswordResetDialog({
+      open: true,
+      user,
+      newPassword: '',
+      confirmPassword: '',
+      showPassword: false,
+      saving: false,
+      error: null,
+      success: false,
+    });
+  };
+
+  const handleResetPassword = async () => {
+    const dialog = passwordResetDialog;
+    if (!dialog.user) return;
+
+    if (dialog.newPassword.length < 6) {
+      setPasswordResetDialog(prev => ({ ...prev, error: 'Password must be at least 6 characters' }));
+      return;
+    }
+    if (dialog.newPassword !== dialog.confirmPassword) {
+      setPasswordResetDialog(prev => ({ ...prev, error: 'Passwords do not match' }));
+      return;
+    }
+
+    setPasswordResetDialog(prev => ({ ...prev, saving: true, error: null }));
+    try {
+      await usersAPI.resetPassword(dialog.user.id, { newPassword: dialog.newPassword });
+      setPasswordResetDialog(prev => ({ ...prev, saving: false, success: true }));
+    } catch (err: any) {
+      setPasswordResetDialog(prev => ({
+        ...prev, saving: false,
+        error: err?.message || err?.response?.data?.message || 'Failed to reset password'
+      }));
+    }
   };
 
   const openRoleDetailsPage = (role: Role) => {
@@ -909,7 +993,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
       field: 'actions',
       type: 'actions',
       headerName: 'Actions',
-      width: 112,
+      width: 196,
       getActions: (params) => [
         <SafeGridActionsCellItem
           key="view"
@@ -923,6 +1007,13 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
           icon={<EditIcon fontSize="small" />}
           label="Manage Roles"
           onClick={() => openManageUserRolesDialog(params.row)}
+          showInMenu={false}
+        />,
+        <SafeGridActionsCellItem
+          key="password"
+          icon={<LockResetIcon fontSize="small" />}
+          label="Reset Password"
+          onClick={() => openPasswordResetDialog(params.row)}
           showInMenu={false}
         />,
       ],
@@ -1121,31 +1212,36 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     const rolesToAssign = Array.from(nextAssigned).filter((roleId) => !currentAssigned.has(roleId));
     const rolesToRemove = Array.from(currentAssigned).filter((roleId) => !nextAssigned.has(roleId));
 
+    if (rolesToAssign.length === 0 && rolesToRemove.length === 0) {
+      setManageUserRolesDialog((prev) => ({ ...prev, error: 'No changes to save' }));
+      return;
+    }
+
     try {
-      setManageUserRolesDialog((prev) => ({ ...prev, saving: true }));
+      setManageUserRolesDialog((prev) => ({ ...prev, saving: true, error: null }));
 
       for (const roleId of rolesToAssign) {
         const response = await api.roles.assignUser(roleId, user.id);
         if (response?.approvalRequired) {
-          setNotice('User role assignment change submitted for approval.');
+          setManageUserRolesDialog((prev) => ({ ...prev, success: true }));
         }
       }
 
       for (const roleId of rolesToRemove) {
         const response = await api.roles.removeUser(roleId, user.id);
         if (response?.approvalRequired) {
-          setNotice('User role assignment change submitted for approval.');
+          setManageUserRolesDialog((prev) => ({ ...prev, success: true }));
         }
       }
 
       onAssignmentChange?.();
       await fetchData();
-      setManageUserRolesDialog({ open: false, user: null, selectedRoleIds: [], saving: false });
+      setManageUserRolesDialog({ open: false, user: null, selectedRoleIds: [], saving: false, error: null, success: false });
       setUserDetailsDialog({ open: false, user: null });
-    } catch (err) {
-      console.error('❌ Failed saving user role assignment:', err);
-      setError('Failed to save role assignment for user');
-      setManageUserRolesDialog((prev) => ({ ...prev, saving: false }));
+      setNotice('Role assignment saved successfully');
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to save role assignment';
+      setManageUserRolesDialog((prev) => ({ ...prev, saving: false, error: message }));
     }
   };
 
@@ -1306,7 +1402,10 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
               open: true,
               mode: 'assign',
               selectedUsers: selectedUserIds,
-              selectedRoles: selectedRoleIds
+              selectedRoles: selectedRoleIds,
+              progress: 0,
+              total: selectedUserIds.length * selectedRoleIds.length,
+              saving: false,
             })}
             disabled={selectedUserIds.length === 0 || selectedRoleIds.length === 0}
           >
@@ -1319,7 +1418,10 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
               open: true,
               mode: 'remove',
               selectedUsers: selectedUserIds,
-              selectedRoles: selectedRoleIds
+              selectedRoles: selectedRoleIds,
+              progress: 0,
+              total: selectedUserIds.length * selectedRoleIds.length,
+              saving: false,
             })}
             disabled={selectedUserIds.length === 0 || selectedRoleIds.length === 0}
           >
@@ -1787,7 +1889,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
       {/* Manage User Roles Dialog */}
       <Dialog
         open={manageUserRolesDialog.open}
-        onClose={() => setManageUserRolesDialog({ open: false, user: null, selectedRoleIds: [], saving: false })}
+        onClose={() => setManageUserRolesDialog({ open: false, user: null, selectedRoleIds: [], saving: false, error: null, success: false })}
         maxWidth="md"
         fullWidth
       >
@@ -1809,6 +1911,12 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
           </Stack>
         </DialogTitle>
         <DialogContent dividers>
+          {manageUserRolesDialog.error && (
+            <Alert severity="error" sx={{ mb: 2 }}>{manageUserRolesDialog.error}</Alert>
+          )}
+          {manageUserRolesDialog.success && (
+            <Alert severity="success" sx={{ mb: 2 }}>Role assignment saved successfully</Alert>
+          )}
           <Box sx={{ mb: 2 }}>
             <Typography variant="body2" color="text.secondary">
               Select roles to assign or deselect roles to remove.
@@ -1849,7 +1957,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
             )}
           </Box>
           <Stack direction="row" spacing={1}>
-            <Button onClick={() => setManageUserRolesDialog({ open: false, user: null, selectedRoleIds: [], saving: false })}>
+            <Button onClick={() => setManageUserRolesDialog({ open: false, user: null, selectedRoleIds: [], saving: false, error: null, success: false })}>
               Cancel
             </Button>
             <Button variant="contained" onClick={saveManagedUserRoles} disabled={manageUserRolesDialog.saving}>
@@ -1952,17 +2060,100 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
         </DialogActions>
       </Dialog>
 
+      {/* Reset Password Dialog */}
+      <Dialog
+        open={passwordResetDialog.open}
+        onClose={() => passwordResetDialog.success || setPasswordResetDialog(prev => ({ ...prev, open: false }))}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <KeyIcon />
+            <span>Reset Password — {passwordResetDialog.user?.fullName || passwordResetDialog.user?.email}</span>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {passwordResetDialog.success ? (
+            <Alert severity="success" sx={{ mt: 2 }}>
+              Password reset successfully for {passwordResetDialog.user?.fullName || passwordResetDialog.user?.email}
+            </Alert>
+          ) : (
+            <>
+              {passwordResetDialog.error && (
+                <Alert severity="error" sx={{ mb: 2 }}>{passwordResetDialog.error}</Alert>
+              )}
+              <TextField
+                fullWidth
+                label="New Password"
+                type={passwordResetDialog.showPassword ? 'text' : 'password'}
+                value={passwordResetDialog.newPassword}
+                onChange={(e) => setPasswordResetDialog(prev => ({ ...prev, newPassword: e.target.value, error: null }))}
+                sx={{ mb: 2, mt: 1 }}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setPasswordResetDialog(prev => ({ ...prev, showPassword: !prev.showPassword }))} edge="end">
+                        {passwordResetDialog.showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <TextField
+                fullWidth
+                label="Confirm Password"
+                type={passwordResetDialog.showPassword ? 'text' : 'password'}
+                value={passwordResetDialog.confirmPassword}
+                onChange={(e) => setPasswordResetDialog(prev => ({ ...prev, confirmPassword: e.target.value, error: null }))}
+              />
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPasswordResetDialog(prev => ({ ...prev, open: false }))} disabled={passwordResetDialog.saving}>
+            {passwordResetDialog.success ? 'Close' : 'Cancel'}
+          </Button>
+          {!passwordResetDialog.success && (
+            <Button
+              variant="contained"
+              onClick={handleResetPassword}
+              disabled={passwordResetDialog.saving || !passwordResetDialog.newPassword || !passwordResetDialog.confirmPassword}
+              startIcon={passwordResetDialog.saving ? undefined : <LockResetIcon />}
+            >
+              {passwordResetDialog.saving ? 'Resetting...' : 'Reset Password'}
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+
       {/* Bulk Assignment Dialog */}
       <Dialog
         open={bulkDialog.open}
-        onClose={() => setBulkDialog({ open: false, mode: 'assign', selectedUsers: [], selectedRoles: [] })}
+        onClose={() => !bulkDialog.saving && setBulkDialog({ open: false, mode: 'assign', selectedUsers: [], selectedRoles: [], progress: 0, total: 0, saving: false })}
         maxWidth="md"
         fullWidth
       >
         <DialogTitle>
-          Bulk {bulkDialog.mode === 'assign' ? 'Assignment' : 'Removal'}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography>Bulk {bulkDialog.mode === 'assign' ? 'Assignment' : 'Removal'}</Typography>
+            {bulkDialog.saving && (
+              <Chip label={`${bulkDialog.progress}/${bulkDialog.total}`} size="small" color="primary" />
+            )}
+          </Box>
         </DialogTitle>
         <DialogContent>
+          {bulkDialog.saving && (
+            <Box sx={{ mb: 2 }}>
+              <LinearProgress
+                variant="determinate"
+                value={bulkDialog.total > 0 ? (bulkDialog.progress / bulkDialog.total) * 100 : 0}
+              />
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                Processing {bulkDialog.progress} of {bulkDialog.total} assignments...
+              </Typography>
+            </Box>
+          )}
           <Typography variant="body2" sx={{ mb: 2 }}>
             {bulkDialog.mode === 'assign'
               ? `Assign ${bulkDialog.selectedRoles.length} roles to ${bulkDialog.selectedUsers.length} users`
@@ -2012,16 +2203,18 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
           </Accordion>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setBulkDialog({ open: false, mode: 'assign', selectedUsers: [], selectedRoles: [] })}>
+          <Button onClick={() => setBulkDialog({ open: false, mode: 'assign', selectedUsers: [], selectedRoles: [], progress: 0, total: 0, saving: false })} disabled={bulkDialog.saving}>
             Cancel
           </Button>
           <Button
             variant="contained"
             color={bulkDialog.mode === 'remove' ? 'error' : 'primary'}
             onClick={bulkDialog.mode === 'assign' ? handleBulkAssign : handleBulkRemove}
-            disabled={bulkDialog.selectedUsers.length === 0 || bulkDialog.selectedRoles.length === 0}
+            disabled={bulkDialog.saving || bulkDialog.selectedUsers.length === 0 || bulkDialog.selectedRoles.length === 0}
           >
-            {bulkDialog.mode === 'assign' ? 'Assign' : 'Remove'}
+            {bulkDialog.saving
+              ? `Processing ${bulkDialog.progress}/${bulkDialog.total}...`
+              : bulkDialog.mode === 'assign' ? 'Assign' : 'Remove'}
           </Button>
         </DialogActions>
       </Dialog>

@@ -282,7 +282,7 @@ export function AdminNotificationCenter() {
 /**
  * Toast notification display (for real-time alerts)
  */
-export function NotificationToast({ notification }: { notification: NotificationPayload }) {
+function NotificationToast({ notification }: { notification: NotificationPayload }) {
     const [isVisible, setIsVisible] = useState(true)
 
     useEffect(() => {

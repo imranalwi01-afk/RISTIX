@@ -1,6 +1,5 @@
 'use client';
 
-import { useColumnFiltersFromUrl } from '@/hooks/useColumnFiltersFromUrl';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Box,
@@ -48,7 +47,6 @@ interface User {
     [key: string]: any;
 }
 
-const columnFilters = useColumnFiltersFromUrl();
 
 const UserManagement = () => {
     // State for data

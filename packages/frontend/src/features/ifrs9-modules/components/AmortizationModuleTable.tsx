@@ -1,6 +1,5 @@
 'use client';
 
-import { useColumnFiltersFromUrl } from '@/hooks/useColumnFiltersFromUrl';
 import React, { useMemo } from 'react';
 import type { GridColDef } from '@mui/x-data-grid';
 import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
@@ -20,7 +19,6 @@ interface AmortizationModuleTableProps {
 }
 
 function normalizeCurrencyCode(currency: string | null | undefined) {
-  const columnFilters = useColumnFiltersFromUrl();
   const normalized = String(currency ?? 'IDR').trim().toUpperCase();
   return /^[A-Z]{3}$/.test(normalized) ? normalized : 'IDR';
 }

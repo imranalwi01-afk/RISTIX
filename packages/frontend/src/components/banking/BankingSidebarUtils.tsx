@@ -128,7 +128,6 @@ const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'access-management': ['admin.users.manage', 'admin.roles.manage', 'admin.maintenance.access'],
     'user-management': 'admin.users.manage',
     'role-management': 'admin.roles.manage',
-    'menu-management': 'admin.system.manage',
     'job-monitoring': ['jobs.view', 'jobs.manage', 'admin.system.manage'],
     'assessment-workspace': 'banking.individual.view',
     'assessment-workspace-v1': 'banking.individual.view',
@@ -802,8 +801,8 @@ export const convertIconStringToElement = (iconString: string): React.ReactEleme
         case 'folder': return <Folder />;
         case 'description': return <Description />;
         case 'insert_chart': return <InsertChart />;
-        case 'error_outline': <ErrorOutline />;
-        case 'refresh': <Refresh />;
+        case 'error_outline': return <ErrorOutline />;
+        case 'refresh': return <Refresh />;
         case 'check_circle': <CheckCircle />;
         case 'warning': <Warning />;
         case 'error': <Error />;

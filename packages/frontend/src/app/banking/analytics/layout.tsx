@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/app/banking/analytics/layout.tsx
 // ============================================================================
 // ANALYTICS SECTION LAYOUT - IFRS9 ANALYTICS NAVIGATION (COMPACT VERSION)
@@ -7,8 +9,6 @@
 // Dependencies: Material-UI v6, Next.js 15 App Router
 // Features: Compact tab navigation, smaller icons, narrow height
 // ============================================================================
-
-'use client';
 
 import React, { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';

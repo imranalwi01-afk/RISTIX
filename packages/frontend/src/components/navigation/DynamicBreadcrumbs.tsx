@@ -55,7 +55,7 @@ export const DynamicBreadcrumbs: React.FC<DynamicBreadcrumbsProps> = ({
   sx
 }) => {
   const theme = useTheme();
-  // eslint-disable-next-line
+   
   const pathname = usePathname();
   // Mimic useLocation by creating an object with pathname property
   const location = { pathname };

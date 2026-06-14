@@ -2,7 +2,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Box, Card, CardContent, CircularProgress } from '@mui/material';
+import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import CircularProgress from '@mui/material/CircularProgress';
+import Container from '@mui/material/Container';
+import Typography from '@mui/material/Typography';
 import PageHeader from '@/components/banking/shared/PageHeader';
 import { GridColDef } from '@mui/x-data-grid';
 import { SafeDataGrid } from '@/components/shared/SafeDataGrid';

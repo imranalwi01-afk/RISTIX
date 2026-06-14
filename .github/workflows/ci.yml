@@ -50,5 +50,8 @@ jobs:
       - name: Type-check Frontend
         run: cd packages/frontend && pnpm run type-check
 
+      - name: Lint Frontend
+        run: cd packages/frontend && pnpm run lint
+
       - name: Backend Unit Tests
         run: cd packages/new-backend && JWT_SECRET=ci-test-jwt-secret-min-32-chars-long!! pnpm run test:unit

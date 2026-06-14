@@ -1,7 +1,14 @@
 'use client';
 
 import React, { memo } from 'react';
-import { Alert, Box, Button, FormControl, InputLabel, MenuItem, Select, Typography } from '@mui/material';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
+import Typography from '@mui/material/Typography';
 import { PlayArrow as RunIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 
 interface CalculationActionBarProps {

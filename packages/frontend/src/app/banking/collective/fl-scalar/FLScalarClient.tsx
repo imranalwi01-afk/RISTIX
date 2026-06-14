@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/app/banking/collective/fl-scalar/page.tsx
 // ============================================================================
 // FL SCALAR MANAGEMENT - IFRS 9 COLLECTIVE IMPAIRMENT
@@ -48,6 +50,7 @@ import { DialogState, FLScalarDetail, FLScalarHeader, FLScalarWithDetails } from
 
 import { api } from '@/services/api';
 import { usePermission } from '@/hooks/usePermission';
+import { useFLScalarsQuery } from '@/features/fl-scalar/hooks/useFLScalarQueries';
 
 // ============================================================================
 // MAIN COMPONENT
@@ -117,38 +120,19 @@ export default function FLScalarManagementPage() {
   // DATA OPERATIONS
   // ============================================================================
 
-  const loadScalars = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  // ✅ FL Scalars via React Query
+  const { data: flData, isLoading: flLoading, error: flError, refetch: flRefetch } = useFLScalarsQuery();
 
-    try {
-      console.log('🔮 Loading FL Scalars from REAL DS2 FRS9PRO database...');
-
-      // ✅ REAL API CALL - DS2 FRS9PRO Database (frs9_imp_ca_fl_scalarh/d)
-      // ✅ REAL API CALL - DS2 FRS9PRO Database (frs9_imp_ca_fl_scalarh/d)
-      const data = await api.banking.flScalar.getAll();
-
-      console.log(`✅ Loaded ${data.length} FL Scalars from DS2 database`);
-
-      // Set real data from database
-      setScalars(data);
-
-    } catch (err) {
-      const errorMessage = `Failed to load FL Scalar configurations from DS2 database: ${err.message || err}`;
-      setError(errorMessage);
-      console.error('❌ Error loading FL scalars from DS2 database:', err);
-
-      // Log detailed error for debugging
-      console.error('🔍 FL Scalar API Error Details:', {
-        error: err,
-        message: err.message,
-        stack: err.stack,
-        api: 'api.banking.flScalar.getAll()'
-      });
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (flData) {
+      const scalars = Array.isArray(flData) ? flData : (flData?.data || []);
+      setScalars(scalars);
     }
-  }, []);
+  }, [flData]);
+
+  useEffect(() => { if (flError) setError('Failed to load FL Scalars'); }, [flError]);
+
+
 
   const loadPendingApprovals = useCallback(async () => {
     try {
@@ -161,9 +145,9 @@ export default function FLScalarManagementPage() {
   }, []);
 
   useEffect(() => {
-    loadScalars();
+    flRefetch();
     loadPendingApprovals();
-  }, [loadScalars, loadPendingApprovals]);
+  }, [flRefetch, loadPendingApprovals]);
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
@@ -251,7 +235,7 @@ export default function FLScalarManagementPage() {
         });
       }
 
-      await loadScalars();
+      await flRefetch();
       await loadPendingApprovals();
       closeDialog();
     } catch (err) {
@@ -279,7 +263,7 @@ export default function FLScalarManagementPage() {
         setSnackbar({ open: true, message: 'FL Scalar deleted successfully', type: 'success' });
       }
 
-      await loadScalars();
+      await flRefetch();
       await loadPendingApprovals();
     } catch (err) {
       const errorMessage = `Failed to delete FL Scalar: ${err instanceof Error ? err.message : String(err)}`;
@@ -450,7 +434,7 @@ export default function FLScalarManagementPage() {
 
       <FLScalarGrid
         rows={scalars}
-        loading={loading}
+        loading={flLoading}
         pendingRequests={pendingRequests}
         canManage={canManageFlScalar}
         onView={(row) => openDialog('view', row)}
@@ -463,7 +447,7 @@ export default function FLScalarManagementPage() {
 
       <FLScalarDialog
         dialogState={dialogState}
-        loading={loading}
+        loading={flLoading}
         canManage={canManageFlScalar}
         formData={formData}
         formErrors={formErrors}

@@ -2,15 +2,35 @@ import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import { Effect, pipe } from 'effect'
 import { eq, and, asc } from 'drizzle-orm'
 import { getDatabase } from '@/config/database'
-import { menuCategories, menuItems, menuPermissions, menuConfigurations, menuAnalytics } from '@/db/schema/menu.schema'
+import { menuCategories, menuItems, menuPermissions } from '@/db/schema/menu.schema'
+import { TenantRepository } from '@/repositories/tenant.repository'
 import { authMiddleware } from '@/middleware/auth'
 import type { AppContext } from '@/app'
 import { runEffect } from '@/lib/effect'
 import { buildErrorResponse } from '@/lib/http/error-response'
 import { openApiValidationHook } from '@/lib/http/openapi-validation-hook'
 import { randomUUID } from 'node:crypto'
+import { logDataChange, runAuditSafely } from '@/services/audit.service'
 
 const platformDb = getDatabase(null)
+
+// Helper: resolve tenant slug to UUID
+async function resolveTenantId(c: any): Promise<string | null> {
+    const qTenant = c.req.query('tenantId')
+    const tenantId = qTenant || c.get('tenantId')
+    if (!tenantId) return null
+
+    // Check if it's already a UUID (contains hyphens)
+    if (tenantId.includes('-')) return tenantId
+
+    // Resolve slug to UUID via TenantRepository
+    try {
+        const tenant = await TenantRepository.findBySlug(tenantId)
+        return tenant?.id ?? null
+    } catch {
+        return null
+    }
+}
 
 export const menuRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
@@ -24,7 +44,8 @@ menuRoutes.openapi(
         responses: { 200: { description: 'Menu hierarchy' } },
     }),
     async (c) => {
-        const tenantId = c.get('tenantId')
+        const queryTenantId = c.req.query('tenantId')
+        const tenantId = queryTenantId || c.get('tenantId')
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
 
         const [categories, items] = await Promise.all([
@@ -34,7 +55,7 @@ menuRoutes.openapi(
 
         const tree = categories.map((cat) => ({
             ...cat,
-            items: items.filter((i) => i.categoryId === cat.id).map((item) => ({
+            items: items.filter((i) => i.categoryId === cat.id && !i.parentId).map((item) => ({
                 ...item,
                 children: buildItemTree(items, item.id),
             })),
@@ -54,7 +75,8 @@ menuRoutes.openapi(
         responses: { 200: { description: 'User menu' } },
     }),
     async (c) => {
-        const tenantId = c.get('tenantId')
+        const queryTenantId = c.req.query('tenantId')
+        const tenantId = queryTenantId || c.get('tenantId')
         const userPermissions = c.get('permissions') || []
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
 
@@ -73,7 +95,7 @@ menuRoutes.openapi(
 
         const tree = categories.map((cat) => ({
             ...cat,
-            items: items.filter((i) => i.categoryId === cat.id && hasAccess(i.id)).map((item) => ({
+            items: items.filter((i) => i.categoryId === cat.id && !i.parentId && hasAccess(i.id)).map((item) => ({
                 ...item,
                 children: buildItemTree(items.filter((i) => hasAccess(i.id)), item.id),
             })),
@@ -93,7 +115,8 @@ menuRoutes.openapi(
         responses: { 200: { description: 'Menu initialized' } },
     }),
     async (c) => {
-        const tenantId = c.get('tenantId')
+        const queryTenantId = c.req.query('tenantId')
+        const tenantId = queryTenantId || c.get('tenantId')
         const userId = c.get('userId') || 'system'
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
 
@@ -105,11 +128,16 @@ menuRoutes.openapi(
         const now = new Date()
         const cats = [
             { name: 'Dashboard', icon: 'Dashboard', sortOrder: 1 },
-            { name: 'Banking', icon: 'AccountBalance', sortOrder: 2 },
-            { name: 'IFRS 9', icon: 'Calculate', sortOrder: 3 },
-            { name: 'Analytics', icon: 'Analytics', sortOrder: 4 },
-            { name: 'Reports', icon: 'Assessment', sortOrder: 5 },
-            { name: 'Administration', icon: 'AdminPanelSettings', sortOrder: 6 },
+            { name: 'System Setup', icon: 'Settings', sortOrder: 2 },
+            { name: 'Parameter Management', icon: 'Category', sortOrder: 3 },
+            { name: 'Collective Impairment', icon: 'TrendingUp', sortOrder: 4 },
+            { name: 'Individual Impairment', icon: 'Person', sortOrder: 5 },
+            { name: 'IFRS 9 Processing', icon: 'Calculate', sortOrder: 6 },
+            { name: 'IFRS 9 Reports', icon: 'TableChart', sortOrder: 7 },
+            { name: 'Advanced Analytics', icon: 'Analytics', sortOrder: 8 },
+            { name: 'Workflow Management', icon: 'AccountTree', sortOrder: 9 },
+            { name: 'Tools', icon: 'CloudUpload', sortOrder: 10 },
+            { name: 'Admin & Maintenance', icon: 'Build', sortOrder: 11 },
         ]
 
         const catIds: Record<string, string> = {}
@@ -123,20 +151,76 @@ menuRoutes.openapi(
         }
 
         const items = [
+            // Dashboard
             { cat: 'Dashboard', name: 'Overview', path: '/banking/dashboard', icon: 'Dashboard', sortOrder: 1 },
-            { cat: 'Banking', name: 'Application Settings', path: '/banking/setup/application', icon: 'Settings', sortOrder: 1 },
-            { cat: 'Banking', name: 'Business Settings', path: '/banking/setup/business', icon: 'Business', sortOrder: 2 },
-            { cat: 'Banking', name: 'Parameters', path: '/banking/parameters/product', icon: 'Settings', sortOrder: 3 },
-            { cat: 'IFRS 9', name: 'Collective Impairment', path: '/banking/collective/segmentation', icon: 'Visibility', sortOrder: 1 },
-            { cat: 'IFRS 9', name: 'Individual Impairment', path: '/banking/individual/assessment', icon: 'Person', sortOrder: 2 },
-            { cat: 'IFRS 9', name: 'ECL Calculations', path: '/banking/ifrs9/calculations', icon: 'Calculate', sortOrder: 3 },
-            { cat: 'Analytics', name: 'R Analytics', path: '/banking/analytics/r-analytics', icon: 'Analytics', sortOrder: 1 },
-            { cat: 'Reports', name: 'IFRS 9 Reports', path: '/banking/ifrs9-reports', icon: 'Assessment', sortOrder: 1 },
-            { cat: 'Administration', name: 'Approval', path: '/banking/maintenance/approval', icon: 'Approval', sortOrder: 1 },
-            { cat: 'Administration', name: 'Access Management', path: '/banking/maintenance/access-management', icon: 'Security', sortOrder: 2 },
-            { cat: 'Administration', name: 'Job Monitoring', path: '/banking/maintenance/job-monitoring', icon: 'Build', sortOrder: 3 },
-            { cat: 'Administration', name: 'Menu Management', path: '/banking/maintenance/menus', icon: 'Menu', sortOrder: 4 },
-            { cat: 'Administration', name: 'Audit Log', path: '/banking/maintenance/audit', icon: 'Visibility', sortOrder: 5 },
+
+            // System Setup
+            { cat: 'System Setup', name: 'Application Configuration', path: '/banking/setup/application', icon: 'Settings', sortOrder: 1 },
+            { cat: 'System Setup', name: 'Business Configuration', path: '/banking/setup/business', icon: 'Business', sortOrder: 2 },
+
+            // Parameter Management
+            { cat: 'Parameter Management', name: 'Product Parameters', path: '/banking/parameters/product', icon: 'AccountBalance', sortOrder: 1 },
+            { cat: 'Parameter Management', name: 'Accounting Parameters', path: '/banking/parameters/journal', icon: 'Assessment', sortOrder: 2 },
+
+            // Collective Impairment
+            { cat: 'Collective Impairment', name: 'Segmentation Configuration', path: '/banking/collective/segmentation', icon: 'Category', sortOrder: 1 },
+            { cat: 'Collective Impairment', name: 'Rule Base Setting', path: '/banking/collective/rule-base', icon: 'Assessment', sortOrder: 2 },
+            { cat: 'Collective Impairment', name: 'Bucket Parameter', path: '/banking/collective/bucket', icon: 'Layers', sortOrder: 3 },
+            { cat: 'Collective Impairment', name: 'PD Setup', path: '/banking/collective/pd-setup', icon: 'TrendingUp', sortOrder: 4 },
+            { cat: 'Collective Impairment', name: 'FL Scalar', path: '/banking/collective/fl-scalar', icon: 'Functions', sortOrder: 5 },
+            { cat: 'Collective Impairment', name: 'LGD Setup', path: '/banking/collective/lgd-setup', icon: 'MonetizationOn', sortOrder: 6 },
+            { cat: 'Collective Impairment', name: 'EAD Setup', path: '/banking/collective/ead-setup', icon: 'AccountBalance', sortOrder: 7 },
+            { cat: 'Collective Impairment', name: 'ECL Configuration', path: '/banking/collective/ecl-config', icon: 'Calculate', sortOrder: 8 },
+
+            // Individual Impairment
+            { cat: 'Individual Impairment', name: 'Assessment Workspace', path: '/banking/individual/assessment', icon: 'Assessment', sortOrder: 1 },
+            { cat: 'Individual Impairment', name: 'Individual Provision', path: '/banking/individual/provision', icon: 'Savings', sortOrder: 2 },
+            { cat: 'Individual Impairment', name: 'DCF Upload Report', path: '/banking/individual/review/dcf-upload-report', icon: 'Description', sortOrder: 3 },
+
+            // IFRS 9 Processing
+            { cat: 'IFRS 9 Processing', name: 'ECL Calculations', path: '/banking/ifrs9/calculations', icon: 'Calculate', sortOrder: 1 },
+            { cat: 'IFRS 9 Processing', name: 'IFRS 9 Staging', path: '/banking/ifrs9/staging', icon: 'Layers', sortOrder: 2 },
+            { cat: 'IFRS 9 Processing', name: 'Model Management', path: '/banking/ifrs9/models', icon: 'ViewModule', sortOrder: 3 },
+            { cat: 'IFRS 9 Processing', name: 'Forecast', path: '/banking/ifrs9/scenarios', icon: 'AutoGraph', sortOrder: 4 },
+            { cat: 'IFRS 9 Processing', name: 'Data Upload', path: '/banking/data/upload', icon: 'UploadFile', sortOrder: 5 },
+            { cat: 'IFRS 9 Processing', name: 'Data Validation', path: '/banking/data/validation', icon: 'VerifiedUser', sortOrder: 6 },
+
+            // IFRS 9 Reports
+            { cat: 'IFRS 9 Reports', name: 'ECL Movement', path: '/banking/ifrs9-reports/ecl-movement', icon: 'SwapHoriz', sortOrder: 1 },
+            { cat: 'IFRS 9 Reports', name: 'GCA Movement', path: '/banking/ifrs9-reports/gca-movement', icon: 'Timeline', sortOrder: 2 },
+            { cat: 'IFRS 9 Reports', name: 'Lifetime PD', path: '/banking/ifrs9-reports/lifetime-pd', icon: 'TrendingUp', sortOrder: 3 },
+            { cat: 'IFRS 9 Reports', name: 'Lifetime LGD', path: '/banking/ifrs9-reports/lifetime-lgd', icon: 'MonetizationOn', sortOrder: 4 },
+            { cat: 'IFRS 9 Reports', name: 'EAD Model', path: '/banking/ifrs9-reports/ead-model', icon: 'Functions', sortOrder: 5 },
+            { cat: 'IFRS 9 Reports', name: 'ECL Result', path: '/banking/ifrs9-reports/ecl-result', icon: 'Calculate', sortOrder: 6 },
+            { cat: 'IFRS 9 Reports', name: 'Nominative Report', path: '/banking/ifrs9-reports/nominative', icon: 'TableChart', sortOrder: 7 },
+
+            // Advanced Analytics
+            { cat: 'Advanced Analytics', name: 'R Analytics', path: '/banking/analytics/r-analytics', icon: 'DataUsage', sortOrder: 1 },
+            { cat: 'Advanced Analytics', name: 'Financial Reports', path: '/banking/analytics/reports', icon: 'Assessment', sortOrder: 2 },
+            { cat: 'Advanced Analytics', name: 'Executive Dashboard', path: '/banking/analytics/dashboard', icon: 'Dashboard', sortOrder: 3 },
+            { cat: 'Advanced Analytics', name: 'Advanced Export', path: '/banking/analytics/export', icon: 'GetApp', sortOrder: 4 },
+
+            // Workflow Management
+            { cat: 'Workflow Management', name: 'Approval System', path: '/banking/workflow/approval', icon: 'Approval', sortOrder: 1 },
+            { cat: 'Workflow Management', name: 'Notifications', path: '/banking/notifications', icon: 'NotificationImportant', sortOrder: 2 },
+            { cat: 'Workflow Management', name: 'Workflow Configuration', path: '/banking/workflow/configuration', icon: 'Settings', sortOrder: 3 },
+            { cat: 'Workflow Management', name: 'Process Monitoring', path: '/banking/workflow/monitoring', icon: 'Monitor', sortOrder: 4 },
+            { cat: 'Workflow Management', name: 'Staging Management', path: '/banking/workflow/staging', icon: 'TableView', sortOrder: 5 },
+            { cat: 'Workflow Management', name: 'Business Process', path: '/banking/workflow/business', icon: 'Business', sortOrder: 6 },
+
+            // Tools
+            { cat: 'Tools', name: 'Manual Upload', path: '/banking/tools/upload', icon: 'CloudUpload', sortOrder: 1 },
+            { cat: 'Tools', name: 'Data Export', path: '/banking/tools/export', icon: 'GetApp', sortOrder: 2 },
+            { cat: 'Tools', name: 'ETL Tools', path: '/banking/tools/etl', icon: 'Transform', sortOrder: 3 },
+
+            // Admin & Maintenance
+            { cat: 'Admin & Maintenance', name: 'Access Management', path: '/banking/maintenance/access-management', icon: 'ManageAccounts', sortOrder: 1 },
+            { cat: 'Admin & Maintenance', name: 'Approval', path: '/banking/maintenance/approval', icon: 'Approval', sortOrder: 2 },
+            { cat: 'Admin & Maintenance', name: 'Job Monitoring', path: '/banking/maintenance/job-monitoring', icon: 'Monitor', sortOrder: 3 },
+            { cat: 'Admin & Maintenance', name: 'Audit Log', path: '/banking/maintenance/audit', icon: 'History', sortOrder: 5 },
+            { cat: 'Admin & Maintenance', name: 'User Activity', path: '/banking/maintenance/user-activity', icon: 'People', sortOrder: 6 },
+            { cat: 'Admin & Maintenance', name: 'Assignments', path: '/banking/maintenance/assignments', icon: 'Assignment', sortOrder: 7 },
+            { cat: 'Admin & Maintenance', name: 'Users', path: '/banking/maintenance/users', icon: 'Group', sortOrder: 8 },
         ]
 
         for (const item of items) {
@@ -149,40 +233,467 @@ menuRoutes.openapi(
             }).onConflictDoNothing()
         }
 
+        auditCreate(
+            'menu_structure',
+            tenantId,
+            { categoriesCreated: cats.length, itemsCreated: items.length },
+            c,
+            tenantId,
+        )
         return c.json({ success: true, data: { categories: cats.length, items: items.length } })
     }
 )
 
-// CRUD endpoints (platform DB)
-menuRoutes.post('/admin/items', async (c) => {
-    const tenantId = c.get('tenantId')
-    const userId = c.get('userId') || 'system'
-    if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
-    const body = await c.req.json()
-    const id = randomUUID()
-    await platformDb.insert(menuItems).values({ id, tenantId, ...body, createdBy: userId, createdAt: new Date() })
-    return c.json({ success: true, data: { id } })
+// CRUD endpoints (platform DB) with OpenAPI validation
+const menuItemSchema = z.object({
+    name: z.string().min(1).max(100),
+    categoryId: z.string().uuid().optional(),
+    parentId: z.string().uuid().nullable().optional(),
+    description: z.string().max(500).optional(),
+    path: z.string().max(255).optional(),
+    icon: z.string().max(50).optional(),
+    sortOrder: z.number().int().optional(),
+    level: z.number().int().optional(),
+    isActive: z.boolean().optional(),
+    isVisible: z.boolean().optional(),
+    requiresAuth: z.boolean().optional(),
+    bankingType: z.enum(['conventional', 'syariah', 'both']).optional(),
 })
 
-menuRoutes.put('/admin/items/:id', async (c) => {
-    const tenantId = c.get('tenantId')
-    if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
-    const id = c.req.param('id')
-    const body = await c.req.json()
-    await platformDb.update(menuItems).set({ ...body, updatedAt: new Date() }).where(and(eq(menuItems.id, id), eq(menuItems.tenantId, tenantId)))
-    return c.json({ success: true })
+const menuCategorySchema = z.object({
+    name: z.string().min(1).max(100),
+    description: z.string().max(500).optional(),
+    icon: z.string().max(50).optional(),
+    color: z.string().max(20).optional(),
+    sortOrder: z.number().int().optional(),
+    isActive: z.boolean().optional(),
 })
 
-menuRoutes.delete('/admin/items/:id', async (c) => {
-    const tenantId = c.get('tenantId')
-    if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
-    const id = c.req.param('id')
-    await platformDb.delete(menuItems).where(and(eq(menuItems.id, id), eq(menuItems.tenantId, tenantId)))
-    return c.json({ success: true })
+const permissionSchema = z.object({
+    menuItemId: z.string().uuid(),
+    roleId: z.string().min(1),
+    permissionType: z.enum(['view', 'edit', 'delete', 'manage']).default('view'),
+    isAllowed: z.boolean().default(true),
 })
+
+const auditCreate = (entityType: string, entityId: string, values: unknown, c: any, tenantId: string) => {
+    runAuditSafely(
+        logDataChange.create(entityType, entityId, values, c.get('userId') || 'system', tenantId),
+        `${entityType}.create`,
+    )
+}
+
+const auditUpdate = (
+    entityType: string,
+    entityId: string,
+    oldValues: unknown,
+    newValues: unknown,
+    c: any,
+    tenantId: string,
+) => {
+    runAuditSafely(
+        logDataChange.update(entityType, entityId, oldValues, newValues, c.get('userId') || 'system', tenantId),
+        `${entityType}.update`,
+    )
+}
+
+const auditDelete = (entityType: string, entityId: string, oldValues: unknown, c: any, tenantId: string) => {
+    runAuditSafely(
+        logDataChange.delete(entityType, entityId, oldValues, c.get('userId') || 'system', tenantId),
+        `${entityType}.delete`,
+    )
+}
+
+menuRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/admin/categories',
+        tags: ['Menu'],
+        summary: 'Create menu category',
+        request: {
+            body: { content: { 'application/json': { schema: menuCategorySchema } } },
+        },
+        responses: { 200: { description: 'Menu category created' } },
+    }),
+    async (c) => {
+        const tenantId = c.req.query('tenantId') || c.get('tenantId')
+        if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
+
+        const id = randomUUID()
+        const [category] = await platformDb.insert(menuCategories).values({
+            id,
+            tenantId,
+            ...c.req.valid('json'),
+            createdBy: c.get('userId') || 'system',
+            createdAt: new Date(),
+        }).returning()
+
+        auditCreate('menu_category', id, category, c, tenantId)
+        return c.json({ success: true, data: category })
+    }
+)
+
+menuRoutes.openapi(
+    createRoute({
+        method: 'put',
+        path: '/admin/categories/{id}',
+        tags: ['Menu'],
+        summary: 'Update menu category',
+        request: {
+            params: z.object({ id: z.string().uuid() }),
+            body: { content: { 'application/json': { schema: menuCategorySchema.partial() } } },
+        },
+        responses: {
+            200: { description: 'Menu category updated' },
+            404: { description: 'Menu category not found' },
+        },
+    }),
+    async (c) => {
+        const tenantId = c.req.query('tenantId') || c.get('tenantId')
+        if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
+
+        const { id } = c.req.valid('param')
+        const [existing] = await platformDb.select().from(menuCategories)
+            .where(and(eq(menuCategories.id, id), eq(menuCategories.tenantId, tenantId)))
+            .limit(1)
+        if (!existing) return c.json({ success: false, error: 'Menu category not found' }, 404)
+
+        const [category] = await platformDb.update(menuCategories)
+            .set({ ...c.req.valid('json'), updatedBy: c.get('userId') || undefined, updatedAt: new Date() })
+            .where(and(eq(menuCategories.id, id), eq(menuCategories.tenantId, tenantId)))
+            .returning()
+
+        auditUpdate('menu_category', id, existing, category, c, tenantId)
+        return c.json({ success: true, data: category })
+    }
+)
+
+menuRoutes.openapi(
+    createRoute({
+        method: 'delete',
+        path: '/admin/categories/{id}',
+        tags: ['Menu'],
+        summary: 'Delete an empty menu category',
+        request: { params: z.object({ id: z.string().uuid() }) },
+        responses: {
+            200: { description: 'Menu category deleted' },
+            404: { description: 'Menu category not found' },
+            409: { description: 'Menu category is not empty' },
+        },
+    }),
+    async (c) => {
+        const tenantId = c.req.query('tenantId') || c.get('tenantId')
+        if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
+
+        const { id } = c.req.valid('param')
+        const [existing] = await platformDb.select().from(menuCategories)
+            .where(and(eq(menuCategories.id, id), eq(menuCategories.tenantId, tenantId)))
+            .limit(1)
+        if (!existing) return c.json({ success: false, error: 'Menu category not found' }, 404)
+
+        const [categoryItem] = await platformDb.select({ id: menuItems.id }).from(menuItems)
+            .where(and(eq(menuItems.categoryId, id), eq(menuItems.tenantId, tenantId)))
+            .limit(1)
+        if (categoryItem) {
+            return c.json({ success: false, error: 'Move or delete category items before deleting the category' }, 409)
+        }
+
+        await platformDb.delete(menuCategories)
+            .where(and(eq(menuCategories.id, id), eq(menuCategories.tenantId, tenantId)))
+
+        auditDelete('menu_category', id, existing, c, tenantId)
+        return c.json({ success: true })
+    }
+)
+
+menuRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/admin/items',
+        tags: ['Menu'],
+        summary: 'Create menu item',
+        request: {
+            body: { content: { 'application/json': { schema: menuItemSchema } } },
+        },
+        responses: { 200: { description: 'Menu item created' } },
+    }),
+    async (c) => {
+        const qTenant = c.req.query('tenantId')
+        const tenantId = qTenant || c.get('tenantId')
+        const userId = c.get('userId') || 'system'
+        if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
+        const body = c.req.valid('json')
+        if (body.categoryId) {
+            const [category] = await platformDb.select({ id: menuCategories.id }).from(menuCategories)
+                .where(and(eq(menuCategories.id, body.categoryId), eq(menuCategories.tenantId, tenantId)))
+                .limit(1)
+            if (!category) return c.json({ success: false, error: 'Menu category not found for tenant' }, 400)
+        }
+        const id = randomUUID()
+        const [item] = await platformDb.insert(menuItems)
+            .values({ id, tenantId, ...body, createdBy: userId, createdAt: new Date() })
+            .returning()
+        auditCreate('menu_item', id, item, c, tenantId)
+        return c.json({ success: true, data: item })
+    }
+)
+
+menuRoutes.openapi(
+    createRoute({
+        method: 'put',
+        path: '/admin/items/{id}',
+        tags: ['Menu'],
+        summary: 'Update menu item',
+        request: {
+            params: z.object({ id: z.string().uuid() }),
+            body: { content: { 'application/json': { schema: menuItemSchema.partial() } } },
+        },
+        responses: { 200: { description: 'Menu item updated' } },
+    }),
+    async (c) => {
+        const qTenant = c.req.query('tenantId')
+        const tenantId = qTenant || c.get('tenantId')
+        if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
+        const { id } = c.req.valid('param')
+        const body = c.req.valid('json')
+        const [existing] = await platformDb.select().from(menuItems)
+            .where(and(eq(menuItems.id, id), eq(menuItems.tenantId, tenantId)))
+            .limit(1)
+        if (!existing) return c.json({ success: false, error: 'Menu item not found' }, 404)
+        if (body.categoryId) {
+            const [category] = await platformDb.select({ id: menuCategories.id }).from(menuCategories)
+                .where(and(eq(menuCategories.id, body.categoryId), eq(menuCategories.tenantId, tenantId)))
+                .limit(1)
+            if (!category) return c.json({ success: false, error: 'Menu category not found for tenant' }, 400)
+        }
+        const [item] = await platformDb.update(menuItems)
+            .set({ ...body, updatedBy: c.get('userId') || undefined, updatedAt: new Date() })
+            .where(and(eq(menuItems.id, id), eq(menuItems.tenantId, tenantId)))
+            .returning()
+        auditUpdate('menu_item', id, existing, item, c, tenantId)
+        return c.json({ success: true, data: item })
+    }
+)
+
+menuRoutes.openapi(
+    createRoute({
+        method: 'delete',
+        path: '/admin/items/{id}',
+        tags: ['Menu'],
+        summary: 'Delete menu item',
+        request: {
+            params: z.object({ id: z.string().uuid() }),
+        },
+        responses: { 200: { description: 'Menu item deleted' } },
+    }),
+    async (c) => {
+        const qTenant = c.req.query('tenantId')
+        const tenantId = qTenant || c.get('tenantId')
+        if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
+        const { id } = c.req.valid('param')
+        const [existing] = await platformDb.select().from(menuItems)
+            .where(and(eq(menuItems.id, id), eq(menuItems.tenantId, tenantId)))
+            .limit(1)
+        if (!existing) return c.json({ success: false, error: 'Menu item not found' }, 404)
+        await platformDb.delete(menuItems).where(and(eq(menuItems.id, id), eq(menuItems.tenantId, tenantId)))
+        auditDelete('menu_item', id, existing, c, tenantId)
+        return c.json({ success: true })
+    }
+)
+
+// GET /menu/permissions - Get all menu permissions for a tenant
+menuRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/permissions',
+        tags: ['Menu'],
+        summary: 'Get menu permissions',
+        responses: { 200: { description: 'Menu permissions' } },
+    }),
+    async (c) => {
+        const qTenant = c.req.query('tenantId')
+        const tenantId = qTenant || c.get('tenantId')
+        if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
+        const perms = await platformDb.select().from(menuPermissions).where(eq(menuPermissions.tenantId, tenantId))
+        return c.json({ success: true, data: perms })
+    }
+)
+
+// POST /menu/permissions - Create/update a menu permission
+menuRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/permissions',
+        tags: ['Menu'],
+        summary: 'Create or update menu permission',
+        request: {
+            body: { content: { 'application/json': { schema: permissionSchema } } },
+        },
+        responses: { 200: { description: 'Permission created/updated' } },
+    }),
+    async (c) => {
+        const qTenant = c.req.query('tenantId')
+        const tenantId = qTenant || c.get('tenantId')
+        if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
+        const body = c.req.valid('json')
+        const existing = await platformDb.select().from(menuPermissions)
+            .where(and(
+                eq(menuPermissions.tenantId, tenantId),
+                eq(menuPermissions.menuItemId, body.menuItemId),
+                eq(menuPermissions.roleId, body.roleId),
+                eq(menuPermissions.permissionType, body.permissionType || 'view'),
+            )).limit(1)
+
+        if (existing.length > 0) {
+            const [permission] = await platformDb.update(menuPermissions).set({ isAllowed: body.isAllowed !== false })
+                .where(eq(menuPermissions.id, existing[0].id))
+                .returning()
+            auditUpdate(
+                'menu_permission',
+                existing[0].id,
+                existing[0],
+                permission,
+                c,
+                tenantId,
+            )
+            return c.json({ success: true, data: permission })
+        }
+
+        const id = randomUUID()
+        const [permission] = await platformDb.insert(menuPermissions).values({
+            id, tenantId, menuItemId: body.menuItemId, roleId: body.roleId,
+            permissionType: body.permissionType || 'view',
+            isAllowed: body.isAllowed !== false,
+            createdBy: c.get('userId') || 'system',
+            createdAt: new Date(),
+        }).returning()
+        auditCreate('menu_permission', id, permission, c, tenantId)
+        return c.json({ success: true, data: permission })
+    }
+)
+
+// DELETE /menu/permissions/:id
+menuRoutes.openapi(
+    createRoute({
+        method: 'delete',
+        path: '/permissions/{id}',
+        tags: ['Menu'],
+        summary: 'Delete menu permission',
+        request: {
+            params: z.object({ id: z.string().uuid() }),
+        },
+        responses: { 200: { description: 'Permission deleted' } },
+    }),
+    async (c) => {
+        const tenantId = c.req.query('tenantId') || c.get('tenantId')
+        if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
+
+        const { id } = c.req.valid('param')
+        const [existing] = await platformDb.select().from(menuPermissions)
+            .where(and(eq(menuPermissions.id, id), eq(menuPermissions.tenantId, tenantId)))
+            .limit(1)
+        if (!existing) return c.json({ success: false, error: 'Menu permission not found' }, 404)
+
+        await platformDb.delete(menuPermissions)
+            .where(and(eq(menuPermissions.id, id), eq(menuPermissions.tenantId, tenantId)))
+        auditDelete('menu_permission', id, existing, c, tenantId)
+        return c.json({ success: true })
+    }
+)
+
+// GET /menu/flat - Get flat menu items for sidebar
+menuRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/flat',
+        tags: ['Menu'],
+        summary: 'Get flat menu items for sidebar',
+        responses: { 200: { description: 'Menu items' } },
+    }),
+    async (c) => {
+        const tenantId = await resolveTenantId(c)
+        const includeInactive = c.req.query('includeInactive') === 'true'
+        const bankingMode = c.req.query('bankingMode')
+        if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
+
+        const conditions = [eq(menuItems.tenantId, tenantId)]
+        if (!includeInactive) conditions.push(eq(menuItems.isActive, true))
+
+        const [categories, items] = await Promise.all([
+            platformDb.select().from(menuCategories).where(
+                and(eq(menuCategories.tenantId, tenantId), eq(menuCategories.isActive, true))
+            ).orderBy(asc(menuCategories.sortOrder)),
+            platformDb.select().from(menuItems).where(and(...conditions)).orderBy(asc(menuItems.sortOrder)),
+        ])
+
+        const visibleItems = items.filter((item) =>
+            item.isVisible !== false &&
+            (!bankingMode || !item.bankingType || item.bankingType === 'both' || item.bankingType === bankingMode)
+        )
+
+        const buildFlatItemTree = (parentId: string): any[] =>
+            visibleItems
+                .filter((item) => item.parentId === parentId)
+                .map((item) => mapFlatItem(item))
+
+        const mapFlatItem = (item: typeof menuItems.$inferSelect): any => ({
+            id: item.id,
+            menu_key: item.id,
+            title: item.name,
+            label: item.name,
+            description: item.description || '',
+            icon: item.icon || 'Circle',
+            url: item.path || '',
+            href: item.path || '',
+            parent_id: item.parentId || item.categoryId,
+            sort_order: item.sortOrder,
+            type: visibleItems.some((candidate) => candidate.parentId === item.id) ? 'group' : 'item',
+            level: item.level,
+            is_active: item.isActive,
+            banking_type: item.bankingType,
+            banking_types: item.bankingType === 'both'
+                ? ['conventional', 'syariah', 'dual']
+                : item.bankingType ? [item.bankingType] : [],
+            children: buildFlatItemTree(item.id),
+        })
+
+        // Build hierarchical menu: categories as groups, items as children.
+        const menuTree = categories.map(cat => {
+            const catItems = visibleItems.filter(i => i.categoryId === cat.id && !i.parentId)
+            return {
+                id: cat.id,
+                menu_key: cat.id,
+                title: cat.name,
+                label: cat.name,
+                description: cat.description || '',
+                icon: cat.icon || 'Folder',
+                url: '',
+                href: '',
+                parent_id: null,
+                sort_order: cat.sortOrder,
+                type: 'group',
+                level: 0,
+                is_active: cat.isActive,
+                banking_type: null,
+                children: catItems.map(i => mapFlatItem(i)),
+            }
+        }).filter((category) => category.children.length > 0)
+
+        return c.json({ success: true, data: menuTree })
+    }
+)
 
 // GET /menu/health
-menuRoutes.get('/health', (c) => c.json({ status: 'ok', service: 'menu' }))
+menuRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/health',
+        tags: ['Menu'],
+        summary: 'Menu health check',
+        responses: { 200: { description: 'Health status' } },
+    }),
+    (c) => c.json({ status: 'ok', service: 'menu' })
+)
 
 // Helper: build nested item tree
 function buildItemTree(items: any[], parentId: string): any[] {

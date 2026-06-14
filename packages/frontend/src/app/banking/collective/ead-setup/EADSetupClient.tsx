@@ -52,6 +52,7 @@ import { bankingAPI } from '@/services/api';
 import { EADConfiguration } from '../../../../services/api/ead-configurations.api';
 import { FLScalarWithDetails } from '../../../../services/api/fl-scalar.api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
+import { useEADCombinedQuery } from '@/features/ead-config/hooks/useEADCombinedQuery';
 import { PopulationSegment, filterPopulationSegmentsByType } from '../../../../services/api/population-segments.api';
 import { usePermission } from '@/hooks/usePermission';
 import { eadConfigurationSchema, validateWithSchema } from '@/lib/validation/collective-config.validation';
@@ -113,39 +114,18 @@ export default function EADSetupPage() {
     type: 'success',
   });
 
-  // Load Data
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [configsRes, methodsRes, calcMethodsRes, segmentsRes] = await Promise.all([
-        api.banking.eadConfigurations.getAll(),
-        api.banking.eadConfigurations.getMethods(),
-        api.banking.eadConfigurations.getCalcMethods(),
-        api.banking.populationSegments.getAll({ active_flag: true, segment_type: 'EAD' })
-      ]);
+  // ✅ EAD Data via React Query
+  const { data: eadCombined, isLoading: eadLoading, error: eadError, refetch: eadRefetch } = useEADCombinedQuery();
 
-      setMethodOptions(methodsRes);
-      setCalcMethodOptions(calcMethodsRes);
-      const eadSegments = filterPopulationSegmentsByType(segmentsRes, 'EAD');
-      setPopulationSegments(eadSegments);
+  useEffect(() => {
+    if (!eadCombined) return;
+    setMethodOptions(eadCombined.methods);
+    setCalcMethodOptions(eadCombined.calcMethods);
+    setPopulationSegments(eadCombined.eadSegments);
+    setEadConfigs(eadCombined.configs);
+  }, [eadCombined]);
 
-      const enrichedConfigs = configsRes.map(config => {
-        const segment = eadSegments.find(s => String(s.id) === String(config.segment_id));
-        return {
-          ...config,
-          segment_name: segment?.segment_name || String(config.segment_id || 'Unknown'),
-        };
-      });
-
-      setEadConfigs(enrichedConfigs);
-    } catch (err) {
-      console.error('Failed to load EAD data:', err);
-      setError('Failed to load EAD configurations.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  useEffect(() => { if (eadError) setError('Failed to load EAD configurations.'); }, [eadError]);
 
   const loadPendingApprovals = useCallback(async () => {
     try {
@@ -158,9 +138,9 @@ export default function EADSetupPage() {
   }, []);
 
   useEffect(() => {
-    loadData();
+    eadRefetch();
     loadPendingApprovals();
-  }, [loadData, loadPendingApprovals]);
+  }, [eadRefetch, loadPendingApprovals]);
 
   // Filtering
   useEffect(() => {
@@ -212,7 +192,7 @@ export default function EADSetupPage() {
         });
       }
 
-      await loadData();
+      await eadRefetch();
       await loadPendingApprovals();
       setIsDialogOpen(false);
       setFormData(createEmptyFormData());
@@ -241,7 +221,7 @@ export default function EADSetupPage() {
       } else {
         setSnackbar({ open: true, message: 'Configuration deleted', type: 'success' });
       }
-      await loadData();
+      await eadRefetch();
       await loadPendingApprovals();
     } catch (err) {
       console.error('Delete failed:', err);
@@ -335,7 +315,7 @@ export default function EADSetupPage() {
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h4" component="h1">EAD Setup Management</Typography>
         <Box>
-          <Button startIcon={<RefreshIcon />} onClick={loadData} disabled={loading} sx={{ mr: 1 }} data-testid="refresh-ead-btn">Refresh</Button>
+          <Button startIcon={<RefreshIcon />} onClick={() => eadRefetch()} disabled={loading} sx={{ mr: 1 }} data-testid="refresh-ead-btn">Refresh</Button>
           {canManageEadSetup && (
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
               setSelectedConfig(null);
@@ -376,7 +356,7 @@ export default function EADSetupPage() {
           <SafeDataGrid
             rows={filteredConfigs}
             columns={columns}
-            loading={loading}
+            loading={eadLoading}
             getRowId={(row) => row.id || Math.random().toString()}
             disableRowSelectionOnClick
             fillAvailableHeight

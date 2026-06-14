@@ -1,11 +1,15 @@
+'use client'
+
 // packages/frontend/src/app/banking/collective/loading.tsx
 // ============================================================================
 // Collective Pages Loading State - Shared Suspense Fallback
 // ============================================================================
 
-'use client'
-
-import { Box, Skeleton, Grid, Card, CardContent } from '@mui/material'
+import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Grid from '@mui/material/Grid';
+import Skeleton from '@mui/material/Skeleton';
 
 export default function CollectiveLoading() {
     return (

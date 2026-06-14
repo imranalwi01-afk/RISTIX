@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/components/banking/BankingSidebar.tsx
 // ============================================================================
 // 🔄 DATABASE-DRIVEN HIERARCHICAL MENU SYSTEM
@@ -8,8 +10,6 @@
 // ✅ FALLBACK: Static menu structure when database unavailable
 // ✅ VISUALS: Ported "Glassmorphism" & Gradients from IAF Main
 // ============================================================================
-
-'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
@@ -68,12 +68,12 @@ import {
 
 import {
   getIconFromDatabaseString,
-  getStaticFallbackMenu
 } from './BankingSidebarUtils';
 
 import { MenuItem, DatabaseMenuItem } from './types';
 
-import { Menu as MuiMenu, MenuItem as MuiMenuItem } from '@mui/material'; // ✅ Import Menu components
+import MuiMenu from '@mui/material/Menu';
+import MuiMenuItem from '@mui/material/MenuItem';
 
 // Import menu service for database-driven menus
 import { useGetMenuTreeQuery } from '@/store/api/menuApi';
@@ -83,7 +83,6 @@ import { menuConfig, getMenuIcon } from '@/config/menu-config';
 
 // Import hierarchical menu utilities
 import {
-  transformFlatToHierarchical,
   findMenuItemByPath,
   filterHierarchicalMenu,
   HierarchicalMenuItem,
@@ -108,6 +107,7 @@ interface BankingSidebarProps {
   userRole?: string;
   roleCodes?: string[];
   userPermissions?: string[]; // ✅ Add userPermissions for granular menu filtering
+  tenantContext?: string;
   collapsed?: boolean;
   appBarHeight?: number;
   onMenuClick?: (menuId: string, href?: string) => void;
@@ -381,6 +381,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   userRole = '',
   roleCodes = [], // ✅ Add roleCodes parameter
   userPermissions = [], // ✅ Add userPermissions parameter
+  tenantContext,
   collapsed = false,
   appBarHeight = 50,
   onMenuClick
@@ -449,12 +450,10 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
     handleFlyoutClose();
   };
 
-  // ✅ RTK Query: Auto-fetch and cache
-  // 🚫 DISABLED: Skip menu hierarchy fetch to prevent 401 errors
-  const shouldSkip = true; // Force skip menu API call
+  // ✅ RTK Query: Auto-fetch and cache menu from database
   const { data: menuData, isLoading: isMenuLoading, error: menuQueryError } = useGetMenuTreeQuery(
-    { bankingMode, includeInactive: false },
-    { skip: shouldSkip }
+    { bankingMode, includeInactive: false, tenantContext },
+    { refetchOnMountOrArgChange: true }
   );
 
   // ✅ MEMOIZED MENU PROCESSING
@@ -483,7 +482,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
     };
 
     // Determine source: RTK Query data or Cache
-    if (menuData && Array.isArray(menuData) && menuData.length > 0) {
+    if (Array.isArray(menuData)) {
       rawItems = menuData.map((item: any) => {
         const mapToHierarchical = (dbItem: any, level: number): HierarchicalMenuItem => ({
           id: dbItem.id,
@@ -517,11 +516,6 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
     if (rawItems.length > 0) {
       rawItems = normalizeLegacyUrls(rawItems);
       rawItems = stripMenuItems(rawItems);
-    }
-
-    if (rawItems.length === 0 && !isMenuLoading) {
-      const fallbackMenu = getStaticFallbackMenu();
-      rawItems = transformFlatToHierarchical(fallbackMenu);
     }
 
     // Filter by role/permissions/banking mode (IAF logic moved to utility)

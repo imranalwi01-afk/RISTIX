@@ -1,37 +1,35 @@
 // ifrs9-iaf/packages/frontend/src/components/roles/RoleAssignmentAnalytics.tsx
 import React, { useState, useEffect } from 'react';
-import {
-  Card,
-  CardContent,
-  Typography,
-  Grid,
-  Box,
-  Tab,
-  Tabs,
-  Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Chip,
-  LinearProgress,
-  Alert,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Tooltip,
-  IconButton,
-  Divider,
-  useTheme,
-  alpha,
-  Avatar,
-  AvatarGroup,
-  Badge,
-} from '@mui/material';
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import Typography from '@mui/material/Typography'
+import Grid from '@mui/material/Grid'
+import Box from '@mui/material/Box'
+import Tab from '@mui/material/Tab'
+import Tabs from '@mui/material/Tabs'
+import Button from '@mui/material/Button'
+import FormControl from '@mui/material/FormControl'
+import InputLabel from '@mui/material/InputLabel'
+import Select from '@mui/material/Select'
+import MenuItem from '@mui/material/MenuItem'
+import Chip from '@mui/material/Chip'
+import LinearProgress from '@mui/material/LinearProgress'
+import Alert from '@mui/material/Alert'
+import Table from '@mui/material/Table'
+import TableBody from '@mui/material/TableBody'
+import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
+import TableHead from '@mui/material/TableHead'
+import TableRow from '@mui/material/TableRow'
+import Paper from '@mui/material/Paper'
+import Tooltip from '@mui/material/Tooltip'
+import IconButton from '@mui/material/IconButton'
+import Divider from '@mui/material/Divider'
+import { useTheme } from '@mui/material/styles'
+import { alpha } from '@mui/material/styles'
+import Avatar from '@mui/material/Avatar'
+import AvatarGroup from '@mui/material/AvatarGroup'
+import Badge from '@mui/material/Badge'
 import {
   PieChart,
   Pie,
@@ -55,35 +53,33 @@ import {
   PolarRadiusAxis,
   Radar,
 } from 'recharts';
-import {
-  Download,
-  Refresh,
-  Timeline,
-  Security,
-  People,
-  AdminPanelSettings,
-  Warning,
-  CheckCircle,
-  TrendingUp,
-  TrendingDown,
-  Assessment,
-  SupervisorAccount,
-  Group,
-  Assignment,
-  Speed,
-  Visibility,
-  FilterList,
-  Schedule,
-  PriorityHigh,
-  Shield,
-  Lock,
-  LockOpen,
-  Settings,
-  TimelineOutlined,
-  Leaderboard,
-  PieChartOutlined,
-  BarChartOutlined,
-} from '@mui/icons-material';
+import Download from '@mui/icons-material/Download'
+import Refresh from '@mui/icons-material/Refresh'
+import Timeline from '@mui/icons-material/Timeline'
+import Security from '@mui/icons-material/Security'
+import People from '@mui/icons-material/People'
+import AdminPanelSettings from '@mui/icons-material/AdminPanelSettings'
+import Warning from '@mui/icons-material/Warning'
+import CheckCircle from '@mui/icons-material/CheckCircle'
+import TrendingUp from '@mui/icons-material/TrendingUp'
+import TrendingDown from '@mui/icons-material/TrendingDown'
+import Assessment from '@mui/icons-material/Assessment'
+import SupervisorAccount from '@mui/icons-material/SupervisorAccount'
+import Group from '@mui/icons-material/Group'
+import Assignment from '@mui/icons-material/Assignment'
+import Speed from '@mui/icons-material/Speed'
+import Visibility from '@mui/icons-material/Visibility'
+import FilterList from '@mui/icons-material/FilterList'
+import Schedule from '@mui/icons-material/Schedule'
+import PriorityHigh from '@mui/icons-material/PriorityHigh'
+import Shield from '@mui/icons-material/Shield'
+import Lock from '@mui/icons-material/Lock'
+import LockOpen from '@mui/icons-material/LockOpen'
+import Settings from '@mui/icons-material/Settings'
+import TimelineOutlined from '@mui/icons-material/TimelineOutlined'
+import Leaderboard from '@mui/icons-material/Leaderboard'
+import PieChartOutlined from '@mui/icons-material/PieChartOutlined'
+import BarChartOutlined from '@mui/icons-material/BarChartOutlined'
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';

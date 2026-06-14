@@ -1,8 +1,11 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Button, Chip } from '@mui/material';
-import { Warning as WarningIcon } from '@mui/icons-material';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
+import Typography from '@mui/material/Typography';
+import Warning from '@mui/icons-material/Warning';
 
 export default function ImpersonationBanner() {
   const [impersonating, setImpersonating] = useState(false);
@@ -38,7 +41,7 @@ export default function ImpersonationBanner() {
         fontSize: '0.9rem',
       }}
     >
-      <WarningIcon fontSize="small" />
+      <Warning fontSize="small" />
       <Typography variant="body2" sx={{ fontWeight: 600 }}>
         You are impersonating another user
       </Typography>

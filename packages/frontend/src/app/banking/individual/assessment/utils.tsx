@@ -1,5 +1,5 @@
 import React from 'react';
-import { Chip } from '@mui/material';
+import Chip from '@mui/material/Chip';
 import { alpha } from '@mui/material/styles';
 import { STAGE_COLORS, STAGE_LABELS, PRIORITY_COLORS, ASSESSMENT_STATUS_COLORS } from './constants';
 

@@ -67,7 +67,7 @@ export default function DcfCalculatorPage() {
         const n = Number(params.tenure);
         const start = new Date(params.startDate);
 
-        let schedule: any[] = [];
+        const schedule: any[] = [];
 
         if (params.method === 'FLAT') {
             const totalInterest = p * rAnn * (n / 12);

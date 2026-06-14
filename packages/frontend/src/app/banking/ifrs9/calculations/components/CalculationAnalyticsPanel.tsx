@@ -1,7 +1,10 @@
 'use client';
 
 import React, { memo } from 'react';
-import { Card, CardContent, Grid, Typography } from '@mui/material';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Grid from '@mui/material/Grid';
+import Typography from '@mui/material/Typography';
 import { CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from 'recharts';
 import type { EclTrendItem, StageDistributionItem } from './types';
 
