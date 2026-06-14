@@ -445,7 +445,7 @@ const [permissionSearch, setPermissionSearch] = useState('');
     nextQuery.delete('tab');
 
     const nextPath = nextTabKey === 'roles'
-      ? ACCESS_MANAGEMENT_BASE_PATH
+      ? `${ACCESS_MANAGEMENT_BASE_PATH}/roles`
       : `${ACCESS_MANAGEMENT_BASE_PATH}/${nextTabKey}`;
     const nextQueryString = nextQuery.toString();
     router.replace(nextQueryString ? `${nextPath}?${nextQueryString}` : nextPath, { scroll: false });
