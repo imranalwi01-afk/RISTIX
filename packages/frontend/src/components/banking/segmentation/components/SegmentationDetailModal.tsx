@@ -220,12 +220,10 @@ export default function SegmentationDetailModal({
 
     try {
       setLoading(true);
-      console.log('🔄 Loading segmentation details for header:', header.pkid);
 
       const result = await api.banking.segmentation.getDetails(header.pkid);
 
       if (result.success && result.data) {
-        console.log('✅ Successfully loaded segmentation details:', result.data.length);
         setDetails(result.data);
       } else {
         throw new Error(result.message || 'Failed to load segmentation details');
@@ -277,7 +275,6 @@ export default function SegmentationDetailModal({
 
   const loadBusinessSettings = async () => {
     try {
-      console.log('🔄 Loading business settings data...');
 
       // Load all business settings in parallel
       const [tablesResult, conditionsResult] = await Promise.all([
@@ -302,7 +299,6 @@ export default function SegmentationDetailModal({
       };
 
       setBusinessSettings(settings);
-      console.log('✅ Business settings loaded successfully');
 
     } catch (error: any) {
       console.error('❌ Failed to load business settings:', error);
@@ -312,7 +308,6 @@ export default function SegmentationDetailModal({
 
   const loadColumnsForTable = async (tableName: string) => {
     try {
-      console.log(`🔄 Loading columns for table: ${tableName}`);
 
       const result = await api.banking.segmentation.getBusinessSettingsColumns(tableName);
 
@@ -321,7 +316,6 @@ export default function SegmentationDetailModal({
           ...prev,
           columns: result.data
         }));
-        console.log('✅ Columns loaded successfully:', result.data.length);
       } else {
         // Fallback columns
         const fallbackColumns = [
@@ -346,7 +340,6 @@ export default function SegmentationDetailModal({
 
   const loadOperatorsForDataType = async (tableName: string, columnName: string) => {
     try {
-      console.log(`🔄 Loading data type and operators for ${tableName}.${columnName}`);
 
       const [dataTypeResult, operatorsResult] = await Promise.all([
         api.banking.segmentation.getBusinessSettingsDataType(tableName, columnName),
@@ -395,7 +388,6 @@ export default function SegmentationDetailModal({
 
   const loadValuesForColumn = async (tableName: string, columnName: string) => {
     try {
-      console.log(`🔄 Loading values for ${tableName}.${columnName}`);
 
       const result = await api.banking.segmentation.getBusinessSettingsValues(tableName, columnName);
 
@@ -491,11 +483,9 @@ export default function SegmentationDetailModal({
 
     try {
       setLoading(true);
-      console.log('🗑️ Deleting segmentation detail:', detail.pkid);
 
       await api.banking.segmentation.deleteDetail(detail.pkid);
 
-      console.log('✅ Segmentation detail deleted successfully');
       setSuccess('Detail rule deleted successfully');
       await loadDetails(); // Reload details
 
@@ -556,12 +546,10 @@ export default function SegmentationDetailModal({
 
       if (isEditMode && selectedDetail) {
         // Update existing detail
-        console.log('✏️ Updating segmentation detail:', payload);
         await api.banking.segmentation.updateDetail(selectedDetail.pkid, payload);
         setSuccess('Detail rule updated successfully');
       } else {
         // Create new detail
-        console.log('➕ Creating segmentation detail:', payload);
         await api.banking.segmentation.createDetail(header.pkid, payload);
         setSuccess('Detail rule created successfully');
       }

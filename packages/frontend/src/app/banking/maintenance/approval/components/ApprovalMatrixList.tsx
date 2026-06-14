@@ -26,6 +26,11 @@ import {
   AccountBalance as BankingIcon,
   Security as SecurityIcon,
   ChevronRight as ChevronRightIcon,
+  FactCheck as FactCheckIcon,
+  ToggleOff as ToggleOffIcon,
+  VerifiedUser as VerifiedUserIcon,
+  VpnKey as VpnKeyIcon,
+  AssignmentInd as AssignmentIndIcon,
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { ApprovalMatrix } from '../types';
@@ -44,6 +49,11 @@ const ENTITY_CONFIG: Record<string, { label: string; color: string; icon: React.
   ead_configuration: { label: 'EAD Config', color: '#311b92', icon: <BuildIcon /> },
   ecl_configuration: { label: 'ECL Config', color: '#b71c1c', icon: <BuildIcon /> },
   fl_scalar: { label: 'FL Scalar', color: '#4e342e', icon: <BuildIcon /> },
+  individual_assessment_consolidated: { label: 'Individual Assessment', color: '#6a1b9a', icon: <FactCheckIcon /> },
+  user_status: { label: 'User Status', color: '#f57c00', icon: <ToggleOffIcon /> },
+  role: { label: 'Role', color: '#00695c', icon: <VerifiedUserIcon /> },
+  role_permission: { label: 'Role Permission', color: '#d84315', icon: <VpnKeyIcon /> },
+  role_assignment: { label: 'Role Assignment', color: '#37474f', icon: <AssignmentIndIcon /> },
 };
 
 const getEntityConfig = (entityType: string) =>

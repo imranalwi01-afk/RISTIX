@@ -569,7 +569,9 @@ export default function PlatformMenuManagementPage() {
                         body: JSON.stringify({ menuItemId: permDialog.item?.id, roleId: role.id, isAllowed: !selected }),
                       });
                       invalidateRuntimeMenu();
-                    } catch {}
+                    } catch (err) {
+                      console.error('Failed to toggle menu visibility', err);
+                    }
                   }}
                   sx={{ cursor: 'pointer' }}
                 />

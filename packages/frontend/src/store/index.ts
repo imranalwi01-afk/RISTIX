@@ -181,8 +181,7 @@ const persistConfig = {
     console.warn('Redux persist write failed:', err.message);
   },
   migrate: (state: any) => {
-    console.log('🔄 Migrating persisted state...');
-    if (state?.auth) {
+      if (state?.auth) {
       state.auth.isLoading = false;
     }
     return Promise.resolve(state);
@@ -257,22 +256,7 @@ export const store = configureStore({
 // ✅ SURGICAL FIX: Enhanced persistor with better error handling
 export const persistor = (() => {
   try {
-    const persistorInstance = persistStore(store, null, () => {
-      console.log('✅ Redux persist rehydration complete');
-    });
-
-    // Enhanced development logging
-    if (process.env.NODE_ENV === 'development') {
-      try {
-        console.log('🏪 Redux store initialized:', {
-          hasStorage: typeof window !== 'undefined' && !!window.localStorage,
-          persistorCreated: true,
-          slices: Object.keys(store.getState() || {}),
-        });
-      } catch (error) {
-        console.warn('⚠️ Redux store logging failed:', error);
-      }
-    }
+    const persistorInstance = persistStore(store);
 
     return persistorInstance;
   } catch (error) {
@@ -433,20 +417,5 @@ export {
   selectAvailableLayouts,
   selectGlobalSettings,
 } from './slices/dashboardPersonalizationSlice';
-
-// ============================================================================
-// DEVELOPMENT UTILITIES
-// ============================================================================
-if (process.env.NODE_ENV === 'development') {
-  console.log('🏪 Enhanced Redux Store Configuration:');
-  console.log('  - AuthSlice: ✅ Loaded');
-  console.log('  - ConfigurationSlice: ✅ Loaded');
-  console.log('  - SetupSlice:', setupReducer !== ((state = {}) => state) ? '✅ Loaded' : '⚠️ Fallback');
-  console.log('  - ParametersSlice:', parametersReducer !== ((state = {}) => state) ? '✅ Loaded' : '⚠️ Fallback');
-  console.log('  - UISlice: ✅ Created');
-  console.log('  - Redux Persist: ✅ Enhanced');
-  console.log('  - SSR Safety: ✅ Enabled');
-  console.log('  - Error Handling: ✅ Enhanced');
-}
 
 export default store;

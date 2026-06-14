@@ -167,7 +167,6 @@ export default function AmortizationPage() {
 
   const handleRecalculate = () => {
     // Implementation for recalculation
-    console.log('Recalculating amortization schedules...');
   };
 
   const filteredData = data.filter(item => {

@@ -27,7 +27,6 @@ export const usersAPI = {
     sort?: string;
     order?: 'asc' | 'desc' | 'ASC' | 'DESC';
   }, tenantId?: string) => {
-    console.log(`👥 Fetching users from real database${tenantId ? ` (tenant: ${tenantId})` : ''}`, params);
     const config: any = { params };
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.get('/users', config);
@@ -36,7 +35,6 @@ export const usersAPI = {
 
   // Get user by ID from real database
   getById: async (id: string, tenantId?: string) => {
-    console.log(`👤 Fetching user ${id} from real database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.get(`/users/${id}`, config);
@@ -45,7 +43,6 @@ export const usersAPI = {
 
   // Create user in real database
   create: async (userData: any, tenantId?: string) => {
-    console.log(`➕ Creating user in real database${tenantId ? ` (tenant: ${tenantId})` : ''}`, userData.email);
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.post('/users', userData, config);
@@ -54,7 +51,6 @@ export const usersAPI = {
 
   // Update user in real database
   update: async (id: string, userData: any, tenantId?: string) => {
-    console.log(`✏️ Updating user ${id} in real database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.put(`/users/${id}`, userData, config);
@@ -63,7 +59,6 @@ export const usersAPI = {
 
   // Delete user from real database
   delete: async (id: string, tenantId?: string) => {
-    console.log(`🗑️ Deleting user ${id} from real database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.delete(`/users/${id}`, config);
@@ -72,7 +67,6 @@ export const usersAPI = {
 
   // ✅ NEW: Enable/disable user actions
   enable: async (id: string, tenantId?: string) => {
-    console.log(`✅ Enabling user ${id}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.post(`/users/${id}/enable`, {}, config);
@@ -80,7 +74,6 @@ export const usersAPI = {
   },
 
   disable: async (id: string, tenantId?: string) => {
-    console.log(`❌ Disabling user ${id}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.post(`/users/${id}/disable`, {}, config);
@@ -92,7 +85,6 @@ export const usersAPI = {
     payload: { newPassword: string; forcePasswordChange?: boolean },
     tenantId?: string
   ) => {
-    console.log(`🔐 Resetting password for user ${id}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.post(`/users/${id}/reset-password`, payload, config);

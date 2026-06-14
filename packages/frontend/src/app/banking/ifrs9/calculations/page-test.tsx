@@ -35,11 +35,9 @@ export default function IFRS9CalculationTestDashboard() {
     setError(null);
 
     try {
-      console.log('🔄 Loading IFRS9 calculation data...');
 
       // Test API connection with simple call
       const response = await api.ifrs9.getCalculationsSummary();
-      console.log('✅ Data loaded:', response);
       setData(response);
 
     } catch (error: any) {

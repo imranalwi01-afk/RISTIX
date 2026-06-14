@@ -45,14 +45,6 @@ import { notificationAPI } from './api/notification.api';
 import { ifrs9API as ifrs9Service, ifrs9API } from './api/ifrs9.api';
 export { ifrs9API };
 
-// ✅ ENVIRONMENT-AWARE CONFIG LOGGING - AUTO-DETECTION MODE
-console.log('🏗️ IFRS9 IAF API SERVICE - DUAL-MODE AUTO-DETECTION:');
-console.log('  - API Base URL:', API_BASE_URL || 'Loading...');
-console.log('  - Backend URL:', BACKEND_URL || 'Loading...');
-console.log('  - Mode: Automatic Environment Detection');
-console.log('  - Environment: Frontend auto-detects based on hostname');
-console.log('  - Auto-Switch: IAF Development ↔ IAF Production');
-console.log('  - Configuration Source: Environment Loader');
 
 // ============================================================================
 // REAL AUTHENTICATION API - NO MOCKUP DATA
@@ -187,9 +179,6 @@ if (typeof window !== 'undefined') {
     diagnose: apiDiagnostics.diagnose,
   };
 
-  console.log('🏗️ API debugging available: window.__IFRS9_IAF_API__');
-  console.log('🏗️ Run window.__IFRS9_IAF_API__.diagnose() for diagnostics');
-  console.log('🏗️ Single tenant mode active');
 }
 
 
@@ -199,35 +188,30 @@ if (typeof window !== 'undefined') {
 export const platformUsersAPI = {
   // Get all platform users
   getAll: async (params?: { page?: number; limit?: number; search?: string }) => {
-    console.log('👥 Fetching platform users from real database', params);
     const response = await apiClient.get('/platform-users', { params });
     return response.data;
   },
 
   // Get platform user by ID
   getById: async (id: string) => {
-    console.log(`👤 Fetching platform user ${id} from real database`);
     const response = await apiClient.get(`/platform-users/${id}`);
     return response.data;
   },
 
   // Create platform user
   create: async (userData: any) => {
-    console.log('➕ Creating platform user', userData.email);
     const response = await apiClient.post('/platform-users', userData);
     return response.data;
   },
 
   // Update platform user
   update: async (id: string, userData: any) => {
-    console.log(`✏️ Updating platform user ${id}`);
     const response = await apiClient.put(`/platform-users/${id}`, userData);
     return response.data;
   },
 
   // Delete platform user
   delete: async (id: string) => {
-    console.log(`🗑️ Deleting platform user ${id}`);
     const response = await apiClient.delete(`/platform-users/${id}`);
     return response.data;
   }
@@ -239,49 +223,42 @@ export const platformUsersAPI = {
 export const tenantsAPI = {
   // Get all tenants
   getAll: async (params?: { page?: number; limit?: number; search?: string; mode?: 'admin' }) => {
-    console.log('🏢 Fetching tenants from real database', params);
     const response = await apiClient.get('/tenants', { params });
     return response.data;
   },
 
   // Get tenant by ID
   getById: async (id: string) => {
-    console.log(`🏢 Fetching tenant ${id} from real database`);
     const response = await apiClient.get(`/tenants/${id}`);
     return response.data;
   },
 
   // Create tenant
   create: async (tenantData: any) => {
-    console.log('➕ Creating tenant', tenantData.name);
     const response = await apiClient.post('/tenants', tenantData);
     return response.data;
   },
 
   // Update tenant
   update: async (id: string, tenantData: any) => {
-    console.log(`✏️ Updating tenant ${id}`);
     const response = await apiClient.put(`/tenants/${id}`, tenantData);
     return response.data;
   },
 
   // Delete tenant
   delete: async (id: string) => {
-    console.log(`🗑️ Deleting tenant ${id}`);
     const response = await apiClient.delete(`/tenants/${id}`);
     return response.data;
   },
 
   // Enable tenant
   enable: async (id: string) => {
-    console.log(`✅ Enabling tenant ${id}`);
     const response = await apiClient.post(`/tenants/${id}/enable`);
     return response.data;
   },
 
   // Disable tenant
   disable: async (id: string) => {
-    console.log(`❌ Disabling tenant ${id}`);
     const response = await apiClient.post(`/tenants/${id}/disable`);
     return response.data;
   }

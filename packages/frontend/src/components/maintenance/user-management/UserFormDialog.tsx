@@ -45,6 +45,7 @@ const UserFormDialog = memo(function UserFormDialog({
   onSubmit,
 }: UserFormDialogProps) {
   const isCreate = mode === 'create';
+  const sendWelcomeEmail = formData.sendWelcomeEmail ?? true;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -109,7 +110,7 @@ const UserFormDialog = memo(function UserFormDialog({
           {isCreate && (
             <Grid size={{ xs: 12 }}>
               <FormControlLabel
-                control={<Switch checked={formData.sendWelcomeEmail ?? true} onChange={(e) => onChange({ ...formData, sendWelcomeEmail: e.target.checked })} />}
+                control={<Switch checked={sendWelcomeEmail} onChange={(e) => onChange({ ...formData, sendWelcomeEmail: e.target.checked })} />}
                 label="Send welcome email with login credentials"
               />
             </Grid>

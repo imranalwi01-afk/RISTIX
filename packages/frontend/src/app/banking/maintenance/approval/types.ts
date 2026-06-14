@@ -75,15 +75,6 @@ export interface ApprovalMatrix {
   createdAt: string;
 }
 
-export interface MatrixLevelEditor {
-  level: number;
-  name: string;
-  requiredRoleCodes: string;
-  requiredPermissionCodes: string;
-  requiredCount: number;
-  timeoutHours: string;
-}
-
 export interface ApprovalRoutingCandidate {
   userId: string;
   fullName: string;

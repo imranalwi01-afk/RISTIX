@@ -87,7 +87,6 @@ export const individualImpairmentAPI = {
 
   // HISTORY
   getHistory: async (params: HistoryParams) => {
-    console.log('📜 Fetching individual impairment history', params);
     const response = await apiClient.get('/banking/individual/impairment/history', { params });
     return response.data;
   },

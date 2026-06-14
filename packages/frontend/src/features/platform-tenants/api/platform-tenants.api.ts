@@ -1,5 +1,3 @@
-'use client';
-
 import { tenantsAPI } from '@/services/api';
 
 export interface PlatformTenantsListParams {

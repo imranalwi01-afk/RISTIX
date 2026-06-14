@@ -13,6 +13,7 @@ import { randomUUID } from 'node:crypto'
 import { logDataChange, runAuditSafely } from '@/services/audit.service'
 
 const platformDb = getDatabase(null)
+const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000'
 
 // Helper: resolve tenant slug to UUID
 async function resolveTenantId(c: any): Promise<string | null> {
@@ -115,10 +116,9 @@ menuRoutes.openapi(
         responses: { 200: { description: 'Menu initialized' } },
     }),
     async (c) => {
-        const queryTenantId = c.req.query('tenantId')
-        const tenantId = queryTenantId || c.get('tenantId')
-        const userId = c.get('userId') || 'system'
+        const tenantId = await resolveTenantId(c)
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
+        const userId = c.get('userId') || SYSTEM_USER_ID
 
         const existing = await platformDb.select().from(menuCategories).where(eq(menuCategories.tenantId, tenantId)).limit(1)
         if (existing.length > 0) {
@@ -278,7 +278,7 @@ const permissionSchema = z.object({
 
 const auditCreate = (entityType: string, entityId: string, values: unknown, c: any, tenantId: string) => {
     runAuditSafely(
-        logDataChange.create(entityType, entityId, values, c.get('userId') || 'system', tenantId),
+        logDataChange.create(entityType, entityId, values, c.get('userId') || SYSTEM_USER_ID, tenantId),
         `${entityType}.create`,
     )
 }
@@ -292,14 +292,14 @@ const auditUpdate = (
     tenantId: string,
 ) => {
     runAuditSafely(
-        logDataChange.update(entityType, entityId, oldValues, newValues, c.get('userId') || 'system', tenantId),
+        logDataChange.update(entityType, entityId, oldValues, newValues, c.get('userId') || SYSTEM_USER_ID, tenantId),
         `${entityType}.update`,
     )
 }
 
 const auditDelete = (entityType: string, entityId: string, oldValues: unknown, c: any, tenantId: string) => {
     runAuditSafely(
-        logDataChange.delete(entityType, entityId, oldValues, c.get('userId') || 'system', tenantId),
+        logDataChange.delete(entityType, entityId, oldValues, c.get('userId') || SYSTEM_USER_ID, tenantId),
         `${entityType}.delete`,
     )
 }
@@ -316,7 +316,7 @@ menuRoutes.openapi(
         responses: { 200: { description: 'Menu category created' } },
     }),
     async (c) => {
-        const tenantId = c.req.query('tenantId') || c.get('tenantId')
+        const tenantId = await resolveTenantId(c)
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
 
         const id = randomUUID()
@@ -324,7 +324,7 @@ menuRoutes.openapi(
             id,
             tenantId,
             ...c.req.valid('json'),
-            createdBy: c.get('userId') || 'system',
+            createdBy: c.get('userId') || SYSTEM_USER_ID,
             createdAt: new Date(),
         }).returning()
 
@@ -349,7 +349,7 @@ menuRoutes.openapi(
         },
     }),
     async (c) => {
-        const tenantId = c.req.query('tenantId') || c.get('tenantId')
+        const tenantId = await resolveTenantId(c)
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
 
         const { id } = c.req.valid('param')
@@ -382,7 +382,7 @@ menuRoutes.openapi(
         },
     }),
     async (c) => {
-        const tenantId = c.req.query('tenantId') || c.get('tenantId')
+        const tenantId = await resolveTenantId(c)
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
 
         const { id } = c.req.valid('param')
@@ -418,9 +418,8 @@ menuRoutes.openapi(
         responses: { 200: { description: 'Menu item created' } },
     }),
     async (c) => {
-        const qTenant = c.req.query('tenantId')
-        const tenantId = qTenant || c.get('tenantId')
-        const userId = c.get('userId') || 'system'
+        const tenantId = await resolveTenantId(c)
+        const userId = c.get('userId') || SYSTEM_USER_ID
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
         const body = c.req.valid('json')
         if (body.categoryId) {
@@ -487,8 +486,7 @@ menuRoutes.openapi(
         responses: { 200: { description: 'Menu item deleted' } },
     }),
     async (c) => {
-        const qTenant = c.req.query('tenantId')
-        const tenantId = qTenant || c.get('tenantId')
+        const tenantId = await resolveTenantId(c)
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
         const { id } = c.req.valid('param')
         const [existing] = await platformDb.select().from(menuItems)
@@ -532,8 +530,7 @@ menuRoutes.openapi(
         responses: { 200: { description: 'Permission created/updated' } },
     }),
     async (c) => {
-        const qTenant = c.req.query('tenantId')
-        const tenantId = qTenant || c.get('tenantId')
+        const tenantId = await resolveTenantId(c)
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
         const body = c.req.valid('json')
         const existing = await platformDb.select().from(menuPermissions)
@@ -564,7 +561,7 @@ menuRoutes.openapi(
             id, tenantId, menuItemId: body.menuItemId, roleId: body.roleId,
             permissionType: body.permissionType || 'view',
             isAllowed: body.isAllowed !== false,
-            createdBy: c.get('userId') || 'system',
+            createdBy: c.get('userId') || SYSTEM_USER_ID,
             createdAt: new Date(),
         }).returning()
         auditCreate('menu_permission', id, permission, c, tenantId)
@@ -585,7 +582,7 @@ menuRoutes.openapi(
         responses: { 200: { description: 'Permission deleted' } },
     }),
     async (c) => {
-        const tenantId = c.req.query('tenantId') || c.get('tenantId')
+        const tenantId = await resolveTenantId(c)
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
 
         const { id } = c.req.valid('param')

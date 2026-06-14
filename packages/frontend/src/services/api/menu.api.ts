@@ -245,7 +245,6 @@ export class MenuApiService {
     bankingMode?: 'conventional' | 'syariah' | 'dual';
     includeInactive?: boolean;
   }): Promise<MenuApiResponse<MenuItem[]>> {
-    console.log('🚀 [MENU API] Fetching menu tree...', params);
     if (!isDynamicMenuEnabled()) {
       console.warn('⚠️ [MENU API] Dynamic menu disabled by configuration, using static fallback menu');
       return {
@@ -262,7 +261,6 @@ export class MenuApiService {
 
     try {
       const response = await menuApiClient.get('/menu/hierarchy', { params });
-      console.log('✅ [MENU API] Menu tree response:', response.status, response.data?.success);
       return response.data;
     } catch (error: any) {
       const status = error?.response?.status;

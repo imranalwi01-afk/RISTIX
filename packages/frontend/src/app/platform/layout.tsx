@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { Box, CircularProgress, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, AppBar, Toolbar, Typography, IconButton, Chip } from '@mui/material';
-import { SupervisorAccount as AdminIcon, Business as TenantIcon, People as UsersIcon, Logout as LogoutIcon, Security as SecurityIcon, Email as EmailIcon } from '@mui/icons-material';
+import { SupervisorAccount as AdminIcon, Business as TenantIcon, People as UsersIcon, Logout as LogoutIcon, Security as SecurityIcon, Email as EmailIcon, Menu as MenuIcon } from '@mui/icons-material';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
 import { TenantSwitcher } from '@/components/admin/TenantSwitcher';
@@ -37,6 +37,7 @@ export default function PlatformLayout({
         { text: 'Tenants', icon: <TenantIcon />, path: '/platform/tenants' },
         { text: 'Tenant Users', icon: <UsersIcon />, path: '/platform/tenant-users' },
         { text: 'RBAC', icon: <SecurityIcon />, path: '/platform/rbac' },
+        { text: 'Menus', icon: <MenuIcon />, path: '/platform/menus' },
         { text: 'SMTP Settings', icon: <EmailIcon />, path: '/platform/settings/smtp' },
     ];
 

@@ -151,7 +151,6 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
     setError(null);
 
     try {
-      console.log('🔒 Fetching roles and users for hierarchy visualization...');
       const [rolesResponse, usersResponse] = await Promise.all([
         api.roles.getAll({}),
         api.users.getAll({})
@@ -159,7 +158,6 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
 
       setRoles(rolesResponse.data || []);
       setUsers(usersResponse.data || []);
-      console.log(`✅ Fetched ${rolesResponse.data?.length || 0} roles and ${usersResponse.data?.length || 0} users`);
 
     } catch (error) {
       console.error('❌ Error fetching hierarchy data:', error);

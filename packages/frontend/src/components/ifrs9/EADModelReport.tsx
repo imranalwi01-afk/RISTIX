@@ -303,7 +303,6 @@ const EADModelReport: React.FC = () => {
   const [pivotMonths, setPivotMonths] = useState<string[]>([]);
 
   const handleDataLoaded = React.useCallback((data: Record<string, unknown>[], summary?: any) => {
-    console.log("📊 [EADModelReport] handleDataLoaded called", { dataLength: data?.length, summary });
     const { rows, monthColumns } = processEADPivotData(data);
     setPivotRows(rows);
     setPivotMonths(monthColumns);

@@ -220,7 +220,6 @@ export default function ThemeSettingsPage() {
       // Use centralized environment loader first
       // Using imported frontendEnvironmentLoader
       const config = frontendEnvironmentLoader.getConfiguration();
-      console.log('✅ Theme Settings Page: Using centralized API base URL:', config.api.base);
       return config.api.base;
     } catch (error) {
       console.warn('⚠️ Theme Settings Page: Failed to load centralized API base URL, using fallback:', error);
@@ -230,7 +229,7 @@ export default function ThemeSettingsPage() {
       const fallbackUrl = process.env.NEXT_PUBLIC_API_URL ||
         (isProductionDomain ? 'https://iaf-ifrs-be.danafin.com/api/v1' : 'https://iaf-ifrs-be.ifrspro.id/api/v1');
 
-      console.log('🔧 Theme Settings Page: Using fallback API base URL:', fallbackUrl);
+
       return fallbackUrl;
     }
   };

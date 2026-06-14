@@ -87,7 +87,6 @@ export const fetchDashboardPersonalization = createAsyncThunk(
   'dashboardPersonalization/fetchPersonalization',
   async ({ userId, tenantId }: { userId: string; tenantId: string }, { rejectWithValue }) => {
     // 🚫 DISABLED: Skip API call to prevent 401 errors
-    console.log('🚫 Dashboard personalization API disabled, using defaults')
 
     // Return default personalization structure immediately
     return {
@@ -116,7 +115,6 @@ export const saveDashboardPersonalization = createAsyncThunk(
   ) => {
     try {
       // 🚫 DISABLED: Skip save to prevent 401 errors
-      console.log('🚫 DashboardPersonalization: Save disabled, returning settings as-is')
       return settings
 
       /* ORIGINAL SAVE CALL - DISABLED
@@ -187,7 +185,6 @@ export const createDashboardLayout = createAsyncThunk(
   ) => {
     try {
       // 🚫 DISABLED: Skip create to prevent 401 errors
-      console.log('🚫 DashboardPersonalization: Create layout disabled')
       return {
         id: `layout-${Date.now()}`,
         ...layout,
@@ -219,7 +216,6 @@ export const deleteDashboardLayout = createAsyncThunk(
   ) => {
     try {
       // 🚫 DISABLED: Skip delete to prevent 401 errors
-      console.log('🚫 DashboardPersonalization: Delete layout disabled')
       return { layoutId }
 
       /* ORIGINAL DELETE CALL - DISABLED

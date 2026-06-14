@@ -118,8 +118,6 @@ export class AsyncExportManager {
    * Send email notification (mock)
    */
   private async sendEmailNotification(email: string, job: AsyncExportJob): Promise<void> {
-    console.log(`📧 Email notification sent to ${email}`);
-    console.log(`Export job ${job.jobId} completed. Download: ${job.downloadUrl}`);
     
     // In real implementation, call backend API:
     // await apiClient.post('/api/notifications/send-export-email', {
@@ -149,7 +147,6 @@ export class AsyncExportManager {
 
     // In real implementation, fetch from backend
     // window.open(job.downloadUrl, '_blank');
-    console.log(`Downloading export from ${job.downloadUrl}`);
   }
 
   /**

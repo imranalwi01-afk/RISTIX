@@ -141,7 +141,6 @@ export const getEnvironmentConfig = (): EnvironmentConfig => {
 // ✅ ADDED: Initialize configuration function (required by providers)
 export const initializeConfiguration = async (): Promise<EnvironmentConfig> => {
   try {
-    console.log('🔧 Initializing IFRS9 configuration...');
 
     const config = getEnvironmentConfig();
 
@@ -155,7 +154,6 @@ export const initializeConfiguration = async (): Promise<EnvironmentConfig> => {
       (window as any).__IFRS9_CONFIG__ = config;
     }
 
-    console.log('✅ IFRS9 configuration initialized successfully');
     return config;
 
   } catch (error) {
@@ -193,7 +191,6 @@ export const diagnoseEnvironment = (): {
   const isValid = issues.length === 0;
 
   if (isValid) {
-    console.log('✅ Environment diagnosis: All checks passed');
   } else {
     console.warn('⚠️ Environment diagnosis: Issues found:', issues);
   }

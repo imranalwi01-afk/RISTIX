@@ -122,7 +122,6 @@ export const ConsultantLayout: React.FC<ConsultantLayoutProps> = ({
   };
 
   const handleLogout = () => {
-    console.log('Consultant logout');
     handleUserMenuClose();
     // Clear any stored auth data
     if (typeof window !== 'undefined') {

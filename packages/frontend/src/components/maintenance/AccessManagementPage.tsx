@@ -531,8 +531,6 @@ const [permissionSearch, setPermissionSearch] = useState('');
   const handleSaveRole = async () => {
     if (!canManageRoles) return;
     try {
-      console.log('🔒 Saving role to tenant database...');
-
       // Prepare role data for API - map form fields to API expected format
       const roleData = {
         name: roleForm.name,
@@ -545,11 +543,9 @@ const [permissionSearch, setPermissionSearch] = useState('');
       };
 
       if (roleDialog.mode === 'create') {
-        console.log('🆕 Creating new role with real API call');
         const response = await createRoleMutation.mutateAsync(roleData);
         setApprovalNoticeFromResponse(response, 'Role creation submitted for approval');
       } else if (roleDialog.role) {
-        console.log('✏️ Updating existing role with real API call');
         const response = await updateRoleMutation.mutateAsync({ roleId: roleDialog.role.id, input: roleData });
         setApprovalNoticeFromResponse(response, 'Role update submitted for approval');
       }
@@ -557,7 +553,6 @@ const [permissionSearch, setPermissionSearch] = useState('');
       // Close dialog and refresh data from database
       setRoleDialog({ open: false, mode: 'create', role: null });
       await accessManagementQuery.refetch();
-      console.log('✅ Role saved successfully to tenant database');
     } catch (error) {
       console.error('❌ Error saving role to database:', error);
       // TODO: Add proper error handling/notification to user
@@ -567,13 +562,10 @@ const [permissionSearch, setPermissionSearch] = useState('');
   const handleToggleRole = async (roleId: string, isActive: boolean) => {
     if (!canManageRoles) return;
     try {
-      console.log(`🔄 ${isActive ? 'Disabling' : 'Enabling'} role in tenant database:`, roleId);
-
       // Use dedicated toggle API so disable does not go through delete/update semantics.
       const response = await toggleRoleMutation.mutateAsync(roleId);
       setApprovalNoticeFromResponse(response, `Role ${isActive ? 'disable' : 'enable'} submitted for approval`);
 
-      console.log(`✅ Role ${isActive ? 'disabled' : 'enabled'} successfully`);
       await accessManagementQuery.refetch();
     } catch (error) {
       console.error('❌ Error toggling role status in database:', error);
@@ -584,13 +576,9 @@ const [permissionSearch, setPermissionSearch] = useState('');
   const handleDeleteRole = async (roleId: string) => {
     if (!canManageRoles) return;
     try {
-      console.log('🗑️ Deleting role from tenant database:', roleId);
-
       // Call real API to delete role
       const response = await deleteRoleMutation.mutateAsync(roleId);
       setApprovalNoticeFromResponse(response, 'Role deletion submitted for approval');
-
-      console.log('✅ Role deleted successfully');
 
       // Refresh roles list
       accessManagementQuery.refetch();
@@ -604,13 +592,10 @@ const [permissionSearch, setPermissionSearch] = useState('');
   const handleMassPermissionUpdate = async (roleId: string, permissionIds: string[]) => {
     if (!canManageRoles) return;
     try {
-      console.log('🔑 Updating all permissions for role:', roleId);
-
       // Call real API to update permissions
       const response = await updateRolePermissionsMutation.mutateAsync({ roleId, permissions: permissionIds });
       setApprovalNoticeFromResponse(response, 'Permission update submitted for approval');
 
-      console.log('✅ Role permissions updated successfully');
 
       // Refresh roles list to show updated state
       await accessManagementQuery.refetch();
@@ -623,13 +608,9 @@ const [permissionSearch, setPermissionSearch] = useState('');
   const handleRolePermissionUpdate = async (roleId: string, permissionIds: string[]) => {
     if (!canManageRoles) return;
     try {
-      console.log('🔑 Updating permissions for role:', roleId, permissionIds);
-
       // Call real API to update permissions
       const response = await updateRolePermissionsMutation.mutateAsync({ roleId, permissions: permissionIds });
       setApprovalNoticeFromResponse(response, 'Permission update submitted for approval');
-
-      console.log('✅ Role permissions updated successfully');
 
       // Refresh roles list to show updated state
       await accessManagementQuery.refetch();
@@ -693,8 +674,6 @@ const [permissionSearch, setPermissionSearch] = useState('');
     if (!canManageRoles) return;
     try {
       setBusy(true);
-      console.log('🔑 Bulk updating permissions for all roles...');
-
       // This would need to be implemented in the backend
       // For now, just refresh
       await accessManagementQuery.refetch();
@@ -715,8 +694,6 @@ const [permissionSearch, setPermissionSearch] = useState('');
 
     try {
       setBusy(true);
-      console.log('🔑 Assigning permissions to role:', bulkAssignmentRole, selectedBulkPermissions);
-
       const response = await updateRolePermissionsMutation.mutateAsync({ roleId: bulkAssignmentRole, permissions: selectedBulkPermissions });
       setApprovalNoticeFromResponse(response, 'Bulk permission update submitted for approval');
 
@@ -748,8 +725,6 @@ const [permissionSearch, setPermissionSearch] = useState('');
         .filter(p => p.category.toLowerCase() === category)
         .map(p => p.id);
 
-      console.log(`🔑 Quick assigning ${category} permissions to role:`, bulkAssignmentRole);
-
       const response = await updateRolePermissionsMutation.mutateAsync({ roleId: bulkAssignmentRole, permissions: categoryPermissions });
       setApprovalNoticeFromResponse(response, 'Permission assignment submitted for approval');
 
@@ -768,8 +743,6 @@ const [permissionSearch, setPermissionSearch] = useState('');
 
     try {
       setBusy(true);
-      console.log('🔑 Clearing all permissions from role:', bulkAssignmentRole);
-
       const response = await updateRolePermissionsMutation.mutateAsync({ roleId: bulkAssignmentRole, permissions: [] });
       setApprovalNoticeFromResponse(response, 'Permission clearing submitted for approval');
 
@@ -1817,15 +1790,11 @@ const [permissionSearch, setPermissionSearch] = useState('');
             onClick={async () => {
               try {
                 if (permissionDialog.role) {
-                  console.log('🔒 Updating role permissions in tenant database:', permissionDialog.role.id);
-                  console.log('🔧 Selected permissions:', permissionDialog.selectedPermissions);
-
                   await updateRolePermissionsMutation.mutateAsync({
                     roleId: permissionDialog.role.id,
                     permissions: permissionDialog.selectedPermissions,
                   });
 
-                  console.log('✅ Role permissions updated successfully');
                   await accessManagementQuery.refetch();
                 }
                 setPermissionDialog({ open: false, role: null, selectedPermissions: [] });

@@ -11,21 +11,15 @@ export function diagnoseRedirects() {
   console.group('🔍 REDIRECT DIAGNOSTIC');
 
   // Check current URL and environment
-  console.log('Current URL:', window.location.href);
-  console.log('Current Pathname:', window.location.pathname);
-  console.log('Expected for banking users: /dashboard');
-  console.log('Wrong redirect: /banking/dashboard');
 
   // Check stored user data
   const userData = localStorage.getItem('ifrs9_user_data');
   if (userData) {
     const user = JSON.parse(userData);
-    console.log('Stored User:', user);
 
     // Test our redirect function
     import('./loginRedirect').then(({ getLoginRedirectUrl }) => {
       const correctRedirect = getLoginRedirectUrl(user.role || user.userRole || 'BANK_CRO'); // Safe fallback
-      console.log('✅ Correct redirect should be:', correctRedirect);
 
       if (window.location.pathname !== correctRedirect) {
         console.warn('❌ WRONG REDIRECT DETECTED!');
@@ -38,7 +32,6 @@ export function diagnoseRedirects() {
           window.location.href = correctRedirect;
         }
       } else {
-        console.log('✅ Redirect is correct!');
       }
     });
   } else {
@@ -46,7 +39,6 @@ export function diagnoseRedirects() {
   }
 
   // Check for hardcoded redirects in code
-  console.log('🔍 Scanning for hardcoded /banking/ redirects...');
 
   // This will help identify where the wrong redirect is coming from
   const originalPush = History.prototype.pushState;

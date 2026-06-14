@@ -27,8 +27,6 @@ import { individualImpairmentV2Routes } from './routes/individual-impairment-v2.
 import { auditMiddleware } from './middleware'
 import { errorHandler } from './middleware/error-handler'
 import { platformDb } from './config/database'
-import { platformTenants } from './db/schema/platform.schema'
-import { eq } from 'drizzle-orm'
 
 import type { User } from './db/schema'
 import { buildErrorResponse } from './lib/http/error-response'
@@ -167,28 +165,6 @@ export function createApp() {
             timestamp: new Date().toISOString(),
         })
     )
-
-    // === INTERNAL ONE-TIME FIX ROUTE ===
-    // Fix tenant name: Remove "(Local Development)" suffix from tenant names in DB
-    // Safe to call multiple times (idempotent). Remove this route after fix is confirmed.
-    app.get('/internal/fix-tenant-name', async (c) => {
-        const tenants = await platformDb.select().from(platformTenants)
-        const results: any[] = []
-        for (const tenant of tenants) {
-            if (tenant.name.includes('(Local Development)') || tenant.name.includes('Local Development')) {
-                const newName = tenant.name
-                    .replace(' (Local Development)', '')
-                    .replace('(Local Development)', '')
-                    .trim()
-                await platformDb.update(platformTenants)
-                    .set({ name: newName })
-                    .where(eq(platformTenants.id, tenant.id))
-                results.push({ code: tenant.code, before: tenant.name, after: newName })
-            }
-        }
-        return c.json({ success: true, fixed: results.length, details: results })
-    })
-    // === END INTERNAL FIX ROUTE ===
 
     // Audit all write API requests after downstream auth/tenant middleware resolve user context.
     app.use('/api/v1/*', auditMiddleware)

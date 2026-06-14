@@ -1,5 +1,3 @@
-'use client';
-
 import { bankingAPI } from '@/services/api';
 import type { EnterpriseColumnFilterValue, EnterpriseSort } from '@/types/enterprise-table';
 

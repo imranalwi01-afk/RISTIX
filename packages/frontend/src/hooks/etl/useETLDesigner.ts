@@ -11,7 +11,6 @@ export const useETLDesigner = () => {
     setLoading(true);
     try {
       // Implementation would call API
-      console.log('Saving workflow:', name);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save workflow');
@@ -22,7 +21,6 @@ export const useETLDesigner = () => {
 
   const executeWorkflow = useCallback(async (workflowId: string) => {
     try {
-      console.log('Executing workflow:', workflowId);
       return 'execution-id';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to execute workflow');

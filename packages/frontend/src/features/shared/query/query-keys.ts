@@ -1,5 +1,3 @@
-'use client';
-
 type QueryKeyObject = { [key: string]: unknown };
 type QueryKeyPart = string | number | boolean | null | undefined | QueryKeyObject | unknown[];
 

@@ -1,5 +1,3 @@
-'use client';
-
 import { apiClient } from '@/services/api-client';
 
 export interface TenantOption {

@@ -1051,7 +1051,6 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         doc.save(`${filename}.pdf`);
       }
 
-      console.log(`✅ Exported report with audit header to ${filename}.${format}`);
     } catch (err) {
       console.error('Export error:', err);
       setError(err instanceof Error ? err.message : 'Export failed');

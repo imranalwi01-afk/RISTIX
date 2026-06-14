@@ -1,5 +1,3 @@
-'use client';
-
 import { platformUsersAPI } from '@/services/api';
 
 export interface PlatformUsersListParams {

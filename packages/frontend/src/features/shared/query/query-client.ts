@@ -1,5 +1,3 @@
-'use client';
-
 import { QueryClient } from '@tanstack/react-query';
 import { normalizeQueryError } from './query-errors';
 

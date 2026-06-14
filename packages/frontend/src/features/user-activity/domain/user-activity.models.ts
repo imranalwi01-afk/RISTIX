@@ -1,5 +1,3 @@
-'use client';
-
 import type { ActivityStatistics, UserActivityLogDto } from '../api/user-activity.api';
 
 export interface UserActivityRowViewModel {
