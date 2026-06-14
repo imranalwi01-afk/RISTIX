@@ -126,9 +126,16 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
   // ✅ Open manage roles dialog
   const handleManageRoles = async (user: User) => {
     try {
-      const rolesRes = await api.roles.getAll({ includeInactive: true });
+      const [rolesRes, userRolesRes] = await Promise.all([
+        api.roles.getAll({ includeInactive: true }),
+        api.roles.getUserRoles(user.id),
+      ]);
       const rawRoles = Array.isArray(rolesRes) ? rolesRes : Array.isArray((rolesRes as any).data) ? (rolesRes as any).data : [];
-      const userRoleIds = (user as any).roleAssignments?.filter((ra: any) => ra.isActive ?? ra.is_active ?? true).map((ra: any) => ra.roleId || ra.role_id || ra.id) || [];
+      const userRoleRows = userRolesRes?.data?.roles || userRolesRes?.roles || userRolesRes?.data || [];
+      const userRoleIds: string[] = (Array.isArray(userRoleRows) ? userRoleRows : []).map((row: any) => {
+        const r = row?.role || row;
+        return String(r?.roleId || r?.role_id || r?.id || row?.roleId || row?.role_id || '');
+      }).filter(Boolean);
       setManageRolesDialog({
         open: true, user, roles: rawRoles,
         selectedRoleIds: userRoleIds, saving: false, search: '',
@@ -143,7 +150,14 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
     if (!d.user) return;
     setManageRolesDialog(prev => ({ ...prev, saving: true }));
     try {
-      const currentIds = (d.user as any).roleAssignments?.map((ra: any) => ra.roleId || ra.role_id || ra.id) || [];
+      const [userRolesRes] = await Promise.all([
+        api.roles.getUserRoles(d.user.id),
+      ]);
+      const userRoleRows = userRolesRes?.data?.roles || userRolesRes?.roles || userRolesRes?.data || [];
+      const currentIds: string[] = (Array.isArray(userRoleRows) ? userRoleRows : []).map((row: any) => {
+        const r = row?.role || row;
+        return String(r?.roleId || r?.role_id || r?.id || row?.roleId || row?.role_id || '');
+      }).filter(Boolean);
       const toAdd = d.selectedRoleIds.filter((id: string) => !currentIds.includes(id));
       const toRemove = currentIds.filter((id: string) => !d.selectedRoleIds.includes(id));
       await Promise.all([
