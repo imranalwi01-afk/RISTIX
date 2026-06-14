@@ -60,7 +60,6 @@ export const ConfigurationProvider: React.FC<ConfigurationProviderProps> = ({ ch
         bankingMode: envConfig.banking.mode,
         features: {
           analytics: envConfig.features.rAnalytics,
-          syariahMode: envConfig.banking.mode !== 'conventional',
           realTime: false,
           mobileView: true,
           islamicBanking: envConfig.banking.mode !== 'conventional',

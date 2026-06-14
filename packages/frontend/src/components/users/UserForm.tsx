@@ -134,9 +134,9 @@ const UserForm: React.FC<UserFormProps> = ({
     }, [open, initialData, mode, reset]);
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth aria-labelledby="user-form-dialog-title">
             <form onSubmit={handleSubmit(onFormSubmit)}>
-                <DialogTitle>
+                <DialogTitle id="user-form-dialog-title">
                     {mode === 'create' ? 'Create New User' : 'Edit User'}
                 </DialogTitle>
                 <DialogContent dividers>

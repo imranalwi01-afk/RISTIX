@@ -5,9 +5,9 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 interface BankingContextType {
   selectedTenant: string | null;
-  bankingType: 'conventional' | 'syariah' | null;
+  bankingType: 'conventional' | null;
   setSelectedTenant: (tenant: string | null) => void;
-  setBankingType: (type: 'conventional' | 'syariah' | null) => void;
+  setBankingType: (type: 'conventional' | null) => void;
 }
 
 const BankingContext = createContext<BankingContextType | undefined>(undefined);
@@ -18,7 +18,7 @@ interface BankingProviderProps {
 
 export const BankingProvider: React.FC<BankingProviderProps> = ({ children }) => {
   const [selectedTenant, setSelectedTenant] = useState<string | null>(null);
-  const [bankingType, setBankingType] = useState<'conventional' | 'syariah' | null>(null);
+  const [bankingType, setBankingType] = useState<'conventional' | null>(null);
 
   const value = {
     selectedTenant,

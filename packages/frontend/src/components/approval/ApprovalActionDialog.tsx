@@ -129,8 +129,8 @@ export const ApprovalActionDialog: React.FC<ApprovalActionDialogProps> = ({
     const isSubmitDisabled = submitting || !reason.trim() || (action === 'delegate' && !delegateTo.trim());
 
     return (
-        <Dialog open={open} onClose={() => !submitting && onClose()} maxWidth="sm" fullWidth data-testid="approval-action-dialog">
-            <DialogTitle>{getTitle()}</DialogTitle>
+        <Dialog open={open} onClose={() => !submitting && onClose()} maxWidth="sm" fullWidth data-testid="approval-action-dialog" aria-labelledby="approval-action-dialog-title">
+            <DialogTitle id="approval-action-dialog-title">{getTitle()}</DialogTitle>
             <DialogContent>
                 <Box sx={{ mt: 1 }}>
                     <Typography variant="subtitle2" gutterBottom color="text.secondary">

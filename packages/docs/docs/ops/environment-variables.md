@@ -14,7 +14,7 @@ These variables are prefixed with `NEXT_PUBLIC_` to be available in the browser.
 | `NEXT_PUBLIC_R_ANALYTICS_URL`| R Shiny Dashboard Base URL | `http://localhost:4236` |
 | `NEXT_PUBLIC_WS_URL` | WebSocket Server URL | `ws://localhost:3002` |
 | `NEXT_PUBLIC_TENANT_ID` | Default Tenant ID | `iaf` |
-| `NEXT_PUBLIC_BANKING_TYPE` | Default Banking Mode (`conventional`/`syariah`) | `conventional` |
+| `NEXT_PUBLIC_BANKING_TYPE` | Default Banking Mode | `conventional` |
 
 ---
 

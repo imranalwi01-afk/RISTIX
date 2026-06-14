@@ -21,7 +21,7 @@ export interface UserActivityRowViewModel {
   deviceType: string;
   browserName: string;
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  bankingType?: 'conventional' | 'syariah';
+  bankingType?: 'conventional';
   complianceRelevant: boolean;
   businessProcess?: string;
   timestamp: string;
@@ -53,7 +53,7 @@ export function toUserActivityRows(rows: UserActivityLogDto[] | undefined): User
     deviceType: row.deviceType || 'Unknown',
     browserName: row.browserName || 'Unknown',
     riskLevel: row.riskLevel,
-    bankingType: row.bankingType === 'syariah' || row.bankingType === 'conventional' ? row.bankingType : undefined,
+    bankingType: row.bankingType === 'conventional' ? row.bankingType : undefined,
     complianceRelevant: Boolean(row.complianceRelevant),
     businessProcess: row.businessProcess,
     timestamp: row.activityTimestamp || row.createdAt,

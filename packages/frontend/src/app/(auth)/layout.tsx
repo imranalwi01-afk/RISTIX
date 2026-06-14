@@ -1,10 +1,8 @@
 // packages/frontend/src/app/(auth)/layout.tsx
-// 🔐 AUTHENTICATION LAYOUT - DUAL BANKING SUPPORT
-// Fixes Next.js 15 metadata viewport/themeColor issues
+// 🔐 AUTHENTICATION LAYOUT
 
 import type { Metadata, Viewport } from 'next'
 
-// ✅ FIXED: Separate metadata export (Next.js 15 requirement)
 export const metadata: Metadata = {
   title: 'IFRS9 Platform - Login',
   description: 'Secure login for Multi-Tenant Islamic Banking IFRS 9 Platform',
@@ -16,7 +14,6 @@ export const metadata: Metadata = {
   },
 }
 
-// ✅ FIXED: Separate viewport export (Next.js 15 requirement)
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
@@ -25,7 +22,7 @@ export const viewport: Viewport = {
   userScalable: false,
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#1976D2' },
-    { media: '(prefers-color-scheme: dark)', color: '#2e7d32' }
+    { media: '(prefers-color-scheme: dark)', color: '#2e7d32' },
   ],
 }
 
@@ -35,8 +32,8 @@ export default function AuthLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="auth-layout">
-      {children as any}
-    </div>
+    <main className="auth-layout" role="main">
+      {children}
+    </main>
   )
 }

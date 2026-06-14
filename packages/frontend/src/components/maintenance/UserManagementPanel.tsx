@@ -120,7 +120,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
     department: '',
     position: '',
     bankingAccess: 'CONVENTIONAL',
-    syariahCertified: false,
+    dualModeCertified: false,
     sendWelcomeEmail: true
   });
 
@@ -210,7 +210,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
         includeInactive: true,
         ...(searchTerm && { search: searchTerm }),
         ...(filterDepartment && { department: filterDepartment }),
-        ...(filterBankingAccess && { bankingAccess: filterBankingAccess as 'CONVENTIONAL' | 'SYARIAH' | 'BOTH' }),
+        ...(filterBankingAccess && { bankingAccess: filterBankingAccess as 'CONVENTIONAL' | 'BOTH' }),
         ...(filterActive !== null && { isActive: filterActive })
       };
 
@@ -341,7 +341,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       department: '',
       position: '',
       bankingAccess: 'CONVENTIONAL',
-      syariahCertified: false,
+      dualModeCertified: false,
       sendWelcomeEmail: true
     });
   };
@@ -383,7 +383,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       department: user.department || '',
       position: user.position || '',
       bankingAccess: user.bankingAccess,
-      syariahCertified: user.syariahCertified
+      dualModeCertified: user.dualModeCertified
     });
     await loadUserRoles(user.id);
     setOpenEditDialog(true);
@@ -501,7 +501,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       <UserManagementHeader
         totalUsers={totalUsers}
         activeUsers={users.filter((u) => u.isActive).length}
-        syariahUsers={users.filter((u) => u.bankingAccess === 'SYARIAH' || u.bankingAccess === 'BOTH').length}
+        dualModeUsers={users.filter((u) => u.bankingAccess === 'BOTH').length}
         mfaEnabledUsers={users.filter((u) => u.mfaEnabled).length}
         onAddUser={() => setOpenCreateDialog(true)}
       />

@@ -223,13 +223,6 @@ const ECLCalculationCard: React.FC<ECLCalculationCardProps> = ({
         </Box>
 
         {/* Banking Mode Indicator */}
-        {calculationData.bankingMode === 'syariah' && calculationData.syariahCompliant && (
-          <Alert severity="success" sx={{ mb: 2, py: 0 }}>
-            <Typography variant="caption">
-              ✅ Syariah Compliant Calculation
-            </Typography>
-          </Alert>
-        )}
 
         {variant === 'detailed' && (
           <>

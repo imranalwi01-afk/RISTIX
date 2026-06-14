@@ -67,7 +67,7 @@ export interface FormConfiguration {
   id: string;
   form_name: string;
   form_type: string;
-  banking_type: 'conventional' | 'syariah' | 'dual';
+  banking_type: 'conventional' | 'dual';
   form_schema: {
     title: string;
     description?: string;
@@ -708,7 +708,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
         {formConfiguration.banking_type !== 'dual' && (
           <Box sx={{ mt: 1, textAlign: 'center' }}>
             <Typography variant="caption" color="text.secondary">
-              {formConfiguration.banking_type === 'syariah' ? '🕌 Syariah Banking' : '🏛️ Conventional Banking'}
+              🏛️ Conventional Banking
             </Typography>
           </Box>
         )}

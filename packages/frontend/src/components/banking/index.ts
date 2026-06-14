@@ -6,7 +6,7 @@
 // ============================================================================
 // File Path: packages/frontend/src/components/banking/index.ts
 // Purpose: Export all banking-specific components
-// Architecture: Dual banking support (Conventional + Syariah)
+// Architecture: Banking support
 // ============================================================================
 
 // Shared Banking Components
@@ -23,17 +23,3 @@
 // // export { default as InterestCalculator } from './conventional/InterestCalculator';
 // // export { default as CreditRiskAnalysis } from './conventional/CreditRiskAnalysis';
 //
-// // Syariah Banking Components
-// // export { default as SyariahDashboard } from './syariah/SyariahDashboard';
-// // export { default as ProfitSharingCalculator } from './syariah/ProfitSharingCalculator';
-// // export { default as SyariahComplianceChecker } from './syariah/SyariahComplianceChecker';
-// // export { default as HalalInvestmentTracker } from './syariah/HalalInvestmentTracker';
-//
-// // Types
-// // export type {
-// //   BankingMode,
-// //   ECLCalculationData,
-// //   PortfolioMetrics,
-// //   ComplianceStatus,
-// //   SyariahComplianceData
-// // } from './types';

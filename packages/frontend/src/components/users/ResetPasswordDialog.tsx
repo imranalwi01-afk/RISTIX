@@ -82,13 +82,13 @@ export const ResetPasswordDialog: React.FC<ResetPasswordDialogProps> = ({
     };
 
     return (
-        <Dialog open={open} onClose={() => !loading && onClose()} maxWidth="sm" fullWidth>
-            <DialogTitle>
+        <Dialog open={open} onClose={() => !loading && onClose()} maxWidth="sm" fullWidth aria-labelledby="reset-password-dialog-title">
+            <DialogTitle id="reset-password-dialog-title">
                 Reset Password {userName ? `for ${userName}` : ''}
             </DialogTitle>
             <DialogContent dividers>
                 {error && (
-                    <Alert severity="error" sx={{ mb: 2 }}>
+                    <Alert severity="error" sx={{ mb: 2 }} role="alert">
                         {error}
                     </Alert>
                 )}

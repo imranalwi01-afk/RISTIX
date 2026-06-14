@@ -143,7 +143,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
     return (
       <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3 }}>
         <Box sx={{ width: '100%', maxWidth: 520 }}>
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert severity="error" sx={{ mb: 2 }} role="alert">
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
               Authentication Required
             </Typography>
@@ -263,6 +263,8 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
       {/* Main Content */}
       <Box
         component="main"
+        id="main-content"
+        role="main"
         sx={{
           flexGrow: 1,
           width: '100%',

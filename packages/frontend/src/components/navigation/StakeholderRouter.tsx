@@ -30,11 +30,6 @@ const ROLE_TO_STAKEHOLDER_MAP: Record<string, StakeholderType> = {
   'BANK_DATA_ADMIN': 'banking',
   'BANK_CEO': 'banking',
 
-  // Banking (Syariah)
-  'SYARIAH_BANK_CRO': 'banking',
-  'SYARIAH_COMPLIANCE_OFFICER': 'banking',
-  'SYARIAH_IFRS_SPECIALIST': 'banking',
-  'SYARIAH_PORTFOLIO_MANAGER': 'banking',
   'DPS_BOARD_MEMBER': 'banking',
   'DUAL_BANKING_RISK_HEAD': 'banking',
 
@@ -51,7 +46,6 @@ const ROLE_TO_STAKEHOLDER_MAP: Record<string, StakeholderType> = {
   'BANKING_SUPERVISION_HEAD': 'regulator',
   'IFRS_SUPERVISOR': 'regulator',
   'ISLAMIC_BANKING_DIRECTOR': 'regulator',
-  'SYARIAH_COMPLIANCE_AUDITOR': 'regulator',
   'MARKET_RISK_SUPERVISOR': 'regulator',
 };
 
@@ -190,7 +184,7 @@ const StakeholderRouter: React.FC<StakeholderRouterProps> = ({ children }) => {
   // ✅ CORRECTED: Banking redirect validation (matching YOUR tree structure)
   const validateBankingRedirect = (defaultRoute: string, userRole: string): string => {
     // Banking users should always go to /banking/dashboard for YOUR structure
-    if (userRole.includes('BANK_') || userRole.includes('SYARIAH_')) {
+    if (userRole.includes('BANK_')) {
       return '/banking/dashboard';  // YOUR DIRECT FOLDER structure
     }
     return defaultRoute;

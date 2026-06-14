@@ -75,7 +75,7 @@ interface PersonalizedWidgetProps {
   onRemove?: () => void
   onDataUpdate?: (data: any) => void
   bankingContext?: {
-    type: 'conventional' | 'syariah'
+    type: 'conventional'
     primary: string
     secondary: string
   }

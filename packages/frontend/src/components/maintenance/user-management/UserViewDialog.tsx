@@ -85,8 +85,8 @@ const UserViewDialog = memo(function UserViewDialog({
                 )}
               </Grid>
               <Grid size={{ xs: 6 }}>
-                <Typography variant="subtitle2" color="text.secondary">Syariah Certified</Typography>
-                <Chip label={selectedUser.syariahCertified ? 'Yes' : 'No'} color={selectedUser.syariahCertified ? 'success' : 'default'} size="small" />
+                <Typography variant="subtitle2" color="text.secondary">Dual Mode Certified</Typography>
+                <Chip label={selectedUser.dualModeCertified ? 'Yes' : 'No'} color={selectedUser.dualModeCertified ? 'success' : 'default'} size="small" />
               </Grid>
               <Grid size={{ xs: 6 }}>
                 <Typography variant="subtitle2" color="text.secondary">MFA Enabled</Typography>

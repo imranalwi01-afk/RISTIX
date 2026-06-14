@@ -96,15 +96,14 @@ const UserFormDialog = memo(function UserFormDialog({
                 label="Banking Access"
               >
                 <MenuItem value="CONVENTIONAL">Conventional</MenuItem>
-                <MenuItem value="SYARIAH">Syariah</MenuItem>
                 <MenuItem value="BOTH">Both</MenuItem>
               </Select>
             </FormControl>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <FormControlLabel
-              control={<Switch checked={!!formData.syariahCertified} onChange={(e) => onChange({ ...formData, syariahCertified: e.target.checked })} />}
-              label="Syariah Certified"
+              control={<Switch checked={formData.dualModeCertified} onChange={(e) => onChange({ ...formData, dualModeCertified: e.target.checked })} />}
+              label="Dual Mode Certified"
             />
           </Grid>
           {isCreate && (

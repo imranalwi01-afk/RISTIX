@@ -311,16 +311,7 @@ function DashboardClient() {
         const bankingType = user.bankingType || 'conventional'
         const tenantSlug = user.tenantSlug || ''
 
-        if (bankingType === 'syariah' || tenantSlug.includes('syariah')) {
-            return {
-                type: 'syariah' as const,
-                name: 'Islamic Banking',
-                greeting: 'Assalamu Alaikum',
-                icon: '',
-                primary: '#2e7d32',
-                secondary: '#ff8f00'
-            }
-        } else if (tenantSlug.includes('dana')) {
+        if (tenantSlug.includes('dana')) {
             return {
                 type: 'conventional' as const,
                 name: 'DANA Digital Banking',
@@ -974,13 +965,12 @@ function DashboardClient() {
 
             {/* Banking Type Alert */}
             <Alert
-                severity={bankingContext.type === 'syariah' ? 'success' : 'info'}
+                severity="info"
                 sx={{ mb: 3 }}
                 icon={<Info />}
             >
                 <Typography variant="body2">
                     <strong>{bankingContext.name} Interface Active</strong> - You are accessing the IFRS 9 system as a banking institution user.
-                    {bankingContext.type === 'syariah' && ' All calculations are Syariah-compliant and follow Islamic banking principles.'}
                     {user.tenantSlug && ` Connected to tenant: ${user.tenantSlug}`}
                 </Typography>
             </Alert>
@@ -1339,7 +1329,6 @@ function DashboardClient() {
             <Alert severity="success" sx={{ mt: 3 }}>
                 <Typography variant="body2">
                     <strong>✅ Banking System Online:</strong> IFRS 9 calculation engine operational.
-                    {bankingContext.type === 'syariah' && ' All calculations are Syariah-compliant.'}
                     {eclSummary && ` Last calculation: ${eclSummary.lastUpdated || 'Never'}`} • Portfolio health: Excellent
                 </Typography>
             </Alert>

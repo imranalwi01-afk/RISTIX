@@ -4,7 +4,6 @@
 // ============================================================================
 // ✅ IAF ONLY: cleaned for single-tenant IAF deployment
 // ✅ FOCUSED: Only IAF tenant users and platform administrators
-// ✅ OPTIMIZED: Removed DANA, Metro, Syariah bank configurations
 // ============================================================================
 
 export interface DemoUser {
@@ -13,7 +12,7 @@ export interface DemoUser {
   name: string;
   role: string;
   stakeholder: 'banking' | 'platform' | 'consultant' | 'regulator';
-  bankingType: 'conventional' | 'syariah' | null;
+  bankingType: 'conventional' | null;
   company: string;
   tenantId: string | null;
   redirectUrl: string;
@@ -172,7 +171,7 @@ export const DEMO_USERS: DemoUser[] = [
  * Get stakeholder type from user role
  */
 export const getStakeholderType = (user: DemoUser): string => {
-  if (user.role.includes('BANK_') || user.role.includes('SYARIAH_') || user.role.includes('DPS_')) {
+  if (user.role.includes('BANK_') || user.role.includes('DPS_')) {
     return 'banking';
   }
   if (user.role.includes('PLATFORM_')) {

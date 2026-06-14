@@ -65,7 +65,7 @@ import { frontendEnvironmentLoader } from '../../config/environment-loader-front
 interface RSessionData {
   sessionId: string;
   tenantSlug: string;
-  bankingType: 'conventional' | 'syariah' | 'dual' | 'dana';
+  bankingType: 'conventional' | 'dual' | 'dana';
   status: 'starting' | 'running' | 'stopping' | 'stopped' | 'error';
   port: number;
   url: string | null;
@@ -79,7 +79,7 @@ interface RSessionData {
 
 interface EmbeddedShinyAppProps {
   tenantSlug?: string;
-  bankingType?: 'conventional' | 'syariah' | 'dual' | 'dana';
+  bankingType?: 'conventional' | 'dual' | 'dana';
   modelType?: 'ifrs9' | 'pd' | 'lgd' | 'ecl';
   height?: string | number;
   onSessionCreate?: (session: RSessionData) => void;
@@ -106,7 +106,7 @@ type ConnectionMode = 'auto' | 'api' | 'direct';
 // ============================================================================
 
 const useShinyAppStyles = (bankingType: string, theme: any) => {
-  const isIslamic = bankingType === 'syariah';
+  const isIslamic = false;
 
   return {
     container: {
@@ -344,7 +344,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
         tenantSlug: tenantSlug || user.tenantSlug || 'demo-conventional',
         bankingType,
         modelType,
-        theme: bankingType === 'syariah' ? 'islamic' : 'conventional'
+        theme: 'conventional'
       };
 
       const sessionUrl = `${API_CONFIG.R_ANALYTICS_API}/session`;
@@ -447,7 +447,6 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
         console.warn('⚠️ SessionData missing port property, using default based on bankingType');
         const defaultPorts = {
           conventional: 4236,
-          syariah: 4236,
           dana: 4236
         };
         const fallbackBankingType = sessionData.bankingType || sessionRequest.bankingType || 'conventional';
@@ -776,7 +775,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
           <Stack direction="row" spacing={2} alignItems="center">
 
             <Typography variant="h6">
-              I9 Modelling - {bankingType === 'syariah' ? 'Islamic' : bankingType === 'dana' ? 'DANA' : 'Conventional'} Banking
+              I9 Modelling - {bankingType === 'dana' ? 'DANA' : 'Conventional'} Banking
             </Typography>
             {API_CONFIG.IS_PRODUCTION && (
               <Chip
@@ -813,7 +812,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
         </Box>
 
         <Box sx={styles.loadingOverlay}>
-          <CircularProgress size={60} color={bankingType === 'syariah' ? 'success' : 'primary'} />
+          <CircularProgress size={60} color="primary" />
           <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
             Loading R Analytics Dashboard
           </Typography>
@@ -831,7 +830,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
               width: 300,
               mt: 2,
               '& .MuiLinearProgress-bar': {
-                backgroundColor: bankingType === 'syariah' ? theme.palette.success.main : theme.palette.primary.main
+                backgroundColor: bankingType === 'conventional' ? theme.palette.success.main : theme.palette.primary.main
               }
             }}
           />
@@ -952,7 +951,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
           <Box sx={{ mt: 2 }}>
             <Button
               variant="contained"
-              color={bankingType === 'syariah' ? 'success' : 'primary'}
+              color="primary"
               onClick={() => {
                 persistConnectionMode('direct');
                 setError(null);
@@ -996,7 +995,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
           <Stack direction="row" spacing={2} alignItems="center" flex={1}>
 
             <Typography variant="h6" noWrap>
-              I9 Modelling - {session ? (session.bankingType === 'syariah' ? 'Islamic' : session.bankingType === 'dana' ? 'DANA' : 'Conventional') : (bankingType === 'syariah' ? 'Islamic' : bankingType === 'dana' ? 'DANA' : 'Conventional')} Banking
+              I9 Modelling - {session ? (session.bankingType === 'dana' ? 'DANA' : 'Conventional') : (bankingType === 'dana' ? 'DANA' : 'Conventional')} Banking
             </Typography>
 
             {API_CONFIG.IS_PRODUCTION && (
@@ -1022,7 +1021,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
               />
             )}
 
-            {bankingType === 'syariah' && (
+            {bankingType === 'dual' && (
               <Chip
                 label="HALAL"
                 color="success"
@@ -1108,7 +1107,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
         {/* Loading overlay for iframe */}
         {loading && (
           <Box sx={styles.loadingOverlay}>
-            <CircularProgress size={40} color={bankingType === 'syariah' ? 'success' : 'primary'} />
+            <CircularProgress size={40} color="primary" />
             <Typography variant="body2" sx={{ mt: 1 }}>
               Loading R Analytics...
             </Typography>

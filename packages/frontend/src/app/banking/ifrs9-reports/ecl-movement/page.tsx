@@ -28,7 +28,7 @@ function ECLMovementReportsPage() {
   // Sync banking mode from URL if provided
   React.useEffect(() => {
     const modeFromUrl = searchParams.get('mode') as BankingMode;
-    if (modeFromUrl && (modeFromUrl === 'conventional' || modeFromUrl === 'syariah') && modeFromUrl !== currentMode) {
+    if (modeFromUrl && modeFromUrl === 'conventional' && modeFromUrl !== currentMode) {
       setBankingMode(modeFromUrl);
     }
   }, [searchParams, currentMode, setBankingMode]);

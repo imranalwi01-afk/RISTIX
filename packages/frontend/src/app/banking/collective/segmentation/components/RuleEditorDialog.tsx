@@ -112,8 +112,8 @@ export default function RuleEditorDialog({ open, onClose, onSave, initialRule }:
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{initialRule ? 'Edit Rule' : 'Add New Rule'}</DialogTitle>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth aria-labelledby="rule-editor-dialog-title">
+      <DialogTitle id="rule-editor-dialog-title">{initialRule ? 'Edit Rule' : 'Add New Rule'}</DialogTitle>
       <DialogContent dividers>
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, md: 6 }}>

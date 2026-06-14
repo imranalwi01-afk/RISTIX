@@ -8,6 +8,5 @@
 // ============================================================================
 
 export * from './conventional/theme';
-export * from './syariah/theme';
 export * from './shared/theme.provider';
 export * from '../config/themes/banking.config';

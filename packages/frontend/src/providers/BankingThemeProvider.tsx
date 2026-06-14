@@ -5,9 +5,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import { ThemeProvider, Theme } from '@mui/material/styles';
 import { useConfiguration } from './ConfigurationProvider';
 import { getConventionalTheme, PaletteMode } from '../themes/conventional/theme';
-import { getSyariahTheme } from '../themes/syariah/theme';
 
-export type BankingMode = 'conventional' | 'syariah' | 'dual';
+export type BankingMode = 'conventional' | 'dual';
 
 interface BankingThemeContextType {
   currentTheme: Theme;
@@ -15,11 +14,10 @@ interface BankingThemeContextType {
   colorMode: PaletteMode;
   setBankingMode: (mode: BankingMode) => void;
   setTheme: (mode: BankingMode) => void; // Alias for setBankingMode to match component usage
-  toggleTheme: () => void; // Switches banking mode (conv/syariah)
+  toggleTheme: () => void;
   toggleColorMode: () => void; // Switches light/dark
   isLoading: boolean;
   isConventionalTheme: boolean;
-  isSyariahTheme: boolean;
 }
 
 const BankingThemeContext = createContext<BankingThemeContextType | undefined>(undefined);
@@ -84,12 +82,7 @@ export const BankingThemeProvider: React.FC<BankingThemeProviderProps> = ({ chil
 
   // Update Theme whenever bankingMode or colorMode changes
   useEffect(() => {
-    let theme: Theme;
-    if (bankingMode === 'syariah') {
-      theme = getSyariahTheme(colorMode);
-    } else {
-      theme = getConventionalTheme(colorMode);
-    }
+    const theme: Theme = getConventionalTheme(colorMode);
     
     // AGGRESSIVE: Strip all CSS variable properties before setting
     // Keep vars as undefined to avoid breaking palette access
@@ -111,9 +104,6 @@ export const BankingThemeProvider: React.FC<BankingThemeProviderProps> = ({ chil
   };
 
   const toggleTheme = () => {
-    // Legacy toggle for banking mode
-    const newMode = bankingMode === 'conventional' ? 'syariah' : 'conventional';
-    setBankingMode(newMode);
   };
 
   const toggleColorMode = () => {
@@ -134,7 +124,6 @@ export const BankingThemeProvider: React.FC<BankingThemeProviderProps> = ({ chil
     toggleColorMode,
     isLoading,
     isConventionalTheme: bankingMode === 'conventional',
-    isSyariahTheme: bankingMode === 'syariah',
   };
 
   if (isLoading) {

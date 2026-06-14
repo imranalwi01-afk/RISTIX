@@ -42,12 +42,6 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
 
 // ✅ SURGICAL ENHANCEMENT: Banking mode URL patterns
 export const BANKING_MODE_PATTERNS = {
-  syariah: [
-    '/banking/syariah',
-    '/banking/islamic',
-    '/syariah',
-    '/islamic'
-  ],
   conventional: [
     '/banking/conventional',
     '/conventional'

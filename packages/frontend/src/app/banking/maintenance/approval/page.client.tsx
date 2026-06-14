@@ -566,7 +566,7 @@ function ApprovalManagementPage() {
       operationType: matrix.operationType || matrix.operation_type || null,
       bankingMode: matrix.bankingMode || matrix.banking_mode || null,
       isActive: matrix.isActive ?? matrix.is_active ?? true,
-      syariahBoardRequired: matrix.syariahBoardRequired ?? matrix.syariah_board_required ?? false,
+      shariahCompliance: false,
       autoApprovalRules: matrix.autoApprovalRules ?? matrix.auto_approval_rules ?? null,
       levels: Array.isArray(matrix.levels)
         ? matrix.levels.map((level: any) => {

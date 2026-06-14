@@ -12,7 +12,6 @@ export interface AccessManagementPermission {
   requiredApprovalLevel?: number | null;
   requiredApprovers?: number;
   bankingSpecific?: boolean;
-  syariahRequired?: boolean;
 }
 
 export interface AccessManagementRole {
@@ -442,8 +441,7 @@ export const normalizePermissionFromApi = (perm: Record<string, unknown>): Acces
     typeof perm.bankingSpecific === 'boolean'
       ? perm.bankingSpecific
       : perm.module === 'banking',
-  syariahRequired:
-    typeof perm.syariahRequired === 'boolean' ? perm.syariahRequired : false,
+
 });
 
 export const normalizeRoleFromApi = (role: Record<string, unknown>): AccessManagementRole => {

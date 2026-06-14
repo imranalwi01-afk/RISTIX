@@ -154,7 +154,7 @@ const ReportKPICard: React.FC<ReportKPICardProps> = ({
           </Typography>
           {titleTooltip ? (
             <Tooltip title={titleTooltip} arrow placement="top">
-              <IconButton size="small" sx={{ p: 0.25, color: alpha(mainColor, 0.8) }}>
+              <IconButton size="small" sx={{ p: 0.25, color: alpha(mainColor, 0.8) }} aria-label="More information">
                 <InfoOutlinedIcon sx={{ fontSize: 16 }} />
               </IconButton>
             </Tooltip>

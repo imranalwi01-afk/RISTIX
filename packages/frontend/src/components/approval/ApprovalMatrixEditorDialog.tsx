@@ -84,7 +84,6 @@ interface MatrixPayload {
     entityType?: string;
     operationType?: string | null;
     bankingMode?: string | null;
-    syariahBoardRequired?: boolean;
     isActive?: boolean;
     levels?: MatrixPayloadLevel[];
 }
@@ -208,7 +207,6 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
     const [isActive, setIsActive] = useState(true);
     const [operationType, setOperationType] = useState('create,update,delete');
     const [bankingMode, setBankingMode] = useState('');
-    const [syariahBoardRequired, setSyariahBoardRequired] = useState(false);
     const [levels, setLevels] = useState<MatrixLevelEditor[]>([]);
     const [saving, setSaving] = useState(false);
     const [availableRoles, setAvailableRoles] = useState<RoleOption[]>([]);
@@ -240,7 +238,6 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
             setIsActive(Boolean(matrix.isActive ?? true));
             setOperationType(matrix.operationType || 'create,update,delete');
             setBankingMode(matrix.bankingMode || '');
-            setSyariahBoardRequired(Boolean(matrix.syariahBoardRequired));
             const initialLevels = [...(matrix.levels || [])].sort((a, b) => (a.level || 0) - (b.level || 0)).map((level) => ({
                 level: Number(level.level || 0),
                 name: String(level.name || `Level ${level.level || '-'}`),
@@ -257,7 +254,6 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
             setIsActive(true);
             setOperationType('create,update,delete');
             setBankingMode('');
-            setSyariahBoardRequired(false);
             setLevels([{ level: 1, name: 'Level 1', requiredRoleCodes: [], requiredPermissionCodes: ['approval.requests.approve'], requiredCount: 1, timeoutHours: '' }]);
         }
     }, [open, matrix]);
@@ -326,7 +322,6 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
                 description: description.trim() || null,
                 operationType: operationType || null,
                 bankingMode: bankingMode || null,
-                syariahBoardRequired,
                 isActive,
                 levels: levels.sort((a, b) => a.level - b.level).map((l) => ({
                     level: Math.max(1, Number(l.level || 1)),
@@ -440,19 +435,7 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
                                 <Select label="Banking Mode" value={bankingMode} onChange={(e) => setBankingMode(e.target.value)} disabled={saving}>
                                     <MenuItem value="">All Modes</MenuItem>
                                     <MenuItem value="conventional">Conventional</MenuItem>
-                                    <MenuItem value="syariah">Syariah</MenuItem>
                                     <MenuItem value="dual">Dual</MenuItem>
-                                </Select>
-                            </FormControl>
-                        </Grid>
-
-                        {/* Syariah Board Required */}
-                        <Grid size={{ xs: 12, md: 3 }}>
-                            <FormControl fullWidth>
-                                <InputLabel>Syariah Board</InputLabel>
-                                <Select label="Syariah Board" value={syariahBoardRequired ? 'yes' : 'no'} onChange={(e) => setSyariahBoardRequired(e.target.value === 'yes')} disabled={saving}>
-                                    <MenuItem value="no">Not Required</MenuItem>
-                                    <MenuItem value="yes">Required</MenuItem>
                                 </Select>
                             </FormControl>
                         </Grid>

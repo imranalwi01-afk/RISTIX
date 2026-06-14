@@ -70,7 +70,7 @@ export const useConfigurationActions = () => {
 
   return {
     setConfiguration: (config: any) => dispatch({ type: 'configuration/setConfiguration', payload: config }),
-    setBankingMode: (mode: 'conventional' | 'syariah' | 'dual') =>
+    setBankingMode: (mode: 'conventional' | 'dual') =>
       dispatch({ type: 'configuration/setBankingMode', payload: mode }),
     updateFeature: (feature: string, enabled: boolean) =>
       dispatch({ type: 'configuration/updateFeature', payload: { feature, enabled } }),

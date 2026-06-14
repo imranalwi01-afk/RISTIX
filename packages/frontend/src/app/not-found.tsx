@@ -1,26 +1,41 @@
-import Link from 'next/link'
+'use client';
+
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import Link from 'next/link';
 
 export default function NotFound() {
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: '100vh',
-      gap: '20px'
-    }}>
-      <h2>Page Not Found</h2>
-      <p>Could not find the requested page.</p>
-      <Link href="/admin" style={{
-        padding: '10px 20px',
-        backgroundColor: '#1976d2',
-        color: 'white',
-        textDecoration: 'none',
-        borderRadius: '4px'
-      }}>
-        Go to Admin Interface
-      </Link>
-    </div>
-  )
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '60vh',
+        gap: 2,
+        p: 4,
+        textAlign: 'center',
+      }}
+    >
+      <Typography variant="h3" fontWeight={700} color="text.secondary">
+        404
+      </Typography>
+      <Typography variant="h5" fontWeight={600}>
+        Page Not Found
+      </Typography>
+      <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 400 }}>
+        The page you are looking for doesn&apos;t exist or may have been moved.
+      </Typography>
+      <Button
+        component={Link}
+        href="/"
+        variant="contained"
+        sx={{ mt: 2 }}
+      >
+        Go to Home
+      </Button>
+    </Box>
+  );
 }

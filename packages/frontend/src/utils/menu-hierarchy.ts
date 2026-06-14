@@ -250,7 +250,7 @@ export const getParentIds = (
 // Filter hierarchical menu by user role, roleCodes and banking mode
 export const filterHierarchicalMenu = (
   hierarchicalItems: HierarchicalMenuItem[],
-  bankingMode: 'conventional' | 'syariah' | 'dual',
+  bankingMode: 'conventional' | 'dual',
   userPermissions?: string[] // ✅ Add permissions parameter for granular filtering
 ): HierarchicalMenuItem[] => {
   const permissionContext = buildPermissionContext(userPermissions || []);

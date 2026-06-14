@@ -80,9 +80,9 @@ const UserManagementTable = memo(function UserManagementTable({
       renderCell: (params) => (
         <Chip
           label={params.row.bankingAccess}
-          color={params.row.bankingAccess === 'SYARIAH' ? 'success' : 'primary'}
+          color={params.row.bankingAccess === 'BOTH' ? 'success' : 'primary'}
           size="small"
-          icon={params.row.syariahCertified ? <SecurityIcon /> : <BankingIcon />}
+          icon={params.row.dualModeCertified ? <SecurityIcon /> : <BankingIcon />}
         />
       ),
     },

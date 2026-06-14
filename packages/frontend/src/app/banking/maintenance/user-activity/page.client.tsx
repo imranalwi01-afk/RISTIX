@@ -87,7 +87,7 @@ interface UserActivityLog {
   deviceType: string;
   browserName: string;
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  bankingType?: 'conventional' | 'syariah';
+  bankingType?: 'conventional';
   complianceRelevant: boolean;
   businessProcess?: string;
   timestamp: string;
@@ -100,7 +100,7 @@ interface UserActivityFilters {
   activityType?: string;
   actionResult?: 'SUCCESS' | 'FAILURE' | 'PARTIAL';
   riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  bankingType?: 'conventional' | 'syariah';
+  bankingType?: 'conventional';
   complianceRelevant?: boolean;
   dateFrom?: Date | null;
   dateTo?: Date | null;
@@ -262,7 +262,7 @@ export default function PageContent({ params }: { params: Promise<{}> }) {
         riskLevel: savedFilters.riskLevel === 'LOW' || savedFilters.riskLevel === 'MEDIUM' || savedFilters.riskLevel === 'HIGH' || savedFilters.riskLevel === 'CRITICAL'
           ? savedFilters.riskLevel
           : undefined,
-        bankingType: savedFilters.bankingType === 'conventional' || savedFilters.bankingType === 'syariah'
+        bankingType: savedFilters.bankingType === 'conventional' || false
           ? savedFilters.bankingType
           : undefined,
         complianceRelevant: typeof savedFilters.complianceRelevant === 'boolean' ? savedFilters.complianceRelevant : undefined,
@@ -485,7 +485,6 @@ export default function PageContent({ params }: { params: Promise<{}> }) {
   const getBankingTypeColor = (type?: string) => {
     switch (type) {
       case 'conventional': return 'primary';
-      case 'syariah': return 'secondary';
       default: return 'default';
     }
   };
@@ -882,7 +881,6 @@ export default function PageContent({ params }: { params: Promise<{}> }) {
                     >
                       <MenuItem value="">All</MenuItem>
                       <MenuItem value="conventional">Conventional</MenuItem>
-                      <MenuItem value="syariah">Syariah</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>

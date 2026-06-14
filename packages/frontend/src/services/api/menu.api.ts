@@ -96,7 +96,7 @@ export interface MenuConfigurationRequest {
   name: string;
   description?: string;
   target_audience: 'banking_staff' | 'consultant' | 'regulator' | 'platform_admin';
-  banking_mode?: 'conventional' | 'syariah' | 'dual';
+  banking_mode?: 'conventional' | 'dual';
   tenant_specific?: boolean;
   is_default?: boolean;
   is_active?: boolean;
@@ -242,7 +242,7 @@ export class MenuApiService {
    * Get hierarchical menu tree for current user
    */
   async getMenuTree(params?: {
-    bankingMode?: 'conventional' | 'syariah' | 'dual';
+    bankingMode?: 'conventional' | 'dual';
     includeInactive?: boolean;
   }): Promise<MenuApiResponse<MenuItem[]>> {
     if (!isDynamicMenuEnabled()) {
@@ -394,7 +394,7 @@ const menuApiService = new MenuApiService();
 // Export individual methods for convenience
 export const menuApi = {
   getUserMenu: () => menuApiService.getUserMenu(),
-  getMenuTree: (params?: { bankingMode?: 'conventional' | 'syariah' | 'dual'; includeInactive?: boolean; tenantId?: string }) =>
+  getMenuTree: (params?: { bankingMode?: 'conventional' | 'dual'; includeInactive?: boolean; tenantId?: string }) =>
     menuApiService.getMenuTree(params),
   getBreadcrumbs: (path: string) => menuApiService.getBreadcrumbs(path),
   logMenuAccess: (accessData: MenuAccessLogRequest) => menuApiService.logMenuAccess(accessData),

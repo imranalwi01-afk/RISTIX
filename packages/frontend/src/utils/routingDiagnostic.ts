@@ -17,7 +17,6 @@ export function diagnoseRoutingIssue() {
 export function checkDemoUsers() {
   const demoUsers = [
     { role: 'BANK_CRO', expected: '/banking/dashboard' },
-    { role: 'SYARIAH_BANK_CRO', expected: '/banking/dashboard' },
     { role: 'PLATFORM_SUPER_ADMIN', expected: '/platform/dashboard' },
     { role: 'SENIOR_IFRS9_CONSULTANT', expected: '/consultant/dashboard' },
     { role: 'CENTRAL_BANK_DIRECTOR', expected: '/regulator/dashboard' }

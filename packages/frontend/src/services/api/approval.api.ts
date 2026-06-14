@@ -86,7 +86,7 @@ export const approvalAPI = {
     entityType?: string;
     operation?: 'create' | 'update' | 'delete';
     department?: string;
-    bankingMode?: 'conventional' | 'syariah' | 'dual';
+    bankingMode?: 'conventional' | 'dual';
   }) => {
     const response = await apiClient.get('/approvals/routing', { params });
     return response.data;

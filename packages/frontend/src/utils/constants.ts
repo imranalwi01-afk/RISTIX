@@ -8,7 +8,6 @@ export const STAKEHOLDER_TYPES = {
 
 export const BANKING_TYPES = {
     CONVENTIONAL: 'conventional',
-    SYARIAH: 'syariah',
     DUAL: 'dual',
 } as const;
 

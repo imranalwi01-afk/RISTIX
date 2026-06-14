@@ -58,7 +58,7 @@ const getRAnalyticsUrl = () => {
 
 interface SimpleEmbeddedShinyAppProps {
   tenantSlug?: string;
-  bankingType?: 'conventional' | 'syariah' | 'dual';
+  bankingType?: 'conventional' | 'dual';
   modelType?: 'ifrs9' | 'pd' | 'lgd' | 'ecl';
   height?: string | number;
   onMessage?: (message: any) => void;
@@ -184,15 +184,15 @@ export default function SimpleEmbeddedShinyApp({
   // ============================================================================
 
   const getBankingIcon = () => {
-    return bankingType === 'syariah' ? <Security /> : <Analytics />;
+    return bankingType === 'conventional' ? <Security /> : <Analytics />;
   };
 
   const getBankingColor = () => {
-    return bankingType === 'syariah' ? 'success' : 'primary';
+    return 'primary';
   };
 
   const getBankingLabel = () => {
-    return bankingType === 'syariah' ? 'Islamic Banking' : 'Conventional Banking';
+    return 'Conventional Banking';
   };
 
   // Styles
