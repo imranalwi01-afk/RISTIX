@@ -97,24 +97,16 @@ export default function PlatformMenuManagementPage() {
   const loadRoles = useCallback(async () => {
     if (!tenantId) return;
     try {
-      const baseURL = api.client.defaults.baseURL;
-      const token = localStorage.getItem('auth_token');
-      const res = await fetch(`${baseURL}/roles?tenantId=${tenantId}`, {
-        headers: { 'Authorization': `Bearer ${token}`, 'X-Tenant-ID': tenantId, 'Content-Type': 'application/json' }
-      }).then(r => r.json());
-      const data = Array.isArray(res) ? res : res?.data || [];
+      const res = await api.client.get('/roles', { params: { tenantId } });
+      const data = Array.isArray(res.data) ? res.data : Array.isArray(res.data?.data) ? res.data.data : [];
       setRoles(data.map((r: any) => ({ id: r.id, name: r.name || r.roleCode || r.id })));
     } catch { setRoles([]); }
   }, [tenantId]);
 
   const loadTenants = async () => {
     try {
-      const baseURL = api.client.defaults.baseURL;
-      const token = localStorage.getItem('auth_token');
-      const res = await fetch(`${baseURL}/tenants`, {
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
-      }).then(r => r.json());
-      const data = Array.isArray(res) ? res : res?.data || [];
+      const res = await api.client.get('/tenants');
+      const data = Array.isArray(res.data) ? res.data : Array.isArray(res.data?.data) ? res.data.data : [];
       setTenants(data.map((t: any) => ({ id: t.id, name: t.name || t.code || t.id })));
     } catch { setTenants([]); }
   };
@@ -124,12 +116,9 @@ export default function PlatformMenuManagementPage() {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('auth_token');
-      const baseURL = api.client.defaults.baseURL;
-      const res = await fetch(`${baseURL}/menu/hierarchy`, {
-        headers: { 'Authorization': `Bearer ${token}`, 'X-Tenant-ID': tenantId, 'Content-Type': 'application/json' }
-      }).then(r => r.json());
-      if (res?.success && res?.data) {
+      const res = await api.client.get('/menu/hierarchy', { params: { tenantId } });
+      const payload = res.data;
+      if (payload?.success && payload?.data) {
         const cats: MenuCategory[] = [];
         const its: MenuItem[] = [];
         const appendItem = (item: MenuItemApi, categoryId: string, parentId?: string) => {
@@ -385,16 +374,14 @@ export default function PlatformMenuManagementPage() {
                           onClick={() => toggleItemActive(item)} />
                       </TableCell>
                       <TableCell align="right">
-                        <Tooltip title="Permissions"><IconButton size="small" color="info" onClick={() => {
+                          <Tooltip title="Permissions"><IconButton size="small" color="info" onClick={async () => {
                           setPermDialog({ ...permDialog, open: true, item });
                           loadRoles();
-                          // Load existing permissions for this item
-                          fetch(`${api.client.defaults.baseURL}/menu/permissions?tenantId=${tenantId}`, {
-                            headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
-                          }).then(r => r.json()).then(res => {
-                            const perms = (res?.data || []).filter((p: any) => p.menuItemId === item.id);
+                          try {
+                            const permsRes = await api.client.get('/menu/permissions', { params: { tenantId } });
+                            const perms = (permsRes.data?.data || []).filter((p: any) => p.menuItemId === item.id);
                             setPermDialog(prev => ({ ...prev, selectedRoles: perms.filter((p: any) => p.isAllowed).map((p: any) => p.roleId) }));
-                          }).catch(() => {});
+                          } catch {}
                         }}><SecurityIcon fontSize="small" /></IconButton></Tooltip>
                         <Tooltip title="Edit"><IconButton size="small" onClick={() => setEditDialog({ open: true, item })}><EditIcon fontSize="small" /></IconButton></Tooltip>
                         <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => deleteItem(item)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
@@ -561,16 +548,10 @@ export default function PlatformMenuManagementPage() {
                     setPermDialog(p => ({ ...p, selectedRoles: next }));
                     // Save permission
                     try {
-                      const baseURL = api.client.defaults.baseURL;
-                      const token = localStorage.getItem('auth_token');
-                      await fetch(`${baseURL}/menu/permissions?tenantId=${tenantId}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                        body: JSON.stringify({ menuItemId: permDialog.item?.id, roleId: role.id, isAllowed: !selected }),
-                      });
+                      await api.client.post('/menu/permissions', { menuItemId: permDialog.item?.id, roleId: role.id, isAllowed: !selected }, { params: { tenantId } });
                       invalidateRuntimeMenu();
                     } catch (err) {
-                      console.error('Failed to toggle menu visibility', err);
+                      console.error('Failed to toggle menu permission', err);
                     }
                   }}
                   sx={{ cursor: 'pointer' }}
