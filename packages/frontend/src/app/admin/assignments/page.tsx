@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import UserRoleAssignment from '@/components/roles/UserRoleAssignment';
+import UserRoleAssignmentSimple from '@/components/roles/UserRoleAssignmentSimple';
 import { Box, Typography } from '@mui/material';
 
 export default function AssignmentsPage() {
@@ -12,7 +12,7 @@ export default function AssignmentsPage() {
                     User Role Assignments
                 </Typography>
             </Box>
-            <UserRoleAssignment />
+            <UserRoleAssignmentSimple />
         </Box>
     );
 }
