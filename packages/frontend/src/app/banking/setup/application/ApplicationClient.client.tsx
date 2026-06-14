@@ -17,35 +17,13 @@ import Box from '@mui/material/Box'
 import Container from '@mui/material/Container'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
-import Button from '@mui/material/Button'
-import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
-import TextField from '@mui/material/TextField'
-import Chip from '@mui/material/Chip'
-import Snackbar from '@mui/material/Snackbar'
 import Typography from '@mui/material/Typography'
-import Select from '@mui/material/Select'
-import MenuItem from '@mui/material/MenuItem'
-import Menu from '@mui/material/Menu'
-import ListItemText from '@mui/material/ListItemText'
-import IconButton from '@mui/material/IconButton'
-import Tooltip from '@mui/material/Tooltip'
-import Dialog from '@mui/material/Dialog'
-import DialogTitle from '@mui/material/DialogTitle'
-import DialogContent from '@mui/material/DialogContent'
-import DialogActions from '@mui/material/DialogActions'
-import FormControlLabel from '@mui/material/FormControlLabel'
-import Switch from '@mui/material/Switch'
-import Divider from '@mui/material/Divider'
 
 import AddIcon from '@mui/icons-material/Add'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import VisibilityIcon from '@mui/icons-material/Visibility'
-import FilterIcon from '@mui/icons-material/FilterAlt'
-import ClearIcon from '@mui/icons-material/Clear'
-import DownloadIcon from '@mui/icons-material/Download'
-import SearchIcon from '@mui/icons-material/Search'
 
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
@@ -61,7 +39,6 @@ import { useEnterpriseTableQuery } from '@/hooks/useEnterpriseTableQuery';
 import { useSavedTableView } from '@/hooks/useSavedTableView';
 import type { EnterpriseColumnFilterValue, EnterpriseSort } from '@/types/enterprise-table';
 import {
-  ApprovalNotification,
   ApprovalStatusBadge,
   PendingChangesDialog,
   buildApprovalConflictNotification,
@@ -75,223 +52,24 @@ import { usePermission } from '@/hooks/usePermission';
 import {
   ApplicationFormDialog,
   DetailFormDialog,
+  ApplicationDetailPanel,
+  DisplaySettingsCard,
+  ViewDetailDialog,
+  ApplicationToolbar,
+  NotificationSnackbars,
+  APPLICATION_EXPORT_COLUMNS,
+  APPLICATION_FILTER_FIELD_MAP,
+  APPLICATION_SORT_FIELD_MAP,
+  CURRENCY_SYMBOL_PARAM_CODE,
+  LOCAL_CURRENCY_SYMBOL_KEY,
+  normalizeListPayload,
+  normalizeApplicationFilterValue,
   type ApplicationSettingDataTable,
   type ApplicationSettingDetailDataTable,
   type ApplicationSettingFormData,
   type DetailFormData
 } from './components';
 
-
-const APPLICATION_EXPORT_COLUMNS = [
-  { field: 'CommonCode', headerName: 'Common Code' },
-  { field: 'Description', headerName: 'Description' },
-  { field: 'Value', headerName: 'Value' },
-  { field: 'CreatedBy', headerName: 'Created By' },
-  { field: 'CreatedDate', headerName: 'Created Date' },
-  { field: 'UpdatedBy', headerName: 'Updated By' },
-  { field: 'UpdatedDate', headerName: 'Updated Date' },
-] as const;
-
-const APPLICATION_FILTER_FIELD_MAP: Record<string, string> = {
-  CommonCode: 'commonCode',
-  Description: 'description',
-  Value: 'value',
-  CreatedBy: 'createdBy',
-};
-
-const APPLICATION_SORT_FIELD_MAP: Record<string, string> = {
-  CommonCode: 'commonCode',
-  Description: 'description',
-  Value: 'value',
-  CreatedBy: 'createdBy',
-  CreatedDate: 'createdDate',
-  UpdatedDate: 'updatedDate',
-};
-const CURRENCY_SYMBOL_PARAM_CODE = 'CURRDSPLY';
-const LOCAL_CURRENCY_SYMBOL_KEY = 'ifrs9:showCurrencySymbol';
-
-const normalizeListPayload = <T,>(value: unknown): T[] => {
-  if (Array.isArray(value)) return value as T[];
-  if (value && typeof value === 'object') {
-    const nestedData = (value as { data?: unknown }).data;
-    const nestedRows = (value as { rows?: unknown }).rows;
-    if (Array.isArray(nestedData)) return nestedData as T[];
-    if (Array.isArray(nestedRows)) return nestedRows as T[];
-  }
-  return [];
-};
-
-const normalizeApplicationFilterValue = (value: EnterpriseColumnFilterValue) => {
-  if (value === null || value === undefined) return '';
-  if (typeof value === 'boolean') return value ? 'true' : 'false';
-  if (Array.isArray(value)) return value.join(' ');
-  if (typeof value === 'object') return JSON.stringify(value);
-  return String(value);
-};
-
-const getApplicationFieldValue = (row: ApplicationSettingDataTable, field: string): EnterpriseColumnFilterValue => {
-  const record = row as unknown as Record<string, unknown>;
-  return record[field] as EnterpriseColumnFilterValue;
-};
-
-const compareApplicationValues = (left: unknown, right: unknown) => {
-  if (left === right) return 0;
-  if (left === null || left === undefined) return 1;
-  if (right === null || right === undefined) return -1;
-
-  const leftNumber = typeof left === 'number' ? left : Number(left);
-  const rightNumber = typeof right === 'number' ? right : Number(right);
-  if (!Number.isNaN(leftNumber) && !Number.isNaN(rightNumber)) {
-    return leftNumber - rightNumber;
-  }
-
-  const leftDate = left instanceof Date ? left.getTime() : Date.parse(String(left));
-  const rightDate = right instanceof Date ? right.getTime() : Date.parse(String(right));
-  if (!Number.isNaN(leftDate) && !Number.isNaN(rightDate)) {
-    return leftDate - rightDate;
-  }
-
-  return String(left).localeCompare(String(right), undefined, {
-    numeric: true,
-    sensitivity: 'base',
-  });
-};
-
-const applyApplicationTableQuery = (
-  rows: ApplicationSettingDataTable[],
-  columnFilters: Record<string, EnterpriseColumnFilterValue>,
-  sort: EnterpriseSort[],
-) => {
-  const activeFilters = Object.entries(columnFilters).filter(([, value]) => normalizeApplicationFilterValue(value).trim().length > 0);
-  const filteredRows = activeFilters.length === 0
-    ? rows
-    : rows.filter((row) =>
-        activeFilters.every(([field, value]) =>
-          normalizeApplicationFilterValue(getApplicationFieldValue(row, field)).toLowerCase().includes(normalizeApplicationFilterValue(value).toLowerCase())
-        )
-      );
-
-  const activeSort = sort[0];
-  if (!activeSort) return filteredRows;
-
-  return [...filteredRows].sort((leftRow, rightRow) => {
-    const leftValue = getApplicationFieldValue(leftRow, activeSort.field);
-    const rightValue = getApplicationFieldValue(rightRow, activeSort.field);
-    const result = compareApplicationValues(leftValue, rightValue);
-    return activeSort.direction === 'asc' ? result : -result;
-  });
-};
-
-// =====================================================
-// DETAIL PANEL COMPONENT
-// =====================================================
-const ApplicationDetailPanel = ({ row, onEditDetail, onDeleteDetail, onAddDetail, refreshTrigger, canManage = false }: any) => {
-  const [details, setDetails] = useState<ApplicationSettingDetailDataTable[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const loadDetails = async () => {
-    try {
-      setLoading(true);
-      const result = await api.applicationParameter.details.getForHeader(row.CommonCode);
-      const items = normalizeListPayload<any>(result?.data);
-      if (result.success && items.length > 0) {
-        setDetails(items.map((item: any) => ({
-          ID: item.id || item.pkid,
-          SeqNo: item.param_seq || item.SeqNo,
-          Value1: item.value1 || item.Value1,
-          Value2: item.value2 || item.Value2 || '',
-          Value3: item.value3 || item.Value3 || '',
-          Description: item.param_desc || item.paramdesc || item.Description,
-          pkid: item.pkid || item.id,
-          param_code: item.param_code || row.CommonCode,
-          param_seq: item.param_seq,
-          value1: item.value1,
-          value2: item.value2,
-          value3: item.value3,
-          paramdesc: item.param_desc || item.paramdesc || item.Description
-        })));
-      } else {
-        setDetails([]);
-      }
-    } catch (error) {
-      console.error('Failed to load details:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadDetails();
-  }, [row.CommonCode, refreshTrigger]);
-
-  const detailColumns = useMemo<GridColDef[]>(() => [
-    { field: 'SeqNo', headerName: 'Sequence', width: 120 },
-    { field: 'Value1', headerName: 'Value 1', minWidth: 160, flex: 1 },
-    { field: 'Value2', headerName: 'Value 2', minWidth: 160, flex: 1 },
-    { field: 'Value3', headerName: 'Value 3', minWidth: 160, flex: 1 },
-    { field: 'Description', headerName: 'Description', minWidth: 240, flex: 1.5 },
-    {
-      field: 'actions',
-      headerName: 'Actions',
-      type: 'actions',
-      width: 112,
-      filterable: false,
-      sortable: false,
-      renderCell: (params) => (
-        canManage ? (
-          <Box sx={{ display: 'flex' }}>
-            <Tooltip title="Edit Detail">
-              <IconButton size="small" color="primary" onClick={() => onEditDetail(params.row, row)}>
-                <EditIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Delete Detail">
-              <IconButton size="small" color="error" onClick={() => onDeleteDetail(params.row, row.CommonCode, loadDetails)}>
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        ) : null
-      ),
-    },
-  ], [canManage, loadDetails, onDeleteDetail, onEditDetail, row]);
-
-  if (loading) return <Box sx={{ p: 2, textAlign: 'center' }}><CircularProgress size={20} /></Box>;
-
-  return (
-    <Box sx={{ p: 2, bgcolor: 'grey.50', width: '100%', maxWidth: '100%', minWidth: 0 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5, mb: 1 }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-          Parameter Details for {row.CommonCode}
-        </Typography>
-        {canManage && (
-          <Button
-            size="small"
-            startIcon={<AddIcon />}
-            variant="contained"
-            onClick={() => onAddDetail(row)}
-          >
-            Add Detail
-          </Button>
-        )}
-      </Box>
-
-      {details.length === 0 ? (
-        <Typography variant="body2" color="text.secondary">No details found.</Typography>
-      ) : (
-        <SafeDataGrid
-          rows={details}
-          columns={detailColumns}
-          getRowId={(detail) => detail.ID || detail.pkid || `${row.CommonCode}-${detail.SeqNo}`}
-          hideFooterPagination
-          disableRowSelectionOnClick
-          density="compact"
-          tableStateKey={`application-setting-details:${row.CommonCode}`}
-        />
-      )}
-    </Box>
-  );
-};
 
 // =====================================================
 // MAIN COMPONENT
@@ -318,7 +96,6 @@ export default function PageContent() {
     createdBy: ''
   });
   const [showColumnFilters, setShowColumnFilters] = useState(false);
-  const [exportAnchorEl, setExportAnchorEl] = useState<null | HTMLElement>(null);
   const {
     queryState,
     setPaginationModel,
@@ -361,7 +138,6 @@ export default function PageContent() {
     },
   });
 
-  // Modals
   // Modals
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -942,7 +718,6 @@ export default function PageContent() {
 
   const handleExport = useCallback((format: 'xlsx' | 'csv' | 'pdf') => {
     try {
-      setExportAnchorEl(null);
       const exportColumns = APPLICATION_EXPORT_COLUMNS.filter(
         (column) => queryState.columnVisibilityModel[column.field] !== false,
       );
@@ -1121,141 +896,6 @@ export default function PageContent() {
     }
   ];
 
-  const viewDetailColumns = useMemo<GridColDef[]>(() => [
-    {
-      field: 'sequence',
-      headerName: 'Sequence',
-      width: 120,
-      sortable: false,
-      renderCell: (params) => (
-        <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}>
-          {params.row.param_seq ?? params.row.SeqNo}
-        </Typography>
-      ),
-    },
-    {
-      field: 'value1',
-      headerName: 'Value 1',
-      minWidth: 160,
-      flex: 1,
-      sortable: false,
-      renderCell: (params) => (
-        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-          {params.row.value1 ?? params.row.Value1}
-        </Typography>
-      ),
-    },
-    {
-      field: 'value2',
-      headerName: 'Value 2',
-      minWidth: 160,
-      flex: 1,
-      sortable: false,
-      renderCell: (params) => (
-        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-          {params.row.value2 ?? params.row.Value2 ?? '-'}
-        </Typography>
-      ),
-    },
-    {
-      field: 'value3',
-      headerName: 'Value 3',
-      minWidth: 160,
-      flex: 1,
-      sortable: false,
-      renderCell: (params) => (
-        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-          {params.row.value3 ?? params.row.Value3 ?? '-'}
-        </Typography>
-      ),
-    },
-    {
-      field: 'description',
-      headerName: 'Description',
-      minWidth: 260,
-      flex: 1.4,
-      sortable: false,
-      renderCell: (params) => {
-        const description = params.row.paramdesc ?? params.row.Description ?? '';
-        return (
-          <Typography variant="body2" title={description}>
-            {description.length > 50 ? `${description.substring(0, 50)}...` : description}
-          </Typography>
-        );
-      },
-    },
-    {
-      field: 'actions',
-      headerName: 'Actions',
-      type: 'actions',
-      width: 112,
-      filterable: false,
-      sortable: false,
-      renderCell: (params) => (
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          {canManageApplication && (
-            <>
-              <Tooltip title="Edit Detail">
-                <IconButton
-                  size="small"
-                  color="primary"
-                  onClick={() => {
-                    const detail = params.row;
-                    setSelectedDetail(detail);
-                    setDetailFormData({
-                      ParamCode: detail.param_code ?? '',
-                      SeqNo: detail.param_seq ?? 0,
-                      Value1: detail.value1 ?? '',
-                      Value2: detail.value2 ?? '',
-                      Value3: detail.value3 ?? '',
-                      Description: detail.paramdesc ?? ''
-                    });
-                    setDetailModalOpen(true);
-                  }}
-                  data-testid="btn-edit-detail"
-                >
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Delete Detail">
-                <IconButton
-                  size="small"
-                  color="error"
-                  data-testid="btn-delete-detail"
-                  onClick={async () => {
-                    const detail = params.row;
-                    if (!confirm(`Are you sure you want to delete detail sequence ${detail.param_seq ?? detail.SeqNo}?`)) {
-                      return;
-                    }
-                    try {
-                      setDetailLoading(true);
-                      const result = await api.applicationParameter.details.delete(detail.ID.toString());
-                      await loadDetailData(selectedRecord?.CommonCode || '');
-                      if (result?.approvalRequired) {
-                        setApprovalNotification(buildApprovalNotification(result, 'Detail deletion submitted for approval'));
-                      } else {
-                        setSuccess('Parameter detail deleted successfully');
-                      }
-                    } catch (error) {
-                      console.error('❌ Failed to delete detail:', error);
-                      if (!showApprovalConflict(error, 'Detail deletion submitted for approval')) {
-                        setError(`Failed to delete detail: ${handleAPIError(error).message}`);
-                      }
-                    } finally {
-                      setDetailLoading(false);
-                    }
-                  }}
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </>
-          )}
-        </Box>
-      ),
-    },
-  ], [canManageApplication, loadDetailData, selectedRecord?.CommonCode, showApprovalConflict]);
-
   return (
     <Container maxWidth="xl" sx={{ minWidth: 0 }}>
       {!canViewApplication && (
@@ -1273,114 +913,36 @@ export default function PageContent() {
         Application Setting
       </Typography>
 
-      <Card sx={{ mb: 2, width: '100%', maxWidth: '100%', minWidth: 0, overflow: 'hidden' }}>
-        <CardContent>
-          <Typography variant="h6" sx={{ mb: 0.5, fontWeight: 700 }}>
-            Display Settings
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Affects all modules. Numeric values are unchanged.
-          </Typography>
-          <Divider sx={{ mb: 2 }} />
-
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', justifyContent: 'space-between' }}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={currencySymbolEnabled}
-                  onChange={(event) => {
-                    setCurrencySymbolEnabled(event.target.checked);
-                    setCurrencySettingDirty(true);
-                  }}
-                  disabled={!canManageApplication || currencySettingLoading || currencySettingSaving}
-                />
-              }
-              label="Show Currency Symbol"
-            />
-            <Button
-              variant="contained"
-              onClick={() => { void saveCurrencySymbolSetting(); }}
-              disabled={!canManageApplication || !currencySettingDirty || currencySettingLoading || currencySettingSaving}
-            >
-              {currencySettingSaving ? 'Saving...' : 'Save Display Setting'}
-            </Button>
-          </Box>
-
-          <Box sx={{ mt: 2, p: 1.5, border: '1px dashed', borderColor: 'divider', borderRadius: 1 }}>
-            <Typography variant="caption" color="text.secondary">Live Preview</Typography>
-            <Typography variant="body2">
-              {formatPreviewAmount(1250000, 'IDR', currencySymbolEnabled)} | {formatPreviewAmount(10500, 'USD', currencySymbolEnabled)}
-            </Typography>
-          </Box>
-        </CardContent>
-      </Card>
+      <DisplaySettingsCard
+        currencySymbolEnabled={currencySymbolEnabled}
+        setCurrencySymbolEnabled={setCurrencySymbolEnabled}
+        currencySettingDirty={currencySettingDirty}
+        setCurrencySettingDirty={setCurrencySettingDirty}
+        canManageApplication={canManageApplication}
+        currencySettingLoading={currencySettingLoading}
+        currencySettingSaving={currencySettingSaving}
+        saveCurrencySymbolSetting={saveCurrencySymbolSetting}
+        formatPreviewAmount={formatPreviewAmount}
+      />
 
       <Card sx={{ mb: 2, width: '100%', maxWidth: '100%', minWidth: 0, overflow: 'hidden' }}>
         <CardContent>
-          {/* Toolbar */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5, mb: 2 }}>
-            <Button
-              variant="outlined"
-              startIcon={<DownloadIcon />}
-              onClick={(event) => setExportAnchorEl(event.currentTarget)}
-              disabled={loading || tableRows.length === 0}
-            >
-              Export
-            </Button>
-
-            <Can permission={['banking.setup.application.create', 'banking.setup.application.manage']}>
-              <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreate}>
-                Add Application Setting
-              </Button>
-            </Can>
-          </Box>
-          <Menu anchorEl={exportAnchorEl} open={Boolean(exportAnchorEl)} onClose={() => setExportAnchorEl(null)}>
-            <MenuItem onClick={() => handleExport('xlsx')}>
-              <ListItemText>Export to Excel</ListItemText>
-            </MenuItem>
-            <MenuItem onClick={() => handleExport('csv')}>
-              <ListItemText>Export to CSV</ListItemText>
-            </MenuItem>
-            <MenuItem onClick={() => handleExport('pdf')}>
-              <ListItemText>Export to PDF</ListItemText>
-            </MenuItem>
-          </Menu>
-
-          <Box sx={{ display: 'flex', gap: 2, rowGap: 1.5, flexWrap: 'wrap', alignItems: 'center', minWidth: 0, mb: 2 }}>
-            <TextField
-              placeholder="Search..."
-              size="small"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
-              }}
-              InputProps={{ startAdornment: <SearchIcon color="action" /> }}
-              sx={{ flex: '1 1 260px', minWidth: 0, width: { xs: '100%', sm: 'auto' } }}
-            />
-            <Button
-              variant={showColumnFilters ? 'contained' : 'outlined'}
-              onClick={() => setShowColumnFilters(!showColumnFilters)}
-              startIcon={<FilterIcon />}
-            >
-              Filters
-            </Button>
-            <Button onClick={() => { void handleResetFilters(); }}>
-              <ClearIcon /> Clear
-            </Button>
-            <Button variant="text" onClick={handleSaveView}>
-              Save View
-            </Button>
-          </Box>
-
-          {showColumnFilters && (
-            <Box sx={{ display: 'flex', gap: 2, rowGap: 1.5, flexWrap: 'wrap', mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1, minWidth: 0 }}>
-              <TextField sx={{ flex: '1 1 180px', minWidth: 0 }} label="Code" size="small" value={columnFilters.commonCode} onChange={e => { setColumnFilters({ ...columnFilters, commonCode: e.target.value }); setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize }); }} />
-              <TextField sx={{ flex: '1 1 220px', minWidth: 0 }} label="Description" size="small" value={columnFilters.description} onChange={e => { setColumnFilters({ ...columnFilters, description: e.target.value }); setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize }); }} />
-              <TextField sx={{ flex: '1 1 180px', minWidth: 0 }} label="Value" size="small" value={columnFilters.value} onChange={e => { setColumnFilters({ ...columnFilters, value: e.target.value }); setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize }); }} />
-              <TextField sx={{ flex: '1 1 180px', minWidth: 0 }} label="Created By" size="small" value={columnFilters.createdBy} onChange={e => { setColumnFilters({ ...columnFilters, createdBy: e.target.value }); setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize }); }} />
-            </Box>
-          )}
+          <ApplicationToolbar
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            showColumnFilters={showColumnFilters}
+            setShowColumnFilters={setShowColumnFilters}
+            columnFilters={columnFilters}
+            setColumnFilters={setColumnFilters}
+            pageSize={queryState.paginationModel.pageSize}
+            setPaginationModel={setPaginationModel}
+            loading={loading}
+            hasData={tableRows.length > 0}
+            handleCreate={handleCreate}
+            handleExport={handleExport}
+            handleResetFilters={handleResetFilters}
+            handleSaveView={handleSaveView}
+          />
 
           <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
             <SafeDataGrid
@@ -1445,111 +1007,24 @@ export default function PageContent() {
       />
 
       {/* View Modal with Detail Table - matching legacy Detail.cshtml */}
-      <Dialog open={viewModalOpen} onClose={() => setViewModalOpen(false)} maxWidth="lg" fullWidth>
-        <DialogTitle>
-          Application Setting Details - {selectedRecord?.CommonCode}
-        </DialogTitle>
-        <DialogContent sx={{ mt: 2 }}>
-          {selectedRecord && (
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Header Information
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                <Box sx={{ minWidth: 200 }}>
-                  <Typography variant="body2" color="text.secondary">Common Code:</Typography>
-                  <Typography variant="body1" sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}>
-                    {selectedRecord.CommonCode}
-                  </Typography>
-                </Box>
-                <Box sx={{ minWidth: 200 }}>
-                  <Typography variant="body2" color="text.secondary">Parameter Name:</Typography>
-                  <Typography variant="body1">
-                    {selectedRecord.Description}
-                  </Typography>
-                </Box>
-                <Box sx={{ minWidth: 300 }}>
-                  <Typography variant="body2" color="text.secondary">Usage Description:</Typography>
-                  <Typography variant="body1">
-                    {selectedRecord.Value}
-                  </Typography>
-                </Box>
-                <Box sx={{ minWidth: 200 }}>
-                  <Typography variant="body2" color="text.secondary">Created By:</Typography>
-                  <Typography variant="body1">
-                    {selectedRecord.CreatedBy}
-                  </Typography>
-                </Box>
-                <Box sx={{ minWidth: 200 }}>
-                  <Typography variant="body2" color="text.secondary">Created Date:</Typography>
-                  <Typography variant="body1">
-                    {new Date(selectedRecord.CreatedDate).toLocaleString()}
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-          )}
-
-          <Box sx={{ my: 2, borderTop: 1, borderBottom: 1, borderColor: 'divider', py: 1 }} />
-
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6">
-              Parameter Details
-            </Typography>
-            {canManageApplication && (
-              <Button
-                variant="contained"
-                size="small"
-                startIcon={<AddIcon />}
-                onClick={handleCreateDetail}
-                disabled={detailLoading}
-                data-testid="btn-add-detail"
-              >
-                Add Detail
-              </Button>
-            )}
-          </Box>
-
-          {detailLoading && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-              <CircularProgress size={24} />
-            </Box>
-          )}
-
-          {!detailLoading && detailData.length === 0 && (
-            <Alert severity="info" sx={{ mb: 2 }}>
-              No details configured for this parameter.
-              {canManageApplication && (
-                <Button
-                  size="small"
-                  startIcon={<AddIcon />}
-                  sx={{ ml: 1 }}
-                  onClick={handleCreateDetail}
-                >
-                  Add First Detail
-                </Button>
-              )}
-            </Alert>
-          )}
-
-          {!detailLoading && detailData.length > 0 && (
-            <SafeDataGrid
-              rows={detailData}
-              columns={viewDetailColumns}
-              getRowId={(detail) => detail.ID || detail.pkid || `${detail.param_code}-${detail.param_seq}`}
-              hideFooterPagination
-              disableRowSelectionOnClick
-              density="compact"
-              tableStateKey={`application-setting-view-details:${selectedRecord?.CommonCode || 'unknown'}`}
-            />
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setViewModalOpen(false)}>
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <ViewDetailDialog
+        open={viewModalOpen}
+        onClose={() => setViewModalOpen(false)}
+        selectedRecord={selectedRecord}
+        detailData={detailData}
+        detailLoading={detailLoading}
+        canManageApplication={canManageApplication}
+        handleCreateDetail={handleCreateDetail}
+        loadDetailData={loadDetailData}
+        setDetailLoading={setDetailLoading}
+        setSelectedDetail={setSelectedDetail}
+        setDetailFormData={setDetailFormData}
+        setDetailModalOpen={setDetailModalOpen}
+        setApprovalNotification={setApprovalNotification}
+        setSuccess={setSuccess}
+        setError={setError}
+        showApprovalConflict={showApprovalConflict}
+      />
 
       {/* Detail Create/Edit Modal - using memoized component for performance */}
       <DetailFormDialog
@@ -1570,25 +1045,15 @@ export default function PageContent() {
         title={`Pending Changes for ${currentRecordForPending?.CommonCode}`}
       />
 
-      <Snackbar open={!!success} autoHideDuration={4000} onClose={() => setSuccess(null)}>
-        <Alert severity="success">{success}</Alert>
-      </Snackbar>
-      <ApprovalNotification
-        open={approvalNotification.open}
-        message={approvalNotification.message}
-        requestId={approvalNotification.requestId}
-        actionLabel={canOpenApprovalInbox ? 'Open Approval' : undefined}
-        actionHref={canOpenApprovalInbox ? (approvalNotification.requestId ? `/banking/maintenance/approval?requestId=${encodeURIComponent(approvalNotification.requestId)}` : '/banking/maintenance/approval') : undefined}
-        onClose={() => setApprovalNotification(createClosedApprovalNotification())}
+      <NotificationSnackbars
+        success={success}
+        setSuccess={setSuccess}
+        error={error}
+        setError={setError}
+        approvalNotification={approvalNotification}
+        setApprovalNotification={setApprovalNotification}
+        canOpenApprovalInbox={canOpenApprovalInbox}
       />
-      <Snackbar
-        open={!!error}
-        autoHideDuration={6000}
-        onClose={() => setError(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert severity="error">{error}</Alert>
-      </Snackbar>
     </Container>
   );
 }
