@@ -20,6 +20,7 @@ import { store, persistor } from '../store';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import '@/services/logging.service';
+import ErrorBoundary from '@/components/common/ErrorBoundary';
 
 export default function ClientProviders({ children }: { children: React.ReactNode }) {
   // WORKAROUND: Prevent MUI v7 SvgIcon from trying to access _theme_vars
@@ -43,7 +44,9 @@ export default function ClientProviders({ children }: { children: React.ReactNod
                     <BankingThemeProvider>
                       <LocalizationProvider dateAdapter={AdapterDateFns}>
                         <CssBaseline />
-                        {children as any}
+                        <ErrorBoundary>
+                          {children as any}
+                        </ErrorBoundary>
                       </LocalizationProvider>
                     </BankingThemeProvider>
                   </AuthProvider>

@@ -31,19 +31,22 @@ import { useAuth } from '@/providers/AuthProvider';
 import { getErrorMessage } from '@/utils/error-message';
 import { ResetPasswordDialog } from '@/components/users/ResetPasswordDialog';
 import { usersAPI } from '@/services/api/users.api';
+
 import InputAdornment from '@mui/material/InputAdornment';
 import IconButton from '@mui/material/IconButton';
+import Checkbox from '@mui/material/Checkbox';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-import Checkbox from '@mui/material/Checkbox';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import CircularProgress from '@mui/material/CircularProgress';
 import Stack from '@mui/material/Stack';
+import { useAllRoles, useInvalidateRoleQueries } from '@/features/roles/hooks/useRoleQueries';
+import { extractRolesArray } from '@/features/roles/hooks/useRoleQueries';
 import {
   UserFormDialog,
   UserManagementFilters,
@@ -62,6 +65,10 @@ interface UserManagementPanelProps {
 export default function UserManagementPanel({ embedded = false }: UserManagementPanelProps) {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
+
+  // ✅ React Query hooks for role data (cached)
+  const allRolesQuery = useAllRoles();
+  const { invalidateUserRoles } = useInvalidateRoleQueries();
 
   // ✅ State Management
   const [users, setUsers] = useState<User[]>([]);
@@ -102,8 +109,8 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
   const [loadingUserRoles, setLoadingUserRoles] = useState(false);
   const [openResetPasswordDialog, setOpenResetPasswordDialog] = useState(false);
   const [manageRolesDialog, setManageRolesDialog] = useState<{
-    open: boolean; user: User | null; roles: any[]; selectedRoleIds: string[]; saving: boolean; search: string;
-  }>({ open: false, user: null, roles: [], selectedRoleIds: [], saving: false, search: '' });
+    open: boolean; user: User | null; roles: any[]; selectedRoleIds: string[]; saving: boolean; search: string; key: number;
+  }>({ open: false, user: null, roles: [], selectedRoleIds: [], saving: false, search: '', key: 0 });
   const [formData, setFormData] = useState<UserFormData>({
     email: '',
     username: '',
@@ -126,22 +133,24 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
   // ✅ Open manage roles dialog
   const handleManageRoles = async (user: User) => {
     try {
-      const [rolesRes, userRolesRes] = await Promise.all([
-        api.roles.getAll({ includeInactive: true }),
-        api.roles.getUserRoles(user.id),
-      ]);
-      const rawRoles = Array.isArray(rolesRes) ? rolesRes : Array.isArray((rolesRes as any).data) ? (rolesRes as any).data : [];
-      const userRoleRows = userRolesRes?.data?.roles || userRolesRes?.roles || userRolesRes?.data || [];
-      const userRoleIds: string[] = (Array.isArray(userRoleRows) ? userRoleRows : []).map((row: any) => {
-        const r = row?.role || row;
-        return String(r?.roleId || r?.role_id || r?.id || row?.roleId || row?.role_id || '');
-      }).filter(Boolean);
+      const rawRoles = allRolesQuery.data ?? [];
+      let userRoleIds: string[] = [];
+      try {
+        const userRolesRes = await api.roles.getUserRoles(user.id);
+        const userRoleRows = userRolesRes?.data?.roles || userRolesRes?.roles || userRolesRes?.data || [];
+        userRoleIds = (Array.isArray(userRoleRows) ? userRoleRows : []).map((row: any) => {
+          const r = row?.role || row;
+          return String(r?.roleId || r?.role_id || r?.id || row?.roleId || row?.role_id || '');
+        }).filter(Boolean);
+      } catch {
+        // User roles fetch is optional — dialog still shows all roles
+      }
       setManageRolesDialog({
         open: true, user, roles: rawRoles,
-        selectedRoleIds: userRoleIds, saving: false, search: '',
+        selectedRoleIds: userRoleIds, saving: false, search: '', key: Date.now(),
       });
-    } catch {
-      setSnackbar({ open: true, message: 'Failed to load roles', severity: 'error' });
+    } catch (err: any) {
+      setSnackbar({ open: true, message: 'Failed to load roles: ' + (err?.message || err), severity: 'error' });
     }
   };
 
@@ -150,9 +159,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
     if (!d.user) return;
     setManageRolesDialog(prev => ({ ...prev, saving: true }));
     try {
-      const [userRolesRes] = await Promise.all([
-        api.roles.getUserRoles(d.user.id),
-      ]);
+      const userRolesRes = await api.roles.getUserRoles(d.user.id);
       const userRoleRows = userRolesRes?.data?.roles || userRolesRes?.roles || userRolesRes?.data || [];
       const currentIds: string[] = (Array.isArray(userRoleRows) ? userRoleRows : []).map((row: any) => {
         const r = row?.role || row;
@@ -160,13 +167,24 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       }).filter(Boolean);
       const toAdd = d.selectedRoleIds.filter((id: string) => !currentIds.includes(id));
       const toRemove = currentIds.filter((id: string) => !d.selectedRoleIds.includes(id));
-      await Promise.all([
+      const results = await Promise.allSettled([
         ...toAdd.map((roleId: string) => api.roles.assignUser(roleId, d.user!.id)),
         ...toRemove.map((roleId: string) => api.roles.removeUser(roleId, d.user!.id)),
       ]);
-      setManageRolesDialog(prev => ({ ...prev, saving: false, open: false }));
-      await loadUsers();
-      setSnackbar({ open: true, message: 'Roles updated successfully', severity: 'success' });
+      const anyFailure = results.some(r => r.status === 'rejected');
+      const anyApproval = results.some(r => r.status === 'fulfilled' && (r.value as any)?.approvalRequired);
+      if (anyFailure && !anyApproval) {
+        setManageRolesDialog(prev => ({ ...prev, saving: false }));
+        setSnackbar({ open: true, message: 'Failed to update some roles', severity: 'error' });
+      } else {
+        setManageRolesDialog(prev => ({ ...prev, saving: false, open: false }));
+        invalidateUserRoles(d.user.id);
+        setSnackbar({
+          open: true,
+          message: anyApproval ? 'Role changes submitted for approval.' : 'Roles updated successfully',
+          severity: anyApproval ? 'info' : 'success',
+        });
+      }
     } catch {
       setManageRolesDialog(prev => ({ ...prev, saving: false }));
       setSnackbar({ open: true, message: 'Failed to update roles', severity: 'error' });
@@ -668,7 +686,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       )}
 
       {/* Manage Roles Dialog */}
-      <Dialog open={manageRolesDialog.open} onClose={() => setManageRolesDialog(prev => ({ ...prev, open: false }))} maxWidth="sm" fullWidth>
+      <Dialog key={manageRolesDialog.key} open={manageRolesDialog.open} onClose={() => setManageRolesDialog(prev => ({ ...prev, open: false }))} maxWidth="sm" fullWidth>
         <DialogTitle>
           <Stack direction="row" spacing={1.5} alignItems="center">
             <Box>
@@ -680,6 +698,9 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
           </Stack>
         </DialogTitle>
         <DialogContent>
+          <Alert severity="info" sx={{ mb: 2, mt: 1 }}>
+            Role changes require approval. Assigned roles will only take effect after an approver reviews this request.
+          </Alert>
           <TextField
             fullWidth size="small" placeholder="Search roles..."
             value={manageRolesDialog.search}
@@ -689,10 +710,10 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
           />
           <List dense sx={{ maxHeight: 400, overflow: 'auto' }}>
             {manageRolesDialog.roles
-              .filter((r: any) => r.isActive !== false && (!manageRolesDialog.search || (r.displayName || r.name || '').toLowerCase().includes(manageRolesDialog.search.toLowerCase())))
+              .filter((r: any) => r.isActive !== false && (!manageRolesDialog.search || (r.roleName || r.roleCode || '').toLowerCase().includes(manageRolesDialog.search.toLowerCase())))
               .map((role: any) => {
                 const roleId = role.id;
-                const label = role.displayName || role.name || 'Unnamed Role';
+                const label = role.roleName || role.roleCode || 'Unnamed Role';
                 return (
                   <ListItem key={roleId} disablePadding>
                     <ListItemIcon sx={{ minWidth: 36 }}>
@@ -707,7 +728,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
                         }))}
                       />
                     </ListItemIcon>
-                    <ListItemText primary={label} secondary={role.type || 'CUSTOM'} />
+                    <ListItemText primary={label} secondary={role.roleCode || (role.isSystemRole ? 'SYSTEM' : 'CUSTOM')} />
                   </ListItem>
                 );
               })}

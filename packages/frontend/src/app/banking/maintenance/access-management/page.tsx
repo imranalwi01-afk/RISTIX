@@ -1,12 +1,13 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { TableSkeleton } from '@/components/common/LoadingSkeleton';
 
 const AccessManagementPage = dynamic(
   () => import('@/components/maintenance/AccessManagementPage'),
-  { ssr: false, loading: () => <div style={{ padding: 40, textAlign: 'center' }}>Loading...</div> }
+  { ssr: false, loading: () => <TableSkeleton /> }
 );
 
-export default function AccessManagementRoutePage() {
+export default function AccessManagementPageRoute() {
   return <AccessManagementPage />;
 }

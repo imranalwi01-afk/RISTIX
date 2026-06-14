@@ -1,12 +1,15 @@
 /** @type {import('next').NextConfig} */
 import bundleAnalyzer from '@next/bundle-analyzer';
+import withPWAInit from '@ducanh2912/next-pwa';
 
 const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
 });
 
-
-/** @type {import('next').NextConfig} */
+const withPWA = withPWAInit({
+  dest: 'public',
+  disable: process.env.NODE_ENV === 'development',
+});
 
 const nextConfig = {
   // ============================================================================
@@ -61,7 +64,12 @@ const nextConfig = {
     optimizePackageImports: [
       'recharts',
       'lucide-react',
-      'notistack'
+      'notistack',
+      '@mui/material',
+      '@mui/icons-material',
+      '@mui/x-data-grid',
+      '@mui/x-date-pickers',
+      'date-fns',
     ],
     // Enable server actions for better performance
     serverActions: {
@@ -108,6 +116,40 @@ const nextConfig = {
   // ============================================================================
   // API REWRITES
   // ============================================================================
+
+  // ============================================================================
+  // SECURITY HEADERS
+  // ============================================================================
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'X-XSS-Protection', value: '1; mode=block' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()' },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob: https:",
+              "font-src 'self' data:",
+              "connect-src 'self' wss: ws: http://localhost:* https://*.ifrspro.id https://*.danafin.com https://*.danafin.id",
+              "frame-ancestors 'self'",
+            ].join('; '),
+          },
+        ],
+      },
+    ];
+  },
   async redirects() {
     return [
       {
@@ -183,4 +225,4 @@ const nextConfig = {
   },
 };
 
-export default withBundleAnalyzer(nextConfig);
+export default withBundleAnalyzer(withPWA(nextConfig));

@@ -2,86 +2,19 @@
 'use client';
 
 import React, { Suspense, useState, useCallback, useEffect, useMemo } from 'react';
-import Box from '@mui/material/Box'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
-import CardHeader from '@mui/material/CardHeader'
-import Typography from '@mui/material/Typography'
-import Grid from '@mui/material/Grid'
-import Chip from '@mui/material/Chip'
-import IconButton from '@mui/material/IconButton'
-import Tabs from '@mui/material/Tabs'
-import Tab from '@mui/material/Tab'
-import FormControl from '@mui/material/FormControl'
- import InputLabel from '@mui/material/InputLabel'
-import InputAdornment from '@mui/material/InputAdornment'
-import Select from '@mui/material/Select'
-import MenuItem from '@mui/material/MenuItem'
-import TextField from '@mui/material/TextField'
-import Button from '@mui/material/Button'
-import Dialog from '@mui/material/Dialog'
-import DialogTitle from '@mui/material/DialogTitle'
-import DialogContent from '@mui/material/DialogContent'
-import DialogActions from '@mui/material/DialogActions'
-import Alert from '@mui/material/Alert'
-import Tooltip from '@mui/material/Tooltip'
-import Paper from '@mui/material/Paper'
-import List from '@mui/material/List'
-import ListItem from '@mui/material/ListItem'
-import ListItemText from '@mui/material/ListItemText'
-import ListItemIcon from '@mui/material/ListItemIcon'
-import Checkbox from '@mui/material/Checkbox'
-import FormControlLabel from '@mui/material/FormControlLabel'
-import Switch from '@mui/material/Switch'
-import Accordion from '@mui/material/Accordion'
-import AccordionSummary from '@mui/material/AccordionSummary'
-import AccordionDetails from '@mui/material/AccordionDetails'
-import Badge from '@mui/material/Badge'
-import Table from '@mui/material/Table'
-import TableHead from '@mui/material/TableHead'
-import TableBody from '@mui/material/TableBody'
-import TableRow from '@mui/material/TableRow'
-import TableCell from '@mui/material/TableCell'
-import TableContainer from '@mui/material/TableContainer'
-import Stack from '@mui/material/Stack'
-import Stepper from '@mui/material/Stepper'
-import Step from '@mui/material/Step'
-import StepLabel from '@mui/material/StepLabel'
-import Divider from '@mui/material/Divider'
-import VisibilityIcon from '@mui/icons-material/Visibility'
-import EditIcon from '@mui/icons-material/Edit'
-import AddIcon from '@mui/icons-material/Add'
-import RefreshIcon from '@mui/icons-material/Refresh'
-import SecurityIcon from '@mui/icons-material/Security'
-import PeopleIcon from '@mui/icons-material/People'
-import AdminIcon from '@mui/icons-material/AdminPanelSettings'
-import AssignmentIcon from '@mui/icons-material/Assignment'
-import CheckCircleIcon from '@mui/icons-material/CheckCircle'
-import CancelIcon from '@mui/icons-material/Cancel'
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import GroupIcon from '@mui/icons-material/Group'
-import KeyIcon from '@mui/icons-material/VpnKey'
-import BankingIcon from '@mui/icons-material/AccountBalance'
-import MoneyIcon from '@mui/icons-material/MonetizationOn'
-import ReportIcon from '@mui/icons-material/Assessment'
-import SettingsIcon from '@mui/icons-material/Settings'
-import DeleteIcon from '@mui/icons-material/Delete'
-import SearchIcon from '@mui/icons-material/Search'
-import ClearIcon from '@mui/icons-material/Clear'
-import SaveIcon from '@mui/icons-material/Save'
-import LockIcon from '@mui/icons-material/Lock'
-import { useTheme } from '@mui/material/styles';
-import { GridColDef, GridRenderCellParams, GridRowParams } from '@mui/x-data-grid';
-import { format, parseISO } from 'date-fns';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Alert from '@mui/material/Alert';
+import Paper from '@mui/material/Paper';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import GroupIcon from '@mui/icons-material/Group';
+import PeopleIcon from '@mui/icons-material/People';
+import SecurityIcon from '@mui/icons-material/Security';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-// Local components and services
-import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
-import { RolePermissionsEditor } from '@/components/rbac/RolePermissionsEditor';
-import { Can } from '@/components/rbac/Can';
-import { usePermission } from '@/hooks/usePermission';
 import UserManagementPanel from '@/components/maintenance/UserManagementPanel';
-import { getRoleResponsibility } from '@/components/roles/role-responsibility.utils';
+import { usePermission } from '@/hooks/usePermission';
 import {
   buildPermissionMatrixItem,
   getPermissionCategoryDisplayLabel,
@@ -108,99 +41,26 @@ import {
   type UserRoleInfo,
 } from '@/utils/approval';
 
-// Types and Interfaces
-interface Role {
-  id: string;
-  name: string;
-  displayName: string;
-  description: string;
-  type: 'SYSTEM' | 'BANKING' | 'CUSTOM';
-  level: 'PLATFORM' | 'TENANT' | 'DEPARTMENT';
-  isActive: boolean;
-  isBuiltIn: boolean;
-  permissions: Permission[];
-  assignedUsers: number;
-  createdBy: string;
-  createdAt: string;
-  updatedAt?: string;
-}
+import {
+  Role,
+  Permission,
+  PermissionCategory,
+  PermissionMatrixCategory,
+  PermissionGroupingMode,
+  PermissionSelectionGroup,
+  RoleFilters,
+  TabPanelProps,
+  TAB_KEY_TO_INDEX,
+  TAB_INDEX_TO_KEY,
+  ACCESS_MANAGEMENT_BASE_PATH,
+} from './access-management.types';
 
-interface Permission {
-  id: string;
-  code?: string;
-  module: string;
-  resource: string;
-  action: string;
-  displayName: string;
-  description: string;
-  category: 'CORE' | 'BANKING' | 'IFRS9' | 'REPORTING' | 'ADMIN';
-  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  requiresApproval: boolean;
-  requiredApprovalLevel?: number | null;
-  requiredApprovers?: number;
-  bankingSpecific?: boolean;
-  syariahRequired?: boolean;
-}
-
-interface PermissionCategory {
-  name: string;
-  displayName: string;
-  permissions: Permission[];
-}
-
-interface PermissionMatrixItem {
-  permission: Permission;
-  fullKey: string;
-  categoryKey: string;
-  groupKey: string;
-  actionKey: string;
-}
-
-interface PermissionMatrixGroup {
-  key: string;
-  label: string;
-  permissions: PermissionMatrixItem[];
-}
-
-interface PermissionMatrixCategory {
-  key: string;
-  label: string;
-  groups: PermissionMatrixGroup[];
-}
-
-type PermissionGroupingMode = 'resource' | 'module' | 'category';
-
-interface PermissionSelectionGroup {
-  key: string;
-  label: string;
-  hint: string;
-  permissions: Permission[];
-}
-
-const TAB_KEY_TO_INDEX: Record<string, number> = {
-  roles: 0,
-  users: 1,
-  permissions: 2,
-  matrix: 2,
-  assignments: 1,
-  'access-review': 2,
-};
-
-const TAB_INDEX_TO_KEY = ['roles', 'users', 'access-review'] as const;
-const ACCESS_MANAGEMENT_BASE_PATH = '/banking/maintenance/access-management';
-
-interface RoleFilters {
-  type?: string;
-  level?: string;
-  isActive?: boolean;
-  searchTerm?: string;
-}
-
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
+import { AccessFilters } from './AccessFilters';
+import { AccessRoleTable } from './AccessRoleTable';
+import { AccessRoleDialog } from './AccessRoleDialog';
+import { AccessPermissionDialog } from './AccessPermissionDialog';
+import { AccessReviewTab } from './AccessReviewTab';
+import { AccessStatCards } from './AccessStatCards';
 
 const TabPanel = ({ children, value, index, ...other }: TabPanelProps) => (
   <div
@@ -231,7 +91,6 @@ const getTabKeyFromPath = (pathname: string): keyof typeof TAB_KEY_TO_INDEX => {
 };
 
 function AccessManagementPage() {
-  const theme = useTheme();
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -239,15 +98,9 @@ function AccessManagementPage() {
   const canManageRoles = hasAnyPermission(['admin.roles.manage', 'admin.roles.create']);
   const canViewRoles = hasAnyPermission(['admin.roles.view', 'admin.roles.manage']);
 
-  // Helper function to get permissions by category
-  const getPermissionsByCategory = (groupedPermissions: Record<string, Permission[]>, category: string): Permission[] => {
-    return groupedPermissions[category] || [];
-  };
-
   const [currentTab, setCurrentTab] = useState(0);
-  const [permissionsTab, setPermissionsTab] = useState(0);
   const [permissionGroupingMode, setPermissionGroupingMode] = useState<PermissionGroupingMode>('resource');
-const [permissionSearch, setPermissionSearch] = useState('');
+  const [permissionSearch, setPermissionSearch] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -320,10 +173,8 @@ const [permissionSearch, setPermissionSearch] = useState('');
     deleteRoleMutation.isPending ||
     updateRolePermissionsMutation.isPending;
 
-  // Group permissions by category
-  const groupPermissionsByCategory = (permissions: Permission[]): PermissionCategory[] => {
+  const permissionCategories = useMemo<PermissionCategory[]>(() => {
     const categories: { [key: string]: PermissionCategory } = {};
-
     permissions.forEach(permission => {
       if (!categories[permission.category]) {
         categories[permission.category] = {
@@ -334,60 +185,8 @@ const [permissionSearch, setPermissionSearch] = useState('');
       }
       categories[permission.category].permissions.push(permission);
     });
-
     return Object.values(categories);
-  };
-
-  const permissionCategories = useMemo<PermissionCategory[]>(() => {
-    return groupPermissionsByCategory(permissions);
   }, [permissions]);
-
-  const permissionMatrixCategories = useMemo<PermissionMatrixCategory[]>(() => {
-    const categoryMap = new Map<string, PermissionMatrixCategory>();
-    const categoryGroupMap = new Map<string, Map<string, PermissionMatrixGroup>>();
-
-    permissions.forEach((permission) => {
-      const item = buildPermissionMatrixItem(permission);
-      const categoryKey = item.categoryKey || 'banking.general';
-      const groupKey = item.groupKey;
-
-      if (!categoryMap.has(categoryKey)) {
-        categoryMap.set(categoryKey, {
-          key: categoryKey,
-          label: getPermissionCategoryDisplayLabel(categoryKey),
-          groups: [],
-        });
-        categoryGroupMap.set(categoryKey, new Map());
-      }
-
-      const groupsInCategory = categoryGroupMap.get(categoryKey)!;
-      if (!groupsInCategory.has(groupKey)) {
-        groupsInCategory.set(groupKey, {
-          key: groupKey,
-          label: getPermissionGroupDisplayLabel(groupKey),
-          permissions: [],
-        });
-      }
-
-      groupsInCategory.get(groupKey)!.permissions.push(item);
-    });
-
-    categoryMap.forEach((category, categoryKey) => {
-      const groupsMap = categoryGroupMap.get(categoryKey) || new Map();
-      const groups = Array.from(groupsMap.values()).map((group) => ({
-        ...group,
-        permissions: group.permissions.sort((a, b) => a.actionKey.localeCompare(b.actionKey)),
-      }));
-      category.groups = groups.sort((a, b) => a.label.localeCompare(b.label));
-    });
-
-    return Array.from(categoryMap.values()).sort((a, b) => a.label.localeCompare(b.label));
-  }, [permissions]);
-
-  const rolePermissionSetMap = useMemo(
-    () => new Map(roles.map((role) => [role.id, new Set(role.permissions.map((permission) => permission.id))])),
-    [roles]
-  );
 
   const permissionSelectionGroups = useMemo<PermissionSelectionGroup[]>(() => {
     return buildPermissionSelectionGroups(permissions, permissionGroupingMode);
@@ -418,8 +217,6 @@ const [permissionSearch, setPermissionSearch] = useState('');
   // Fetch current user's roles for approval eligibility
   const fetchCurrentUserRoles = useCallback(async () => {
     try {
-      // TODO: Replace with actual API call to get current user's roles
-      // For now, mock with default values
       const mockUserRoles: UserRoleInfo[] = [
         { hierarchyLevel: 2, roleCode: 'SUPERVISOR', roleName: 'Supervisor' },
       ];
@@ -427,7 +224,6 @@ const [permissionSearch, setPermissionSearch] = useState('');
       setUserMaxHierarchyLevel(getUserMaxHierarchyLevel(mockUserRoles));
     } catch (err) {
       console.error('Failed to fetch current user roles:', err);
-      // Default to level 1 on error
       setUserMaxHierarchyLevel(1);
     }
   }, []);
@@ -531,7 +327,6 @@ const [permissionSearch, setPermissionSearch] = useState('');
   const handleSaveRole = async () => {
     if (!canManageRoles) return;
     try {
-      // Prepare role data for API - map form fields to API expected format
       const roleData = {
         name: roleForm.name,
         displayName: roleForm.displayName,
@@ -550,410 +345,38 @@ const [permissionSearch, setPermissionSearch] = useState('');
         setApprovalNoticeFromResponse(response, 'Role update submitted for approval');
       }
 
-      // Close dialog and refresh data from database
       setRoleDialog({ open: false, mode: 'create', role: null });
       await accessManagementQuery.refetch();
     } catch (error) {
       console.error('❌ Error saving role to database:', error);
-      // TODO: Add proper error handling/notification to user
     }
   };
 
   const handleToggleRole = async (roleId: string, isActive: boolean) => {
     if (!canManageRoles) return;
     try {
-      // Use dedicated toggle API so disable does not go through delete/update semantics.
       const response = await toggleRoleMutation.mutateAsync(roleId);
       setApprovalNoticeFromResponse(response, `Role ${isActive ? 'disable' : 'enable'} submitted for approval`);
-
       await accessManagementQuery.refetch();
     } catch (error) {
       console.error('❌ Error toggling role status in database:', error);
-      // TODO: Add proper error handling/notification to user
     }
   };
 
-  const handleDeleteRole = async (roleId: string) => {
-    if (!canManageRoles) return;
+  const handlePermissionDialogSave = async () => {
     try {
-      // Call real API to delete role
-      const response = await deleteRoleMutation.mutateAsync(roleId);
-      setApprovalNoticeFromResponse(response, 'Role deletion submitted for approval');
-
-      // Refresh roles list
-      accessManagementQuery.refetch();
-    } catch (error) {
-      console.error('❌ Error deleting role from database:', error);
-      setError('Failed to delete role. Please try again.');
-    }
-  };
-
-  // Role Matrix handlers
-  const handleMassPermissionUpdate = async (roleId: string, permissionIds: string[]) => {
-    if (!canManageRoles) return;
-    try {
-      // Call real API to update permissions
-      const response = await updateRolePermissionsMutation.mutateAsync({ roleId, permissions: permissionIds });
-      setApprovalNoticeFromResponse(response, 'Permission update submitted for approval');
-
-
-      // Refresh roles list to show updated state
-      await accessManagementQuery.refetch();
-    } catch (error) {
-      console.error('❌ Error updating role permissions:', error);
-      setError('Failed to update role permissions. Please try again.');
-    }
-  };
-
-  const handleRolePermissionUpdate = async (roleId: string, permissionIds: string[]) => {
-    if (!canManageRoles) return;
-    try {
-      // Call real API to update permissions
-      const response = await updateRolePermissionsMutation.mutateAsync({ roleId, permissions: permissionIds });
-      setApprovalNoticeFromResponse(response, 'Permission update submitted for approval');
-
-      // Refresh roles list to show updated state
-      await accessManagementQuery.refetch();
-    } catch (error) {
-      console.error('❌ Error updating role permissions:', error);
-      setError('Failed to update role permissions. Please try again.');
-    }
-  };
-
-  // Permission Matrix handlers
-  const handlePermissionToggle = async (roleId: string, permissionId: string, isChecked: boolean) => {
-    if (!canManageRoles) return;
-    try {
-      const role = roles.find(r => r.id === roleId);
-      if (!role) return;
-
-      const currentPermissions = role.permissions.map(p => p.id);
-      let newPermissions: string[];
-
-      if (isChecked) {
-        newPermissions = [...currentPermissions, permissionId];
-      } else {
-        newPermissions = currentPermissions.filter(id => id !== permissionId);
-      }
-
-      // Call API to persist changes
-      const response = await updateRolePermissionsMutation.mutateAsync({ roleId, permissions: newPermissions });
-      setApprovalNoticeFromResponse(response, 'Permission update submitted for approval');
-    } catch (error) {
-      console.error('❌ Error toggling permission:', error);
-      setError('Failed to update permission. Please refresh and try again.');
-      await accessManagementQuery.refetch();
-    }
-  };
-
-  const handlePermissionGroupToggle = async (roleId: string, permissionIds: string[], isChecked: boolean) => {
-    if (!canManageRoles) return;
-    try {
-      const role = roles.find(r => r.id === roleId);
-      if (!role) return;
-
-      const nextPermissions = new Set(role.permissions.map(p => p.id));
-      if (isChecked) {
-        permissionIds.forEach((permissionId) => nextPermissions.add(permissionId));
-      } else {
-        permissionIds.forEach((permissionId) => nextPermissions.delete(permissionId));
-      }
-
-      const updatedPermissionIds = Array.from(nextPermissions);
-
-      const response = await updateRolePermissionsMutation.mutateAsync({ roleId, permissions: updatedPermissionIds });
-      setApprovalNoticeFromResponse(response, 'Permission update submitted for approval');
-    } catch (error) {
-      console.error('❌ Error toggling permission group:', error);
-      setError('Failed to update permission group. Please refresh and try again.');
-      await accessManagementQuery.refetch();
-    }
-  };
-
-  const handleBulkPermissionUpdate = async () => {
-    if (!canManageRoles) return;
-    try {
-      setBusy(true);
-      // This would need to be implemented in the backend
-      // For now, just refresh
-      await accessManagementQuery.refetch();
-    } catch (error) {
-      console.error('❌ Error in bulk permission update:', error);
-      setError('Failed to save bulk permission changes. Please try again.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleBulkPermissionAssignment = async () => {
-    if (!canManageRoles) return;
-    if (!bulkAssignmentRole || selectedBulkPermissions.length === 0) return;
-
-    const roleName = roles.find(r => r.id === bulkAssignmentRole)?.displayName || bulkAssignmentRole;
-    if (!window.confirm(`Assign ${selectedBulkPermissions.length} selected permissions to role "${roleName}"?`)) return;
-
-    try {
-      setBusy(true);
-      const response = await updateRolePermissionsMutation.mutateAsync({ roleId: bulkAssignmentRole, permissions: selectedBulkPermissions });
-      setApprovalNoticeFromResponse(response, 'Bulk permission update submitted for approval');
-
-      // Reset form
-      setBulkAssignmentRole(null);
-      setSelectedBulkPermissions([]);
-      setSelectAllPermissions(false);
-
-      // Refresh roles
-      await accessManagementQuery.refetch();
-    } catch (error) {
-      console.error('❌ Error in bulk assignment:', error);
-      setError('Failed to assign permissions. Please try again.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleQuickAssign = async (category: string) => {
-    if (!canManageRoles) return;
-    if (!bulkAssignmentRole) return;
-
-    const roleName = roles.find(r => r.id === bulkAssignmentRole)?.displayName || bulkAssignmentRole;
-    if (!window.confirm(`Assign all ${category.toUpperCase()} permissions to role "${roleName}"?`)) return;
-
-    try {
-      setBusy(true);
-      const categoryPermissions = permissions
-        .filter(p => p.category.toLowerCase() === category)
-        .map(p => p.id);
-
-      const response = await updateRolePermissionsMutation.mutateAsync({ roleId: bulkAssignmentRole, permissions: categoryPermissions });
-      setApprovalNoticeFromResponse(response, 'Permission assignment submitted for approval');
-
-      await accessManagementQuery.refetch();
-    } catch (error) {
-      console.error('❌ Error in quick assign:', error);
-      setError('Failed to assign permissions. Please try again.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleClearAllPermissions = async () => {
-    if (!canManageRoles) return;
-    if (!bulkAssignmentRole) return;
-
-    try {
-      setBusy(true);
-      const response = await updateRolePermissionsMutation.mutateAsync({ roleId: bulkAssignmentRole, permissions: [] });
-      setApprovalNoticeFromResponse(response, 'Permission clearing submitted for approval');
-
-      await accessManagementQuery.refetch();
-    } catch (error) {
-      console.error('❌ Error clearing permissions:', error);
-      setError('Failed to clear permissions. Please try again.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  // Helper functions
-  const getRoleTypeColor = (type: string) => {
-    switch (type) {
-      case 'SYSTEM': return 'error';
-      case 'BANKING': return 'primary';
-      case 'CUSTOM': return 'secondary';
-      default: return 'default';
-    }
-  };
-
-  const getRiskLevelColor = (risk: string) => {
-    switch (risk) {
-      case 'LOW': return 'success';
-      case 'MEDIUM': return 'warning';
-      case 'HIGH': return 'error';
-      case 'CRITICAL': return 'error';
-      default: return 'default';
-    }
-  };
-
-  // DataGrid columns
-  const roleColumns: GridColDef[] = [
-    {
-      field: 'displayName',
-      headerName: 'Role Name',
-      flex: 2,
-      minWidth: 200,
-      renderCell: (params: GridRenderCellParams) => (
-        <Box>
-          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-            {params.row.displayName}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {params.row.name}
-          </Typography>
-        </Box>
-      ),
-    },
-    {
-      field: 'responsibility',
-      headerName: 'Responsibility',
-      width: 190,
-      sortable: false,
-      renderCell: (params: GridRenderCellParams) => {
-        const responsibility = getRoleResponsibility({
-          name: params.row.name,
-          displayName: params.row.displayName,
+      if (permissionDialog.role) {
+        await updateRolePermissionsMutation.mutateAsync({
+          roleId: permissionDialog.role.id,
+          permissions: permissionDialog.selectedPermissions,
         });
-
-        return (
-          <Box>
-            <Chip
-              size="small"
-              variant="outlined"
-              color={responsibility.color}
-              label={responsibility.label}
-            />
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
-              {responsibility.scope}
-            </Typography>
-          </Box>
-        );
-      },
-    },
-    {
-      field: 'type',
-      headerName: 'Type',
-      width: 120,
-      renderCell: (params: GridRenderCellParams) => (
-        <Chip
-          label={params.row.type}
-          size="small"
-          color={getRoleTypeColor(params.row.type) as any}
-          variant="outlined"
-        />
-      ),
-    },
-    {
-      field: 'level',
-      headerName: 'Level',
-      width: 120,
-      renderCell: (params: GridRenderCellParams) => (
-        <Chip
-          label={params.row.level}
-          size="small"
-          variant="filled"
-          color="default"
-        />
-      ),
-    },
-    {
-      field: 'assignedUsers',
-      headerName: 'Users',
-      width: 80,
-      renderCell: (params: GridRenderCellParams) => (
-        <Badge badgeContent={params.row.assignedUsers} color="primary">
-          <PeopleIcon fontSize="small" />
-        </Badge>
-      ),
-    },
-    {
-      field: 'isActive',
-      headerName: 'Status',
-      width: 100,
-      renderCell: (params: GridRenderCellParams) => (
-        <Chip
-          label={params.row.isActive ? 'Active' : 'Inactive'}
-          size="small"
-          color={params.row.isActive ? 'success' : 'default'}
-          icon={params.row.isActive ? <CheckCircleIcon /> : <CancelIcon />}
-        />
-      ),
-    },
-    {
-      field: 'createdAt',
-      headerName: 'Created',
-      width: 120,
-      renderCell: (params: GridRenderCellParams) => (
-        <Typography variant="body2">
-          {params.row.createdAt ? format(parseISO(params.row.createdAt), 'MMM dd, yyyy') : '-'}
-        </Typography>
-      ),
-    },
-    {
-      field: 'actions',
-      headerName: 'Actions',
-      width: 150,
-      type: 'actions',
-      getActions: (params: GridRowParams) => [
-        ...(canViewRoles ? [(
-          <SafeGridActionsCellItem
-            key="view"
-            icon={<VisibilityIcon fontSize="small" />}
-            label="View Role"
-            onClick={() => handleViewRole(params.row)}
-          />
-        )] : []),
-        ...(canManageRoles ? [
-          (
-            <SafeGridActionsCellItem
-              key="edit"
-              icon={<EditIcon fontSize="small" />}
-              label="Edit Role"
-              onClick={() => handleEditRole(params.row)}
-              disabled={params.row.isBuiltIn}
-            />
-          ),
-          (
-            <SafeGridActionsCellItem
-              key="permissions"
-              icon={<SecurityIcon fontSize="small" />}
-              label="Manage Permissions"
-              onClick={() => handleManagePermissions(params.row)}
-            />
-          ),
-          (
-            <SafeGridActionsCellItem
-              key="toggle"
-              icon={params.row.isActive ? <CancelIcon fontSize="small" /> : <CheckCircleIcon fontSize="small" />}
-              label={params.row.isActive ? 'Disable Role' : 'Enable Role'}
-              onClick={() => handleToggleRole(params.row.id, params.row.isActive)}
-              disabled={params.row.isBuiltIn}
-            />
-          )
-        ] : []),
-      ],
-    },
-  ];
-
-  const StatCard: React.FC<{
-    title: string;
-    value: string | number;
-    icon: React.ReactNode;
-    color: string;
-    subtitle?: string;
-  }> = ({ title, value, icon, color, subtitle }) => (
-    <Card>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box>
-            <Typography color="text.secondary" gutterBottom variant="body2">
-              {title}
-            </Typography>
-            <Typography variant="h4" component="div" sx={{ color }}>
-              {value}
-            </Typography>
-            {subtitle && (
-              <Typography variant="caption" color="text.secondary">
-                {subtitle}
-              </Typography>
-            )}
-          </Box>
-          <Box sx={{ color, opacity: 0.7 }}>
-            {icon as any}
-          </Box>
-        </Box>
-      </CardContent>
-    </Card>
-  );
+        await accessManagementQuery.refetch();
+      }
+      setPermissionDialog({ open: false, role: null, selectedPermissions: [] });
+    } catch (error) {
+      console.error('❌ Error updating role permissions:', error);
+    }
+  };
 
   if (!canViewRoles) {
     return (
@@ -991,44 +414,7 @@ const [permissionSearch, setPermissionSearch] = useState('');
       )}
 
       {/* Statistics */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, md: 3 }}>
-          <StatCard
-            title="Total Roles"
-            value={roles.length}
-            icon={<SecurityIcon fontSize="large" />}
-            color={theme.palette.primary.main}
-            subtitle="Active roles"
-          />
-        </Grid>
-        <Grid size={{ xs: 12, md: 3 }}>
-          <StatCard
-            title="System Roles"
-            value={roles.filter(r => r.type === 'SYSTEM').length}
-            icon={<AdminIcon fontSize="large" />}
-            color={theme.palette.error.main}
-            subtitle="Built-in roles"
-          />
-        </Grid>
-        <Grid size={{ xs: 12, md: 3 }}>
-          <StatCard
-            title="Banking Roles"
-            value={roles.filter(r => r.type === 'BANKING').length}
-            icon={<BankingIcon fontSize="large" />}
-            color={theme.palette.info.main}
-            subtitle="Banking specific"
-          />
-        </Grid>
-        <Grid size={{ xs: 12, md: 3 }}>
-          <StatCard
-            title="Total Users"
-            value={roles.reduce((sum, role) => sum + (role.assignedUsers ?? 0), 0)}
-            icon={<PeopleIcon fontSize="large" />}
-            color={theme.palette.success.main}
-            subtitle="With assigned roles"
-          />
-        </Grid>
-      </Grid>
+      <AccessStatCards roles={roles} />
 
       {/* Tabs */}
       <Paper sx={{ mb: 3 }}>
@@ -1059,755 +445,65 @@ const [permissionSearch, setPermissionSearch] = useState('');
 
       {/* Roles Tab */}
       <TabPanel value={currentTab} index={0}>
-        {/* Filters */}
-        <Card sx={{ mb: 3 }}>
-          <CardHeader
-            title="Filters"
-            action={
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
-                  variant="outlined"
-                  startIcon={<ClearIcon />}
-                  onClick={handleClearFilters}
-                  size="small"
-                >
-                  Clear
-                </Button>
-                <Button
-                  variant="contained"
-                  startIcon={<RefreshIcon />}
-                  onClick={handleRefresh}
-                  disabled={loading}
-                  size="small"
-                >
-                  Refresh
-                </Button>
-                <Can permission={['admin.roles.create', 'admin.roles.manage']}>
-                  <Button
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={handleCreateRole}
-                    size="small"
-                    data-testid="access-management-add-role"
-                  >
-                    Add Role
-                  </Button>
-                </Can>
-              </Box>
-            }
-          />
-          <CardContent>
-            <Grid container spacing={2}>
-              <Grid size={{ xs: 12, md: 3 }}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Type</InputLabel>
-                  <Select
-                    value={filters.type || ''}
-                    onChange={(e) => handleFilterChange('type', e.target.value)}
-                    label="Type"
-                  >
-                    <MenuItem value="">All</MenuItem>
-                    <MenuItem value="SYSTEM">System</MenuItem>
-                    <MenuItem value="BANKING">Banking</MenuItem>
-                    <MenuItem value="CUSTOM">Custom</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid size={{ xs: 12, md: 3 }}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Level</InputLabel>
-                  <Select
-                    value={filters.level || ''}
-                    onChange={(e) => handleFilterChange('level', e.target.value)}
-                    label="Level"
-                  >
-                    <MenuItem value="">All</MenuItem>
-                    <MenuItem value="PLATFORM">Platform</MenuItem>
-                    <MenuItem value="TENANT">Tenant</MenuItem>
-                    <MenuItem value="DEPARTMENT">Department</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid size={{ xs: 12, md: 3 }}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Search"
-                  placeholder="Search roles..."
-                  value={filters.searchTerm || ''}
-                  onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
-                  InputProps={{
-                    startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
-                  }}
-                />
-              </Grid>
-            </Grid>
-          </CardContent>
-        </Card>
-
-        {/* Roles DataGrid */}
-        <Card>
-          <CardHeader
-            title={`Roles (${roles.length})`}
-            subheader={`Last updated: ${format(new Date(), 'MMM dd, yyyy HH:mm')}`}
-          />
-          <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
-            <SafeDataGrid
-              rows={roles}
-              columns={roleColumns}
-              loading={loading}
-              pageSizeOptions={[10, 25, 50]}
-              initialState={{
-                pagination: {
-                  paginationModel: { pageSize: 25 },
-                },
-              }}
-              checkboxSelection={canManageRoles}
-              disableRowSelectionOnClick
-              sx={{ height: 600 }}
-            />
-          </CardContent>
-        </Card>
+        <AccessFilters
+          filters={filters}
+          loading={loading}
+          onFilterChange={handleFilterChange}
+          onClearFilters={handleClearFilters}
+          onRefresh={handleRefresh}
+          onCreateRole={handleCreateRole}
+        />
+        <AccessRoleTable
+          roles={roles}
+          loading={loading}
+          canViewRoles={canViewRoles}
+          canManageRoles={canManageRoles}
+          onViewRole={handleViewRole}
+          onEditRole={handleEditRole}
+          onManagePermissions={handleManagePermissions}
+          onToggleRole={handleToggleRole}
+        />
       </TabPanel>
 
-      {/* Users Tab (Users + Assignments merged) */}
+      {/* Users Tab */}
       <TabPanel value={currentTab} index={1}>
         <UserManagementPanel embedded />
       </TabPanel>
 
       {/* Access Review Tab */}
       <TabPanel value={currentTab} index={2}>
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>Access Review</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Review effective access, high-risk grants, and assignment coverage.
-            </Typography>
-            <Grid container spacing={3}>
-              <Grid size={{ xs: 12, md: 3 }}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Typography variant="h4" color="primary">{roles.length}</Typography>
-                    <Typography variant="body2" color="text.secondary">Roles</Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid size={{ xs: 12, md: 3 }}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Typography variant="h4" color="primary">
-                      {roles.filter(r => !r.isBuiltIn).length}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">Custom Roles</Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid size={{ xs: 12, md: 3 }}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Typography variant="h4" color="error.main">
-                      {permissions.filter(p => p.riskLevel === 'CRITICAL').length}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">Critical Permissions</Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid size={{ xs: 12, md: 3 }}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Typography variant="h4" color="warning.main">
-                      {permissions.filter(p => p.requiresApproval).length}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">Approval Required</Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
-          </CardContent>
-        </Card>
-
-        {/* High-Risk Permissions List */}
-        <Card>
-          <CardHeader title="Critical & High-Risk Permissions" />
-          <Divider />
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Permission</TableCell>
-                  <TableCell>Risk</TableCell>
-                  <TableCell>Roles Assigned</TableCell>
-                  <TableCell>Approval</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {permissions.filter(p => p.riskLevel === 'CRITICAL' || p.riskLevel === 'HIGH').map((perm) => {
-                  const assignedRoles = roles.filter(r =>
-                    r.permissions?.some((p2: any) => p2.id === perm.id || p2.code === perm.code)
-                  );
-                  return (
-                    <TableRow key={perm.id}>
-                      <TableCell>
-                        <Typography variant="body2">{perm.displayName}</Typography>
-                        <Typography variant="caption" color="text.secondary">{perm.code}</Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={perm.riskLevel}
-                          size="small"
-                          color={perm.riskLevel === 'CRITICAL' ? 'error' : 'warning'}
-                          variant="outlined"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {assignedRoles.length > 0 ? (
-                          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                            {assignedRoles.map(r => (
-                              <Chip key={r.id} label={r.displayName} size="small" variant="outlined" />
-                            ))}
-                          </Box>
-                        ) : (
-                          <Typography variant="caption" color="text.secondary">Not assigned</Typography>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {perm.requiresApproval ? (
-                          <Chip label={`Level ${perm.requiredApprovalLevel || 1}`} size="small" color="warning" variant="outlined" />
-                        ) : (
-                          <Typography variant="caption" color="text.secondary">—</Typography>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-                {permissions.filter(p => p.riskLevel === 'CRITICAL' || p.riskLevel === 'HIGH').length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={4} align="center">
-                      <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
-                        No high-risk permissions found.
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Card>
+        <AccessReviewTab roles={roles} permissions={permissions} />
       </TabPanel>
 
       {/* Role Dialog */}
-      <Dialog
-        open={roleDialog.open}
+      <AccessRoleDialog
+        roleDialog={roleDialog}
+        roleForm={roleForm}
+        roleFormStep={roleFormStep}
+        permissionSelectionGroups={permissionSelectionGroups}
         onClose={() => setRoleDialog({ open: false, mode: 'create', role: null })}
-        maxWidth={roleFormStep === 0 ? "md" : "xl"}
-        fullWidth
-      >
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {roleDialog.mode === 'create' && 'Create New Role'}
-            {roleDialog.mode === 'edit' && 'Edit Role'}
-            {roleDialog.mode === 'view' && 'Role Details'}
-            <Chip label={roleFormStep === 0 ? 'Basic Info' : 'Permissions'} size="small" color="primary" variant="outlined" sx={{ ml: 'auto' }} />
-          </Box>
-        </DialogTitle>
-        <Stepper activeStep={roleFormStep} sx={{ px: 3, pt: 1, pb: 2 }}>
-          <Step><StepLabel>Basic Information</StepLabel></Step>
-          <Step><StepLabel>Permissions</StepLabel></Step>
-        </Stepper>
-        <DialogContent>
-          {roleFormStep === 0 && (
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label="Role Name (System)"
-                  value={roleForm.name}
-                  onChange={(e) => setRoleForm({ ...roleForm, name: e.target.value.toUpperCase() })}
-                  disabled={roleDialog.mode === 'view' || (roleDialog.role?.isBuiltIn)}
-                  placeholder="ROLE_NAME"
-                  inputProps={{ 'data-testid': 'access-management-role-name' }}
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label="Display Name"
-                  value={roleForm.displayName}
-                  onChange={(e) => setRoleForm({ ...roleForm, displayName: e.target.value })}
-                  disabled={roleDialog.mode === 'view'}
-                  placeholder="Human readable name"
-                  inputProps={{ 'data-testid': 'access-management-role-display-name' }}
-                />
-              </Grid>
-              <Grid size={{ xs: 12 }}>
-                <TextField
-                  fullWidth
-                  label="Description"
-                  value={roleForm.description}
-                  onChange={(e) => setRoleForm({ ...roleForm, description: e.target.value })}
-                  disabled={roleDialog.mode === 'view'}
-                  multiline
-                  rows={3}
-                  placeholder="Role description and responsibilities"
-                  inputProps={{ 'data-testid': 'access-management-role-description' }}
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 4 }}>
-                <FormControl fullWidth disabled={roleDialog.mode === 'view'}>
-                  <InputLabel>Type</InputLabel>
-                  <Select
-                    value={roleForm.type}
-                    onChange={(e) => setRoleForm({ ...roleForm, type: e.target.value as any })}
-                    label="Type"
-                  >
-                    <MenuItem value="SYSTEM">System</MenuItem>
-                    <MenuItem value="BANKING">Banking</MenuItem>
-                    <MenuItem value="CUSTOM">Custom</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid size={{ xs: 12, md: 4 }}>
-                <FormControl fullWidth disabled={roleDialog.mode === 'view'}>
-                  <InputLabel>Level</InputLabel>
-                  <Select
-                    value={roleForm.level}
-                    onChange={(e) => setRoleForm({ ...roleForm, level: e.target.value as any })}
-                    label="Level"
-                  >
-                    <MenuItem value="PLATFORM">Platform</MenuItem>
-                    <MenuItem value="TENANT">Tenant</MenuItem>
-                    <MenuItem value="DEPARTMENT">Department</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid size={{ xs: 12 }}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={roleForm.isActive}
-                      onChange={(e) => setRoleForm({ ...roleForm, isActive: e.target.checked })}
-                      disabled={roleDialog.mode === 'view'}
-                    />
-                  }
-                  label="Active Role"
-                />
-              </Grid>
-            </Grid>
-          )}
-          {roleFormStep === 1 && (
-            <Box sx={{ mt: 1 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="subtitle2">
-                  {roleForm.selectedPermissions.length} permissions selected
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button size="small" onClick={() => {
-                    const allPerms = permissionSelectionGroups.flatMap(g => g.permissions.map(p => p.code ?? ''));
-                    setRoleForm({ ...roleForm, selectedPermissions: allPerms });
-                  }}>Select All</Button>
-                  <Button size="small" onClick={() => setRoleForm({ ...roleForm, selectedPermissions: [] })}>Clear All</Button>
-                </Box>
-              </Box>
-              {permissionSelectionGroups.map((group) => {
-                const groupPerms = group.permissions.filter(p => p.code);
-                const selectedCount = groupPerms.filter(p => roleForm.selectedPermissions.includes(p.code!)).length;
-                const allSelected = selectedCount === groupPerms.length;
-                return (
-                  <Accordion key={group.key} defaultExpanded={selectedCount > 0} sx={{ mb: 1 }}>
-                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                        <Checkbox
-                          size="small"
-                          checked={allSelected}
-                          indeterminate={selectedCount > 0 && !allSelected}
-                          onChange={(e) => {
-                            const codes = groupPerms.map(p => p.code!);
-                            if (e.target.checked) {
-                              setRoleForm({
-                                ...roleForm,
-                                selectedPermissions: [...new Set([...roleForm.selectedPermissions, ...codes])],
-                              });
-                            } else {
-                              setRoleForm({
-                                ...roleForm,
-                                selectedPermissions: roleForm.selectedPermissions.filter(c => !codes.includes(c)),
-                              });
-                            }
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        <Typography variant="subtitle2">{group.label}</Typography>
-                        <Chip label={`${selectedCount}/${groupPerms.length}`} size="small" variant="outlined" />
-                      </Box>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 1 }}>
-                        {groupPerms.map((perm) => (
-                          <FormControlLabel
-                            key={perm.code}
-                            control={
-                              <Checkbox
-                                size="small"
-                                checked={roleForm.selectedPermissions.includes(perm.code!)}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    setRoleForm({ ...roleForm, selectedPermissions: [...roleForm.selectedPermissions, perm.code!] });
-                                  } else {
-                                    setRoleForm({ ...roleForm, selectedPermissions: roleForm.selectedPermissions.filter(c => c !== perm.code) });
-                                  }
-                                }}
-                              />
-                            }
-                            label={
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <Typography variant="caption">{perm.displayName || perm.code}</Typography>
-                                {perm.riskLevel === 'CRITICAL' && <Chip label="Critical" size="small" color="error" variant="outlined" sx={{ height: 18, fontSize: 10 }} />}
-                                {perm.requiresApproval && <Chip label="Approval" size="small" color="warning" variant="outlined" sx={{ height: 18, fontSize: 10 }} />}
-                              </Box>
-                            }
-                            componentsProps={{ typography: { variant: 'caption' } }}
-                          />
-                        ))}
-                      </Box>
-                    </AccordionDetails>
-                  </Accordion>
-                );
-              })}
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
-          <Box>
-            {roleFormStep > 0 && roleDialog.mode !== 'view' && (
-              <Button onClick={() => setRoleFormStep(roleFormStep - 1)}>Back</Button>
-            )}
-          </Box>
-          <Box>
-            <Button onClick={() => setRoleDialog({ open: false, mode: 'create', role: null })}>
-              {roleDialog.mode === 'view' ? 'Close' : 'Cancel'}
-            </Button>
-            {roleDialog.mode !== 'view' && roleFormStep === 0 && (
-              <Button variant="contained" onClick={() => setRoleFormStep(1)} sx={{ ml: 1 }}>
-                Next: Permissions
-              </Button>
-            )}
-            {roleDialog.mode !== 'view' && roleFormStep === 1 && (
-              <Button variant="contained" onClick={handleSaveRole} sx={{ ml: 1 }} data-testid="access-management-save-role">
-                {roleDialog.mode === 'create' ? 'Create Role' : 'Update Role'}
-              </Button>
-            )}
-          </Box>
-        </DialogActions>
-      </Dialog>
+        onSave={handleSaveRole}
+        onRoleFormChange={setRoleForm}
+        onRoleFormStepChange={setRoleFormStep}
+      />
 
       {/* Permission Management Dialog */}
-      <Dialog
-        open={permissionDialog.open}
+      <AccessPermissionDialog
+        permissionDialog={permissionDialog}
+        permissionSearch={permissionSearch}
+        permissionGroupingMode={permissionGroupingMode}
+        permissionSelectionGroups={permissionSelectionGroups}
+        permissions={permissions}
         onClose={() => setPermissionDialog({ open: false, role: null, selectedPermissions: [] })}
-        maxWidth="xl"
-        fullWidth
-        PaperProps={{
-          sx: { minHeight: '80vh' }
-        }}
-      >
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Box>
-              <Typography variant="h6" component="div">
-                Manage Permissions: {permissionDialog.role?.displayName}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {permissionDialog.role?.type} • {permissionDialog.role?.level} Level
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Chip
-                label={`${permissionDialog.selectedPermissions.length}/${permissions.length} Selected`}
-                color={permissionDialog.selectedPermissions.length === permissions.length ? 'success' : 'default'}
-                size="small"
-              />
-            </Box>
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 2 }}>
-            {/* Search */}
-            <TextField
-              fullWidth
-              size="small"
-              placeholder="Search permissions..."
-              value={permissionSearch}
-              onChange={(e) => setPermissionSearch(e.target.value)}
-              InputProps={{
-                startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>,
-              }}
-              sx={{ mb: 2 }}
-            />
-            {/* Category Selection Controls */}
-            <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={permissionSelectionGroups.every(group =>
-                      group.permissions.every(p => permissionDialog.selectedPermissions.includes(p.id))
-                    )}
-                    indeterminate={permissionSelectionGroups.some(group =>
-                      group.permissions.some(p => permissionDialog.selectedPermissions.includes(p.id)) &&
-                      !group.permissions.every(p => permissionDialog.selectedPermissions.includes(p.id))
-                    )}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        // Select all permissions from all groups
-                        const allPermissionIds = permissionSelectionGroups.flatMap(group => group.permissions.map(p => p.id));
-                        setPermissionDialog({
-                          ...permissionDialog,
-                          selectedPermissions: [...new Set([...permissionDialog.selectedPermissions, ...allPermissionIds])]
-                        });
-                      } else {
-                        // Deselect all
-                        setPermissionDialog({
-                          ...permissionDialog,
-                          selectedPermissions: []
-                        });
-                      }
-                    }}
-                  />
-                }
-                label={<Typography variant="subtitle1" fontWeight="bold">Select All Permissions</Typography>}
-              />
-              <FormControl size="small" sx={{ minWidth: 250 }}>
-                <InputLabel>Group Permissions By</InputLabel>
-                <Select
-                  value={permissionGroupingMode}
-                  onChange={(e) => setPermissionGroupingMode(e.target.value as PermissionGroupingMode)}
-                  label="Group Permissions By"
-                >
-                  <MenuItem value="resource">Menu (Recommended)</MenuItem>
-                  <MenuItem value="module">Module</MenuItem>
-                  <MenuItem value="category">Legacy Category</MenuItem>
-                </Select>
-              </FormControl>
-              <Typography variant="body2" color="text.secondary">
-                {permissionDialog.selectedPermissions.length} of {permissions.length} permissions selected
-              </Typography>
-            </Box>
-
-            {/* Permission Groups */}
-            {permissionSelectionGroups
-              .map((group) => {
-                const filtered = permissionSearch
-                  ? group.permissions.filter(p =>
-                      (p.displayName || '').toLowerCase().includes(permissionSearch.toLowerCase()) ||
-                      (p.code || '').toLowerCase().includes(permissionSearch.toLowerCase()) ||
-                      (p.description || '').toLowerCase().includes(permissionSearch.toLowerCase())
-                    )
-                  : group.permissions;
-                return { ...group, permissions: filtered };
-              })
-              .filter((group) => group.permissions.length > 0)
-              .map((group) => {
-              const groupPermissions = group.permissions;
-              const selectedInGroup = groupPermissions.filter(p => permissionDialog.selectedPermissions.includes(p.id)).length;
-              const isGroupFullySelected = selectedInGroup === groupPermissions.length;
-              const isGroupPartiallySelected = selectedInGroup > 0 && selectedInGroup < groupPermissions.length;
-
-              return (
-                <Accordion key={group.key} defaultExpanded>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={isGroupFullySelected}
-                            indeterminate={isGroupPartiallySelected}
-                            onChange={(e) => {
-                              e.stopPropagation(); // Prevent accordion toggle
-                              const groupPermissionIds = groupPermissions.map(p => p.id);
-                              if (e.target.checked) {
-                                // Select all in this group
-                                setPermissionDialog({
-                                  ...permissionDialog,
-                                  selectedPermissions: [...new Set([...permissionDialog.selectedPermissions, ...groupPermissionIds])]
-                                });
-                              } else {
-                                // Deselect all in this group
-                                setPermissionDialog({
-                                  ...permissionDialog,
-                                  selectedPermissions: permissionDialog.selectedPermissions.filter(id => !groupPermissionIds.includes(id))
-                                });
-                              }
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        }
-                        label={
-                          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                            {group.label}
-                          </Typography>
-                        }
-                        sx={{ flex: 1 }}
-                      />
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Chip
-                          label={`${selectedInGroup}/${groupPermissions.length}`}
-                          size="small"
-                          color={isGroupFullySelected ? 'success' : selectedInGroup > 0 ? 'warning' : 'default'}
-                          variant="outlined"
-                        />
-                        <Typography variant="body2" color="text.secondary">
-                          {group.hint}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    {getPermissionSections(group.permissions).map((section) => (
-                      <Box key={section.key} sx={{ mb: 2 }}>
-                        {group.key !== section.key && (
-                          <Box sx={{ mb: 1 }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                              {section.label}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {section.hint}
-                            </Typography>
-                          </Box>
-                        )}
-                        <Grid container spacing={1}>
-                          {section.permissions.map((permission) => (
-                            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={permission.id}>
-                              <FormControlLabel
-                                control={
-                                  <Checkbox
-                                    size="small"
-                                    checked={permissionDialog.selectedPermissions.includes(permission.id)}
-                                    onChange={(e) => {
-                                      const selected = permissionDialog.selectedPermissions;
-                                      if (e.target.checked) {
-                                        setPermissionDialog({
-                                          ...permissionDialog,
-                                          selectedPermissions: [...selected, permission.id]
-                                        });
-                                      } else {
-                                        setPermissionDialog({
-                                          ...permissionDialog,
-                                          selectedPermissions: selected.filter(id => id !== permission.id)
-                                        });
-                                      }
-                                    }}
-                                  />
-                                }
-                                label={
-                                  <Box sx={{ minWidth: 0 }}>
-                                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                                      {permission.displayName}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                                      {getPermissionCanonicalKey(permission)}
-                                    </Typography>
-                                    <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
-                                      <Chip
-                                        label={permission.riskLevel}
-                                        size="small"
-                                        color={getRiskLevelColor(permission.riskLevel) as any}
-                                        variant="outlined"
-                                      />
-                                      {permission.requiresApproval && (
-                                        <Chip label="Approval" size="small" color="warning" variant="filled" />
-                                      )}
-                                      {permission.syariahRequired && (
-                                        <Chip label="Syariah" size="small" color="secondary" variant="outlined" />
-                                      )}
-                                    </Box>
-                                  </Box>
-                                }
-                              />
-                            </Grid>
-                          ))}
-                        </Grid>
-                        {group.key !== section.key && <Divider sx={{ mt: 1.5 }} />}
-                      </Box>
-                    ))}
-                  </AccordionDetails>
-                </Accordion>
-              );
-            })}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Box sx={{ display: 'flex', gap: 1, flex: 1 }}>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() => {
-                // Select all critical permissions
-                const criticalPermissions = permissions.filter(p => p.riskLevel === 'CRITICAL').map(p => p.id);
-                setPermissionDialog({
-                  ...permissionDialog,
-                  selectedPermissions: [...new Set([...permissionDialog.selectedPermissions, ...criticalPermissions])]
-                });
-              }}
-            >
-              + Critical
-            </Button>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() => {
-                // Select all permissions requiring approval
-                const approvalPermissions = permissions.filter(p => p.requiresApproval).map(p => p.id);
-                setPermissionDialog({
-                  ...permissionDialog,
-                  selectedPermissions: [...new Set([...permissionDialog.selectedPermissions, ...approvalPermissions])]
-                });
-              }}
-            >
-              + Approval Required
-            </Button>
-            <Button
-              variant="outlined"
-              size="small"
-              color="error"
-              onClick={() => {
-                setPermissionDialog({
-                  ...permissionDialog,
-                  selectedPermissions: []
-                });
-              }}
-            >
-              Clear All
-            </Button>
-          </Box>
-          <Button onClick={() => setPermissionDialog({ open: false, role: null, selectedPermissions: [] })}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            onClick={async () => {
-              try {
-                if (permissionDialog.role) {
-                  await updateRolePermissionsMutation.mutateAsync({
-                    roleId: permissionDialog.role.id,
-                    permissions: permissionDialog.selectedPermissions,
-                  });
-
-                  await accessManagementQuery.refetch();
-                }
-                setPermissionDialog({ open: false, role: null, selectedPermissions: [] });
-              } catch (error) {
-                console.error('❌ Error updating role permissions:', error);
-                // TODO: Add proper error handling/notification to user
-              }
-            }}
-            disabled={permissionDialog.selectedPermissions.length === 0}
-          >
-            Save {permissionDialog.selectedPermissions.length} Permission{permissionDialog.selectedPermissions.length !== 1 ? 's' : ''}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onSave={handlePermissionDialogSave}
+        onPermissionSearchChange={setPermissionSearch}
+        onPermissionGroupingModeChange={setPermissionGroupingMode}
+        onPermissionDialogChange={(dialog) => setPermissionDialog(dialog)}
+        getPermissionSections={getPermissionSections}
+      />
     </Box>
   );
-};
+}
 
 export default function AccessManagementPageWrapper() {
   return (
