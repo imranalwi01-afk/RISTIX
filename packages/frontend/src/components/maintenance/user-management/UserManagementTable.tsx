@@ -109,7 +109,7 @@ const UserManagementTable = memo(function UserManagementTable({
       field: 'actions',
       headerName: 'Actions',
       type: 'actions',
-      width: 144,
+      width: 220,
       filterable: false,
       sortable: false,
       getActions: (params) => [
