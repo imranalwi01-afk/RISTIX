@@ -37,6 +37,7 @@ import { individualImpairmentRoutes } from './individual-impairment.routes'
 import { ifrs9Routes } from './ifrs9.routes'
 import { monitoringRoutes } from './monitoring.routes'
 import { menuRoutes } from './menu.routes'
+import { platformSettingsRoutes } from './platform-settings.routes'
 
 // DEBUG ROUTE
 const debugRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
@@ -60,6 +61,7 @@ routes.route('/rbac', rbacRoutes)
 routes.route('/audit', auditRoutes)
 routes.route('/monitoring', monitoringRoutes)
 routes.route('/menu', menuRoutes)
+routes.route('/platform/settings', platformSettingsRoutes)
 
 routes.route('/consultants', consultantsRoutes)
 routes.route('/platform-users', platformUsersRoutes)
