@@ -81,7 +81,6 @@ import { RolePermissionsEditor } from '@/components/rbac/RolePermissionsEditor';
 import { Can } from '@/components/rbac/Can';
 import { usePermission } from '@/hooks/usePermission';
 import UserManagementPanel from '@/components/maintenance/UserManagementPanel';
-import UserRoleAssignmentSimple from '@/components/roles/UserRoleAssignmentSimple';
 import { getRoleResponsibility } from '@/components/roles/role-responsibility.utils';
 import {
   buildPermissionMatrixItem,
@@ -1173,10 +1172,6 @@ const [permissionSearch, setPermissionSearch] = useState('');
       {/* Users Tab (Users + Assignments merged) */}
       <TabPanel value={currentTab} index={1}>
         <UserManagementPanel embedded />
-        <Box sx={{ mt: 4 }}>
-          <Typography variant="h6" sx={{ mb: 2 }}>Role Assignments</Typography>
-          <UserRoleAssignmentSimple onAssignmentChange={() => accessManagementQuery.refetch()} />
-        </Box>
       </TabPanel>
 
       {/* Access Review Tab */}
