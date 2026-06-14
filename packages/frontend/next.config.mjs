@@ -1,14 +1,8 @@
 /** @type {import('next').NextConfig} */
 import bundleAnalyzer from '@next/bundle-analyzer';
-import withPWAInit from '@ducanh2912/next-pwa';
 
 const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
-});
-
-const withPWA = withPWAInit({
-  dest: 'public',
-  disable: process.env.NODE_ENV === 'development',
 });
 
 const nextConfig = {
@@ -16,6 +10,8 @@ const nextConfig = {
   // PERFORMANCE OPTIMIZATIONS
   // ============================================================================
   // Enable standalone output for Docker
+  // Force webpack for bundle analyzer compatibility
+  turbopack: {},
   output: 'standalone',
   allowedDevOrigins: [
     'localhost',
@@ -225,4 +221,4 @@ const nextConfig = {
   },
 };
 
-export default withBundleAnalyzer(withPWA(nextConfig));
+export default withBundleAnalyzer(nextConfig);
