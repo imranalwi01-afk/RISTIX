@@ -32,14 +32,6 @@ import { getErrorMessage } from '@/utils/error-message';
 import { ResetPasswordDialog } from '@/components/users/ResetPasswordDialog';
 import { usersAPI } from '@/services/api/users.api';
 
-const extractRolesArray = (res: any): any[] => {
-  if (Array.isArray(res)) return res;
-  if (!res || typeof res !== 'object') return [];
-  if (Array.isArray(res.data)) return res.data;
-  if (res.data && typeof res.data === 'object' && Array.isArray(res.data.data)) return res.data.data;
-  if (Array.isArray(res.roles)) return res.roles;
-  return [];
-};
 import InputAdornment from '@mui/material/InputAdornment';
 import IconButton from '@mui/material/IconButton';
 import Checkbox from '@mui/material/Checkbox';
@@ -53,6 +45,8 @@ import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import CircularProgress from '@mui/material/CircularProgress';
 import Stack from '@mui/material/Stack';
+import { useAllRoles, useInvalidateRoleQueries } from '@/features/roles/hooks/useRoleQueries';
+import { extractRolesArray } from '@/features/roles/hooks/useRoleQueries';
 import {
   UserFormDialog,
   UserManagementFilters,
@@ -71,6 +65,10 @@ interface UserManagementPanelProps {
 export default function UserManagementPanel({ embedded = false }: UserManagementPanelProps) {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
+
+  // ✅ React Query hooks for role data (cached)
+  const allRolesQuery = useAllRoles();
+  const { invalidateUserRoles } = useInvalidateRoleQueries();
 
   // ✅ State Management
   const [users, setUsers] = useState<User[]>([]);
@@ -135,8 +133,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
   // ✅ Open manage roles dialog
   const handleManageRoles = async (user: User) => {
     try {
-      const rolesRes = await api.roles.getAll({ includeInactive: true });
-      const rawRoles = extractRolesArray(rolesRes);
+      const rawRoles = allRolesQuery.data ?? [];
       let userRoleIds: string[] = [];
       try {
         const userRolesRes = await api.roles.getUserRoles(user.id);
@@ -181,6 +178,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
         setSnackbar({ open: true, message: 'Failed to update some roles', severity: 'error' });
       } else {
         setManageRolesDialog(prev => ({ ...prev, saving: false, open: false }));
+        invalidateUserRoles(d.user.id);
         setSnackbar({
           open: true,
           message: anyApproval ? 'Role changes submitted for approval.' : 'Roles updated successfully',
