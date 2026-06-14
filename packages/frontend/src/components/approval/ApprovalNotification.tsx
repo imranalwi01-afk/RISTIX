@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/components/approval/ApprovalNotification.tsx
 import React from 'react';
 import { Snackbar, Alert, Button, Box, Typography } from '@mui/material';

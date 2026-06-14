@@ -1,4 +1,5 @@
 // @ts-nocheck
+'use client';
 import React from 'react';
 import { Box, Card, CardContent, Typography, Skeleton, Fade } from '@mui/material';
 import {

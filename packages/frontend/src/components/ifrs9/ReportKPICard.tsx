@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/components/ifrs9/ReportKPICard.tsx
 import React from 'react';
 import {

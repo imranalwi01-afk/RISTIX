@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/components/banking/shared/PageHeader.tsx
 // ============================================================================
 // 🧹 CLEANUP: Shared Page Header Component

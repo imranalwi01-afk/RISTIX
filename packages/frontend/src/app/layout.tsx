@@ -156,6 +156,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
           {/* Skip to content link for keyboard/screen reader users */}
           <a
             href="#main-content"
+            className="skip-to-content"
             style={{
               position: 'absolute',
               left: -9999,
@@ -169,17 +170,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
               color: '#fff',
               textDecoration: 'none',
               fontSize: 14,
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.left = '8px';
-              e.currentTarget.style.top = '8px';
-              e.currentTarget.style.width = 'auto';
-              e.currentTarget.style.height = 'auto';
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.left = '-9999px';
-              e.currentTarget.style.width = '1px';
-              e.currentTarget.style.height = '1px';
             }}
           >
             Skip to main content

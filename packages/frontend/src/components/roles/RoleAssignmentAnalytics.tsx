@@ -1,3 +1,5 @@
+'use client';
+
 // ifrs9-iaf/packages/frontend/src/components/roles/RoleAssignmentAnalytics.tsx
 import React, { useState, useEffect } from 'react';
 import Card from '@mui/material/Card'

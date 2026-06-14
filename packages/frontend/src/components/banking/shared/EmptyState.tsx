@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/components/banking/shared/EmptyState.tsx
 // ============================================================================
 // 🧹 CLEANUP: Shared Empty State Component

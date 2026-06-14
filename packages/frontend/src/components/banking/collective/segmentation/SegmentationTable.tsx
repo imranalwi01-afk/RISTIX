@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useMemo } from 'react';
 import { Box, Chip, IconButton, Tooltip, Typography } from '@mui/material';
 import {

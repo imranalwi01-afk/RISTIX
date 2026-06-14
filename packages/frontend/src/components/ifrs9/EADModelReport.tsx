@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/components/ifrs9/EADModelReport.tsx
 import React, { useState, useMemo } from 'react';
 import {

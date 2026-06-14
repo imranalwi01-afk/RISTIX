@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/components/navigation/DatabaseDrivenMenu.tsx
 // ============================================================================
 // Database-Driven Menu Component for IFRS9 Platform
