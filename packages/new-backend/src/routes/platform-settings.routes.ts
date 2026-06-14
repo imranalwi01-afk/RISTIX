@@ -9,6 +9,32 @@ const platformDb = getDatabase(null)
 
 export const platformSettingsRoutes = new OpenAPIHono<AppContext>()
 
+// GET /platform/settings/public - Get public branding settings (no auth required)
+platformSettingsRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/public',
+        tags: ['Platform Settings'],
+        summary: 'Get public platform settings (branding)',
+        responses: { 200: { description: 'Public settings' } },
+    }),
+    async (c) => {
+        try {
+            const [branding] = await platformDb.select().from(platformSettings)
+                .where(eq(platformSettings.key, 'branding')).limit(1)
+            return c.json({
+                success: true,
+                data: {
+                    platformName: (branding?.value as any)?.platformName ?? null,
+                    logoUrl: (branding?.value as any)?.logoUrl ?? null,
+                },
+            })
+        } catch (error) {
+            return c.json(buildErrorResponse(c, { error: 'Failed to fetch public settings' }), 500)
+        }
+    }
+)
+
 // GET /platform/settings/templates - List email templates
 platformSettingsRoutes.openapi(
     createRoute({
