@@ -97,7 +97,7 @@ export default function PlatformMenuManagementPage() {
   const loadRoles = useCallback(async () => {
     if (!tenantId) return;
     try {
-      const baseURL = api.client.defaults.baseURL || 'https://iaf-ifrs-be.danafin.com/api/v1';
+      const baseURL = api.client.defaults.baseURL;
       const token = localStorage.getItem('auth_token');
       const res = await fetch(`${baseURL}/roles?tenantId=${tenantId}`, {
         headers: { 'Authorization': `Bearer ${token}`, 'X-Tenant-ID': tenantId, 'Content-Type': 'application/json' }
@@ -109,7 +109,7 @@ export default function PlatformMenuManagementPage() {
 
   const loadTenants = async () => {
     try {
-      const baseURL = api.client.defaults.baseURL || 'https://iaf-ifrs-be.danafin.com/api/v1';
+      const baseURL = api.client.defaults.baseURL;
       const token = localStorage.getItem('auth_token');
       const res = await fetch(`${baseURL}/tenants`, {
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
@@ -125,7 +125,7 @@ export default function PlatformMenuManagementPage() {
     setError(null);
     try {
       const token = localStorage.getItem('auth_token');
-      const baseURL = (await import('@/services/api')).api.client.defaults.baseURL || 'https://iaf-ifrs-be.danafin.com/api/v1';
+      const baseURL = api.client.defaults.baseURL;
       const res = await fetch(`${baseURL}/menu/hierarchy`, {
         headers: { 'Authorization': `Bearer ${token}`, 'X-Tenant-ID': tenantId, 'Content-Type': 'application/json' }
       }).then(r => r.json());
@@ -389,7 +389,7 @@ export default function PlatformMenuManagementPage() {
                           setPermDialog({ ...permDialog, open: true, item });
                           loadRoles();
                           // Load existing permissions for this item
-                          fetch(`${api.client.defaults.baseURL || 'https://iaf-ifrs-be.danafin.com/api/v1'}/menu/permissions?tenantId=${tenantId}`, {
+                          fetch(`${api.client.defaults.baseURL}/menu/permissions?tenantId=${tenantId}`, {
                             headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
                           }).then(r => r.json()).then(res => {
                             const perms = (res?.data || []).filter((p: any) => p.menuItemId === item.id);
@@ -561,7 +561,7 @@ export default function PlatformMenuManagementPage() {
                     setPermDialog(p => ({ ...p, selectedRoles: next }));
                     // Save permission
                     try {
-                      const baseURL = api.client.defaults.baseURL || 'https://iaf-ifrs-be.danafin.com/api/v1';
+                      const baseURL = api.client.defaults.baseURL;
                       const token = localStorage.getItem('auth_token');
                       await fetch(`${baseURL}/menu/permissions?tenantId=${tenantId}`, {
                         method: 'POST',
