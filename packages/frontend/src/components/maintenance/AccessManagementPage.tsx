@@ -137,42 +137,10 @@ function AccessManagementPage() {
     selectedPermissions: [],
   });
 
-  const [roleForm, setRoleForm] = useState<{
-    name: string;
-    displayName: string;
-    description: string;
-    type: 'SYSTEM' | 'BANKING' | 'CUSTOM';
-    level: 'PLATFORM' | 'TENANT' | 'DEPARTMENT';
-    isActive: boolean;
-    selectedPermissions: string[];
-  }>({
-    name: '',
-    displayName: '',
-    description: '',
-    type: 'CUSTOM',
-    level: 'TENANT',
-    isActive: true,
-    selectedPermissions: [],
-  });
-  const [roleFormStep, setRoleFormStep] = useState(0);
-
   const accessManagementQuery = useAccessManagementDataQuery(filters);
-  const createRoleMutation = useCreateAccessRoleMutation();
-  const updateRoleMutation = useUpdateAccessRoleMutation();
-  const toggleRoleMutation = useToggleAccessRoleMutation();
-  const deleteRoleMutation = useDeleteAccessRoleMutation();
-  const updateRolePermissionsMutation = useUpdateAccessRolePermissionsMutation();
+  const loading = busy || accessManagementQuery.isLoading || accessManagementQuery.isFetching;
   const roles = (accessManagementQuery.data?.roles ?? []) as Role[];
   const permissions = (accessManagementQuery.data?.permissions ?? []) as Permission[];
-  const loading =
-    busy ||
-    accessManagementQuery.isLoading ||
-    accessManagementQuery.isFetching ||
-    createRoleMutation.isPending ||
-    updateRoleMutation.isPending ||
-    toggleRoleMutation.isPending ||
-    deleteRoleMutation.isPending ||
-    updateRolePermissionsMutation.isPending;
 
   const permissionCategories = useMemo<PermissionCategory[]>(() => {
     const categories: { [key: string]: PermissionCategory } = {};
@@ -265,40 +233,12 @@ function AccessManagementPage() {
 
   const handleCreateRole = () => {
     if (!canManageRoles) return;
-    setRoleForm({
-      name: '',
-      displayName: '',
-      description: '',
-      type: 'CUSTOM',
-      level: 'TENANT',
-      isActive: true,
-      selectedPermissions: [],
-    });
-    setRoleFormStep(0);
-    setRoleDialog({
-      open: true,
-      mode: 'create',
-      role: null,
-    });
+    setRoleDialog({ open: true, mode: 'create', role: null });
   };
 
   const handleEditRole = (role: Role) => {
     if (!canManageRoles) return;
-    setRoleForm({
-      name: role.name,
-      displayName: role.displayName,
-      description: role.description,
-      type: role.type,
-      level: role.level,
-      isActive: role.isActive,
-      selectedPermissions: role.permissions?.map((p: any) => p.code ?? p) ?? [],
-    });
-    setRoleFormStep(0);
-    setRoleDialog({
-      open: true,
-      mode: 'edit',
-      role,
-    });
+    setRoleDialog({ open: true, mode: 'edit', role });
   };
 
   const handleViewRole = (role: Role) => {
@@ -325,7 +265,7 @@ function AccessManagementPage() {
     return false;
   };
 
-  const handleSaveRole = async () => {
+  const handleSaveRole = async (roleForm: { name: string; displayName: string; description: string; type: string; level: string; isActive: boolean; selectedPermissions: string[] }) => {
     if (!canManageRoles) return;
     try {
       const roleData = {
@@ -475,14 +415,12 @@ function AccessManagementPage() {
 
       {/* Role Dialog */}
       <AccessRoleDialog
-        roleDialog={roleDialog}
-        roleForm={roleForm}
-        roleFormStep={roleFormStep}
+        open={roleDialog.open}
+        mode={roleDialog.mode}
+        role={roleDialog.role}
         permissionSelectionGroups={permissionSelectionGroups}
-        onClose={() => setRoleDialog({ open: false, mode: 'create', role: null })}
+        onClose={() => setRoleDialog(prev => ({ ...prev, open: false }))}
         onSave={handleSaveRole}
-        onRoleFormChange={setRoleForm}
-        onRoleFormStepChange={setRoleFormStep}
       />
 
       {/* Permission Management Dialog */}
