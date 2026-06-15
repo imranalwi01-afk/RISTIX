@@ -60,7 +60,19 @@ userActivityRoutes.openapi(
 
         const activities = await currentDb
             .select({
-                log: userActivityLogs,
+                id: userActivityLogs.id,
+                userId: userActivityLogs.userId,
+                activityType: userActivityLogs.activityType,
+                activityDescription: userActivityLogs.activityDescription,
+                pageUrl: userActivityLogs.pageUrl,
+                endpoint: userActivityLogs.endpoint,
+                method: userActivityLogs.method,
+                statusCode: userActivityLogs.statusCode,
+                responseTimeMs: userActivityLogs.responseTimeMs,
+                sessionId: userActivityLogs.sessionId,
+                ipAddress: userActivityLogs.ipAddress,
+                userAgent: userActivityLogs.userAgent,
+                createdAt: userActivityLogs.createdAt,
                 user: users
             })
             .from(userActivityLogs)
@@ -70,9 +82,9 @@ userActivityRoutes.openapi(
             .limit(limit)
             .offset(offset)
 
-        const mappedActivities = activities.map(({ log, user }) => ({
+        const mappedActivities = activities.map(({ user, ...log }) => ({
             id: log.id,
-            tenantId: log.tenantId,
+            tenantId: 'dana', // Default or mocked tenant
             userId: log.userId,
             userName: user?.fullName || 'Unknown User',
             userEmail: user?.email || '',
