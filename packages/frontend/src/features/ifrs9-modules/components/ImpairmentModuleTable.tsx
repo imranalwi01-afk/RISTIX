@@ -14,6 +14,7 @@ interface ImpairmentModuleTableProps {
   loading: boolean;
   selectedPkid: string | null;
   detailSupported: boolean;
+  hidePagination?: boolean;
   onSelectRow: (pkid: string) => void;
   onPageChange: (page: number) => void;
   onRowsPerPageChange: (rowsPerPage: number) => void;
@@ -42,6 +43,7 @@ export function ImpairmentModuleTable({
   loading,
   selectedPkid,
   detailSupported,
+  hidePagination,
   onSelectRow,
   onPageChange,
   onRowsPerPageChange,
@@ -101,6 +103,7 @@ export function ImpairmentModuleTable({
       rowCount={totalCount}
       paginationMode="offset"
       paginationModel={{ page, pageSize: rowsPerPage }}
+      hideFooterPagination={hidePagination}
       onPaginationModelChange={(model) => {
         if (model.page !== page) onPageChange(model.page);
         if (model.pageSize !== rowsPerPage) onRowsPerPageChange(model.pageSize);

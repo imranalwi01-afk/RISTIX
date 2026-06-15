@@ -34,6 +34,8 @@ const nextConfig = {
     '@mui/x-date-pickers',
     '@mui/x-data-grid-pro',
     '@mui/x-data-grid-premium',
+    '@tanstack/query-core',
+    '@tanstack/react-query',
   ],
 
 

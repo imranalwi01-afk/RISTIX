@@ -234,9 +234,9 @@ amortizationRoutes.openapi(
     }),
     async (c) => {
         try {
-            const page = Number(c.req.query('page') || '1')
+            const page = Number(c.req.query('page') || '0')
             const limit = Number(c.req.query('limit') || '10')
-            const offset = (page - 1) * limit
+            const cursor = c.req.query('cursor') || ''
             const search = c.req.query('search')?.trim()
             const requestedPrcDate = c.req.query('prcDate')
             const effectivePrcDate = await resolveEffectivePrcDate(requestedPrcDate)
@@ -247,7 +247,7 @@ amortizationRoutes.openapi(
                     success: true,
                     data: [],
                     effectivePrcDate: null,
-                    pagination: { page, limit, total: 0, totalPages: 0 },
+                    pagination: { page: 0, limit, total: 0, totalPages: 0, cursor: null, nextCursor: null, hasMore: false },
                 } as any)
             }
 
@@ -263,27 +263,45 @@ amortizationRoutes.openapi(
                 ) as any)
             }
 
-            const [totalRows, data] = await Promise.all([
-                db.select({ count: sql<number>`count(*)::int` })
-                    .from(frs9MasterAccount)
-                    .where(and(...conditions)),
-                db.select(buildAmortizationMasterSelection() as any)
-                    .from(frs9MasterAccount)
-                    .where(and(...conditions))
-                    .orderBy(asc(frs9MasterAccount.accountNumber), asc(frs9MasterAccount.facilityNumber))
-                    .limit(limit)
-                    .offset(offset),
-            ])
+            // Cursor-based pagination
+            if (cursor) {
+                try {
+                    const decoded = Buffer.from(cursor, 'base64').toString('utf-8')
+                    const [lastAcct, lastFac] = decoded.split('|')
+                    if (lastAcct) {
+                        conditions.push(sql`(${frs9MasterAccount.accountNumber}, ${frs9MasterAccount.facilityNumber}) > (${lastAcct}::varchar, ${lastFac || ''}::varchar)`)
+                    }
+                } catch {
+                    // Invalid cursor — return from start
+                }
+            }
+
+            const data = await db.select(buildAmortizationMasterSelection() as any)
+                .from(frs9MasterAccount)
+                .where(and(...conditions))
+                .orderBy(asc(frs9MasterAccount.accountNumber), asc(frs9MasterAccount.facilityNumber))
+                .limit(limit + 1)
+
+            const hasMore = data.length > limit
+            if (hasMore) data.pop()
+
+            const lastRow = data[data.length - 1]
+            const nextCursor = lastRow
+                ? Buffer.from(`${lastRow.accountNumber || ''}|${lastRow.facilityNumber || ''}`).toString('base64')
+                : null
 
             return c.json({
                 success: true,
                 data: data as any,
                 effectivePrcDate,
                 pagination: {
-                    page,
+                    page: cursor ? 0 : (page || 1),
                     limit,
-                    total: totalRows[0]?.count ?? 0,
-                    totalPages: Math.ceil((totalRows[0]?.count ?? 0) / limit)
+                    total: 0,
+                    totalPages: 0,
+                    cursor: cursor || null,
+                    nextCursor,
+                    hasMore,
                 }
             } as any)
         } catch (error) {

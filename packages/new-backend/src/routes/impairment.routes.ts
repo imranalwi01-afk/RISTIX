@@ -301,9 +301,9 @@ impairmentRoutes.openapi(
     }),
     async (c: any): Promise<any> => {
         try {
-            const page = Number(c.req.query('page') || '1')
+            const page = Number(c.req.query('page') || '0')
             const limit = Number(c.req.query('limit') || '10')
-            const offset = (page - 1) * limit
+            const cursor = c.req.query('cursor') || ''
             const search = c.req.query('search')?.trim()
             const effectivePrcDate = await resolveEffectivePrcDate(c.req.query('prcDate'))
 
@@ -312,7 +312,7 @@ impairmentRoutes.openapi(
                     success: true,
                     data: [],
                     effectivePrcDate: null,
-                    pagination: { page, limit, total: 0, totalPages: 0 },
+                    pagination: { page: 0, limit, total: 0, totalPages: 0, cursor: null, hasMore: false },
                 } as any)
             }
 
@@ -327,31 +327,47 @@ impairmentRoutes.openapi(
                 ) as any)
             }
 
-            const [totalRows, data] = await Promise.all([
-                db
-                    .select({ count: sql<number>`count(*)::int` })
-                    .from(frs9MasterAccount)
-                    .where(and(...conditions)),
-                db
-                    .select(buildImpairmentMasterSelection() as any)
-                    .from(frs9MasterAccount)
-                    .where(and(...conditions))
-                    .orderBy(asc(frs9MasterAccount.accountNumber), asc(frs9MasterAccount.facilityNumber))
-                    .limit(limit)
-                    .offset(offset),
-            ])
+            // Cursor-based pagination: decode cursor to get last row's sort keys
+            if (cursor) {
+                try {
+                    const decoded = Buffer.from(cursor, 'base64').toString('utf-8')
+                    const [lastAcct, lastFac] = decoded.split('|')
+                    if (lastAcct) {
+                        conditions.push(sql`(${frs9MasterAccount.accountNumber}, ${frs9MasterAccount.facilityNumber}) > (${lastAcct}::varchar, ${lastFac || ''}::varchar)`)
+                    }
+                } catch {
+                    // Invalid cursor — ignore and return data from start
+                }
+            }
 
-            const total = totalRows[0]?.count ?? 0
+            // Fetch limit + 1 to determine hasMore
+            const data = await db
+                .select(buildImpairmentMasterSelection() as any)
+                .from(frs9MasterAccount)
+                .where(and(...conditions))
+                .orderBy(asc(frs9MasterAccount.accountNumber), asc(frs9MasterAccount.facilityNumber))
+                .limit(limit + 1)
+
+            const hasMore = data.length > limit
+            if (hasMore) data.pop()
+
+            const lastRow = data[data.length - 1]
+            const nextCursor = lastRow
+                ? Buffer.from(`${lastRow.accountNumber || ''}|${lastRow.facilityNumber || ''}`).toString('base64')
+                : null
 
             return c.json({
                 success: true,
                 data: data,
                 effectivePrcDate,
                 pagination: {
-                    page,
+                    page: cursor ? 0 : (page || 1),
                     limit,
-                    total,
-                    totalPages: Math.ceil(total / limit)
+                    total: 0,
+                    totalPages: 0,
+                    cursor: cursor || null,
+                    nextCursor,
+                    hasMore,
                 }
             } as any)
         } catch (error) {

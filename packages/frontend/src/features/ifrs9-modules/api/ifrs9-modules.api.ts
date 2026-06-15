@@ -5,6 +5,9 @@ export interface ModuleListPagination {
   limit: number;
   total: number;
   totalPages: number;
+  cursor?: string | null;
+  nextCursor?: string | null;
+  hasMore?: boolean;
 }
 
 export interface ImpairmentModuleRow {
@@ -316,7 +319,7 @@ interface ModuleDetailResponse<T> {
   message?: string;
 }
 
-export async function fetchImpairmentModuleResults(params: { page: number; limit: number; prcDate?: string; search?: string }) {
+export async function fetchImpairmentModuleResults(params: { page?: number; limit: number; cursor?: string; prcDate?: string; search?: string }) {
   const { data } = await apiClient.get<ModuleListResponse<ImpairmentModuleRow>>(
     '/banking/ifrs9/impairment-module/results',
     { params },
@@ -331,7 +334,7 @@ export async function fetchImpairmentModuleDetail(pkid: string) {
   return data;
 }
 
-export async function fetchAmortizationModuleResults(params: { page: number; limit: number; prcDate?: string; search?: string }) {
+export async function fetchAmortizationModuleResults(params: { page?: number; limit: number; cursor?: string; prcDate?: string; search?: string }) {
   const { data } = await apiClient.get<ModuleListResponse<AmortizationModuleRow>>(
     '/banking/ifrs9/amortization-module',
     { params },

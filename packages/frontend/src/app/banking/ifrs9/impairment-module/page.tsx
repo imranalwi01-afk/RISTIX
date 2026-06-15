@@ -23,21 +23,24 @@ import {
 } from '@/features/ifrs9-modules/hooks/useIfrs9ModuleQueries';
 
 export default function ImpairmentModulePage() {
-  const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [cursorStack, setCursorStack] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [prcDate, setPrcDate] = useState('');
   const [selectedPkid, setSelectedPkid] = useState<string | null>(null);
 
   const resultsQuery = useImpairmentModuleResultsQuery({
-    page: page + 1,
     limit: rowsPerPage,
+    cursor,
     prcDate: prcDate || undefined,
     search: search.trim() || undefined,
   });
 
   const results = useMemo(() => resultsQuery.data?.rows ?? [], [resultsQuery.data]);
   const totalCount = resultsQuery.data?.total ?? 0;
+  const nextCursor = resultsQuery.data?.nextCursor ?? null;
+  const hasMore = resultsQuery.data?.hasMore ?? false;
   const effectivePrcDate = resultsQuery.data?.effectivePrcDate ?? null;
   const detailSupported = resultsQuery.data?.detailSupported ?? false;
   const compatibilityMessage = resultsQuery.data?.compatibilityMessage ?? null;
@@ -151,7 +154,8 @@ export default function ImpairmentModulePage() {
                 value={prcDate}
                 onChange={(event) => {
                   setPrcDate(event.target.value);
-                  setPage(0);
+                  setCursor(undefined);
+                  setCursorStack([]);
                 }}
                 slotProps={{
                   inputLabel: { shrink: true },
@@ -165,7 +169,8 @@ export default function ImpairmentModulePage() {
                 value={search}
                 onChange={(event) => {
                   setSearch(event.target.value);
-                  setPage(0);
+                  setCursor(undefined);
+                  setCursorStack([]);
                 }}
                 sx={{ width: { xs: '100%', lg: 360 }, minWidth: 0, flexShrink: 0 }}
               />
@@ -173,19 +178,48 @@ export default function ImpairmentModulePage() {
 
             <ImpairmentModuleTable
               rows={results}
-              totalCount={totalCount}
-              page={page}
+              totalCount={results.length}
+              page={0}
               rowsPerPage={rowsPerPage}
               loading={loading}
               selectedPkid={selectedPkid}
               onSelectRow={setSelectedPkid}
               detailSupported={detailSupported}
-              onPageChange={setPage}
+              hidePagination={true}
+              onPageChange={() => {}}
               onRowsPerPageChange={(nextRowsPerPage) => {
                 setRowsPerPage(nextRowsPerPage);
-                setPage(0);
+                setCursor(undefined);
+                setCursorStack([]);
               }}
             />
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={cursorStack.length === 0}
+                onClick={() => {
+                  const prev = cursorStack.slice(0, -1);
+                  setCursor(prev[prev.length - 1] || undefined);
+                  setCursorStack(prev);
+                }}
+              >
+                Previous
+              </Button>
+              <Button
+                size="small"
+                variant="contained"
+                disabled={!hasMore}
+                onClick={() => {
+                  if (nextCursor) {
+                    setCursorStack(prev => [...prev, cursor || '']);
+                    setCursor(nextCursor);
+                  }
+                }}
+              >
+                Next
+              </Button>
+            </Box>
           </CardContent>
         </Card>
 

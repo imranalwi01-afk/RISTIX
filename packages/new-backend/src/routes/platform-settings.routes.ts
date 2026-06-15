@@ -30,7 +30,14 @@ platformSettingsRoutes.openapi(
                 },
             })
         } catch (error) {
-            return c.json(buildErrorResponse(c, { error: 'Failed to fetch public settings' }), 500)
+            console.warn('Failed to fetch public settings (table may not exist):', error instanceof Error ? error.message : error)
+            return c.json({
+                success: true,
+                data: {
+                    platformName: null,
+                    logoUrl: null,
+                },
+            })
         }
     }
 )

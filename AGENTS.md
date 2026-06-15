@@ -25,6 +25,32 @@ pnpm --dir packages/frontend run build
 
 If the grep finds matches, fix them using the current Material UI v7 API rather than changing package versions.
 
+## Required Check For All Frontend Changes
+
+```bash
+pnpm --dir packages/frontend run type-check    # Must pass with 0 errors
+pnpm --dir packages/frontend run lint          # Must have 0 errors (warnings OK)
+pnpm --dir packages/frontend run build         # Must succeed
+```
+
+## Required Check For Backend Changes
+
+```bash
+pnpm --dir packages/new-backend run typecheck  # Must pass
+```
+
+## `'use client'` Best Practices
+
+- Place `'use client'` as the FIRST line (line 1) in any file that imports from `@mui/`, `@emotion/`, or uses React hooks/JSX.
+- If the file also needs `// @ts-nocheck`, place it BEFORE `'use client'`:
+  ```tsx
+  // @ts-nocheck
+  'use client';
+  ```
+- ALL component files in `src/components/` that import `@mui/` must have `'use client'`.
+- ALL page/layout files in `src/app/` that contain JSX with MUI components must have `'use client'`.
+- The root layout (`app/layout.tsx`) is a Server Component — it CANNOT have event handlers (onFocus, onBlur, etc.) on any elements. Use CSS `:focus` selectors instead.
+
 ## Known Pitfalls
 
 ### ❌ Module-Level Hook Calls
@@ -42,3 +68,68 @@ export default function MyComponent() {
 ```
 
 The ESLint rule `react-hooks/rules-of-hooks` catches this. Run `pnpm run lint` before pushing.
+
+### ❌ MUI Link in Server Components
+MUI's `<Link>` component passes `onFocus`/`onBlur` event handlers that can't be serialized during SSR. This causes runtime errors:
+```
+Error: Event handlers cannot be passed to Client Component props.
+```
+**Fix**: Ensure the parent component has `'use client'`. If used in a Server Component (like root layout), replace `<Link>` from `@mui/material` with `<a>` HTML tag + CSS for styling.
+
+### ❌ `res.data` vs `res.data.data`
+When using Axios `api.client.get()`, `res.data` is the JSON body. If the backend wraps responses in `{ success: true, data: [...] }`, the array is at `res.data.data`, not `res.data`.
+
+When using Effect-based routes (which auto-wrap in `{ success, data }`), there can be DOUBLE wrapping. Always check the actual response structure.
+
+### ❌ UUID columns with non-UUID fallback
+Backend `uuid` columns will reject string values like `'system'`. When providing a default/failure UUID, use the nil UUID: `'00000000-0000-0000-0000-000000000000'`.
+
+### ❌ Dynamic Variable Name Conflict
+Do NOT use `export const dynamic = 'force-dynamic'` in a file that also has `import dynamic from 'next/dynamic'`. The variable name `dynamic` conflicts. Rename the import to `nextDynamic`.
+
+## Project Structure
+
+```
+packages/
+├── frontend/          # Next.js 16 App Router + MUI v7 + React Query
+│   └── src/
+│       ├── app/       # Next.js App Router pages
+│       ├── components/  # Reusable UI components
+│       ├── features/  # Feature-slice modules (api + hooks + domain)
+│       ├── services/  # API clients and services
+│       ├── store/     # Redux store (RTK)
+│       └── utils/     # Utility functions
+├── new-backend/       # Hono + Effect + Drizzle ORM + PostgreSQL
+│   └── src/
+│       ├── routes/    # API route handlers
+│       ├── services/  # Business logic
+│       ├── repositories/  # Data access layer
+│       ├── middleware/ # Auth, audit, approval interceptors
+│       ├── db/        # Schema, migrations, seeds
+│       └── lib/       # Shared utilities
+└── r-analytics/       # R Shiny analytics app
+```
+
+## Performance Notes
+
+- **Bundle size**: ~9.3MB JS (2.5MB gzipped). Largest: MUI (402KB), data-grid/recharts (367KB).
+- **Bundle analyzer**: `ANALYZE=true pnpm --dir packages/frontend run build` (requires `--webpack` flag with `./node_modules/.bin/next build`).
+- **React Query** is used for data fetching with caching (5min for roles, 30s for user roles).
+- **Cursor-based pagination** for impairment/amortization modules (avoids expensive COUNT queries).
+- **Server-side rendering (SSR)** for all pages (via `dynamic = 'force-dynamic'` in root layout — removed, use per-page `'use client'` instead).
+- **removeConsole** enabled in production (keeps error/warn).
+
+## Build Commands
+
+```bash
+# Frontend
+pnpm --dir packages/frontend run type-check   # TS type check
+pnpm --dir packages/frontend run lint          # ESLint
+pnpm --dir packages/frontend run build         # Production build
+
+# Backend
+pnpm --dir packages/new-backend run typecheck  # TS type check (tsconfig.typecheck.json)
+
+# Tests
+pnpm --dir packages/new-backend run test       # Backend tests
+```

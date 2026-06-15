@@ -30,7 +30,7 @@ function resolveModuleErrorMessage(error: unknown, fallbackMessage: string) {
   return fallbackMessage;
 }
 
-export function useImpairmentModuleResultsQuery(params: { page: number; limit: number; prcDate?: string; search?: string }) {
+export function useImpairmentModuleResultsQuery(params: { page?: number; limit: number; cursor?: string; prcDate?: string; search?: string }) {
   return useQuery({
     queryKey: businessQueryKeys.list('impairment-module', params),
     queryFn: async () => {
@@ -50,6 +50,9 @@ export function useImpairmentModuleResultsQuery(params: { page: number; limit: n
           total: Number(response.pagination?.total ?? response.data?.length ?? 0),
           detailSupported,
           compatibilityMessage,
+          cursor: response.pagination?.cursor ?? null,
+          nextCursor: response.pagination?.nextCursor ?? null,
+          hasMore: response.pagination?.hasMore ?? false,
         };
       } catch (error) {
         return {
@@ -60,6 +63,9 @@ export function useImpairmentModuleResultsQuery(params: { page: number; limit: n
           total: 0,
           detailSupported: false,
           compatibilityMessage: null,
+          cursor: null,
+          nextCursor: null,
+          hasMore: false,
         };
       }
     },
@@ -91,7 +97,7 @@ export function useImpairmentModuleDetailQuery(pkid: string | null) {
   });
 }
 
-export function useAmortizationModuleResultsQuery(params: { page: number; limit: number; prcDate?: string; search?: string }) {
+export function useAmortizationModuleResultsQuery(params: { page?: number; limit: number; cursor?: string; prcDate?: string; search?: string }) {
   return useQuery({
     queryKey: businessQueryKeys.list('amortization-module', params),
     queryFn: async () => {
@@ -111,6 +117,9 @@ export function useAmortizationModuleResultsQuery(params: { page: number; limit:
           total: Number(response.pagination?.total ?? response.data?.length ?? 0),
           detailSupported,
           compatibilityMessage,
+          cursor: response.pagination?.cursor ?? null,
+          nextCursor: response.pagination?.nextCursor ?? null,
+          hasMore: response.pagination?.hasMore ?? false,
         };
       } catch (error) {
         return {
@@ -121,6 +130,9 @@ export function useAmortizationModuleResultsQuery(params: { page: number; limit:
           total: 0,
           detailSupported: false,
           compatibilityMessage: null,
+          cursor: null,
+          nextCursor: null,
+          hasMore: false,
         };
       }
     },
