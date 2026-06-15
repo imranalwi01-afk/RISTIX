@@ -11,6 +11,7 @@ import { tenantsRoutes } from './tenants.routes'
 import { platformAdminRoutes } from './platform-admin.routes'
 import { approvalRoutes } from './approval.routes'
 import { notificationsRoutes } from './notifications.routes'
+import { rAnalyticsRoutes } from './r-analytics.routes'
 
 import { productSegmentsRoutes } from './product-segments.routes'
 import { ruleBaseSettingsRoutes } from './rule-base-settings.routes'
@@ -91,6 +92,9 @@ routes.route('/banking/ifrs9/forecast', forecastRoutes)
 // IFRS9 Reports
 routes.route('/ifrs9', ifrs9Routes)
 routes.route('/ifrs9/reports', reportsRoutes)
+
+// R Analytics
+routes.route('/r-analytics', rAnalyticsRoutes)
 
 // Jobs
 routes.route('/jobs', jobsRoutes)
