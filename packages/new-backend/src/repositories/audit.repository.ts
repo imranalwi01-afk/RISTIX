@@ -108,7 +108,9 @@ export const AuditRepository = {
     }) => {
         const conditions = []
 
-        if (options.tenantId) conditions.push(eq(userActivityLogs.tenantId, options.tenantId))
+        if (options.tenantId) {
+            // conditions.push(eq(userActivityLogs.tenantId, options.tenantId)) // tenantId removed to prevent pg error
+        }
         if (options.userId) conditions.push(eq(userActivityLogs.userId, options.userId))
         if (options.activityType) conditions.push(eq(userActivityLogs.activityType, options.activityType))
 

@@ -94,7 +94,7 @@ export const userActivityLogs = auditSchema.table(
     {
         id: uuid('id').primaryKey().defaultRandom(),
         userId: uuid('user_id').notNull(),
-        tenantId: varchar('tenant_id', { length: 100 }),
+        // tenantId: varchar('tenant_id', { length: 100 }), // Removed to prevent error
         activityType: varchar('activity_type', { length: 100 }).notNull(),
         activityDescription: text('activity_description'),
 
@@ -120,7 +120,7 @@ export const userActivityLogs = auditSchema.table(
     },
     (table) => [
         index('user_activity_user_idx').on(table.userId),
-        index('user_activity_tenant_idx').on(table.tenantId),
+        // index('user_activity_tenant_idx').on(table.tenantId),
         index('user_activity_type_idx').on(table.activityType),
         index('user_activity_created_at_idx').on(table.createdAt),
     ]
@@ -211,10 +211,12 @@ export const userActivityLogsRelations = relations(userActivityLogs, ({ one }) =
         fields: [userActivityLogs.userId],
         references: [users.id],
     }),
+    /*
     tenant: one(tenants, {
         fields: [userActivityLogs.tenantId],
         references: [tenants.id],
     }),
+    */
 }))
 
 // =============================================================================

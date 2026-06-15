@@ -137,7 +137,7 @@ export interface RuleExecutionSummary {
 // ============================================================================
 
 export class RuleBaseSettingAPI {
-  private readonly baseUrl = '/api/v1/banking/collective/rule-base';
+  private readonly baseUrl = '/banking/collective/rule-base';
 
   // ==========================================================================
   // HEADER OPERATIONS
