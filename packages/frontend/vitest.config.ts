@@ -1,5 +1,4 @@
 import { defineConfig } from 'vitest/config';
-// @ts-expect-error — vite plugin has no type declarations in this setup
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
