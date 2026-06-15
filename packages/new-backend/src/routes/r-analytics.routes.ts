@@ -135,3 +135,85 @@ rAnalyticsRoutes.openapi(getHistoryRoute, async (c) => {
         }, 500)
     }
 })
+
+const downloadHistoryRoute = createRoute({
+    method: 'get',
+    path: '/pd-afl-history/{id}/download',
+    tags: ['R Analytics'],
+    description: 'Download R Analytics calculation file',
+    request: {
+        params: z.object({
+            id: z.string().openapi({ description: 'ID' })
+        })
+    },
+    responses: {
+        200: {
+            description: 'Success',
+            content: {
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': {
+                    schema: {
+                        type: 'string',
+                        format: 'binary'
+                    }
+                }
+            }
+        },
+        404: {
+            description: 'Not found',
+            content: {
+                'application/json': {
+                    schema: z.object({
+                        success: z.boolean(),
+                        error: z.string()
+                    })
+                }
+            }
+        },
+        500: {
+            description: 'Server error',
+            content: {
+                'application/json': {
+                    schema: z.object({
+                        success: z.boolean(),
+                        error: z.string(),
+                        code: z.string().optional()
+                    })
+                }
+            }
+        }
+    }
+})
+
+rAnalyticsRoutes.openapi(downloadHistoryRoute, async (c) => {
+    try {
+        const id = parseInt(c.req.valid('param').id)
+        if (isNaN(id)) {
+            return c.json({ success: false, error: 'Invalid ID' }, 404)
+        }
+        
+        const result = await legacyDb.select({
+            dataFile: frs9RPdAfl.dataFile,
+            modelName: frs9RPdAfl.modelName
+        }).from(frs9RPdAfl)
+        .where(eq(frs9RPdAfl.id, id))
+        .limit(1)
+
+        if (result.length === 0 || !result[0].dataFile) {
+            return c.json({ success: false, error: 'File not found' }, 404)
+        }
+
+        const fileName = `${result[0].modelName || 'r_analytics_result'}.xlsx`
+        
+        c.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        c.header('Content-Disposition', `attachment; filename="${fileName}"`)
+        
+        return c.body(result[0].dataFile as any)
+    } catch (error: any) {
+        console.error('[R Analytics] Download error:', error)
+        return c.json({
+            success: false,
+            error: error.message || 'Failed to download file',
+            code: 'DOWNLOAD_ERROR'
+        }, 500)
+    }
+})
