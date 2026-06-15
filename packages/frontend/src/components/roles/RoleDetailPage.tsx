@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -297,18 +297,15 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
     setError(null);
 
     try {
-      const [roleByIdRes, roleListRes, permissionsRes, roleUsersRes] = await Promise.all([
+      const [roleByIdRes, permissionsRes, roleUsersRes] = await Promise.all([
         api.roles.getById(roleId),
-        api.roles.getAll({}),
         api.roles.getPermissions(),
         api.roles.getUsers(roleId),
       ]);
 
       const roleFromById = extractObject<Record<string, unknown>>(roleByIdRes, ['role']);
-      const roleFromList = extractCollection<Record<string, unknown>>(roleListRes, ['roles'])
-        .find((candidate) => String(candidate.id ?? '') === roleId) || null;
 
-      const rawRole = roleFromById || roleFromList;
+      const rawRole = roleFromById;
       if (!rawRole) {
         throw new Error(`Role ${roleId} not found`);
       }
@@ -389,20 +386,24 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
     return selectedPermissionIds.filter((id) => Boolean(byId.get(id)?.requiresApproval)).length;
   }, [permissions, selectedPermissionIds]);
 
-  const togglePermission = (permissionId: string, checked: boolean) => {
+  const togglePermission = useCallback((permissionId: string, checked: boolean) => {
     setSelectedPermissionIds((prev) => {
-      if (checked) return Array.from(new Set([...prev, permissionId]));
+      if (checked) return prev.includes(permissionId) ? prev : [...prev, permissionId];
       return prev.filter((id) => id !== permissionId);
     });
-  };
+  }, []);
 
-  const toggleCategory = (categoryPermissions: Permission[], checked: boolean) => {
+  const toggleCategory = useCallback((categoryPermissions: Permission[], checked: boolean) => {
     const categoryIds = categoryPermissions.map((permission) => permission.id);
     setSelectedPermissionIds((prev) => {
-      if (checked) return Array.from(new Set([...prev, ...categoryIds]));
+      if (checked) {
+        const next = new Set(prev);
+        categoryIds.forEach((id) => next.add(id));
+        return Array.from(next);
+      }
       return prev.filter((id) => !categoryIds.includes(id));
     });
-  };
+  }, []);
 
   const handleReset = () => {
     setSelectedPermissionIds(initialPermissionIds);
@@ -622,6 +623,7 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
               {permissionGroups.length === 0 ? (
                 <Alert severity="info">No permissions match current filters.</Alert>
               ) : (
+                <Box sx={{ maxHeight: '65vh', overflowY: 'auto' }}>
                 <Stack spacing={2}>
                   {permissionGroups.map((group) => {
                     const ids = group.permissions.map((permission) => permission.id);
@@ -691,6 +693,7 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
                     );
                   })}
                 </Stack>
+                </Box>
               )}
             </CardContent>
           </Card>
