@@ -144,6 +144,7 @@ const nextConfig = {
               "font-src 'self' data:",
               "connect-src 'self' wss: ws: http://localhost:* https://*.ifrspro.id https://*.danafin.com https://*.danafin.id",
               "frame-ancestors 'self'",
+              "frame-src 'self' http://localhost:* https://*.ifrspro.id https://*.danafin.com https://*.danafin.id",
             ].join('; '),
           },
         ],
