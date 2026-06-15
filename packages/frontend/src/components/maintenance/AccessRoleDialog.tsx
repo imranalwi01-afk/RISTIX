@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
@@ -24,6 +24,7 @@ import AccordionDetails from '@mui/material/AccordionDetails';
 import Stepper from '@mui/material/Stepper';
 import Step from '@mui/material/Step';
 import StepLabel from '@mui/material/StepLabel';
+import Divider from '@mui/material/Divider';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import type { Role, PermissionSelectionGroup } from './access-management.types';
 
@@ -94,6 +95,28 @@ export const AccessRoleDialog: React.FC<AccessRoleDialogProps> = ({
     onSave(form);
   }, [form, onSave]);
 
+  const isView = mode === 'view';
+  const isBuiltInRole = role?.isBuiltIn ?? false;
+  const notView = !isView;
+
+  // Group permissions by category (hint) for hierarchical display
+  const groupedByCategory = useMemo(() => {
+    const categoryMap = new Map<string, { label: string; groups: PermissionSelectionGroup[] }>();
+    permissionSelectionGroups.forEach((group) => {
+      const catKey = group.hint || 'Other';
+      if (!categoryMap.has(catKey)) {
+        categoryMap.set(catKey, { label: catKey, groups: [] });
+      }
+      categoryMap.get(catKey)!.groups.push(group);
+    });
+    return Array.from(categoryMap.entries())
+      .map(([, section]) => ({
+        ...section,
+        groups: section.groups.sort((a, b) => a.label.localeCompare(b.label)),
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [permissionSelectionGroups]);
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth={step === 0 ? 'md' : 'xl'} fullWidth>
       <DialogTitle>
@@ -117,7 +140,7 @@ export const AccessRoleDialog: React.FC<AccessRoleDialogProps> = ({
                 label="Role Name (System)"
                 value={form.name}
                 onChange={(e) => updateForm({ ...form, name: e.target.value.toUpperCase() })}
-                disabled={mode === 'view' || (role?.isBuiltIn ?? false)}
+                disabled={isView || isBuiltInRole}
                 placeholder="ROLE_NAME"
                 inputProps={{ 'data-testid': 'access-management-role-name' }}
               />
@@ -128,8 +151,8 @@ export const AccessRoleDialog: React.FC<AccessRoleDialogProps> = ({
                 label="Display Name"
                 value={form.displayName}
                 onChange={(e) => updateForm({ ...form, displayName: e.target.value })}
-                disabled={mode === 'view'}
-                placeholder="Human readable name"
+disabled={isView}
+              placeholder="Human readable name"
                 inputProps={{ 'data-testid': 'access-management-role-display-name' }}
               />
             </Grid>
@@ -139,14 +162,14 @@ export const AccessRoleDialog: React.FC<AccessRoleDialogProps> = ({
                 label="Description"
                 value={form.description}
                 onChange={(e) => updateForm({ ...form, description: e.target.value })}
-                disabled={mode === 'view'}
+                disabled={isView}
                 multiline
                 rows={3}
                 placeholder="Role description and responsibilities"
               />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
-              <FormControl fullWidth disabled={mode === 'view'}>
+              <FormControl fullWidth disabled={isView}>
                 <InputLabel>Type</InputLabel>
                 <Select
                   value={form.type}
@@ -160,7 +183,7 @@ export const AccessRoleDialog: React.FC<AccessRoleDialogProps> = ({
               </FormControl>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
-              <FormControl fullWidth disabled={mode === 'view'}>
+              <FormControl fullWidth disabled={isView}>
                 <InputLabel>Level</InputLabel>
                 <Select
                   value={form.level}
@@ -179,7 +202,7 @@ export const AccessRoleDialog: React.FC<AccessRoleDialogProps> = ({
                   <Switch
                     checked={form.isActive}
                     onChange={(e) => updateForm({ ...form, isActive: e.target.checked })}
-                    disabled={mode === 'view'}
+                    disabled={isView}
                   />
                 }
                 label="Active Role"
@@ -201,7 +224,13 @@ export const AccessRoleDialog: React.FC<AccessRoleDialogProps> = ({
                 <Button size="small" onClick={() => updateForm({ ...form, selectedPermissions: [] })}>Clear All</Button>
               </Box>
             </Box>
-            {permissionSelectionGroups.map((group) => {
+            {groupedByCategory.map((section) => (
+              <Box key={section.label} sx={{ mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                  <Chip label={section.label} size="small" color="primary" variant="outlined" />
+                  <Divider sx={{ flex: 1 }} />
+                </Box>
+                {section.groups.map((group) => {
               const groupPerms = group.permissions.filter(p => p.code);
               const selectedCount = groupPerms.filter(p => form.selectedPermissions.includes(p.code!)).length;
               const allSelected = selectedCount === groupPerms.length;
@@ -259,25 +288,27 @@ export const AccessRoleDialog: React.FC<AccessRoleDialogProps> = ({
                 </Accordion>
               );
             })}
+              </Box>
+            ))}
           </Box>
         )}
       </DialogContent>
       <DialogActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
         <Box>
-          {step > 0 && mode !== 'view' && (
+          {step > 0 && notView && (
             <Button onClick={() => setStep(step - 1)}>Back</Button>
           )}
         </Box>
         <Box>
           <Button onClick={onClose}>
-            {mode === 'view' ? 'Close' : 'Cancel'}
+            {isView ? 'Close' : 'Cancel'}
           </Button>
-          {mode !== 'view' && step === 0 && (
+          {notView && step === 0 && (
             <Button variant="contained" onClick={() => setStep(1)} sx={{ ml: 1 }}>
               Next: Permissions
             </Button>
           )}
-          {mode !== 'view' && step === 1 && (
+          {notView && step === 1 && (
             <Button variant="contained" onClick={handleSave} sx={{ ml: 1 }} data-testid="access-management-save-role">
               {mode === 'create' ? 'Create Role' : 'Update Role'}
             </Button>
