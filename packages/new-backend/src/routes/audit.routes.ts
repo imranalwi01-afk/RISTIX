@@ -565,7 +565,7 @@ auditRoutes.openapi(
         const limit = parseInt(query.limit)
         const offset = (page - 1) * limit
 
-        const conditions = [eq(userActivityLogs.tenantId, tenantId)]
+        const conditions: any[] = [] // Removed tenantId condition: [eq(userActivityLogs.tenantId, tenantId)]
 
         if (query.userId) { conditions.push(eq(userActivityLogs.userId, query.userId)) }
         if (query.activityType) { conditions.push(eq(userActivityLogs.activityType, query.activityType)) }
@@ -602,7 +602,7 @@ auditRoutes.openapi(
                 deviceInfo: a.deviceInfo as Record<string, unknown> ?? null,
                 ipAddress: a.ipAddress ?? null,
                 userAgent: a.userAgent ?? null,
-                tenantId: a.tenantId ?? null,
+                // tenantId: a.tenantId ?? null, // Removed because tenantId is not in schema
             } as any)),
             pagination: {
                 page,
