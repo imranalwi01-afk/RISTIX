@@ -135,7 +135,7 @@ export default function PlatformMenuManagementPage() {
           for (const child of item.children || []) appendItem(child, categoryId, item.id);
         };
 
-        for (const cat of res.data as MenuCategoryApi[]) {
+        for (const cat of payload.data as MenuCategoryApi[]) {
           cats.push({
             id: cat.id,
             name: cat.name,
