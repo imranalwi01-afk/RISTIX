@@ -397,7 +397,7 @@ export interface SecurityEventInput {
 // ============================================================================
 
 class UserActivityService {
-  private readonly baseUrl = '/api/v1/user-activity';
+  private readonly baseUrl = '/user-activity';
 
   // ============================================================================
   // USER ACTIVITY LOGGING METHODS
