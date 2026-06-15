@@ -26,11 +26,12 @@ import {
 import {
   useAccessManagementDataQuery,
   useCreateAccessRoleMutation,
-  useDeleteAccessRoleMutation,
-  useToggleAccessRoleMutation,
   useUpdateAccessRoleMutation,
+  useToggleAccessRoleMutation,
+  useDeleteAccessRoleMutation,
   useUpdateAccessRolePermissionsMutation,
 } from '@/features/access-management/hooks/useAccessManagementQueries';
+import { createAccessRole, updateAccessRole, toggleAccessRole, updateAccessRolePermissions } from '@/features/access-management/api/access-management.api';
 import {
   canUserApprove,
   getUserMaxHierarchyLevel,
@@ -338,10 +339,10 @@ function AccessManagementPage() {
       };
 
       if (roleDialog.mode === 'create') {
-        const response = await createRoleMutation.mutateAsync(roleData);
+        const response = await createAccessRole(roleData);
         setApprovalNoticeFromResponse(response, 'Role creation submitted for approval');
       } else if (roleDialog.role) {
-        const response = await updateRoleMutation.mutateAsync({ roleId: roleDialog.role.id, input: roleData });
+        const response = await updateAccessRole(roleDialog.role.id, roleData);
         setApprovalNoticeFromResponse(response, 'Role update submitted for approval');
       }
 
@@ -355,7 +356,7 @@ function AccessManagementPage() {
   const handleToggleRole = async (roleId: string, isActive: boolean) => {
     if (!canManageRoles) return;
     try {
-      const response = await toggleRoleMutation.mutateAsync(roleId);
+      const response = await toggleAccessRole(roleId);
       setApprovalNoticeFromResponse(response, `Role ${isActive ? 'disable' : 'enable'} submitted for approval`);
       await accessManagementQuery.refetch();
     } catch (error) {
@@ -366,10 +367,7 @@ function AccessManagementPage() {
   const handlePermissionDialogSave = async () => {
     try {
       if (permissionDialog.role) {
-        await updateRolePermissionsMutation.mutateAsync({
-          roleId: permissionDialog.role.id,
-          permissions: permissionDialog.selectedPermissions,
-        });
+        await updateAccessRolePermissions(permissionDialog.role.id, permissionDialog.selectedPermissions);
         await accessManagementQuery.refetch();
       }
       setPermissionDialog({ open: false, role: null, selectedPermissions: [] });
