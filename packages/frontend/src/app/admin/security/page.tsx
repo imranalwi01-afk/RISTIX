@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { Box, Typography, Breadcrumbs, Link } from '@mui/material';
 import SecuritySettings from '@/components/security/SecuritySettings';

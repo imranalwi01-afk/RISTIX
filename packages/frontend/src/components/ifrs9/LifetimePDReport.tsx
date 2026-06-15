@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/components/ifrs9/LifetimePDReport.tsx
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {

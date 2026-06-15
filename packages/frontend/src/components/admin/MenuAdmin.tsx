@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/components/admin/MenuAdmin.tsx
 // ============================================================================
 // Menu Administration Component

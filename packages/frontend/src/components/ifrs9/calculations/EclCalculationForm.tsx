@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/components/ifrs9/calculations/EclCalculationForm.tsx
 import React, { useState } from 'react';
 import {

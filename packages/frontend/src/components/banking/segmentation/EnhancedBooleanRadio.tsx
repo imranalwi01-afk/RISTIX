@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/components/banking/segmentation/EnhancedBooleanRadio.tsx
 import React, { useEffect, useState } from 'react';
 import {

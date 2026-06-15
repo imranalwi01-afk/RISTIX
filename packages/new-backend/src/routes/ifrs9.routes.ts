@@ -263,7 +263,7 @@ ifrs9Routes.openapi(
     async (c: any) => {
         try {
             const id = c.req.param('id')
-            const execution = await JobsRepository.findExecution(id)
+            const execution = await JobsRepository.findExecutionById(id) as any
             if (!execution) {
                 return c.json({
                     success: false,
@@ -331,7 +331,7 @@ ifrs9Routes.openapi(
             }
             const body = await c.req.json();
             const runId = `ifrs9-run-${Date.now()}`;
-            const createExecution = JobsRepository.createExecution({
+            const execution = await JobsRepository.createExecution({
                 id: runId,
                 tenantId: tenantId,
                 jobType: 'IFRS9_CALCULATION',
@@ -340,7 +340,6 @@ ifrs9Routes.openapi(
                 inputParams: body,
                 progress: 0,
             });
-            const execution = await Effect.runPromise(createExecution);
             return c.json({
                 success: true,
                 data: {

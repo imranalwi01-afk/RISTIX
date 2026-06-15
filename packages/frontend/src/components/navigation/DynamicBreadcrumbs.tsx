@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/components/navigation/DynamicBreadcrumbs.tsx
 // ============================================================================
 // Dynamic Breadcrumbs Component

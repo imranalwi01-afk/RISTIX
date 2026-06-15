@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/components/banking/shared/DataTable.tsx
 // ============================================================================
 // Shared Data Table Component

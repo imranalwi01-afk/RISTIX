@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/components/common/EmptyState.tsx
 // ============================================================================
 // Reusable Empty State Component

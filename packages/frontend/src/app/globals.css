@@ -115,3 +115,12 @@ body {
     display: none !important;
   }
 }
+
+/* ✅ Skip-to-content link (accessible keyboard navigation) */
+.skip-to-content:focus {
+  left: 8px !important;
+  top: 8px !important;
+  width: auto !important;
+  height: auto !important;
+  clip: auto;
+}

@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { Chip, Tooltip, Zoom } from '@mui/material';
 import StorageIcon from '@mui/icons-material/Storage';

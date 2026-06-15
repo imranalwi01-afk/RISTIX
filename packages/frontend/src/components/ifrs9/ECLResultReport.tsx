@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/components/ifrs9/ECLResultReport.tsx
 import React, { useState, useMemo } from 'react';
 import {

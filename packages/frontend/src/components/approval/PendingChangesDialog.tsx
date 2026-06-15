@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/components/approval/PendingChangesDialog.tsx
 import React from 'react';
 import {
