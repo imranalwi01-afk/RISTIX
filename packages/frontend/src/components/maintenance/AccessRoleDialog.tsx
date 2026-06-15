@@ -94,6 +94,10 @@ export const AccessRoleDialog: React.FC<AccessRoleDialogProps> = ({
     onSave(form);
   }, [form, onSave]);
 
+  const isView = mode === 'view';
+  const isBuiltInRole = role?.isBuiltIn ?? false;
+  const notView = !isView;
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth={step === 0 ? 'md' : 'xl'} fullWidth>
       <DialogTitle>
@@ -117,7 +121,7 @@ export const AccessRoleDialog: React.FC<AccessRoleDialogProps> = ({
                 label="Role Name (System)"
                 value={form.name}
                 onChange={(e) => updateForm({ ...form, name: e.target.value.toUpperCase() })}
-                disabled={mode === 'view' || (role?.isBuiltIn ?? false)}
+                disabled={isView || isBuiltInRole}
                 placeholder="ROLE_NAME"
                 inputProps={{ 'data-testid': 'access-management-role-name' }}
               />
@@ -128,8 +132,8 @@ export const AccessRoleDialog: React.FC<AccessRoleDialogProps> = ({
                 label="Display Name"
                 value={form.displayName}
                 onChange={(e) => updateForm({ ...form, displayName: e.target.value })}
-                disabled={mode === 'view'}
-                placeholder="Human readable name"
+disabled={isView}
+              placeholder="Human readable name"
                 inputProps={{ 'data-testid': 'access-management-role-display-name' }}
               />
             </Grid>
@@ -139,14 +143,14 @@ export const AccessRoleDialog: React.FC<AccessRoleDialogProps> = ({
                 label="Description"
                 value={form.description}
                 onChange={(e) => updateForm({ ...form, description: e.target.value })}
-                disabled={mode === 'view'}
+                disabled={isView}
                 multiline
                 rows={3}
                 placeholder="Role description and responsibilities"
               />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
-              <FormControl fullWidth disabled={mode === 'view'}>
+              <FormControl fullWidth disabled={isView}>
                 <InputLabel>Type</InputLabel>
                 <Select
                   value={form.type}
@@ -160,7 +164,7 @@ export const AccessRoleDialog: React.FC<AccessRoleDialogProps> = ({
               </FormControl>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
-              <FormControl fullWidth disabled={mode === 'view'}>
+              <FormControl fullWidth disabled={isView}>
                 <InputLabel>Level</InputLabel>
                 <Select
                   value={form.level}
@@ -179,7 +183,7 @@ export const AccessRoleDialog: React.FC<AccessRoleDialogProps> = ({
                   <Switch
                     checked={form.isActive}
                     onChange={(e) => updateForm({ ...form, isActive: e.target.checked })}
-                    disabled={mode === 'view'}
+                    disabled={isView}
                   />
                 }
                 label="Active Role"
@@ -264,20 +268,20 @@ export const AccessRoleDialog: React.FC<AccessRoleDialogProps> = ({
       </DialogContent>
       <DialogActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
         <Box>
-          {step > 0 && mode !== 'view' && (
+          {step > 0 && notView && (
             <Button onClick={() => setStep(step - 1)}>Back</Button>
           )}
         </Box>
         <Box>
           <Button onClick={onClose}>
-            {mode === 'view' ? 'Close' : 'Cancel'}
+            {isView ? 'Close' : 'Cancel'}
           </Button>
-          {mode !== 'view' && step === 0 && (
+          {notView && step === 0 && (
             <Button variant="contained" onClick={() => setStep(1)} sx={{ ml: 1 }}>
               Next: Permissions
             </Button>
           )}
-          {mode !== 'view' && step === 1 && (
+          {notView && step === 1 && (
             <Button variant="contained" onClick={handleSave} sx={{ ml: 1 }} data-testid="access-management-save-role">
               {mode === 'create' ? 'Create Role' : 'Update Role'}
             </Button>
