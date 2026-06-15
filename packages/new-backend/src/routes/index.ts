@@ -12,6 +12,7 @@ import { platformAdminRoutes } from './platform-admin.routes'
 import { approvalRoutes } from './approval.routes'
 import { notificationsRoutes } from './notifications.routes'
 import { rAnalyticsRoutes } from './r-analytics.routes'
+import { userActivityRoutes } from './user-activity.routes'
 
 import { productSegmentsRoutes } from './product-segments.routes'
 import { ruleBaseSettingsRoutes } from './rule-base-settings.routes'
@@ -62,6 +63,7 @@ routes.route('/rbac', rbacRoutes)
 routes.route('/audit', auditRoutes)
 routes.route('/monitoring', monitoringRoutes)
 routes.route('/menu', menuRoutes)
+routes.route('/user-activity', userActivityRoutes)
 routes.route('/platform/settings', platformSettingsRoutes)
 
 routes.route('/consultants', consultantsRoutes)
