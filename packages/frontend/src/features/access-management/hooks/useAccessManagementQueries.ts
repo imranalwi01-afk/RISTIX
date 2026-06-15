@@ -32,6 +32,7 @@ function useInvalidatingMutation<TVariables>(
 
   return useMutation({
     mutationFn,
+    retry: false,
     onSuccess: async () => {
       await invalidateBusinessFeature(queryClient, 'access-management-data');
     },
