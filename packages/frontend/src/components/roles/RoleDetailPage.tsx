@@ -356,6 +356,19 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
 
   const permissionGroups = useMemo(() => groupByMenu(filteredPermissions), [filteredPermissions]);
 
+  // Hierarchical grouping: category → sub-groups
+  const permissionSections = useMemo(() => {
+    const catMap = new Map<string, { label: string; groups: typeof permissionGroups }>();
+    permissionGroups.forEach((g) => {
+      const cat = g.categoryLabel || 'Other';
+      if (!catMap.has(cat)) catMap.set(cat, { label: cat, groups: [] });
+      catMap.get(cat)!.groups.push(g);
+    });
+    return Array.from(catMap.values())
+      .map((s) => ({ ...s, groups: s.groups.sort((a, b) => a.label.localeCompare(b.label)) }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [permissionGroups]);
+
   const selectedPermissionSet = useMemo(() => new Set(selectedPermissionIds), [selectedPermissionIds]);
 
   const hasChanges = useMemo(() => {
@@ -620,19 +633,25 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
                 sx={{ mb: 2 }}
               />
 
-              {permissionGroups.length === 0 ? (
+              {permissionSections.length === 0 ? (
                 <Alert severity="info">No permissions match current filters.</Alert>
               ) : (
                 <Box sx={{ maxHeight: '65vh', overflowY: 'auto' }}>
                 <Stack spacing={2}>
-                  {permissionGroups.map((group) => {
+                  {permissionSections.map((section) => (
+                    <Box key={section.label}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, mt: 1 }}>
+                        <Chip label={section.label} size="small" color="primary" variant="outlined" />
+                        <Divider sx={{ flex: 1 }} />
+                      </Box>
+                      {section.groups.map((group) => {
                     const ids = group.permissions.map((permission) => permission.id);
                     const selectedCount = ids.filter((id) => selectedPermissionSet.has(id)).length;
                     const allSelected = ids.length > 0 && selectedCount === ids.length;
                     const someSelected = selectedCount > 0 && selectedCount < ids.length;
 
                     return (
-                      <Box key={group.key} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1.5 }}>
+                      <Box key={group.key} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1.5, mb: 1 }}>
                         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
                           <FormControlLabel
                             control={(
@@ -646,9 +665,6 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
                               <Box>
                                 <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                                   {group.label}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  {group.categoryLabel}
                                 </Typography>
                               </Box>
                             )}
@@ -692,6 +708,8 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
                       </Box>
                     );
                   })}
+                    </Box>
+                  ))}
                 </Stack>
                 </Box>
               )}
