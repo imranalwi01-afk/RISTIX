@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
@@ -24,6 +24,7 @@ import AccordionDetails from '@mui/material/AccordionDetails';
 import Stepper from '@mui/material/Stepper';
 import Step from '@mui/material/Step';
 import StepLabel from '@mui/material/StepLabel';
+import Divider from '@mui/material/Divider';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import type { Role, PermissionSelectionGroup } from './access-management.types';
 
@@ -97,6 +98,24 @@ export const AccessRoleDialog: React.FC<AccessRoleDialogProps> = ({
   const isView = mode === 'view';
   const isBuiltInRole = role?.isBuiltIn ?? false;
   const notView = !isView;
+
+  // Group permissions by category (hint) for hierarchical display
+  const groupedByCategory = useMemo(() => {
+    const categoryMap = new Map<string, { label: string; groups: PermissionSelectionGroup[] }>();
+    permissionSelectionGroups.forEach((group) => {
+      const catKey = group.hint || 'Other';
+      if (!categoryMap.has(catKey)) {
+        categoryMap.set(catKey, { label: catKey, groups: [] });
+      }
+      categoryMap.get(catKey)!.groups.push(group);
+    });
+    return Array.from(categoryMap.entries())
+      .map(([, section]) => ({
+        ...section,
+        groups: section.groups.sort((a, b) => a.label.localeCompare(b.label)),
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [permissionSelectionGroups]);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth={step === 0 ? 'md' : 'xl'} fullWidth>
@@ -205,7 +224,13 @@ disabled={isView}
                 <Button size="small" onClick={() => updateForm({ ...form, selectedPermissions: [] })}>Clear All</Button>
               </Box>
             </Box>
-            {permissionSelectionGroups.map((group) => {
+            {groupedByCategory.map((section) => (
+              <Box key={section.label} sx={{ mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                  <Chip label={section.label} size="small" color="primary" variant="outlined" />
+                  <Divider sx={{ flex: 1 }} />
+                </Box>
+                {section.groups.map((group) => {
               const groupPerms = group.permissions.filter(p => p.code);
               const selectedCount = groupPerms.filter(p => form.selectedPermissions.includes(p.code!)).length;
               const allSelected = selectedCount === groupPerms.length;
@@ -263,6 +288,8 @@ disabled={isView}
                 </Accordion>
               );
             })}
+              </Box>
+            ))}
           </Box>
         )}
       </DialogContent>
