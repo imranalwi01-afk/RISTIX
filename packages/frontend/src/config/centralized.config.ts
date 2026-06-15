@@ -60,11 +60,6 @@ export interface RShinyConfig {
     port: number;
     url: string;
   };
-  syariah: {
-    host: string;
-    port: number;
-    url: string;
-  };
   dana: {
     host: string;
     port: number;
@@ -257,11 +252,6 @@ class CentralizedConfigManager {
             port: parseInt(this.getEnvVar('R_SHINY_CONVENTIONAL_PORT', '4236')),
             url: this.getEnvVar('R_SHINY_CONVENTIONAL_URL', `https://${this.getEnvVar('R_SHINY_HOST', this.getEnvVar('R_ANALYTICS_HOST', 'iaf-ifrs-analytics.danafin.com'))}`)
           },
-          syariah: {
-            host: this.getEnvVar('R_SHINY_HOST', this.getEnvVar('R_ANALYTICS_HOST', 'iaf-ifrs-analytics.danafin.com')),
-            port: parseInt(this.getEnvVar('R_SHINY_SYARIAH_PORT', '4239')),
-            url: this.getEnvVar('R_SHINY_SYARIAH_URL', `https://${this.getEnvVar('R_SHINY_HOST', this.getEnvVar('R_ANALYTICS_HOST', 'iaf-ifrs-analytics.danafin.com'))}:${this.getEnvVar('R_SHINY_SYARIAH_PORT', '4239')}`)
-          },
           dana: {
             host: this.getEnvVar('R_SHINY_HOST', this.getEnvVar('R_ANALYTICS_HOST', 'iaf-ifrs-analytics.danafin.com')),
             port: parseInt(this.getEnvVar('R_SHINY_DANA_PORT', '4240')),
@@ -433,7 +423,6 @@ export const getRShinyUrls = async () => {
   const rShiny = await getConfigSection('rShiny');
   return {
     conventional: rShiny.conventional.url,
-    syariah: rShiny.syariah.url,
     dana: rShiny.dana.url
   };
 };

@@ -72,7 +72,6 @@ export const R_ANALYTICS_CONFIG = {
 
   // Legacy tenant URLs (kept for compatibility) - Use IAF domains
   CONVENTIONAL_URL: API_CONFIG.R_ANALYTICS_URL,
-  SYARIAH_URL: API_CONFIG.R_ANALYTICS_URL,
   DANA_URL: API_CONFIG.R_ANALYTICS_URL,
 
   // Session configuration
@@ -136,7 +135,7 @@ export const SECURITY_CONFIG = {
 export const BANKING_CONFIG = {
   // Banking mode detection
   DEFAULT_MODE: API_CONFIG.IAF_BANKING_TYPE,
-  SUPPORTED_MODES: ['conventional', 'syariah'],
+  SUPPORTED_MODES: ['conventional'],
 
   // Tenant configuration
   TENANT_ID: API_CONFIG.IAF_TENANT,
@@ -145,7 +144,6 @@ export const BANKING_CONFIG = {
   // Product types
   PRODUCT_TYPES: {
     conventional: ['MORTGAGE', 'PERSONAL_LOAN', 'CREDIT_CARD', 'CORPORATE_LOAN'],
-    syariah: ['MURABAHA', 'MUSHARAKA', 'MUDHARABA', 'IJARAH']
   },
 
   // IFRS9 configuration
@@ -180,7 +178,7 @@ export const HTTP_CONFIG = {
 export const UI_CONFIG = {
   // Theme configuration
   DEFAULT_THEME: API_CONFIG.IAF_BANKING_TYPE,
-  SUPPORTED_THEMES: ['conventional', 'syariah'],
+  SUPPORTED_THEMES: ['conventional'],
 
   // Language configuration
   DEFAULT_LANGUAGE: 'en',

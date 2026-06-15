@@ -1,3 +1,5 @@
+'use client';
+
 import React, { memo } from 'react';
 import Grid from '@mui/material/Grid';
 import {

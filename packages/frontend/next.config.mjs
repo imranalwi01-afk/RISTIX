@@ -1,14 +1,8 @@
 /** @type {import('next').NextConfig} */
 import bundleAnalyzer from '@next/bundle-analyzer';
-import withPWAInit from '@ducanh2912/next-pwa';
 
 const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
-});
-
-const withPWA = withPWAInit({
-  dest: 'public',
-  disable: process.env.NODE_ENV === 'development',
 });
 
 const nextConfig = {
@@ -149,6 +143,13 @@ const nextConfig = {
           },
         ],
       },
+      {
+        source: '/sw.js',
+        headers: [
+          { key: 'Content-Type', value: 'application/javascript; charset=utf-8' },
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+        ],
+      },
     ];
   },
   async redirects() {
@@ -226,4 +227,4 @@ const nextConfig = {
   },
 };
 
-export default withBundleAnalyzer(withPWA(nextConfig));
+export default withBundleAnalyzer(nextConfig);

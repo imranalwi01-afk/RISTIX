@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { Box, Card, CardContent, Typography } from '@mui/material';
 import { TrendingUp as TrendingUpIcon, TrendingDown as TrendingDownIcon } from '@mui/icons-material';

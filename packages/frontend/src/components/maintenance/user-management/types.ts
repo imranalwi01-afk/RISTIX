@@ -6,8 +6,8 @@ export interface User {
   employeeId?: string;
   department?: string;
   position?: string;
-  bankingAccess: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
-  syariahCertified: boolean;
+  bankingAccess: 'CONVENTIONAL' | 'BOTH';
+  dualModeCertified: boolean;
   isActive: boolean;
   mfaEnabled: boolean;
   lastLoginAt?: string;
@@ -31,7 +31,7 @@ export interface UserFormData {
   employeeId: string;
   department: string;
   position: string;
-  bankingAccess: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
-  syariahCertified: boolean;
+  bankingAccess: 'CONVENTIONAL' | 'BOTH';
+  dualModeCertified: boolean;
   sendWelcomeEmail?: boolean;
 }

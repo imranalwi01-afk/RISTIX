@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/components/ifrs9/LifetimeLGDReport.tsx
 import React, { useState, useMemo } from 'react';
 import {

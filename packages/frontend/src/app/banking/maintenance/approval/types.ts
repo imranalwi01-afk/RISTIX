@@ -21,7 +21,7 @@ export interface ApprovalRequest {
   approvalsReceived: number;
   currentApprovers: string[];
   expiresAt?: string;
-  bankingType?: 'conventional' | 'syariah' | 'dual';
+  bankingType?: 'conventional' | 'dual';
   riskLevel?: 'low' | 'medium' | 'high' | 'critical';
   complianceRelevant?: boolean;
   currentLevel?: number;
@@ -66,7 +66,6 @@ export interface ApprovalMatrix {
   operationType?: string | null;
   bankingMode?: string | null;
   isActive?: boolean;
-  syariahBoardRequired?: boolean;
   autoApprovalRules?: {
     bypassPermissions?: string[];
     autoApproveImpactLevels?: string[];

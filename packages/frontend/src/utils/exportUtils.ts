@@ -271,9 +271,20 @@ export function exportToPDF<T extends Record<string, any>>(
 }
 
 /**
- * Get current user info (placeholder - replace with actual auth context)
+ * Get current user info from localStorage (for non-React contexts).
+ * Returns the display name or username of the currently authenticated user.
  */
 export function getCurrentUser(): string {
-  // TODO: Replace with actual user from auth context
+  try {
+    if (typeof window !== 'undefined') {
+      const userData = localStorage.getItem('user_data');
+      if (userData) {
+        const user = JSON.parse(userData);
+        return user.fullName || user.displayName || user.username || user.email || 'System User';
+      }
+    }
+  } catch {
+    // Ignore parse errors
+  }
   return 'System User';
 }

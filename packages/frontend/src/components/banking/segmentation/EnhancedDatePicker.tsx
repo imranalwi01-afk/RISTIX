@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/components/banking/segmentation/EnhancedDatePicker.tsx
 import React, { useState, useEffect } from 'react';
 import {

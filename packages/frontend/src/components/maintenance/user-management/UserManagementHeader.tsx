@@ -13,7 +13,7 @@ import {
 interface UserManagementHeaderProps {
   totalUsers: number;
   activeUsers: number;
-  syariahUsers: number;
+  dualModeUsers: number;
   mfaEnabledUsers: number;
   onAddUser: () => void;
 }
@@ -21,7 +21,7 @@ interface UserManagementHeaderProps {
 const UserManagementHeader = memo(function UserManagementHeader({
   totalUsers,
   activeUsers,
-  syariahUsers,
+  dualModeUsers,
   mfaEnabledUsers,
   onAddUser,
 }: UserManagementHeaderProps) {
@@ -69,9 +69,9 @@ const UserManagementHeader = memo(function UserManagementHeader({
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
-                Syariah Users
+                Dual Mode Users
               </Typography>
-              <Typography variant="h4">{syariahUsers}</Typography>
+              <Typography variant="h4">{dualModeUsers}</Typography>
             </CardContent>
           </Card>
         </Grid>

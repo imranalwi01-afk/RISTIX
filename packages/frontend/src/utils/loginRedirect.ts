@@ -22,11 +22,6 @@ export const ROLE_TO_STAKEHOLDER_MAP: Record<string, StakeholderType> = {
   'BANK_PORTFOLIO_MANAGER': 'banking',
   'BANK_DATA_ADMIN': 'banking',
 
-  // Banking Institution Roles (Syariah)
-  'SYARIAH_BANK_CRO': 'banking',
-  'SYARIAH_COMPLIANCE_OFFICER': 'banking',
-  'SYARIAH_IFRS_SPECIALIST': 'banking',
-  'SYARIAH_PORTFOLIO_MANAGER': 'banking',
   'DPS_BOARD_MEMBER': 'banking',
 
   // Universal Banking Roles
@@ -46,7 +41,6 @@ export const ROLE_TO_STAKEHOLDER_MAP: Record<string, StakeholderType> = {
   'BANKING_SUPERVISION_HEAD': 'regulator',
   'IFRS_SUPERVISOR': 'regulator',
   'ISLAMIC_BANKING_DIRECTOR': 'regulator',
-  'SYARIAH_COMPLIANCE_AUDITOR': 'regulator',
   'MARKET_RISK_SUPERVISOR': 'regulator',
 };
 
@@ -60,13 +54,13 @@ export const STAKEHOLDER_DASHBOARDS: Record<StakeholderType, string> = {
 
 // ✅ Banking redirect validation for YOUR direct folder structure
 export const validateBankingRedirect = (path: string, userRole: string): string => {
-  if ((userRole.includes('BANK_') || userRole.includes('SYARIAH_'))) {
+  if ((userRole.includes('BANK_'))) {
     if (path !== '/banking/dashboard') {
       return '/banking/dashboard';
     }
   }
 
-  if (path === '/dashboard' && (userRole.includes('BANK_') || userRole.includes('SYARIAH_'))) {
+  if (path === '/dashboard' && (userRole.includes('BANK_'))) {
     return '/banking/dashboard';
   }
 

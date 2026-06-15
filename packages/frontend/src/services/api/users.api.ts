@@ -21,7 +21,7 @@ export const usersAPI = {
     limit?: number;
     search?: string;
     department?: string;
-    bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
+    bankingAccess?: 'CONVENTIONAL' | 'BOTH';
     isActive?: boolean;
     includeInactive?: boolean;
     sort?: string;

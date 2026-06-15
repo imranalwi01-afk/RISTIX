@@ -25,7 +25,6 @@ import {
     Calculate as EclIcon,
     Home as HomeIcon,
     AccountBalanceWallet as ConventionalIcon,
-    Mosque as SyariahIcon,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 
@@ -119,8 +118,8 @@ export default function CollectiveLandingClient({ mode = 'conventional' }: Colle
                         Collective Impairment
                     </Typography>
                     <Chip
-                        label={mode === 'syariah' ? 'Syariah' : 'Conventional'}
-                        color={mode === 'syariah' ? 'warning' : 'primary'}
+                        label="Conventional"
+                        color="primary"
                         size="small"
                         variant="outlined"
                     />

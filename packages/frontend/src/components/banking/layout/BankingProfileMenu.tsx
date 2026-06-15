@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -60,7 +62,6 @@ export const BankingProfileMenu: React.FC<BankingProfileMenuProps> = ({
 
     const getBankingModeIcon = () => {
         switch (bankingMode) {
-            case 'syariah': return <Mosque />;
             case 'dual': return <SwapHoriz />;
             default: return <AccountBalance />;
         }
@@ -68,7 +69,6 @@ export const BankingProfileMenu: React.FC<BankingProfileMenuProps> = ({
 
     const getBankingModeColor = () => {
         switch (bankingMode) {
-            case 'syariah': return 'success';
             case 'dual': return 'warning';
             default: return 'primary';
         }
@@ -76,7 +76,6 @@ export const BankingProfileMenu: React.FC<BankingProfileMenuProps> = ({
 
     const getBankingModeLabel = () => {
         switch (bankingMode) {
-            case 'syariah': return 'Islamic Banking';
             case 'dual': return 'Dual Banking';
             default: return 'Conventional Banking';
         }

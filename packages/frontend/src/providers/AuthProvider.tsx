@@ -119,53 +119,10 @@ const syncTokenToCookie = (token: string | null, user: any = null, refreshToken?
 };
 
 // ✅ SURGICAL ENHANCEMENT: Banking mode detection from user data
-const detectBankingModeFromUser = (user: any): 'conventional' | 'syariah' | null => {
+const detectBankingModeFromUser = (user: any): 'conventional' | null => {
   try {
     if (!user) return null;
 
-    // Check explicit banking type
-    if (user.bankingType) {
-      if (user.bankingType.toLowerCase().includes('syariah') ||
-        user.bankingType.toLowerCase().includes('islamic')) {
-        return 'syariah';
-      }
-      if (user.bankingType.toLowerCase().includes('conventional')) {
-        return 'conventional';
-      }
-    }
-
-    // Check tenant slug
-    if (user.tenantSlug) {
-      if (user.tenantSlug.toLowerCase().includes('syariah') ||
-        user.tenantSlug.toLowerCase().includes('islamic')) {
-        return 'syariah';
-      }
-      if (user.tenantSlug.toLowerCase().includes('conventional')) {
-        return 'conventional';
-      }
-    }
-
-    // Check user preferences or certification for banking type indicators
-    if (user.syariahCertified || user.syariahCertification) {
-      return 'syariah';
-    }
-
-    // Check email domain for banking type
-    if (user.email) {
-      if (user.email.includes('syariah') || user.email.includes('islamic')) {
-        return 'syariah';
-      }
-    }
-
-    // Check company name
-    if (user.company) {
-      if (user.company.toLowerCase().includes('syariah') ||
-        user.company.toLowerCase().includes('islamic')) {
-        return 'syariah';
-      }
-    }
-
-    // Default to conventional if no clear indicators
     return 'conventional';
   } catch (error) {
     console.warn('⚠️ Error detecting banking mode from user:', error);

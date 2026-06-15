@@ -694,7 +694,7 @@ const TenantUserManagement = () => {
             </Box>
 
             {error && (
-                <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+                <Alert severity="error" sx={{ mb: 3 }} role="alert" onClose={() => setError(null)}>
                     {error}
                 </Alert>
             )}
@@ -983,7 +983,7 @@ const TenantUserManagement = () => {
                                                     />
                                                 )}
                                                 <Tooltip title="Edit Role Permissions">
-                                                    <IconButton size="small" onClick={() => openPermissionDialog(role)}>
+                                                    <IconButton size="small" onClick={() => openPermissionDialog(role)} aria-label="Edit role permissions">
                                                         <VpnKeyIcon fontSize="small" />
                                                     </IconButton>
                                                 </Tooltip>

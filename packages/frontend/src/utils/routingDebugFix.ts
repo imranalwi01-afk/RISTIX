@@ -23,7 +23,6 @@ export function debugBankingRouting() {
       
       // Check if role should be banking
       const isBankingRole = userData.role?.includes('BANK_') || 
-                           userData.role?.includes('SYARIAH_') ||
                            userData.role?.includes('DPS_');
       
       

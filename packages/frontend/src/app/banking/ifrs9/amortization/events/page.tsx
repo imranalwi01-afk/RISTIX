@@ -10,7 +10,7 @@ import {
     CircularProgress,
     Alert,
     Breadcrumbs,
-    Link,
+    Link as MuiLink,
     Table,
     TableBody,
     TableCell,
@@ -25,7 +25,10 @@ import {
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SearchIcon from '@mui/icons-material/Search';
+import NextLink from 'next/link';
 import { useApi } from '@/hooks/useApi';
+
+export const dynamic = 'force-dynamic';
 
 interface Event {
     prcDate?: string;
@@ -103,8 +106,8 @@ export default function EventsPage() {
         <Container maxWidth="xl" sx={{ py: 3 }}>
             <Box mb={3}>
                 <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-                    <Link color="inherit" href="/banking">Banking</Link>
-                    <Link color="inherit" href="/banking/ifrs9">IFRS 9</Link>
+                    <NextLink href="/banking" passHref style={{ color: 'inherit' }}>Banking</NextLink>
+                    <NextLink href="/banking/ifrs9" passHref style={{ color: 'inherit' }}>IFRS 9</NextLink>
                     <Typography color="text.primary">Amortization Events</Typography>
                 </Breadcrumbs>
 

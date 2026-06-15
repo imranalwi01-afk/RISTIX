@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/components/navigation/DynamicBreadcrumbs.tsx
 // ============================================================================
 // Dynamic Breadcrumbs Component
@@ -167,7 +169,7 @@ export const DynamicBreadcrumbs: React.FC<DynamicBreadcrumbsProps> = ({
             <Chip
               label={menuContext.banking_type.charAt(0).toUpperCase() + menuContext.banking_type.slice(1)}
               size="small"
-              color={menuContext.banking_type === 'syariah' ? 'success' : 'default'}
+              color="default"
               variant="outlined"
             />
           )}

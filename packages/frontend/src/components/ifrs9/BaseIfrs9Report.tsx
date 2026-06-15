@@ -343,7 +343,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
   const themeStyles = React.useMemo((): ThemeStyles => {
     switch (bankingMode) {
-      case 'syariah':
+      case 'conventional':
         return { gradient: 'linear-gradient(135deg, #00695c 0%, #004d40 100%)', primary: '#00695c', shadow: 'rgba(0, 105, 92, 0.3)' };
       case 'dual':
         return { gradient: 'linear-gradient(135deg, #37474f 0%, #263238 100%)', primary: '#37474f', shadow: 'rgba(55, 71, 79, 0.3)' };

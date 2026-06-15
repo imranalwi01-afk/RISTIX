@@ -154,8 +154,6 @@ export default function AnalyticsLayout({ children }: AnalyticsLayoutProps) {
   // ✅ Get banking mode colors
   const getBankingModeInfo = () => {
     switch (bankingMode) {
-      case 'syariah':
-        return { color: 'success', label: 'Syariah Analytics', icon: '🕌' };
       case 'dual':
         return { color: 'warning', label: 'Dual Banking Analytics', icon: '⚖️' };
       default:

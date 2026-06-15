@@ -7,7 +7,7 @@ export interface BankingProduct {
     product_name: string;
     product_type: string;
     product_category: string;
-    banking_type: 'conventional' | 'syariah';
+    banking_type: 'conventional';
     interest_rate_min?: number;
     interest_rate_max?: number;
     profit_rate_min?: number;

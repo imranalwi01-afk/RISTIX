@@ -1,3 +1,5 @@
+'use client';
+
 // ifrs9-iaf/packages/frontend/src/components/roles/RoleAssignmentAnalytics.tsx
 import React, { useState, useEffect } from 'react';
 import Card from '@mui/material/Card'
@@ -96,7 +98,7 @@ interface RoleAnalytics {
   lastAssigned: string;
   assignmentRate: number;
   riskLevel: 'low' | 'medium' | 'high';
-  bankingType: 'conventional' | 'syariah' | 'platform';
+  bankingType: 'conventional' | 'platform';
   hierarchyLevel: number;
   activeUsers: number;
   inactiveUsers: number;
@@ -152,7 +154,6 @@ const COLORS = {
   warning: ['#f57c00', '#ff9800', '#ffa726', '#ffb74d', '#ffcc80'],
   error: ['#d32f2f', '#f44336', '#ef5350', '#e57373', '#ef9a9a'],
   info: ['#0288d1', '#03a9f4', '#29b6f6', '#4fc3f7', '#81d4fa'],
-  syariah: ['#006b3f', '#2e7d32', '#388e3c', '#43a047', '#4caf50'],
 };
 
 const RoleAssignmentAnalytics: React.FC = () => {
@@ -278,7 +279,6 @@ const RoleAssignmentAnalytics: React.FC = () => {
 
   const bankingTypeData = [
     { name: 'Conventional', value: roleAnalytics.filter(r => r.bankingType === 'conventional').length },
-    { name: 'Syariah', value: roleAnalytics.filter(r => r.bankingType === 'syariah').length },
     { name: 'Platform', value: roleAnalytics.filter(r => r.bankingType === 'platform').length },
   ];
 
@@ -652,7 +652,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                                 <TableCell align="right">{role.hierarchyLevel}</TableCell>
                                 <TableCell align="center">
                                   <Tooltip title="View Details">
-                                    <IconButton size="small">
+                                    <IconButton size="small" aria-label="View role details">
                                       <Visibility />
                                     </IconButton>
                                   </Tooltip>

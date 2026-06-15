@@ -105,7 +105,6 @@ interface Permission {
   requiredApprovalLevel?: number | null;
   requiredApprovers?: number;
   bankingSpecific: boolean;
-  syariahRequired?: boolean;
 }
 
 interface RoleFormData {

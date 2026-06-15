@@ -280,9 +280,7 @@ export const AccessPermissionDialog: React.FC<AccessPermissionDialogProps> = ({
                                   {permission.requiresApproval && (
                                     <Chip label="Approval" size="small" color="warning" variant="filled" />
                                   )}
-                                  {permission.syariahRequired && (
-                                    <Chip label="Syariah" size="small" color="secondary" variant="outlined" />
-                                  )}
+
                                 </Box>
                               </Box>
                             }

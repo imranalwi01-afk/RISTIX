@@ -25,7 +25,7 @@ interface User {
   roleCodes?: string[]; // ✅ Add roleCodes for menu compatibility
   tenantId?: string;
   tenantSlug?: string;
-  bankingType?: 'conventional' | 'syariah' | 'dual';
+  bankingType?: 'conventional' | 'dual';
   permissions?: string[];
   company?: string;
   department?: string;
@@ -64,7 +64,7 @@ interface AuthState {
   // Tenant Context
   tenantId: string | null;
   tenantSlug: string | null;
-  bankingMode: 'conventional' | 'syariah' | 'dual' | null;
+  bankingMode: 'conventional' | 'dual' | null;
 
   // Error Handling
   error: string | null;
@@ -303,7 +303,7 @@ const authSlice = createSlice({
     updateTenantContext: (state, action: PayloadAction<{
       tenantId?: string;
       tenantSlug?: string;
-      bankingMode?: 'conventional' | 'syariah' | 'dual';
+      bankingMode?: 'conventional' | 'dual';
     }>) => {
       state.tenantId = action.payload.tenantId || state.tenantId;
       state.tenantSlug = action.payload.tenantSlug || state.tenantSlug;

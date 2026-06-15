@@ -20,7 +20,7 @@ interface TestUser {
   fullName: string;
   role: string;
   stakeholderType: 'platform-admin' | 'banking' | 'consultant' | 'regulator';
-  bankingType?: 'conventional' | 'syariah' | 'dual';
+  bankingType?: 'conventional' | 'dual';
 }
 
 export function runPostFixDiagnostic() {
@@ -57,10 +57,10 @@ export function runPostFixDiagnostic() {
     {
       id: '5',
       email: 'cro@barakahbank.com',
-      fullName: 'Syariah CRO',
-      role: 'SYARIAH_BANK_CRO',
+      fullName: 'Bank CRO',
+      role: 'BANK_CRO',
       stakeholderType: 'banking',
-      bankingType: 'syariah'
+      bankingType: 'conventional'
     }
   ];
 

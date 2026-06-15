@@ -23,7 +23,7 @@ export interface MenuItem {
   level: number;
   path: string;
   is_active: boolean;
-  banking_modes?: ('conventional' | 'syariah' | 'dual')[];
+  banking_modes?: ('conventional' | 'dual')[];
   roles?: string[];
   badge?: {
     content?: string | number;
@@ -88,7 +88,7 @@ export interface CreateMenuItemRequest {
   description?: string;
   icon?: string;
   parent_id?: string;
-  banking_modes?: ('conventional' | 'syariah' | 'dual')[];
+  banking_modes?: ('conventional' | 'dual')[];
   roles?: string[];
   badge?: {
     content?: string | number;
@@ -107,7 +107,7 @@ export interface UpdateMenuItemRequest {
   description?: string;
   icon?: string;
   parent_id?: string;
-  banking_modes?: ('conventional' | 'syariah' | 'dual')[];
+  banking_modes?: ('conventional' | 'dual')[];
   roles?: string[];
   badge?: {
     content?: string | number;
@@ -129,7 +129,7 @@ export interface ReorderMenuItemsRequest {
 }
 
 export interface MenuQueryParams {
-  bankingMode?: 'conventional' | 'syariah' | 'dual';
+  bankingMode?: 'conventional' | 'dual';
   includeInactive?: boolean;
   parentId?: string;
   level?: number;
@@ -156,7 +156,7 @@ const buildStaticFallbackMenuTree = (): MenuItem[] => {
       level: Number(item.level || 1),
       path: String(item.key || item.id),
       is_active: item.is_active !== false,
-      banking_modes: item.banking_types || ['conventional', 'syariah', 'dual'],
+      banking_modes: item.banking_types || ['conventional', 'dual'],
       roles: Array.isArray(item.user_types) ? item.user_types : [],
       status: item.is_active === false ? 'disabled' : 'active',
       children: [],

@@ -280,7 +280,7 @@ const UserManagement = () => {
             </Box>
 
             {error && (
-                <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+                <Alert severity="error" sx={{ mb: 3 }} role="alert" onClose={() => setError(null)}>
                     {error}
                 </Alert>
             )}

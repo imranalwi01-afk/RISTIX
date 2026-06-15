@@ -119,7 +119,7 @@ const RegulatorLayout: React.FC<RegulatorLayoutProps> = ({ children }) => {
             />
 
             {/* Compliance Alerts */}
-            <IconButton sx={{ color: 'white' }}>
+            <IconButton sx={{ color: 'white' }} aria-label="Compliance alerts">
               <Badge badgeContent={complianceAlerts} color="error">
                 <Warning />
               </Badge>
@@ -129,6 +129,7 @@ const RegulatorLayout: React.FC<RegulatorLayoutProps> = ({ children }) => {
             <IconButton
               onClick={handleMenuClick}
               sx={{ color: 'white' }}
+              aria-label="User account menu"
             >
               <Avatar sx={{ width: 32, height: 32, bgcolor: 'rgba(255,255,255,0.2)' }}>
                 <AccountCircle />

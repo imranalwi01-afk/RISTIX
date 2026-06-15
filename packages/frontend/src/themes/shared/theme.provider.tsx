@@ -15,16 +15,15 @@ import { CssBaseline } from '@mui/material';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { conventionalBankingTheme, conventionalThemeMetadata } from '../conventional/theme';
-import { syariahBankingTheme, syariahThemeMetadata } from '../syariah/theme';
 
 // Types
-export type BankingType = 'conventional' | 'syariah' | 'dual';
+export type BankingType = 'conventional' | 'dual';
 
 export interface ThemeContextValue {
   currentTheme: Theme;
   bankingType: BankingType;
   switchTheme: (type: BankingType) => void;
-  themeMetadata: typeof conventionalThemeMetadata | typeof syariahThemeMetadata;
+  themeMetadata: typeof conventionalThemeMetadata;
   isLoading: boolean;
 }
 
@@ -69,7 +68,7 @@ interface DualBankingThemeProviderProps {
 
 /**
  * Dual Banking Theme Provider Component
- * Manages theme switching between conventional and syariah banking modes
+ * Manages theme banking mode
  * ✅ PERFORMANCE OPTIMIZED: Uses memoized selectors to prevent unnecessary rerenders
  */
 export const DualBankingThemeProvider: React.FC<DualBankingThemeProviderProps> = ({
@@ -103,8 +102,6 @@ export const DualBankingThemeProvider: React.FC<DualBankingThemeProviderProps> =
   // ✅ PERFORMANCE: Memoize theme calculation
   const currentTheme = useMemo((): Theme => {
     switch (currentBankingType) {
-      case 'syariah':
-        return syariahBankingTheme;
       case 'conventional':
       case 'dual':
       default:
@@ -115,8 +112,6 @@ export const DualBankingThemeProvider: React.FC<DualBankingThemeProviderProps> =
   // ✅ PERFORMANCE: Memoize theme metadata calculation
   const currentThemeMetadata = useMemo(() => {
     switch (currentBankingType) {
-      case 'syariah':
-        return syariahThemeMetadata;
       case 'conventional':
       case 'dual':
       default:
@@ -214,7 +209,5 @@ export const withDualBankingTheme = (Component: React.ComponentType<any>) => {
 // Export theme instances for direct use
 export {
   conventionalBankingTheme,
-  syariahBankingTheme,
   conventionalThemeMetadata,
-  syariahThemeMetadata
 };

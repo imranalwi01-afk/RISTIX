@@ -100,14 +100,7 @@ export function getStakeholderType(user: any): string | null {
 }
 
 // ✅ SURGICAL ENHANCEMENT: Banking mode detection from URL
-export function detectBankingModeFromURL(pathname: string): 'conventional' | 'syariah' | null {
-  // Check for syariah patterns
-  for (const pattern of BANKING_MODE_PATTERNS.syariah) {
-    if (pathname.startsWith(pattern) || pathname.includes('/syariah/') || pathname.includes('/islamic/')) {
-      return 'syariah';
-    }
-  }
-
+export function detectBankingModeFromURL(pathname: string): 'conventional' | null {
   // Check for conventional patterns
   for (const pattern of BANKING_MODE_PATTERNS.conventional) {
     if (pathname.startsWith(pattern) || pathname.includes('/conventional/')) {
@@ -212,11 +205,7 @@ export function getBankingModeAwareRedirect(user: any, pathname: string, baseUrl
       }
 
       // For banking users, redirect to mode-specific dashboard
-      if (detectedBankingMode === 'syariah') {
-        const newUrl = new URL(currentUrlString);
-        newUrl.searchParams.set('mode', 'syariah');
-        return newUrl.toString();
-      } else if (detectedBankingMode === 'conventional') {
+      if (detectedBankingMode === 'conventional') {
         const newUrl = new URL(currentUrlString);
         newUrl.searchParams.set('mode', 'conventional');
         return newUrl.toString();

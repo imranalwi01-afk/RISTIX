@@ -4,13 +4,13 @@
 // ============================================================================
 // File Path: packages/frontend/src/components/banking/types.ts
 // Purpose: TypeScript interfaces for banking components
-// Architecture: Dual banking support with Syariah compliance
+// Architecture: Dual banking support
 // ============================================================================
 
 import React from 'react';
 
 // ✅ Core Banking Types
-export type BankingMode = 'conventional' | 'syariah' | 'dual';
+export type BankingMode = 'conventional' | 'dual';
 
 export type IFRS9Stage = 1 | 2 | 3;
 
@@ -28,7 +28,6 @@ export interface ECLCalculationData {
   eclAmount: number;
   currency: CurrencyCode;
   bankingMode: BankingMode;
-  syariahCompliant?: boolean;
 }
 
 // ✅ Portfolio Metrics
@@ -65,28 +64,6 @@ export interface ComplianceViolation {
   remedyPlan?: string;
 }
 
-// ✅ Syariah-Specific Types
-export interface SyariahComplianceData {
-  isHalalCertified: boolean;
-  syariahBoardApproval: boolean;
-  dpsApprovalDate?: Date;
-  halalCertificationDate?: Date;
-  prohibitedSectors: string[];
-  profitSharingRatio: number;
-  islamicContractType: string;
-  underlyingAssetType: string;
-  complianceValidation: SyariahValidation;
-}
-
-export interface SyariahValidation {
-  aaoifiCompliant: boolean;
-  ojkCompliant: boolean;
-  customSyariahRules: boolean;
-  validationDate: Date;
-  validatedBy: string;
-  notes?: string;
-}
-
 // ✅ Banking Product Types
 export interface BankingProduct {
   id: string;
@@ -95,13 +72,10 @@ export interface BankingProduct {
   productType: 'loan' | 'deposit' | 'investment' | 'financing';
   bankingMode: BankingMode;
   interestRate?: number; // For conventional products
-  profitSharingRatio?: number; // For Syariah products
   currency: CurrencyCode;
   minAmount: number;
   maxAmount: number;
   tenure: number; // in months
-  syariahCompliant: boolean;
-  islamicContractType?: string;
   isActive: boolean;
 }
 
@@ -117,7 +91,6 @@ export interface BankingAccount {
   currency: CurrencyCode;
   status: 'active' | 'inactive' | 'suspended' | 'closed';
   ifrs9Stage: IFRS9Stage;
-  syariahCompliant: boolean;
   openingDate: Date;
   maturityDate?: Date;
   lastPaymentDate?: Date;
@@ -136,7 +109,6 @@ export interface BankingCustomer {
   riskCategory: 'low' | 'medium' | 'high';
   creditScore?: number;
   totalExposure: number;
-  syariahCustomer: boolean;
   registrationDate: Date;
   lastReviewDate: Date;
 }
@@ -168,8 +140,7 @@ export interface BankingTransaction {
   valueDate: Date;
   description: string;
   balanceAfter: number;
-  profitSharingAmount?: number; // For Syariah transactions
-  syariahContractReference?: string;
+  profitSharingAmount?: number;
   status: 'pending' | 'completed' | 'failed' | 'reversed';
 }
 
@@ -177,7 +148,7 @@ export interface BankingTransaction {
 export interface BankingComponentProps {
   tenantId?: string;
   bankingMode?: BankingMode;
-  theme?: 'conventional' | 'syariah';
+  theme?: 'conventional';
   readonly?: boolean;
   onDataChange?: (data: any) => void;
   onError?: (error: Error) => void;
@@ -220,7 +191,7 @@ export interface DatabaseMenuItem {
   roles?: string[]; // Alternative field name for user types
   requiredPermissions?: string[];
   banking_types?: string[];
-  banking_modes?: ('conventional' | 'syariah' | 'dual')[];
+  banking_modes?: ('conventional' | 'dual')[];
   parent_id?: string | null;
   children?: DatabaseMenuItem[];
   created_at?: string;
@@ -250,7 +221,7 @@ export interface MenuItem {
   children?: MenuItem[];
   roles?: string[];
   requiredPermissions?: string[];
-  banking_modes?: ('conventional' | 'syariah' | 'dual')[];
+  banking_modes?: ('conventional' | 'dual')[];
   badge?: {
     content: string | number;
     color: 'primary' | 'secondary' | 'error' | 'warning' | 'info' | 'success';

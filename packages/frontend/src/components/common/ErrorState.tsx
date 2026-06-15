@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/components/common/ErrorState.tsx
 // ============================================================================
 // Reusable Error State Component

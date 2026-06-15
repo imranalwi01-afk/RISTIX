@@ -23,8 +23,8 @@ import {
 import { individualImpairmentAPI } from '../../../../../services/api/individual-impairment.api'; // Adjust path depth
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 
-export default async function DcfUploadDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id: uploadId } = await params;
+export default function DcfUploadDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id: uploadId } = React.use(params);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);

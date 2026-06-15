@@ -547,20 +547,43 @@ usersRoutes.openapi(
         }
     }),
     async (c: any) => {
-        const { id } = c.req.valid('param')
-        return c.json({
-            success: true,
-            data: {
-                personalization: {
-                    userId: id,
-                    defaultView: 'default',
-                    widgetConfig: {},
-                    customSettings: {},
-                    themePreferences: {},
-                    notificationSettings: {}
-                }
+        try {
+            const { id } = c.req.valid('param')
+            const tenantId = (c as any).get('tenantId') || 'iaf'
+            const DASHBOARD_SCOPE = '__dashboard_personalization__'
+            const views = await UserTableViewsRepository.list(tenantId, id, DASHBOARD_SCOPE)
+            const settings = views.length > 0 ? ((views[0] as any).state || {}) : {
+                defaultView: 'default',
+                widgetConfig: {},
+                customSettings: {},
+                themePreferences: {},
+                notificationSettings: {},
             }
-        })
+            return c.json({
+                success: true,
+                data: {
+                    personalization: {
+                        userId: id,
+                        ...settings,
+                    }
+                }
+            })
+        } catch (error: any) {
+            console.error('Error fetching dashboard personalization:', error)
+            return c.json({
+                success: true,
+                data: {
+                    personalization: {
+                        userId: c.req.param('id'),
+                        defaultView: 'default',
+                        widgetConfig: {},
+                        customSettings: {},
+                        themePreferences: {},
+                        notificationSettings: {},
+                    }
+                }
+            })
+        }
     }
 )
 
@@ -598,10 +621,35 @@ usersRoutes.openapi(
         }
     }),
     async (c: any) => {
-        return c.json({
-            success: true,
-            data: { message: 'Settings saved (mock)' }
-        })
+        try {
+            const { id } = c.req.valid('param')
+            const tenantId = (c as any).get('tenantId') || 'iaf'
+            const body = await c.req.json()
+            const DASHBOARD_SCOPE = '__dashboard_personalization__'
+            await UserTableViewsRepository.upsert({
+                tenantId,
+                userId: id,
+                scope: DASHBOARD_SCOPE,
+                viewKey: 'dashboard-personalization',
+                name: 'Dashboard Personalization',
+                isDefault: true,
+                state: body.personalization || body,
+            })
+            return c.json({
+                success: true,
+                data: {
+                    message: 'Dashboard personalization saved successfully',
+                    personalization: body.personalization || body,
+                }
+            })
+        } catch (error: any) {
+            console.error('Error saving dashboard personalization:', error)
+            return c.json({
+                success: false,
+                data: null,
+                message: error.message || 'Failed to save settings',
+            }, 500)
+        }
     }
 )
 

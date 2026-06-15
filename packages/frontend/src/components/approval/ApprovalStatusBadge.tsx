@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/components/approval/ApprovalStatusBadge.tsx
 import React from 'react';
 import { Chip } from '@mui/material';

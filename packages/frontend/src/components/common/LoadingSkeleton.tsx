@@ -10,7 +10,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 export function LoadingFallback() {
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
+    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 200 }} role="status" aria-live="polite" aria-label="Loading content">
       <CircularProgress size={32} />
     </Box>
   );

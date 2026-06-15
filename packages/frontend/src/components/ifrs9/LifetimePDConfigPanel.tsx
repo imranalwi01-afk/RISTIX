@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect, Fragment } from 'react';
 import {
   Box,
@@ -130,7 +132,7 @@ export default function LifetimePDConfigPanel({ open, onClose, onRun }: Lifetime
         <Typography variant="h6" fontWeight={700}>
           Analysis Configuration
         </Typography>
-        <IconButton onClick={onClose}>
+        <IconButton onClick={onClose} aria-label="Close configuration panel">
           <CloseIcon />
         </IconButton>
       </Box>

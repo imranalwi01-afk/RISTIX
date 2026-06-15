@@ -101,7 +101,6 @@ interface Permission {
   requiredApprovalLevel?: number | null;
   requiredApprovers?: number;
   bankingSpecific: boolean;
-  syariahRequired?: boolean;
 }
 
 interface PermissionCategory {
@@ -397,7 +396,7 @@ const PermissionsMatrix: React.FC<PermissionsMatrixProps> = ({
 
   if (error) {
     return (
-      <Alert severity="error" sx={{ mb: 2 }}>
+      <Alert severity="error" sx={{ mb: 2 }} role="alert">
         {error}
       </Alert>
     );
@@ -443,10 +442,10 @@ const PermissionsMatrix: React.FC<PermissionsMatrixProps> = ({
             </Button>
           )}
 
-          <IconButton onClick={exportMatrix}>
+          <IconButton onClick={exportMatrix} aria-label="Export permissions matrix">
             <DownloadIcon />
           </IconButton>
-          <IconButton onClick={fetchData}>
+          <IconButton onClick={fetchData} aria-label="Refresh permissions data">
             <RefreshIcon />
           </IconButton>
         </Box>

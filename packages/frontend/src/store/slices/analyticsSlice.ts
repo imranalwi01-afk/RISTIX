@@ -74,7 +74,7 @@ export interface AnalyticsFilters {
     end: string;
   };
   portfolioTypes: string[];
-  bankingMode: 'conventional' | 'syariah' | 'all';
+  bankingMode: 'conventional' | 'all';
   stages: number[];
   riskCategories: string[];
 }

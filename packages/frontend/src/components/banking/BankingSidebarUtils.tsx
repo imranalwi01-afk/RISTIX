@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import {
     // Core Navigation & Layout
@@ -309,7 +311,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         label: 'Collective Impairment',
         icon: <TrendingUp />,
         description: 'Portfolio Assessment',
-        banking_modes: ['conventional', 'syariah', 'dual'],
+        banking_modes: ['conventional', 'dual'],
         // roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_PORTFOLIO_MANAGER'],
         children: [
             {
@@ -378,7 +380,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         label: 'Individual Impairment',
         icon: <Person />,
         description: 'Account Assessment',
-        banking_modes: ['conventional', 'syariah', 'dual'],
+        banking_modes: ['conventional', 'dual'],
         roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_PORTFOLIO_MANAGER'],
         children: [
             {
@@ -406,7 +408,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         label: 'IFRS 9',
         icon: <Calculate />,
         description: 'Processing Modules',
-        banking_modes: ['conventional', 'syariah', 'dual'],
+        banking_modes: ['conventional', 'dual'],
         roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST'],
         children: [
             {
@@ -464,7 +466,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         label: 'IFRS 9 Reports',
         icon: <TableChart />,
         description: 'Comprehensive IFRS 9 Reporting Suite',
-        banking_modes: ['conventional', 'syariah', 'dual'],
+        banking_modes: ['conventional', 'dual'],
         roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_REPORT_ANALYST'],
 
         children: [
@@ -526,7 +528,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         label: 'Advanced Analytics',
         icon: <Analytics />,
         description: 'R Analytics & BI',
-        banking_modes: ['conventional', 'syariah', 'dual'],
+        banking_modes: ['conventional', 'dual'],
         roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_REPORT_ANALYST'],
         children: [
             {
@@ -1060,7 +1062,7 @@ export const convertStaticToDatabaseFormat = (staticMenu: MenuItem[]): DatabaseM
             sort_order: item.sort_order || 999,
             is_active: true,
             user_types: item.roles || [],
-            banking_types: item.banking_modes || ['conventional', 'syariah', 'dual'],
+            banking_types: item.banking_modes || ['conventional', 'dual'],
             requiredPermissions: permissionCodes,
             parent_id: parentId
         };
@@ -1123,7 +1125,7 @@ export const convertDatabaseMenuToMenuItem = (dbMenuItems: DatabaseMenuItem[], b
             path: item.key,
             // Use centralized icon configuration with banking mode awareness
             icon: item.icon ? getIconFromDatabaseString(item.icon, bankingMode) : <Menu />,
-            banking_modes: item.banking_types as ('conventional' | 'syariah' | 'dual')[],
+            banking_modes: item.banking_types as ('conventional' | 'dual')[],
             roles: item.user_types,
             requiredPermissions: item.requiredPermissions,
             // ✅ CRITICAL: Preserve children from database - DON'T RECURSIVELY CONVERT
@@ -1138,7 +1140,7 @@ export const convertDatabaseMenuToMenuItem = (dbMenuItems: DatabaseMenuItem[], b
                 level: 3, // Children are level 3
                 path: child.key,
                 icon: child.icon ? getIconFromDatabaseString(child.icon, bankingMode) : <Menu />,
-                banking_modes: child.banking_types as ('conventional' | 'syariah' | 'dual')[],
+                banking_modes: child.banking_types as ('conventional' | 'dual')[],
                 roles: child.user_types,
                 requiredPermissions: child.requiredPermissions,
                 status: child.is_active ? 'active' : 'disabled'

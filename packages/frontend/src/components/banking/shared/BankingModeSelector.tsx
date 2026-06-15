@@ -3,7 +3,7 @@
 // BANKING MODE SELECTOR - DUAL BANKING SUPPORT
 // ============================================================================
 // File Path: packages/frontend/src/components/banking/shared/BankingModeSelector.tsx
-// Purpose: Toggle between Conventional and Syariah banking modes
+// Purpose: Toggle between banking modes
 // Dependencies: Material-UI v6, Redux Toolkit, Configuration Provider
 // Features: Theme switching, compliance validation, mode persistence
 // ============================================================================
@@ -56,7 +56,7 @@ const BankingModeSelector: React.FC<BankingModeSelectorProps> = ({
   showComplianceInfo = true,
 }) => {
   const dispatch = useDispatch();
-  const { setTheme, isConventionalTheme, isSyariahTheme } = useBankingTheme();
+  const { setTheme, isConventionalTheme } = useBankingTheme();
 
   // ✅ Get current banking mode from Redux store
   const selectedMode = useSelector((state: any) => state.configuration?.bankingMode) || currentMode || 'conventional';
@@ -113,19 +113,6 @@ const BankingModeSelector: React.FC<BankingModeSelectorProps> = ({
       ],
       compliance: 'Basel III, IFRS 9, Local Banking Regulations'
     },
-    syariah: {
-      label: 'Syariah Banking',
-      icon: <Security />,
-      color: '#2e7d32',
-      description: 'Islamic banking compliant with Syariah principles',
-      features: [
-        'Profit-sharing arrangements',
-        'Halal investment screening',
-        'Islamic contract structures',
-        'DPS board approval workflows'
-      ],
-      compliance: 'AAOIFI Standards, OJK Islamic Banking, IFRS 9 Syariah'
-    }
   };
 
   return (
@@ -164,23 +151,6 @@ const BankingModeSelector: React.FC<BankingModeSelectorProps> = ({
               </Box>
             </ToggleButton>
 
-            <ToggleButton
-              value="syariah"
-              aria-label="syariah banking"
-              sx={{
-                flex: 1,
-                py: 2,
-                '&.Mui-selected': {
-                  backgroundColor: modeConfigs.syariah.color + '20',
-                  color: modeConfigs.syariah.color,
-                }
-              }}
-            >
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                {modeConfigs.syariah.icon}
-                <Typography variant="body2">{modeConfigs.syariah.label}</Typography>
-              </Box>
-            </ToggleButton>
           </ToggleButtonGroup>
 
           {/* Current Mode Info */}
@@ -204,7 +174,7 @@ const BankingModeSelector: React.FC<BankingModeSelectorProps> = ({
                 size="small"
                 sx={{ mr: 1 }}
               />
-              {selectedMode === 'syariah' && (
+              {selectedMode === 'dual' && (
                 <Chip
                   icon={<Security />}
                   label="Halal Certified"
@@ -220,7 +190,7 @@ const BankingModeSelector: React.FC<BankingModeSelectorProps> = ({
           {tenantConfig && (
             <Alert severity="info" sx={{ mt: 2 }}>
               <Typography variant="body2">
-                Tenant supports: {tenantConfig.features?.dual_banking ? 'Dual Banking' : selectedMode === 'syariah' ? 'Syariah Banking Only' : 'Conventional Banking Only'}
+                Tenant supports: {tenantConfig.features?.dual_banking ? 'Dual Banking' : 'Conventional Banking Only'}
               </Typography>
             </Alert>
           )}

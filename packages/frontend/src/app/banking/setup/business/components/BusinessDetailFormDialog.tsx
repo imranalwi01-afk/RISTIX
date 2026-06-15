@@ -96,8 +96,8 @@ const BusinessDetailFormDialog = memo(function BusinessDetailFormDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>{detail ? 'Edit Detail' : 'Add Detail'}</DialogTitle>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth aria-labelledby="detail-form-dialog-title">
+      <DialogTitle id="detail-form-dialog-title">{detail ? 'Edit Detail' : 'Add Detail'}</DialogTitle>
       <DialogContent sx={{ mt: 2 }}>
         <Grid container spacing={2}>
           <Grid size={{ xs: 12 }}>

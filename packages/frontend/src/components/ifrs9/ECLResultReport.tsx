@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/components/ifrs9/ECLResultReport.tsx
 import React, { useState, useMemo } from 'react';
 import {
@@ -157,7 +159,7 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
 
   const getThemeColors = () => {
     switch (bankingMode) {
-      case 'syariah':
+      case 'conventional':
         return {
           primaryGradient: 'linear-gradient(135deg, #00695c 0%, #004d40 100%)',
           secondaryGradient: 'linear-gradient(135deg, #00897b 0%, #00796b 100%)',
@@ -244,7 +246,7 @@ const StageBreakdownCard: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
   const { bankingMode } = useBankingTheme();
 
   const getStageColor = (stage: number) => {
-    if (bankingMode === 'syariah') {
+    if (bankingMode === 'dual') {
       return stage === 1 ? '#00897b' : stage === 2 ? '#00796b' : '#00695c';
     }
     return stage === 1 ? '#4CAF50' : stage === 2 ? '#FF9800' : '#F44336';

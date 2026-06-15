@@ -14,7 +14,7 @@ import { Theme } from '@mui/material/styles';
 /**
  * Banking Types
  */
-export type BankingType = 'conventional' | 'syariah' | 'dual';
+export type BankingType = 'conventional' | 'dual';
 
 /**
  * Theme Mode Types
@@ -247,7 +247,7 @@ export interface ThemeExportConfiguration {
  * Type Guards
  */
 export const isBankingType = (value: any): value is BankingType => {
-  return ['conventional', 'syariah', 'dual'].includes(value);
+  return ['conventional', 'dual'].includes(value);
 };
 
 export const isThemeMode = (value: any): value is ThemeMode => {

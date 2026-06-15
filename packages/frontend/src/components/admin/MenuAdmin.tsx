@@ -1,3 +1,5 @@
+'use client';
+
 // packages/frontend/src/components/admin/MenuAdmin.tsx
 // ============================================================================
 // Menu Administration Component
@@ -171,7 +173,7 @@ export const MenuAdmin: React.FC<MenuAdminProps> = ({
           <Chip
             label={params.value.charAt(0).toUpperCase() + params.value.slice(1)}
             size="small"
-            color={params.value === 'syariah' ? 'success' : 'default'}
+            color="default"
             variant="outlined"
           />
         );
@@ -255,7 +257,7 @@ export const MenuAdmin: React.FC<MenuAdminProps> = ({
 
       {/* Error Alert */}
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+        <Alert severity="error" sx={{ mb: 2 }} role="alert" onClose={() => setError(null)}>
           {error}
         </Alert>
       )}
@@ -340,7 +342,6 @@ export const MenuAdmin: React.FC<MenuAdminProps> = ({
               >
                 <MenuItem value="">All Banking Types</MenuItem>
                 <MenuItem value="conventional">Conventional</MenuItem>
-                <MenuItem value="syariah">Syariah</MenuItem>
                 <MenuItem value="dual">Dual Banking</MenuItem>
               </Select>
             </FormControl>
