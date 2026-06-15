@@ -40,7 +40,7 @@
     "@mui/x-data-grid": "^8.25.0",
     "@mui/x-date-pickers": "^8.25.0",
     "@reduxjs/toolkit": "^2.2.8",
-    "@tanstack/react-query": "^5.99.2",
+    "@tanstack/react-query": "^5.101.0",
     "axios": "^1.7.7",
     "clsx": "^2.1.1",
     "commander": "^14.0.3",
