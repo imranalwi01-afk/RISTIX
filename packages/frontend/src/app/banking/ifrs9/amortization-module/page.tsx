@@ -186,6 +186,7 @@ export default function AmortizationModulePage() {
               selectedPkid={selectedPkid}
               onSelectRow={setSelectedPkid}
               detailSupported={detailSupported}
+              hidePagination={true}
               onPageChange={() => {}}
               onRowsPerPageChange={(nextRowsPerPage) => {
                 setRowsPerPage(nextRowsPerPage);

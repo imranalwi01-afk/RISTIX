@@ -185,6 +185,7 @@ export default function ImpairmentModulePage() {
               selectedPkid={selectedPkid}
               onSelectRow={setSelectedPkid}
               detailSupported={detailSupported}
+              hidePagination={true}
               onPageChange={() => {}}
               onRowsPerPageChange={(nextRowsPerPage) => {
                 setRowsPerPage(nextRowsPerPage);
