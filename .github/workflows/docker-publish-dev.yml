@@ -84,6 +84,18 @@ jobs:
           }
 
           Set-Location $COMPOSE_DIR
+          # Ensure BACKEND_INTERNAL_URL is set so Next.js rewrites() uses docker network
+          $envFile = ".\env\frontend.env"
+          $envVar = "BACKEND_INTERNAL_URL=http://backend:4232"
+          if (Test-Path $envFile) {
+            $content = Get-Content $envFile -Raw
+            if ($content -notmatch [regex]::Escape($envVar)) {
+              Add-Content $envFile "`r`n$envVar"
+              Write-Output "Added BACKEND_INTERNAL_URL to frontend.env"
+            } else {
+              Write-Output "BACKEND_INTERNAL_URL already in frontend.env"
+            }
+          }
           # Restart backend first (if changed), wait, then frontend
           if ($services -contains "backend") {
             Write-Output "Restarting backend..."
