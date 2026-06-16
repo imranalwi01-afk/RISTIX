@@ -66,8 +66,34 @@ jobs:
             exit 0
           }
           Write-Output "Rebuilding: $($services -join ', ')"
-          Set-Location C:\opt\ifrspro
+          $CHECKOUT_DIR = "${{ github.workspace }}"
+          $COMPOSE_DIR = "C:\opt\ifrspro"
+
           foreach ($svc in $services) {
-            docker compose build $svc
+            switch ($svc) {
+              "frontend" {
+                $tag = "ghcr.io/ifrspro/ifrs9-iaf/frontend:production"
+                $ctx = "$CHECKOUT_DIR/packages/frontend"
+                $df = "$CHECKOUT_DIR/packages/frontend/Dockerfile"
+              }
+              "backend" {
+                $tag = "ghcr.io/ifrspro/ifrs9-iaf/backend:production"
+                $ctx = "$CHECKOUT_DIR/packages/new-backend"
+                $df = "$CHECKOUT_DIR/packages/new-backend/Dockerfile"
+              }
+              "r-analytics" {
+                $tag = "ghcr.io/ifrspro/ifrs9-iaf/r-analytics:production"
+                $ctx = "$CHECKOUT_DIR/packages/r-analytics"
+                $df = "$CHECKOUT_DIR/packages/r-analytics/Dockerfile"
+              }
+            }
+            Write-Output "Building $svc -> $tag"
+            docker build -t $tag -f $df $ctx
+            if ($LASTEXITCODE -ne 0) { throw "Build failed for $svc" }
+          }
+
+          Set-Location $COMPOSE_DIR
+          Write-Output "Restarting: $($services -join ', ')"
+          foreach ($svc in $services) {
             docker compose up -d --no-deps $svc
           }
