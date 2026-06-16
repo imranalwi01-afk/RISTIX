@@ -38,6 +38,7 @@ export const roles = coreSchema.table(
 
         complianceLevel: varchar('compliance_level', { length: 50 }),
         hierarchyLevel: integer('hierarchy_level').notNull().default(1),
+        maxImpactLevel: varchar('max_impact_level', { length: 20 }).default('low'), // low, medium, high
 
         // System roles (cannot be deleted/modified)
         isSystemRole: boolean('is_system_role').default(false),
@@ -135,6 +136,7 @@ export const permissions = coreSchema.table(
         action: varchar('action', { length: 50 }).notNull(),
         module: varchar('module', { length: 50 }).notNull().default('core'),
         category: varchar('category', { length: 100 }),
+        impactLevel: varchar('impact_level', { length: 20 }).default('low'), // low, medium, high
         isActive: boolean('is_active').notNull().default(true),
         createdAt: timestamp('created_at').notNull().defaultNow(),
     },

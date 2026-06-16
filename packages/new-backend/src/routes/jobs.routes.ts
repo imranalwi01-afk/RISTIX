@@ -134,6 +134,8 @@ const LEGACY_PERMISSION_ALIASES: Record<string, string> = {
 const JOB_PERMISSION_REQUIREMENTS = {
     view: ['jobs.view', 'jobs.manage', 'jobs.access', 'admin.system.view', 'admin.system.manage'],
     create: ['jobs.create', 'jobs.manage', 'jobs.access', 'admin.system.manage'],
+    update: ['jobs.update', 'jobs.manage', 'jobs.access', 'admin.system.manage'],
+    delete: ['jobs.delete', 'jobs.manage', 'jobs.access', 'admin.system.manage'],
     run: ['jobs.run', 'jobs.manage', 'jobs.access', 'admin.system.manage'],
     control: ['jobs.control', 'jobs.manage', 'jobs.access', 'admin.system.manage'],
     approve: ['jobs.approve', 'approval.requests.approve', 'approval.all', 'jobs.manage', 'admin.system.manage'],
@@ -1220,8 +1222,8 @@ jobsRoutes.openapi(
         },
     }),
     async (c) => {
-        if (!hasAnyRequiredPermission(c, JOB_PERMISSION_REQUIREMENTS.create)) {
-            return forbiddenForPermissions(c, JOB_PERMISSION_REQUIREMENTS.create)
+        if (!hasAnyRequiredPermission(c, JOB_PERMISSION_REQUIREMENTS.update)) {
+            return forbiddenForPermissions(c, JOB_PERMISSION_REQUIREMENTS.update)
         }
 
         const id = c.req.param('id')!
@@ -1296,8 +1298,8 @@ jobsRoutes.openapi(
         },
     }),
     async (c) => {
-        if (!hasAnyRequiredPermission(c, JOB_PERMISSION_REQUIREMENTS.control)) {
-            return forbiddenForPermissions(c, JOB_PERMISSION_REQUIREMENTS.control)
+        if (!hasAnyRequiredPermission(c, JOB_PERMISSION_REQUIREMENTS.delete)) {
+            return forbiddenForPermissions(c, JOB_PERMISSION_REQUIREMENTS.delete)
         }
 
         const id = c.req.param('id')!

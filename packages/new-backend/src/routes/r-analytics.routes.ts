@@ -1,7 +1,7 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import { legacyDb } from '@/config'
 import { frs9RPdAfl } from '@/db/schema/legacy'
-import { desc, isNull, or, eq } from 'drizzle-orm'
+import { desc, isNull, or, eq, and } from 'drizzle-orm'
 import { openApiValidationHook } from '@/lib/http/openapi-validation-hook'
 import { buildErrorResponse } from '@/lib/http/error-response'
 
@@ -50,9 +50,15 @@ rAnalyticsRoutes.openapi(getSavedRoute, async (c) => {
             model_status: frs9RPdAfl.modelStatus
         }).from(frs9RPdAfl)
         .where(
-            or(
-                isNull(frs9RPdAfl.isDeleted),
-                eq(frs9RPdAfl.isDeleted, false)
+            and(
+                or(
+                    isNull(frs9RPdAfl.isDeleted),
+                    eq(frs9RPdAfl.isDeleted, false)
+                ),
+                or(
+                    isNull(frs9RPdAfl.modelStatus),
+                    eq(frs9RPdAfl.modelStatus, 'DRAFT')
+                )
             )
         )
         .orderBy(desc(frs9RPdAfl.id))
@@ -214,6 +220,94 @@ rAnalyticsRoutes.openapi(downloadHistoryRoute, async (c) => {
             success: false,
             error: error.message || 'Failed to download file',
             code: 'DOWNLOAD_ERROR'
+        }, 500)
+    }
+})
+
+const submitRoute = createRoute({
+    method: 'post',
+    path: '/submit',
+    tags: ['R Analytics'],
+    description: 'Submit R Analytics result for approval',
+    request: {
+        body: {
+            content: {
+                'application/json': {
+                    schema: z.object({
+                        id: z.number(),
+                        model_name: z.string().optional(),
+                        r_squared: z.number().optional(),
+                        mape: z.number().optional(),
+                        snapshot_date: z.string().optional()
+                    })
+                }
+            }
+        }
+    },
+    responses: {
+        200: {
+            description: 'Success',
+            content: {
+                'application/json': {
+                    schema: z.object({
+                        success: z.boolean(),
+                        data: z.any()
+                    })
+                }
+            }
+        },
+        404: {
+            description: 'Not found',
+            content: {
+                'application/json': {
+                    schema: z.object({
+                        success: z.boolean(),
+                        error: z.string()
+                    })
+                }
+            }
+        },
+        500: {
+            description: 'Server error',
+            content: {
+                'application/json': {
+                    schema: z.object({
+                        success: z.boolean(),
+                        error: z.string(),
+                        code: z.string().optional()
+                    })
+                }
+            }
+        }
+    }
+})
+
+rAnalyticsRoutes.openapi(submitRoute, async (c) => {
+    try {
+        const body = c.req.valid('json')
+        
+        const result = await legacyDb.update(frs9RPdAfl)
+            .set({ 
+                modelStatus: 'PENDING_APPROVAL',
+                updatedDate: new Date().toISOString()
+            })
+            .where(eq(frs9RPdAfl.id, body.id))
+            .returning({ id: frs9RPdAfl.id })
+
+        if (result.length === 0) {
+            return c.json({ success: false, error: 'Record not found' }, 404)
+        }
+
+        return c.json({
+            success: true,
+            data: { id: result[0].id }
+        }, 200)
+    } catch (error: any) {
+        console.error('[R Analytics] Submit error:', error)
+        return c.json({
+            success: false,
+            error: error.message || 'Failed to submit R Analytics data',
+            code: 'SUBMIT_ERROR'
         }, 500)
     }
 })

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 
 const ACCESS_MANAGEMENT_BASE_PATH = '/banking/maintenance/access-management';
-const VALID_TABS = new Set(['roles', 'users', 'permissions', 'matrix', 'assignments']);
+const VALID_TABS = new Set(['roles', 'users', 'permissions', 'matrix', 'assignments', 'security']);
 
 type SearchParamsInput = Record<string, string | string[] | undefined>;
 

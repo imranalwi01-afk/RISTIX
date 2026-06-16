@@ -9,7 +9,6 @@ import {
   LockReset as LockResetIcon,
   Security as SecurityIcon,
   Visibility as ViewIcon,
-  AssignmentInd as ManageRolesIcon,
 } from '@mui/icons-material';
 import type { GridColDef } from '@mui/x-data-grid';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
@@ -28,7 +27,6 @@ interface UserManagementTableProps {
   onEdit: (user: User) => void;
   onResetPassword: (user: User) => void;
   onToggleStatus: (userId: string, currentStatus: boolean) => void;
-  onManageRoles: (user: User) => void;
 }
 
 
@@ -44,7 +42,6 @@ const UserManagementTable = memo(function UserManagementTable({
   onEdit,
   onResetPassword,
   onToggleStatus,
-  onManageRoles,
 }: UserManagementTableProps) {
   const columnFilters = useColumnFiltersFromUrl();
   const columns = useMemo<GridColDef<User>[]>(() => [
@@ -59,15 +56,12 @@ const UserManagementTable = memo(function UserManagementTable({
           <Typography variant="body2" color="text.secondary">
             {params.row.email}
           </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {params.row.position}
-          </Typography>
         </Box>
       ),
     },
     {
-      field: 'department',
-      headerName: 'Department',
+      field: 'position',
+      headerName: 'Role',
       minWidth: 160,
       flex: 0.8,
       renderCell: (params) => params.value || '-',
@@ -84,12 +78,6 @@ const UserManagementTable = memo(function UserManagementTable({
           size="small"
         />
       ),
-    },
-    {
-      field: 'lastLoginAt',
-      headerName: 'Last Login',
-      width: 150,
-      renderCell: (params) => params.value ? new Date(params.value).toLocaleDateString() : 'Never',
     },
     {
       field: 'actions',
@@ -112,12 +100,6 @@ const UserManagementTable = memo(function UserManagementTable({
           onClick={() => onEdit(params.row)}
         />,
         <SafeGridActionsCellItem
-          key="roles"
-          label="Manage Roles"
-          icon={<ManageRolesIcon />}
-          onClick={() => onManageRoles(params.row)}
-        />,
-        <SafeGridActionsCellItem
           key="reset"
           label="Reset Password"
           icon={<SecurityIcon color="warning" />}
@@ -131,7 +113,7 @@ const UserManagementTable = memo(function UserManagementTable({
         />,
       ],
     },
-  ], [onEdit, onToggleStatus, onView, onResetPassword, onManageRoles]);
+  ], [onEdit, onToggleStatus, onView, onResetPassword]);
 
   return (
     <SafeDataGrid

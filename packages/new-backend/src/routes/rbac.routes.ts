@@ -64,7 +64,7 @@ const ROLE_NAME_REGEX = /^[A-Z_][A-Z0-9_]*$/
 const CreateRoleSchema = z.object({
     roleName: z.string().min(2).max(100).optional().openapi({ example: 'NEW_ROLE' }),
     name: z.string().min(2).max(100).optional().openapi({ example: 'NEW_ROLE' }),
-    description: z.string().optional().openapi({ example: 'New role description' }),
+    description: z.string().min(30, 'Description must be at least 30 characters').openapi({ example: 'New role description that is very detailed' }),
     permissions: z.array(z.string()).default([]), // Array of permission codes
     complianceLevel: z.string().optional(),
     hierarchyLevel: z.number().int().min(1).max(10).default(1),
@@ -95,7 +95,7 @@ const CreateRoleSchema = z.object({
 const UpdateRoleSchema = z.object({
     roleName: z.string().min(2).max(100).optional(),
     name: z.string().min(2).max(100).optional(),
-    description: z.string().optional(),
+    description: z.string().min(30, 'Description must be at least 30 characters').optional(),
     permissions: z.array(z.string()).optional(), // Array of permission codes
     hierarchyLevel: z.number().int().min(1).max(10).optional(),
     isActive: z.boolean().optional(),
@@ -1150,6 +1150,7 @@ rbacRoutes.openapi(
                         validFrom: ur.validFrom ? ur.validFrom.toISOString() : null,
                         validUntil: ur.validUntil ? ur.validUntil.toISOString() : null,
                         isTemporary: ur.isTemporary,
+                        isActive: ur.isActive,
                     })),
                 },
             }))
@@ -1434,3 +1435,58 @@ rbacRoutes.openapi(
 // =============================================================================
 // PERMISSION MANAGEMENT ENDPOINTS
 // =============================================================================
+
+/**
+ * POST /matrix/import - Import User Role Matrix from Excel/CSV JSON data
+ */
+rbacRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/matrix/import',
+        tags: ['RBAC'],
+        summary: 'Import Role Matrix',
+        security: [{ BearerAuth: [] }],
+        request: {
+            body: {
+                content: {
+                    'application/json': {
+                        schema: z.array(z.any()).openapi('MatrixImportData'),
+                    },
+                },
+            },
+        },
+        responses: {
+            200: {
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            data: z.object({
+                                permissionsAdded: z.number(),
+                                rolesAdded: z.number(),
+                                mappingsUpdated: z.number(),
+                            }),
+                            message: z.string(),
+                        }),
+                    },
+                },
+                description: 'Matrix imported successfully',
+            },
+        },
+    }),
+    async (c: any) => {
+        const tenantId = c.get('tenantId')!
+        const body = c.req.valid('json')
+
+        const effect = pipe(
+            rbacService.importRoleMatrix(tenantId, body),
+            Effect.map((stats) => ({
+                success: true,
+                data: stats,
+                message: 'Matrix imported successfully',
+            }))
+        )
+
+        return runEffect(c, effect)
+    }
+)

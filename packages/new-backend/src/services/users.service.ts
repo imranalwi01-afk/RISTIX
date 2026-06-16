@@ -4,6 +4,7 @@ import { users, type User, type NewUser } from '@/db/schema'
 import { DatabaseError, NotFoundError, ValidationError } from '@/lib/errors'
 import { AuthRepository } from '@/repositories/auth.repository'
 import { hashPassword } from './auth.service'
+import { validatePasswordPolicy } from '@/lib/password-policy'
 
 // =============================================================================
 // TYPES
@@ -134,6 +135,8 @@ export const createUser = (
                 )
                 : Effect.succeed(undefined)
         ),
+        // Validate password policy
+        Effect.flatMap(() => validatePasswordPolicy(input.password, input.tenantId)),
         // Hash password and create user
         Effect.flatMap(() =>
             Effect.tryPromise({
@@ -226,16 +229,20 @@ export const updatePassword = (
     userId: string,
     newPassword: string,
     tenantId?: string
-): Effect.Effect<User, DatabaseError | NotFoundError> =>
+): Effect.Effect<User, DatabaseError | NotFoundError | ValidationError> =>
     pipe(
-        Effect.tryPromise({
-            try: () => hashPassword(newPassword),
-            catch: (error) =>
-                new DatabaseError({
-                    operation: 'query',
-                    message: `Failed to hash password: ${error}`,
-                }),
-        }),
+        // Validate password policy
+        validatePasswordPolicy(newPassword, tenantId || 'dana'),
+        Effect.flatMap(() =>
+            Effect.tryPromise({
+                try: () => hashPassword(newPassword),
+                catch: (error) =>
+                    new DatabaseError({
+                        operation: 'query',
+                        message: `Failed to hash password: ${error}`,
+                    }),
+            })
+        ),
         Effect.flatMap((passwordHash) =>
             Effect.tryPromise({
                 try: () => {
@@ -256,16 +263,20 @@ export const resetPassword = (
     newPassword: string,
     tenantId: string,
     options?: { forcePasswordChange?: boolean }
-): Effect.Effect<User, DatabaseError | NotFoundError> =>
+): Effect.Effect<User, DatabaseError | NotFoundError | ValidationError> =>
     pipe(
-        Effect.tryPromise({
-            try: () => hashPassword(newPassword),
-            catch: (error) =>
-                new DatabaseError({
-                    operation: 'query',
-                    message: `Failed to hash password: ${error}`,
-                }),
-        }),
+        // Validate password policy
+        validatePasswordPolicy(newPassword, tenantId),
+        Effect.flatMap(() =>
+            Effect.tryPromise({
+                try: () => hashPassword(newPassword),
+                catch: (error) =>
+                    new DatabaseError({
+                        operation: 'query',
+                        message: `Failed to hash password: ${error}`,
+                    }),
+            })
+        ),
         Effect.flatMap((passwordHash) =>
             Effect.tryPromise({
                 try: async () => {

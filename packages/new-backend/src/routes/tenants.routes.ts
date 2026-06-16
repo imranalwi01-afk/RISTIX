@@ -426,7 +426,7 @@ tenantsRoutes.openapi(
 
 /**
  * PUT /tenants/:id - Update tenant
- * Restricted to Platform Admins
+ * Restricted to Platform Admins or Tenant Admins (updating their own tenant)
  */
 tenantsRoutes.openapi(
     createRoute({
@@ -475,13 +475,24 @@ tenantsRoutes.openapi(
         },
     }),
     async (c: any) => {
-        try { requirePlatformAdmin(c) } catch (e: any) { return forbidden(c, e.message) }
-
         const { id } = c.req.valid('param')
+        const isSystemUser = c.get('isSystemUser');
+        const currentTenantId = c.get('tenantId');
+
+        // Allow if Platform Admin, OR if Tenant Admin updating their own tenant
+        if (!isSystemUser) {
+            if (currentTenantId !== id) {
+                return forbidden(c, 'Unauthorized: You can only update your own tenant');
+            }
+        }
+
         const body = c.req.valid('json')
 
+        // If not system user, only allow updating settings
+        const allowedBody = isSystemUser ? body : { settings: body.settings };
+
         const effect = pipe(
-            tenantsService.updateTenant(id, body),
+            tenantsService.updateTenant(id, allowedBody),
             Effect.flatMap(t => {
                 if (!t) return Effect.fail(new NotFoundError({
                     message: 'Tenant not found',

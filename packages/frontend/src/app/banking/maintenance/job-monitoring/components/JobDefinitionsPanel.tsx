@@ -19,6 +19,7 @@ import {
   Edit as EditIcon,
   RunCircle as RunIcon,
 } from '@mui/icons-material';
+import { ImpactLevelBadge } from '@/components/ImpactLevelBadge';
 import { JobDefinition } from '../types';
 
 interface JobDefinitionsPanelProps {
@@ -97,6 +98,7 @@ export const JobDefinitionsPanel = memo(function JobDefinitionsPanel({
                   <Typography variant="caption" color="text.secondary">
                     Priority: {job.priority}
                   </Typography>
+                  <ImpactLevelBadge level={(job as any).impactLevel || 'medium'} size="small" />
                   <Typography variant="caption" color="text.secondary">
                     Type: {job.type}
                   </Typography>

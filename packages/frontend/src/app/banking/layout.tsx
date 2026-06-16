@@ -139,7 +139,12 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
   const handleSidebarToggle = () => setSidebarCollapsed(!sidebarCollapsed);
 
-  if (hasSessionEvidence === false && !authState?.user && !authState?.token) {
+  const isAuthReady = authState?.isInitialized;
+  const isActuallyAuthenticated = authState?.isAuthenticated && !!authState?.user;
+
+  // Block if no session evidence exists OR if Redux explicitly initialized and determined unauthenticated
+  if ((hasSessionEvidence === false && !authState?.user && !authState?.token) ||
+      (isAuthReady && !isActuallyAuthenticated)) {
     return (
       <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3 }}>
         <Box sx={{ width: '100%', maxWidth: 520 }}>

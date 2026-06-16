@@ -28,6 +28,7 @@ import {
 import { AuthRepository } from '@/repositories/auth.repository'
 import { TenantRepository } from '@/repositories/tenant.repository'
 import { userRolesRepository } from '@/repositories/rbac.repository'
+import { validatePasswordPolicy } from '@/lib/password-policy'
 
 /**
  * @module AuthService
@@ -913,6 +914,12 @@ export const resetPasswordWithToken = (
             }
 
             const tokenId = tokens[0].id
+
+            // Validate password policy
+            const policyCheck = await Effect.runPromiseExit(validatePasswordPolicy(newPassword, user.tenantId || 'dana'));
+            if (policyCheck._tag === 'Failure') {
+                 throw new Error('Password does not meet policy requirements');
+            }
 
             // Hash new password
             const newPasswordHash = await hashPassword(newPassword)
