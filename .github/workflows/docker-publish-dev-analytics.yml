@@ -37,4 +37,4 @@ jobs:
 
           Set-Location $COMPOSE_DIR
           Write-Output "Restarting r-analytics"
-          docker compose up -d --no-deps r-analytics
+          docker compose up -d --force-recreate --no-deps r-analytics

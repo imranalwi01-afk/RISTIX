@@ -86,5 +86,5 @@ jobs:
           Set-Location $COMPOSE_DIR
           Write-Output "Restarting: $($services -join ', ')"
           foreach ($svc in $services) {
-            docker compose up -d --no-deps $svc
+            docker compose up -d --force-recreate --no-deps $svc
           }
