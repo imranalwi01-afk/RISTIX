@@ -543,6 +543,20 @@ export default function PlatformMenuManagementPage() {
                   label={role.name}
                   color={selected ? 'primary' : 'default'}
                   variant={selected ? 'filled' : 'outlined'}
+                  onDelete={selected ? async () => {
+                    try {
+                      // Load existing permission ID for this role+item
+                      const permsRes = await api.client.get('/menu/permissions', { params: { tenantId } });
+                      const perm = (permsRes.data?.data || []).find((p: any) => p.menuItemId === permDialog.item?.id && p.roleId === role.id);
+                      if (perm?.id) {
+                        await api.client.delete(`/menu/permissions/${perm.id}`, { params: { tenantId } });
+                      }
+                      setPermDialog(p => ({ ...p, selectedRoles: p.selectedRoles.filter(r => r !== role.id) }));
+                      invalidateRuntimeMenu();
+                    } catch (err) {
+                      console.error('Failed to delete menu permission', err);
+                    }
+                  } : undefined}
                   onClick={async () => {
                     const next = selected
                       ? permDialog.selectedRoles.filter(r => r !== role.id)
