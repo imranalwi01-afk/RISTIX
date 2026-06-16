@@ -18,6 +18,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fix git safe.directory
+        run: git config --global --add safe.directory "${{ github.workspace }}"
+
       - name: Check for changes
         id: filter
         if: github.event_name != 'workflow_dispatch'
