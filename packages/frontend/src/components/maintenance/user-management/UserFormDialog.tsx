@@ -73,8 +73,7 @@ const UserFormDialog = memo(function UserFormDialog({
                 label="Password"
                 value={formData.password || ''}
                 onChange={(value) => onChange({ ...formData, password: value })}
-                required
-                helperText="Minimum 8 characters"
+                showValidation
               />
             </Grid>
           )}

@@ -42,7 +42,13 @@ const UserSchema = z.object({
 
 const CreateUserSchema = z.object({
     email: z.string().email(),
-    password: z.string().min(8),
+    password: z.string()
+        .min(8, 'Password must be at least 8 characters')
+        .regex(/[A-Z]/, 'Password must contain an uppercase letter')
+        .regex(/[a-z]/, 'Password must contain a lowercase letter')
+        .regex(/[0-9]/, 'Password must contain a number')
+        .regex(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, 'Password must contain a special character'),
+    fullName: z.string().min(2),
     fullName: z.string().min(2),
     username: z.string().min(2),
     phone: z.string().optional(),
@@ -60,7 +66,12 @@ const UpdateUserSchema = z.object({
 }).openapi('UpdateUserInput')
 
 const ResetPasswordSchema = z.object({
-    newPassword: z.string().min(8),
+    newPassword: z.string()
+        .min(8, 'Password must be at least 8 characters')
+        .regex(/[A-Z]/, 'Password must contain an uppercase letter')
+        .regex(/[a-z]/, 'Password must contain a lowercase letter')
+        .regex(/[0-9]/, 'Password must contain a number')
+        .regex(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, 'Password must contain a special character'),
     forcePasswordChange: z.boolean().optional().default(true),
 }).openapi('ResetUserPasswordInput')
 

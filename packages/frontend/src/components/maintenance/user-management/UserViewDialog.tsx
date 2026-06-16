@@ -11,7 +11,6 @@ interface UserViewDialogProps {
   selectedUserRoles: UserRoleSummary[];
   loadingUserRoles: boolean;
   onClose: () => void;
-  onAssignRoles: (user: User) => void;
   onEdit: (user: User) => void;
 }
 
@@ -21,7 +20,6 @@ const UserViewDialog = memo(function UserViewDialog({
   selectedUserRoles,
   loadingUserRoles,
   onClose,
-  onAssignRoles,
   onEdit,
 }: UserViewDialogProps) {
   return (
@@ -106,11 +104,6 @@ const UserViewDialog = memo(function UserViewDialog({
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Close</Button>
-        {selectedUser && (
-          <Button variant="contained" onClick={() => onAssignRoles(selectedUser)}>
-            Assign Roles
-          </Button>
-        )}
         {selectedUser && (
           <Button variant="outlined" onClick={() => onEdit(selectedUser)}>
             Edit User

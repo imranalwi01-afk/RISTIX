@@ -570,14 +570,6 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
           setOpenViewDialog(false);
           setSelectedUserRoles([]);
         }}
-        onAssignRoles={(user) => {
-          setOpenViewDialog(false);
-          const query = new URLSearchParams({
-            assignmentAction: 'manageUserRoles',
-            assignmentUserId: user.id
-          });
-          router.push(`/banking/maintenance/access-management/assignments?${query.toString()}`);
-        }}
         onEdit={handleEdit}
       />
 
