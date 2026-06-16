@@ -25,7 +25,6 @@ export interface UserProfile {
   phoneNumber?: string;
   address?: string;
   avatar?: string;
-  bankingAccess: 'CONVENTIONAL' | 'BOTH';
   language: string;
   timezone: string;
   emailNotifications: boolean;

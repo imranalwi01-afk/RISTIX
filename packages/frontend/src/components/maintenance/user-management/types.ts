@@ -6,10 +6,7 @@ export interface User {
   employeeId?: string;
   department?: string;
   position?: string;
-  bankingAccess: 'CONVENTIONAL' | 'BOTH';
-  dualModeCertified: boolean;
   isActive: boolean;
-  mfaEnabled: boolean;
   lastLoginAt?: string;
   createdAt: string;
   updatedAt?: string;
@@ -31,7 +28,5 @@ export interface UserFormData {
   employeeId: string;
   department: string;
   position: string;
-  bankingAccess: 'CONVENTIONAL' | 'BOTH';
-  dualModeCertified: boolean;
   sendWelcomeEmail?: boolean;
 }

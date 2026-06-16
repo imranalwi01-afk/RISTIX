@@ -78,7 +78,6 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('');
-  const [filterBankingAccess, setFilterBankingAccess] = useState('');
   const [filterActive, setFilterActive] = useState<boolean | null>(null);
 
   // ✅ Dialog States
@@ -119,8 +118,6 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
     employeeId: '',
     department: '',
     position: '',
-    bankingAccess: 'CONVENTIONAL',
-    dualModeCertified: false,
     sendWelcomeEmail: true
   });
 
@@ -200,7 +197,6 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
         limit: rowsPerPage,
         search: searchTerm,
         department: filterDepartment,
-        bankingAccess: filterBankingAccess,
         isActive: filterActive
       });
 
@@ -210,7 +206,6 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
         includeInactive: true,
         ...(searchTerm && { search: searchTerm }),
         ...(filterDepartment && { department: filterDepartment }),
-        ...(filterBankingAccess && { bankingAccess: filterBankingAccess as 'CONVENTIONAL' | 'BOTH' }),
         ...(filterActive !== null && { isActive: filterActive })
       };
 
@@ -243,7 +238,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, searchTerm, filterDepartment, filterBankingAccess, filterActive]);
+  }, [page, rowsPerPage, searchTerm, filterDepartment, filterActive]);
 
   // ✅ Create User - Using centralized API service
   const createUser = async () => {
@@ -340,8 +335,6 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       employeeId: '',
       department: '',
       position: '',
-      bankingAccess: 'CONVENTIONAL',
-      dualModeCertified: false,
       sendWelcomeEmail: true
     });
   };
@@ -382,8 +375,6 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       employeeId: user.employeeId || '',
       department: user.department || '',
       position: user.position || '',
-      bankingAccess: user.bankingAccess,
-      dualModeCertified: user.dualModeCertified
     });
     await loadUserRoles(user.id);
     setOpenEditDialog(true);
@@ -501,21 +492,17 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       <UserManagementHeader
         totalUsers={totalUsers}
         activeUsers={users.filter((u) => u.isActive).length}
-        dualModeUsers={users.filter((u) => u.bankingAccess === 'BOTH').length}
-        mfaEnabledUsers={users.filter((u) => u.mfaEnabled).length}
         onAddUser={() => setOpenCreateDialog(true)}
       />
 
       <UserManagementFilters
         searchTerm={searchTerm}
         filterDepartment={filterDepartment}
-        filterBankingAccess={filterBankingAccess}
         filterActive={filterActive}
         departments={departments}
         loading={loading}
         onSearchChange={setSearchTerm}
         onDepartmentChange={setFilterDepartment}
-        onBankingAccessChange={setFilterBankingAccess}
         onActiveChange={setFilterActive}
         onRefresh={loadUsers}
         onExport={() => setSnackbar({ open: true, message: 'Export feature coming soon', severity: 'info' })}
@@ -569,14 +556,6 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
         onClose={() => {
           setOpenViewDialog(false);
           setSelectedUserRoles([]);
-        }}
-        onAssignRoles={(user) => {
-          setOpenViewDialog(false);
-          const query = new URLSearchParams({
-            assignmentAction: 'manageUserRoles',
-            assignmentUserId: user.id
-          });
-          router.push(`/banking/maintenance/access-management/assignments?${query.toString()}`);
         }}
         onEdit={handleEdit}
       />

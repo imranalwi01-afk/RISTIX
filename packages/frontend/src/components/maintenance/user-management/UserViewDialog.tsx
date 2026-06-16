@@ -11,7 +11,6 @@ interface UserViewDialogProps {
   selectedUserRoles: UserRoleSummary[];
   loadingUserRoles: boolean;
   onClose: () => void;
-  onAssignRoles: (user: User) => void;
   onEdit: (user: User) => void;
 }
 
@@ -21,7 +20,6 @@ const UserViewDialog = memo(function UserViewDialog({
   selectedUserRoles,
   loadingUserRoles,
   onClose,
-  onAssignRoles,
   onEdit,
 }: UserViewDialogProps) {
   return (
@@ -61,10 +59,6 @@ const UserViewDialog = memo(function UserViewDialog({
                 <Typography>{selectedUser.position || 'N/A'}</Typography>
               </Grid>
               <Grid size={{ xs: 6 }}>
-                <Typography variant="subtitle2" color="text.secondary">Banking Access</Typography>
-                <Chip label={selectedUser.bankingAccess} size="small" />
-              </Grid>
-              <Grid size={{ xs: 6 }}>
                 <Typography variant="subtitle2" color="text.secondary">Status</Typography>
                 <Chip label={selectedUser.isActive ? 'Active' : 'Inactive'} color={selectedUser.isActive ? 'success' : 'default'} size="small" />
               </Grid>
@@ -85,14 +79,6 @@ const UserViewDialog = memo(function UserViewDialog({
                 )}
               </Grid>
               <Grid size={{ xs: 6 }}>
-                <Typography variant="subtitle2" color="text.secondary">Dual Mode Certified</Typography>
-                <Chip label={selectedUser.dualModeCertified ? 'Yes' : 'No'} color={selectedUser.dualModeCertified ? 'success' : 'default'} size="small" />
-              </Grid>
-              <Grid size={{ xs: 6 }}>
-                <Typography variant="subtitle2" color="text.secondary">MFA Enabled</Typography>
-                <Chip label={selectedUser.mfaEnabled ? 'Yes' : 'No'} color={selectedUser.mfaEnabled ? 'success' : 'default'} size="small" />
-              </Grid>
-              <Grid size={{ xs: 6 }}>
                 <Typography variant="subtitle2" color="text.secondary">Last Login</Typography>
                 <Typography>{selectedUser.lastLoginAt ? new Date(selectedUser.lastLoginAt).toLocaleString() : 'Never'}</Typography>
               </Grid>
@@ -106,11 +92,6 @@ const UserViewDialog = memo(function UserViewDialog({
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Close</Button>
-        {selectedUser && (
-          <Button variant="contained" onClick={() => onAssignRoles(selectedUser)}>
-            Assign Roles
-          </Button>
-        )}
         {selectedUser && (
           <Button variant="outlined" onClick={() => onEdit(selectedUser)}>
             Edit User

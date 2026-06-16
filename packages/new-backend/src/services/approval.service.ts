@@ -956,17 +956,38 @@ async function executeRoleAction(
     tenantId: string
 ): Promise<void> {
     const { createRole, updateRole, deleteRole } = await import('./rbac.service')
+    const { permissionsRepository, rolePermissionsRepository } = await import('@/repositories/rbac.repository')
+    const { permissions: permissionsTable } = await import('@/db/schema')
+    const db = getDatabase(tenantId)
 
     switch (operation) {
-        case 'create':
-            await Effect.runPromise(createRole({ ...data, tenantId }) as any)
+        case 'create': {
+            const { permissions: permCodes, ...roleData } = data
+            const [role] = await Effect.runPromise(createRole({ ...roleData, tenantId }) as any)
+            if (role && Array.isArray(permCodes) && permCodes.length > 0) {
+                const matched = await db.select({ id: permissionsTable.id }).from(permissionsTable)
+                    .where(sql`${permissionsTable.code} = ANY(${permCodes}::varchar[])`)
+                const ids = matched.map((r: any) => r.id).filter(Boolean)
+                if (ids.length > 0) {
+                    await Effect.runPromise(rolePermissionsRepository.set(db, role.id, ids))
+                }
+            }
             break
-        case 'update':
+        }
+        case 'update': {
             if (!data?.id) {
                 throw new Error('Missing role id in role update approval payload')
             }
-            await Effect.runPromise(updateRole(data.id, { ...data, tenantId }) as any)
+            const { permissions: permCodes, ...roleData } = data
+            await Effect.runPromise(updateRole(data.id, { ...roleData, tenantId }) as any)
+            if (Array.isArray(permCodes)) {
+                const matched = await db.select({ id: permissionsTable.id }).from(permissionsTable)
+                    .where(sql`${permissionsTable.code} = ANY(${permCodes}::varchar[])`)
+                const ids = matched.map((r: any) => r.id).filter(Boolean)
+                await Effect.runPromise(rolePermissionsRepository.set(db, data.id, ids))
+            }
             break
+        }
         case 'delete':
             if (!data?.id) {
                 throw new Error('Missing role id in role delete approval payload')

@@ -73,8 +73,7 @@ const UserFormDialog = memo(function UserFormDialog({
                 label="Password"
                 value={formData.password || ''}
                 onChange={(value) => onChange({ ...formData, password: value })}
-                required
-                helperText="Minimum 8 characters"
+                showValidation
               />
             </Grid>
           )}
@@ -86,25 +85,6 @@ const UserFormDialog = memo(function UserFormDialog({
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <TextField fullWidth label="Position" value={formData.position} onChange={(e) => onChange({ ...formData, position: e.target.value })} />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <FormControl fullWidth>
-              <InputLabel>Banking Access</InputLabel>
-              <Select
-                value={formData.bankingAccess}
-                onChange={(e) => onChange({ ...formData, bankingAccess: e.target.value as UserFormData['bankingAccess'] })}
-                label="Banking Access"
-              >
-                <MenuItem value="CONVENTIONAL">Conventional</MenuItem>
-                <MenuItem value="BOTH">Both</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <FormControlLabel
-              control={<Switch checked={formData.dualModeCertified} onChange={(e) => onChange({ ...formData, dualModeCertified: e.target.checked })} />}
-              label="Dual Mode Certified"
-            />
           </Grid>
           {isCreate && (
             <Grid size={{ xs: 12 }}>

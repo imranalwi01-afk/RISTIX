@@ -24,7 +24,10 @@ import { env, isProduction } from './config'
 import { routes } from './routes'
 import { businessSettingsRoutes } from './routes/business-settings.routes'
 import { individualImpairmentV2Routes } from './routes/individual-impairment-v2.routes'
-import { auditMiddleware } from './middleware'
+import { initTelemetry } from './lib/telemetry'
+
+// Initialize OpenTelemetry early
+initTelemetry()
 import { errorHandler } from './middleware/error-handler'
 import { platformDb } from './config/database'
 
