@@ -36,5 +36,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Build failed" }
 
           Set-Location $COMPOSE_DIR
-          Write-Output "Restarting r-analytics"
+          Write-Output "Restarting r-analytics..."
           docker compose up -d --force-recreate --no-deps r-analytics
+          Write-Output "Waiting 15s for r-analytics to start..."
+          Start-Sleep 15

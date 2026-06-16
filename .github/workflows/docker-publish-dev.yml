@@ -84,7 +84,14 @@ jobs:
           }
 
           Set-Location $COMPOSE_DIR
-          Write-Output "Restarting: $($services -join ', ')"
-          foreach ($svc in $services) {
-            docker compose up -d --force-recreate --no-deps $svc
+          # Restart backend first (if changed), wait, then frontend
+          if ($services -contains "backend") {
+            Write-Output "Restarting backend..."
+            docker compose up -d --force-recreate --no-deps backend
+            Write-Output "Waiting 15s for backend to start..."
+            Start-Sleep 15
+          }
+          if ($services -contains "frontend") {
+            Write-Output "Restarting frontend..."
+            docker compose up -d --force-recreate --no-deps frontend
           }
