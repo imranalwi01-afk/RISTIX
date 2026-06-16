@@ -15,6 +15,7 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
+import FormHelperText from '@mui/material/FormHelperText';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
 import Checkbox from '@mui/material/Checkbox';
@@ -180,20 +181,7 @@ disabled={isView}
                   <MenuItem value="BANKING">Banking</MenuItem>
                   <MenuItem value="CUSTOM">Custom</MenuItem>
                 </Select>
-              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <FormControl fullWidth disabled={isView}>
-                <InputLabel>Level</InputLabel>
-                <Select
-                  value={form.level}
-                  onChange={(e) => updateForm({ ...form, level: e.target.value as any })}
-                  label="Level"
-                >
-                  <MenuItem value="PLATFORM">Platform</MenuItem>
-                  <MenuItem value="TENANT">Tenant</MenuItem>
-                  <MenuItem value="DEPARTMENT">Department</MenuItem>
-                </Select>
+                <FormHelperText>System = built-in, Banking = banking ops, Custom = user-defined</FormHelperText>
               </FormControl>
             </Grid>
             <Grid size={{ xs: 12 }}>
