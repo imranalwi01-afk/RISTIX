@@ -3,26 +3,19 @@
 import React, { memo } from 'react';
 import { Box, Button, Card, CardContent, Grid, Typography } from '@mui/material';
 import {
-  AccountBalance as BankingIcon,
-  CheckCircle as ActiveIcon,
   People as PeopleIcon,
   PersonAdd as PersonAddIcon,
-  Security as SecurityIcon,
 } from '@mui/icons-material';
 
 interface UserManagementHeaderProps {
   totalUsers: number;
   activeUsers: number;
-  dualModeUsers: number;
-  mfaEnabledUsers: number;
   onAddUser: () => void;
 }
 
 const UserManagementHeader = memo(function UserManagementHeader({
   totalUsers,
   activeUsers,
-  dualModeUsers,
-  mfaEnabledUsers,
   onAddUser,
 }: UserManagementHeaderProps) {
   return (
@@ -45,7 +38,7 @@ const UserManagementHeader = memo(function UserManagementHeader({
       </Box>
 
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 6 }}>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
@@ -55,33 +48,13 @@ const UserManagementHeader = memo(function UserManagementHeader({
             </CardContent>
           </Card>
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 6 }}>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
                 Active Users
               </Typography>
               <Typography variant="h4">{activeUsers}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Dual Mode Users
-              </Typography>
-              <Typography variant="h4">{dualModeUsers}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                MFA Enabled
-              </Typography>
-              <Typography variant="h4">{mfaEnabledUsers}</Typography>
             </CardContent>
           </Card>
         </Grid>

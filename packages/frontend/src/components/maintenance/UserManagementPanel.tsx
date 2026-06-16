@@ -119,8 +119,6 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
     employeeId: '',
     department: '',
     position: '',
-    bankingAccess: 'CONVENTIONAL',
-    dualModeCertified: false,
     sendWelcomeEmail: true
   });
 
@@ -340,8 +338,6 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       employeeId: '',
       department: '',
       position: '',
-      bankingAccess: 'CONVENTIONAL',
-      dualModeCertified: false,
       sendWelcomeEmail: true
     });
   };
@@ -382,8 +378,6 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       employeeId: user.employeeId || '',
       department: user.department || '',
       position: user.position || '',
-      bankingAccess: user.bankingAccess,
-      dualModeCertified: user.dualModeCertified
     });
     await loadUserRoles(user.id);
     setOpenEditDialog(true);
@@ -501,8 +495,6 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       <UserManagementHeader
         totalUsers={totalUsers}
         activeUsers={users.filter((u) => u.isActive).length}
-        dualModeUsers={users.filter((u) => u.bankingAccess === 'BOTH').length}
-        mfaEnabledUsers={users.filter((u) => u.mfaEnabled).length}
         onAddUser={() => setOpenCreateDialog(true)}
       />
 

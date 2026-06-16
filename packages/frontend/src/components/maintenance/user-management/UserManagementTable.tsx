@@ -3,7 +3,6 @@
 import React, { memo, useMemo } from 'react';
 import { Box, Chip, Typography } from '@mui/material';
 import {
-  AccountBalance as BankingIcon,
   Cancel as InactiveIcon,
   CheckCircle as ActiveIcon,
   Edit as EditIcon,
@@ -72,19 +71,6 @@ const UserManagementTable = memo(function UserManagementTable({
       minWidth: 160,
       flex: 0.8,
       renderCell: (params) => params.value || '-',
-    },
-    {
-      field: 'bankingAccess',
-      headerName: 'Banking Access',
-      width: 170,
-      renderCell: (params) => (
-        <Chip
-          label={params.row.bankingAccess}
-          color={params.row.bankingAccess === 'BOTH' ? 'success' : 'primary'}
-          size="small"
-          icon={params.row.dualModeCertified ? <SecurityIcon /> : <BankingIcon />}
-        />
-      ),
     },
     {
       field: 'isActive',
