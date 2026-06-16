@@ -181,8 +181,7 @@ const nextConfig = {
 
     // Default fallback if no ENV is set
     if (!proxyBase || proxyBase.length === 0) {
-      console.warn('⚠️ No backend proxy target found in environment variables. Falling back to http://localhost:4232');
-      proxyBase = 'http://localhost:4232';
+      proxyBase = 'http://backend:4232';
     }
 
     return [
