@@ -181,6 +181,37 @@ export const rolePermissions = coreSchema.table(
  * Permission approval policies table definition.
  * Links permissions to approval requirements based on role hierarchy levels.
  */
+// =============================================================================
+// TENANT MENU PERMISSIONS (maps roles to menu items in tenant DB)
+// =============================================================================
+
+/**
+ * Menu permissions table in tenant DB (core schema).
+ * Replaces menu.menu_permissions in platform DB.
+ * Has proper FK to core.roles with cascade delete.
+ */
+export const tenantMenuPermissions = coreSchema.table(
+    'menu_permissions',
+    {
+        id: uuid('id').primaryKey().defaultRandom(),
+        tenantId: uuid('tenant_id'),
+        menuItemId: uuid('menu_item_id').notNull(),
+        roleId: uuid('role_id')
+            .notNull()
+            .references(() => roles.id, { onDelete: 'cascade' }),
+        permissionType: varchar('permission_type', { length: 20 }).default('view'),
+        isAllowed: boolean('is_allowed').default(true),
+        conditions: jsonb('conditions'),
+        createdAt: timestamp('created_at', { withTimezone: false }).defaultNow(),
+        createdBy: uuid('created_by'),
+    },
+    (table) => [
+        uniqueIndex('tenant_menu_perm_role_item_type_idx').on(table.roleId, table.menuItemId, table.permissionType),
+        index('tenant_menu_perm_tenant_idx').on(table.tenantId),
+        index('tenant_menu_perm_item_idx').on(table.menuItemId),
+    ]
+)
+
 export const permissionApprovalPolicies = approvalPolicySchema.table(
     'permission_approval_policies',
     {
@@ -225,6 +256,7 @@ export const rolesRelations = relations(roles, ({ one, many }) => ({
     }),
     userRoles: many(userRoles),
     rolePermissions: many(rolePermissions),
+    menuPermissions: many(tenantMenuPermissions),
 }))
 
 export const userRolesRelations = relations(userRoles, ({ one }) => ({
@@ -257,6 +289,13 @@ export const rolePermissionsRelations = relations(rolePermissions, ({ one }) => 
         references: [permissions.id],
     }),
 }))
+export const tenantMenuPermissionsRelations = relations(tenantMenuPermissions, ({ one }) => ({
+    role: one(roles, {
+        fields: [tenantMenuPermissions.roleId],
+        references: [roles.id],
+    }),
+}))
+
 export const permissionApprovalPoliciesRelations = relations(
     permissionApprovalPolicies,
     ({ one }) => ({
@@ -290,3 +329,6 @@ export type NewRolePermission = typeof rolePermissions.$inferInsert
 
 export type PermissionApprovalPolicy = typeof permissionApprovalPolicies.$inferSelect
 export type NewPermissionApprovalPolicy = typeof permissionApprovalPolicies.$inferInsert
+
+export type TenantMenuPermission = typeof tenantMenuPermissions.$inferSelect
+export type NewTenantMenuPermission = typeof tenantMenuPermissions.$inferInsert

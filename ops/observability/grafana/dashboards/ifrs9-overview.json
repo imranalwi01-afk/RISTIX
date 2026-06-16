@@ -1,0 +1,33 @@
+{
+  "title": "IFRS9 Platform Overview",
+  "tags": ["ifrs9"],
+  "schemaVersion": 39,
+  "version": 1,
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "HTTP Requests",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(http_server_duration_ms_count[5m])",
+          "legendFormat": "Requests/s"
+        }
+      ]
+    },
+    {
+      "title": "Recent Traces",
+      "type": "tempo",
+      "datasource": { "type": "tempo", "uid": "Tempo" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "query": "{ .deployment.environment = \"production\" }",
+          "queryType": "traceql"
+        }
+      ]
+    }
+  ]
+}

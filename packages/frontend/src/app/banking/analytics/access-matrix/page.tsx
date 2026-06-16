@@ -1,11 +1,14 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Box, Typography, Container, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Chip, CircularProgress, Alert,
   Breadcrumbs, Link, FormControl, InputLabel, Select, MenuItem,
+  Tooltip, IconButton,
 } from '@mui/material';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import { api } from '@/services/api';
 
 interface MenuItem {
@@ -30,6 +33,7 @@ interface MenuPermission {
 
 export default function AccessMatrixPage() {
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [menus, setMenus] = useState<MenuItem[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
@@ -97,6 +101,52 @@ export default function AccessMatrixPage() {
     return menus.filter(m => m.name.toLowerCase().includes(f) || m.categoryName?.toLowerCase().includes(f));
   }, [menus, filterText]);
 
+  const togglePermission = useCallback(async (menuItemId: string, roleId: string, currentlyAllowed: boolean) => {
+    const key = `${menuItemId}:${roleId}`;
+    setSaving(prev => new Set(prev).add(key));
+
+    // Optimistic update
+    setPermissions(prev => {
+      const next = [...prev];
+      const existing = next.findIndex(p => p.menuItemId === menuItemId && p.roleId === roleId);
+      if (existing >= 0) {
+        if (currentlyAllowed) {
+          next.splice(existing, 1);
+        } else {
+          next[existing] = { ...next[existing], isAllowed: true };
+        }
+      } else if (!currentlyAllowed) {
+        next.push({ menuItemId, roleId, isAllowed: true });
+      }
+      return next;
+    });
+
+    try {
+      await api.client.post('/menu/permissions/batch', {
+        permissions: [{ menuItemId, roleId, permissionType: 'view', isAllowed: !currentlyAllowed }],
+      });
+    } catch (err: any) {
+      setError(err.message || 'Failed to update permission');
+      // Revert optimistic update
+      setPermissions(prev => {
+        const next = [...prev];
+        const existing = next.findIndex(p => p.menuItemId === menuItemId && p.roleId === roleId);
+        if (currentlyAllowed) {
+          if (existing < 0) next.push({ menuItemId, roleId, isAllowed: true });
+        } else {
+          if (existing >= 0) next.splice(existing, 1);
+        }
+        return next;
+      });
+    } finally {
+      setSaving(prev => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  }, []);
+
   if (loading) {
     return (
       <Container maxWidth="xl" sx={{ py: 3 }}>
@@ -115,11 +165,11 @@ export default function AccessMatrixPage() {
         </Breadcrumbs>
         <Typography variant="h4" sx={{ fontWeight: 700 }}>Access Matrix</Typography>
         <Typography variant="body2" color="text.secondary">
-          Role-to-menu permission mapping. Shows which roles can access which menu items.
+          Click any cell to toggle role access to a menu item.
         </Typography>
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
       <Paper sx={{ p: 2, mb: 2 }}>
         <FormControl size="small" sx={{ minWidth: 300 }}>
@@ -155,15 +205,31 @@ export default function AccessMatrixPage() {
                 <TableRow key={menu.id} hover>
                   <TableCell sx={{ fontWeight: 500, fontSize: '0.8rem' }}>{menu.name}</TableCell>
                   <TableCell sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>{menu.categoryName || '-'}</TableCell>
-                  {roles.map((role) => (
-                    <TableCell key={role.id} sx={{ textAlign: 'center', p: 0.5 }}>
-                      {allowedRoles.has(role.id) ? (
-                        <Chip size="small" label="✓" color="success" variant="filled" sx={{ minWidth: 28, height: 22 }} />
-                      ) : (
-                        <Typography variant="caption" color="text.disabled">—</Typography>
-                      )}
-                    </TableCell>
-                  ))}
+                  {roles.map((role) => {
+                    const key = `${menu.id}:${role.id}`;
+                    const isSaving = saving.has(key);
+                    const isAllowed = allowedRoles.has(role.id);
+                    return (
+                      <TableCell key={role.id} sx={{ textAlign: 'center', p: 0.5 }}>
+                        <Tooltip title={isAllowed ? 'Click to revoke access' : 'Click to grant access'}>
+                          <IconButton
+                            size="small"
+                            onClick={() => togglePermission(menu.id, role.id, isAllowed)}
+                            disabled={isSaving}
+                            sx={{ p: 0.5 }}
+                          >
+                            {isSaving ? (
+                              <CircularProgress size={18} />
+                            ) : isAllowed ? (
+                              <CheckCircleIcon color="success" fontSize="small" />
+                            ) : (
+                              <RadioButtonUncheckedIcon color="disabled" fontSize="small" />
+                            )}
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    );
+                  })}
                 </TableRow>
               );
             })}

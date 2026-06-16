@@ -284,6 +284,7 @@ services:
       - "4232:4232"
     networks:
       - ifrs9-dev
+      - ifrs9-observability
     depends_on:
       db-init:
         condition: service_completed_successfully
@@ -346,6 +347,7 @@ services:
       - "4232:4232"
     networks:
       - ifrs9-dev
+      - ifrs9-observability
     depends_on:
       db-init:
         condition: service_completed_successfully
@@ -432,6 +434,7 @@ services:
       - "4232:4232"
     networks:
       - ifrs9-dev
+      - ifrs9-observability
     depends_on:
       redis:
         condition: service_healthy
@@ -471,6 +474,7 @@ services:
       - "4231:4231"
     networks:
       - ifrs9-dev
+      - ifrs9-observability
     profiles:
       - app
       - with-frontend
@@ -513,6 +517,7 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - ifrs9-dev
+      - ifrs9-observability
     profiles:
       - dev-frontend
       - hot-reload
@@ -564,3 +569,5 @@ volumes:
 networks:
   ifrs9-dev:
     driver: bridge
+  ifrs9-observability:
+    external: true

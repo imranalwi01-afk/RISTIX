@@ -1,8 +1,9 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import { Effect, pipe } from 'effect'
 import { eq, and, asc } from 'drizzle-orm'
-import { getDatabase } from '@/config/database'
-import { menuCategories, menuItems, menuPermissions } from '@/db/schema/menu.schema'
+import { platformDb, tenantDb } from '@/config/database'
+import { menuCategories, menuItems, menuPermissions as platformMenuPermissions } from '@/db/schema/menu.schema'
+import { tenantMenuPermissions } from '@/db/schema/rbac.schema'
 import { TenantRepository } from '@/repositories/tenant.repository'
 import { authMiddleware } from '@/middleware/auth'
 import type { AppContext } from '@/app'
@@ -12,7 +13,6 @@ import { openApiValidationHook } from '@/lib/http/openapi-validation-hook'
 import { randomUUID } from 'node:crypto'
 import { logDataChange, runAuditSafely } from '@/services/audit.service'
 
-const platformDb = getDatabase(null)
 const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000'
 
 // Helper: resolve tenant slug to UUID
@@ -84,7 +84,7 @@ menuRoutes.openapi(
         const [categories, items, perms] = await Promise.all([
             platformDb.select().from(menuCategories).where(and(eq(menuCategories.tenantId, tenantId), eq(menuCategories.isActive, true))).orderBy(asc(menuCategories.sortOrder)),
             platformDb.select().from(menuItems).where(and(eq(menuItems.tenantId, tenantId), eq(menuItems.isActive, true))).orderBy(asc(menuItems.sortOrder)),
-            platformDb.select().from(menuPermissions).where(eq(menuPermissions.tenantId, tenantId)),
+            getMenuPermissions(tenantId),
         ])
 
         const hasAccess = (itemId: string) => {
@@ -512,7 +512,7 @@ menuRoutes.openapi(
         const qTenant = c.req.query('tenantId')
         const tenantId = qTenant || c.get('tenantId')
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
-        const perms = await platformDb.select().from(menuPermissions).where(eq(menuPermissions.tenantId, tenantId))
+        const perms = await getMenuPermissions(tenantId)
         return c.json({ success: true, data: perms })
     }
 )
@@ -533,17 +533,17 @@ menuRoutes.openapi(
         const tenantId = await resolveTenantId(c)
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
         const body = c.req.valid('json')
-        const existing = await platformDb.select().from(menuPermissions)
+        const existing = await tenantDb.select().from(tenantMenuPermissions)
             .where(and(
-                eq(menuPermissions.tenantId, tenantId),
-                eq(menuPermissions.menuItemId, body.menuItemId),
-                eq(menuPermissions.roleId, body.roleId),
-                eq(menuPermissions.permissionType, body.permissionType || 'view'),
+                eq(tenantMenuPermissions.tenantId, tenantId),
+                eq(tenantMenuPermissions.menuItemId, body.menuItemId),
+                eq(tenantMenuPermissions.roleId, body.roleId),
+                eq(tenantMenuPermissions.permissionType, body.permissionType || 'view'),
             )).limit(1)
 
         if (existing.length > 0) {
-            const [permission] = await platformDb.update(menuPermissions).set({ isAllowed: body.isAllowed !== false })
-                .where(eq(menuPermissions.id, existing[0].id))
+            const [permission] = await tenantDb.update(tenantMenuPermissions).set({ isAllowed: body.isAllowed !== false })
+                .where(eq(tenantMenuPermissions.id, existing[0].id))
                 .returning()
             auditUpdate(
                 'menu_permission',
@@ -557,7 +557,7 @@ menuRoutes.openapi(
         }
 
         const id = randomUUID()
-        const [permission] = await platformDb.insert(menuPermissions).values({
+        const [permission] = await tenantDb.insert(tenantMenuPermissions).values({
             id, tenantId, menuItemId: body.menuItemId, roleId: body.roleId,
             permissionType: body.permissionType || 'view',
             isAllowed: body.isAllowed !== false,
@@ -566,6 +566,73 @@ menuRoutes.openapi(
         }).returning()
         auditCreate('menu_permission', id, permission, c, tenantId)
         return c.json({ success: true, data: permission })
+    }
+)
+
+// POST /menu/permissions/batch - Bulk upsert for writable access matrix
+menuRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/permissions/batch',
+        tags: ['Menu'],
+        summary: 'Batch upsert menu permissions (for writable Access Matrix)',
+        request: {
+            body: {
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            permissions: z.array(z.object({
+                                menuItemId: z.string().uuid(),
+                                roleId: z.string().min(1),
+                                permissionType: z.enum(['view', 'edit', 'delete', 'manage']).default('view'),
+                                isAllowed: z.boolean().default(true),
+                            })),
+                        }),
+                    },
+                },
+            },
+        },
+        responses: { 200: { description: 'Permissions updated' } },
+    }),
+    async (c) => {
+        const tenantId = await resolveTenantId(c)
+        if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
+        const { permissions: perms } = c.req.valid('json')
+        const userId = c.get('userId') || SYSTEM_USER_ID
+        const now = new Date()
+
+        let upserted = 0
+        for (const perm of perms) {
+            const existing = await tenantDb.select({ id: tenantMenuPermissions.id }).from(tenantMenuPermissions)
+                .where(and(
+                    eq(tenantMenuPermissions.tenantId, tenantId),
+                    eq(tenantMenuPermissions.menuItemId, perm.menuItemId),
+                    eq(tenantMenuPermissions.roleId, perm.roleId),
+                    eq(tenantMenuPermissions.permissionType, perm.permissionType || 'view'),
+                )).limit(1)
+
+            if (existing.length > 0) {
+                await tenantDb.update(tenantMenuPermissions)
+                    .set({ isAllowed: perm.isAllowed })
+                    .where(eq(tenantMenuPermissions.id, existing[0].id))
+            } else if (perm.isAllowed) {
+                // Only create if allowed (no need to store "not allowed" as a row)
+                await tenantDb.insert(tenantMenuPermissions).values({
+                    id: randomUUID(),
+                    tenantId,
+                    menuItemId: perm.menuItemId,
+                    roleId: perm.roleId,
+                    permissionType: perm.permissionType || 'view',
+                    isAllowed: true,
+                    createdBy: userId,
+                    createdAt: now,
+                })
+            }
+            upserted++
+        }
+
+        auditCreate('menu_permission_batch', tenantId, { count: upserted }, c, tenantId)
+        return c.json({ success: true, data: { upserted } })
     }
 )
 
@@ -586,13 +653,13 @@ menuRoutes.openapi(
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
 
         const { id } = c.req.valid('param')
-        const [existing] = await platformDb.select().from(menuPermissions)
-            .where(and(eq(menuPermissions.id, id), eq(menuPermissions.tenantId, tenantId)))
+        const [existing] = await tenantDb.select().from(tenantMenuPermissions)
+            .where(and(eq(tenantMenuPermissions.id, id), eq(tenantMenuPermissions.tenantId, tenantId)))
             .limit(1)
         if (!existing) return c.json({ success: false, error: 'Menu permission not found' }, 404)
 
-        await platformDb.delete(menuPermissions)
-            .where(and(eq(menuPermissions.id, id), eq(menuPermissions.tenantId, tenantId)))
+        await tenantDb.delete(tenantMenuPermissions)
+            .where(and(eq(tenantMenuPermissions.id, id), eq(tenantMenuPermissions.tenantId, tenantId)))
         auditDelete('menu_permission', id, existing, c, tenantId)
         return c.json({ success: true })
     }
@@ -693,6 +760,46 @@ menuRoutes.openapi(
 )
 
 // Helper: build nested item tree
+// =============================================================================
+// Helper: get menu permissions from tenant DB (with migration fallback)
+// =============================================================================
+async function getMenuPermissions(tenantId: string) {
+    const perms = await tenantDb.select().from(tenantMenuPermissions)
+        .where(eq(tenantMenuPermissions.tenantId, tenantId))
+
+    if (perms.length > 0) return perms
+
+    // Fallback: try to migrate from platform DB (legacy)
+    const legacyPerms = await platformDb.select().from(platformMenuPermissions)
+        .where(eq(platformMenuPermissions.tenantId, tenantId))
+
+    if (legacyPerms.length === 0) return []
+
+    // Migrate legacy permissions to tenant DB
+    const migrated = legacyPerms.map((p: typeof platformMenuPermissions.$inferSelect) => ({
+        id: p.id,
+        tenantId: p.tenantId,
+        menuItemId: p.menuItemId,
+        roleId: p.roleId,
+        permissionType: p.permissionType,
+        isAllowed: p.isAllowed,
+        conditions: p.conditions,
+        createdAt: p.createdAt,
+        createdBy: p.createdBy,
+    }))
+
+    // Batch insert with conflict ignore (in case of partial migration)
+    for (const perm of migrated) {
+        await tenantDb.insert(tenantMenuPermissions).values(perm).onConflictDoNothing()
+    }
+
+    return tenantDb.select().from(tenantMenuPermissions)
+        .where(eq(tenantMenuPermissions.tenantId, tenantId))
+}
+
+// =============================================================================
+// Helper: build nested item tree
+// =============================================================================
 function buildItemTree(items: any[], parentId: string): any[] {
     return items.filter((i) => i.parentId === parentId).map((item) => ({
         ...item,
