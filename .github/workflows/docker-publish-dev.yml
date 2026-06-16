@@ -6,7 +6,6 @@ on:
     paths:
       - 'packages/frontend/**'
       - 'packages/new-backend/**'
-      - 'packages/r-analytics/**'
   workflow_dispatch:
 
 jobs:
@@ -32,8 +31,6 @@ jobs:
               - 'packages/frontend/**'
             backend:
               - 'packages/new-backend/**'
-            analytics:
-              - 'packages/r-analytics/**'
 
       - name: Set services to rebuild
         id: services
@@ -41,16 +38,14 @@ jobs:
         run: |
           $frontend = "${{ steps.filter.outputs.frontend }}"
           $backend  = "${{ steps.filter.outputs.backend }}"
-          $analytics = "${{ steps.filter.outputs.analytics }}"
           $event    = "${{ github.event_name }}"
 
           $services = @()
           if ($event -eq "workflow_dispatch") {
-            $services = @("frontend", "backend", "r-analytics")
+            $services = @("frontend", "backend")
           } else {
             if ($frontend -eq "true")  { $services += "frontend" }
             if ($backend -eq "true")   { $services += "backend" }
-            if ($analytics -eq "true") { $services += "r-analytics" }
           }
 
           $output = "services=$($services -join ',')"
@@ -81,11 +76,7 @@ jobs:
                 $ctx = "$CHECKOUT_DIR/packages/new-backend"
                 $df = "$CHECKOUT_DIR/packages/new-backend/Dockerfile"
               }
-              "r-analytics" {
-                $tag = "ghcr.io/ifrspro/ifrs9-iaf/r-analytics:production"
-                $ctx = "$CHECKOUT_DIR/packages/r-analytics"
-                $df = "$CHECKOUT_DIR/packages/r-analytics/Dockerfile"
-              }
+
             }
             Write-Output "Building $svc -> $tag"
             docker build -t $tag -f $df $ctx
