@@ -8,7 +8,7 @@ name: Docker Analytics Base Image
 
 on:
   push:
-    branches: [ 'develop' ]
+    branches: ['develop']
     paths:
       - 'packages/r-analytics/Dockerfile.base'
   workflow_dispatch:
@@ -18,19 +18,15 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # ============================================================================
-  # R ANALYTICS BASE IMAGE BUILD
-  # ============================================================================
   r-analytics-base:
     name: Build R Analytics Base Image
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, X64, Windows, badak]
     permissions:
       contents: read
       packages: write
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Login to Container Registry
         uses: docker/login-action@v3
@@ -38,14 +34,6 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract Metadata (tags, labels)
-        id: meta-r-base
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/r-analytics-base
-          tags: |
-            type=raw,value=latest
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -56,7 +44,6 @@ jobs:
           context: packages/r-analytics
           file: packages/r-analytics/Dockerfile.base
           push: true
-          tags: ${{ steps.meta-r-base.outputs.tags }}
-          labels: ${{ steps.meta-r-base.outputs.labels }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/r-analytics-base:latest
           cache-from: type=gha
           cache-to: type=gha,mode=min

@@ -14,75 +14,87 @@ on:
 
 jobs:
   check-tenants:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, X64, Linux, iaf-prod]
     steps:
-      - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
-
       - name: List all tenants from Platform DB
         env:
           PGPASSWORD: ${{ secrets.DB_PASSWORD || 'postgres' }}
         run: |
           echo "=== ALL TENANTS (platform_admin.tenants) ==="
-          psql -h ${{ inputs.host }} -p ${{ inputs.port }} -U postgres -d ifrspro_platform_admin -c "
-            SELECT id, code, name, slug, banking_mode, is_active, created_at
-            FROM platform_admin.tenants
-            ORDER BY code;
-          "
+          docker run --rm \
+            -e PGPASSWORD="${{ secrets.DB_PASSWORD || 'postgres' }}" \
+            postgres:16-alpine \
+            psql -h ${{ inputs.host }} -p ${{ inputs.port }} -U postgres -d ifrspro_platform_admin -c "
+              SELECT id, code, name, slug, banking_mode, is_active, created_at
+              FROM platform_admin.tenants
+              ORDER BY code;
+            "
 
       - name: Check tenant databases exist
         env:
           PGPASSWORD: ${{ secrets.DB_PASSWORD || 'postgres' }}
         run: |
           echo "=== TENANT DATABASES ==="
-          psql -h ${{ inputs.host }} -p ${{ inputs.port }} -U postgres -l | grep ifrspro_tenant
+          docker run --rm \
+            -e PGPASSWORD="${{ secrets.DB_PASSWORD || 'postgres' }}" \
+            postgres:16-alpine \
+            psql -h ${{ inputs.host }} -p ${{ inputs.port }} -U postgres -l | grep ifrspro_tenant || echo "No tenant databases found"
 
       - name: Menu status per tenant
         env:
           PGPASSWORD: ${{ secrets.DB_PASSWORD || 'postgres' }}
         run: |
           echo "=== MENU STATUS PER TENANT ==="
-          psql -h ${{ inputs.host }} -p ${{ inputs.port }} -U postgres -d ifrspro_platform_admin -c "
-            SELECT
-              t.code,
-              t.name,
-              t.slug,
-              COALESCE(mc.menu_categories, 0) AS categories,
-              COALESCE(mi.menu_items, 0) AS items,
-              CASE WHEN COALESCE(mc.menu_categories, 0) > 0 THEN 'SEEDED' ELSE 'EMPTY' END AS menu_status
-            FROM platform_admin.tenants t
-            LEFT JOIN (SELECT tenant_id, COUNT(*) AS menu_categories FROM menu.menu_categories GROUP BY tenant_id) mc ON mc.tenant_id = t.id
-            LEFT JOIN (SELECT tenant_id, COUNT(*) AS menu_items FROM menu.menu_items GROUP BY tenant_id) mi ON mi.tenant_id = t.id
-            ORDER BY t.code;
-          "
+          docker run --rm \
+            -e PGPASSWORD="${{ secrets.DB_PASSWORD || 'postgres' }}" \
+            postgres:16-alpine \
+            psql -h ${{ inputs.host }} -p ${{ inputs.port }} -U postgres -d ifrspro_platform_admin -c "
+              SELECT
+                t.code,
+                t.name,
+                t.slug,
+                COALESCE(mc.menu_categories, 0) AS categories,
+                COALESCE(mi.menu_items, 0) AS items,
+                CASE WHEN COALESCE(mc.menu_categories, 0) > 0 THEN 'SEEDED' ELSE 'EMPTY' END AS menu_status
+              FROM platform_admin.tenants t
+              LEFT JOIN (SELECT tenant_id, COUNT(*) AS menu_categories FROM menu.menu_categories GROUP BY tenant_id) mc ON mc.tenant_id = t.id
+              LEFT JOIN (SELECT tenant_id, COUNT(*) AS menu_items FROM menu.menu_items GROUP BY tenant_id) mi ON mi.tenant_id = t.id
+              ORDER BY t.code;
+            "
 
       - name: Users and roles per tenant
         env:
           PGPASSWORD: ${{ secrets.DB_PASSWORD || 'postgres' }}
         run: |
           echo "=== USERS & ROLES PER TENANT ==="
-          psql -h ${{ inputs.host }} -p ${{ inputs.port }} -U postgres -d ifrspro_platform_admin -c "
-            SELECT
-              t.code,
-              t.name,
-              COALESCE(u.user_count, 0) AS users,
-              COALESCE(r.role_count, 0) AS roles
-            FROM platform_admin.tenants t
-            LEFT JOIN (SELECT tenant_id, COUNT(*) AS user_count FROM core.users GROUP BY tenant_id) u ON u.tenant_id = t.id
-            LEFT JOIN (SELECT tenant_id, COUNT(*) AS role_count FROM core.roles GROUP BY tenant_id) r ON r.tenant_id = t.id
-            ORDER BY t.code;
-          "
+          docker run --rm \
+            -e PGPASSWORD="${{ secrets.DB_PASSWORD || 'postgres' }}" \
+            postgres:16-alpine \
+            psql -h ${{ inputs.host }} -p ${{ inputs.port }} -U postgres -d ifrspro_platform_admin -c "
+              SELECT
+                t.code,
+                t.name,
+                COALESCE(u.user_count, 0) AS users,
+                COALESCE(r.role_count, 0) AS roles
+              FROM platform_admin.tenants t
+              LEFT JOIN (SELECT tenant_id, COUNT(*) AS user_count FROM core.users GROUP BY tenant_id) u ON u.tenant_id = t.id
+              LEFT JOIN (SELECT tenant_id, COUNT(*) AS role_count FROM core.roles GROUP BY tenant_id) r ON r.tenant_id = t.id
+              ORDER BY t.code;
+            "
 
       - name: Platform DB connection check
         env:
           PGPASSWORD: ${{ secrets.DB_PASSWORD || 'postgres' }}
         run: |
           echo "=== PLATFORM DB SCHEMAS ==="
-          psql -h ${{ inputs.host }} -p ${{ inputs.port }} -U postgres -d ifrspro_platform_admin -c "
-            SELECT schema_name FROM information_schema.schemata
-            WHERE schema_name NOT IN ('pg_catalog','information_schema','public')
-            ORDER BY schema_name;
-          "
+          docker run --rm \
+            -e PGPASSWORD="${{ secrets.DB_PASSWORD || 'postgres' }}" \
+            postgres:16-alpine \
+            psql -h ${{ inputs.host }} -p ${{ inputs.port }} -U postgres -d ifrspro_platform_admin -c "
+              SELECT schema_name FROM information_schema.schemata
+              WHERE schema_name NOT IN ('pg_catalog','information_schema','public')
+              ORDER BY schema_name;
+            "
 
       - name: Summary
         if: always()
