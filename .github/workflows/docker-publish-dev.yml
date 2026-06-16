@@ -71,31 +71,25 @@ jobs:
                 $tag = "ghcr.io/ifrspro/ifrs9-iaf/frontend:develop"
                 $ctx = "$CHECKOUT_DIR/packages/frontend"
                 $df = "$CHECKOUT_DIR/packages/frontend/Dockerfile"
+                $buildArgs = @("--build-arg", "BACKEND_INTERNAL_URL=http://backend:4232")
               }
               "backend" {
                 $tag = "ghcr.io/ifrspro/ifrs9-iaf/backend:develop"
                 $ctx = "$CHECKOUT_DIR/packages/new-backend"
                 $df = "$CHECKOUT_DIR/packages/new-backend/Dockerfile"
+                $buildArgs = @()
               }
             }
             Write-Output "Building $svc -> $tag"
-            docker build -t $tag -f $df $ctx
+            if ($buildArgs.Count -gt 0) {
+              docker build $buildArgs -t $tag -f $df $ctx
+            } else {
+              docker build -t $tag -f $df $ctx
+            }
             if ($LASTEXITCODE -ne 0) { throw "Build failed for $svc" }
           }
 
           Set-Location $COMPOSE_DIR
-          # Ensure BACKEND_INTERNAL_URL is set so Next.js rewrites() uses docker network
-          $envFile = ".\env\frontend.env"
-          $envVar = "BACKEND_INTERNAL_URL=http://backend:4232"
-          if (Test-Path $envFile) {
-            $content = Get-Content $envFile -Raw
-            if ($content -notmatch [regex]::Escape($envVar)) {
-              Add-Content $envFile "`r`n$envVar"
-              Write-Output "Added BACKEND_INTERNAL_URL to frontend.env"
-            } else {
-              Write-Output "BACKEND_INTERNAL_URL already in frontend.env"
-            }
-          }
           # Restart backend first (if changed), wait, then frontend
           if ($services -contains "backend") {
             Write-Output "Restarting backend..."
