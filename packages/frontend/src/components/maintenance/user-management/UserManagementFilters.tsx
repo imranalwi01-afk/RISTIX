@@ -7,13 +7,11 @@ import { Download as ExportIcon, Refresh as RefreshIcon, Search as SearchIcon } 
 interface UserManagementFiltersProps {
   searchTerm: string;
   filterDepartment: string;
-  filterBankingAccess: string;
   filterActive: boolean | null;
   departments: string[];
   loading: boolean;
   onSearchChange: (value: string) => void;
   onDepartmentChange: (value: string) => void;
-  onBankingAccessChange: (value: string) => void;
   onActiveChange: (value: boolean | null) => void;
   onRefresh: () => void;
   onExport: () => void;
@@ -22,13 +20,11 @@ interface UserManagementFiltersProps {
 const UserManagementFilters = memo(function UserManagementFilters({
   searchTerm,
   filterDepartment,
-  filterBankingAccess,
   filterActive,
   departments,
   loading,
   onSearchChange,
   onDepartmentChange,
-  onBankingAccessChange,
   onActiveChange,
   onRefresh,
   onExport,
@@ -36,7 +32,7 @@ const UserManagementFilters = memo(function UserManagementFilters({
   return (
     <Paper sx={{ p: 2, mb: 3 }}>
       <Grid container spacing={2} alignItems="center">
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <TextField
             fullWidth
             placeholder="Search users..."
@@ -66,16 +62,6 @@ const UserManagementFilters = memo(function UserManagementFilters({
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 2 }}>
           <FormControl fullWidth>
-            <InputLabel>Banking Access</InputLabel>
-            <Select value={filterBankingAccess} onChange={(e) => onBankingAccessChange(e.target.value)} label="Banking Access">
-              <MenuItem value="">All</MenuItem>
-              <MenuItem value="CONVENTIONAL">Conventional</MenuItem>
-              <MenuItem value="BOTH">Both</MenuItem>
-            </Select>
-          </FormControl>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-          <FormControl fullWidth>
             <InputLabel>Status</InputLabel>
             <Select
               value={filterActive === null ? '' : filterActive.toString()}
@@ -88,7 +74,7 @@ const UserManagementFilters = memo(function UserManagementFilters({
             </Select>
           </FormControl>
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button variant="outlined" startIcon={<RefreshIcon />} onClick={onRefresh} disabled={loading}>
               Refresh

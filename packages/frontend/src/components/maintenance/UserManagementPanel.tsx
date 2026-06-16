@@ -78,7 +78,6 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('');
-  const [filterBankingAccess, setFilterBankingAccess] = useState('');
   const [filterActive, setFilterActive] = useState<boolean | null>(null);
 
   // ✅ Dialog States
@@ -198,7 +197,6 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
         limit: rowsPerPage,
         search: searchTerm,
         department: filterDepartment,
-        bankingAccess: filterBankingAccess,
         isActive: filterActive
       });
 
@@ -208,7 +206,6 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
         includeInactive: true,
         ...(searchTerm && { search: searchTerm }),
         ...(filterDepartment && { department: filterDepartment }),
-        ...(filterBankingAccess && { bankingAccess: filterBankingAccess as 'CONVENTIONAL' | 'BOTH' }),
         ...(filterActive !== null && { isActive: filterActive })
       };
 
@@ -241,7 +238,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, searchTerm, filterDepartment, filterBankingAccess, filterActive]);
+  }, [page, rowsPerPage, searchTerm, filterDepartment, filterActive]);
 
   // ✅ Create User - Using centralized API service
   const createUser = async () => {
@@ -501,13 +498,11 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       <UserManagementFilters
         searchTerm={searchTerm}
         filterDepartment={filterDepartment}
-        filterBankingAccess={filterBankingAccess}
         filterActive={filterActive}
         departments={departments}
         loading={loading}
         onSearchChange={setSearchTerm}
         onDepartmentChange={setFilterDepartment}
-        onBankingAccessChange={setFilterBankingAccess}
         onActiveChange={setFilterActive}
         onRefresh={loadUsers}
         onExport={() => setSnackbar({ open: true, message: 'Export feature coming soon', severity: 'info' })}

@@ -108,7 +108,6 @@ interface UserProfile {
   phoneNumber?: string;
   address?: string;
   avatar?: string;
-  bankingAccess: 'CONVENTIONAL' | 'BOTH';
   language: string;
   timezone: string;
   emailNotifications: boolean;
@@ -645,10 +644,6 @@ export default function ProfileSettingsPage() {
                     {profile.position} {profile.department && `• ${profile.department}`}
                   </Typography>
                   <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mb: 2 }}>
-                    <Chip
-                      label={profile.bankingAccess}
-                      size="small"
-                    />
                   </Box>
                 </Box>
 
