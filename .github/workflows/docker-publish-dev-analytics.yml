@@ -29,7 +29,7 @@ jobs:
         run: |
           $CHECKOUT_DIR = "${{ github.workspace }}"
           $COMPOSE_DIR = "C:\opt\ifrspro"
-          $tag = "ghcr.io/ifrspro/ifrs9-iaf/r-analytics:production"
+          $tag = "ghcr.io/ifrspro/ifrs9-iaf/r-analytics:develop"
 
           Write-Output "Building r-analytics -> $tag"
           docker build -t $tag -f "$CHECKOUT_DIR/packages/r-analytics/Dockerfile" "$CHECKOUT_DIR/packages/r-analytics"

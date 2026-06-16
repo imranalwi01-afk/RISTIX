@@ -40,6 +40,7 @@ jobs:
           $backend  = "${{ steps.filter.outputs.backend }}"
           $event    = "${{ github.event_name }}"
 
+          # Dev server uses tag :develop (not :production)
           $services = @()
           if ($event -eq "workflow_dispatch") {
             $services = @("frontend", "backend")
@@ -67,16 +68,15 @@ jobs:
           foreach ($svc in $services) {
             switch ($svc) {
               "frontend" {
-                $tag = "ghcr.io/ifrspro/ifrs9-iaf/frontend:production"
+                $tag = "ghcr.io/ifrspro/ifrs9-iaf/frontend:develop"
                 $ctx = "$CHECKOUT_DIR/packages/frontend"
                 $df = "$CHECKOUT_DIR/packages/frontend/Dockerfile"
               }
               "backend" {
-                $tag = "ghcr.io/ifrspro/ifrs9-iaf/backend:production"
+                $tag = "ghcr.io/ifrspro/ifrs9-iaf/backend:develop"
                 $ctx = "$CHECKOUT_DIR/packages/new-backend"
                 $df = "$CHECKOUT_DIR/packages/new-backend/Dockerfile"
               }
-
             }
             Write-Output "Building $svc -> $tag"
             docker build -t $tag -f $df $ctx
