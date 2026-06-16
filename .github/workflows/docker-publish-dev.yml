@@ -6,6 +6,7 @@ on:
     paths:
       - 'packages/frontend/**'
       - 'packages/new-backend/**'
+      - 'packages/r-analytics/**'
   workflow_dispatch:
 
 jobs:
@@ -31,9 +32,42 @@ jobs:
               - 'packages/frontend/**'
             backend:
               - 'packages/new-backend/**'
+            analytics:
+              - 'packages/r-analytics/**'
 
-      - name: Build and Deploy
+      - name: Set services to rebuild
+        id: services
+        shell: powershell
         run: |
-          cd C:\opt\ifrspro
-          docker compose --profile app build
-          docker compose --profile app up -d
+          $frontend = "${{ steps.filter.outputs.frontend }}"
+          $backend  = "${{ steps.filter.outputs.backend }}"
+          $analytics = "${{ steps.filter.outputs.analytics }}"
+          $event    = "${{ github.event_name }}"
+
+          $services = @()
+          if ($event -eq "workflow_dispatch") {
+            $services = @("frontend", "backend", "r-analytics")
+          } else {
+            if ($frontend -eq "true")  { $services += "frontend" }
+            if ($backend -eq "true")   { $services += "backend" }
+            if ($analytics -eq "true") { $services += "r-analytics" }
+          }
+
+          $output = "services=$($services -join ',')"
+          Write-Output $output
+          Add-Content -Path $env:GITHUB_OUTPUT -Value $output
+
+      - name: Build and Deploy changed services
+        shell: powershell
+        run: |
+          $services = "${{ steps.services.outputs.services }}".Split(',', [StringSplitOptions]::RemoveEmptyEntries)
+          if ($services.Count -eq 0) {
+            Write-Output "No services to rebuild"
+            exit 0
+          }
+          Write-Output "Rebuilding: $($services -join ', ')"
+          Set-Location C:\opt\ifrspro
+          foreach ($svc in $services) {
+            docker compose build $svc
+            docker compose up -d --no-deps $svc
+          }
