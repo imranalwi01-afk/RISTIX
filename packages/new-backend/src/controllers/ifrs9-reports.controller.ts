@@ -303,9 +303,9 @@ const REPORT_DEBUG_CATALOG: Record<ReportKey, ReportDebugCatalogEntry> = {
     },
     'ecl-result': {
         title: 'ECL Result',
-        sourceTables: ['public.frs9_master_account'],
+        sourceTables: ['public.frs9_ecl_summary'],
         filterKeys: ['prc_date', 'segment_id', 'stage', 'page', 'limit'],
-        sqlPreview: 'SELECT ... FROM public.frs9_master_account WHERE prc_date = :effectivePrcDate AND segment_id = :segmentId AND stage IN (:stageList) GROUP BY prc_date, branch_code, segment_id, group_segment, segment, sub_segment, currency, impaired_flag, impaired_status, bucket_id, sicr_flag, stage',
+        sqlPreview: 'SELECT ... FROM public.frs9_ecl_summary WHERE prc_date = :effectivePrcDate AND segment_id = :segmentId AND stage IN (:stageList) GROUP BY prc_date, branch_code, segment_id, group_segment, segment, sub_segment, currency, impaired_flag, impaired_status, bucket_id, stage',
     },
     'ecl-movement': {
         title: 'ECL Movement',
@@ -745,7 +745,7 @@ export const ifrs9ReportsController = {
                 }),
                 effectivePrcDate: result.effectivePrcDate,
                 message: result.total === 0
-                    ? `No ECL Result data found in public.frs9_master_account for snapshot ${result.effectivePrcDate ?? prc_date}.`
+                    ? `No ECL Result data found in public.frs9_ecl_summary for snapshot ${result.effectivePrcDate ?? prc_date}.`
                     : undefined
             });
         } catch (error: any) {

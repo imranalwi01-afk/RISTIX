@@ -626,7 +626,11 @@ const ECLResultReport: React.FC = () => {
         'principal',
         'principal_amount',
       ]);
-      const stage = Number.parseInt(String(row.stage ?? '1'), 10);
+      const stageRaw = String(row.stage ?? '1').trim().toLowerCase();
+      let stage = Number.parseInt(stageRaw.replace(/[^0-9]/g, ''), 10);
+      if (Number.isNaN(stage) || stage < 1 || stage > 3) {
+        stage = 1; // Default to Stage 1 to prevent ECL leakage
+      }
 
       return {
         totalECL: (acc.totalECL || 0) + eclAmount,
@@ -649,6 +653,7 @@ const ECLResultReport: React.FC = () => {
           'eclIaAmt',
           'ecl_ia_onbs',
           'eclIaOnbs',
+          'ecl_ia_onbs_amt',
           'impaired_ecl',
         ]),
         eclRatio: 0,

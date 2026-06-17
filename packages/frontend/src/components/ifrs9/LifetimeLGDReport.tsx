@@ -272,9 +272,9 @@ const LifetimeLGDReport: React.FC = () => {
         avgRecoveryRate: number;
         lgdDistribution: LGDDistributionItem[];
       }>((acc, row) => {
-        const ead = parseFloat(row.ead_amount as string) || parseFloat(row.ead as string) || parseFloat(row.os_at_default as string) || parseFloat(row.outstanding as string) || 0;
+        const ead = parseFloat(row.ead_amount as string) || parseFloat(row.total_ead as string) || parseFloat(row.ead as string) || parseFloat(row.os_at_default as string) || parseFloat(row.outstanding as string) || 0;
         const lgd = parseFloat(row.lgd_rate as string) || parseFloat(row.final_lgd as string) || parseFloat(row.lgd as string) || 0;
-        const recoveryPv = parseFloat(row.recovery_amount_pv as string) || parseFloat(row.recovery_amount as string) || parseFloat(row.total_recovery as string) || parseFloat(row.total_recovery_pv as string) || 0;
+        const recoveryPv = parseFloat(row.recovery_amount_pv as string) || parseFloat(row.total_pv_recovery as string) || parseFloat(row.recovery_amount as string) || parseFloat(row.total_recovery as string) || parseFloat(row.total_recovery_pv as string) || 0;
 
         acc.totalAccounts += 1;
         totalEad += ead;

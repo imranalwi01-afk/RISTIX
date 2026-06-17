@@ -148,10 +148,26 @@ export async function fetchIfrs9Report(input: Ifrs9ReportQueryInput): Promise<Re
         const summaryRows = Array.isArray(summaryData?.data) && summaryData.data.length > 0
           ? summaryData.data
           : (fallbackSummaryRow ? [fallbackSummaryRow] : []);
+        
+        if (detailRows.length > 0) {
+          return {
+            ...detailData,
+            data: detailRows,
+            summary: {
+              ...(summaryData?.summary ?? {}),
+              detailRows,
+              summarySource: summaryResult.missing ? 'detail-fallback' : 'summary-endpoint',
+            },
+            effectivePrcDate,
+            meta: detailData?.meta ?? summaryData?.meta,
+            message: detailData?.message ?? summaryData?.message,
+          };
+        }
+
         const rowsWithDetails = summaryRows.map((row: Record<string, unknown>, index: number) => ({
           ...row,
           id: row.id ?? index + 1,
-          _detail_rows: detailRows,
+          _detail_rows: [],
         }));
 
         return {
@@ -167,12 +183,9 @@ export async function fetchIfrs9Report(input: Ifrs9ReportQueryInput): Promise<Re
           ],
           summary: {
             ...(summaryData?.summary ?? {}),
-            detailRows,
+            detailRows: summaryRows,
             summarySource: summaryResult.missing ? 'detail-fallback' : 'summary-endpoint',
           },
-          detailData: detailRows,
-          detailMeta: detailData?.meta ?? null,
-          detailMessage: detailData?.message,
           effectivePrcDate,
           meta: summaryData?.meta ?? detailData?.meta,
           message: summaryData?.message ?? detailData?.message,

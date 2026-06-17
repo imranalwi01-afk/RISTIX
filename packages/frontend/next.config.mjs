@@ -53,8 +53,8 @@ const nextConfig = {
 
 
   // Optimize package imports to reduce bundle size
+  serverExternalPackages: ['@vercel/otel'],
   experimental: {
-
     optimizePackageImports: [
       'recharts',
       'lucide-react',
