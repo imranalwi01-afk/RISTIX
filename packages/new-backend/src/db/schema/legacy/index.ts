@@ -1238,6 +1238,7 @@ export const frs9NominativeOutput = pgTable("frs9_nominative_output", {
 
 export const frs9EclSummary = pgTable("frs9_ecl_summary", {
 	prcDate: date("prc_date").notNull(),
+	accountStatus: varchar("account_status", { length: 20 }),
 	segmentId: smallint("segment_id"),
 	groupSegment: varchar("group_segment", { length: 50 }),
 	segment: varchar({ length: 50 }),

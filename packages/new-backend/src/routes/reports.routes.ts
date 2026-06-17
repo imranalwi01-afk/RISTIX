@@ -60,6 +60,7 @@ const ECLResultQuerySchema = PaginationSchema.extend({
     prc_date: z.string().optional(),
     segment_id: z.string().optional(),
     stage: z.union([z.string(), z.array(z.string())]).optional(),
+    account_status: z.union([z.string(), z.array(z.string())]).optional(),
 })
 
 const EADModelQuerySchema = PaginationSchema.extend({

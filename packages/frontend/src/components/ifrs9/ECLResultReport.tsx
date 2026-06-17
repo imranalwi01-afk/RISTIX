@@ -727,7 +727,7 @@ const ECLResultReport: React.FC = () => {
   }, []);
 
   const requiredParams = useMemo(() => ['prc_date'], []);
-  const optionalParams = useMemo(() => ['segment_id', 'stage'], []);
+  const optionalParams = useMemo(() => ['segment_id', 'stage', 'account_status'], []);
 
   return (
     <BaseIfrs9Report
