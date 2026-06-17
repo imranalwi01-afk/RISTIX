@@ -1112,12 +1112,11 @@ export class Ifrs9ReportsService {
                 .select({
                     account_number: frs9AccountId.accountNumber,
                     cif_name: frs9AccountId.cifName,
-                    facility_number: frs9ImpCaResultD.facilityNumber,
-                    segment_id: frs9ImpCaResultD.segmentId,
+                    facility_number: frs9AccountId.facilityNumber,
                     stage: frs9ImpCaResultD.stage,
-                    outstanding: frs9ImpCaResultD.outstanding,
+                    outstanding: frs9ImpCaResultD.eqvOutstanding,
                     pd_rate: frs9ImpCaResultD.pd,
-                    ecl_amount: frs9ImpCaResultD.eclAmount
+                    ecl_amount: frs9ImpCaResultD.eclBfl
                 })
                 .from(frs9ImpCaResultD)
                 .innerJoin(frs9AccountId, eq(frs9ImpCaResultD.accountId, frs9AccountId.accountId))
