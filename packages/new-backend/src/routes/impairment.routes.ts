@@ -637,6 +637,16 @@ impairmentRoutes.openapi(
                 pagination: { total: results.length, page: 1, limit: 50, totalPages: 1 }
             } as any)
         } catch (error) {
+            const msg = String(error)
+            // Table missing (e.g. frs9_imp_ca_ecl_sum not created in this env) — return empty
+            if (msg.includes('does not exist') || msg.includes('relation') && msg.includes('ecl_sum')) {
+                console.warn('⚠️ ECL calculations table not available, returning empty')
+                return c.json({
+                    success: true,
+                    data: [],
+                    pagination: { total: 0, page: 1, limit: 50, totalPages: 0 }
+                } as any)
+            }
             console.error('Error fetching impairment calculations:', error)
             return c.json(buildErrorResponse(c, {
                 error: 'Failed to fetch calculations',
