@@ -13,6 +13,7 @@ import {
   Grid,
   Paper,
   Stack,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import { JobExecution } from '../types';
