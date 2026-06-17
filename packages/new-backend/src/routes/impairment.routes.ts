@@ -1,5 +1,5 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
-import { legacyDb as db } from '../config'
+import { legacyDb as db, legacyConnection } from '../config'
 import { eq, desc, sql, and, asc, or, ilike } from 'drizzle-orm'
 import {
     frs9AccountId,
@@ -16,6 +16,27 @@ import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { buildErrorResponse } from '../lib/http/error-response'
 import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
+
+// Cache: whether frs9_imp_ca_result_d uses the new (v2) schema with extensive columns
+let useNewResultDSchema: boolean | null = null
+
+async function detectResultDSchema(): Promise<boolean> {
+    if (useNewResultDSchema !== null) return useNewResultDSchema
+    try {
+        const rows = await legacyConnection.unsafe<{ exists: boolean }[]>(
+            `SELECT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'frs9_imp_ca_result_d'
+                  AND column_name = 'facility_number'
+            ) as exists`
+        )
+        useNewResultDSchema = rows[0]?.exists ?? false
+        return useNewResultDSchema
+    } catch {
+        useNewResultDSchema = false
+        return false
+    }
+}
 
 export const impairmentRoutes: any = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
@@ -426,57 +447,79 @@ impairmentRoutes.openapi(
                 collectiveConditions.push(eq(frs9ImpCaResultD.facilityNumber, contractDetail.facilityNumber) as any)
             }
 
+            const isNewSchema = await detectResultDSchema()
+            const resultDColumns = isNewSchema ? {
+                prcDate: frs9ImpCaResultD.prcDate,
+                accountId: frs9ImpCaResultD.accountId,
+                accountNumber: frs9AccountId.accountNumber,
+                facilityNumber: frs9ImpCaResultD.facilityNumber,
+                cifNumber: frs9ImpCaResultD.cifNumber,
+                segmentId: frs9ImpCaResultD.segmentId,
+                remainingTenor: frs9ImpCaResultD.remainingTenor,
+                startDate: frs9ImpCaResultD.startDate,
+                maturityDate: frs9ImpCaResultD.maturityDate,
+                defaultFlag: frs9ImpCaResultD.defaultFlag,
+                dpd: frs9ImpCaResultD.dpd,
+                internalRatingCode: frs9ImpCaResultD.internalRatingCode,
+                extRatingCode: frs9ImpCaResultD.extRatingCode,
+                extRatingId: frs9ImpCaResultD.extRatingId,
+                eclModelId: frs9ImpCaResultD.eclModelId,
+                pdConfigId: frs9ImpCaResultD.pdConfigId,
+                lgdConfigId: frs9ImpCaResultD.lgdConfigId,
+                eadConfigId: frs9ImpCaResultD.eadConfigId,
+                eadMethod: frs9ImpCaResultD.eadMethod,
+                bucketGroup: frs9ImpCaResultD.bucketGroup,
+                bucketId: frs9ImpCaResultD.bucketId,
+                currency: frs9ImpCaResultD.currency,
+                stage: frs9ImpCaResultD.stage,
+                scenarioNo: frs9ImpCaResultD.scenarioNo,
+                flSeq: frs9ImpCaResultD.flSeq,
+                flYear: frs9ImpCaResultD.flYear,
+                flMonth: frs9ImpCaResultD.flMotnh,
+                eir: frs9ImpCaResultD.eir,
+                exchangeRate: frs9ImpCaResultD.exchangeRate,
+                outstanding: frs9ImpCaResultD.outstanding,
+                plafond: frs9ImpCaResultD.plafond,
+                fibAmt: frs9ImpCaResultD.fibAmt,
+                accruedInterest: frs9ImpCaResultD.accruedInterest,
+                unamortCostAmt: frs9ImpCaResultD.unamortCostAmt,
+                unamortFeeAmt: frs9ImpCaResultD.unamortFeeAmt,
+                eadBalance: frs9ImpCaResultD.eadBalance,
+                paymAvg: frs9ImpCaResultD.paymAvg,
+                principalAmt: frs9ImpCaResultD.principalAmt,
+                sumPrincipalAmt: frs9ImpCaResultD.sumPrincipalAmt,
+                nextInterest: frs9ImpCaResultD.nextInterest,
+                sumNextInterest: frs9ImpCaResultD.sumNextInterest,
+                ead: frs9ImpCaResultD.ead,
+                pd: frs9ImpCaResultD.pd,
+                lgd: frs9ImpCaResultD.lgd,
+                eclAmount: frs9ImpCaResultD.eclAmount,
+                probability: frs9ImpCaResultD.probability,
+                eclWeighted: frs9ImpCaResultD.eclWeighted,
+            } as any : {
+                prcDate: frs9ImpCaResultD.prcDate,
+                accountId: frs9ImpCaResultD.accountId,
+                accountNumber: frs9AccountId.accountNumber,
+                eclModelId: frs9ImpCaResultD.eclModelId,
+                pdConfigId: frs9ImpCaResultD.pdConfigId,
+                bucketId: frs9ImpCaResultD.bucketId,
+                stage: frs9ImpCaResultD.stage,
+                flSeq: frs9ImpCaResultD.flSeq,
+                eir: frs9ImpCaResultD.eir,
+                fibAmt: frs9ImpCaResultD.fibAmt,
+                accruedInterest: frs9ImpCaResultD.accruedInterest,
+                eadConfigId: frs9ImpCaResultD.eadConfigId,
+                eadMethod: frs9ImpCaResultD.eadMethod,
+                paymAvg: frs9ImpCaResultD.paymAvg,
+                ead: frs9ImpCaResultD.ead,
+                pd: frs9ImpCaResultD.pd,
+                lgd: frs9ImpCaResultD.lgd,
+                probability: frs9ImpCaResultD.probability,
+            } as any
+
             const [collectiveDetails, individualSummaryRows, individualDetails, journalDetails] = await Promise.all([
                 db
-                    .select({
-                        prcDate: frs9ImpCaResultD.prcDate,
-                        accountId: frs9ImpCaResultD.accountId,
-                        accountNumber: frs9AccountId.accountNumber,
-                        facilityNumber: frs9ImpCaResultD.facilityNumber,
-                        cifNumber: frs9ImpCaResultD.cifNumber,
-                        segmentId: frs9ImpCaResultD.segmentId,
-                        remainingTenor: frs9ImpCaResultD.remainingTenor,
-                        startDate: frs9ImpCaResultD.startDate,
-                        maturityDate: frs9ImpCaResultD.maturityDate,
-                        defaultFlag: frs9ImpCaResultD.defaultFlag,
-                        dpd: frs9ImpCaResultD.dpd,
-                        internalRatingCode: frs9ImpCaResultD.internalRatingCode,
-                        extRatingCode: frs9ImpCaResultD.extRatingCode,
-                        extRatingId: frs9ImpCaResultD.extRatingId,
-                        eclModelId: frs9ImpCaResultD.eclModelId,
-                        pdConfigId: frs9ImpCaResultD.pdConfigId,
-                        lgdConfigId: frs9ImpCaResultD.lgdConfigId,
-                        eadConfigId: frs9ImpCaResultD.eadConfigId,
-                        eadMethod: frs9ImpCaResultD.eadMethod,
-                        bucketGroup: frs9ImpCaResultD.bucketGroup,
-                        bucketId: frs9ImpCaResultD.bucketId,
-                        currency: frs9ImpCaResultD.currency,
-                        stage: frs9ImpCaResultD.stage,
-                        scenarioNo: frs9ImpCaResultD.scenarioNo,
-                        flSeq: frs9ImpCaResultD.flSeq,
-                        flYear: frs9ImpCaResultD.flYear,
-                        flMonth: frs9ImpCaResultD.flMotnh,
-                        eir: frs9ImpCaResultD.eir,
-                        exchangeRate: frs9ImpCaResultD.exchangeRate,
-                        outstanding: frs9ImpCaResultD.outstanding,
-                        plafond: frs9ImpCaResultD.plafond,
-                        fibAmt: frs9ImpCaResultD.fibAmt,
-                        accruedInterest: frs9ImpCaResultD.accruedInterest,
-                        unamortCostAmt: frs9ImpCaResultD.unamortCostAmt,
-                        unamortFeeAmt: frs9ImpCaResultD.unamortFeeAmt,
-                        eadBalance: frs9ImpCaResultD.eadBalance,
-                        paymAvg: frs9ImpCaResultD.paymAvg,
-                        principalAmt: frs9ImpCaResultD.principalAmt,
-                        sumPrincipalAmt: frs9ImpCaResultD.sumPrincipalAmt,
-                        nextInterest: frs9ImpCaResultD.nextInterest,
-                        sumNextInterest: frs9ImpCaResultD.sumNextInterest,
-                        ead: frs9ImpCaResultD.ead,
-                        pd: frs9ImpCaResultD.pd,
-                        lgd: frs9ImpCaResultD.lgd,
-                        eclAmount: frs9ImpCaResultD.eclAmount,
-                        probability: frs9ImpCaResultD.probability,
-                        eclWeighted: frs9ImpCaResultD.eclWeighted,
-                    } as any)
+                    .select(resultDColumns)
                     .from(frs9ImpCaResultD)
                     .innerJoin(frs9AccountId, eq(frs9ImpCaResultD.accountId, frs9AccountId.accountId))
                     .where(and(...collectiveConditions))
