@@ -3,6 +3,7 @@
 import React, { memo, useMemo } from 'react';
 import { Box, Chip, Typography } from '@mui/material';
 import {
+  AssignmentInd as ManageRolesIcon,
   Cancel as InactiveIcon,
   CheckCircle as ActiveIcon,
   Edit as EditIcon,
@@ -25,6 +26,7 @@ interface UserManagementTableProps {
   onRowsPerPageChange: (rowsPerPage: number) => void;
   onView: (user: User) => void;
   onEdit: (user: User) => void;
+  onManageRoles: (user: User) => void;
   onResetPassword: (user: User) => void;
   onToggleStatus: (userId: string, currentStatus: boolean) => void;
 }
@@ -40,6 +42,7 @@ const UserManagementTable = memo(function UserManagementTable({
   onRowsPerPageChange,
   onView,
   onEdit,
+  onManageRoles,
   onResetPassword,
   onToggleStatus,
 }: UserManagementTableProps) {
@@ -100,6 +103,12 @@ const UserManagementTable = memo(function UserManagementTable({
           onClick={() => onEdit(params.row)}
         />,
         <SafeGridActionsCellItem
+          key="roles"
+          label="Manage Roles"
+          icon={<ManageRolesIcon />}
+          onClick={() => onManageRoles(params.row)}
+        />,
+        <SafeGridActionsCellItem
           key="reset"
           label="Reset Password"
           icon={<SecurityIcon color="warning" />}
@@ -113,7 +122,7 @@ const UserManagementTable = memo(function UserManagementTable({
         />,
       ],
     },
-  ], [onEdit, onToggleStatus, onView, onResetPassword]);
+  ], [onEdit, onToggleStatus, onView, onManageRoles, onResetPassword]);
 
   return (
     <SafeDataGrid
