@@ -88,40 +88,41 @@ export interface ImpairmentModuleContractDetail extends ImpairmentModuleRow {
 }
 
 export interface ImpairmentCollectiveDetailRow {
-  reportingDate?: string | null;
+  prcDate?: string | null;
   accountId: number;
-  facilityNumber?: string | null;
-  segmentId?: number | null;
-  remainingTenor?: number | null;
-  startDate?: string | null;
-  maturityDate?: string | null;
-  defaultFlag?: boolean | null;
-  dpd?: number | null;
-  internalRatingCode?: string | null;
-  extRatingCode?: string | null;
-  eclModelId?: string | null;
-  pdConfigId?: string | null;
-  lgdConfigId?: string | null;
-  eadConfigId?: string | null;
-  eadMethod?: string | null;
-  bucketGroup?: string | null;
+  accountNumber?: string | null;
+  eclConfigId?: number | null;
+  eclModelId?: number | null;
+  defaultRuleId?: number | null;
+  periodDate?: string | null;
+  pdConfigId?: number | null;
   bucketId?: number | null;
-  currency?: string | null;
-  stage?: number | null;
-  scenarioNo?: number | null;
-  flSeq?: number | null;
-  flYear?: number | null;
-  flMonth?: number | null;
-  eir?: number | null;
-  exchangeRate?: number | null;
-  outstanding?: number | null;
-  plafond?: number | null;
-  ead?: number | null;
-  pd?: number | null;
   lgd?: number | null;
-  eclAmount?: number | null;
+  cifNumber?: string | null;
+  fibAmt?: number | null;
+  accruedInterest?: number | null;
+  stage?: number | null;
+  eqvOutstanding?: number | null;
+  eir?: number | null;
+  eadConfigId?: number | null;
+  eadMethod?: number | null;
+  eadCalcMethod?: number | null;
+  flSeq?: number | null;
+  paymentEom?: string | null;
+  paymAvg?: number | null;
+  principal?: number | null;
+  sumPrincipal?: number | null;
+  interest?: number | null;
+  nextInterest?: number | null;
+  sumNextInterest?: number | null;
+  ead?: number | null;
   probability?: number | null;
-  eclWeighted?: number | null;
+  pdNonFl?: number | null;
+  pd?: number | null;
+  eclBfl?: number | null;
+  eclAfl?: number | null;
+  eclWeightedBfl?: number | null;
+  eclWeightedAfl?: number | null;
 }
 
 export interface ImpairmentIndividualSummary {

@@ -254,30 +254,30 @@ export function ImpairmentModuleDetailsPanel({
               {detail.collectiveDetails.length === 0 ? (
                 <Alert severity="info">No collective impairment detail row was found in `frs9_imp_ca_result_d`.</Alert>
               ) : (
-                <ScrollTable minWidth={980}>
+                <ScrollTable minWidth={920}>
                     <TableHead>
                       <TableRow>
-                        <TableCell>Scenario</TableCell>
                         <TableCell>Stage</TableCell>
                         <TableCell>Bucket</TableCell>
                         <TableCell align="right">EAD</TableCell>
                         <TableCell align="right">PD</TableCell>
                         <TableCell align="right">LGD</TableCell>
-                        <TableCell align="right">ECL Amount</TableCell>
+                        <TableCell align="right">ECL (BFL)</TableCell>
+                        <TableCell align="right">ECL (AFL)</TableCell>
                         <TableCell align="right">Weighted ECL</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {detail.collectiveDetails.map((row, index) => (
-                        <TableRow key={`${row.accountId}-${row.scenarioNo ?? index}-${row.flSeq ?? index}`}>
-                          <TableCell>{row.scenarioNo ?? '-'}</TableCell>
+                        <TableRow key={`${row.accountId}-${row.flSeq ?? index}`}>
                           <TableCell>{row.stage ?? '-'}</TableCell>
                           <TableCell>{row.bucketId ?? '-'}</TableCell>
-                          <TableCell align="right">{formatCurrency(row.ead, row.currency || detail.contractDetail?.currency || 'IDR')}</TableCell>
+                          <TableCell align="right">{formatCurrency(row.ead, detail.contractDetail?.currency || 'IDR')}</TableCell>
                           <TableCell align="right">{Number(row.pd ?? 0).toFixed(6)}</TableCell>
                           <TableCell align="right">{Number(row.lgd ?? 0).toFixed(6)}</TableCell>
-                          <TableCell align="right">{formatCurrency(row.eclAmount, row.currency || detail.contractDetail?.currency || 'IDR')}</TableCell>
-                          <TableCell align="right">{formatCurrency(row.eclWeighted, row.currency || detail.contractDetail?.currency || 'IDR')}</TableCell>
+                          <TableCell align="right">{formatCurrency(row.eclBfl, detail.contractDetail?.currency || 'IDR')}</TableCell>
+                          <TableCell align="right">{formatCurrency(row.eclAfl, detail.contractDetail?.currency || 'IDR')}</TableCell>
+                          <TableCell align="right">{formatCurrency(row.eclWeightedAfl, detail.contractDetail?.currency || 'IDR')}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

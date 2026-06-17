@@ -145,15 +145,15 @@ function toCollectiveDetails(rows: ImpairmentCollectiveDetailRow[] | undefined) 
   return rows.map((row) => ({
     ...row,
     eir: toNumber(row.eir),
-    exchangeRate: toNumber(row.exchangeRate),
-    outstanding: toNumber(row.outstanding),
-    plafond: toNumber(row.plafond),
+    eqvOutstanding: toNumber(row.eqvOutstanding),
     ead: toNumber(row.ead),
     pd: toNumber(row.pd),
     lgd: toNumber(row.lgd),
-    eclAmount: toNumber(row.eclAmount),
     probability: toNumber(row.probability),
-    eclWeighted: toNumber(row.eclWeighted),
+    eclBfl: toNumber(row.eclBfl),
+    eclAfl: toNumber(row.eclAfl),
+    eclWeightedBfl: toNumber(row.eclWeightedBfl),
+    eclWeightedAfl: toNumber(row.eclWeightedAfl),
   }));
 }
 
