@@ -117,6 +117,19 @@ export function useReportData({
         ...(col.type === 'number' && {
           valueFormatter: (value: number | null | undefined) => {
             if (value === null || value === undefined) return '';
+            const field = col.field || '';
+            // Code/ID fields: no formatting (no commas, no decimals)
+            if (/branch[_ ]?code|branch_id|_id$|^id$|^pkid$|^seq$|^seqno$/i.test(field)) {
+              return String(value);
+            }
+            // Integer fields like stage, account/account_count, count: no decimal places, no commas
+            if (/stage|account[_ ]?count|count|total[_ ]?(account|count)/i.test(field)) {
+              return new Intl.NumberFormat('id-ID', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+              }).format(value);
+            }
+            // Default: 2 decimal places
             return new Intl.NumberFormat('id-ID', {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
