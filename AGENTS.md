@@ -133,3 +133,17 @@ pnpm --dir packages/new-backend run typecheck  # TS type check (tsconfig.typeche
 # Tests
 pnpm --dir packages/new-backend run test       # Backend tests
 ```
+
+## Docker Workflow Strategy
+
+### Three workflows for different purposes:
+- **`docker-publish.yml`** (Linux/iaf-prod): Manual trigger only. Builds + pushes to GHCR with branch tag (`:develop`, `:main`). Uses public URLs (`ifrspro.id`). Ensures GHCR has images for any server.
+- **`docker-publish-dev.yml`** (Windows/badak): Auto on push to `develop` + manual. Builds locally, no push to GHCR. Uses internal Docker URLs (`http://backend:4232`). Tags with same name as GHCR so Docker uses local image first.
+- **`docker-publish-prod.yml`** (Linux/iaf-prod): Auto on git tag `v*.*.*` + manual. Builds + pushes to GHCR. Deploys to `danafin.com`.
+
+### How local build overrides GHCR:
+Compose file uses `image: ghcr.io/.../frontend:develop`. When `docker-publish-dev.yml` builds locally with `docker build -t ghcr.io/.../frontend:develop`, Docker caches it locally. `docker compose up` checks local first → finds it → doesn't pull from GHCR.
+
+### Future improvement:
+Consolidate `docker-publish.yml` and `docker-publish-dev.yml` into a single workflow that builds + pushes to GHCR from `badak` (Windows), then the dev server pulls from GHCR instead of building locally. This eliminates duplicate builds and ensures consistency between GHCR and dev server images.
+```
