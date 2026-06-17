@@ -1,5 +1,5 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
-import { legacyDb as db } from '../config'
+import { legacyDb as db, legacyConnection } from '../config'
 import { eq, desc, sql, and, asc, or, ilike } from 'drizzle-orm'
 import {
     frs9AccountId,
@@ -418,40 +418,21 @@ impairmentRoutes.openapi(
                 }) as any, 404)
             }
 
-            const collectiveConditions = [
-                eq(frs9ImpCaResultD.accountId, contractDetail.accountId),
-                eq(frs9ImpCaResultD.prcDate, contractDetail.prcDate),
-            ]
-            if (contractDetail.facilityNumber) {
-                collectiveConditions.push(eq(frs9ImpCaResultD.facilityNumber, contractDetail.facilityNumber) as any)
-            }
-
-            const [collectiveDetails, individualSummaryRows, individualDetails, journalDetails] = await Promise.all([
-                db
-                    .select({
-                        prcDate: frs9ImpCaResultD.prcDate,
-                        accountId: frs9ImpCaResultD.accountId,
-                        accountNumber: frs9AccountId.accountNumber,
-                        eclModelId: frs9ImpCaResultD.eclModelId,
-                        pdConfigId: frs9ImpCaResultD.pdConfigId,
-                        bucketId: frs9ImpCaResultD.bucketId,
-                        stage: frs9ImpCaResultD.stage,
-                        flSeq: frs9ImpCaResultD.flSeq,
-                        eir: frs9ImpCaResultD.eir,
-                        fibAmt: frs9ImpCaResultD.fibAmt,
-                        accruedInterest: frs9ImpCaResultD.accruedInterest,
-                        eadConfigId: frs9ImpCaResultD.eadConfigId,
-                        eadMethod: frs9ImpCaResultD.eadMethod,
-                        paymAvg: frs9ImpCaResultD.paymAvg,
-                        ead: frs9ImpCaResultD.ead,
-                        pd: frs9ImpCaResultD.pd,
-                        lgd: frs9ImpCaResultD.lgd,
-                        probability: frs9ImpCaResultD.probability,
-                    } as any)
-                    .from(frs9ImpCaResultD)
-                    .innerJoin(frs9AccountId, eq(frs9ImpCaResultD.accountId, frs9AccountId.accountId))
-                    .where(and(...collectiveConditions))
-                    .orderBy(asc(frs9ImpCaResultD.flSeq)),
+            const collectiveDetails = await legacyConnection.unsafe<Record<string, unknown>[]>(
+                `SELECT d.prc_date, d.account_id, a.account_number, d.ecl_config_id, d.ecl_model_id, d.default_rule_id,
+                        d.period_date, d.pd_config_id, d.bucket_id, d.lgd, d.cif_number, d.fib_amt,
+                        d.accrued_interest, d.stage, d.eqv_outstanding, d.eir, d.ead_config_id,
+                        d.ead_method, d.ead_calc_method, d.fl_seq, d.payment_eom, d.paym_avg,
+                        d.principal, d.sum_principal, d.interest, d.next_interest, d.sum_next_interest,
+                        d.ead, d.probability, d.pd_non_fl, d.pd, d.ecl_bfl, d.ecl_afl,
+                        d.ecl_weighted_bfl, d.ecl_weighted_afl
+                 FROM frs9_imp_ca_result_d d
+                 INNER JOIN frs9_account_id a ON d.account_id = a.account_id
+                 WHERE d.account_id = $1 AND d.prc_date = $2
+                 ORDER BY d.fl_seq`,
+                [contractDetail.accountId, contractDetail.prcDate]
+            )
+            const [individualSummaryRows, individualDetails, journalDetails] = await Promise.all([
                 db
                     .select({
                         reportingDate: frs9ImpIaResultH.prcDate,
@@ -737,16 +718,28 @@ impairmentRoutes.openapi(
             const offset = (page - 1) * limit
             const accountId = c.req.query('accountId')
 
-            let query = db.select().from(frs9ImpCaResultD)
-
+            let eclWhere = ''
+            const eclParams: (string | number)[] = []
             if (accountId) {
-                query = query.where(eq(frs9ImpCaResultD.accountId, Number(accountId))) as any
+                eclWhere = 'WHERE d.account_id = $1'
+                eclParams.push(Number(accountId))
             }
 
-            const data = await query
-                .orderBy(desc(frs9ImpCaResultD.prcDate))
-                .limit(limit)
-                .offset(offset)
+            const data = await legacyConnection.unsafe<Record<string, unknown>[]>(
+                `SELECT d.prc_date, d.account_id, a.account_number, d.ecl_config_id, d.ecl_model_id,
+                        d.default_rule_id, d.period_date, d.pd_config_id, d.bucket_id, d.lgd,
+                        d.cif_number, d.fib_amt, d.accrued_interest, d.stage, d.eqv_outstanding,
+                        d.eir, d.ead_config_id, d.ead_method, d.ead_calc_method, d.fl_seq,
+                        d.payment_eom, d.paym_avg, d.principal, d.sum_principal, d.interest,
+                        d.next_interest, d.sum_next_interest, d.ead, d.probability, d.pd_non_fl,
+                        d.pd, d.ecl_bfl, d.ecl_afl, d.ecl_weighted_bfl, d.ecl_weighted_afl
+                 FROM frs9_imp_ca_result_d d
+                 LEFT JOIN frs9_account_id a ON d.account_id = a.account_id
+                 ${eclWhere}
+                 ORDER BY d.prc_date DESC
+                 LIMIT $${eclParams.length + 1} OFFSET $${eclParams.length + 2}` as any,
+                [...eclParams, limit, offset] as any
+            )
 
             return c.json({
                 success: true,
