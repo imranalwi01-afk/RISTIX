@@ -1,11 +1,12 @@
 name: Docker R Analytics Publish
 
 on:
-  push:
-    tags: [ 'v*.*.*' ]
-    paths:
-      - 'packages/r-analytics/**'
   workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual build'
+        required: false
+        default: 'Manual trigger'
 
 env:
   REGISTRY: ghcr.io
