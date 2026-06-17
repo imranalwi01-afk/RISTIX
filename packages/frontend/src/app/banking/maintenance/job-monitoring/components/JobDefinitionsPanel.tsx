@@ -72,12 +72,6 @@ export const JobDefinitionsPanel = memo(function JobDefinitionsPanel({
               <Stack spacing={2}>
                 <Box>
                   <Typography variant="body2" color="text.secondary">
-                    Schedule
-                  </Typography>
-                  <Typography variant="body2">{job.scheduleExpression}</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
                     Next Run
                   </Typography>
                   <Typography variant="body2">{formatNextRun(job.nextRunTime)}</Typography>

@@ -34,7 +34,7 @@ import {
 } from '@mui/icons-material';
 import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
-import { JobExecution, JobFilters, SupportedJobType } from '../types';
+import { JobExecution, JobFilters } from '../types';
 
 interface ActiveJobsPanelProps {
   loading: boolean;
@@ -59,7 +59,7 @@ interface ActiveJobsPanelProps {
   getPriorityColor: (priority: string) => string;
   getJobTypeIcon: (type: string) => React.ReactNode;
   formatDuration: (duration?: number) => string;
-  supportedJobTypeOptions: Array<{ value: SupportedJobType; label: string }>;
+
   lastUpdatedLabel: string;
 }
 
@@ -80,7 +80,6 @@ export const ActiveJobsPanel = memo(function ActiveJobsPanel({
   getPriorityColor,
   getJobTypeIcon,
   formatDuration,
-  supportedJobTypeOptions,
   lastUpdatedLabel,
 }: ActiveJobsPanelProps) {
   const executionColumns: GridColDef[] = [
@@ -305,11 +304,7 @@ export const ActiveJobsPanel = memo(function ActiveJobsPanel({
                 <InputLabel>Type</InputLabel>
                 <Select value={filters.type || ''} onChange={(e) => onFilterChange('type', e.target.value)} label="Type">
                   <MenuItem value="">All</MenuItem>
-                  {supportedJobTypeOptions.map((option, idx) => (
-                    <MenuItem key={`${option.value}-${idx}`} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
+                  <MenuItem value="SQL_SP">Stored Procedure</MenuItem>
                 </Select>
               </FormControl>
             </Grid>

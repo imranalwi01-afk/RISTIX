@@ -10,7 +10,6 @@ import {
   DialogTitle,
   Box,
   Typography,
-  Grid,
   IconButton,
   Tabs,
   Tab,
@@ -26,15 +25,10 @@ import {
   Assignment as AssignmentIcon,
   CheckCircle as CheckCircleIcon,
   Analytics as AnalyticsIcon,
-  Storage as StorageIcon,
   Settings as SettingsIcon,
   Timeline as TimelineIcon,
-  Speed as SpeedIcon,
   Add as AddIcon,
-  Description as ScriptIcon,
-  CloudDownload as CloudDownloadIcon,
   Code as CodeIcon,
-  Terminal as TerminalIcon,
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { format, parseISO, subDays } from 'date-fns';
@@ -43,7 +37,6 @@ import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/utils/error-message';
 import { useJobExecutionRuntimeQuery, useJobMonitoringQuery } from '@/features/job-monitoring/hooks/useJobMonitoringQueries';
 import { ActiveJobsPanel } from './components/ActiveJobsPanel';
-import { JobSystemMetricsPanel } from './components/JobSystemMetricsPanel';
 import { JobDefinitionsPanel } from './components/JobDefinitionsPanel';
 import { JobExecutionDetailsDialog } from './components/JobExecutionDetailsDialog';
 import { JobControlConfirmDialog } from './components/JobControlConfirmDialog';
@@ -54,16 +47,8 @@ import {
   JobExecution,
   JobFilters,
   JobRuntimeSummary,
-  SupportedJobType,
-  SystemMetrics,
   TabPanelProps,
 } from './types';
-
-const SUPPORTED_JOB_TYPE_OPTIONS: Array<{ value: SupportedJobType; label: string }> = [
-  { value: 'SQL_SP', label: 'Stored Procedure' },
-  { value: 'INTERNAL_SCRIPT', label: 'Internal Script' },
-  { value: 'SHELL_COMMAND', label: 'Shell Command' },
-];
 
 const JOB_VIEW_PERMISSIONS = ['jobs.view', 'jobs.manage', 'jobs.access', 'admin.system.view', 'admin.system.manage'];
 const JOB_CREATE_PERMISSIONS = ['jobs.create', 'jobs.manage', 'jobs.access', 'admin.system.manage'];
@@ -81,22 +66,9 @@ const DEFAULT_NEW_JOB_DATA: CreateJobForm = {
   maxRetries: 3,
   timeout: 3600,
   isEnabled: true,
-  scheduleExpression: '',
-  targetDatabase: 'TENANT',
+  targetDatabase: 'LEGACY',
   schemaName: '',
   procedureName: '',
-  handlerName: '',
-  command: '',
-};
-
-const LEGACY_IFRS9_SEQUENCE_JOB_TEMPLATE: CreateJobForm = {
-  ...DEFAULT_NEW_JOB_DATA,
-  name: 'IFRS9 Impairment Sequence',
-  type: 'SQL_SP',
-  targetDatabase: 'LEGACY',
-  schemaName: 'public',
-  procedureName: 'sp_frs9_imp_sequence',
-  priority: 'HIGH',
 };
 
 const toUiStatus = (rawStatus?: string | null): string => {
@@ -205,7 +177,6 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
   const [statusTab, setStatusTab] = useState(0); // 0: All, 1: Ongoing, 2: Running, 3: Completed, 4: Failed
   const [jobExecutions, setJobExecutions] = useState<JobExecution[]>([]);
   const [jobDefinitions, setJobDefinitions] = useState<JobDefinition[]>([]);
-  const [systemMetrics, setSystemMetrics] = useState<SystemMetrics | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -307,17 +278,12 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
     if (jobData.type === 'SQL_SP') {
       const normalized = normalizeSqlProcedureInput(jobData);
       defaultParams = normalized.defaultParameters;
-    } else if (jobData.type === 'INTERNAL_SCRIPT' && jobData.handlerName) {
-      defaultParams.handlerName = jobData.handlerName.trim();
-    } else if (jobData.type === 'SHELL_COMMAND' && jobData.command) {
-      defaultParams.command = jobData.command.trim();
     }
 
     return {
       name: trimmedName,
       description: jobData.description?.trim() || undefined,
       jobType: jobData.type,
-      cronExpression: jobData.scheduleExpression || undefined,
       defaultParameters: defaultParams,
       priority: jobData.priority,
       maxRetries: jobData.maxRetries,
@@ -333,18 +299,8 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
       return false;
     }
 
-    if (jobData.type === 'SQL_SP' && !(jobData.procedureName || '').trim()) {
-      setError('Stored Procedure Name is required for Stored Procedure jobs.');
-      return false;
-    }
-
-    if (jobData.type === 'INTERNAL_SCRIPT' && !(jobData.handlerName || '').trim()) {
-      setError('Handler Name is required for Internal Script jobs.');
-      return false;
-    }
-
-    if (jobData.type === 'SHELL_COMMAND' && !(jobData.command || '').trim()) {
-      setError('Shell Command is required for Shell Command jobs.');
+    if (!(jobData.procedureName || '').trim()) {
+      setError('Stored Procedure Name is required.');
       return false;
     }
 
@@ -378,28 +334,14 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
     }
   };
 
-  const handleOpenCreateLegacyIfrs9Job = () => {
-    if (!canCreateJobs) {
-      setError('You do not have permission to create job definitions.');
-      return;
-    }
-
-    setNewJobData(LEGACY_IFRS9_SEQUENCE_JOB_TEMPLATE);
-    setCreateJobDialogOpen(true);
-  };
-
   const isCreateJobDisabled =
     loading
     || !(newJobData.name || '').trim()
-    || (newJobData.type === 'SQL_SP' && !(newJobData.procedureName || '').trim())
-    || (newJobData.type === 'INTERNAL_SCRIPT' && !(newJobData.handlerName || '').trim())
-    || (newJobData.type === 'SHELL_COMMAND' && !(newJobData.command || '').trim());
+    || !(newJobData.procedureName || '').trim();
   const isEditJobDisabled =
     loading
     || !(editJobDialog.jobData.name || '').trim()
-    || (editJobDialog.jobData.type === 'SQL_SP' && !(editJobDialog.jobData.procedureName || '').trim())
-    || (editJobDialog.jobData.type === 'INTERNAL_SCRIPT' && !(editJobDialog.jobData.handlerName || '').trim())
-    || (editJobDialog.jobData.type === 'SHELL_COMMAND' && !(editJobDialog.jobData.command || '').trim());
+    || !(editJobDialog.jobData.procedureName || '').trim();
   const fetchJobExecutions = useCallback(async () => {
     await monitoringQuery.refetch();
   }, [monitoringQuery]);
@@ -408,7 +350,6 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
     if (!canViewJobs) {
       setJobExecutions([]);
       setJobDefinitions([]);
-      setSystemMetrics(null);
       setError('You do not have permission to view job monitoring.');
       return;
     }
@@ -417,7 +358,6 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
 
     const executions = monitoringQuery.data.executions || [];
     const definitions = monitoringQuery.data.definitions || [];
-    const metrics = monitoringQuery.data.metrics || {};
 
     const mapped: JobExecution[] = executions.map((execution: any) => mapExecutionFromApi(execution));
     const latestExecutionByDefinition = new Map<string, JobExecution>();
@@ -466,17 +406,6 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
           lastRunTime: job.lastRunTime ?? previous?.lastRunTime,
         };
       });
-    });
-    setSystemMetrics({
-      cpuUsage: metrics?.cpuUsage || 0,
-      memoryUsage: metrics?.memoryUsage || 0,
-      diskUsage: metrics?.diskUsage || 0,
-      activeJobs: metrics?.activeJobs || 0,
-      queuedJobs: metrics?.queuedJobs || 0,
-      completedJobsToday: metrics?.completedJobsToday || 0,
-      failedJobsToday: metrics?.failedJobsToday || 0,
-      averageExecutionTime: metrics?.averageExecutionTime || 0,
-      throughputPerHour: metrics?.throughputPerHour || 0,
     });
     setError(null);
   }, [canViewJobs, monitoringQuery.data]);
@@ -669,25 +598,19 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
 
   const mapJobDefinitionToForm = (job: JobDefinition): CreateJobForm => {
     const parameters = job.parameters && typeof job.parameters === 'object' ? job.parameters : {};
-    const type = SUPPORTED_JOB_TYPE_OPTIONS.some((option) => option.value === job.type)
-      ? job.type as SupportedJobType
-      : 'SQL_SP';
 
     return {
       name: job.name,
       description: job.description || '',
-      type,
+      type: 'SQL_SP',
       parameters: { ...parameters },
       priority: job.priority || 'NORMAL',
       maxRetries: job.maxRetries,
       timeout: job.timeout,
       isEnabled: job.isEnabled,
-      scheduleExpression: job.scheduleExpression || '',
-      targetDatabase: parameters.targetDatabase === 'LEGACY' ? 'LEGACY' : 'TENANT',
+      targetDatabase: 'LEGACY',
       schemaName: typeof parameters.schemaName === 'string' ? parameters.schemaName : '',
       procedureName: typeof parameters.procedureName === 'string' ? parameters.procedureName : '',
-      handlerName: typeof parameters.handlerName === 'string' ? parameters.handlerName : '',
-      command: typeof parameters.command === 'string' ? parameters.command : '',
     };
   };
 
@@ -809,20 +732,7 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
     }
   };
 
-  const getJobTypeIcon = (type: string) => {
-    switch (type) {
-      case 'IFRS9_CALCULATION': return <AnalyticsIcon />;
-      case 'ETL_PROCESS': return <StorageIcon />;
-      case 'DATA_VALIDATION': return <CheckCircleIcon />;
-      case 'REPORT_GENERATION': return <AssignmentIcon />;
-      case 'BACKUP': return <CloudDownloadIcon />;
-      case 'MAINTENANCE': return <SettingsIcon />;
-      case 'SQL_SP': return <CodeIcon />;
-      case 'INTERNAL_SCRIPT': return <ScriptIcon />;
-      case 'SHELL_COMMAND': return <TerminalIcon />;
-      default: return <AssignmentIcon />;
-    }
-  };
+  const getJobTypeIcon = () => <CodeIcon />;
 
   const formatDuration = (duration?: number) => {
     if (!duration) return '-';
@@ -919,17 +829,6 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
               Create Job
             </Button>
           )}
-          {canCreateJobs && (
-            <Button
-              variant="outlined"
-              color="secondary"
-              startIcon={<ScriptIcon />}
-              onClick={handleOpenCreateLegacyIfrs9Job}
-            >
-              Quick Add IFRS9 Legacy Job
-            </Button>
-          )}
-
           <Tooltip title="Refresh All Data">
             <IconButton onClick={handleRefresh} disabled={loading} color="primary" sx={{ border: '1px solid', borderColor: 'primary.light' }}>
               <RefreshIcon className={loading ? 'animate-spin' : ''} />
@@ -964,20 +863,6 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
         </Alert>
       )}
 
-      {/* System Metrics */}
-      <JobSystemMetricsPanel
-        metrics={systemMetrics}
-        mode="summary"
-        formatDuration={formatDuration}
-        themePalette={{
-          info: theme.palette.info.main,
-          warning: theme.palette.warning.main,
-          success: theme.palette.success.main,
-          error: theme.palette.error.main,
-          primary: theme.palette.primary.main,
-        }}
-      />
-
       {/* Tabs */}
       <Paper sx={{ mb: 3 }}>
         <Tabs
@@ -1002,11 +887,6 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
             icon={<SettingsIcon />}
             iconPosition="start"
           />
-          <Tab
-            label="System Performance"
-            icon={<SpeedIcon />}
-            iconPosition="start"
-          />
         </Tabs>
       </Paper>
 
@@ -1029,7 +909,6 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
           getPriorityColor={getPriorityColor}
           getJobTypeIcon={getJobTypeIcon}
           formatDuration={formatDuration}
-          supportedJobTypeOptions={SUPPORTED_JOB_TYPE_OPTIONS}
           lastUpdatedLabel={format(new Date(), 'MMM dd, yyyy HH:mm')}
         />
       </TabPanel>
@@ -1065,26 +944,10 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
         />
       </TabPanel>
 
-      {/* System Performance Tab */}
-      <TabPanel value={currentTab} index={3}>
-        <JobSystemMetricsPanel
-          metrics={systemMetrics}
-          mode="performance"
-          formatDuration={formatDuration}
-          themePalette={{
-            info: theme.palette.info.main,
-            warning: theme.palette.warning.main,
-            success: theme.palette.success.main,
-            error: theme.palette.error.main,
-            primary: theme.palette.primary.main,
-          }}
-        />
-      </TabPanel>
       <CreateJobDefinitionDialog
         open={createJobDialogOpen}
         loading={loading}
         jobData={newJobData}
-        supportedJobTypeOptions={SUPPORTED_JOB_TYPE_OPTIONS}
         disabled={isCreateJobDisabled}
         onClose={() => setCreateJobDialogOpen(false)}
         onSubmit={handleCreateJob}
@@ -1094,7 +957,6 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
         open={editJobDialog.open}
         loading={loading}
         jobData={editJobDialog.jobData}
-        supportedJobTypeOptions={SUPPORTED_JOB_TYPE_OPTIONS}
         disabled={isEditJobDisabled}
         title="Edit Job Definition"
         submitLabel="Save Changes"
