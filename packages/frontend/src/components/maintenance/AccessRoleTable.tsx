@@ -18,6 +18,7 @@ import { format, parseISO } from 'date-fns';
 import { GridColDef, GridRenderCellParams, GridRowParams } from '@mui/x-data-grid';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { getRoleResponsibility } from '@/components/roles/role-responsibility.utils';
+import { ImpactLevelBadge } from '@/components/ImpactLevelBadge';
 import type { Role } from './access-management.types';
 
 interface AccessRoleTableProps {
@@ -107,16 +108,15 @@ export const AccessRoleTable: React.FC<AccessRoleTableProps> = ({
       ),
     },
     {
-      field: 'level',
-      headerName: 'Level',
-      width: 120,
+      field: 'maxImpactLevel',
+      headerName: 'Impact Level',
+      width: 140,
+      valueGetter: (value, row?: Role) => {
+        const actualRow = row || (value && (value as any).row);
+        return actualRow ? (actualRow as any).maxImpactLevel || actualRow.level || 'low' : 'low';
+      },
       renderCell: (params: GridRenderCellParams) => (
-        <Chip
-          label={params.row.level}
-          size="small"
-          variant="filled"
-          color="default"
-        />
+        <ImpactLevelBadge level={params.value as string} />
       ),
     },
     {

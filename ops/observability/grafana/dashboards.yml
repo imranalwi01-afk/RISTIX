@@ -1,0 +1,15 @@
+# =============================================================================
+# Grafana Dashboards Provisioning
+# =============================================================================
+
+apiVersion: 1
+
+providers:
+  - name: IFRS9
+    orgId: 1
+    folder: IFRS9
+    type: file
+    disableDeletion: true
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

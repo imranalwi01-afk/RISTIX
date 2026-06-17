@@ -15,6 +15,7 @@ export const jobDefinitions = coreSchema.table('job_definitions', {
     defaultParameters: jsonb('default_parameters').default({}),
     isEnabled: boolean('is_enabled').default(true),
     priority: varchar('priority', { length: 20 }).default('NORMAL'), // LOW, NORMAL, HIGH, CRITICAL
+    impactLevel: varchar('impact_level', { length: 20 }).default('medium'), // low, medium, high
     timeout: integer('timeout').default(3600), // in seconds
     maxRetries: integer('max_retries').default(0),
     createdBy: uuid('created_by'),

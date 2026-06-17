@@ -49,7 +49,6 @@ const CreateUserSchema = z.object({
         .regex(/[0-9]/, 'Password must contain a number')
         .regex(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, 'Password must contain a special character'),
     fullName: z.string().min(2),
-    fullName: z.string().min(2),
     username: z.string().min(2),
     phone: z.string().optional(),
     department: z.string().optional(),

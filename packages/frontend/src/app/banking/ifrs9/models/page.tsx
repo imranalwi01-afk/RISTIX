@@ -35,220 +35,38 @@ import {
   type ModelRecord,
 } from './components';
 
-// Real API implementation with demo token for development
-const modelsApi = {
-  // PD Models
-  getPDModels: async () => {
-    const response = await fetch('http://localhost:4232/api/v1/banking/collective/pd-configurations', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer demo_token_ADMIN',
-        'X-Tenant-ID': 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
-      }
-    });
-    return await response.json();
-  },
-  
-  createPDModel: async (data: any) => {
-    const response = await fetch('http://localhost:4232/api/v1/banking/collective/pd-configurations', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer demo_token_ADMIN',
-        'X-Tenant-ID': 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
-      },
-      body: JSON.stringify(data)
-    });
-    return await response.json();
-  },
-  
-  updatePDModel: async (id: number, data: any) => {
-    const response = await fetch(`http://localhost:4232/api/v1/banking/collective/pd-configurations/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer demo_token_ADMIN',
-        'X-Tenant-ID': 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
-      },
-      body: JSON.stringify(data)
-    });
-    return await response.json();
-  },
-  
-  deletePDModel: async (id: number) => {
-    const response = await fetch(`http://localhost:4232/api/v1/banking/collective/pd-configurations/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer demo_token_ADMIN',
-        'X-Tenant-ID': 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
-      }
-    });
-    return await response.json();
-  },
-  
-  // LGD Models
-  getLGDModels: async () => {
-    const response = await fetch('http://localhost:4232/api/v1/banking/collective/lgd-configurations', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer demo_token_ADMIN',
-        'X-Tenant-ID': 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
-      }
-    });
-    return await response.json();
-  },
-  
-  createLGDModel: async (data: any) => {
-    const response = await fetch('http://localhost:4232/api/v1/banking/collective/lgd-configurations', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer demo_token_ADMIN',
-        'X-Tenant-ID': 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
-      },
-      body: JSON.stringify(data)
-    });
-    return await response.json();
-  },
-  
-  updateLGDModel: async (id: number, data: any) => {
-    const response = await fetch(`http://localhost:4232/api/v1/banking/collective/lgd-configurations/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer demo_token_ADMIN',
-        'X-Tenant-ID': 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
-      },
-      body: JSON.stringify(data)
-    });
-    return await response.json();
-  },
-  
-  deleteLGDModel: async (id: number) => {
-    const response = await fetch(`http://localhost:4232/api/v1/banking/collective/lgd-configurations/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer demo_token_ADMIN',
-        'X-Tenant-ID': 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
-      }
-    });
-    return await response.json();
-  },
-  
-  // EAD Models
-  getEADModels: async () => {
-    const response = await fetch('http://localhost:4232/api/v1/banking/collective/ead-configurations', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer demo_token_ADMIN',
-        'X-Tenant-ID': 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
-      }
-    });
-    return await response.json();
-  },
-  
-  createEADModel: async (data: any) => {
-    const response = await fetch('http://localhost:4232/api/v1/banking/collective/ead-configurations', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer demo_token_ADMIN',
-        'X-Tenant-ID': 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
-      },
-      body: JSON.stringify(data)
-    });
-    return await response.json();
-  },
-  
-  updateEADModel: async (id: number, data: any) => {
-    const response = await fetch(`http://localhost:4232/api/v1/banking/collective/ead-configurations/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer demo_token_ADMIN',
-        'X-Tenant-ID': 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
-      },
-      body: JSON.stringify(data)
-    });
-    return await response.json();
-  },
-  
-  deleteEADModel: async (id: number) => {
-    const response = await fetch(`http://localhost:4232/api/v1/banking/collective/ead-configurations/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer demo_token_ADMIN',
-        'X-Tenant-ID': 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
-      }
-    });
-    return await response.json();
-  },
-  
-  // ECL Models
-  getECLModels: async () => {
-    const response = await fetch('http://localhost:4232/api/v1/banking/collective/ecl-config', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer demo_token_ADMIN',
-        'X-Tenant-ID': 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
-      }
-    });
-    return await response.json();
-  },
-  
-  createECLModel: async (data: any) => {
-    const response = await fetch('http://localhost:4232/api/v1/banking/collective/ecl-config', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer demo_token_ADMIN',
-        'X-Tenant-ID': 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
-      },
-      body: JSON.stringify(data)
-    });
-    return await response.json();
-  },
-  
-  updateECLModel: async (id: number, data: any) => {
-    const response = await fetch(`http://localhost:4232/api/v1/banking/collective/ecl-config/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer demo_token_ADMIN',
-        'X-Tenant-ID': 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
-      },
-      body: JSON.stringify(data)
-    });
-    return await response.json();
-  },
-  
-  deleteECLModel: async (id: number) => {
-    const response = await fetch(`http://localhost:4232/api/v1/banking/collective/ecl-config/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer demo_token_ADMIN',
-        'X-Tenant-ID': 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
-      }
-    });
-    return await response.json();
-  }
+const API_BASE = typeof window !== 'undefined'
+  ? '/api/v1'
+  : process.env.BACKEND_INTERNAL_URL
+    ? `${process.env.BACKEND_INTERNAL_URL}/api/v1`
+    : 'http://backend:4232/api/v1';
+
+const authHeaders = {
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer demo_token_ADMIN',
+  'X-Tenant-ID': 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
 };
 
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(amount);
+const apiReq = (path: string, method = 'GET', body?: any) =>
+  fetch(`${API_BASE}${path}`, { method, headers: authHeaders, body: body ? JSON.stringify(body) : undefined }).then(r => r.json());
+
+const modelsApi = {
+  getPDModels: () => apiReq('/banking/collective/pd-configurations'),
+  deletePDModel: (id: number) => apiReq(`/banking/collective/pd-configurations/${id}`, 'DELETE'),
+  updatePDModel: (id: number, data: any) => apiReq(`/banking/collective/pd-configurations/${id}`, 'PUT', data),
+  createPDModel: (data: any) => apiReq('/banking/collective/pd-configurations', 'POST', data),
+  getLGDModels: () => apiReq('/banking/collective/lgd-configurations'),
+  deleteLGDModel: (id: number) => apiReq(`/banking/collective/lgd-configurations/${id}`, 'DELETE'),
+  updateLGDModel: (id: number, data: any) => apiReq(`/banking/collective/lgd-configurations/${id}`, 'PUT', data),
+  createLGDModel: (data: any) => apiReq('/banking/collective/lgd-configurations', 'POST', data),
+  getEADModels: () => apiReq('/banking/collective/ead-configurations'),
+  deleteEADModel: (id: number) => apiReq(`/banking/collective/ead-configurations/${id}`, 'DELETE'),
+  updateEADModel: (id: number, data: any) => apiReq(`/banking/collective/ead-configurations/${id}`, 'PUT', data),
+  createEADModel: (data: any) => apiReq('/banking/collective/ead-configurations', 'POST', data),
+  getECLModels: () => apiReq('/banking/collective/ecl-config'),
+  deleteECLModel: (id: number) => apiReq(`/banking/collective/ecl-config/${id}`, 'DELETE'),
+  updateECLModel: (id: number, data: any) => apiReq(`/banking/collective/ecl-config/${id}`, 'PUT', data),
+  createECLModel: (data: any) => apiReq('/banking/collective/ecl-config', 'POST', data),
 };
 
 export default function IFRS9ModelsPage() {

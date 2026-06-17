@@ -62,6 +62,7 @@ import { AccessRoleDialog } from './AccessRoleDialog';
 import { AccessPermissionDialog } from './AccessPermissionDialog';
 import { AccessReviewTab } from './AccessReviewTab';
 import { AccessStatCards } from './AccessStatCards';
+import { SecuritySettingsTab } from './SecuritySettingsTab';
 
 const TabPanel = ({ children, value, index, ...other }: TabPanelProps) => (
   <div
@@ -378,6 +379,11 @@ function AccessManagementPage() {
             icon={<SecurityIcon />}
             iconPosition="start"
           />
+          <Tab
+            label="Security"
+            icon={<SecurityIcon />}
+            iconPosition="start"
+          />
         </Tabs>
       </Paper>
 
@@ -411,6 +417,11 @@ function AccessManagementPage() {
       {/* Access Review Tab */}
       <TabPanel value={currentTab} index={2}>
         <AccessReviewTab roles={roles} permissions={permissions} />
+      </TabPanel>
+
+      {/* Security Tab */}
+      <TabPanel value={currentTab} index={3}>
+        <SecuritySettingsTab />
       </TabPanel>
 
       {/* Role Dialog */}

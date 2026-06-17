@@ -99,7 +99,7 @@ INSERT INTO menu.menu_items (id, tenant_id, category_id, name, path, icon, sort_
 ON CONFLICT (id) DO NOTHING;
 
 DELETE FROM menu.menu_items
-WHERE path = '/banking/maintenance/menus';
+WHERE path IN ('/banking/maintenance/menus', '/banking/maintenance/users');
 
 SELECT 'SUCCESS: IAF menu structure seeded!' as result;
 COMMIT;

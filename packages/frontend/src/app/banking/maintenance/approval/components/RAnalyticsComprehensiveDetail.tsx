@@ -1,15 +1,17 @@
 'use client';
 
 import React, { memo } from 'react';
-import { Box, Typography, Divider, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Box, Typography, Divider, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { Assessment as AssessmentIcon, TableChart as TableChartIcon, Timeline as TimelineIcon } from '@mui/icons-material';
+import { Assessment as AssessmentIcon, TableChart as TableChartIcon, Timeline as TimelineIcon, Download as DownloadIcon } from '@mui/icons-material';
+import { api } from '@/services/api';
 
 interface RAnalyticsComprehensiveDetailProps {
   data: any;
+  hideDownloadButton?: boolean;
 }
 
-export const RAnalyticsComprehensiveDetail = memo(function RAnalyticsComprehensiveDetail({ data }: RAnalyticsComprehensiveDetailProps) {
+export const RAnalyticsComprehensiveDetail = memo(function RAnalyticsComprehensiveDetail({ data, hideDownloadButton }: RAnalyticsComprehensiveDetailProps) {
   const payload = data || {};
   
   // Fallback to root level if nested objects don't exist (this matches our actual payload shape)
@@ -23,13 +25,51 @@ export const RAnalyticsComprehensiveDetail = memo(function RAnalyticsComprehensi
   const pdaflPhase = payload.pdafl_phase || {};
   const pdSummaryTable = pdaflPhase.pd_summary_table || [];
 
+  const r2 = Number(modelPhase.r_squared || 0);
+  const mape = Number(modelPhase.mape_insample || 0);
+
+  const getR2Interpretation = (val: number) => {
+    if (!val) return { text: 'N/A', color: 'text.secondary' };
+    if (val >= 0.7) return { text: 'Strong Fit', color: 'success.main' };
+    if (val >= 0.4) return { text: 'Moderate Fit', color: 'warning.main' };
+    return { text: 'Weak Fit', color: 'error.main' };
+  };
+
+  const getMapeInterpretation = (val: number) => {
+    if (!val) return { text: 'N/A', color: 'text.secondary' };
+    if (val <= 10) return { text: 'Highly Accurate', color: 'success.main' };
+    if (val <= 20) return { text: 'Good Forecasting', color: 'info.main' };
+    if (val <= 50) return { text: 'Reasonable', color: 'warning.main' };
+    return { text: 'Inaccurate', color: 'error.main' };
+  };
+
+  const r2Interpret = getR2Interpretation(r2);
+  const mapeInterpret = getMapeInterpretation(mape);
+
   return (
     <Box sx={{ mt: 2, p: 2, border: '1px solid', borderColor: 'info.light', borderRadius: 2, bgcolor: alpha('#0288d1', 0.03) }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <AssessmentIcon color="info" />
-        <Typography variant="h6" color="info.main" sx={{ fontWeight: 700 }}>
-          R Analytics Comprehensive Results
-        </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <AssessmentIcon color="info" />
+          <Typography variant="h6" color="info.main" sx={{ fontWeight: 700 }}>
+            R Analytics Comprehensive Results
+          </Typography>
+        </Box>
+        {!hideDownloadButton && payload.id && (
+          <Button
+            variant="contained"
+            color="info"
+            size="small"
+            startIcon={<DownloadIcon />}
+            onClick={() => {
+              const baseUrl = api.client.defaults.baseURL || '/api/v1';
+              const fullUrl = baseUrl.startsWith('http') ? baseUrl : `${window.location.origin}${baseUrl}`;
+              window.open(`${fullUrl}/r-analytics/pd-afl-history/${payload.id}/download`, '_blank', 'noopener,noreferrer');
+            }}
+          >
+            Download Excel Result
+          </Button>
+        )}
       </Box>
       <Divider sx={{ mb: 2 }} />
       
@@ -62,13 +102,28 @@ export const RAnalyticsComprehensiveDetail = memo(function RAnalyticsComprehensi
           <Box sx={{ p: 2, borderRadius: 2, height: '100%', border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                <AssessmentIcon fontSize="small" color="secondary" />
-               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Forecast Phase</Typography>
+               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Model Quality Assessment</Typography>
             </Box>
             <Divider sx={{ mb: 1.5 }} />
-            <Typography variant="caption" color="text.secondary">Method Applied</Typography>
-            <Typography variant="body1" sx={{ mb: 1.5, fontWeight: 500 }}>{forecastPhase.method || 'N/A'}</Typography>
-            <Typography variant="caption" color="text.secondary">Horizon Years</Typography>
-            <Typography variant="body1" sx={{ mb: 1, fontWeight: 500 }}>{forecastPhase.horizon_years || 'N/A'} Years</Typography>
+            
+            <Typography variant="caption" color="text.secondary">R-Squared Interpretation</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+              <Typography variant="body1" sx={{ fontWeight: 600, color: r2Interpret.color }}>
+                {r2Interpret.text}
+              </Typography>
+            </Box>
+
+            <Typography variant="caption" color="text.secondary">MAPE Interpretation</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+              <Typography variant="body1" sx={{ fontWeight: 600, color: mapeInterpret.color }}>
+                {mapeInterpret.text}
+              </Typography>
+            </Box>
+            
+            <Typography variant="caption" color="text.secondary">Overall Recommendation</Typography>
+            <Typography variant="body2" sx={{ mb: 1, fontWeight: 500, color: (r2 >= 0.4 && mape <= 50) ? 'success.main' : 'error.main' }}>
+              {(r2 >= 0.4 && mape <= 50) ? 'Acceptable for Calibration' : 'Requires Model Tuning'}
+            </Typography>
           </Box>
         </Grid>
 
@@ -76,19 +131,20 @@ export const RAnalyticsComprehensiveDetail = memo(function RAnalyticsComprehensi
           <Box sx={{ p: 2, borderRadius: 2, height: '100%', border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                <TableChartIcon fontSize="small" color="success" />
-               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>PD-AFL Calculation</Typography>
+               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Execution Details</Typography>
             </Box>
             <Divider sx={{ mb: 1.5 }} />
-            <Typography variant="caption" color="text.secondary">Scenario Weights (Base / Best / Worst)</Typography>
-            <Typography variant="body2" sx={{ mb: 1.5, fontWeight: 500 }}>
-              {pdaflPhase.weights?.base ? `${pdaflPhase.weights.base * 100}%` : '-'} / {' '}
-              {pdaflPhase.weights?.best ? `${pdaflPhase.weights.best * 100}%` : '-'} / {' '}
-              {pdaflPhase.weights?.worst ? `${pdaflPhase.weights.worst * 100}%` : '-'}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">PD Floor</Typography>
-            <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
-              {pdaflPhase.pd_floor ? `${(pdaflPhase.pd_floor * 100).toFixed(4)}%` : 'N/A'}
-            </Typography>
+            <Typography variant="caption" color="text.secondary">Calculation Engine</Typography>
+            <Typography variant="body2" sx={{ mb: 1.5, fontWeight: 500 }}>R-Script Runtime v4.2</Typography>
+            
+            <Typography variant="caption" color="text.secondary">Output Artifact</Typography>
+            <Typography variant="body2" sx={{ mb: 1.5, fontWeight: 500 }}>Excel Binary (.xlsx)</Typography>
+
+            <Typography variant="caption" color="text.secondary">Data Persistence</Typography>
+            <Typography variant="body2" sx={{ mb: 1.5, fontWeight: 500, fontFamily: 'monospace' }}>frs9_r_pd_afl</Typography>
+
+            <Typography variant="caption" color="text.secondary">Source Module</Typography>
+            <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>Macroeconomic & NPL Data</Typography>
           </Box>
         </Grid>
       </Grid>

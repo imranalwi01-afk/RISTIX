@@ -23,6 +23,7 @@ import { env, isProduction } from './config'
 }
 import { routes } from './routes'
 import { businessSettingsRoutes } from './routes/business-settings.routes'
+import { auditMiddleware } from './middleware'
 import { individualImpairmentV2Routes } from './routes/individual-impairment-v2.routes'
 import { initTelemetry } from './lib/telemetry'
 

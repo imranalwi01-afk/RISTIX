@@ -169,23 +169,17 @@ const UserManagement = () => {
                     <Typography variant="caption" color="textSecondary">
                         {params.row.email}
                     </Typography>
-                    <Typography variant="caption" display="block" color="textSecondary">
-                        @{params.row.username}
-                    </Typography>
                 </Box>
             ),
         },
         {
             field: 'position',
-            headerName: 'Role / Position',
+            headerName: 'Role',
             minWidth: 190,
             flex: 1,
             renderCell: (params) => (
                 <Box>
                     <Typography variant="body2">{params.row.position || '-'}</Typography>
-                    <Typography variant="caption" color="textSecondary">
-                        {params.row.department || '-'}
-                    </Typography>
                 </Box>
             ),
         },
@@ -202,12 +196,6 @@ const UserManagement = () => {
                     variant={params.row.isActive ? 'filled' : 'outlined'}
                 />
             ),
-        },
-        {
-            field: 'lastLoginAt',
-            headerName: 'Last Login',
-            width: 180,
-            renderCell: (params) => params.value ? format(new Date(params.value), 'MMM d, yyyy HH:mm') : 'Never',
         },
         {
             field: 'actions',

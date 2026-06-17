@@ -160,13 +160,20 @@ disabled={isView}
             <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
-                label="Description"
+                label="Description *"
                 value={form.description}
                 onChange={(e) => updateForm({ ...form, description: e.target.value })}
                 disabled={isView}
                 multiline
                 rows={3}
-                placeholder="Role description and responsibilities"
+                placeholder="Jelaskan cakupan pekerjaan role ini, divisi yang menggunakannya, dan batasan aksesnya."
+                error={form.description.length > 0 && form.description.length < 30}
+                helperText={
+                  form.description.length < 30
+                    ? `Minimal 30 karakter. (${form.description.length}/500)`
+                    : `${form.description.length}/500 karakter`
+                }
+                inputProps={{ maxLength: 500 }}
               />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
@@ -292,12 +299,12 @@ disabled={isView}
             {isView ? 'Close' : 'Cancel'}
           </Button>
           {notView && step === 0 && (
-            <Button variant="contained" onClick={() => setStep(1)} sx={{ ml: 1 }}>
+            <Button variant="contained" onClick={() => setStep(1)} sx={{ ml: 1 }} disabled={!form.name.trim() || form.description.trim().length < 30}>
               Next: Permissions
             </Button>
           )}
           {notView && step === 1 && (
-            <Button variant="contained" onClick={handleSave} sx={{ ml: 1 }} data-testid="access-management-save-role">
+            <Button variant="contained" onClick={handleSave} sx={{ ml: 1 }} data-testid="access-management-save-role" disabled={!form.name.trim() || form.description.trim().length < 30}>
               {mode === 'create' ? 'Create Role' : 'Update Role'}
             </Button>
           )}

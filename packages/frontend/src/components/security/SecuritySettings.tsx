@@ -56,7 +56,7 @@ const SecuritySettings: React.FC = () => {
         setLoading(true);
         try {
             const response = await securityConfigAPI.get();
-            const data = response.data || {};
+            const data = response || {};
 
             setValue('passwordMinLength', data.passwordPolicy?.minLength || 8);
             setValue('passwordRequireUppercase', data.passwordPolicy?.requireUppercase || true);

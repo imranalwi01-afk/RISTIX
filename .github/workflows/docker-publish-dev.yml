@@ -15,9 +15,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fix git safe.directory
+        run: git config --global --add safe.directory "${{ github.workspace }}"
 
       - name: Check for changes
         id: filter
+        if: github.event_name != 'workflow_dispatch'
         uses: dorny/paths-filter@v3
         with:
           filters: |
@@ -26,8 +32,72 @@ jobs:
             backend:
               - 'packages/new-backend/**'
 
-      - name: Build and Deploy
+      - name: Set services to rebuild
+        id: services
+        shell: powershell
         run: |
-          cd C:\opt\ifrspro
-          docker compose --profile app build
-          docker compose --profile app up -d
+          $frontend = "${{ steps.filter.outputs.frontend }}"
+          $backend  = "${{ steps.filter.outputs.backend }}"
+          $event    = "${{ github.event_name }}"
+
+          # Dev server uses tag :develop (not :production)
+          $services = @()
+          if ($event -eq "workflow_dispatch") {
+            $services = @("frontend", "backend")
+          } else {
+            if ($frontend -eq "true")  { $services += "frontend" }
+            if ($backend -eq "true")   { $services += "backend" }
+          }
+
+          $output = "services=$($services -join ',')"
+          Write-Output $output
+          Add-Content -Path $env:GITHUB_OUTPUT -Value $output
+
+      - name: Build and Deploy changed services
+        shell: powershell
+        run: |
+          $services = "${{ steps.services.outputs.services }}".Split(',', [StringSplitOptions]::RemoveEmptyEntries)
+          if ($services.Count -eq 0) {
+            Write-Output "No services to rebuild"
+            exit 0
+          }
+          Write-Output "Rebuilding: $($services -join ', ')"
+          $CHECKOUT_DIR = "${{ github.workspace }}"
+          $COMPOSE_DIR = "C:\opt\ifrspro"
+
+          foreach ($svc in $services) {
+            switch ($svc) {
+              "frontend" {
+                $tag = "ghcr.io/ifrspro/ifrs9-iaf/frontend:develop"
+                $ctx = "$CHECKOUT_DIR/packages/frontend"
+                $df = "$CHECKOUT_DIR/packages/frontend/Dockerfile"
+                $buildArgs = @("--build-arg", "BACKEND_INTERNAL_URL=http://backend:4232")
+              }
+              "backend" {
+                $tag = "ghcr.io/ifrspro/ifrs9-iaf/backend:develop"
+                $ctx = "$CHECKOUT_DIR/packages/new-backend"
+                $df = "$CHECKOUT_DIR/packages/new-backend/Dockerfile"
+                $buildArgs = @()
+              }
+            }
+            Write-Output "Building $svc -> $tag"
+            if ($buildArgs.Count -gt 0) {
+              docker build $buildArgs -t $tag -f $df $ctx
+            } else {
+              docker build -t $tag -f $df $ctx
+            }
+            if ($LASTEXITCODE -ne 0) { throw "Build failed for $svc" }
+          }
+
+          Set-Location $COMPOSE_DIR
+          # Restart backend first (if changed), wait, then frontend
+          if ($services -contains "backend") {
+            Write-Output "Restarting backend..."
+            docker compose up -d --force-recreate --no-deps backend
+            Write-Output "Waiting 15s for backend to start..."
+            Start-Sleep 15
+          }
+          if ($services -contains "frontend") {
+            Write-Output "Restarting frontend..."
+            docker compose up -d --force-recreate --no-deps frontend
+          }

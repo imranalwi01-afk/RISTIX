@@ -462,7 +462,8 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
     let rawItems: HierarchicalMenuItem[] = [];
     const idsToRemove = new Set([
       'assessment-workspace-old',
-      'assessment-workspace-old-imran'
+      'assessment-workspace-old-imran',
+      'b1000000-0011-4000-8000-000000000008' // Users menu (now merged into Access Management)
     ]);
 
     const normalizeLegacyUrls = (items: HierarchicalMenuItem[]): HierarchicalMenuItem[] => {

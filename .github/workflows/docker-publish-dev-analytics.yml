@@ -8,10 +8,6 @@ on:
       - '!packages/r-analytics/Dockerfile.base'
   workflow_dispatch:
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-
 jobs:
   deploy:
     name: Build & Deploy Analytics to Development
@@ -19,9 +15,28 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Build and Deploy
+      - name: Fix git safe.directory
+        run: git config --global --add safe.directory "${{ github.workspace }}"
+
+      - name: Login to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build and Deploy R Analytics
+        shell: powershell
         run: |
-          cd C:\opt\ifrspro
-          docker compose --profile analytics build
-          docker compose --profile analytics up -d --force-recreate r-analytics
+          $CHECKOUT_DIR = "${{ github.workspace }}"
+          $COMPOSE_DIR = "C:\opt\ifrspro"
+          $tag = "ghcr.io/ifrspro/ifrs9-iaf/r-analytics:develop"
+
+          Write-Output "Building r-analytics -> $tag"
+          docker build -t $tag -f "$CHECKOUT_DIR/packages/r-analytics/Dockerfile" "$CHECKOUT_DIR/packages/r-analytics"
+          if ($LASTEXITCODE -ne 0) { throw "Build failed" }
+
+          Set-Location $COMPOSE_DIR
+          Write-Output "Restarting r-analytics..."
+          docker compose up -d --force-recreate --no-deps r-analytics
+          Write-Output "Waiting 15s for r-analytics to start..."
+          Start-Sleep 15

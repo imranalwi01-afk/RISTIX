@@ -14,6 +14,7 @@ export {
     permissionsRelations,
     rolePermissionsRelations,
     permissionApprovalPoliciesRelations,
+    tenantMenuPermissionsRelations,
     type Role,
     type NewRole,
     type UserRole,
@@ -24,6 +25,9 @@ export {
     type NewRolePermission,
     type PermissionApprovalPolicy,
     type NewPermissionApprovalPolicy,
+    tenantMenuPermissions,
+    type TenantMenuPermission,
+    type NewTenantMenuPermission,
 } from './rbac.schema'
 
 export * from './audit.schema'

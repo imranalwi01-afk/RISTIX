@@ -29,6 +29,7 @@ import {
 } from '@mui/icons-material';
 import { GridColDef } from '@mui/x-data-grid';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
+import { ImpactLevelBadge } from '@/components/ImpactLevelBadge';
 import { ApprovalRequest } from '../types';
 import type { EnterpriseColumnFilterValue, EnterpriseDensity, EnterpriseFilterDefinition, EnterpriseSort } from '@/types/enterprise-table';
 
@@ -192,6 +193,14 @@ export const ApprovalRequestList = memo(function ApprovalRequestList({
             color={getPriorityColor(params.value) as any}
             size="small"
           />
+        ),
+      },
+      {
+        field: 'impactLevel',
+        headerName: 'Impact Level',
+        width: 120,
+        renderCell: (params) => (
+          <ImpactLevelBadge level={params.value || 'low'} />
         ),
       },
       {

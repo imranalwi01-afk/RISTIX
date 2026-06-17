@@ -160,14 +160,14 @@ function RAnalyticsDetailPage() {
           <Grid size={{ xs: 12, md: 4 }}>
             <Typography variant="body2" color="text.secondary">Submitted By</Typography>
             <Typography variant="body1" sx={{ fontWeight: 500 }}>
-              {data.created_by || data.createdBy || 'N/A'}
+              {data.created_by || data.createdBy || 'System (R Analytics Engine)'}
             </Typography>
           </Grid>
         </Grid>
         
         <Divider sx={{ my: 4 }} />
         
-        <RAnalyticsComprehensiveDetail data={data} />
+        <RAnalyticsComprehensiveDetail data={data} hideDownloadButton={true} />
       </Paper>
 
       <Paper sx={{ p: 4, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: 'grey.50' }}>

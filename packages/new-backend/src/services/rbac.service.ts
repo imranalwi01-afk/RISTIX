@@ -10,7 +10,11 @@ import { getDatabase } from '@/config/database'
 import {
     type NewRole,
     type Role,
+    permissions as permissionsTable,
+    roles as rolesTable,
+    rolePermissions as rolePermissionsTable
 } from '@/db/schema'
+import { eq, and } from 'drizzle-orm'
 import { DatabaseError, NotFoundError, ValidationError, BusinessError } from '@/lib/errors'
 import { PermissionApprovalService } from './permission-approval.service'
 
@@ -89,7 +93,7 @@ const findRole = (roleId: string, tenantId?: string) =>
  * @returns An Effect that succeeds with the created Role
  * @throws {ValidationError} If a role with the same name already exists
  */
-export const createRole = (input: NewRole) =>
+export const createRole = (input: NewRole & { permissions?: string[] }) =>
     pipe(
         Effect.try(() => getDatabase(input.tenantId)),
         Effect.mapError(error => new DatabaseError({ operation: 'query', message: String(error) })),
@@ -110,7 +114,19 @@ export const createRole = (input: NewRole) =>
                 )
             )
         ),
-        Effect.flatMap(db => rolesRepository.create(db, input))
+        Effect.flatMap(db => 
+            pipe(
+                rolesRepository.create(db, input),
+                Effect.flatMap(role => 
+                    input.permissions && input.permissions.length > 0
+                        ? pipe(
+                            updateRolePermissions(role.id, input.permissions, input.tenantId ?? undefined),
+                            Effect.map(() => role)
+                        )
+                        : Effect.succeed(role)
+                )
+            )
+        )
     )
 
 /**
@@ -121,7 +137,7 @@ export const createRole = (input: NewRole) =>
  * @returns An Effect that succeeds with the updated Role
  * @throws {BusinessError} If attempting to rename a protected system role
  */
-export const updateRole = (roleId: string, input: Partial<NewRole> & { tenantId?: string }) =>
+export const updateRole = (roleId: string, input: Partial<NewRole> & { tenantId?: string; permissions?: string[] }) =>
     pipe(
         findRole(roleId, input.tenantId),
         Effect.flatMap((existing: Role) => {
@@ -139,7 +155,19 @@ export const updateRole = (roleId: string, input: Partial<NewRole> & { tenantId?
             pipe(
                 Effect.try(() => getDatabase(input.tenantId)),
                 Effect.mapError(e => new DatabaseError({ operation: 'query', message: String(e) })),
-                Effect.flatMap(db => rolesRepository.update(db, roleId, input))
+                Effect.flatMap(db =>
+                    pipe(
+                        rolesRepository.update(db, roleId, input),
+                        Effect.flatMap(role => 
+                            input.permissions !== undefined
+                                ? pipe(
+                                    updateRolePermissions(role.id, input.permissions, input.tenantId),
+                                    Effect.map(() => role)
+                                )
+                                : Effect.succeed(role)
+                        )
+                    )
+                )
             )
         )
     )
@@ -291,9 +319,21 @@ export const removeRole = (userId: string, roleId: string, tenantId: string) =>
     )
 
 // =============================================================================
-// PERMISSION CHECKING
+// PERMISSION CHECKING & IMPACT LEVEL GUARD
 // =============================================================================
 
+const IMPACT_WEIGHTS: Record<string, number> = {
+    'low': 1,
+    'medium': 2,
+    'high': 3,
+    'critical': 4
+}
+
+const isImpactExceeded = (maxLevel?: string | null, permLevel?: string | null): boolean => {
+    const maxWeight = IMPACT_WEIGHTS[(maxLevel || 'low').toLowerCase()] || 1
+    const permWeight = IMPACT_WEIGHTS[(permLevel || 'low').toLowerCase()] || 1
+    return permWeight > maxWeight
+}
 
 /**
  * Check if a user possesses a specific permission for a resource and action.
@@ -336,10 +376,18 @@ export const getUserPermissions = (
             const allPermissions: Record<string, string[]> = {}
 
             for (const ur of userRolesData) {
-                const rolePermissions = (ur as any).role?.rolePermissions ?? []
+                const role = (ur as any).role
+                const maxImpactLevel = role?.maxImpactLevel || 'low'
+                const rolePermissions = role?.rolePermissions ?? []
                 for (const rp of rolePermissions) {
                     if (rp.permission) {
-                        const { resource, action } = rp.permission
+                        const { resource, action, impactLevel } = rp.permission
+                        
+                        // ACTIVE GUARD: Block permissions that exceed the role's max impact level
+                        if (isImpactExceeded(maxImpactLevel, impactLevel)) {
+                            continue
+                        }
+                        
                         if (!allPermissions[resource]) {
                             allPermissions[resource] = []
                         }
@@ -368,11 +416,20 @@ export const getUserPermissionCodes = (
             const codeSet = new Set<string>()
 
             for (const ur of userRolesData) {
-                const rolePermissions = (ur as any).role?.rolePermissions ?? []
+                const role = (ur as any).role
+                const maxImpactLevel = role?.maxImpactLevel || 'low'
+                const rolePermissions = role?.rolePermissions ?? []
                 for (const rp of rolePermissions) {
-                    const code = rp?.permission?.code
-                    if (typeof code === 'string' && code.trim().length > 0) {
-                        codeSet.add(code.trim())
+                    const permission = rp?.permission
+                    if (permission) {
+                        // ACTIVE GUARD: Block permissions that exceed the role's max impact level
+                        if (isImpactExceeded(maxImpactLevel, permission.impactLevel)) {
+                            continue
+                        }
+                        const code = permission.code
+                        if (typeof code === 'string' && code.trim().length > 0) {
+                            codeSet.add(code.trim())
+                        }
                     }
                 }
             }
@@ -425,16 +482,139 @@ export const getAvailablePermissions = (tenantId: string) =>
                         Effect.map((approvalMap) =>
                             permissions.map((p) => {
                                 const approval = approvalMap.get(p.id)
+                                // AUTO APPROVAL SYNC: Default requiresApproval to true for high impact permissions
+                                const isHighImpact = (p as any).impactLevel === 'high' || (p as any).impactLevel === 'critical'
+                                const requiresApproval = approval?.requiresApproval ?? isHighImpact
                                 return {
                                     ...p,
-                                    requiresApproval: approval?.requiresApproval ?? false,
-                                    requiredApprovalLevel: approval?.minHierarchyLevel ?? null,
-                                    requiredApprovers: approval?.requiredApprovers ?? 1,
+                                    requiresApproval,
+                                    requiredApprovalLevel: approval?.minHierarchyLevel ?? (isHighImpact ? 2 : null),
+                                    requiredApprovers: approval?.requiredApprovers ?? (isHighImpact ? 1 : 1),
                                 }
                             })
                         )
                     )
                 })
             )
+        )
+    )
+
+/**
+ * Import Role Matrix from JSON Data
+ * 
+ * @param tenantId - The unique identifier of the tenant
+ * @param matrixData - Array of objects containing matrix configuration
+ * @returns An Effect that succeeds with import statistics
+ */
+export const importRoleMatrix = (
+    tenantId: string,
+    matrixData: any[]
+): Effect.Effect<{ permissionsAdded: number, rolesAdded: number, mappingsUpdated: number }, DatabaseError> =>
+    pipe(
+        Effect.try(() => getDatabase(tenantId)),
+        Effect.mapError(error => new DatabaseError({ operation: 'transaction', message: String(error) })),
+        Effect.flatMap((db) => 
+            Effect.tryPromise({
+                try: async () => {
+                    let pAdded = 0;
+                    let rAdded = 0;
+                    let mUpdated = 0;
+
+                await db.transaction(async (tx) => {
+                    for (const row of matrixData) {
+                        const code = row['Permission Code'] || row['Permission'];
+                        if (!code) continue;
+
+                        const name = row['Sub Menu'] || code;
+                        const description = row['Description'] || '';
+                        const action = (row['Action'] || 'view').toLowerCase();
+                        const module = row['Menu'] || 'General';
+                        const impactLevel = (row['Risk Level'] || row['Priority'] || 'low').toLowerCase();
+                        const allowedRolesStr = row['Allowed Role'] || row['Allowed Roles'] || '';
+
+                        // 1. Find or create permission
+                        let permission = await tx.query.permissions.findFirst({
+                            where: (p, { eq: pEq }) => pEq(p.code, code)
+                        });
+
+                        if (!permission) {
+                            const [newPerm] = await tx.insert(permissionsTable).values({
+                                code,
+                                name,
+                                description,
+                                resource: module.toLowerCase().replace(/\s+/g, '_'),
+                                action,
+                                module,
+                                impactLevel,
+                                isActive: true
+                            }).returning();
+                            permission = newPerm;
+                            pAdded++;
+                        } else {
+                            // Update existing permission impact level if needed
+                            const [updatedPerm] = await tx.update(permissionsTable)
+                                .set({ impactLevel, description, name, module })
+                                .where(eq(permissionsTable.id, permission.id))
+                                .returning();
+                            permission = updatedPerm;
+                        }
+
+                        // 2. Process roles
+                        const rolesList = allowedRolesStr.split(',').map((r: string) => r.trim()).filter(Boolean);
+                        for (const roleName of rolesList) {
+                            let role = await tx.query.roles.findFirst({
+                                where: (r, { eq: rEq, and: rAnd }) => rAnd(rEq(r.roleName, roleName), rEq(r.tenantId, tenantId))
+                            });
+
+                            if (!role) {
+                                // Create new role
+                                const roleCode = roleName.toUpperCase().replace(/\s+/g, '_');
+                                const [newRole] = await tx.insert(rolesTable).values({
+                                    roleName,
+                                    roleCode,
+                                    description: `Imported from matrix`,
+                                    isSystemRole: false,
+                                    tenantId,
+                                    isActive: true,
+                                    maxImpactLevel: impactLevel
+                                }).returning();
+                                role = newRole;
+                                rAdded++;
+                            } else {
+                                // Update maxImpactLevel if this permission has a higher one
+                                const currentMax = role.maxImpactLevel || 'low';
+                                if (isImpactExceeded(currentMax, impactLevel)) {
+                                    await tx.update(rolesTable)
+                                        .set({ maxImpactLevel: impactLevel })
+                                        .where(eq(rolesTable.id, role.id));
+                                }
+                            }
+
+                            if (role && permission) {
+                                // 3. Assign permission to role
+                                const existingMap = await tx.query.rolePermissions.findFirst({
+                                    where: (rp, { eq: rpEq, and: rpAnd }) => rpAnd(rpEq(rp.roleId, role!.id), rpEq(rp.permissionId, permission!.id))
+                                });
+
+                                if (!existingMap) {
+                                    await tx.insert(rolePermissionsTable).values({
+                                        roleId: role.id,
+                                        permissionId: permission.id
+                                    });
+                                    mUpdated++;
+                                }
+                            }
+                        }
+                    }
+                });
+
+                return {
+                    permissionsAdded: pAdded,
+                    rolesAdded: rAdded,
+                    mappingsUpdated: mUpdated
+                };
+                },
+                catch: (error: unknown) => new DatabaseError({ operation: 'transaction', message: String(error) })
+            })
         )
     )

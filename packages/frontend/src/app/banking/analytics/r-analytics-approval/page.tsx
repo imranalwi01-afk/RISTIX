@@ -30,7 +30,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { RootState, selectUser } from '../../../../store';
 import { Can } from '@/components/rbac/Can';
-import { bankingAPI } from '@/services/api';
+import { bankingAPI, api } from '@/services/api';
 
 export default function RAnalyticsApprovalPage() {
   const router = useRouter();
@@ -38,19 +38,17 @@ export default function RAnalyticsApprovalPage() {
   const [loading, setLoading] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success'|'error' });
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success'|'error'|'warning'|'info' });
   const [recentData, setRecentData] = useState<any>(null);
   const [historyData, setHistoryData] = useState<any[]>([]);
 
   const fetchHistory = async () => {
     setLoadingHistory(true);
     try {
-      const response = await fetch('/api/v1/r-analytics/pd-afl-history');
-      if (!response.ok) throw new Error('Failed to fetch history');
-      const resData = await response.json();
+      const response = await api.client.get('/r-analytics/pd-afl-history');
       
-      if (resData.success && resData.data) {
-        setHistoryData(resData.data);
+      if (response.data?.success && response.data?.data) {
+        setHistoryData(response.data.data);
       }
     } catch (err) {
       console.error(err);
@@ -62,12 +60,10 @@ export default function RAnalyticsApprovalPage() {
   const fetchRecentData = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/v1/r-analytics/saved');
-      if (!response.ok) throw new Error('Failed to fetch data');
-      const resData = await response.json();
+      const response = await api.client.get('/r-analytics/saved');
       
-      if (resData.success && resData.data) {
-        setRecentData(resData.data);
+      if (response.data?.success && response.data?.data) {
+        setRecentData(response.data.data);
       } else {
         setRecentData(null);
       }
@@ -85,23 +81,27 @@ export default function RAnalyticsApprovalPage() {
   }, []);
 
   const handleSubmit = async () => {
+    if (recentData?.model_status === 'PENDING_APPROVAL' || recentData?.modelStatus === 'PENDING_APPROVAL') {
+      setSnackbar({ 
+        open: true, 
+        message: 'List ini telah diajukan sebelumnya dan masih menunggu persetujuan (PENDING_APPROVAL).', 
+        severity: 'warning' 
+      });
+      return;
+    }
+
     try {
       setSubmitting(true);
       
       // 1. Submit to frs9_r_pd_afl table via new endpoint
-      const submitRes = await fetch('/api/v1/r-analytics/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: recentData.id,
-          model_name: recentData.model_name,
-          r_squared: recentData.r_squared,
-          mape: recentData.mape,
-          snapshot_date: recentData.created_date
-        })
+      const submitRes = await api.client.post('/r-analytics/submit', {
+        id: recentData.id,
+        model_name: recentData.model_name,
+        r_squared: recentData.r_squared,
+        mape: recentData.mape,
+        snapshot_date: recentData.created_date
       });
-      if (!submitRes.ok) throw new Error('Failed to submit model to database');
-      const submitData = await submitRes.json();
+      const submitData = submitRes.data;
       const aflId = submitData.data?.id || recentData.id;
 
       // 2. Trigger approval request flow
@@ -210,9 +210,11 @@ export default function RAnalyticsApprovalPage() {
                   size="large"
                   startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <SendIcon />}
                   onClick={handleSubmit}
-                  disabled={submitting}
+                  disabled={submitting || (recentData.model_status === 'APPROVED')}
                 >
-                  Submit for Approval
+                  {recentData.model_status === 'APPROVED'
+                    ? `Cannot Submit (APPROVED)` 
+                    : 'Submit for Approval'}
                 </Button>
               </Box>
             </Box>
@@ -235,6 +237,7 @@ export default function RAnalyticsApprovalPage() {
                   <TableCell><strong>MAPE</strong></TableCell>
                   <TableCell><strong>Submit Date</strong></TableCell>
                   <TableCell><strong>Status</strong></TableCell>
+                  <TableCell><strong>Action</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -255,8 +258,18 @@ export default function RAnalyticsApprovalPage() {
                     <TableRow 
                       key={row.id} 
                       hover
-                      onClick={() => router.push(`/banking/analytics/r-analytics-detail?id=${row.id}`)}
-                      sx={{ cursor: 'pointer' }}
+                      onClick={() => {
+                        setRecentData({
+                          id: row.id,
+                          model_name: row.model_name || row.modelName,
+                          r_squared: row.r_squared || row.rSquared,
+                          mape: row.mape,
+                          created_date: row.created_date || row.createdAt,
+                          model_status: row.model_status || row.modelStatus
+                        });
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      sx={{ cursor: 'pointer', bgcolor: recentData?.id === row.id ? 'action.selected' : 'inherit' }}
                     >
                       <TableCell>{row.id}</TableCell>
                       <TableCell sx={{ fontFamily: 'monospace' }}>{row.model_name || row.modelName || 'N/A'}</TableCell>
@@ -274,6 +287,18 @@ export default function RAnalyticsApprovalPage() {
                           }
                           variant="outlined"
                         />
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/banking/analytics/r-analytics-detail?id=${row.id}`);
+                          }}
+                        >
+                          Detail
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))

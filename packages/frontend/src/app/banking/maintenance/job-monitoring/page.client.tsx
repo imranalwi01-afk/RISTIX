@@ -67,6 +67,8 @@ const SUPPORTED_JOB_TYPE_OPTIONS: Array<{ value: SupportedJobType; label: string
 
 const JOB_VIEW_PERMISSIONS = ['jobs.view', 'jobs.manage', 'jobs.access', 'admin.system.view', 'admin.system.manage'];
 const JOB_CREATE_PERMISSIONS = ['jobs.create', 'jobs.manage', 'jobs.access', 'admin.system.manage'];
+const JOB_UPDATE_PERMISSIONS = ['jobs.update', 'jobs.manage', 'jobs.access', 'admin.system.manage'];
+const JOB_DELETE_PERMISSIONS = ['jobs.delete', 'jobs.manage', 'jobs.access', 'admin.system.manage'];
 const JOB_RUN_PERMISSIONS = ['jobs.run', 'jobs.manage', 'jobs.access', 'admin.system.manage'];
 const JOB_CONTROL_PERMISSIONS = ['jobs.control', 'jobs.manage', 'jobs.access', 'admin.system.manage'];
 const JOB_RUNTIME_PERMISSIONS = ['jobs.runtime.view', 'jobs.manage', 'admin.system.view', 'admin.system.manage'];
@@ -197,8 +199,8 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
   const canRunJobs = hasAnyPermission(JOB_RUN_PERMISSIONS);
   const canControlJobs = hasAnyPermission(JOB_CONTROL_PERMISSIONS);
   const canViewRuntime = hasAnyPermission(JOB_RUNTIME_PERMISSIONS);
-  const canEditJobDefinitions = canCreateJobs;
-  const canDeleteJobDefinitions = canControlJobs;
+  const canEditJobDefinitions = hasAnyPermission(JOB_UPDATE_PERMISSIONS);
+  const canDeleteJobDefinitions = hasAnyPermission(JOB_DELETE_PERMISSIONS);
   const [currentTab, setCurrentTab] = useState(0);
   const [statusTab, setStatusTab] = useState(0); // 0: All, 1: Ongoing, 2: Running, 3: Completed, 4: Failed
   const [jobExecutions, setJobExecutions] = useState<JobExecution[]>([]);

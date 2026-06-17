@@ -107,9 +107,6 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
   const [selectedUserRoles, setSelectedUserRoles] = useState<UserRoleSummary[]>([]);
   const [loadingUserRoles, setLoadingUserRoles] = useState(false);
   const [openResetPasswordDialog, setOpenResetPasswordDialog] = useState(false);
-  const [manageRolesDialog, setManageRolesDialog] = useState<{
-    open: boolean; user: User | null; roles: any[]; selectedRoleIds: string[]; saving: boolean; search: string; key: number;
-  }>({ open: false, user: null, roles: [], selectedRoleIds: [], saving: false, search: '', key: 0 });
   const [formData, setFormData] = useState<UserFormData>({
     email: '',
     username: '',
@@ -127,66 +124,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
 
   // ✅ Using centralized API service
 
-  // ✅ Open manage roles dialog
-  const handleManageRoles = async (user: User) => {
-    try {
-      const rawRoles = allRolesQuery.data ?? [];
-      let userRoleIds: string[] = [];
-      try {
-        const userRolesRes = await api.roles.getUserRoles(user.id);
-        const userRoleRows = userRolesRes?.data?.roles || userRolesRes?.roles || userRolesRes?.data || [];
-        userRoleIds = (Array.isArray(userRoleRows) ? userRoleRows : []).map((row: any) => {
-          const r = row?.role || row;
-          return String(r?.roleId || r?.role_id || r?.id || row?.roleId || row?.role_id || '');
-        }).filter(Boolean);
-      } catch {
-        // User roles fetch is optional — dialog still shows all roles
-      }
-      setManageRolesDialog({
-        open: true, user, roles: rawRoles,
-        selectedRoleIds: userRoleIds, saving: false, search: '', key: Date.now(),
-      });
-    } catch (err: any) {
-      setSnackbar({ open: true, message: 'Failed to load roles: ' + (err?.message || err), severity: 'error' });
-    }
-  };
 
-  const saveManageRoles = async () => {
-    const d = manageRolesDialog;
-    if (!d.user) return;
-    setManageRolesDialog(prev => ({ ...prev, saving: true }));
-    try {
-      const userRolesRes = await api.roles.getUserRoles(d.user.id);
-      const userRoleRows = userRolesRes?.data?.roles || userRolesRes?.roles || userRolesRes?.data || [];
-      const currentIds: string[] = (Array.isArray(userRoleRows) ? userRoleRows : []).map((row: any) => {
-        const r = row?.role || row;
-        return String(r?.roleId || r?.role_id || r?.id || row?.roleId || row?.role_id || '');
-      }).filter(Boolean);
-      const toAdd = d.selectedRoleIds.filter((id: string) => !currentIds.includes(id));
-      const toRemove = currentIds.filter((id: string) => !d.selectedRoleIds.includes(id));
-      const results = await Promise.allSettled([
-        ...toAdd.map((roleId: string) => api.roles.assignUser(roleId, d.user!.id)),
-        ...toRemove.map((roleId: string) => api.roles.removeUser(roleId, d.user!.id)),
-      ]);
-      const anyFailure = results.some(r => r.status === 'rejected');
-      const anyApproval = results.some(r => r.status === 'fulfilled' && (r.value as any)?.approvalRequired);
-      if (anyFailure && !anyApproval) {
-        setManageRolesDialog(prev => ({ ...prev, saving: false }));
-        setSnackbar({ open: true, message: 'Failed to update some roles', severity: 'error' });
-      } else {
-        setManageRolesDialog(prev => ({ ...prev, saving: false, open: false }));
-        invalidateUserRoles(d.user.id);
-        setSnackbar({
-          open: true,
-          message: anyApproval ? 'Role changes submitted for approval.' : 'Roles updated successfully',
-          severity: anyApproval ? 'info' : 'success',
-        });
-      }
-    } catch {
-      setManageRolesDialog(prev => ({ ...prev, saving: false }));
-      setSnackbar({ open: true, message: 'Failed to update roles', severity: 'error' });
-    }
-  };
 
   // ✅ Load Users - Using centralized API service
   const loadUsers = useCallback(async () => {
@@ -523,7 +461,6 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
         onEdit={handleEdit}
         onResetPassword={handleResetPassword}
         onToggleStatus={toggleUserStatus}
-        onManageRoles={handleManageRoles}
       />
 
       <UserFormDialog
@@ -664,62 +601,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
         </Fab>
       )}
 
-      {/* Manage Roles Dialog */}
-      <Dialog key={manageRolesDialog.key} open={manageRolesDialog.open} onClose={() => setManageRolesDialog(prev => ({ ...prev, open: false }))} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <Box>
-              <Typography variant="h6">Manage Roles</Typography>
-              <Typography variant="body2" color="text.secondary">
-                {manageRolesDialog.user?.fullName} ({manageRolesDialog.user?.email})
-              </Typography>
-            </Box>
-          </Stack>
-        </DialogTitle>
-        <DialogContent>
-          <Alert severity="info" sx={{ mb: 2, mt: 1 }}>
-            Role changes require approval. Assigned roles will only take effect after an approver reviews this request.
-          </Alert>
-          <TextField
-            fullWidth size="small" placeholder="Search roles..."
-            value={manageRolesDialog.search}
-            onChange={(e) => setManageRolesDialog(prev => ({ ...prev, search: e.target.value }))}
-            sx={{ mb: 2, mt: 1 }}
-            slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> } }}
-          />
-          <List dense sx={{ maxHeight: 400, overflow: 'auto' }}>
-            {manageRolesDialog.roles
-              .filter((r: any) => r.isActive !== false && (!manageRolesDialog.search || (r.roleName || r.roleCode || '').toLowerCase().includes(manageRolesDialog.search.toLowerCase())))
-              .map((role: any) => {
-                const roleId = role.id;
-                const label = role.roleName || role.roleCode || 'Unnamed Role';
-                return (
-                  <ListItem key={roleId} disablePadding>
-                    <ListItemIcon sx={{ minWidth: 36 }}>
-                      <Checkbox
-                        size="small"
-                        checked={manageRolesDialog.selectedRoleIds.includes(roleId)}
-                        onChange={(_, checked) => setManageRolesDialog(prev => ({
-                          ...prev,
-                          selectedRoleIds: checked
-                            ? [...prev.selectedRoleIds, roleId]
-                            : prev.selectedRoleIds.filter((id: string) => id !== roleId),
-                        }))}
-                      />
-                    </ListItemIcon>
-                    <ListItemText primary={label} secondary={role.roleCode || (role.isSystemRole ? 'SYSTEM' : 'CUSTOM')} />
-                  </ListItem>
-                );
-              })}
-          </List>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setManageRolesDialog(prev => ({ ...prev, open: false }))}>Cancel</Button>
-          <Button variant="contained" onClick={saveManageRoles} disabled={manageRolesDialog.saving}>
-            {manageRolesDialog.saving ? <CircularProgress size={20} /> : 'Save'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+
     </Container>
   );
 }

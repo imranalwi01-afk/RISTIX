@@ -502,7 +502,7 @@ export const BANKING_PERMISSION_CATALOG: SeedPermissionDefinition[] = [
         resource: 'jobs',
         category: 'ADMINISTRATION',
         module: 'admin',
-        actions: ['view', 'create', 'run', 'control', 'manage', 'approve'],
+        actions: ['view', 'create', 'update', 'delete', 'run', 'control', 'manage', 'approve'],
     }),
     createPermission(
         'jobs.runtime.view',
@@ -829,6 +829,8 @@ const JOB_VIEW = ['jobs.access', 'jobs.view', 'jobs.runtime.view']
 const JOB_MANAGE = [
     ...JOB_VIEW,
     'jobs.create',
+    'jobs.update',
+    'jobs.delete',
     'jobs.run',
     'jobs.control',
     'jobs.manage',
