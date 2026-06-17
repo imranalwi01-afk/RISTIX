@@ -133,7 +133,13 @@ class FrontendEnvironmentLoader {
       },
       rAnalytics: {
         api: process.env.NEXT_PUBLIC_RAPI_BASE_URL || process.env.NEXT_PUBLIC_R_API_URL || process.env.NEXT_PUBLIC_R_ANALYTICS_API || process.env.NEXT_PUBLIC_R_API_BASE_URL || '/api',
-        dashboard: process.env.NEXT_PUBLIC_R_ANALYTICS_URL || process.env.NEXT_PUBLIC_R_DASHBOARD_URL || process.env.NEXT_PUBLIC_R_ANALYTICS_BASE_URL || '',
+        dashboard: process.env.NEXT_PUBLIC_R_ANALYTICS_URL || process.env.NEXT_PUBLIC_R_DASHBOARD_URL || process.env.NEXT_PUBLIC_R_ANALYTICS_BASE_URL || (() => {
+          if (typeof window === 'undefined') return '';
+          const host = window.location.hostname;
+          if (host.includes('danafin')) return 'https://iaf-ifrs-analytics.danafin.com';
+          if (host.includes('ifrspro')) return 'https://iaf-ifrs-analytics.ifrspro.id';
+          return 'http://' + host + ':4236';
+        })(),
       },
       urls: {
         frontend: frontendUrl,
