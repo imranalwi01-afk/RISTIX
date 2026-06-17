@@ -239,7 +239,7 @@ function IndividualImpairmentCheckerReviewPreview({ request }: { request: Approv
           </Grid>
           <Grid size={{ xs: 12, md: 2 }}>
             <Typography variant="subtitle2" color="text.secondary">Status</Typography>
-            <Tooltip title={request.status === 'pending' ? 'Menunggu persetujuan' : request.status === 'approved' ? 'Disetujui oleh semua approver' : request.status === 'rejected' ? 'Ditolak oleh approver' : request.status === 'expired' ? 'Kadaluarsa - melewati SLA' : request.status}>
+            <Tooltip title={request.status === 'pending' ? 'Menunggu persetujuan' : request.status === 'approved' ? 'Disetujui oleh semua approver' : request.status === 'rejected' ? 'Ditolak oleh approver' : request.status === 'cancelled' ? 'Dibatalkan' : request.status}>
               <Chip label={summaryStatus} size="small" color={request.status === 'pending' ? 'warning' : 'default'} sx={{ mt: 0.5 }} />
             </Tooltip>
           </Grid>
