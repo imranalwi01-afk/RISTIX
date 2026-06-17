@@ -36,6 +36,7 @@ import { bankingAPI } from '@/services/api';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/utils/error-message';
 import { useJobExecutionRuntimeQuery, useJobMonitoringQuery } from '@/features/job-monitoring/hooks/useJobMonitoringQueries';
+import ApprovalLevelInfo from '@/components/approval/ApprovalLevelInfo';
 import { ActiveJobsPanel } from './components/ActiveJobsPanel';
 import { JobDefinitionsPanel } from './components/JobDefinitionsPanel';
 import { JobExecutionDetailsDialog } from './components/JobExecutionDetailsDialog';
@@ -829,6 +830,7 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
               Create Job
             </Button>
           )}
+          <ApprovalLevelInfo />
           <Tooltip title="Refresh All Data">
             <IconButton onClick={handleRefresh} disabled={loading} color="primary" sx={{ border: '1px solid', borderColor: 'primary.light' }}>
               <RefreshIcon className={loading ? 'animate-spin' : ''} />

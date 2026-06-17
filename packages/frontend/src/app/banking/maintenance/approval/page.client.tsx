@@ -37,6 +37,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { getErrorMessage } from '@/utils/error-message';
 import { useEnterpriseTableQuery } from '@/hooks/useEnterpriseTableQuery';
 import { useSavedTableView } from '@/hooks/useSavedTableView';
+import ApprovalLevelInfo from '@/components/approval/ApprovalLevelInfo';
 import {
   useApprovalMatricesQuery,
   useApprovalRequestsQuery,
@@ -1044,6 +1045,7 @@ function ApprovalManagementPage() {
             >
               Export
             </Button>
+            <ApprovalLevelInfo />
             <Button
               variant="contained"
               startIcon={<RefreshIcon />}

@@ -107,7 +107,9 @@ export const ActiveJobsPanel = memo(function ActiveJobsPanel({
       headerName: 'Status',
       width: 130,
       renderCell: (params: GridRenderCellParams) => (
-        <Chip label={params.row.status} size="small" color={getStatusColor(params.row.status) as any} variant="filled" />
+        <Tooltip title={params.row.status === 'RUNNING' ? 'Job sedang berjalan' : params.row.status === 'COMPLETED' ? 'Job selesai dengan sukses' : params.row.status === 'FAILED' ? 'Job gagal, cek error message' : params.row.status === 'PENDING' ? 'Job menunggu antrian' : params.row.status === 'PAUSED' ? 'Job dijeda' : params.row.status === 'CANCELLED' ? 'Job dibatalkan' : params.row.status}>
+          <Chip label={params.row.status} size="small" color={getStatusColor(params.row.status) as any} variant="filled" />
+        </Tooltip>
       ),
     },
     {
@@ -115,7 +117,9 @@ export const ActiveJobsPanel = memo(function ActiveJobsPanel({
       headerName: 'Priority',
       width: 110,
       renderCell: (params: GridRenderCellParams) => (
-        <Chip label={params.row.priority} size="small" color={getPriorityColor(params.row.priority) as any} variant="outlined" />
+        <Tooltip title={params.row.priority === 'LOW' ? 'Low priority — SLA 24 jam' : params.row.priority === 'NORMAL' ? 'Normal priority — SLA 8 jam' : params.row.priority === 'HIGH' ? 'High priority — SLA 4 jam' : params.row.priority === 'CRITICAL' ? 'Critical priority — SLA 2 jam' : params.row.priority}>
+          <Chip label={params.row.priority} size="small" color={getPriorityColor(params.row.priority) as any} variant="outlined" />
+        </Tooltip>
       ),
     },
     {

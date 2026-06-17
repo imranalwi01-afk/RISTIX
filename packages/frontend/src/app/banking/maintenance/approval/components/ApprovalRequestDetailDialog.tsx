@@ -239,7 +239,9 @@ function IndividualImpairmentCheckerReviewPreview({ request }: { request: Approv
           </Grid>
           <Grid size={{ xs: 12, md: 2 }}>
             <Typography variant="subtitle2" color="text.secondary">Status</Typography>
-            <Chip label={summaryStatus} size="small" color={request.status === 'pending' ? 'warning' : 'default'} sx={{ mt: 0.5 }} />
+            <Tooltip title={request.status === 'pending' ? 'Menunggu persetujuan' : request.status === 'approved' ? 'Disetujui oleh semua approver' : request.status === 'rejected' ? 'Ditolak oleh approver' : request.status === 'expired' ? 'Kadaluarsa - melewati SLA' : request.status}>
+              <Chip label={summaryStatus} size="small" color={request.status === 'pending' ? 'warning' : 'default'} sx={{ mt: 0.5 }} />
+            </Tooltip>
           </Grid>
           <Grid size={{ xs: 12, md: 2 }}>
             <Typography variant="subtitle2" color="text.secondary">Stage</Typography>
@@ -397,7 +399,9 @@ export const ApprovalRequestDetailDialog = memo(function ApprovalRequestDetailDi
               </Grid>
               <Grid size={6}>
                 <Typography variant="subtitle2">Priority:</Typography>
-                <Chip label={request.priority.toUpperCase()} color={getPriorityColor(request.priority) as any} size="small" sx={{ mt: 0.5 }} />
+                <Tooltip title={request.priority === 'low' ? 'Low — SLA 24 jam, cukup 1 approval' : request.priority === 'medium' ? 'Medium — SLA 8 jam, cukup 1 approval' : request.priority === 'high' ? 'High — SLA 4 jam, butuh 2 approval' : request.priority === 'critical' ? 'Critical — SLA 2 jam, butuh 2 approval' : request.priority}>
+                  <Chip label={request.priority.toUpperCase()} color={getPriorityColor(request.priority) as any} size="small" sx={{ mt: 0.5 }} />
+                </Tooltip>
               </Grid>
               <Grid size={6}>
                 <Typography variant="subtitle2">Progress:</Typography>
@@ -423,7 +427,9 @@ export const ApprovalRequestDetailDialog = memo(function ApprovalRequestDetailDi
               {request.riskLevel && (
                 <Grid size={6}>
                   <Typography variant="subtitle2">Risk Level:</Typography>
-                  <Chip label={request.riskLevel.toUpperCase()} color={getPriorityColor(request.riskLevel) as any} size="small" sx={{ mt: 0.5 }} />
+                  <Tooltip title={`Risk level: ${request.riskLevel}`}>
+                    <Chip label={request.riskLevel.toUpperCase()} color={getPriorityColor(request.riskLevel) as any} size="small" sx={{ mt: 0.5 }} />
+                  </Tooltip>
                 </Grid>
               )}
 

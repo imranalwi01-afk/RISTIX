@@ -11,6 +11,7 @@ import {
   Paper,
   Select,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import {
@@ -89,7 +90,9 @@ export const ApprovalHistoryTable = memo(function ApprovalHistoryTable({
         headerName: 'Status',
         width: 130,
         renderCell: (params) => (
-          <Chip label={params.value.toUpperCase()} color={getStatusColor(params.value) as any} size="small" />
+          <Tooltip title={params.value === 'pending' ? 'Menunggu persetujuan' : params.value === 'approved' ? 'Disetujui' : params.value === 'rejected' ? 'Ditolak' : params.value === 'expired' ? 'Kadaluarsa' : params.value === 'cancelled' ? 'Dibatalkan' : params.value}>
+            <Chip label={params.value.toUpperCase()} color={getStatusColor(params.value) as any} size="small" />
+          </Tooltip>
         ),
       },
       {

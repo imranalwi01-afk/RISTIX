@@ -85,13 +85,17 @@ export const JobExecutionDetailsDialog = memo(function JobExecutionDetailsDialog
                   <Typography variant="body2" color="text.secondary">
                     Status
                   </Typography>
-                  <Chip label={job.status} size="small" color={getStatusColor(job.status) as any} />
+                  <Tooltip title={job.status === 'RUNNING' ? 'Job sedang berjalan' : job.status === 'COMPLETED' ? 'Job selesai dengan sukses' : job.status === 'FAILED' ? 'Job gagal' : job.status === 'PENDING' ? 'Job menunggu antrian' : job.status === 'PAUSED' ? 'Job dijeda' : job.status === 'CANCELLED' ? 'Job dibatalkan' : job.status}>
+                    <Chip label={job.status} size="small" color={getStatusColor(job.status) as any} />
+                  </Tooltip>
                 </Box>
                 <Box>
                   <Typography variant="body2" color="text.secondary">
                     Priority
                   </Typography>
-                  <Chip label={job.priority} size="small" color={getPriorityColor(job.priority) as any} variant="outlined" />
+                  <Tooltip title={job.priority === 'LOW' ? 'Low priority — SLA 24 jam' : job.priority === 'NORMAL' ? 'Normal priority — SLA 8 jam' : job.priority === 'HIGH' ? 'High priority — SLA 4 jam' : job.priority === 'CRITICAL' ? 'Critical priority — SLA 2 jam' : job.priority}>
+                    <Chip label={job.priority} size="small" color={getPriorityColor(job.priority) as any} variant="outlined" />
+                  </Tooltip>
                 </Box>
               </Stack>
             </Grid>
