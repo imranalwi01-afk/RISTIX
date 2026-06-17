@@ -220,7 +220,7 @@ export const RuleBaseSettingsService = {
                     .filter(d => d.value1 !== null && d.value1 !== '')
                     .map(d => ({
                         value: d.value1!,
-                        label: d.value2 ?? d.value1!,
+                        label: d.value2 ?? d.paramdesc ?? d.value1!,
                     }))
             )
         )

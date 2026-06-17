@@ -80,12 +80,6 @@ export const PDConfigGrid = memo(function PDConfigGrid({
         return <Chip label={params.value ? 'Active' : 'Inactive'} color={params.value ? 'success' : 'default'} size="small" />;
       },
     },
-    { field: 'created_by', headerName: 'Created By', width: 140 },
-    { field: 'created_date', headerName: 'Created Date', width: 190 },
-    { field: 'created_host', headerName: 'Created Host', width: 150 },
-    { field: 'updated_by', headerName: 'Updated By', width: 140 },
-    { field: 'updated_date', headerName: 'Updated Date', width: 190 },
-    { field: 'updated_host', headerName: 'Updated Host', width: 150 },
     {
       field: 'actions',
       type: 'actions',
