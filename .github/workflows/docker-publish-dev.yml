@@ -71,7 +71,7 @@ jobs:
                 $tag = "ghcr.io/ifrspro/ifrs9-iaf/frontend:develop"
                 $ctx = "$CHECKOUT_DIR/packages/frontend"
                 $df = "$CHECKOUT_DIR/packages/frontend/Dockerfile"
-                $buildArgs = @("--build-arg", "BACKEND_INTERNAL_URL=http://backend:4232")
+                $buildArgs = @("--build-arg", "BACKEND_INTERNAL_URL=http://backend:4232", "--build-arg", "NEXT_PUBLIC_WS_URL=http://backend:4232")
               }
               "backend" {
                 $tag = "ghcr.io/ifrspro/ifrs9-iaf/backend:develop"
