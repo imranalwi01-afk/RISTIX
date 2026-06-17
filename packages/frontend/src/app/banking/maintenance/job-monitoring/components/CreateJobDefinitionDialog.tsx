@@ -16,13 +16,12 @@ import {
   Switch,
   TextField,
 } from '@mui/material';
-import { CreateJobForm, SupportedJobType } from '../types';
+import { CreateJobForm } from '../types';
 
 interface CreateJobDefinitionDialogProps {
   open: boolean;
   loading: boolean;
   jobData: CreateJobForm;
-  supportedJobTypeOptions: Array<{ value: SupportedJobType; label: string }>;
   disabled: boolean;
   title?: string;
   submitLabel?: string;
@@ -35,7 +34,6 @@ export const CreateJobDefinitionDialog = memo(function CreateJobDefinitionDialog
   open,
   loading,
   jobData,
-  supportedJobTypeOptions,
   disabled,
   title = 'Create New Job Definition',
   submitLabel = 'Create',
@@ -68,98 +66,25 @@ export const CreateJobDefinitionDialog = memo(function CreateJobDefinitionDialog
             />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
-            <FormControl fullWidth>
-              <InputLabel>Job Type</InputLabel>
-              <Select
-                value={jobData.type}
-                label="Job Type"
-                onChange={(e) =>
-                    onChange((prev) => ({
-                      ...prev,
-                    type: e.target.value as SupportedJobType,
-                    procedureName: '',
-                    schemaName: '',
-                    handlerName: '',
-                    command: '',
-                    }))
-                }
-              >
-                {supportedJobTypeOptions.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <TextField
+              fullWidth
+              label="Schema Name"
+              placeholder="e.g. core, risk, public"
+              value={jobData.schemaName || ''}
+              onChange={(e) => onChange({ ...jobData, schemaName: e.target.value })}
+              helperText="Database schema (optional, defaults to public/core)"
+            />
           </Grid>
-
-          {jobData.type === 'SQL_SP' && (
-            <>
-              <Grid size={{ xs: 12 }}>
-                <FormControl fullWidth>
-                  <InputLabel>Target Database</InputLabel>
-                  <Select
-                    value={jobData.targetDatabase || 'TENANT'}
-                    label="Target Database"
-                    onChange={(e) => onChange({ ...jobData, targetDatabase: e.target.value as 'TENANT' | 'LEGACY' })}
-                  >
-                    <MenuItem value="TENANT">Tenant DB (Default)</MenuItem>
-                    <MenuItem value="LEGACY">Legacy DB (IFRS9 Engine)</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label="Schema Name"
-                  placeholder="e.g. core, risk, public"
-                  value={jobData.schemaName || ''}
-                  onChange={(e) => onChange({ ...jobData, schemaName: e.target.value })}
-                  helperText="Database schema (optional, defaults to public/core)"
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label="Stored Procedure Name"
-                  placeholder="e.g. sp_frs9_imp_sequence or FRS9PRO.public.sp_frs9_imp_sequence"
-                  value={jobData.procedureName || ''}
-                  onChange={(e) => onChange({ ...jobData, procedureName: e.target.value })}
-                  helperText="Required. Supports schema/db qualified format."
-                  required
-                />
-              </Grid>
-            </>
-          )}
-
-          {jobData.type === 'INTERNAL_SCRIPT' && (
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                fullWidth
-                label="Handler Name"
-                placeholder="e.g. test_handler"
-                value={jobData.handlerName || ''}
-                onChange={(e) => onChange({ ...jobData, handlerName: e.target.value })}
-                helperText="Registered internal handler name"
-                required
-              />
-            </Grid>
-          )}
-
-          {jobData.type === 'SHELL_COMMAND' && (
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                fullWidth
-                label="Shell Command"
-                placeholder="e.g. ls -la"
-                value={jobData.command || ''}
-                onChange={(e) => onChange({ ...jobData, command: e.target.value })}
-                helperText="System command to execute (use with caution)"
-                required
-              />
-            </Grid>
-          )}
-
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              fullWidth
+              label="Stored Procedure Name"
+              placeholder="e.g. sp_frs9_imp_sequence"
+              value={jobData.procedureName || ''}
+              onChange={(e) => onChange({ ...jobData, procedureName: e.target.value })}
+              required
+            />
+          </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
             <FormControl fullWidth>
               <InputLabel>Priority</InputLabel>
@@ -174,16 +99,6 @@ export const CreateJobDefinitionDialog = memo(function CreateJobDefinitionDialog
                 <MenuItem value="CRITICAL">Critical</MenuItem>
               </Select>
             </FormControl>
-          </Grid>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <TextField
-              fullWidth
-              label="Schedule Expression (Cron)"
-              placeholder="0 0 * * *"
-              value={jobData.scheduleExpression}
-              onChange={(e) => onChange({ ...jobData, scheduleExpression: e.target.value })}
-              helperText="Leave empty for on-demand only"
-            />
           </Grid>
           <Grid size={{ xs: 12, md: 3 }}>
             <TextField

@@ -66,14 +66,14 @@ jobs:
           labels: ${{ steps.meta-frontend.outputs.labels }}
           build-args: |
             NEXT_PUBLIC_ENVIRONMENT=development
-            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
-            NEXT_PUBLIC_BACKEND_API_URL=${{ vars.NEXT_PUBLIC_BACKEND_API_URL }}
-            NEXT_PUBLIC_WS_URL=${{ vars.NEXT_PUBLIC_WS_URL }}
-            NEXT_PUBLIC_R_ANALYTICS_URL=${{ vars.NEXT_PUBLIC_R_ANALYTICS_URL }}
-            NEXT_PUBLIC_R_ANALYTICS_BASE_URL=${{ vars.NEXT_PUBLIC_R_ANALYTICS_BASE_URL }}
-            NEXT_PUBLIC_RAPI_BASE_URL=${{ vars.NEXT_PUBLIC_RAPI_BASE_URL }}
-            NEXT_PUBLIC_DOMAIN=${{ vars.NEXT_PUBLIC_DOMAIN }}
-            NEXT_PUBLIC_APP_NAME=${{ vars.NEXT_PUBLIC_APP_NAME }}
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL || 'https://iaf-ifrs-be.ifrspro.id/api/v1' }}
+            NEXT_PUBLIC_BACKEND_API_URL=${{ vars.NEXT_PUBLIC_BACKEND_API_URL || 'https://iaf-ifrs-be.ifrspro.id/api/v1' }}
+            NEXT_PUBLIC_WS_URL=${{ vars.NEXT_PUBLIC_WS_URL || 'https://iaf-ifrs-be.ifrspro.id' }}
+            NEXT_PUBLIC_R_ANALYTICS_URL=${{ vars.NEXT_PUBLIC_R_ANALYTICS_URL || 'https://iaf-ifrs-analytics.ifrspro.id' }}
+            NEXT_PUBLIC_R_ANALYTICS_BASE_URL=${{ vars.NEXT_PUBLIC_R_ANALYTICS_BASE_URL || 'https://iaf-ifrs-analytics.ifrspro.id' }}
+            NEXT_PUBLIC_RAPI_BASE_URL=${{ vars.NEXT_PUBLIC_RAPI_BASE_URL || 'https://iaf-ifrs-analytics-calc.ifrspro.id/api' }}
+            NEXT_PUBLIC_DOMAIN=${{ vars.NEXT_PUBLIC_DOMAIN || 'ifrspro' }}
+            NEXT_PUBLIC_APP_NAME=${{ vars.NEXT_PUBLIC_APP_NAME || 'IFRS9 Platform' }}
             BACKEND_INTERNAL_URL=${{ vars.BACKEND_INTERNAL_URL || 'http://backend:4232' }}
           cache-from: type=gha
 

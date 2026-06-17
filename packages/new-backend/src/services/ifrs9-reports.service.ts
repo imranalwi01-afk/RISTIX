@@ -536,7 +536,7 @@ export class Ifrs9ReportsService {
 
     private async resolveEclResultPrcDate(params?: ECLResultParams): Promise<string | null> {
         return this.resolveLatestPrcDate(
-            'public.frs9_master_account',
+            'public.frs9_ecl_summary',
             params?.prc_date,
         );
     }
@@ -1171,11 +1171,11 @@ export class Ifrs9ReportsService {
                     totalPages: 0,
                     effectivePrcDate: null,
                     debug: {
-                        sourceTables: ['public.frs9_master_account'],
+                        sourceTables: ['public.frs9_ecl_summary'],
                         queryName: 'ifrs9_reports.ecl_result',
                         queryMode: 'techspec-master-account',
                         fallbackUsed: false,
-                        emptyReason: 'No snapshot found in public.frs9_master_account for the requested processing date or earlier snapshot.',
+                        emptyReason: 'No snapshot found in public.frs9_ecl_summary for the requested processing date or earlier snapshot.',
                     },
                 };
             }
@@ -1202,30 +1202,24 @@ export class Ifrs9ReportsService {
                     impaired_flag,
                     impaired_status,
                     bucket_id,
-                    sicr_flag,
+                    false AS sicr_flag,
                     stage,
-                    COUNT(*) AS account_count,
+                    SUM(noa) AS account_count,
                     SUM(CAST(outstanding AS DECIMAL)) AS outstanding,
                     SUM(CAST(accrued_interest AS DECIMAL)) AS accrued_interest,
                     SUM(CAST(ecl_ca_onbs_amt AS DECIMAL)) AS ecl_ca_onbs_amt,
                     SUM(CAST(ecl_ca_offbs_amt AS DECIMAL)) AS ecl_ca_offbs_amt,
-                    SUM(CAST(ecl_ia_onbs_amt AS DECIMAL)) AS ecl_ia_onbs_amt,
-                    SUM(CAST(ecl_overlay_amt AS DECIMAL)) AS ecl_overlay_amt,
+                    SUM(CAST(ecl_ia_amt AS DECIMAL)) AS ecl_ia_onbs_amt,
+                    0 AS ecl_overlay_amt,
                     SUM(CAST(ecl_final_amt AS DECIMAL)) AS ecl_final_amt,
                     CASE
                         WHEN SUM(CAST(outstanding AS DECIMAL)) = 0 THEN 0
-                        ELSE SUM(
-                            CASE
-                                WHEN CAST(outstanding AS DECIMAL) = 0 THEN 0
-                                ELSE CAST(ecl_final_amt AS DECIMAL) / NULLIF(CAST(outstanding AS DECIMAL), 0)
-                            END
-                        )
-                    END AS ecl_coverage
-                    ,
-                    SUM(CAST(unwinding_ca_amt AS DECIMAL)) AS unwinding_ca_amt,
-                    SUM(CAST(unwinding_ia_amt AS DECIMAL)) AS unwinding_ia_amt,
-                    SUM(CAST(unwinding_ia_sum_amt AS DECIMAL)) AS unwinding_ia_sum_amt
-                FROM public.frs9_master_account
+                        ELSE SUM(CAST(ecl_final_amt AS DECIMAL)) / NULLIF(SUM(CAST(outstanding AS DECIMAL)), 0)
+                    END AS ecl_coverage,
+                    0 AS unwinding_ca_amt,
+                    0 AS unwinding_ia_amt,
+                    0 AS unwinding_ia_sum_amt
+                FROM public.frs9_ecl_summary
                 WHERE ${whereClause}
                 GROUP BY 
                     prc_date,
@@ -1238,7 +1232,6 @@ export class Ifrs9ReportsService {
                     impaired_flag,
                     impaired_status,
                     bucket_id,
-                    sicr_flag,
                     stage
                 ORDER BY segment_id, stage, branch_code, currency
             `));
@@ -1269,12 +1262,12 @@ export class Ifrs9ReportsService {
                 totalPages: Math.ceil(sortedData.length / limit),
                 effectivePrcDate,
                 debug: {
-                    sourceTables: ['public.frs9_master_account'],
+                    sourceTables: ['public.frs9_ecl_summary'],
                     queryName: 'ifrs9_reports.ecl_result',
                     queryMode: 'techspec-master-account',
                     fallbackUsed: false,
                     emptyReason: sortedData.length === 0
-                        ? `No aggregated rows returned from public.frs9_master_account for snapshot ${effectivePrcDate}.`
+                        ? `No aggregated rows returned from public.frs9_ecl_summary for snapshot ${effectivePrcDate}.`
                         : null,
                 },
             };

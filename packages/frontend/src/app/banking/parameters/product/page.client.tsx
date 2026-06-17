@@ -79,6 +79,7 @@ const getProductListPayload = (result: any) => {
 
 const getProductRows = (payload: any) => {
   if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.rows)) return payload.rows;
   if (Array.isArray(payload?.products)) return payload.products;
   if (Array.isArray(payload)) return payload;
   return [];
@@ -647,7 +648,7 @@ function ProductParametersPage() {
         productTypeOptions={toDropdownOptions(options.productTypes)}
         currencyOptions={toDropdownOptions(options.currencies, true)}
         amortizationOptions={toDropdownOptions(options.amortizationTypes)}
-        instrumentClassOptions={toDropdownOptions(options.instrumentClasses)}
+        instrumentClassOptions={toDropdownOptions(options.instrumentClasses, true)}
       />
 
       <PendingChangesDialog

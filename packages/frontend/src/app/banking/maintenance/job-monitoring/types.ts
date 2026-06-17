@@ -1,4 +1,4 @@
-export type SupportedJobType = 'SQL_SP' | 'INTERNAL_SCRIPT' | 'SHELL_COMMAND';
+export type SupportedJobType = 'SQL_SP';
 
 export interface JobRuntimeSummary {
   available: boolean;
@@ -108,10 +108,7 @@ export interface CreateJobForm {
   maxRetries: number;
   timeout: number;
   isEnabled: boolean;
-  scheduleExpression: string;
   targetDatabase?: 'TENANT' | 'LEGACY';
   schemaName?: string;
   procedureName?: string;
-  handlerName?: string;
-  command?: string;
 }

@@ -175,12 +175,14 @@ export const ApprovalRequestList = memo(function ApprovalRequestList({
         headerName: 'Status',
         width: 130,
         renderCell: (params) => (
-          <Chip
-            label={params.value.replace('_', ' ').toUpperCase()}
-            color={getStatusColor(params.value) as any}
-            size="small"
-            variant="outlined"
-          />
+          <Tooltip title={params.value === 'pending' ? 'Menunggu persetujuan' : params.value === 'approved' ? 'Disetujui' : params.value === 'rejected' ? 'Ditolak' : params.value === 'expired' ? 'Kadaluarsa' : params.value === 'cancelled' ? 'Dibatalkan' : params.value}>
+            <Chip
+              label={params.value.replace('_', ' ').toUpperCase()}
+              color={getStatusColor(params.value) as any}
+              size="small"
+              variant="outlined"
+            />
+          </Tooltip>
         ),
       },
       {
@@ -188,11 +190,13 @@ export const ApprovalRequestList = memo(function ApprovalRequestList({
         headerName: 'Priority',
         width: 110,
         renderCell: (params) => (
-          <Chip
-            label={params.value.toUpperCase()}
-            color={getPriorityColor(params.value) as any}
-            size="small"
-          />
+          <Tooltip title={params.value === 'low' ? 'Low — SLA 24 jam, 1 approval' : params.value === 'medium' ? 'Medium — SLA 8 jam, 1 approval' : params.value === 'high' ? 'High — SLA 4 jam, 2 approval' : params.value === 'critical' ? 'Critical — SLA 2 jam, 2 approval' : params.value}>
+            <Chip
+              label={params.value.toUpperCase()}
+              color={getPriorityColor(params.value) as any}
+              size="small"
+            />
+          </Tooltip>
         ),
       },
       {

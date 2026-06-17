@@ -9,6 +9,7 @@ import {
   CardHeader,
   Chip,
   Grid,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import {
@@ -230,12 +231,13 @@ export const ApprovalStatisticsPanel = memo(function ApprovalStatisticsPanel({
             ) : (
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                 {statistics.pendingByLevel.map((entry) => (
-                  <Chip
-                    key={entry.level}
-                    color="warning"
-                    variant="outlined"
-                    label={`Level ${entry.level}: ${entry.count}`}
-                  />
+                  <Tooltip key={entry.level} title={`Level ${entry.level} — ${entry.count} pending request(s) requiring ${entry.count > 1 ? 'approval' : 'approval'} at this stage`}>
+                    <Chip
+                      color="warning"
+                      variant="outlined"
+                      label={`Level ${entry.level}: ${entry.count}`}
+                    />
+                  </Tooltip>
                 ))}
               </Box>
             )}

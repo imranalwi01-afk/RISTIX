@@ -34,7 +34,7 @@ import {
 } from '@mui/icons-material';
 import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
-import { JobExecution, JobFilters, SupportedJobType } from '../types';
+import { JobExecution, JobFilters } from '../types';
 
 interface ActiveJobsPanelProps {
   loading: boolean;
@@ -59,7 +59,7 @@ interface ActiveJobsPanelProps {
   getPriorityColor: (priority: string) => string;
   getJobTypeIcon: (type: string) => React.ReactNode;
   formatDuration: (duration?: number) => string;
-  supportedJobTypeOptions: Array<{ value: SupportedJobType; label: string }>;
+
   lastUpdatedLabel: string;
 }
 
@@ -80,7 +80,6 @@ export const ActiveJobsPanel = memo(function ActiveJobsPanel({
   getPriorityColor,
   getJobTypeIcon,
   formatDuration,
-  supportedJobTypeOptions,
   lastUpdatedLabel,
 }: ActiveJobsPanelProps) {
   const executionColumns: GridColDef[] = [
@@ -108,7 +107,9 @@ export const ActiveJobsPanel = memo(function ActiveJobsPanel({
       headerName: 'Status',
       width: 130,
       renderCell: (params: GridRenderCellParams) => (
-        <Chip label={params.row.status} size="small" color={getStatusColor(params.row.status) as any} variant="filled" />
+        <Tooltip title={params.row.status === 'RUNNING' ? 'Job sedang berjalan' : params.row.status === 'COMPLETED' ? 'Job selesai dengan sukses' : params.row.status === 'FAILED' ? 'Job gagal, cek error message' : params.row.status === 'PENDING' ? 'Job menunggu antrian' : params.row.status === 'PAUSED' ? 'Job dijeda' : params.row.status === 'CANCELLED' ? 'Job dibatalkan' : params.row.status}>
+          <Chip label={params.row.status} size="small" color={getStatusColor(params.row.status) as any} variant="filled" />
+        </Tooltip>
       ),
     },
     {
@@ -116,7 +117,9 @@ export const ActiveJobsPanel = memo(function ActiveJobsPanel({
       headerName: 'Priority',
       width: 110,
       renderCell: (params: GridRenderCellParams) => (
-        <Chip label={params.row.priority} size="small" color={getPriorityColor(params.row.priority) as any} variant="outlined" />
+        <Tooltip title={params.row.priority === 'LOW' ? 'Low priority — SLA 24 jam' : params.row.priority === 'NORMAL' ? 'Normal priority — SLA 8 jam' : params.row.priority === 'HIGH' ? 'High priority — SLA 4 jam' : params.row.priority === 'CRITICAL' ? 'Critical priority — SLA 2 jam' : params.row.priority}>
+          <Chip label={params.row.priority} size="small" color={getPriorityColor(params.row.priority) as any} variant="outlined" />
+        </Tooltip>
       ),
     },
     {
@@ -305,11 +308,7 @@ export const ActiveJobsPanel = memo(function ActiveJobsPanel({
                 <InputLabel>Type</InputLabel>
                 <Select value={filters.type || ''} onChange={(e) => onFilterChange('type', e.target.value)} label="Type">
                   <MenuItem value="">All</MenuItem>
-                  {supportedJobTypeOptions.map((option, idx) => (
-                    <MenuItem key={`${option.value}-${idx}`} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
+                  <MenuItem value="SQL_SP">Stored Procedure</MenuItem>
                 </Select>
               </FormControl>
             </Grid>

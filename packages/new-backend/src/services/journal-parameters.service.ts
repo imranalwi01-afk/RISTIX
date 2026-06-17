@@ -147,7 +147,7 @@ export const JournalParametersService = {
                     .filter((d: any) => d.value1 !== null && d.value1 !== '')
                     .map((d: any) => ({
                         id: String(d.value1),
-                        name: String(d.value2 ?? d.value1)
+                        name: String(d.paramdesc ?? d.value2 ?? d.value1)
                     }))
             })
         )
