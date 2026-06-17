@@ -313,6 +313,7 @@ jobs:
             NEXT_PUBLIC_RAPI_BASE_URL=${{ vars.NEXT_PUBLIC_RAPI_BASE_URL || 'https://iaf-ifrs-analytics-calc.danafin.com/api' }}
             NEXT_PUBLIC_DOMAIN=${{ vars.NEXT_PUBLIC_DOMAIN || 'danafin' }}
             NEXT_PUBLIC_APP_NAME=${{ vars.NEXT_PUBLIC_APP_NAME || 'IFRS9 Platform' }}
+            BACKEND_INTERNAL_URL=${{ vars.BACKEND_INTERNAL_URL || 'http://backend:4232' }}
           cache-from: type=gha
 
           cache-to: type=gha,mode=min
