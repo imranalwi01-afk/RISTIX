@@ -330,7 +330,7 @@ const LifetimeLGDReport: React.FC = () => {
 
 
   const requiredParams = useMemo(() => ['prc_date'], []);
-  const optionalParams = useMemo(() => ['lgd_config_id', 'lgd_method', 'segment_id', 'fl_flag'], []);
+  const optionalParams = useMemo(() => ['lgd_config_id', 'segment_id', 'fl_flag'], []);
 
   return (
     <BaseIfrs9Report
