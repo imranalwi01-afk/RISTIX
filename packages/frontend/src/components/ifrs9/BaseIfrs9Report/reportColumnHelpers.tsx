@@ -63,13 +63,29 @@ export const generateDynamicColumns = (data: Record<string, unknown>[]): GridCol
 
     if (typeof value === 'number' || (typeof value === 'string' && Number.isFinite(Number(value)))) {
       column.type = 'number';
-      column.valueFormatter = (value: number | null | undefined) => {
-        if (value === null || value === undefined) return '';
-        return new Intl.NumberFormat('id-ID', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        }).format(value);
-      };
+      // Code/ID/flag fields: no comma formatting
+      if (/branch[_ ]?code|_id$|^id$|^pkid$|^seq$|^seqno$/i.test(key)) {
+        column.valueFormatter = (value: number | null | undefined) => {
+          if (value === null || value === undefined) return '';
+          return String(value);
+        };
+      } else if (/stage|account[_ ]?count|count|total[_ ]?(account|count)/i.test(key)) {
+        column.valueFormatter = (value: number | null | undefined) => {
+          if (value === null || value === undefined) return '';
+          return new Intl.NumberFormat('id-ID', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          }).format(value);
+        };
+      } else {
+        column.valueFormatter = (value: number | null | undefined) => {
+          if (value === null || value === undefined) return '';
+          return new Intl.NumberFormat('id-ID', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          }).format(value);
+        };
+      }
       column.align = 'right';
       column.headerAlign = 'right';
     } else if (key.includes('date') || key.includes('_dt')) {

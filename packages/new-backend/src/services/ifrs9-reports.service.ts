@@ -54,6 +54,7 @@ export interface ECLResultParams {
     prc_date: string;
     segment_id?: number;
     stage?: string | string[];
+    account_status?: string | string[];
     search?: string;
     sort?: Array<{ field: string; direction: 'asc' | 'desc' }>;
     detailFilters?: Record<string, unknown>;
@@ -1112,12 +1113,11 @@ export class Ifrs9ReportsService {
                 .select({
                     account_number: frs9AccountId.accountNumber,
                     cif_name: frs9AccountId.cifName,
-                    facility_number: frs9ImpCaResultD.facilityNumber,
-                    segment_id: frs9ImpCaResultD.segmentId,
+                    facility_number: frs9AccountId.facilityNumber,
                     stage: frs9ImpCaResultD.stage,
-                    outstanding: frs9ImpCaResultD.outstanding,
+                    outstanding: frs9ImpCaResultD.eqvOutstanding,
                     pd_rate: frs9ImpCaResultD.pd,
-                    ecl_amount: frs9ImpCaResultD.eclAmount
+                    ecl_amount: frs9ImpCaResultD.eclBfl
                 })
                 .from(frs9ImpCaResultD)
                 .innerJoin(frs9AccountId, eq(frs9ImpCaResultD.accountId, frs9AccountId.accountId))
@@ -1190,9 +1190,18 @@ export class Ifrs9ReportsService {
                 whereClause += ` AND stage IN (${stageList})`;
             }
 
+            const accountStatus = params?.account_status;
+            if (accountStatus) {
+                const statusList = (Array.isArray(accountStatus) ? accountStatus : [accountStatus])
+                    .map((s) => `'${this.escapeSqlLiteral(String(s))}'`)
+                    .join(',');
+                whereClause += ` AND account_status IN (${statusList})`;
+            }
+
             const rawData = await legacyDb.execute(sql.raw(`
                 SELECT 
                     prc_date AS period,
+                    account_status,
                     branch_code,
                     segment_id,
                     group_segment,
@@ -1202,7 +1211,6 @@ export class Ifrs9ReportsService {
                     impaired_flag,
                     impaired_status,
                     bucket_id,
-                    false AS sicr_flag,
                     stage,
                     SUM(noa) AS account_count,
                     SUM(CAST(outstanding AS DECIMAL)) AS outstanding,
@@ -1210,19 +1218,16 @@ export class Ifrs9ReportsService {
                     SUM(CAST(ecl_ca_onbs_amt AS DECIMAL)) AS ecl_ca_onbs_amt,
                     SUM(CAST(ecl_ca_offbs_amt AS DECIMAL)) AS ecl_ca_offbs_amt,
                     SUM(CAST(ecl_ia_amt AS DECIMAL)) AS ecl_ia_onbs_amt,
-                    0 AS ecl_overlay_amt,
                     SUM(CAST(ecl_final_amt AS DECIMAL)) AS ecl_final_amt,
                     CASE
                         WHEN SUM(CAST(outstanding AS DECIMAL)) = 0 THEN 0
                         ELSE SUM(CAST(ecl_final_amt AS DECIMAL)) / NULLIF(SUM(CAST(outstanding AS DECIMAL)), 0)
-                    END AS ecl_coverage,
-                    0 AS unwinding_ca_amt,
-                    0 AS unwinding_ia_amt,
-                    0 AS unwinding_ia_sum_amt
+                    END AS ecl_coverage
                 FROM public.frs9_ecl_summary
                 WHERE ${whereClause}
                 GROUP BY 
                     prc_date,
+                    account_status,
                     branch_code,
                     segment_id,
                     group_segment,

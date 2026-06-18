@@ -23,6 +23,7 @@ import {
   People as PeopleIcon,
   Home as HomeIcon,
   Search as SearchIcon,
+  AssignmentInd as ManageRolesIcon,
 } from '@mui/icons-material';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
@@ -46,6 +47,7 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import CircularProgress from '@mui/material/CircularProgress';
 import Stack from '@mui/material/Stack';
 import { useAllRoles, useInvalidateRoleQueries } from '@/features/roles/hooks/useRoleQueries';
+import ManageRolesDialog from './user-management/ManageRolesDialog';
 import { extractRolesArray } from '@/features/roles/hooks/useRoleQueries';
 import {
   UserFormDialog,
@@ -105,6 +107,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
   });
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedUserRoles, setSelectedUserRoles] = useState<UserRoleSummary[]>([]);
+  const [manageUser, setManageUser] = useState<User | null>(null);
   const [loadingUserRoles, setLoadingUserRoles] = useState(false);
   const [openResetPasswordDialog, setOpenResetPasswordDialog] = useState(false);
   const [formData, setFormData] = useState<UserFormData>({
@@ -341,6 +344,13 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
     });
   };
 
+  // ✅ Handle Manage Roles
+  const handleManageRoles = (user: User) => setManageUser(user);
+  const handleManageRolesClose = () => {
+    setManageUser(null);
+    loadUsers();
+  };
+
   const handleSaveResetPassword = async () => {
     const dialog = passwordResetDialog;
     if (!dialog.user) return;
@@ -459,6 +469,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
         }}
         onView={handleView}
         onEdit={handleEdit}
+        onManageRoles={handleManageRoles}
         onResetPassword={handleResetPassword}
         onToggleStatus={toggleUserStatus}
       />
@@ -495,6 +506,13 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
           setSelectedUserRoles([]);
         }}
         onEdit={handleEdit}
+      />
+
+      <ManageRolesDialog
+        open={manageUser !== null}
+        user={manageUser}
+        onClose={handleManageRolesClose}
+        onSaved={() => { setSnackbar({ open: true, message: 'Roles updated successfully', severity: 'success' }); }}
       />
 
       <ResetPasswordDialog

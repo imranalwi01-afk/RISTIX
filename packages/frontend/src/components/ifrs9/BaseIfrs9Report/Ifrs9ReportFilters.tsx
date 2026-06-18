@@ -381,6 +381,27 @@ const Ifrs9ReportFilters: React.FC<Ifrs9ReportFiltersProps> = ({
                     </Grid>
                   )}
 
+                  {optionalParams.includes('account_status') && (
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Account Status</InputLabel>
+                        <Select
+                          value={filters.account_status || ''}
+                          onChange={(e) => onFilterChange('account_status', e.target.value || undefined)}
+                          label="Account Status"
+                          sx={{ borderRadius: 2 }}
+                        >
+                          <MenuItem value="">ALL</MenuItem>
+                          <MenuItem value="A">Active</MenuItem>
+                          <MenuItem value="R">Repo</MenuItem>
+                          <MenuItem value="W">Write Off</MenuItem>
+                          <MenuItem value="C">Closed</MenuItem>
+                          <MenuItem value="D">Default</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                  )}
+
                   {optionalParams.includes('fl_flag') && (
                     <Grid size={{ xs: 12, sm: 4, md: 2 }}>
                       <FormControlLabel

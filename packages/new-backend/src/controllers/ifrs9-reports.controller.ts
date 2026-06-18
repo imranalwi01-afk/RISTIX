@@ -714,6 +714,12 @@ export const ifrs9ReportsController = {
                 : stageFilter !== undefined
                     ? [String(stageFilter)]
                     : undefined;
+            const accountStatusFilter = query.filters.account_status;
+            const account_status = Array.isArray(accountStatusFilter)
+                ? accountStatusFilter.map(String)
+                : accountStatusFilter !== undefined
+                    ? [String(accountStatusFilter)]
+                    : undefined;
 
             const result = await ifrs9ReportsService.getECLResult(
                 tenantId,
@@ -723,6 +729,7 @@ export const ifrs9ReportsController = {
                     prc_date,
                     segment_id,
                     stage,
+                    account_status,
                     search: query.search,
                     sort: query.sort,
                     detailFilters: query.filters,

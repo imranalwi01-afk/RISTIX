@@ -22,6 +22,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import '@/services/logging.service';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import { SessionManager } from '@/components/common/SessionManager';
+import { SnackbarProvider } from 'notistack';
 
 export default function ClientProviders({ children }: { children: React.ReactNode }) {
   // WORKAROUND: Prevent MUI v7 SvgIcon from trying to access _theme_vars
@@ -46,9 +47,11 @@ export default function ClientProviders({ children }: { children: React.ReactNod
                       <LocalizationProvider dateAdapter={AdapterDateFns}>
                         <CssBaseline />
                         <SessionManager />
-                        <ErrorBoundary>
-                          {children as any}
-                        </ErrorBoundary>
+                        <SnackbarProvider maxSnack={3} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
+                          <ErrorBoundary>
+                            {children as any}
+                          </ErrorBoundary>
+                        </SnackbarProvider>
                       </LocalizationProvider>
                     </BankingThemeProvider>
                   </AuthProvider>

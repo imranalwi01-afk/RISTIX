@@ -39,6 +39,7 @@ export interface ReportFilters {
   fl_flag?: boolean;
   branch_code?: string;
   group_segment?: string;
+  account_status?: string;
   page?: number;
   limit?: number;
 }

@@ -259,6 +259,7 @@ export const frs9ImpCaEclConfigd = pgTable("frs9_imp_ca_ecl_configd", {
 	updatedby: varchar({ length: 50 }),
 	updateddate: timestamp({ mode: 'string' }),
 	updatedhost: varchar({ length: 50 }),
+	cifFlag: smallint("cif_flag").default(0),
 });
 
 export const frs9ImpCaEclConfigh = pgTable("frs9_imp_ca_ecl_configh", {
@@ -402,15 +403,12 @@ export const frs9ImpCaLgdCollData = pgTable("frs9_imp_ca_lgd_coll_data", {
 export const frs9ImpCaLgdConfig = pgTable("frs9_imp_ca_lgd_config", {
 	pkid: smallserial().notNull(),
 	lgdModelName: varchar("lgd_model_name", { length: 250 }),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
 	segmentId: bigint("segment_id", { mode: "number" }),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
 	lgdMethod: bigint("lgd_method", { mode: "number" }),
 	populationType: varchar("population_type", { length: 10 }),
 	observationPeriod: varchar("observation_period", { length: 50 }),
 	observationStartDate: date("observation_start_date"),
 	workoutPeriod: integer("workout_period"),
-	maxRecoveryPeriod: integer("max_recovery_period"),
 	flFlag: boolean("fl_flag").notNull(),
 	flScalarId: smallint("fl_scalar_id"),
 	lgdRate: doublePrecision("lgd_rate"),
@@ -421,55 +419,58 @@ export const frs9ImpCaLgdConfig = pgTable("frs9_imp_ca_lgd_config", {
 	updatedby: varchar({ length: 50 }),
 	updateddate: timestamp({ mode: 'string' }),
 	updatedhost: varchar({ length: 50 }),
+	defaultRuleId: bigint("default_rule_id", { mode: "number" }),
+	cifFlag: smallint("cif_flag").default(0),
+	maxRecoveryPeriod: integer("max_recovery_period"),
 });
 
 export const frs9ImpCaLgdD = pgTable("frs9_imp_ca_lgd_d", {
-	prcDate: date("prc_date"),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	lgdConfigId: bigint("lgd_config_id", { mode: "number" }),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	lgdMethod: bigint("lgd_method", { mode: "number" }),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	accountId: bigint("account_id", { mode: "number" }),
+	prcDate: date("prc_date").notNull(),
+	lgdConfigId: smallint("lgd_config_id").notNull(),
+	defaultRuleId: smallint("default_rule_id").notNull(),
+	lgdMethod: smallint("lgd_method"),
+	defaultType: varchar("default_type", { length: 5 }),
+	accountId: bigint("account_id", { mode: "number" }).notNull(),
 	eqvOs: numeric("eqv_os", { precision: 32, scale: 6 }),
 	eqvRec: numeric("eqv_rec", { precision: 32, scale: 6 }),
+	npvEqv: numeric("npv_eqv", { precision: 32, scale: 6 }),
 	npvEqvRec: numeric("npv_eqv_rec", { precision: 32, scale: 6 }),
 	recRate: doublePrecision("rec_rate"),
 	lgd: doublePrecision(),
+	npvCap: boolean("npv_cap"),
 	createdby: varchar({ length: 100 }),
 	createddate: timestamp({ mode: 'string' }),
 });
 
 export const frs9ImpCaLgdData = pgTable("frs9_imp_ca_lgd_data", {
-	prcDate: date("prc_date"),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	lgdConfigId: bigint("lgd_config_id", { mode: "number" }),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	lgdMethod: bigint("lgd_method", { mode: "number" }),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	accountId: bigint("account_id", { mode: "number" }),
-	eqvAtDefault: numeric("eqv_at_default", { precision: 32, scale: 6 }),
-	woDate: date("wo_date"),
-	closedDate: date("closed_date"),
-	accountStatus: char("account_status", { length: 1 }),
-	eqvWo: numeric("eqv_wo", { precision: 32, scale: 6 }),
+	prcDate: date("prc_date").notNull(),
+	lgdConfigId: smallint("lgd_config_id").notNull(),
+	defaultRuleId: smallint("default_rule_id").notNull(),
+	lgdMethod: smallint("lgd_method"),
+	accountId: bigint("account_id", { mode: "number" }).notNull(),
+	accountNumber: varchar("account_number", { length: 50 }),
+	cifNumber: varchar("cif_number", { length: 50 }),
+	currency: varchar({ length: 5 }),
+	exchangeRate: numeric("exchange_rate", { precision: 32, scale: 6 }),
+	defaultType: varchar("default_type", { length: 5 }),
+	defaultDate: date("default_date"),
+	maxRecovery: date("max_recovery"),
 	eirAtDefault: doublePrecision("eir_at_default"),
-	createdby: varchar({ length: 36 }),
-	createddate: timestamp({ mode: 'string' }),
-	updatedby: varchar({ length: 100 }),
-	updateddate: timestamp({ mode: 'string' }),
+	eqvAtDefault: numeric("eqv_at_default", { precision: 32, scale: 6 }),
 	repoDate: date("repo_date"),
 	eqvRepo: numeric("eqv_repo", { precision: 32, scale: 6 }),
+	woDate: date("wo_date"),
+	eqvWo: numeric("eqv_wo", { precision: 32, scale: 6 }),
+	createdby: varchar({ length: 100 }),
+	createddate: timestamp({ mode: 'string' }),
 });
 
 export const frs9ImpCaLgdH = pgTable("frs9_imp_ca_lgd_h", {
 	prcDate: date("prc_date"),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	lgdConfigId: bigint("lgd_config_id", { mode: "number" }),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	lgdMethod: bigint("lgd_method", { mode: "number" }),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	modelId: bigint("model_id", { mode: "number" }),
+	lgdConfigId: smallint("lgd_config_id").notNull(),
+	defaultRuleId: smallint("default_rule_id").notNull(),
+	lgdMethod: smallint("lgd_method"),
+	modelId: smallint("model_id"),
 	eqvOs: numeric("eqv_os", { precision: 32, scale: 6 }),
 	eqvRec: numeric("eqv_rec", { precision: 32, scale: 6 }),
 	npvEqvRec: numeric("npv_eqv_rec", { precision: 32, scale: 6 }),
@@ -602,14 +603,11 @@ export const frs9ImpCaPdMmult = pgTable("frs9_imp_ca_pd_mmult", {
 });
 
 export const frs9ImpCaPdOdr = pgTable("frs9_imp_ca_pd_odr", {
-	prcDate: date("prc_date"),
+	prcDate: date("prc_date").notNull(),
 	baseDate: date("base_date"),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	pdConfigId: bigint("pd_config_id", { mode: "number" }),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	totDefault: bigint("tot_default", { mode: "number" }),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	nonDefault: bigint("non_default", { mode: "number" }),
+	pdConfigId: smallint("pd_config_id").notNull(),
+	totDefault: integer("tot_default"),
+	nonDefault: integer("non_default"),
 	odr: doublePrecision(),
 	createdby: varchar({ length: 50 }),
 	createddate: timestamp({ mode: 'string' }),
@@ -663,58 +661,40 @@ export const frs9ImpCaPdTs = pgTable("frs9_imp_ca_pd_ts", {
 
 export const frs9ImpCaResultD = pgTable("frs9_imp_ca_result_d", {
 	prcDate: date("prc_date"),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	accountId: bigint("account_id", { mode: "number" }),
-	facilityNumber: varchar("facility_number", { length: 100 }),
-	cifNumber: varchar("cif_number", { length: 100 }),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	segmentId: bigint("segment_id", { mode: "number" }),
-	remainingTenor: smallint("remaining_tenor"),
-	startDate: date("start_date"),
-	maturityDate: date("maturity_date"),
-	defaultFlag: boolean("default_flag"),
-	dpd: smallint(),
-	internalRatingCode: varchar("internal_rating_code", { length: 5 }),
-	extRatingCode: varchar("ext_rating_code", { length: 5 }),
-	extRatingId: smallint("ext_rating_id"),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	eclConfigId: smallint("ecl_config_id"),
 	eclModelId: bigint("ecl_model_id", { mode: "number" }),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	defaultRuleId: smallint("default_rule_id"),
+	accountId: bigint("account_id", { mode: "number" }),
+	periodDate: date("period_date"),
 	pdConfigId: bigint("pd_config_id", { mode: "number" }),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	lgdConfigId: bigint("lgd_config_id", { mode: "number" }),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	eadConfigId: bigint("ead_config_id", { mode: "number" }),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	eadMethod: bigint("ead_method", { mode: "number" }),
-	bucketGroup: varchar("bucket_group", { length: 30 }),
 	bucketId: integer("bucket_id"),
-	currency: varchar({ length: 5 }),
-	stage: smallint(),
-	scenarioNo: smallint("scenario_no"),
-	flSeq: smallint("fl_seq"),
-	flYear: smallint("fl_year"),
-	flMotnh: smallint("fl_motnh"),
-	eir: doublePrecision(),
-	exchangeRate: numeric("exchange_rate", { precision: 32, scale: 6 }),
-	outstanding: numeric({ precision: 32, scale: 6 }),
-	plafond: numeric({ precision: 32, scale: 6 }),
+	lgd: doublePrecision(),
+	accountNumber: varchar("account_number", { length: 50 }),
+	cifNumber: varchar("cif_number", { length: 100 }),
 	fibAmt: numeric("fib_amt", { precision: 32, scale: 6 }),
 	accruedInterest: numeric("accrued_interest", { precision: 32, scale: 6 }),
-	unamortCostAmt: numeric("unamort_cost_amt", { precision: 32, scale: 6 }),
-	unamortFeeAmt: numeric("unamort_fee_amt", { precision: 32, scale: 6 }),
-	eadBalance: numeric("ead_balance", { precision: 32, scale: 6 }),
+	stage: smallint(),
+	eqvOutstanding: doublePrecision("eqv_outstanding"),
+	eir: doublePrecision(),
+	eadConfigId: bigint("ead_config_id", { mode: "number" }),
+	eadMethod: bigint("ead_method", { mode: "number" }),
+	eadCalcMethod: smallint("ead_calc_method"),
+	flSeq: smallint("fl_seq"),
+	paymentEom: date("payment_eom"),
 	paymAvg: doublePrecision("paym_avg"),
-	principalAmt: numeric("principal_amt", { precision: 32, scale: 6 }),
-	sumPrincipalAmt: numeric("sum_principal_amt", { precision: 32, scale: 6 }),
+	principal: numeric({ precision: 32, scale: 6 }),
+	sumPrincipal: numeric("sum_principal", { precision: 32, scale: 6 }),
+	interest: numeric({ precision: 32, scale: 6 }),
 	nextInterest: numeric("next_interest", { precision: 32, scale: 6 }),
 	sumNextInterest: numeric("sum_next_interest", { precision: 32, scale: 6 }),
 	ead: numeric({ precision: 32, scale: 6 }),
-	pd: doublePrecision(),
-	lgd: doublePrecision(),
-	eclAmount: numeric("ecl_amount", { precision: 32, scale: 6 }),
 	probability: doublePrecision(),
-	eclWeighted: numeric("ecl_weighted", { precision: 32, scale: 6 }),
+	pdNonFl: doublePrecision("pd_non_fl"),
+	pd: doublePrecision(),
+	eclBfl: numeric("ecl_bfl", { precision: 32, scale: 6 }),
+	eclAfl: numeric("ecl_afl", { precision: 32, scale: 6 }),
+	eclWeightedBfl: numeric("ecl_weighted_bfl", { precision: 32, scale: 6 }),
+	eclWeightedAfl: numeric("ecl_weighted_afl", { precision: 32, scale: 6 }),
 	createdby: varchar({ length: 50 }),
 	createddate: timestamp({ mode: 'string' }),
 });
@@ -778,13 +758,22 @@ export const frs9ImpCaResultDPrv = pgTable("frs9_imp_ca_result_d_prv", {
 });
 
 export const frs9ImpCaResultH = pgTable("frs9_imp_ca_result_h", {
-	prcDate: date("prc_date"),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	accountId: bigint("account_id", { mode: "number" }),
-	facilityNumber: varchar("facility_number", { length: 100 }),
-	cifNumber: varchar("cif_number", { length: 100 }),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	segmentId: bigint("segment_id", { mode: "number" }),
+	prcDate: date("prc_date").notNull(),
+	eclConfigId: smallint("ecl_config_id").notNull(),
+	eclModelId: smallint("ecl_model_id").notNull(),
+	defaultRuleId: smallint("default_rule_id").notNull(),
+	pdConfigId: smallint("pd_config_id"),
+	lgdConfigId: smallint("lgd_config_id"),
+	eadConfigId: smallint("ead_config_id"),
+	eadMethod: smallint("ead_method"),
+	eadCalcMethod: smallint("ead_calc_method"),
+	bucketGroup: varchar("bucket_group", { length: 30 }),
+	segmentId: smallint("segment_id"),
+	fmaId: bigint("fma_id", { mode: "number" }),
+	accountId: bigint("account_id", { mode: "number" }).notNull(),
+	accountNumber: varchar("account_number", { length: 50 }),
+	facilityNumber: varchar("facility_number", { length: 50 }),
+	cifNumber: varchar("cif_number", { length: 50 }),
 	remainingTenor: smallint("remaining_tenor"),
 	startDate: date("start_date"),
 	maturityDate: date("maturity_date"),
@@ -793,22 +782,10 @@ export const frs9ImpCaResultH = pgTable("frs9_imp_ca_result_h", {
 	internalRatingCode: varchar("internal_rating_code", { length: 5 }),
 	extRatingCode: varchar("ext_rating_code", { length: 5 }),
 	extRatingId: smallint("ext_rating_id"),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	eclModelId: bigint("ecl_model_id", { mode: "number" }),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	pdConfigId: bigint("pd_config_id", { mode: "number" }),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	lgdConfigId: bigint("lgd_config_id", { mode: "number" }),
-	lgd: doublePrecision(),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	eadConfigId: bigint("ead_config_id", { mode: "number" }),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	eadMethod: bigint("ead_method", { mode: "number" }),
-	bucketGroup: varchar("bucket_group", { length: 30 }),
 	bucketId: integer("bucket_id"),
-	currency: varchar({ length: 5 }),
 	stage: smallint(),
 	eir: doublePrecision(),
+	currency: varchar({ length: 5 }),
 	exchangeRate: numeric("exchange_rate", { precision: 32, scale: 6 }),
 	outstanding: numeric({ precision: 32, scale: 6 }),
 	plafond: numeric({ precision: 32, scale: 6 }),
@@ -816,8 +793,11 @@ export const frs9ImpCaResultH = pgTable("frs9_imp_ca_result_h", {
 	accruedInterest: numeric("accrued_interest", { precision: 32, scale: 6 }),
 	unamortCostAmt: numeric("unamort_cost_amt", { precision: 32, scale: 6 }),
 	unamortFeeAmt: numeric("unamort_fee_amt", { precision: 32, scale: 6 }),
+	lgd: doublePrecision(),
+	eclBfl: numeric("ecl_bfl", { precision: 32, scale: 6 }),
+	eclAfl: numeric("ecl_afl", { precision: 32, scale: 6 }),
 	eclAmount: numeric("ecl_amount", { precision: 32, scale: 6 }),
-	overlayAmount: numeric("overlay_amount", { precision: 32, scale: 6 }),
+	overlayAmount: smallint("overlay_amount"),
 	eclFinal: numeric("ecl_final", { precision: 32, scale: 6 }),
 	createdby: varchar({ length: 50 }),
 	createddate: timestamp({ mode: 'string' }),
@@ -1258,6 +1238,7 @@ export const frs9NominativeOutput = pgTable("frs9_nominative_output", {
 
 export const frs9EclSummary = pgTable("frs9_ecl_summary", {
 	prcDate: date("prc_date").notNull(),
+	accountStatus: varchar("account_status", { length: 20 }),
 	segmentId: smallint("segment_id"),
 	groupSegment: varchar("group_segment", { length: 50 }),
 	segment: varchar({ length: 50 }),

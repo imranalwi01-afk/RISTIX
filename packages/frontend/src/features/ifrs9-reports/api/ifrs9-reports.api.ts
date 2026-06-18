@@ -149,25 +149,10 @@ export async function fetchIfrs9Report(input: Ifrs9ReportQueryInput): Promise<Re
           ? summaryData.data
           : (fallbackSummaryRow ? [fallbackSummaryRow] : []);
         
-        if (detailRows.length > 0) {
-          return {
-            ...detailData,
-            data: detailRows,
-            summary: {
-              ...(summaryData?.summary ?? {}),
-              detailRows,
-              summarySource: summaryResult.missing ? 'detail-fallback' : 'summary-endpoint',
-            },
-            effectivePrcDate,
-            meta: detailData?.meta ?? summaryData?.meta,
-            message: detailData?.message ?? summaryData?.message,
-          };
-        }
-
         const rowsWithDetails = summaryRows.map((row: Record<string, unknown>, index: number) => ({
           ...row,
           id: row.id ?? index + 1,
-          _detail_rows: [],
+          _detail_rows: detailRows,
         }));
 
         return {

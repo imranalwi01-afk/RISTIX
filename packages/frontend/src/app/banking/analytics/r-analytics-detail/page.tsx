@@ -20,11 +20,15 @@ import {
   ArrowBack as ArrowBackIcon
 } from '@mui/icons-material';
 import { RAnalyticsComprehensiveDetail } from '../../maintenance/approval/components/RAnalyticsComprehensiveDetail';
+import { useSnackbar } from 'notistack';
+import { API_BASE_URL } from '@/services/api-setup';
+import { getAuthToken } from '@/utils/auth-token';
 
 function RAnalyticsDetailPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const idParam = searchParams.get('id');
+  const { enqueueSnackbar } = useSnackbar();
 
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);
@@ -40,7 +44,14 @@ function RAnalyticsDetailPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('/api/v1/r-analytics/pd-afl-history');
+      const baseUrl = API_BASE_URL || '/api/v1';
+      const fullUrl = baseUrl.startsWith('http') ? baseUrl : `${window.location.origin}${baseUrl}`;
+      
+      const response = await fetch(`${fullUrl}/r-analytics/pd-afl-history`, {
+        headers: {
+          'Authorization': `Bearer ${getAuthToken()}`
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch data');
       const result = await response.json();
       
@@ -58,9 +69,63 @@ function RAnalyticsDetailPage() {
     }
   };
 
-  const handleDownload = () => {
-    if (!idParam) return;
-    window.location.href = `/api/v1/r-analytics/pd-afl-history/${idParam}/download`;
+  const handleDownload = async () => {
+    if (!data?.id) return;
+    try {
+      const baseUrl = API_BASE_URL || '/api/v1';
+      const fullUrl = baseUrl.startsWith('http') ? baseUrl : `${window.location.origin}${baseUrl}`;
+      
+      const res = await fetch(`${fullUrl}/r-analytics/pd-afl-history/${data.id}/download`, {
+        headers: {
+          'Authorization': `Bearer ${getAuthToken()}`
+        }
+      });
+
+      if (!res.ok) {
+        if (res.status === 404) {
+          const contentType = res.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const text = await res.text();
+            try {
+              const json = JSON.parse(text);
+              if (json.success === false) {
+                enqueueSnackbar(`Gagal mengunduh: ${json.error || 'File tidak ditemukan'}`, { variant: 'error' });
+                return;
+              }
+            } catch (e) {}
+          }
+          enqueueSnackbar('File tidak ditemukan. File output belum tersimpan atau data kosong pada proses sebelumnya.', { variant: 'error' });
+        } else {
+          enqueueSnackbar(`Terjadi kesalahan server saat mengunduh file (HTTP ${res.status})`, { variant: 'error' });
+        }
+        return;
+      }
+
+      // If success, create blob and download
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      // Try to get filename from headers, otherwise fallback to default
+      let filename = `Report_Data_${data.id}.xlsx`;
+      const contentDisposition = res.headers.get('content-disposition');
+      if (contentDisposition && contentDisposition.includes('filename=')) {
+        const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+        if (matches != null && matches[1]) { 
+          filename = matches[1].replace(/['"]/g, '');
+        }
+      }
+      
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to download report', err);
+      enqueueSnackbar('Terjadi kesalahan jaringan saat mengunduh file.', { variant: 'error' });
+    }
   };
 
   const getStatusColor = (status: string) => {

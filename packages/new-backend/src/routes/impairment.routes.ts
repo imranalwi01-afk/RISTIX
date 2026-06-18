@@ -418,69 +418,52 @@ impairmentRoutes.openapi(
                 }) as any, 404)
             }
 
-            const collectiveConditions = [
-                eq(frs9ImpCaResultD.accountId, contractDetail.accountId),
-                eq(frs9ImpCaResultD.prcDate, contractDetail.prcDate),
-            ]
-            if (contractDetail.facilityNumber) {
-                collectiveConditions.push(eq(frs9ImpCaResultD.facilityNumber, contractDetail.facilityNumber) as any)
-            }
-
-            const [collectiveDetails, individualSummaryRows, individualDetails, journalDetails] = await Promise.all([
-                db
-                    .select({
-                        prcDate: frs9ImpCaResultD.prcDate,
-                        accountId: frs9ImpCaResultD.accountId,
-                        accountNumber: frs9AccountId.accountNumber,
-                        facilityNumber: frs9ImpCaResultD.facilityNumber,
-                        cifNumber: frs9ImpCaResultD.cifNumber,
-                        segmentId: frs9ImpCaResultD.segmentId,
-                        remainingTenor: frs9ImpCaResultD.remainingTenor,
-                        startDate: frs9ImpCaResultD.startDate,
-                        maturityDate: frs9ImpCaResultD.maturityDate,
-                        defaultFlag: frs9ImpCaResultD.defaultFlag,
-                        dpd: frs9ImpCaResultD.dpd,
-                        internalRatingCode: frs9ImpCaResultD.internalRatingCode,
-                        extRatingCode: frs9ImpCaResultD.extRatingCode,
-                        extRatingId: frs9ImpCaResultD.extRatingId,
-                        eclModelId: frs9ImpCaResultD.eclModelId,
-                        pdConfigId: frs9ImpCaResultD.pdConfigId,
-                        lgdConfigId: frs9ImpCaResultD.lgdConfigId,
-                        eadConfigId: frs9ImpCaResultD.eadConfigId,
-                        eadMethod: frs9ImpCaResultD.eadMethod,
-                        bucketGroup: frs9ImpCaResultD.bucketGroup,
-                        bucketId: frs9ImpCaResultD.bucketId,
-                        currency: frs9ImpCaResultD.currency,
-                        stage: frs9ImpCaResultD.stage,
-                        scenarioNo: frs9ImpCaResultD.scenarioNo,
-                        flSeq: frs9ImpCaResultD.flSeq,
-                        flYear: frs9ImpCaResultD.flYear,
-                        flMonth: frs9ImpCaResultD.flMotnh,
-                        eir: frs9ImpCaResultD.eir,
-                        exchangeRate: frs9ImpCaResultD.exchangeRate,
-                        outstanding: frs9ImpCaResultD.outstanding,
-                        plafond: frs9ImpCaResultD.plafond,
-                        fibAmt: frs9ImpCaResultD.fibAmt,
-                        accruedInterest: frs9ImpCaResultD.accruedInterest,
-                        unamortCostAmt: frs9ImpCaResultD.unamortCostAmt,
-                        unamortFeeAmt: frs9ImpCaResultD.unamortFeeAmt,
-                        eadBalance: frs9ImpCaResultD.eadBalance,
-                        paymAvg: frs9ImpCaResultD.paymAvg,
-                        principalAmt: frs9ImpCaResultD.principalAmt,
-                        sumPrincipalAmt: frs9ImpCaResultD.sumPrincipalAmt,
-                        nextInterest: frs9ImpCaResultD.nextInterest,
-                        sumNextInterest: frs9ImpCaResultD.sumNextInterest,
-                        ead: frs9ImpCaResultD.ead,
-                        pd: frs9ImpCaResultD.pd,
-                        lgd: frs9ImpCaResultD.lgd,
-                        eclAmount: frs9ImpCaResultD.eclAmount,
-                        probability: frs9ImpCaResultD.probability,
-                        eclWeighted: frs9ImpCaResultD.eclWeighted,
-                    } as any)
-                    .from(frs9ImpCaResultD)
-                    .innerJoin(frs9AccountId, eq(frs9ImpCaResultD.accountId, frs9AccountId.accountId))
-                    .where(and(...collectiveConditions))
-                    .orderBy(asc(frs9ImpCaResultD.flSeq)),
+            const collectiveDetails = await db
+                .select({
+                    prcDate: frs9ImpCaResultD.prcDate,
+                    accountId: frs9ImpCaResultD.accountId,
+                    accountNumber: frs9AccountId.accountNumber,
+                    eclConfigId: frs9ImpCaResultD.eclConfigId,
+                    eclModelId: frs9ImpCaResultD.eclModelId,
+                    defaultRuleId: frs9ImpCaResultD.defaultRuleId,
+                    periodDate: frs9ImpCaResultD.periodDate,
+                    pdConfigId: frs9ImpCaResultD.pdConfigId,
+                    bucketId: frs9ImpCaResultD.bucketId,
+                    lgd: frs9ImpCaResultD.lgd,
+                    cifNumber: frs9ImpCaResultD.cifNumber,
+                    fibAmt: frs9ImpCaResultD.fibAmt,
+                    accruedInterest: frs9ImpCaResultD.accruedInterest,
+                    stage: frs9ImpCaResultD.stage,
+                    eqvOutstanding: frs9ImpCaResultD.eqvOutstanding,
+                    eir: frs9ImpCaResultD.eir,
+                    eadConfigId: frs9ImpCaResultD.eadConfigId,
+                    eadMethod: frs9ImpCaResultD.eadMethod,
+                    eadCalcMethod: frs9ImpCaResultD.eadCalcMethod,
+                    flSeq: frs9ImpCaResultD.flSeq,
+                    paymentEom: frs9ImpCaResultD.paymentEom,
+                    paymAvg: frs9ImpCaResultD.paymAvg,
+                    principal: frs9ImpCaResultD.principal,
+                    sumPrincipal: frs9ImpCaResultD.sumPrincipal,
+                    interest: frs9ImpCaResultD.interest,
+                    nextInterest: frs9ImpCaResultD.nextInterest,
+                    sumNextInterest: frs9ImpCaResultD.sumNextInterest,
+                    ead: frs9ImpCaResultD.ead,
+                    probability: frs9ImpCaResultD.probability,
+                    pdNonFl: frs9ImpCaResultD.pdNonFl,
+                    pd: frs9ImpCaResultD.pd,
+                    eclBfl: frs9ImpCaResultD.eclBfl,
+                    eclAfl: frs9ImpCaResultD.eclAfl,
+                    eclWeightedBfl: frs9ImpCaResultD.eclWeightedBfl,
+                    eclWeightedAfl: frs9ImpCaResultD.eclWeightedAfl,
+                } as any)
+                .from(frs9ImpCaResultD)
+                .innerJoin(frs9AccountId, eq(frs9ImpCaResultD.accountId, frs9AccountId.accountId))
+                .where(and(
+                    eq(frs9ImpCaResultD.accountId, contractDetail.accountId),
+                    eq(frs9ImpCaResultD.prcDate, contractDetail.prcDate),
+                ))
+                .orderBy(asc(frs9ImpCaResultD.flSeq))
+            const [individualSummaryRows, individualDetails, journalDetails] = await Promise.all([
                 db
                     .select({
                         reportingDate: frs9ImpIaResultH.prcDate,
@@ -654,6 +637,16 @@ impairmentRoutes.openapi(
                 pagination: { total: results.length, page: 1, limit: 50, totalPages: 1 }
             } as any)
         } catch (error) {
+            const msg = String(error)
+            // Table missing (e.g. frs9_imp_ca_ecl_sum not created in this env) — return empty
+            if (msg.includes('does not exist') || msg.includes('relation') && msg.includes('ecl_sum')) {
+                console.warn('⚠️ ECL calculations table not available, returning empty')
+                return c.json({
+                    success: true,
+                    data: [],
+                    pagination: { total: 0, page: 1, limit: 50, totalPages: 0 }
+                } as any)
+            }
             console.error('Error fetching impairment calculations:', error)
             return c.json(buildErrorResponse(c, {
                 error: 'Failed to fetch calculations',
@@ -766,16 +759,55 @@ impairmentRoutes.openapi(
             const offset = (page - 1) * limit
             const accountId = c.req.query('accountId')
 
-            let query = db.select().from(frs9ImpCaResultD)
-
-            if (accountId) {
-                query = query.where(eq(frs9ImpCaResultD.accountId, Number(accountId))) as any
-            }
-
-            const data = await query
+            let eclQuery = db
+                .select({
+                    prcDate: frs9ImpCaResultD.prcDate,
+                    accountId: frs9ImpCaResultD.accountId,
+                    accountNumber: frs9AccountId.accountNumber,
+                    eclConfigId: frs9ImpCaResultD.eclConfigId,
+                    eclModelId: frs9ImpCaResultD.eclModelId,
+                    defaultRuleId: frs9ImpCaResultD.defaultRuleId,
+                    periodDate: frs9ImpCaResultD.periodDate,
+                    pdConfigId: frs9ImpCaResultD.pdConfigId,
+                    bucketId: frs9ImpCaResultD.bucketId,
+                    lgd: frs9ImpCaResultD.lgd,
+                    cifNumber: frs9ImpCaResultD.cifNumber,
+                    fibAmt: frs9ImpCaResultD.fibAmt,
+                    accruedInterest: frs9ImpCaResultD.accruedInterest,
+                    stage: frs9ImpCaResultD.stage,
+                    eqvOutstanding: frs9ImpCaResultD.eqvOutstanding,
+                    eir: frs9ImpCaResultD.eir,
+                    eadConfigId: frs9ImpCaResultD.eadConfigId,
+                    eadMethod: frs9ImpCaResultD.eadMethod,
+                    eadCalcMethod: frs9ImpCaResultD.eadCalcMethod,
+                    flSeq: frs9ImpCaResultD.flSeq,
+                    paymentEom: frs9ImpCaResultD.paymentEom,
+                    paymAvg: frs9ImpCaResultD.paymAvg,
+                    principal: frs9ImpCaResultD.principal,
+                    sumPrincipal: frs9ImpCaResultD.sumPrincipal,
+                    interest: frs9ImpCaResultD.interest,
+                    nextInterest: frs9ImpCaResultD.nextInterest,
+                    sumNextInterest: frs9ImpCaResultD.sumNextInterest,
+                    ead: frs9ImpCaResultD.ead,
+                    probability: frs9ImpCaResultD.probability,
+                    pdNonFl: frs9ImpCaResultD.pdNonFl,
+                    pd: frs9ImpCaResultD.pd,
+                    eclBfl: frs9ImpCaResultD.eclBfl,
+                    eclAfl: frs9ImpCaResultD.eclAfl,
+                    eclWeightedBfl: frs9ImpCaResultD.eclWeightedBfl,
+                    eclWeightedAfl: frs9ImpCaResultD.eclWeightedAfl,
+                } as any)
+                .from(frs9ImpCaResultD)
+                .leftJoin(frs9AccountId, eq(frs9ImpCaResultD.accountId, frs9AccountId.accountId))
                 .orderBy(desc(frs9ImpCaResultD.prcDate))
                 .limit(limit)
                 .offset(offset)
+
+            if (accountId) {
+                eclQuery = eclQuery.where(eq(frs9ImpCaResultD.accountId, Number(accountId))) as any
+            }
+
+            const data = await eclQuery
 
             return c.json({
                 success: true,
