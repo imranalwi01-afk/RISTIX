@@ -4,7 +4,9 @@ import React, { memo } from 'react';
 import { Box, Typography, Divider, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { Assessment as AssessmentIcon, TableChart as TableChartIcon, Timeline as TimelineIcon, Download as DownloadIcon } from '@mui/icons-material';
-import { api } from '@/services/api';
+import { useSnackbar } from 'notistack';
+import { API_BASE_URL } from '@/services/api-setup';
+import { getAuthToken } from '@/utils/auth-token';
 
 interface RAnalyticsComprehensiveDetailProps {
   data: any;
@@ -12,6 +14,7 @@ interface RAnalyticsComprehensiveDetailProps {
 }
 
 export const RAnalyticsComprehensiveDetail = memo(function RAnalyticsComprehensiveDetail({ data, hideDownloadButton }: RAnalyticsComprehensiveDetailProps) {
+  const { enqueueSnackbar } = useSnackbar();
   const payload = data || {};
   
   // Fallback to root level if nested objects don't exist (this matches our actual payload shape)
@@ -61,10 +64,62 @@ export const RAnalyticsComprehensiveDetail = memo(function RAnalyticsComprehensi
             color="info"
             size="small"
             startIcon={<DownloadIcon />}
-            onClick={() => {
-              const baseUrl = api.client.defaults.baseURL || '/api/v1';
-              const fullUrl = baseUrl.startsWith('http') ? baseUrl : `${window.location.origin}${baseUrl}`;
-              window.open(`${fullUrl}/r-analytics/pd-afl-history/${payload.id}/download`, '_blank', 'noopener,noreferrer');
+            onClick={async () => {
+              try {
+                const baseUrl = API_BASE_URL || '/api/v1';
+                const fullUrl = baseUrl.startsWith('http') ? baseUrl : `${window.location.origin}${baseUrl}`;
+                
+                const res = await fetch(`${fullUrl}/r-analytics/pd-afl-history/${payload.id}/download`, {
+                  headers: {
+                    'Authorization': `Bearer ${getAuthToken()}`
+                  }
+                });
+
+                if (!res.ok) {
+                  if (res.status === 404) {
+                    const contentType = res.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                      const text = await res.text();
+                      try {
+                        const json = JSON.parse(text);
+                        if (json.success === false) {
+                          enqueueSnackbar(`Gagal mengunduh: ${json.error || 'File tidak ditemukan'}`, { variant: 'error' });
+                          return;
+                        }
+                      } catch (e) {}
+                    }
+                    enqueueSnackbar('File tidak ditemukan. File output belum tersimpan atau data kosong pada proses sebelumnya.', { variant: 'error' });
+                  } else {
+                    enqueueSnackbar(`Terjadi kesalahan server saat mengunduh file (HTTP ${res.status})`, { variant: 'error' });
+                  }
+                  return;
+                }
+
+                // If success, create blob and download
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                
+                // Try to get filename from headers, otherwise fallback to default
+                let filename = `Report_Data_${payload.id}.xlsx`;
+                const contentDisposition = res.headers.get('content-disposition');
+                if (contentDisposition && contentDisposition.includes('filename=')) {
+                  const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+                  if (matches != null && matches[1]) { 
+                    filename = matches[1].replace(/['"]/g, '');
+                  }
+                }
+                
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+              } catch (err) {
+                console.error('Failed to download report', err);
+                enqueueSnackbar('Terjadi kesalahan jaringan saat mengunduh file.', { variant: 'error' });
+              }
             }}
           >
             Download Excel Result
