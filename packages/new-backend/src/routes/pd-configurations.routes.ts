@@ -135,6 +135,51 @@ app.openapi(
     }
 )
 
+// Metadata endpoints
+
+/**
+ * Get Metadata Methods.
+ * Retrieve available methods metadata.
+ * 
+ * @route GET /api/v1/banking/parameters/pd-configurations/metadata/methods
+ */
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/metadata/methods',
+        tags: ['PD Configurations'],
+        summary: 'Get Metadata Methods',
+        responses: {
+            200: { content: { 'application/json': { schema: MetadataResponse } }, description: 'Metadata' }
+        }
+    }),
+    async (c) => {
+        return runEffect(c, PdConfigurationsService.getMethods() as any) as any
+    }
+)
+
+/**
+ * Get Metadata Population Types.
+ * Retrieve available population types metadata.
+ * 
+ * @route GET /api/v1/banking/parameters/pd-configurations/metadata/population-types
+ */
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/metadata/population-types',
+        tags: ['PD Configurations'],
+        summary: 'Get Metadata Population Types',
+        responses: {
+            200: { content: { 'application/json': { schema: MetadataResponse } }, description: 'Metadata' }
+        }
+    }),
+    async (c) => {
+        return runEffect(c, PdConfigurationsService.getPopulationTypes() as any) as any
+    }
+)
+
+
 /**
  * Get PD Configuration.
  * Retrieve a specific PD configuration by ID.
@@ -304,50 +349,6 @@ app.openapi(
             )
         )
         return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
-    }
-)
-
-// Metadata endpoints
-
-/**
- * Get Metadata Methods.
- * Retrieve available methods metadata.
- * 
- * @route GET /api/v1/banking/parameters/pd-configurations/metadata/methods
- */
-app.openapi(
-    createRoute({
-        method: 'get',
-        path: '/metadata/methods',
-        tags: ['PD Configurations'],
-        summary: 'Get Metadata Methods',
-        responses: {
-            200: { content: { 'application/json': { schema: MetadataResponse } }, description: 'Metadata' }
-        }
-    }),
-    async (c) => {
-        return runEffect(c, PdConfigurationsService.getMethods() as any) as any
-    }
-)
-
-/**
- * Get Metadata Population Types.
- * Retrieve available population types metadata.
- * 
- * @route GET /api/v1/banking/parameters/pd-configurations/metadata/population-types
- */
-app.openapi(
-    createRoute({
-        method: 'get',
-        path: '/metadata/population-types',
-        tags: ['PD Configurations'],
-        summary: 'Get Metadata Population Types',
-        responses: {
-            200: { content: { 'application/json': { schema: MetadataResponse } }, description: 'Metadata' }
-        }
-    }),
-    async (c) => {
-        return runEffect(c, PdConfigurationsService.getPopulationTypes() as any) as any
     }
 )
 

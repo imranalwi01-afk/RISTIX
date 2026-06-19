@@ -1,24 +1,39 @@
 const { Client } = require('pg');
 
 const client = new Client({
-  connectionString: process.env.DATABASE_URL
+  connectionString: 'postgresql://postgres:postgres@10.8.0.2:5433/FRS9PRO'
 });
 
-async function check() {
+async function run() {
   try {
     await client.connect();
-    const res = await client.query(`SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'frs9_r_pd_afl';`);
-    if (res.rows.length > 0) {
-      console.log('Tabel frs9_r_pd_afl ditemukan! Berikut struktur kolomnya:');
-      console.table(res.rows);
-    } else {
-      console.log('Tabel TIDAK ditemukan.');
+    
+    const tables = [
+      'frs9_imp_ca_lgd_config',
+      'frs9_imp_ca_lgd_d',
+      'frs9_imp_ca_lgd_data',
+      'frs9_imp_ca_lgd_h',
+      'frs9_imp_ca_lgd_rec_d',
+      'frs9_imp_ca_result_d',
+      'frs9_imp_ca_result_h',
+      'frs9_imp_ca_ead_config'
+    ];
+
+    for (const table of tables) {
+      console.log(`\nQuerying columns for ${table}...`);
+      const res = await client.query(`
+          SELECT column_name, data_type 
+          FROM information_schema.columns 
+          WHERE table_name = '${table}'
+      `);
+      console.log(res.rows.map(r => r.column_name).join(', '));
     }
-  } catch (error) {
-    console.error(error);
+
+  } catch (err) {
+    console.error("Error executing queries:", err.message);
   } finally {
     await client.end();
   }
 }
 
-check();
+run();

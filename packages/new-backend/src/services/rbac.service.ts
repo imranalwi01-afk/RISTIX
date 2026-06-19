@@ -12,7 +12,8 @@ import {
     type Role,
     permissions as permissionsTable,
     roles as rolesTable,
-    rolePermissions as rolePermissionsTable
+    rolePermissions as rolePermissionsTable,
+    userRoles as userRolesTable
 } from '@/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { DatabaseError, NotFoundError, ValidationError, BusinessError } from '@/lib/errors'
@@ -264,42 +265,59 @@ export const assignRole = (input: {
     pipe(
         // Check if role exists
         findRole(input.roleId, input.tenantId),
-        // Check if assignment already exists
         Effect.flatMap(() =>
-            pipe(
-                Effect.try(() => getDatabase(input.tenantId)),
-                Effect.mapError(e => new DatabaseError({ operation: 'query', message: String(e) })),
-                Effect.flatMap(db => userRolesRepository.findByUser(db, input.userId, input.tenantId))
-            )
-        ),
-        Effect.flatMap((existingRoles) => {
-            const exists = existingRoles.some(ur => ur.roleId === input.roleId)
-            return exists
-                ? Effect.fail(
-                    new ValidationError({
-                        message: 'User already has this role assigned',
-                        field: 'roleId',
-                        errors: ['Duplicate role assignment'],
+            Effect.tryPromise({
+                try: async () => {
+                    const db = getDatabase(input.tenantId)
+                    const existingAssignment = await db.query.userRoles.findFirst({
+                        where: and(
+                            eq(userRolesTable.userId, input.userId),
+                            eq(userRolesTable.roleId, input.roleId),
+                            eq(userRolesTable.tenantId, input.tenantId)
+                        ),
                     })
-                )
-                : Effect.succeed(undefined)
-        }),
-        // Create assignment
-        Effect.flatMap(() =>
-            pipe(
-                Effect.try(() => getDatabase(input.tenantId)),
-                Effect.mapError(e => new DatabaseError({ operation: 'query', message: String(e) })),
-                Effect.flatMap(db => userRolesRepository.assign(db, {
-                    userId: input.userId,
-                    roleId: input.roleId,
-                    tenantId: input.tenantId,
-                    assignedBy: input.assignedBy,
-                    validFrom: input.validFrom,
-                    validUntil: input.validUntil,
-                    isTemporary: input.isTemporary,
-                    temporaryReason: input.temporaryReason
-                } as any))
-            )
+
+                    if (existingAssignment?.isActive) {
+                        throw new ValidationError({
+                            message: 'User already has this role assigned',
+                            field: 'roleId',
+                            errors: ['Duplicate role assignment'],
+                        })
+                    }
+
+                    if (existingAssignment) {
+                        const [reactivated] = await db
+                            .update(userRolesTable)
+                            .set({
+                                assignedBy: input.assignedBy,
+                                validFrom: input.validFrom,
+                                validUntil: input.validUntil,
+                                isTemporary: input.isTemporary,
+                                temporaryReason: input.temporaryReason,
+                                isActive: true,
+                                updatedAt: new Date(),
+                            } as any)
+                            .where(eq(userRolesTable.id, existingAssignment.id))
+                            .returning()
+
+                        return reactivated
+                    }
+
+                    return await Effect.runPromise(userRolesRepository.assign(db, {
+                        userId: input.userId,
+                        roleId: input.roleId,
+                        tenantId: input.tenantId,
+                        assignedBy: input.assignedBy,
+                        validFrom: input.validFrom,
+                        validUntil: input.validUntil,
+                        isTemporary: input.isTemporary,
+                        temporaryReason: input.temporaryReason
+                    } as any))
+                },
+                catch: e => e instanceof ValidationError
+                    ? e
+                    : new DatabaseError({ operation: 'query', message: String(e) }),
+            })
         )
     )
 

@@ -956,21 +956,47 @@ async function executeRoleAction(
     tenantId: string
 ): Promise<void> {
     const { createRole, updateRole, deleteRole } = await import('./rbac.service')
-    const { permissionsRepository, rolePermissionsRepository } = await import('@/repositories/rbac.repository')
+    const { rolePermissionsRepository } = await import('@/repositories/rbac.repository')
     const { permissions: permissionsTable } = await import('@/db/schema')
     const db = getDatabase(tenantId)
+    const resolvePermissionIds = async (input: unknown): Promise<string[]> => {
+        if (!Array.isArray(input)) return []
+
+        const requestedPermissions = Array.from(new Set(
+            input.filter((entry: unknown): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+                .map((entry) => entry.trim())
+        ))
+
+        if (requestedPermissions.length === 0) return []
+
+        const matched = await db
+            .select({ id: permissionsTable.id, code: permissionsTable.code })
+            .from(permissionsTable)
+            .where(sql`(${permissionsTable.id}::text = ANY(${requestedPermissions}::varchar[]) OR ${permissionsTable.code} = ANY(${requestedPermissions}::varchar[]))`)
+
+        const permissionLookup = new Map<string, string>()
+        for (const permission of matched as any[]) {
+            permissionLookup.set(permission.id, permission.id)
+            permissionLookup.set(permission.code, permission.id)
+        }
+
+        const unknownPermissions = requestedPermissions.filter((entry) => !permissionLookup.has(entry))
+        if (unknownPermissions.length > 0) {
+            throw new Error(`Unknown role permissions in role approval payload: ${unknownPermissions.join(', ')}`)
+        }
+
+        return requestedPermissions
+            .map((entry) => permissionLookup.get(entry))
+            .filter((entry: string | undefined): entry is string => typeof entry === 'string')
+    }
 
     switch (operation) {
         case 'create': {
             const { permissions: permCodes, ...roleData } = data
+            const permissionIds = await resolvePermissionIds(permCodes)
             const [role] = await Effect.runPromise(createRole({ ...roleData, tenantId }) as any)
-            if (role && Array.isArray(permCodes) && permCodes.length > 0) {
-                const matched = await db.select({ id: permissionsTable.id }).from(permissionsTable)
-                    .where(sql`${permissionsTable.code} = ANY(${permCodes}::varchar[])`)
-                const ids = matched.map((r: any) => r.id).filter(Boolean)
-                if (ids.length > 0) {
-                    await Effect.runPromise(rolePermissionsRepository.set(db, role.id, ids))
-                }
+            if (role && permissionIds.length > 0) {
+                await Effect.runPromise(rolePermissionsRepository.set(db, role.id, permissionIds))
             }
             break
         }
@@ -979,12 +1005,10 @@ async function executeRoleAction(
                 throw new Error('Missing role id in role update approval payload')
             }
             const { permissions: permCodes, ...roleData } = data
+            const permissionIds = await resolvePermissionIds(permCodes)
             await Effect.runPromise(updateRole(data.id, { ...roleData, tenantId }) as any)
             if (Array.isArray(permCodes)) {
-                const matched = await db.select({ id: permissionsTable.id }).from(permissionsTable)
-                    .where(sql`${permissionsTable.code} = ANY(${permCodes}::varchar[])`)
-                const ids = matched.map((r: any) => r.id).filter(Boolean)
-                await Effect.runPromise(rolePermissionsRepository.set(db, data.id, ids))
+                await Effect.runPromise(rolePermissionsRepository.set(db, data.id, permissionIds))
             }
             break
         }

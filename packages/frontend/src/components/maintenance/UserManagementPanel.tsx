@@ -512,7 +512,13 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
         open={manageUser !== null}
         user={manageUser}
         onClose={handleManageRolesClose}
-        onSaved={() => { setSnackbar({ open: true, message: 'Roles updated successfully', severity: 'success' }); }}
+        onSaved={(message) => {
+          setSnackbar({
+            open: true,
+            message: message || 'Roles updated successfully',
+            severity: message ? 'info' : 'success',
+          });
+        }}
       />
 
       <ResetPasswordDialog
