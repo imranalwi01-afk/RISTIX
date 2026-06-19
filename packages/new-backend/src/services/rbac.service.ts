@@ -10,12 +10,13 @@ import { getDatabase } from '@/config/database'
 import {
     type NewRole,
     type Role,
+    approvalRequests as approvalRequestsTable,
     permissions as permissionsTable,
     roles as rolesTable,
     rolePermissions as rolePermissionsTable,
     userRoles as userRolesTable
 } from '@/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, sql, asc } from 'drizzle-orm'
 import { DatabaseError, NotFoundError, ValidationError, BusinessError } from '@/lib/errors'
 import { PermissionApprovalService } from './permission-approval.service'
 
@@ -208,6 +209,103 @@ export const deleteRole = (roleId: string, tenantId?: string) =>
 // USER-ROLE ASSIGNMENT OPERATIONS
 // =============================================================================
 
+const extractApprovedRoleAssignmentPayload = (request: any): {
+    operation: 'create' | 'delete'
+    userId: string
+    roleId: string
+    assignedBy?: string
+    validFrom?: Date
+    validUntil?: Date
+    isTemporary?: boolean
+    temporaryReason?: string
+} | null => {
+    const requestData = request?.requestData ?? {}
+    const data = requestData?.data ?? requestData
+    const operation = String(requestData?.operation ?? data?.operation ?? '').toLowerCase()
+
+    if (
+        (operation !== 'create' && operation !== 'delete') ||
+        typeof data?.userId !== 'string' ||
+        typeof data?.roleId !== 'string'
+    ) {
+        return null
+    }
+
+    return {
+        operation,
+        userId: data.userId,
+        roleId: data.roleId,
+        assignedBy: typeof data.assignedBy === 'string' ? data.assignedBy : undefined,
+        validFrom: data.validFrom ? new Date(data.validFrom) : undefined,
+        validUntil: data.validUntil ? new Date(data.validUntil) : undefined,
+        isTemporary: Boolean(data.isTemporary),
+        temporaryReason: typeof data.temporaryReason === 'string' ? data.temporaryReason : undefined,
+    }
+}
+
+const reconcileApprovedRoleAssignmentsForUser = (userId: string, tenantId: string) =>
+    Effect.tryPromise({
+        try: async () => {
+            try {
+                const db = getDatabase(tenantId)
+                const approvedRequests = await db.query.approvalRequests.findMany({
+                    where: and(
+                        eq(approvalRequestsTable.tenantId, tenantId),
+                        eq(approvalRequestsTable.entityType, 'role_assignment'),
+                        eq(approvalRequestsTable.status, 'approved'),
+                        sql`coalesce(${approvalRequestsTable.requestData}->>'operation', '') in ('create', 'delete')`,
+                        sql`${approvalRequestsTable.requestData}->'data'->>'userId' = ${userId}`
+                    ),
+                    orderBy: [asc(approvalRequestsTable.completedAt), asc(approvalRequestsTable.createdAt)],
+                })
+
+                const desiredAssignments = new Map<string, ReturnType<typeof extractApprovedRoleAssignmentPayload>>()
+                for (const request of approvedRequests) {
+                    const payload = extractApprovedRoleAssignmentPayload(request)
+                    if (!payload || payload.userId !== userId) continue
+                    desiredAssignments.set(payload.roleId, payload)
+                }
+
+                for (const payload of desiredAssignments.values()) {
+                    if (!payload) continue
+
+                    const existingAssignment = await db.query.userRoles.findFirst({
+                        where: and(
+                            eq(userRolesTable.userId, payload.userId),
+                            eq(userRolesTable.roleId, payload.roleId),
+                            eq(userRolesTable.tenantId, tenantId)
+                        ),
+                    })
+
+                    if (payload.operation === 'create') {
+                        if (existingAssignment?.isActive) {
+                            if (!payload.validFrom && existingAssignment.validFrom && existingAssignment.validFrom > new Date()) {
+                                await db
+                                    .update(userRolesTable)
+                                    .set({ validFrom: null, updatedAt: new Date() } as any)
+                                    .where(eq(userRolesTable.id, existingAssignment.id))
+                            }
+                            continue
+                        }
+                        await Effect.runPromise(assignRole({ ...payload, tenantId }))
+                        continue
+                    }
+
+                    if (existingAssignment?.isActive) {
+                        await Effect.runPromise(removeRole(payload.userId, payload.roleId, tenantId))
+                    }
+                }
+            } catch (error) {
+                console.warn('[RBACService] Approved role assignment reconciliation skipped:', error)
+            }
+        },
+        catch: (error: unknown) =>
+            new DatabaseError({
+                operation: 'query',
+                message: String(error),
+            }),
+    })
+
 /**
  * Retrieve all active roles currently assigned to a user.
  * 
@@ -217,7 +315,10 @@ export const deleteRole = (roleId: string, tenantId?: string) =>
  */
 export const getUserRoles = (userId: string, tenantId: string) =>
     pipe(
-        Effect.try(() => getDatabase(tenantId)),
+        reconcileApprovedRoleAssignmentsForUser(userId, tenantId),
+        Effect.flatMap(() =>
+            Effect.try(() => getDatabase(tenantId)),
+        ),
         Effect.mapError(e => new DatabaseError({ operation: 'query', message: String(e) })),
         Effect.flatMap(db => userRolesRepository.findByUser(db, userId, tenantId)),
         Effect.map(allUserRoles => {
@@ -290,8 +391,8 @@ export const assignRole = (input: {
                             .update(userRolesTable)
                             .set({
                                 assignedBy: input.assignedBy,
-                                validFrom: input.validFrom,
-                                validUntil: input.validUntil,
+                                validFrom: input.validFrom ?? null,
+                                validUntil: input.validUntil ?? null,
                                 isTemporary: input.isTemporary,
                                 temporaryReason: input.temporaryReason,
                                 isActive: true,
@@ -308,8 +409,8 @@ export const assignRole = (input: {
                         roleId: input.roleId,
                         tenantId: input.tenantId,
                         assignedBy: input.assignedBy,
-                        validFrom: input.validFrom,
-                        validUntil: input.validUntil,
+                        validFrom: input.validFrom ?? null,
+                        validUntil: input.validUntil ?? null,
                         isTemporary: input.isTemporary,
                         temporaryReason: input.temporaryReason
                     } as any))
