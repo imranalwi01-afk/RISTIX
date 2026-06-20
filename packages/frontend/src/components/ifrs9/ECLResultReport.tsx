@@ -55,6 +55,9 @@ interface SummaryStats {
   stage1ECL: number;
   stage2ECL: number;
   stage3ECL: number;
+  stage1Outstanding: number;
+  stage2Outstanding: number;
+  stage3Outstanding: number;
   totalOutstanding: number;
   eclRatio: number;
   totalOverlay: number;
@@ -63,7 +66,22 @@ interface SummaryStats {
   stageDistribution: { name: string; value: number; color: string }[];
 }
 
-const MonitoringPanel: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
+const MonitoringPanel: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
+  const stageRows = useMemo(() => [
+    { name: 'Stage 1', ecl: stats.stage1ECL, outstanding: stats.stage1Outstanding, color: '#4CAF50' },
+    { name: 'Stage 2', ecl: stats.stage2ECL, outstanding: stats.stage2Outstanding, color: '#FF9800' },
+    { name: 'Stage 3', ecl: stats.stage3ECL, outstanding: stats.stage3Outstanding, color: '#F44336' },
+  ], [stats.stage1ECL, stats.stage2ECL, stats.stage3ECL, stats.stage1Outstanding, stats.stage2Outstanding, stats.stage3Outstanding]);
+
+  const compactCurrency = (value: number) =>
+    new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      notation: 'compact',
+      maximumFractionDigits: 1
+    }).format(value);
+
+  return (
   <Card sx={{
     mb: 5,
     borderRadius: 4,
@@ -83,24 +101,23 @@ const MonitoringPanel: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
         <Grid size={{ xs: 12, md: 5 }}>
           <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <TableContainer component={Paper} variant="outlined" sx={{ width: '100%', maxWidth: '100%', borderRadius: 3, overflowX: 'unset' }}>
-              <Table size="small" sx={{ minWidth: 360 }}>
+              <Table size="small" sx={{ minWidth: 480 }}>
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 800 }}>Stage</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 800 }}>ECL Amount</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 800 }}>Outstanding</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 800 }}>ECL</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 800 }}>Coverage</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {stats.stageDistribution.map((stage) => (
+                {stageRows.map((stage) => (
                   <TableRow key={stage.name}>
                     <TableCell>{stage.name}</TableCell>
+                    <TableCell align="right">{compactCurrency(stage.outstanding)}</TableCell>
+                    <TableCell align="right">{compactCurrency(stage.ecl)}</TableCell>
                     <TableCell align="right">
-                      {new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        notation: 'compact',
-                        maximumFractionDigits: 1
-                      }).format(stage.value)}
+                      {stage.outstanding > 0 ? ((stage.ecl / stage.outstanding) * 100).toFixed(2) : '0.00'}%
                     </TableCell>
                   </TableRow>
                 ))}
@@ -152,7 +169,8 @@ const MonitoringPanel: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
       </Grid>
     </CardContent>
   </Card>
-);
+  );
+};
 
 const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
   const { bankingMode } = useBankingTheme();
@@ -565,6 +583,9 @@ const ECLResultReport: React.FC = () => {
     stage1ECL: 0,
     stage2ECL: 0,
     stage3ECL: 0,
+    stage1Outstanding: 0,
+    stage2Outstanding: 0,
+    stage3Outstanding: 0,
     totalOutstanding: 0,
     eclRatio: 0,
     totalOverlay: 0,
@@ -580,6 +601,9 @@ const ECLResultReport: React.FC = () => {
         stage1ECL: 0,
         stage2ECL: 0,
         stage3ECL: 0,
+        stage1Outstanding: 0,
+        stage2Outstanding: 0,
+        stage3Outstanding: 0,
         totalOutstanding: 0,
         eclRatio: 0,
         totalOverlay: 0,
@@ -638,6 +662,9 @@ const ECLResultReport: React.FC = () => {
         stage1ECL: (acc.stage1ECL || 0) + (stage === 1 ? eclAmount : 0),
         stage2ECL: (acc.stage2ECL || 0) + (stage === 2 ? eclAmount : 0),
         stage3ECL: (acc.stage3ECL || 0) + (stage === 3 ? eclAmount : 0),
+        stage1Outstanding: (acc.stage1Outstanding || 0) + (stage === 1 ? outstanding : 0),
+        stage2Outstanding: (acc.stage2Outstanding || 0) + (stage === 2 ? outstanding : 0),
+        stage3Outstanding: (acc.stage3Outstanding || 0) + (stage === 3 ? outstanding : 0),
         totalOverlay: (acc.totalOverlay || 0) + getMetric(row, [
           'ecl_overlay',
           'eclOverlay',
