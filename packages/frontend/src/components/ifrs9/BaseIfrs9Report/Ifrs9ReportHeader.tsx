@@ -123,11 +123,13 @@ const Ifrs9ReportHeader: React.FC<Ifrs9ReportHeaderProps> = ({
           />
           <Chip
             label="Live Production Data"
-            color="success"
             size="small"
             sx={{
               fontWeight: 700,
-              boxShadow: '0 2px 8px rgba(76, 175, 80, 0.4)',
+              bgcolor: 'rgba(255, 255, 255, 0.18)',
+              color: 'white',
+              border: '1px solid rgba(255, 255, 255, 0.28)',
+              boxShadow: '0 2px 8px rgba(13, 71, 161, 0.28)',
               display: { xs: 'none', md: 'flex' }
             }}
           />

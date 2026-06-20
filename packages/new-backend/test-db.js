@@ -1,14 +1,21 @@
-import { getDatabase } from './src/config/database.js';
-import { tenantsRepository } from './src/repositories/tenants.repository.js';
-
-console.log('Testing database connection...');
-
-try {
-  const db = getDatabase(null); // Platform DB
-  console.log('Database connection created');
-  
-  const result = await tenantsRepository.findAll();
-  console.log('Tenants query result:', result);
-} catch (error) {
-  console.error('Database error:', error);
-}
+import pg from 'pg';
+const pool = new pg.Pool({ connectionString: 'postgresql://postgres:postgres@10.8.0.2:5433/ifrspro_platform_admin' });
+pool.query(`
+  SELECT table_schema, table_name 
+  FROM information_schema.columns 
+  WHERE column_name = 'prc_date'
+`).then(async res => {
+  const tables = res.rows;
+  console.log(`Checking ${tables.length} tables in ifrspro_platform_admin for 2026-05...`);
+  for (const {table_schema, table_name} of tables) {
+    try {
+      const { rows } = await pool.query(`SELECT COUNT(*) as count FROM ${table_schema}.${table_name} WHERE CAST(prc_date AS TEXT) LIKE '2026-05%'`);
+      if (rows[0].count > 0) {
+        console.log(`Table ${table_schema}.${table_name} has ${rows[0].count} records for May 2026`);
+      }
+    } catch (e) {
+      // Ignore
+    }
+  }
+  pool.end();
+}).catch(err => { console.error(err); pool.end(); });

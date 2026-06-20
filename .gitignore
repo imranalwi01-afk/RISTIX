@@ -123,3 +123,4 @@ packages/e2e/test-results/
 
 deployment_package/
 package.json
+*.logs

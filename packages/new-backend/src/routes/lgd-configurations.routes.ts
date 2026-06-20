@@ -116,6 +116,58 @@ app.openapi(
     }
 )
 
+// METADATA
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/metadata/methods',
+        tags: ['LGD Configurations'],
+        summary: 'Get Metadata Methods',
+        responses: {
+            200: {
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            data: z.array(z.object({ value: z.union([z.string(), z.number()]), label: z.string() }))
+                        })
+                    }
+                },
+                description: 'Metadata'
+            }
+        }
+    }),
+    async (c) => {
+        return runEffect(c, LgdConfigurationsService.getMethods()) as any
+    }
+)
+
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/metadata/population-types',
+        tags: ['LGD Configurations'],
+        summary: 'Get Metadata Population Types',
+        responses: {
+            200: {
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            data: z.array(z.object({ value: z.string(), label: z.string() }))
+                        })
+                    }
+                },
+                description: 'Metadata'
+            }
+        }
+    }),
+    async (c) => {
+        return runEffect(c, LgdConfigurationsService.getPopulationTypes()) as any
+    }
+)
+
+
 // GET /api/v1/banking/parameters/lgd-configurations/:id
 app.openapi(
     createRoute({
@@ -296,57 +348,6 @@ app.openapi(
             )
         )
         return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
-    }
-)
-
-// METADATA
-app.openapi(
-    createRoute({
-        method: 'get',
-        path: '/metadata/methods',
-        tags: ['LGD Configurations'],
-        summary: 'Get Metadata Methods',
-        responses: {
-            200: {
-                content: {
-                    'application/json': {
-                        schema: z.object({
-                            success: z.boolean(),
-                            data: z.array(z.object({ value: z.union([z.string(), z.number()]), label: z.string() }))
-                        })
-                    }
-                },
-                description: 'Metadata'
-            }
-        }
-    }),
-    async (c) => {
-        return runEffect(c, LgdConfigurationsService.getMethods()) as any
-    }
-)
-
-app.openapi(
-    createRoute({
-        method: 'get',
-        path: '/metadata/population-types',
-        tags: ['LGD Configurations'],
-        summary: 'Get Metadata Population Types',
-        responses: {
-            200: {
-                content: {
-                    'application/json': {
-                        schema: z.object({
-                            success: z.boolean(),
-                            data: z.array(z.object({ value: z.string(), label: z.string() }))
-                        })
-                    }
-                },
-                description: 'Metadata'
-            }
-        }
-    }),
-    async (c) => {
-        return runEffect(c, LgdConfigurationsService.getPopulationTypes()) as any
     }
 )
 

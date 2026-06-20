@@ -87,7 +87,7 @@ export default function LifetimePDKPIs({
           value={`${y1pd.toFixed(2)}%`} 
           trend={-0.5} 
           icon={Timeline} 
-          color="#667eea"
+          color="#1976D2"
         />
       </Grid>
       <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -96,7 +96,7 @@ export default function LifetimePDKPIs({
           value={`${y3pd.toFixed(2)}%`} 
           trend={1.2} 
           icon={TrendingUp} 
-          color="#764ba2"
+          color="#0D47A1"
         />
       </Grid>
       <Grid size={{ xs: 12, sm: 6, md: 3 }}>

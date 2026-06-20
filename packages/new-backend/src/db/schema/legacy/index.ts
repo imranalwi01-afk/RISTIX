@@ -419,15 +419,12 @@ export const frs9ImpCaLgdConfig = pgTable("frs9_imp_ca_lgd_config", {
 	updatedby: varchar({ length: 50 }),
 	updateddate: timestamp({ mode: 'string' }),
 	updatedhost: varchar({ length: 50 }),
-	defaultRuleId: bigint("default_rule_id", { mode: "number" }),
-	cifFlag: smallint("cif_flag").default(0),
 	maxRecoveryPeriod: integer("max_recovery_period"),
 });
 
 export const frs9ImpCaLgdD = pgTable("frs9_imp_ca_lgd_d", {
 	prcDate: date("prc_date").notNull(),
 	lgdConfigId: smallint("lgd_config_id").notNull(),
-	defaultRuleId: smallint("default_rule_id").notNull(),
 	lgdMethod: smallint("lgd_method"),
 	defaultType: varchar("default_type", { length: 5 }),
 	accountId: bigint("account_id", { mode: "number" }).notNull(),
@@ -445,7 +442,6 @@ export const frs9ImpCaLgdD = pgTable("frs9_imp_ca_lgd_d", {
 export const frs9ImpCaLgdData = pgTable("frs9_imp_ca_lgd_data", {
 	prcDate: date("prc_date").notNull(),
 	lgdConfigId: smallint("lgd_config_id").notNull(),
-	defaultRuleId: smallint("default_rule_id").notNull(),
 	lgdMethod: smallint("lgd_method"),
 	accountId: bigint("account_id", { mode: "number" }).notNull(),
 	accountNumber: varchar("account_number", { length: 50 }),
@@ -468,7 +464,6 @@ export const frs9ImpCaLgdData = pgTable("frs9_imp_ca_lgd_data", {
 export const frs9ImpCaLgdH = pgTable("frs9_imp_ca_lgd_h", {
 	prcDate: date("prc_date"),
 	lgdConfigId: smallint("lgd_config_id").notNull(),
-	defaultRuleId: smallint("default_rule_id").notNull(),
 	lgdMethod: smallint("lgd_method"),
 	modelId: smallint("model_id"),
 	eqvOs: numeric("eqv_os", { precision: 32, scale: 6 }),
@@ -663,7 +658,6 @@ export const frs9ImpCaResultD = pgTable("frs9_imp_ca_result_d", {
 	prcDate: date("prc_date"),
 	eclConfigId: smallint("ecl_config_id"),
 	eclModelId: bigint("ecl_model_id", { mode: "number" }),
-	defaultRuleId: smallint("default_rule_id"),
 	accountId: bigint("account_id", { mode: "number" }),
 	periodDate: date("period_date"),
 	pdConfigId: bigint("pd_config_id", { mode: "number" }),
@@ -761,7 +755,6 @@ export const frs9ImpCaResultH = pgTable("frs9_imp_ca_result_h", {
 	prcDate: date("prc_date").notNull(),
 	eclConfigId: smallint("ecl_config_id").notNull(),
 	eclModelId: smallint("ecl_model_id").notNull(),
-	defaultRuleId: smallint("default_rule_id").notNull(),
 	pdConfigId: smallint("pd_config_id"),
 	lgdConfigId: smallint("lgd_config_id"),
 	eadConfigId: smallint("ead_config_id"),

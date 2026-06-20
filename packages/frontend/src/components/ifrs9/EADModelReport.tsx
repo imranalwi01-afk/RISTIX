@@ -74,11 +74,11 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
     switch (bankingMode) {
       case 'conventional':
         return {
-          primaryGradient: 'linear-gradient(135deg, #00695c 0%, #004d40 100%)',
-          secondaryGradient: 'linear-gradient(135deg, #00897b 0%, #00796b 100%)',
-          tertiaryGradient: 'linear-gradient(135deg, #4db6ac 0%, #26a69a 100%)',
-          quaternaryGradient: 'linear-gradient(135deg, #80cbc4 0%, #4db6ac 100%)',
-          mainColor: '#00695c'
+          primaryGradient: 'linear-gradient(135deg, #1976D2 0%, #0D47A1 100%)',
+          secondaryGradient: 'linear-gradient(135deg, #1565C0 0%, #0B3D91 100%)',
+          tertiaryGradient: 'linear-gradient(135deg, #0288D1 0%, #01579B 100%)',
+          quaternaryGradient: 'linear-gradient(135deg, #42A5F5 0%, #1976D2 100%)',
+          mainColor: '#1976D2'
         };
       case 'dual':
         return {
@@ -90,10 +90,10 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
         };
       default:
         return {
-          primaryGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          primaryGradient: 'linear-gradient(135deg, #1976D2 0%, #0D47A1 100%)',
           secondaryGradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
           tertiaryGradient: 'linear-gradient(135deg, #f9d423 0%, #ff4e50 100%)',
-          quaternaryGradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+          quaternaryGradient: 'linear-gradient(135deg, #42A5F5 0%, #1976D2 100%)',
           mainColor: '#1976D2'
         };
     }
@@ -202,15 +202,15 @@ const EADCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
                 yAxisId="left"
                 type="monotone"
                 dataKey="eadAmount"
-                stroke="#667eea"
+                stroke="#1976D2"
                 strokeWidth={3}
                 fill="url(#colorEad)"
                 name="EAD Amount"
               />
               <defs>
                 <linearGradient id="colorEad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#667eea" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#667eea" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#1976D2" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#1976D2" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <Line
@@ -226,7 +226,7 @@ const EADCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
                 yAxisId="right"
                 type="monotone"
                 dataKey="utilizationRate"
-                stroke="#43e97b"
+                stroke="#42A5F5"
                 strokeWidth={3}
                 dot={{ r: 4 }}
                 name="Utilization Rate"
@@ -266,8 +266,8 @@ const EADCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
                         label={row.product}
                         sx={{
                           fontWeight: 600,
-                          bgcolor: alpha('#667eea', 0.1),
-                          color: '#667eea',
+                          bgcolor: alpha('#1976D2', 0.1),
+                          color: '#1976D2',
                           border: 'none'
                         }}
                       />

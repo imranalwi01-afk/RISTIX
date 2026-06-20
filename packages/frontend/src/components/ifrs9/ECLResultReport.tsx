@@ -161,11 +161,11 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
     switch (bankingMode) {
       case 'conventional':
         return {
-          primaryGradient: 'linear-gradient(135deg, #00695c 0%, #004d40 100%)',
-          secondaryGradient: 'linear-gradient(135deg, #00897b 0%, #00796b 100%)',
-          tertiaryGradient: 'linear-gradient(135deg, #4db6ac 0%, #26a69a 100%)',
-          quaternaryGradient: 'linear-gradient(135deg, #80cbc4 0%, #4db6ac 100%)',
-          mainColor: '#00695c'
+          primaryGradient: 'linear-gradient(135deg, #1976D2 0%, #0D47A1 100%)',
+          secondaryGradient: 'linear-gradient(135deg, #1565C0 0%, #0B3D91 100%)',
+          tertiaryGradient: 'linear-gradient(135deg, #0288D1 0%, #01579B 100%)',
+          quaternaryGradient: 'linear-gradient(135deg, #42A5F5 0%, #1976D2 100%)',
+          mainColor: '#1976D2'
         };
       case 'dual':
         return {
@@ -226,8 +226,8 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
       value: stats.totalOverlay,
       format: 'currency',
       icon: <AssessmentIcon sx={{ fontSize: 32 }} />,
-      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      mainColor: '#667eea'
+      gradient: 'linear-gradient(135deg, #1976D2 0%, #0D47A1 100%)',
+      mainColor: '#1976D2'
     },
     {
       title: 'Impaired ECL (IA)',
@@ -247,7 +247,7 @@ const StageBreakdownCard: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
 
   const getStageColor = (stage: number) => {
     if (bankingMode === 'dual') {
-      return stage === 1 ? '#00897b' : stage === 2 ? '#00796b' : '#00695c';
+      return stage === 1 ? '#78909C' : stage === 2 ? '#546E7A' : '#37474F';
     }
     return stage === 1 ? '#4CAF50' : stage === 2 ? '#FF9800' : '#F44336';
   };

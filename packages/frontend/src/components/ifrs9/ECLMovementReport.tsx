@@ -68,18 +68,18 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
       value: stats.openingBalance,
       format: 'currency',
       icon: <TimelineIcon sx={{ fontSize: 24 }} />,
-      gradient: 'linear-gradient(135deg, #3A1C71 0%, #D76D77 50%, #FFAF7B 100%)',
-      mainColor: '#3A1C71',
-      secondaryColor: '#FFAF7B'
+      gradient: 'linear-gradient(135deg, #1976D2 0%, #0D47A1 100%)',
+      mainColor: '#1976D2',
+      secondaryColor: '#0D47A1'
     },
     {
       title: 'Closing Balance',
       value: stats.closingBalance,
       format: 'currency',
       icon: <TimelineIcon sx={{ fontSize: 24 }} />,
-      gradient: 'linear-gradient(135deg, #1D976C 0%, #93F9B9 100%)',
-      mainColor: '#1D976C',
-      secondaryColor: '#93F9B9'
+      gradient: 'linear-gradient(135deg, #1565C0 0%, #42A5F5 100%)',
+      mainColor: '#1565C0',
+      secondaryColor: '#42A5F5'
     },
     {
       title: 'Net Movement',
@@ -87,10 +87,10 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
       format: 'currency',
       icon: stats.netMovement >= 0 ? <IncreaseIcon sx={{ fontSize: 24 }} /> : <DecreaseIcon sx={{ fontSize: 24 }} />,
       gradient: stats.netMovement >= 0 
-        ? 'linear-gradient(135deg, #FF512F 0%, #DD2476 100%)' 
+        ? 'linear-gradient(135deg, #0288D1 0%, #01579B 100%)'
         : 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-      mainColor: stats.netMovement >= 0 ? '#DD2476' : '#4facfe',
-      secondaryColor: stats.netMovement >= 0 ? '#FF512F' : '#00f2fe'
+      mainColor: stats.netMovement >= 0 ? '#0288D1' : '#4facfe',
+      secondaryColor: stats.netMovement >= 0 ? '#01579B' : '#00f2fe'
     },
     {
       title: 'Volatility Index',
@@ -99,9 +99,9 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
         : '0.0%',
       format: 'raw',
       icon: <MovementIcon sx={{ fontSize: 24 }} />,
-      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      mainColor: '#667eea',
-      secondaryColor: '#764ba2'
+      gradient: 'linear-gradient(135deg, #455A64 0%, #263238 100%)',
+      mainColor: '#455A64',
+      secondaryColor: '#263238'
     }
   ];
 

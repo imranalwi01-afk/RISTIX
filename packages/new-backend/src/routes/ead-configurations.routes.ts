@@ -171,6 +171,49 @@ eadConfigurationsRoutes.openapi(
     }
 )
 
+// METADATA
+eadConfigurationsRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/metadata/methods',
+        tags: ['EAD Configurations'],
+        summary: 'Get EAD Methods',
+        responses: {
+            200: { content: { 'application/json': { schema: MetadataResponse } }, description: 'List Methods' }
+        }
+    }),
+    async (c) => {
+        return c.json({
+            success: true,
+            data: [
+                { value: 'CCF', label: 'CCF' },
+                { value: 'Prepayment', label: 'Prepayment' },
+            ],
+        })
+    }
+)
+
+eadConfigurationsRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/metadata/calc-methods',
+        tags: ['EAD Configurations'],
+        summary: 'Get Calc Methods',
+        responses: {
+            200: { content: { 'application/json': { schema: MetadataResponse } }, description: 'List Calc Methods' }
+        }
+    }),
+    async (c) => {
+        return c.json({
+            success: true,
+            data: [
+                { value: 'Revolving', label: 'Revolving' },
+                { value: 'Term Loan', label: 'Term Loan' },
+            ],
+        })
+    }
+)
+
 // GET /api/v1/banking/parameters/ead-configurations/:id
 eadConfigurationsRoutes.openapi(
     createRoute({
@@ -393,45 +436,3 @@ eadConfigurationsRoutes.openapi(
     }
 )
 
-// METADATA
-eadConfigurationsRoutes.openapi(
-    createRoute({
-        method: 'get',
-        path: '/metadata/methods',
-        tags: ['EAD Configurations'],
-        summary: 'Get EAD Methods',
-        responses: {
-            200: { content: { 'application/json': { schema: MetadataResponse } }, description: 'List Methods' }
-        }
-    }),
-    async (c) => {
-        return c.json({
-            success: true,
-            data: [
-                { value: 'CCF', label: 'CCF' },
-                { value: 'Prepayment', label: 'Prepayment' },
-            ],
-        })
-    }
-)
-
-eadConfigurationsRoutes.openapi(
-    createRoute({
-        method: 'get',
-        path: '/metadata/calc-methods',
-        tags: ['EAD Configurations'],
-        summary: 'Get Calc Methods',
-        responses: {
-            200: { content: { 'application/json': { schema: MetadataResponse } }, description: 'List Calc Methods' }
-        }
-    }),
-    async (c) => {
-        return c.json({
-            success: true,
-            data: [
-                { value: 'Revolving', label: 'Revolving' },
-                { value: 'Term Loan', label: 'Term Loan' },
-            ],
-        })
-    }
-)

@@ -6,20 +6,20 @@ import { SafeDataGrid, SafeDataGridProps } from '@/components/shared/SafeDataGri
 export interface ReportDataGridProps extends SafeDataGridProps {
   /**
    * CSS gradient for the column header background.
-   * Defaults to the premium purple used in Nominative Report.
+   * Defaults to the banking platform blue used across IFRS 9 reports.
    */
   headerGradient?: string;
   /** Height for the grid (default: 600) */
   height?: number | string;
 }
 
-const DEFAULT_HEADER_GRADIENT = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-const HEADER_BASE_COLOR = '#667eea';
+const DEFAULT_HEADER_GRADIENT = 'linear-gradient(135deg, #1976D2 0%, #0D47A1 100%)';
+const HEADER_BASE_COLOR = '#1976D2';
 
 /**
  * Drop-in replacement for SafeDataGrid with the premium visual style
  * from the Nominative Report:
- * - Gradient column header (purple by default, overridable)
+ * - Gradient column header (banking platform blue by default, overridable)
  * - Smooth row hover: subtle scale + shadow
  * - Selected row highlight
  * - Clean cell borders

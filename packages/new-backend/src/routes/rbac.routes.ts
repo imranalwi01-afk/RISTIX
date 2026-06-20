@@ -61,6 +61,45 @@ const normalizeRoleName = (value: string): string =>
 
 const ROLE_NAME_REGEX = /^[A-Z_][A-Z0-9_]*$/
 
+const toPermissionRiskLevel = (permission: any): 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' => {
+    const rawLevel = String(permission?.riskLevel ?? permission?.impactLevel ?? 'low').trim().toLowerCase()
+    if (rawLevel === 'critical') return 'CRITICAL'
+    if (rawLevel === 'high') return 'HIGH'
+    if (rawLevel === 'medium') return 'MEDIUM'
+    return 'LOW'
+}
+
+const permissionRequiresApproval = (permission: any): boolean => {
+    if (typeof permission?.requiresApproval === 'boolean') {
+        return permission.requiresApproval
+    }
+    const riskLevel = toPermissionRiskLevel(permission)
+    return riskLevel === 'HIGH' || riskLevel === 'CRITICAL'
+}
+
+const permissionToApiResponse = (permission: any, category?: string) => {
+    const riskLevel = toPermissionRiskLevel(permission)
+    const requiresApproval = permissionRequiresApproval(permission)
+
+    return {
+        id: permission.id,
+        code: permission.code,
+        name: permission.name,
+        displayName: permission.name,
+        description: permission.description || '',
+        resource: permission.resource,
+        action: permission.action,
+        module: permission.module,
+        category: category || permission.category || 'CORE',
+        riskLevel,
+        requiresApproval,
+        requiredApprovalLevel: permission.requiredApprovalLevel ?? (requiresApproval ? 2 : null),
+        requiredApprovers: permission.requiredApprovers ?? 1,
+        bankingSpecific: permission.module === 'banking',
+        syariahRequired: false,
+    }
+}
+
 const CreateRoleSchema = z.object({
     roleName: z.string().min(2).max(100).optional().openapi({ example: 'NEW_ROLE' }),
     name: z.string().min(2).max(100).optional().openapi({ example: 'NEW_ROLE' }),
@@ -151,21 +190,7 @@ const roleToApiResponse = (r: any) => ({
     permissions: ((r as any).rolePermissions || []).reduce((acc: Record<string, any[]>, rp: any) => {
         const category = (rp.permission.category as 'CORE' | 'BANKING' | 'IFRS9' | 'REPORTING' | 'ADMIN') || 'CORE'
         if (!acc[category]) acc[category] = []
-        acc[category].push({
-            id: rp.permission.id,
-            code: rp.permission.code,
-            name: rp.permission.name,
-            displayName: rp.permission.name,
-            description: rp.permission.description || '',
-            resource: rp.permission.resource,
-            action: rp.permission.action,
-            module: rp.permission.module,
-            category: category,
-            riskLevel: 'LOW' as const,
-            requiresApproval: false,
-            bankingSpecific: rp.permission.module === 'banking',
-            syariahRequired: false,
-        })
+        acc[category].push(permissionToApiResponse(rp.permission, category))
         return acc
     }, {} as Record<string, any[]>),
     complianceLevel: r.complianceLevel,
@@ -357,21 +382,7 @@ rbacRoutes.openapi(
                     permissions: (r.rolePermissions || []).reduce((acc, rp) => {
                         const category = (rp.permission.category as 'CORE' | 'BANKING' | 'IFRS9' | 'REPORTING' | 'ADMIN') || 'CORE';
                         if (!acc[category]) acc[category] = [];
-                        acc[category].push({
-                            id: rp.permission.id,
-                            code: rp.permission.code,
-                            name: rp.permission.name,
-                            displayName: rp.permission.name,
-                            description: rp.permission.description || '',
-                            resource: rp.permission.resource,
-                            action: rp.permission.action,
-                            module: rp.permission.module,
-                            category: category,
-                            riskLevel: 'LOW' as const, // Default value since not in DB
-                            requiresApproval: false, // Default value since not in DB
-                            bankingSpecific: rp.permission.module === 'banking',
-                            syariahRequired: false, // Default value since not in DB
-                        });
+                        acc[category].push(permissionToApiResponse(rp.permission, category));
                         return acc;
                     }, {} as Record<string, any[]>),
                     complianceLevel: r.complianceLevel,
@@ -493,9 +504,9 @@ rbacRoutes.openapi(
             Effect.map((permissions) => permissions.map(p => ({
                 ...p,
                 category: p.category ?? 'CORE',
-                riskLevel: (p as any).riskLevel ?? 'LOW',
-                requiresApproval: (p as any).requiresApproval ?? false,
-                requiredApprovalLevel: (p as any).requiredApprovalLevel ?? null,
+                riskLevel: toPermissionRiskLevel(p),
+                requiresApproval: permissionRequiresApproval(p),
+                requiredApprovalLevel: (p as any).requiredApprovalLevel ?? (permissionRequiresApproval(p) ? 2 : null),
                 requiredApprovers: (p as any).requiredApprovers ?? 1,
             }))),
         )
@@ -548,21 +559,7 @@ rbacRoutes.openapi(
                     permissions: ((r as any).rolePermissions || []).reduce((acc: Record<string, any[]>, rp: any) => {
                         const category = (rp.permission.category as 'CORE' | 'BANKING' | 'IFRS9' | 'REPORTING' | 'ADMIN') || 'CORE';
                         if (!acc[category]) acc[category] = [];
-                        acc[category].push({
-                            id: rp.permission.id,
-                            code: rp.permission.code,
-                            name: rp.permission.name,
-                            displayName: rp.permission.name,
-                            description: rp.permission.description || '',
-                            resource: rp.permission.resource,
-                            action: rp.permission.action,
-                            module: rp.permission.module,
-                            category: category,
-                            riskLevel: 'LOW' as const, // Default value since not in DB
-                            requiresApproval: false, // Default value since not in DB
-                            bankingSpecific: rp.permission.module === 'banking',
-                            syariahRequired: false, // Default value since not in DB
-                        });
+                        acc[category].push(permissionToApiResponse(rp.permission, category));
                         return acc;
                     }, {} as Record<string, any[]>),
                     complianceLevel: r.complianceLevel,

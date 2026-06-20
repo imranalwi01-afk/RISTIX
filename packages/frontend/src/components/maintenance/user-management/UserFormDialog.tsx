@@ -20,7 +20,7 @@ import {
   TextField,
 } from '@mui/material';
 import { Edit as EditIcon, PersonAdd as PersonAddIcon, Visibility as ViewIcon, VisibilityOff as HideIcon } from '@mui/icons-material';
-import { PasswordInput } from '@/components/users/PasswordInput';
+import { DEFAULT_PASSWORD_POLICY, PasswordInput, type PasswordPolicy } from '@/components/users/PasswordInput';
 import type { UserFormData } from './types';
 
 interface UserFormDialogProps {
@@ -32,6 +32,7 @@ interface UserFormDialogProps {
   onChange: (next: UserFormData) => void;
   onTogglePassword: () => void;
   onSubmit: () => void;
+  passwordPolicy?: PasswordPolicy;
 }
 
 const UserFormDialog = memo(function UserFormDialog({
@@ -43,6 +44,7 @@ const UserFormDialog = memo(function UserFormDialog({
   onChange,
   onTogglePassword,
   onSubmit,
+  passwordPolicy = DEFAULT_PASSWORD_POLICY,
 }: UserFormDialogProps) {
   const isCreate = mode === 'create';
   const sendWelcomeEmail = formData.sendWelcomeEmail ?? true;
@@ -74,6 +76,7 @@ const UserFormDialog = memo(function UserFormDialog({
                 value={formData.password || ''}
                 onChange={(value) => onChange({ ...formData, password: value })}
                 showValidation
+                policy={passwordPolicy}
               />
             </Grid>
           )}
