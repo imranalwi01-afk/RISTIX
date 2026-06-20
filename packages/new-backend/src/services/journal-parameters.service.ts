@@ -1,6 +1,6 @@
 import { Effect, pipe } from 'effect'
 import { JournalParametersRepository } from '../repositories/journal-parameters.repository'
-import { ParametersRepository } from '../repositories/parameters.repository'
+import { RuleBaseSettingsService } from './rule-base-settings.service'
 import { NotFoundError } from '../lib/errors'
 import { frs9ParamJournal } from '../db/schema'
 import type { ListQuery } from '../lib/http/list-query'
@@ -133,36 +133,28 @@ export const JournalParametersService = {
         )
     },
 
-    // Dropdown Options Helpers
+    // Dropdown Options Helpers — sourced from Rule Base Setting
 
     /**
-     * Get dropdown options for a specific parameter code (internal helper).
+     * Get GL Group options from Rule Base Setting (type = GL).
      */
-    getOptions: (paramCode: string) => {
-        return pipe(
-            ParametersRepository.findHeaderByCode(paramCode),
-            Effect.map((param: any) => {
-                if (!param || !param.details) return []
-                return param.details
-                    .filter((d: any) => d.value1 !== null && d.value1 !== '')
-                    .map((d: any) => ({
-                        id: String(d.value1),
-                        name: String(d.paramdesc ?? d.value2 ?? d.value1)
-                    }))
-            })
-        )
-    },
-
-    /** Get GL Group options */
-    getGlGroupOptions: () => JournalParametersService.getOptions('B0004'),
-    /** Get Currency options */
-    getCurrencyOptions: () => JournalParametersService.getOptions('B0001'),
-    /** Get Journal Type options */
-    getJournalTypeOptions: () => JournalParametersService.getOptions('B0006'),
-    /** Get Journal Code options */
-    getJournalCodeOptions: () => JournalParametersService.getOptions('B0008'),
-    /** Get Debit/Credit options */
-    getDbCrOptions: () => JournalParametersService.getOptions('B0007'),
+    getGlGroupOptions: () => RuleBaseSettingsService.getOptionsByType('GL'),
+    /**
+     * Get Currency options from Rule Base Setting (type = CURRENCY).
+     */
+    getCurrencyOptions: () => RuleBaseSettingsService.getOptionsByType('CURRENCY'),
+    /**
+     * Get Journal Type options from Rule Base Setting (type = JTYPE).
+     */
+    getJournalTypeOptions: () => RuleBaseSettingsService.getOptionsByType('JTYPE'),
+    /**
+     * Get Journal Code options from Rule Base Setting (type = JCODE).
+     */
+    getJournalCodeOptions: () => RuleBaseSettingsService.getOptionsByType('JCODE'),
+    /**
+     * Get Debit/Credit options from Rule Base Setting (type = DBCR).
+     */
+    getDbCrOptions: () => RuleBaseSettingsService.getOptionsByType('DBCR'),
 }
 
 // Helper

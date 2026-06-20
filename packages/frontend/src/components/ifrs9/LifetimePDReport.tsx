@@ -304,6 +304,18 @@ const LifetimePDReport: React.FC = () => {
         setPdConfigs(configs);
         setScalars(Array.isArray(scalarData) ? scalarData : []);
         
+        // Auto-select first PD configuration if none is selected yet
+        if (configs.length > 0) {
+          const firstConfig = configs[0];
+          const firstId = firstConfig?.id ?? firstConfig?.pkid ?? firstConfig?.model_id ?? firstConfig?.modelId;
+          if (firstId !== undefined && firstId !== null && firstId !== '') {
+            setCurrentFilters((prev: any) => ({
+              ...prev,
+              pdConfigId: String(firstId),
+            }));
+          }
+        }
+        
         // Check if no configurations available
         if (configs.length === 0) {
           console.warn('⚠️ No PD configurations available');

@@ -43,6 +43,34 @@ export const RuleBaseSettingsRepository = {
     },
 
     /**
+     * Find rule headers by rule type.
+     * Used by Journal Parameters to fetch dropdown options from Rule Base Setting.
+     *
+     * @param ruleType - The rule type to filter by
+     * @param activeOnly - If true, only return active headers
+     * @returns An Effect resolving to an array of headers, sorted by seq
+     */
+    findHeadersByType: (ruleType: string, activeOnly: boolean = true) => {
+        return Effect.tryPromise({
+            try: async () => {
+                const conditions = [
+                    eq(frs9ParamScenarioRulesh.ruleType, ruleType),
+                ]
+                if (activeOnly) {
+                    conditions.push(eq(frs9ParamScenarioRulesh.activeFlag, true))
+                }
+
+                return await db
+                    .select()
+                    .from(frs9ParamScenarioRulesh)
+                    .where(and(...conditions))
+                    .orderBy(asc(frs9ParamScenarioRulesh.seq))
+            },
+            catch: (error) => new DatabaseError({ message: 'Failed to find rule headers by type', operation: 'query', cause: error })
+        })
+    },
+
+    /**
      * Find a rule header by ID.
      * 
      * @param id - The header ID

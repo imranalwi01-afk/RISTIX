@@ -29,10 +29,6 @@ interface ProductParameter {
   amortizationType?: string;
   alFlag?: string;
   impairedFlag?: boolean;
-  bmFlag?: boolean;
-  expectedLife?: number;
-  borrowingRate?: number;
-  marketRate?: number;
   activeFlag?: boolean;
 }
 

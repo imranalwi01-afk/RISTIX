@@ -25,10 +25,6 @@ export interface ProductParameter {
   amortizationType?: string;
   alFlag?: string;
   impairedFlag?: boolean;
-  bmFlag?: boolean;
-  expectedLife?: number;
-  borrowingRate?: number;
-  marketRate?: number;
   activeFlag?: boolean;
   _clone?: boolean;
 }
@@ -43,10 +39,6 @@ export interface ProductFormData {
   amortizationType: string;
   alFlag: string;
   impairedFlag: boolean;
-  bmFlag: boolean;
-  expectedLife: number | '';
-  borrowingRate: number | '';
-  marketRate: number | '';
   activeFlag: boolean;
 }
 
@@ -84,10 +76,6 @@ const initialFormData: ProductFormData = {
   amortizationType: '',
   alFlag: '',
   impairedFlag: false,
-  bmFlag: false,
-  expectedLife: '',
-  borrowingRate: '',
-  marketRate: '',
   activeFlag: true,
 };
 
@@ -125,10 +113,6 @@ const ProductFormDialog = memo(function ProductFormDialog({
         amortizationType: product.amortizationType ?? '',
         alFlag: product.alFlag ?? '',
         impairedFlag: Boolean(product.impairedFlag),
-        bmFlag: Boolean(product.bmFlag),
-        expectedLife: product.expectedLife ?? '',
-        borrowingRate: product.borrowingRate ?? '',
-        marketRate: product.marketRate ?? '',
         activeFlag: product.activeFlag !== undefined ? Boolean(product.activeFlag) : true,
       });
       return;
@@ -183,9 +167,15 @@ const ProductFormDialog = memo(function ProductFormDialog({
   const handleSubmit = useCallback(async () => {
     if (!validate()) return;
 
+    // Clean up empty strings for optional fields — Zod expects undefined, not ''
+    const cleaned = { ...formData };
+    for (const key of Object.keys(cleaned)) {
+      if (cleaned[key] === '') cleaned[key] = undefined;
+    }
+
     setLoading(true);
     try {
-      await onSave(formData);
+      await onSave(cleaned);
       onClose();
     } finally {
       setLoading(false);
@@ -358,40 +348,10 @@ const ProductFormDialog = memo(function ProductFormDialog({
             )}
           </TextField>
 
-          <TextField
-            label="Exp. Life (Mths)"
-            type="number"
-            value={formData.expectedLife}
-            onChange={handleFieldChange('expectedLife')}
-            fullWidth
-          />
-
-          <TextField
-            label="Borrowing %"
-            type="number"
-            value={formData.borrowingRate}
-            onChange={handleFieldChange('borrowingRate')}
-            fullWidth
-            slotProps={{ htmlInput: { step: '0.001' } }}
-          />
-
-          <TextField
-            label="Market %"
-            type="number"
-            value={formData.marketRate}
-            onChange={handleFieldChange('marketRate')}
-            fullWidth
-            slotProps={{ htmlInput: { step: '0.001' } }}
-          />
-
           <Box sx={{ gridColumn: '1 / -1', display: 'flex', gap: 2, flexWrap: 'wrap' }}>
             <FormControlLabel
               control={<Switch checked={formData.impairedFlag} onChange={handleSwitchChange('impairedFlag')} />}
               label="Impaired"
-            />
-            <FormControlLabel
-              control={<Switch checked={formData.bmFlag} onChange={handleSwitchChange('bmFlag')} />}
-              label="Below Market"
             />
             <FormControlLabel
               control={<Switch checked={formData.activeFlag} onChange={handleSwitchChange('activeFlag')} />}
