@@ -1,4 +1,6 @@
-import React, { useEffect } from 'react';
+'use client';
+
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     Dialog,
     DialogTitle,
@@ -16,7 +18,8 @@ import {
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { PasswordInput } from './PasswordInput';
+import { securityConfigAPI } from '@/services/api/security-config.api';
+import { DEFAULT_PASSWORD_POLICY, PasswordInput, validatePassword, type PasswordPolicy } from './PasswordInput';
 
 // Type definition based on backend schema
 export interface UserFormData {
@@ -32,12 +35,21 @@ export interface UserFormData {
     sendWelcomeEmail?: boolean;
 }
 
-// Zod schemas for create and edit modes
-const createUserSchema = z.object({
+const getPasswordPolicyMessage = (password: string, policy: PasswordPolicy) => {
+    const result = validatePassword(password, policy);
+    return result.valid ? null : `Password must include: ${result.errors.join(', ')}`;
+};
+
+const buildCreateUserSchema = (policy: PasswordPolicy) => z.object({
     email: z.string().email('Enter a valid email'),
     fullName: z.string().min(2, 'Name should be of minimum 2 characters length'),
     username: z.string().min(2, 'Username should be of minimum 2 characters length'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
+    password: z.string().superRefine((value, ctx) => {
+        const message = getPasswordPolicyMessage(value, policy);
+        if (message) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message });
+        }
+    }),
     phone: z.string().optional(),
     department: z.string().optional(),
     position: z.string().optional(),
@@ -45,18 +57,24 @@ const createUserSchema = z.object({
     sendWelcomeEmail: z.boolean().default(true).optional(),
 });
 
-const editUserSchema = z.object({
+const buildEditUserSchema = (policy: PasswordPolicy) => z.object({
     email: z.string().email('Enter a valid email'),
     fullName: z.string().min(2, 'Name should be of minimum 2 characters length'),
     username: z.string().min(2, 'Username should be of minimum 2 characters length'),
-    password: z.string().min(8, 'Password must be at least 8 characters').optional().or(z.literal('')),
+    password: z.string().optional().superRefine((value, ctx) => {
+        if (!value) return;
+        const message = getPasswordPolicyMessage(value, policy);
+        if (message) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message });
+        }
+    }),
     phone: z.string().optional(),
     department: z.string().optional(),
     position: z.string().optional(),
     isActive: z.boolean().default(true),
 });
 
-type UserFormSchema = z.infer<typeof createUserSchema>;
+type UserFormSchema = z.infer<ReturnType<typeof buildCreateUserSchema>>;
 
 interface UserFormProps {
     open: boolean;
@@ -75,8 +93,14 @@ const UserForm: React.FC<UserFormProps> = ({
     mode,
     loading = false,
 }) => {
+    const [passwordPolicy, setPasswordPolicy] = useState<PasswordPolicy>(DEFAULT_PASSWORD_POLICY);
+    const schema = useMemo(
+        () => mode === 'create' ? buildCreateUserSchema(passwordPolicy) : buildEditUserSchema(passwordPolicy),
+        [mode, passwordPolicy]
+    );
+
     const { control, handleSubmit, reset, formState: { errors, isValid } } = useForm<UserFormSchema>({
-        resolver: zodResolver((mode === 'create' ? createUserSchema : editUserSchema) as any),
+        resolver: zodResolver(schema as any),
         mode: 'onBlur',
         defaultValues: {
             email: '',
@@ -89,6 +113,27 @@ const UserForm: React.FC<UserFormProps> = ({
             isActive: true,
         },
     });
+
+    useEffect(() => {
+        if (!open) return;
+
+        let mounted = true;
+        securityConfigAPI.get()
+            .then((config) => {
+                if (!mounted) return;
+                setPasswordPolicy({
+                    ...DEFAULT_PASSWORD_POLICY,
+                    ...(config.passwordPolicy || {}),
+                });
+            })
+            .catch(() => {
+                if (mounted) setPasswordPolicy(DEFAULT_PASSWORD_POLICY);
+            });
+
+        return () => {
+            mounted = false;
+        };
+    }, [open]);
 
     const onFormSubmit = (values: UserFormSchema) => {
         const submissionData: UserFormData = {
@@ -196,6 +241,8 @@ const UserForm: React.FC<UserFormProps> = ({
                                         helperText={errors.password?.message}
                                         value={field.value ?? ''}
                                         onChange={field.onChange}
+                                        showValidation
+                                        policy={passwordPolicy}
                                     />
                                 )}
                             />

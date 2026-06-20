@@ -367,8 +367,8 @@ const GCACharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
         <CardContent sx={{ p: 5 }}>
           <Box sx={{ mb: 4, position: 'relative' }}>
             <Typography variant="h6" fontWeight={800} sx={{ 
-              color: '#667eea', // Fallback
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: '#1976D2', // Fallback
+              background: 'linear-gradient(135deg, #1976D2 0%, #0D47A1 100%)',
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
@@ -380,7 +380,7 @@ const GCACharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
               width: 60, 
               height: 4, 
               borderRadius: 2,
-              background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
+              background: 'linear-gradient(90deg, #1976D2 0%, #0D47A1 100%)',
               opacity: 0.6
             }} />
           </Box>
@@ -389,8 +389,8 @@ const GCACharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
             <ComposedChart data={stats.movementTrend}>
               <defs>
                 <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#667eea" stopOpacity={0.9} />
-                  <stop offset="100%" stopColor="#764ba2" stopOpacity={0.7} />
+                  <stop offset="0%" stopColor="#1976D2" stopOpacity={0.9} />
+                  <stop offset="100%" stopColor="#0D47A1" stopOpacity={0.7} />
                 </linearGradient>
                 <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
                   <stop offset="0%" stopColor="#f093fb" />
@@ -505,8 +505,8 @@ const GCACharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
         <CardContent sx={{ p: 5 }}>
           <Box sx={{ mb: 4, position: 'relative' }}>
             <Typography variant="h6" fontWeight={800} sx={{ 
-              color: '#43e97b', // Fallback
-              background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+              color: '#0288D1', // Fallback
+              background: 'linear-gradient(135deg, #0288D1 0%, #01579B 100%)',
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
@@ -518,7 +518,7 @@ const GCACharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
               width: 60, 
               height: 4, 
               borderRadius: 2,
-              background: 'linear-gradient(90deg, #43e97b 0%, #38f9d7 100%)',
+              background: 'linear-gradient(90deg, #0288D1 0%, #01579B 100%)',
               opacity: 0.6
             }} />
           </Box>

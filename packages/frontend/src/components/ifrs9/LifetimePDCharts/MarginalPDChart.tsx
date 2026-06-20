@@ -50,13 +50,13 @@ export default function MarginalPDChart({ data }: MarginalPDChartProps) {
             <Tooltip 
               formatter={(value: number) => [`${(value * 100).toFixed(2)}%`, 'Marginal PD']}
               contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
-              cursor={{ fill: 'rgba(102, 126, 234, 0.1)' }}
+              cursor={{ fill: 'rgba(25, 118, 210, 0.1)' }}
             />
             <Legend />
             <Bar 
               dataKey="marginalPD" 
               name="Marginal PD (Baseline)" 
-              fill="#667eea" 
+              fill="#1976D2" 
               radius={[4, 4, 0, 0]}
               barSize={isComparison ? 30 : 40}
             />

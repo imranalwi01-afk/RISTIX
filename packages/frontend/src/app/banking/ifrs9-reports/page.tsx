@@ -93,7 +93,7 @@ const IFRS9ReportsPage: React.FC = () => {
           title: 'Lifetime PD Reports',
           description: 'Probability of Default with yearly and monthly marginal analysis',
           icon: <TimelineIcon />,
-          color: 'warning',
+          color: 'primary',
           features: ['Yearly/Monthly PD', 'Pivot Tables', 'Dynamic Columns', 'Trend Analysis'],
           tabIndex: 1
         },
@@ -102,7 +102,7 @@ const IFRS9ReportsPage: React.FC = () => {
           title: 'Lifetime LGD Report',
           description: 'Loss Given Default with recovery information and risk analysis',
           icon: <LossIcon />,
-          color: 'error',
+          color: 'primary',
           features: ['LGD Calculations', 'Recovery Analysis', 'Risk Distribution', 'Charts'],
           tabIndex: 2
         },
@@ -111,7 +111,7 @@ const IFRS9ReportsPage: React.FC = () => {
           title: 'EAD Model Report',
           description: 'Exposure at Default with payment averages and utilization rates',
           icon: <BalanceIcon />,
-          color: 'info',
+          color: 'primary',
           features: ['EAD Calculations', 'CCF Analysis', 'Utilization Rates', 'Trend Charts'],
           tabIndex: 3
         }
@@ -126,7 +126,7 @@ const IFRS9ReportsPage: React.FC = () => {
           title: 'ECL Result Report',
           description: 'Expected Credit Loss results aggregated by segment and stage',
           icon: <ChartIcon />,
-          color: 'success',
+          color: 'primary',
           features: ['ECL Aggregation', 'Stage Analysis', 'Segment Breakdown', 'Risk Metrics'],
           tabIndex: 4
         },
@@ -135,7 +135,7 @@ const IFRS9ReportsPage: React.FC = () => {
           title: 'ECL Movement Report',
           description: 'ECL movement analysis with provisions, releases, and transfers',
           icon: <MovementIcon />,
-          color: 'secondary',
+          color: 'primary',
           features: ['Movement Analysis', 'Waterfall Charts', 'Provision Tracking', 'Stored Procedures'],
           tabIndex: 5
         },
@@ -169,7 +169,7 @@ const IFRS9ReportsPage: React.FC = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <Avatar
             sx={{
-              bgcolor: `${report.color}.main`,
+              bgcolor: 'primary.main',
               mr: 2,
               width: 48,
               height: 48
@@ -184,7 +184,7 @@ const IFRS9ReportsPage: React.FC = () => {
             <Chip
               size="small"
               label={report.id}
-              color={report.color}
+              color="primary"
               variant="outlined"
             />
           </Box>
@@ -223,7 +223,7 @@ const IFRS9ReportsPage: React.FC = () => {
       <CardActions>
         <Button
           size="small"
-          color={report.color}
+          color="primary"
           onClick={(e) => {
             e.stopPropagation();
             setSelectedTab(report.tabIndex);

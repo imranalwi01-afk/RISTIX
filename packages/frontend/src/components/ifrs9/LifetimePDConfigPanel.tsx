@@ -281,7 +281,7 @@ export default function LifetimePDConfigPanel({ open, onClose, onRun }: Lifetime
         </FormControl>
 
         <Accordion elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, '&:before': { display: 'none' } }}>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ bgcolor: alpha('#667eea', 0.03) }}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ bgcolor: alpha('#1976D2', 0.03) }}>
             <Typography fontWeight={700} color="primary">Advanced Settings</Typography>
           </AccordionSummary>
           <AccordionDetails>
@@ -340,9 +340,9 @@ export default function LifetimePDConfigPanel({ open, onClose, onRun }: Lifetime
               <Box sx={{ 
                 p: 1.5, 
                 borderRadius: 2, 
-                bgcolor: alpha('#667eea', 0.05),
+                bgcolor: alpha('#1976D2', 0.05),
                 border: '1px dashed',
-                borderColor: alpha('#667eea', 0.2)
+                borderColor: alpha('#1976D2', 0.2)
               }}>
                 <FormControlLabel
                   control={
@@ -353,7 +353,7 @@ export default function LifetimePDConfigPanel({ open, onClose, onRun }: Lifetime
                     />
                   }
                   label={
-                    <Typography variant="body2" fontWeight={700} color="#667eea">
+                    <Typography variant="body2" fontWeight={700} color="#1976D2">
                       Activate Comparison Mode
                     </Typography>
                   }

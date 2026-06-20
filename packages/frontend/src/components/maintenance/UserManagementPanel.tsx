@@ -17,24 +17,19 @@ import {
 } from '@mui/material';
 import {
   Add as AddIcon,
-  Visibility as ViewIcon,
   LockReset as LockResetIcon,
   Key as KeyIcon,
   People as PeopleIcon,
   Home as HomeIcon,
-  Search as SearchIcon,
-  AssignmentInd as ManageRolesIcon,
 } from '@mui/icons-material';
-import Visibility from '@mui/icons-material/Visibility';
-import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
 import { getErrorMessage } from '@/utils/error-message';
 import { ResetPasswordDialog } from '@/components/users/ResetPasswordDialog';
 import { usersAPI } from '@/services/api/users.api';
+import { securityConfigAPI } from '@/services/api/security-config.api';
+import { DEFAULT_PASSWORD_POLICY, PasswordInput, validatePassword, type PasswordPolicy } from '@/components/users/PasswordInput';
 
-import InputAdornment from '@mui/material/InputAdornment';
-import IconButton from '@mui/material/IconButton';
 import Checkbox from '@mui/material/Checkbox';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -124,8 +119,21 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
   // ✅ UI States
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'warning' | 'info' });
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordPolicy, setPasswordPolicy] = useState<PasswordPolicy>(DEFAULT_PASSWORD_POLICY);
 
   // ✅ Using centralized API service
+
+  const loadPasswordPolicy = useCallback(async () => {
+    try {
+      const config = await securityConfigAPI.get();
+      setPasswordPolicy({
+        ...DEFAULT_PASSWORD_POLICY,
+        ...(config.passwordPolicy || {}),
+      });
+    } catch {
+      setPasswordPolicy(DEFAULT_PASSWORD_POLICY);
+    }
+  }, []);
 
 
 
@@ -331,6 +339,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
   // ✅ Handle Reset Password
   const handleResetPassword = (user: User) => {
     setSelectedUser(user);
+    loadPasswordPolicy();
     setOpenResetPasswordDialog(true);
     setPasswordResetDialog({
       open: true,
@@ -354,8 +363,9 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
   const handleSaveResetPassword = async () => {
     const dialog = passwordResetDialog;
     if (!dialog.user) return;
-    if (dialog.newPassword.length < 6) {
-      setPasswordResetDialog(prev => ({ ...prev, error: 'Password must be at least 6 characters' }));
+    const passwordCheck = validatePassword(dialog.newPassword, passwordPolicy);
+    if (!passwordCheck.valid) {
+      setPasswordResetDialog(prev => ({ ...prev, error: `Password must include: ${passwordCheck.errors.join(', ')}` }));
       return;
     }
     if (dialog.newPassword !== dialog.confirmPassword) {
@@ -378,8 +388,9 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
   useEffect(() => {
     if (isAuthenticated) {
       loadUsers();
+      loadPasswordPolicy();
     }
-  }, [isAuthenticated, loadUsers]);
+  }, [isAuthenticated, loadUsers, loadPasswordPolicy]);
 
   // ✅ Handle page change
   const handleChangePage = (event: unknown, newPage: number) => {
@@ -483,6 +494,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
         onChange={setFormData}
         onTogglePassword={() => setShowPassword(!showPassword)}
         onSubmit={createUser}
+        passwordPolicy={passwordPolicy}
       />
 
       <UserFormDialog
@@ -494,6 +506,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
         onChange={setFormData}
         onTogglePassword={() => setShowPassword(!showPassword)}
         onSubmit={updateUser}
+        passwordPolicy={passwordPolicy}
       />
 
       <UserViewDialog
@@ -570,22 +583,14 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
               {passwordResetDialog.error && (
                 <Alert severity="error" sx={{ mb: 2 }}>{passwordResetDialog.error}</Alert>
               )}
-              <TextField
+              <PasswordInput
                 fullWidth
                 label="New Password"
-                type={passwordResetDialog.showPassword ? 'text' : 'password'}
                 value={passwordResetDialog.newPassword}
-                onChange={(e) => setPasswordResetDialog(prev => ({ ...prev, newPassword: e.target.value, error: null }))}
+                onChange={(value) => setPasswordResetDialog(prev => ({ ...prev, newPassword: value, error: null }))}
                 sx={{ mb: 2, mt: 1 }}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton onClick={() => setPasswordResetDialog(prev => ({ ...prev, showPassword: !prev.showPassword }))} edge="end">
-                        {passwordResetDialog.showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
+                showValidation
+                policy={passwordPolicy}
               />
               <TextField
                 fullWidth

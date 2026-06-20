@@ -13,8 +13,9 @@ import {
     Box,
     Typography
 } from '@mui/material';
-import { PasswordInput } from './PasswordInput';
+import { DEFAULT_PASSWORD_POLICY, PasswordInput, validatePassword, type PasswordPolicy } from './PasswordInput';
 import { usersAPI } from '@/services/api';
+import { securityConfigAPI } from '@/services/api/security-config.api';
 import { getErrorMessage } from '@/utils/error-message';
 
 interface ResetPasswordDialogProps {
@@ -38,6 +39,7 @@ export const ResetPasswordDialog: React.FC<ResetPasswordDialogProps> = ({
     const [forceChange, setForceChange] = useState(true);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [passwordPolicy, setPasswordPolicy] = useState<PasswordPolicy>(DEFAULT_PASSWORD_POLICY);
 
     // Reset state when dialog opens
     useEffect(() => {
@@ -45,14 +47,21 @@ export const ResetPasswordDialog: React.FC<ResetPasswordDialogProps> = ({
             setPassword('');
             setForceChange(true);
             setError(null);
+            securityConfigAPI.get()
+                .then((config) => setPasswordPolicy({
+                    ...DEFAULT_PASSWORD_POLICY,
+                    ...(config.passwordPolicy || {}),
+                }))
+                .catch(() => setPasswordPolicy(DEFAULT_PASSWORD_POLICY));
         }
     }, [open]);
 
     const handleSubmit = async () => {
         if (!userId) return;
         
-        if (password.trim().length < 8) {
-            setError('Reset password must be at least 8 characters.');
+        const passwordCheck = validatePassword(password, passwordPolicy);
+        if (!passwordCheck.valid) {
+            setError(`Password must include: ${passwordCheck.errors.join(', ')}`);
             return;
         }
 
@@ -105,8 +114,9 @@ export const ResetPasswordDialog: React.FC<ResetPasswordDialogProps> = ({
                     value={password}
                     onChange={setPassword}
                     required
-                    helperText="Minimum 8 characters"
                     margin="normal"
+                    showValidation
+                    policy={passwordPolicy}
                 />
 
                 <Box sx={{ mt: 3, p: 2, bgcolor: 'background.default', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
@@ -133,7 +143,7 @@ export const ResetPasswordDialog: React.FC<ResetPasswordDialogProps> = ({
                     variant="contained" 
                     color="warning" 
                     onClick={handleSubmit} 
-                    disabled={loading || password.length < 8}
+                    disabled={loading || !validatePassword(password, passwordPolicy).valid}
                 >
                     {loading ? 'Resetting...' : 'Reset Password'}
                 </Button>

@@ -1363,7 +1363,7 @@ const NominativeReport: React.FC = () => {
                 boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
               },
               '&.Mui-focused': {
-                boxShadow: '0 6px 24px rgba(102, 126, 234, 0.2)'
+                boxShadow: '0 6px 24px rgba(25, 118, 210, 0.2)'
               }
             }
           }}
@@ -1375,9 +1375,9 @@ const NominativeReport: React.FC = () => {
             sx={{
               fontWeight: 600,
               px: 1,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              background: 'linear-gradient(135deg, #1976D2 0%, #0D47A1 100%)',
               color: 'white',
-              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+              boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)'
             }}
           />
         )}

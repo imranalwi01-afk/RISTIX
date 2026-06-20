@@ -34,6 +34,12 @@ export const AccessReviewTab: React.FC<AccessReviewTabProps> = ({ roles, permiss
   const { enqueueSnackbar } = useSnackbar();
   const queryClient = useQueryClient();
   const [isUploading, setIsUploading] = React.useState(false);
+  const customRoles = roles.filter(r => !r.isBuiltIn);
+  const criticalPermissions = permissions.filter(p => p.riskLevel === 'CRITICAL');
+  const approvalRequiredPermissions = permissions.filter(p => p.requiresApproval);
+  const highRiskPermissions = permissions.filter(p => p.riskLevel === 'CRITICAL' || p.riskLevel === 'HIGH');
+  const lowRiskPermissionCount = permissions.filter(p => p.riskLevel === 'LOW').length;
+  const mediumRiskPermissionCount = permissions.filter(p => p.riskLevel === 'MEDIUM').length;
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -135,7 +141,7 @@ export const AccessReviewTab: React.FC<AccessReviewTabProps> = ({ roles, permiss
           <Box>
             <Typography variant="h6" gutterBottom>Access Review</Typography>
             <Typography variant="body2" color="text.secondary">
-              Review effective access, high-risk grants, and assignment coverage.
+              Review role coverage and permission risk. The table below only lists HIGH and CRITICAL permissions.
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 2 }}>
@@ -180,7 +186,7 @@ export const AccessReviewTab: React.FC<AccessReviewTabProps> = ({ roles, permiss
             <Card variant="outlined">
               <CardContent>
                 <Typography variant="h4" color="primary">
-                  {roles.filter(r => !r.isBuiltIn).length}
+                  {customRoles.length}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">Custom Roles</Typography>
               </CardContent>
@@ -190,7 +196,7 @@ export const AccessReviewTab: React.FC<AccessReviewTabProps> = ({ roles, permiss
             <Card variant="outlined">
               <CardContent>
                 <Typography variant="h4" color="error.main">
-                  {permissions.filter(p => p.riskLevel === 'CRITICAL').length}
+                  {criticalPermissions.length}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">Critical Permissions</Typography>
               </CardContent>
@@ -200,7 +206,7 @@ export const AccessReviewTab: React.FC<AccessReviewTabProps> = ({ roles, permiss
             <Card variant="outlined">
               <CardContent>
                 <Typography variant="h4" color="warning.main">
-                  {permissions.filter(p => p.requiresApproval).length}
+                  {approvalRequiredPermissions.length}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">Approval Required</Typography>
               </CardContent>
@@ -225,7 +231,7 @@ export const AccessReviewTab: React.FC<AccessReviewTabProps> = ({ roles, permiss
             </TableRow>
           </TableHead>
           <TableBody>
-            {permissions.filter(p => p.riskLevel === 'CRITICAL' || p.riskLevel === 'HIGH').map((perm) => {
+            {highRiskPermissions.map((perm) => {
               const assignedRoles = roles.filter(r =>
                 r.permissions?.some((p2: any) => p2.id === perm.id || p2.code === perm.code)
               );
@@ -264,12 +270,24 @@ export const AccessReviewTab: React.FC<AccessReviewTabProps> = ({ roles, permiss
                 </TableRow>
               );
             })}
-            {permissions.filter(p => p.riskLevel === 'CRITICAL' || p.riskLevel === 'HIGH').length === 0 && (
+            {highRiskPermissions.length === 0 && (
               <TableRow>
                 <TableCell colSpan={4} align="center">
-                  <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
-                    No high-risk permissions found.
-                  </Typography>
+                  <Box sx={{ py: 5, px: 2, maxWidth: 720, mx: 'auto' }}>
+                    <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>
+                      No HIGH or CRITICAL permissions found
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      The role data is loaded, but every permission currently has LOW or MEDIUM risk.
+                      This table will populate after the uploaded access matrix contains Risk Level values of high or critical.
+                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap' }}>
+                      <Chip size="small" label={`${roles.length} roles loaded`} variant="outlined" />
+                      <Chip size="small" label={`${customRoles.length} custom roles`} variant="outlined" />
+                      <Chip size="small" label={`${lowRiskPermissionCount} LOW permissions`} color="success" variant="outlined" />
+                      <Chip size="small" label={`${mediumRiskPermissionCount} MEDIUM permissions`} color="info" variant="outlined" />
+                    </Box>
+                  </Box>
                 </TableCell>
               </TableRow>
             )}

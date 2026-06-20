@@ -55,8 +55,8 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
       value: stats.totalAccounts.toLocaleString('id-ID'),
       format: 'raw',
       icon: <BankIcon sx={{ fontSize: 32 }} />,
-      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      mainColor: '#667eea'
+      gradient: 'linear-gradient(135deg, #1976D2 0%, #0D47A1 100%)',
+      mainColor: '#1976D2'
     },
     {
       title: 'Average LGD Rate',
@@ -208,7 +208,7 @@ const LGDCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}
                 formatter={(value: number) => [value, 'Accounts']}
               />
-              <Bar dataKey="count" fill="#667eea" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="count" fill="#1976D2" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
