@@ -42,7 +42,6 @@ const BUSINESS_EXPORT_COLUMNS = [
     { field: 'param_code', headerName: 'Code' },
     { field: 'param_desc', headerName: 'Description' },
     { field: 'param_value', headerName: 'Value' },
-    { field: 'param_category', headerName: 'Category' },
     { field: 'active_flag', headerName: 'Active' },
     { field: 'created_by', headerName: 'Created By' },
     { field: 'created_date', headerName: 'Created Date' },
@@ -52,7 +51,6 @@ const BUSINESS_FILTER_FIELD_MAP: Record<string, string> = {
     param_code: 'commonCode',
     param_desc: 'description',
     param_value: 'value',
-    param_category: 'category',
     created_by: 'createdBy',
 };
 
@@ -60,7 +58,6 @@ const BUSINESS_SORT_FIELD_MAP: Record<string, string> = {
     param_code: 'param_code',
     param_desc: 'param_desc',
     param_value: 'param_value',
-    param_category: 'param_category',
     created_by: 'created_by',
     created_date: 'created_date',
 };
@@ -159,7 +156,6 @@ export default function BusinessClient() {
 
     // Filters
     const [searchTerm, setSearchTerm] = useState('');
-    const [categoryFilter, setCategoryFilter] = useState('ALL');
     const [exportAnchorEl, setExportAnchorEl] = useState<null | HTMLElement>(null);
     const {
         queryState,
@@ -187,7 +183,6 @@ export default function BusinessClient() {
             const savedSearch = typeof view.state.search === 'string' ? view.state.search : '';
             const savedFilters = (view.state.filters ?? {}) as Record<string, unknown>;
             setSearchTerm(savedSearch);
-            setCategoryFilter(typeof savedFilters.categoryFilter === 'string' ? savedFilters.categoryFilter : 'ALL');
         },
     });
 
@@ -209,7 +204,6 @@ export default function BusinessClient() {
     // Default Detail Sequence
     const [defaultDetailSeq, setDefaultDetailSeq] = useState(1);
     const deferredSearchTerm = useDeferredValue(searchTerm);
-    const deferredCategoryFilter = useDeferredValue(categoryFilter);
     const deferredGridFilters = useDeferredValue(queryState.columnFilters);
     const normalizedGridFilters = useMemo(
         () =>
@@ -223,9 +217,6 @@ export default function BusinessClient() {
     );
     const mergedServerFilters = useMemo(() => {
         const filters: Record<string, string> = {};
-        if (deferredCategoryFilter !== 'ALL') {
-            filters.category = deferredCategoryFilter;
-        }
 
         Object.entries(normalizedGridFilters).forEach(([field, value]) => {
             const normalized = normalizeBusinessFilterValue(value).trim();
@@ -233,7 +224,7 @@ export default function BusinessClient() {
         });
 
         return filters;
-    }, [deferredCategoryFilter, normalizedGridFilters]);
+    }, [normalizedGridFilters]);
     const normalizedSort = useMemo(
         () =>
             queryState.sort.map((item) => ({
@@ -466,7 +457,6 @@ export default function BusinessClient() {
 
     const handleResetFilters = useCallback(async () => {
         setSearchTerm('');
-        setCategoryFilter('ALL');
         resetView();
         setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
         if (savedView.hasSavedView) {
@@ -480,13 +470,9 @@ export default function BusinessClient() {
         await savedView.saveDefaultView({
             ...toSavedViewState(),
             search: searchTerm,
-            filters: {
-                ...toSavedViewState().filters,
-                categoryFilter,
-            },
         });
         setSuccess('Business table view saved');
-    }, [categoryFilter, savedView, searchTerm, toSavedViewState, user?.id]);
+    }, [savedView, searchTerm, toSavedViewState, user?.id]);
 
     const handleExport = useCallback((format: 'xlsx' | 'csv' | 'pdf') => {
         try {
@@ -496,7 +482,6 @@ export default function BusinessClient() {
             );
             const exportFilters: Record<string, string> = {};
             if (searchTerm) exportFilters.Search = searchTerm;
-            if (categoryFilter !== 'ALL') exportFilters.Category = categoryFilter;
             Object.entries(queryState.columnFilters).forEach(([field, value]) => {
                 const normalizedValue = normalizeBusinessFilterValue(value);
                 if (normalizedValue.trim()) exportFilters[`Column: ${field}`] = normalizedValue;
@@ -526,7 +511,7 @@ export default function BusinessClient() {
         } catch (error) {
             setError(getErrorMessage(error, 'Failed to export business parameters'));
         }
-    }, [categoryFilter, queryState.columnFilters, queryState.columnVisibilityModel, queryState.sort, searchTerm, tableRows]);
+    }, [queryState.columnFilters, queryState.columnVisibilityModel, queryState.sort, searchTerm, tableRows]);
 
     return (
         <Container maxWidth="xl" sx={{ minWidth: 0, overflowX: 'hidden' }}>
@@ -563,17 +548,12 @@ export default function BusinessClient() {
                 rows={tableRows}
                 loading={loading}
                 searchTerm={searchTerm}
-                categoryFilter={categoryFilter}
                 paginationModel={queryState.paginationModel}
                 totalCount={totalCount}
                 detailRefreshTrigger={detailRefreshTrigger}
                 canManage={canManageBusiness}
                 onSearchChange={(value) => {
                     setSearchTerm(value);
-                    setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
-                }}
-                onCategoryChange={(value) => {
-                    setCategoryFilter(value);
                     setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
                 }}
                 onResetFilters={handleResetFilters}

@@ -3,18 +3,13 @@
 import React, { memo, useMemo } from 'react';
 import {
   Box,
-  Button,
   Card,
   CardContent,
   Chip,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   TextField,
   Typography,
 } from '@mui/material';
-import { Clear as ClearIcon, Delete as DeleteIcon, Edit as EditIcon, Search as SearchIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, Edit as EditIcon, Search as SearchIcon } from '@mui/icons-material';
 import { GridColDef } from '@mui/x-data-grid';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { ApprovalStatusBadge } from '@/components/approval';
@@ -27,13 +22,11 @@ interface BusinessParametersGridProps {
   rows: BusinessParameter[];
   loading: boolean;
   searchTerm: string;
-  categoryFilter: string;
   paginationModel: { page: number; pageSize: number };
   totalCount: number;
   detailRefreshTrigger: number;
   canManage: boolean;
   onSearchChange: (value: string) => void;
-  onCategoryChange: (value: string) => void;
   onResetFilters: () => void;
   onPaginationModelChange: (model: { page: number; pageSize: number }) => void;
   columnVisibilityModel?: Record<string, boolean>;
@@ -59,13 +52,11 @@ const BusinessParametersGrid = memo(function BusinessParametersGrid({
   rows,
   loading,
   searchTerm,
-  categoryFilter,
   paginationModel,
   totalCount,
   detailRefreshTrigger,
   canManage,
   onSearchChange,
-  onCategoryChange,
   onResetFilters,
   onPaginationModelChange,
   columnVisibilityModel,
@@ -99,22 +90,6 @@ const BusinessParametersGrid = memo(function BusinessParametersGrid({
       },
       { field: 'param_desc', headerName: 'Description', flex: 1, minWidth: 250 },
       { field: 'param_value', headerName: 'Value', width: 150 },
-      {
-        field: 'param_category',
-        headerName: 'Category',
-        width: 120,
-        align: 'center',
-        headerAlign: 'center',
-        renderCell: (p) => (
-          <Chip
-            label={String(p.value || '')}
-            size="small"
-            variant="outlined"
-            color={p.value === 'B' ? 'primary' : p.value === 'A' ? 'info' : 'secondary'}
-            sx={{ fontWeight: 500 }}
-          />
-        ),
-      },
       {
         field: 'active_flag',
         headerName: 'Active',
@@ -190,18 +165,6 @@ const BusinessParametersGrid = memo(function BusinessParametersGrid({
             }}
             sx={{ flex: '1 1 280px', minWidth: 0, width: { xs: '100%', sm: 'auto' }, maxWidth: { xs: '100%', md: 400 } }}
           />
-          <FormControl size="small" sx={{ minWidth: 160, width: { xs: '100%', sm: 'auto' }, flex: { xs: '1 1 180px', sm: '0 0 auto' } }}>
-            <InputLabel>Category</InputLabel>
-            <Select value={categoryFilter} onChange={(e) => onCategoryChange(e.target.value)} label="Category" sx={{ borderRadius: 2, bgcolor: 'background.paper' }}>
-              <MenuItem value="ALL">All</MenuItem>
-              <MenuItem value="B">Business</MenuItem>
-              <MenuItem value="A">Application</MenuItem>
-              <MenuItem value="S">System</MenuItem>
-            </Select>
-          </FormControl>
-          <Button onClick={onResetFilters}>
-            <ClearIcon />
-          </Button>
         </Box>
 
         <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
