@@ -465,7 +465,15 @@ const NominativeReport: React.FC = () => {
     const exportClientSide = () => {
       const exportData = data.map((row) =>
         Object.fromEntries(
-          columns.map((col) => [col.label, row[col.key]])
+          columns.map((col) => {
+            const raw = row[col.key];
+            // Convert to proper number type so Excel gets numbers, not strings
+            if (col.type === 'currency' || col.type === 'percentage' || col.type === 'number' || col.type === 'stage') {
+              const num = typeof raw === 'string' ? parseFloat(raw.replace(/,/g, '')) : Number(raw);
+              if (!Number.isNaN(num)) return [col.label, num];
+            }
+            return [col.label, raw];
+          })
         )
       );
 
