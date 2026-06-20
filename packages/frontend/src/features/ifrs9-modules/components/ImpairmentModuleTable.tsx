@@ -92,6 +92,9 @@ export function ImpairmentModuleTable({
         const value = params.value;
         if (value == null) return '-';
         return `${(Number(value) * 100).toFixed(2)}%`;
+      }, valueFormatter: (value) => {
+        if (value == null) return '-';
+        return `${(Number(value) * 100).toFixed(2)}%`;
       } },
     {
       field: 'outstanding',
@@ -110,9 +113,10 @@ export function ImpairmentModuleTable({
     {
       field: 'eclCoverage',
       headerName: 'ECL Coverage',
-      width: 140,
+      width: 160,
       align: 'right',
-      renderCell: (params) => `${(Number(params.value || 0) * 100).toFixed(2)}%`,
+      renderCell: (params) => `${(Number(params.value || 0) * 100).toFixed(4)}%`,
+      valueFormatter: (value) => `${(Number(value || 0) * 100).toFixed(4)}%`,
     },
   ], []);
 

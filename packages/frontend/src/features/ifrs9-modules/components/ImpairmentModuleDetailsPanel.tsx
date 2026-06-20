@@ -182,7 +182,7 @@ export function ImpairmentModuleDetailsPanel({
       { label: 'ECL_IA_ONBS_AMT', value: formatCurrency(contract.eclIaOnbsAmt, contract.currency) },
       { label: 'ECL_OVERLAY_AMT', value: formatCurrency(contract.eclOverlayAmt, contract.currency) },
       { label: 'ECL_FINAL_AMT', value: formatCurrency(contract.eclFinalAmt, contract.currency) },
-      { label: 'ECL_COVERAGE', value: `${(Number(contract.eclCoverage ?? 0) * 100).toFixed(2)}%` },
+      { label: 'ECL_COVERAGE', value: `${(Number(contract.eclCoverage ?? 0) * 100).toFixed(4)}%` },
       { label: 'UNWINDING_CA_AMT', value: formatCurrency(contract.unwindingCaAmt, contract.currency) },
       { label: 'UNWINDING_IA_AMT', value: formatCurrency(contract.unwindingIaAmt, contract.currency) },
       { label: 'UNWINDING_IA_SUM_AMT', value: formatCurrency(contract.unwindingIaSumAmt, contract.currency) },
