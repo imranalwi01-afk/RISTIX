@@ -30,6 +30,14 @@ interface ImpairmentModuleDetailsPanelProps {
   compatibilityMessage?: string | null;
 }
 
+const ACCOUNT_STATUS_LABELS: Record<string, string> = {
+  A: 'Active',
+  N: 'Normal',
+  I: 'Inactive',
+  D: 'Default',
+  C: 'Closed',
+};
+
 function formatCurrency(value: number | null | undefined, currency: string | null | undefined = 'IDR') {
   const normalizedCurrency = currency ?? 'IDR';
   return new Intl.NumberFormat('id-ID', {
@@ -114,7 +122,7 @@ export function ImpairmentModuleDetailsPanel({
       { label: 'FACILITY_NUMBER', value: contract.facilityNumber },
       { label: 'CIF_NUMBER', value: contract.cifNumber },
       { label: 'CIF_NAME', value: contract.cifName },
-      { label: 'ACCOUNT_STATUS', value: contract.accountStatus },
+      { label: 'ACCOUNT_STATUS', value: contract.accountStatus ? `${contract.accountStatus} - ${ACCOUNT_STATUS_LABELS[contract.accountStatus] || contract.accountStatus}` : null },
       { label: 'DATA_SOURCE', value: contract.dataSource },
       { label: 'PRD_GROUP', value: contract.prdGroup },
       { label: 'PRD_TYPE', value: contract.prdType },
@@ -174,7 +182,7 @@ export function ImpairmentModuleDetailsPanel({
       { label: 'ECL_IA_ONBS_AMT', value: formatCurrency(contract.eclIaOnbsAmt, contract.currency) },
       { label: 'ECL_OVERLAY_AMT', value: formatCurrency(contract.eclOverlayAmt, contract.currency) },
       { label: 'ECL_FINAL_AMT', value: formatCurrency(contract.eclFinalAmt, contract.currency) },
-      { label: 'ECL_COVERAGE', value: `${(Number(contract.eclCoverage ?? 0) * 100).toFixed(2)}%` },
+      { label: 'ECL_COVERAGE', value: `${(Number(contract.eclCoverage ?? 0) * 100).toFixed(4)}%` },
       { label: 'UNWINDING_CA_AMT', value: formatCurrency(contract.unwindingCaAmt, contract.currency) },
       { label: 'UNWINDING_IA_AMT', value: formatCurrency(contract.unwindingIaAmt, contract.currency) },
       { label: 'UNWINDING_IA_SUM_AMT', value: formatCurrency(contract.unwindingIaSumAmt, contract.currency) },

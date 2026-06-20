@@ -30,6 +30,12 @@ export interface ImpairmentModuleRow {
   eclFinalAmt: number;
   eclCoverage: number;
   impairedFlag?: boolean | null;
+  groupSegment?: string | null;
+  segment?: string | null;
+  subSegment?: string | null;
+  bucketId?: number | null;
+  sicrFlag?: boolean | null;
+  effInterestRate?: number | null;
 }
 
 export interface ImpairmentModuleContractDetail extends ImpairmentModuleRow {

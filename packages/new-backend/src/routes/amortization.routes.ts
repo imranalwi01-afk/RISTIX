@@ -8,6 +8,7 @@ import {
     frs9AmortJournalData,
     frs9MasterAccount,
 } from '../db/schema'
+import { frs9PrcDate } from '../db/schema/legacy'
 import { and, asc, desc, eq, getTableColumns, ilike, or, sql } from 'drizzle-orm'
 import { buildErrorResponse } from '../lib/http/error-response'
 import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
@@ -78,13 +79,13 @@ async function resolveEffectivePrcDate(requestedPrcDate?: string | null) {
 
     if (normalized) return normalized
 
-    const latest = await db
-        .select({ prcDate: frs9MasterAccount.prcDate })
-        .from(frs9MasterAccount)
-        .orderBy(desc(frs9MasterAccount.prcDate))
+    const row = await db
+        .select({ currdate: frs9PrcDate.currdate })
+        .from(frs9PrcDate)
+        .orderBy(desc(frs9PrcDate.currdate))
         .limit(1)
 
-    return latest[0]?.prcDate ?? null
+    return row[0]?.currdate ?? null
 }
 
 function buildAmortizationMasterSelection() {

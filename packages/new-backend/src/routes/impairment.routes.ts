@@ -12,6 +12,7 @@ import {
     frs9ImpIaResultD,
     frs9ImpJournalData,
 } from '../db/schema'
+import { frs9PrcDate } from '../db/schema/legacy'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { buildErrorResponse } from '../lib/http/error-response'
@@ -173,13 +174,13 @@ async function resolveEffectivePrcDate(requestedPrcDate?: string | null) {
         return normalized
     }
 
-    const latest = await db
-        .select({ prcDate: frs9MasterAccount.prcDate })
-        .from(frs9MasterAccount)
-        .orderBy(desc(frs9MasterAccount.prcDate))
+    const row = await db
+        .select({ currdate: frs9PrcDate.currdate })
+        .from(frs9PrcDate)
+        .orderBy(desc(frs9PrcDate.currdate))
         .limit(1)
 
-    return latest[0]?.prcDate ?? null
+    return row[0]?.currdate ?? null
 }
 
 function buildImpairmentMasterSelection() {
@@ -316,7 +317,7 @@ impairmentRoutes.openapi(
                 } as any)
             }
 
-            const conditions = [eq(frs9MasterAccount.prcDate, effectivePrcDate)]
+            const conditions = [eq(frs9MasterAccount.prcDate, effectivePrcDate), eq(frs9MasterAccount.accountStatus, 'A')]
 
             if (search) {
                 conditions.push(or(
