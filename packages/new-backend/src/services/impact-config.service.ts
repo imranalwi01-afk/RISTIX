@@ -4,6 +4,8 @@ import { Effect } from 'effect'
 export type ImpactLevel = 'low' | 'medium' | 'high' | 'critical'
 
 export interface ImpactLevelConfig {
+    scoreMin: number
+    scoreMax: number
     approvalsRequired: number
     slaHours: number
     escalationAfterHours: number
@@ -36,10 +38,10 @@ const DEFAULT_CONFIG: ImpactConfig = {
         LEGACY: 'high',
     },
     levels: {
-        low: { approvalsRequired: 1, slaHours: 24, escalationAfterHours: 12, requireDecisionComment: false, queuePriority: 5 },
-        medium: { approvalsRequired: 1, slaHours: 8, escalationAfterHours: 4, requireDecisionComment: false, queuePriority: 5 },
-        high: { approvalsRequired: 2, slaHours: 4, escalationAfterHours: 2, requireDecisionComment: true, queuePriority: 1 },
-        critical: { approvalsRequired: 2, slaHours: 2, escalationAfterHours: 1, requireDecisionComment: true, queuePriority: 0 },
+        low: { scoreMin: 1, scoreMax: 29, approvalsRequired: 1, slaHours: 24, escalationAfterHours: 12, requireDecisionComment: false, queuePriority: 5 },
+        medium: { scoreMin: 30, scoreMax: 59, approvalsRequired: 1, slaHours: 8, escalationAfterHours: 4, requireDecisionComment: false, queuePriority: 5 },
+        high: { scoreMin: 60, scoreMax: 79, approvalsRequired: 2, slaHours: 4, escalationAfterHours: 2, requireDecisionComment: true, queuePriority: 1 },
+        critical: { scoreMin: 80, scoreMax: 100, approvalsRequired: 2, slaHours: 2, escalationAfterHours: 1, requireDecisionComment: true, queuePriority: 0 },
     },
     defaultPriority: 'NORMAL',
     defaultImpact: 'medium',
@@ -112,6 +114,59 @@ export async function getImpactConfig(): Promise<ImpactConfig> {
 export function clearImpactConfigCache(): void {
     cachedConfig = null
     lastFetch = 0
+}
+
+/**
+ * Derive impact level from a numeric score (1-100) using configured score ranges.
+ * Falls back to deriveImpactLevel if score is not provided.
+ */
+export function deriveImpactFromScore(
+    score: number | null | undefined,
+    jobType: string | null | undefined,
+    targetDatabase: string | null | undefined,
+    config: ImpactConfig = DEFAULT_CONFIG,
+): { impactLevel: ImpactLevel; approvalsRequired: number; slaHours: number; escalationAfterHours: number; requireDecisionComment: boolean; queuePriority: number } {
+    const normalizedJobType = String(jobType || '').toUpperCase()
+    const normalizedDb = String(targetDatabase || '').toUpperCase()
+
+    // Find impact level by score range
+    let impactLevel: ImpactLevel = config.defaultImpact
+    if (score !== null && score !== undefined && Number.isFinite(score)) {
+        for (const level of ['low', 'medium', 'high', 'critical'] as ImpactLevel[]) {
+            const lvl = config.levels[level]
+            if (score >= lvl.scoreMin && score <= lvl.scoreMax) {
+                impactLevel = level
+                break
+            }
+        }
+    }
+
+    const rank = (l: ImpactLevel) => ['low', 'medium', 'high', 'critical'].indexOf(l)
+
+    const typeGuard = config.jobTypeMinimums[normalizedJobType]
+    if (typeGuard?.minImpact && rank(typeGuard.minImpact) > rank(impactLevel)) {
+        impactLevel = typeGuard.minImpact
+    }
+
+    const dbElevation = config.targetDbElevations[normalizedDb]
+    if (dbElevation && rank(dbElevation) > rank(impactLevel)) {
+        impactLevel = dbElevation
+    }
+
+    const levelConfig = config.levels[impactLevel]
+    let approvalsRequired = levelConfig.approvalsRequired
+    if (typeGuard?.minApprovals && typeGuard.minApprovals > approvalsRequired) {
+        approvalsRequired = typeGuard.minApprovals
+    }
+
+    return {
+        impactLevel,
+        approvalsRequired,
+        slaHours: levelConfig.slaHours,
+        escalationAfterHours: levelConfig.escalationAfterHours,
+        requireDecisionComment: typeGuard?.forceComment ?? levelConfig.requireDecisionComment,
+        queuePriority: levelConfig.queuePriority,
+    }
 }
 
 /**
