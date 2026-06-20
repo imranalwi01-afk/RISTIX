@@ -106,7 +106,7 @@ const CreateRoleSchema = z.object({
     description: z.string().min(30, 'Description must be at least 30 characters').openapi({ example: 'New role description that is very detailed' }),
     permissions: z.array(z.string()).default([]), // Array of permission codes
     complianceLevel: z.string().optional(),
-    hierarchyLevel: z.number().int().min(1).max(10).default(1),
+    hierarchyLevel: z.number().int().min(1).max(100).default(1),
 })
     .superRefine((value, ctx) => {
         const source = value.roleName ?? value.name
