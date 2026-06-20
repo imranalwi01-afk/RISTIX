@@ -6,6 +6,14 @@ import type { GridColDef } from '@mui/x-data-grid';
 import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import type { ImpairmentModuleRowViewModel } from '../domain/ifrs9-modules.models';
 
+const ACCOUNT_STATUS_LABELS: Record<string, string> = {
+  A: 'Active',
+  N: 'Normal',
+  I: 'Inactive',
+  D: 'Default',
+  C: 'Closed',
+};
+
 interface ImpairmentModuleTableProps {
   rows: ImpairmentModuleRowViewModel[];
   totalCount: number;
@@ -54,7 +62,14 @@ export function ImpairmentModuleTable({
     { field: 'facilityNumber', headerName: 'Facility Number', minWidth: 160, flex: 1, renderCell: (params) => params.value || '-' },
     { field: 'cifNumber', headerName: 'CIF Number', minWidth: 140, flex: 0.8, renderCell: (params) => params.value || '-' },
     { field: 'cifName', headerName: 'CIF Name', minWidth: 190, flex: 1.2, renderCell: (params) => params.value || '-' },
-    { field: 'accountStatus', headerName: 'Account Status', width: 150, renderCell: (params) => params.value || '-' },
+    { field: 'accountStatus', headerName: 'Account Status', width: 180, renderCell: (params) => {
+        const value = params.value;
+        if (!value) return '-';
+        const label = ACCOUNT_STATUS_LABELS[String(value)];
+        return label
+          ? `${value} - ${label}`
+          : String(value);
+      } },
     { field: 'prdGroup', headerName: 'Product Group', minWidth: 160, flex: 1, renderCell: (params) => params.value || '-' },
     {
       field: 'stage',

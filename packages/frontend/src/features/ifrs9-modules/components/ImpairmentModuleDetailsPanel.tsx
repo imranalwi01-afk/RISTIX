@@ -30,6 +30,14 @@ interface ImpairmentModuleDetailsPanelProps {
   compatibilityMessage?: string | null;
 }
 
+const ACCOUNT_STATUS_LABELS: Record<string, string> = {
+  A: 'Active',
+  N: 'Normal',
+  I: 'Inactive',
+  D: 'Default',
+  C: 'Closed',
+};
+
 function formatCurrency(value: number | null | undefined, currency: string | null | undefined = 'IDR') {
   const normalizedCurrency = currency ?? 'IDR';
   return new Intl.NumberFormat('id-ID', {
@@ -114,7 +122,7 @@ export function ImpairmentModuleDetailsPanel({
       { label: 'FACILITY_NUMBER', value: contract.facilityNumber },
       { label: 'CIF_NUMBER', value: contract.cifNumber },
       { label: 'CIF_NAME', value: contract.cifName },
-      { label: 'ACCOUNT_STATUS', value: contract.accountStatus },
+      { label: 'ACCOUNT_STATUS', value: contract.accountStatus ? `${contract.accountStatus} - ${ACCOUNT_STATUS_LABELS[contract.accountStatus] || contract.accountStatus}` : null },
       { label: 'DATA_SOURCE', value: contract.dataSource },
       { label: 'PRD_GROUP', value: contract.prdGroup },
       { label: 'PRD_TYPE', value: contract.prdType },
