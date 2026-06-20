@@ -7,6 +7,9 @@ import { apiClient } from '../api-setup';
 
 export interface PDConfiguration {
     id?: string;
+    pkid?: string;
+    model_id?: string;
+    modelId?: string;
     model_name: string;
     population_segment?: string | number;
     population_segment_id?: string;
