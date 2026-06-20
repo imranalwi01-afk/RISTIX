@@ -71,6 +71,7 @@ export function ImpairmentModuleTable({
           : String(value);
       } },
     { field: 'prdGroup', headerName: 'Product Group', minWidth: 160, flex: 1, renderCell: (params) => params.value || '-' },
+    { field: 'segment', headerName: 'Segment', width: 140, renderCell: (params) => params.value || '-' },
     {
       field: 'stage',
       headerName: 'Stage',
@@ -86,6 +87,12 @@ export function ImpairmentModuleTable({
         );
       },
     },
+    { field: 'bucketId', headerName: 'Bucket', width: 100, renderCell: (params) => params.value ?? '-' },
+    { field: 'effInterestRate', headerName: 'EIR', width: 110, align: 'right', renderCell: (params) => {
+        const value = params.value;
+        if (value == null) return '-';
+        return `${(Number(value) * 100).toFixed(2)}%`;
+      } },
     {
       field: 'outstanding',
       headerName: 'Outstanding',
