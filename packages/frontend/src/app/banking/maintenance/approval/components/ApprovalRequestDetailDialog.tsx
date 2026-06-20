@@ -447,7 +447,7 @@ export const ApprovalRequestDetailDialog = memo(function ApprovalRequestDetailDi
                         ['Target', [pendingConfigData.updated_table || pendingConfigData.table_name, pendingConfigData.updated_column || pendingConfigData.column_name].filter(Boolean).join('.')],
                         ['Value', pendingConfigData.value || pendingConfigData.value1],
                         ['Sequence', pendingConfigData.seq],
-                        ['Active', typeof pendingConfigData.active_flag === 'boolean' ? (pendingConfigData.active_flag ? 'Yes' : 'No') : undefined],
+                        ['Active', pendingConfigData.active_flag != null ? (pendingConfigData.active_flag ? 'Yes' : 'No') : undefined],
                       ].filter(([, value]) => value !== undefined && value !== '').map(([label, value]) => (
                         <Box key={String(label)}>
                           <Typography variant="caption" color="text.secondary">{String(label)}</Typography>

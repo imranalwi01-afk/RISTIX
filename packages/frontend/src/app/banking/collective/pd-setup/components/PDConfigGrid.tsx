@@ -54,14 +54,6 @@ export const PDConfigGrid = memo(function PDConfigGrid({
     { field: 'first_historical_date', headerName: 'First Historical Date', width: 180 },
     { field: 'multiplication', headerName: 'Multiplication', width: 140 },
     {
-      field: 'fl_flag',
-      headerName: 'FL Flag',
-      width: 100,
-      renderCell: (params) => <Chip label={params.value ? 'Yes' : 'No'} color={params.value ? 'primary' : 'default'} size="small" variant={params.value ? 'filled' : 'outlined'} />,
-    },
-    { field: 'fl_scalar_id', headerName: 'FL Scalar ID', width: 130 },
-    { field: 'fl_scalar', headerName: 'FL Scalar', width: 150 },
-    {
       field: 'ia_flag',
       headerName: 'IA Flag',
       width: 100,

@@ -373,4 +373,31 @@ app.openapi(
     }
 )
 
+// GET /api/v1/banking/collective/ecl-config/pd-model-outputs
+const PdModelOutputSchema = z.object({
+    model_id: z.number(),
+    model_name: z.string().nullable(),
+}).openapi('PdModelOutput')
+
+const PdModelOutputListResponse = z.object({
+    success: z.boolean(),
+    data: z.array(PdModelOutputSchema)
+}).openapi('PdModelOutputListResponse')
+
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/pd-model-outputs',
+        tags: ['ECL Configurations'],
+        summary: 'Get Distinct PD Model IDs from Output Monthly',
+        responses: {
+            200: { content: { 'application/json': { schema: PdModelOutputListResponse } }, description: 'List of PD model outputs' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        return runEffect(c, EclConfigurationsService.getPdModelOutputs() as any) as any
+    }
+)
+
 export const eclConfigurationsRoutes = app
