@@ -140,7 +140,6 @@ const RULE_BASE_COLUMNS: Array<{ key: RuleBaseColumnKey; label: string }> = [
   { key: 'value', label: 'Value' },
   { key: 'seq', label: 'Seq' },
   { key: 'status', label: 'Status' },
-  { key: 'details', label: 'Details' },
 ];
 
 const DEFAULT_RULE_BASE_COLUMN_VISIBILITY = RULE_BASE_COLUMNS.reduce(
@@ -603,14 +602,6 @@ export default function PageContent() {
           color={params.row.active_flag ? 'success' : 'default'}
         />
       ),
-    },
-    {
-      field: 'details',
-      headerName: 'Details',
-      width: 110,
-      sortable: false,
-      filterable: false,
-      renderCell: () => <Chip label="Expand" size="small" color="info" variant="outlined" />,
     },
     {
       field: 'actions',

@@ -27,8 +27,7 @@ export type RuleBaseColumnKey =
   | 'updated_column'
   | 'value'
   | 'seq'
-  | 'status'
-  | 'details';
+  | 'status';
 
 interface RuleBaseExpandableRowProps {
   header: RuleBaseHeader;
@@ -219,7 +218,7 @@ function RuleBaseExpandableRowComponent({
             startIcon={<AddIcon />}
             onClick={() => onCreateDetail(header.id)}
             disabled={loading}
-            variant="outlined"
+            variant="contained"
             data-testid="add-detail-btn"
           >
             Add Detail

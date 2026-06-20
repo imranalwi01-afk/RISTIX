@@ -140,6 +140,15 @@ const normalizeModelOptions = (
     }))
     .filter((item: LookupOption) => item.value && item.label);
 
+// PD Model Outputs from frs9_r_pd_output_monthly — flat model_id + model_name, no segment join
+const normalizePdModelOutputOptions = (outputs: any[]): LookupOption[] =>
+  outputs
+    .map((output: any) => ({
+      value: String(output.model_id ?? ''),
+      label: String(output.model_name ?? '').trim(),
+    }))
+    .filter((item: LookupOption) => item.value && item.label);
+
 const createLabelLookup = (options: LookupOption[]) =>
   new Map(options.map((option) => [String(option.value), option.label]));
 
@@ -430,7 +439,6 @@ function ECLConfigurationPage() {
       ECL_PORTFOLIO_SEGMENT_TYPE
     );
     const filteredStageRules = filterRowsByBankingMode(getResponseRows(ruleResponse), bankingMode);
-    const filteredPdConfigs = filterRowsByBankingMode(pdResponse, bankingMode);
     const filteredLgdConfigs = filterRowsByBankingMode(lgdResponse, bankingMode);
     const filteredEadConfigs = filterRowsByBankingMode(eadResponse, bankingMode);
 
@@ -439,7 +447,7 @@ function ECLConfigurationPage() {
     const segments = normalizePopulationSegmentOptions(filteredSegments);
     const segmentLookup = createLabelLookup(segments);
     const stageRules = normalizeRuleOptions(filteredStageRules);
-    const pdModels = normalizeModelOptions(filteredPdConfigs, (config) => config.population_segment_id ?? config.segment_id, segmentLookup);
+    const pdModels = normalizePdModelOutputOptions(pdResponse);
     const lgdModels = normalizeModelOptions(filteredLgdConfigs, (config) => config.segment_id, segmentLookup);
     const eadModels = normalizeModelOptions(filteredEadConfigs, (config) => config.segment_id, segmentLookup);
 

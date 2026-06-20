@@ -114,6 +114,11 @@ export interface CreateECLConfigurationRequest {
 
 export interface UpdateECLConfigurationRequest extends Partial<CreateECLConfigurationRequest> { }
 
+export interface PdModelOutput {
+    model_id: number;
+    model_name: string | null;
+}
+
 export const eclConfigurationsApi = {
     getAll: async () => {
         const response = await apiClient.get<ECLConfigurationHeader[]>(BASE_URL);
@@ -147,6 +152,11 @@ export const eclConfigurationsApi = {
 
     delete: async (id: number | string) => {
         const response = await apiClient.delete(`${BASE_URL}/${id}`);
+        return response.data!;
+    },
+
+    getPdModelOutputs: async () => {
+        const response = await apiClient.get<PdModelOutput[]>(`${BASE_URL}/pd-model-outputs`);
         return response.data!;
     }
 };

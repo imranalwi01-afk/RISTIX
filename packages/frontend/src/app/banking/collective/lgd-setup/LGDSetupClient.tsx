@@ -282,21 +282,6 @@ export default function LGDSetupPage() {
     { field: 'observation_start_date', headerName: 'Observation Start', width: 170 },
     { field: 'workout_period', headerName: 'Workout Period', width: 150 },
     { field: 'max_recovery_period', headerName: 'Max Recovery', width: 130 },
-    {
-      field: 'fl_flag',
-      headerName: 'FL Flag',
-      width: 100,
-      renderCell: (params) => (
-        <Chip
-          label={params.value ? 'Yes' : 'No'}
-          size="small"
-          color={params.value ? 'primary' : 'default'}
-          variant={params.value ? 'filled' : 'outlined'}
-        />
-      )
-    },
-    { field: 'fl_scalar_id', headerName: 'FL Scalar ID', width: 130 },
-    { field: 'scalar_name', headerName: 'FL Scalar', width: 150 },
     { field: 'lgd_rate', headerName: 'LGD Rate', width: 120 },
     {
       field: 'is_active',

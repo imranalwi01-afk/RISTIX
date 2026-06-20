@@ -137,7 +137,6 @@ export default function SegmentationClient() {
   const [headers, setHeaders] = useState<SegmentationHeaderData[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   // Search & Filter
   const [searchTerm, setSearchTerm] = useState('');
@@ -394,25 +393,6 @@ export default function SegmentationClient() {
     }
   };
 
-  const handleDuplicate = async (header: SegmentationHeaderData) => {
-    setLoading(true);
-    try {
-      const details = await api.banking.segmentation.getDetails(header.id);
-      setDetailMode('add');
-      setSelectedHeader({
-        ...header,
-        id: 0,
-        status: 'Draft',
-        rules: (details.data || details || []).map((r: any) => ({ ...r, id: undefined }))
-      });
-      setDetailOpen(true);
-    } catch (err) {
-      setSnackbar({ open: true, message: 'Failed to duplicate', type: 'error' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const fetchAllSegmentationRows = useCallback(async () => {
     const pageSize = 200;
     let page = 0;
@@ -594,15 +574,9 @@ export default function SegmentationClient() {
           page={queryState.paginationModel.page}
           rowsPerPage={queryState.paginationModel.pageSize}
           totalCount={totalCount}
-          selectedIds={selectedIds}
-          onSelect={(id) => {
-            setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-          }}
-          onSelectAll={(checked) => setSelectedIds(checked ? headers.map(h => h.id) : [])}
           onView={handleView}
           onEdit={handleEdit}
           onDelete={handleDelete}
-          onDuplicate={handleDuplicate}
           onPageChange={(nextPage) => setPaginationModel({ page: nextPage, pageSize: queryState.paginationModel.pageSize })}
           onRowsPerPageChange={(nextRowsPerPage) => setPaginationModel({ page: 0, pageSize: nextRowsPerPage })}
           onSaveView={handleSaveView}

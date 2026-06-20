@@ -43,7 +43,7 @@ export function useECLCombinedQuery(bankingMode: string) {
         api.banking.businessSetup.getHeaderDetails('B0025'),
         api.banking.populationSegments.getAll({ active_flag: true, segment_type: ECL_PORTFOLIO_SEGMENT_TYPE }),
         bankingAPI.ruleBaseSetting.getHeaders({ limit: 200, active_flag: true, rule_type: ECL_STAGE_RULE_TYPE }),
-        api.banking.pdConfigurations.getAll({ is_active: true }),
+        eclConfigurationsApi.getPdModelOutputs(),
         api.banking.lgdConfigurations.getAll({ is_active: true }),
         api.banking.eadConfigurations.getAll({ is_active: true }),
         eclConfigurationsApi.getAll(),

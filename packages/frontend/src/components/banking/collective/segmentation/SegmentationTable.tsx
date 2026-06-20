@@ -3,7 +3,6 @@
 import React, { useMemo } from 'react';
 import { Box, Chip, IconButton, Tooltip, Typography } from '@mui/material';
 import {
-  ContentCopy as DuplicateIcon,
   Delete as DeleteIcon,
   Edit as EditIcon,
   Visibility as ViewIcon,
@@ -16,13 +15,9 @@ interface SegmentationTableProps {
   columnFilters?: Record<string, any>;
   onColumnFiltersChange?: (filters: Record<string, any>) => void;
   data: any[];
-  selectedIds: number[];
-  onSelect: (id: number) => void;
-  onSelectAll: (checked: boolean) => void;
   onView: (item: any) => void;
   onEdit: (item: any) => void;
   onDelete: (item: any) => void;
-  onDuplicate: (item: any) => void;
   loading: boolean;
   page: number;
   rowsPerPage: number;
@@ -36,13 +31,9 @@ interface SegmentationTableProps {
 
 export const SegmentationTable: React.FC<SegmentationTableProps> = ({
   data,
-  selectedIds,
-  onSelect,
-  onSelectAll,
   onView,
   onEdit,
   onDelete,
-  onDuplicate,
   loading,
   page,
   rowsPerPage,
@@ -73,86 +64,7 @@ export const SegmentationTable: React.FC<SegmentationTableProps> = ({
     }
   };
 
-  const handleSelectionChange = (ids: (string | number)[]) => {
-    const currentPageIds = new Set(data.map((row) => Number(row.id)));
-    const nextSelectedIds = new Set(ids.map((id) => Number(id)));
-
-    if (nextSelectedIds.size === 0) {
-      onSelectAll(false);
-      return;
-    }
-
-    if (data.length > 0 && data.every((row) => nextSelectedIds.has(Number(row.id)))) {
-      onSelectAll(true);
-      return;
-    }
-
-    const changedIds = [
-      ...selectedIds.filter((id) => currentPageIds.has(Number(id)) && !nextSelectedIds.has(Number(id))),
-      ...Array.from(nextSelectedIds).filter((id) => currentPageIds.has(id) && !selectedIds.includes(id)),
-    ];
-
-    changedIds.forEach((id) => onSelect(Number(id)));
-  };
-
   const columns = useMemo<GridColDef[]>(() => [
-    {
-      field: 'actions',
-      headerName: 'Actions',
-      type: 'actions',
-      width: 144,
-      filterable: false,
-      sortable: false,
-      renderCell: (params) => (
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
-          <Tooltip title="View Details">
-            <IconButton
-              size="small"
-              onClick={() => onView(params.row)}
-              color="info"
-              sx={{ p: 0.5 }}
-              aria-label="view-segmentation"
-              data-testid="view-segmentation-btn"
-            >
-              <ViewIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          {canManage && (
-            <>
-              <Tooltip title="Edit">
-                <IconButton
-                  size="small"
-                  onClick={() => onEdit(params.row)}
-                  color="warning"
-                  sx={{ p: 0.5 }}
-                  aria-label="edit-segmentation"
-                  data-testid="edit-segmentation-btn"
-                >
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Duplicate">
-                <IconButton size="small" onClick={() => onDuplicate(params.row)} color="primary" sx={{ p: 0.5 }}>
-                  <DuplicateIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Delete">
-                <IconButton
-                  size="small"
-                  onClick={() => onDelete(params.row)}
-                  color="error"
-                  sx={{ p: 0.5 }}
-                  aria-label="delete-segmentation"
-                  data-testid="delete-segmentation-btn"
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </>
-          )}
-        </Box>
-      ),
-    },
     {
       field: 'group_segment',
       headerName: 'Group Segment',
@@ -222,7 +134,60 @@ export const SegmentationTable: React.FC<SegmentationTableProps> = ({
         </Typography>
       ),
     },
-  ], [canManage, onDelete, onDuplicate, onEdit, onView, pendingRequests]);
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      type: 'actions',
+      width: 144,
+      filterable: false,
+      sortable: false,
+      headerAlign: 'right',
+      renderCell: (params) => (
+        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
+          <Tooltip title="View Details">
+            <IconButton
+              size="small"
+              onClick={() => onView(params.row)}
+              color="info"
+              sx={{ p: 0.5 }}
+              aria-label="view-segmentation"
+              data-testid="view-segmentation-btn"
+            >
+              <ViewIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          {canManage && (
+            <>
+              <Tooltip title="Edit">
+                <IconButton
+                  size="small"
+                  onClick={() => onEdit(params.row)}
+                  color="warning"
+                  sx={{ p: 0.5 }}
+                  aria-label="edit-segmentation"
+                  data-testid="edit-segmentation-btn"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Delete">
+                <IconButton
+                  size="small"
+                  onClick={() => onDelete(params.row)}
+                  color="error"
+                  sx={{ p: 0.5 }}
+                  aria-label="delete-segmentation"
+                  data-testid="delete-segmentation-btn"
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
+        </Box>
+      ),
+    },
+  ], [canManage, onDelete, onEdit, onView, pendingRequests]);
 
   return (
     <SafeDataGrid
@@ -230,9 +195,6 @@ export const SegmentationTable: React.FC<SegmentationTableProps> = ({
       columns={columns}
       loading={loading}
       getRowId={(row) => row.id}
-      checkboxSelection
-      rowSelectionModel={selectedIds as any}
-      onRowSelectionModelChange={(ids) => handleSelectionChange(ids as any)}
       rowCount={totalCount}
       paginationMode="offset"
       paginationModel={{ page, pageSize: rowsPerPage }}

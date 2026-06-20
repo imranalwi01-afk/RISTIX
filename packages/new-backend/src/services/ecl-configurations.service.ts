@@ -3,7 +3,7 @@ import { EclConfigurationsRepository } from '../repositories/ecl-configurations.
 import { NotFoundError, DatabaseError } from '../lib/errors'
 import { frs9ImpCaEclConfigh, frs9ImpCaEclConfigd, frs9ImpCaResultHPrv, frs9ImpCaResultDPrv } from '../db/schema'
 import { legacyDb } from '../config'
-import { asc, eq } from 'drizzle-orm'
+import { asc, eq, sql } from 'drizzle-orm'
 
 export const EclConfigurationsService = {
     /**
@@ -204,6 +204,25 @@ export const EclConfigurationsService = {
             EclConfigurationsRepository.delete(BigInt(id)),
             Effect.map(() => ({ message: 'Deleted successfully' }))
         ) as any
+    },
+
+    getPdModelOutputs: () => {
+        return Effect.tryPromise({
+            try: async () => {
+                const rows: any[] = await legacyDb.execute(sql`
+                    SELECT DISTINCT m.model_id, s.model_name
+                    FROM frs9_r_pd_output_monthly m
+                    LEFT JOIN frs9_r_model_summary s ON m.model_id = s.model_id
+                    WHERE m.model_id IS NOT NULL
+                    ORDER BY m.model_id
+                `)
+                const data = (rows as any).rows
+                    ? (rows as any).rows.map((r: any) => ({ model_id: Number(r.model_id), model_name: r.model_name }))
+                    : rows.map((r: any) => ({ model_id: Number(r.model_id), model_name: r.model_name }))
+                return { success: true, data }
+            },
+            catch: (error) => new DatabaseError({ message: 'Failed to fetch PD model outputs', operation: 'query', cause: error })
+        }) as any
     }
 }
 

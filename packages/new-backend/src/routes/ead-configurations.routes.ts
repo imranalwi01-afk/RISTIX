@@ -9,6 +9,7 @@ import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware
 import { runEffect } from '../lib/effect/runtime'
 import { buildErrorResponse } from '../lib/http/error-response'
 import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
+import { ParametersService } from '../services/parameters.service'
 
 export const eadConfigurationsRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
@@ -177,19 +178,25 @@ eadConfigurationsRoutes.openapi(
         method: 'get',
         path: '/metadata/methods',
         tags: ['EAD Configurations'],
-        summary: 'Get EAD Methods',
+        summary: 'Get EAD Methods from Business Setting B0020',
         responses: {
-            200: { content: { 'application/json': { schema: MetadataResponse } }, description: 'List Methods' }
+            200: { content: { 'application/json': { schema: MetadataResponse } }, description: 'List Methods' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
-        return c.json({
-            success: true,
-            data: [
-                { value: 'CCF', label: 'CCF' },
-                { value: 'Prepayment', label: 'Prepayment' },
-            ],
-        })
+        return runEffect(c,
+            pipe(
+                ParametersService.getAppSettingDetails('B0020'),
+                Effect.map(details => ({
+                    success: true,
+                    data: (details as any[]).map((d: any) => ({
+                        value: d.value1 || '',
+                        label: d.param_desc || d.value1 || '',
+                    }))
+                }))
+            )
+        ) as any
     }
 )
 
@@ -198,19 +205,25 @@ eadConfigurationsRoutes.openapi(
         method: 'get',
         path: '/metadata/calc-methods',
         tags: ['EAD Configurations'],
-        summary: 'Get Calc Methods',
+        summary: 'Get Calc Methods from Business Setting B0021',
         responses: {
-            200: { content: { 'application/json': { schema: MetadataResponse } }, description: 'List Calc Methods' }
+            200: { content: { 'application/json': { schema: MetadataResponse } }, description: 'List Calc Methods' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
-        return c.json({
-            success: true,
-            data: [
-                { value: 'Revolving', label: 'Revolving' },
-                { value: 'Term Loan', label: 'Term Loan' },
-            ],
-        })
+        return runEffect(c,
+            pipe(
+                ParametersService.getAppSettingDetails('B0021'),
+                Effect.map(details => ({
+                    success: true,
+                    data: (details as any[]).map((d: any) => ({
+                        value: d.value1 || '',
+                        label: d.param_desc || d.value1 || '',
+                    }))
+                }))
+            )
+        ) as any
     }
 )
 
