@@ -236,23 +236,7 @@ export const SegmentationDetailsTab: React.FC<SegmentationDetailsTabProps> = ({
                   sx={{ m: 0 }}
                 />
               </Box>
-
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="body2" fontWeight="medium">Requires Approval</Typography>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={formData.requires_approval !== false}
-                      onChange={(e) => handleChange('requires_approval', e.target.checked)}
-                      disabled={readOnly}
-                      color="secondary"
-                    />
-                  }
-                  label={formData.requires_approval !== false ? "Yes" : "No"}
-                  sx={{ m: 0 }}
-                />
-              </Box>
-            </Stack>
+          </Stack>
           </Paper>
         </Grid>
       </Grid>
