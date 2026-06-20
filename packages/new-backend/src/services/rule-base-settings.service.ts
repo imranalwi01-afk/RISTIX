@@ -227,6 +227,28 @@ export const RuleBaseSettingsService = {
     },
 
     /**
+     * Get dropdown options for Journal Parameters by rule type.
+     * Fetches active rule header entries matching the given ruleType,
+     * maps them to { id: value, name: ruleName } format.
+     *
+     * @param ruleType - The rule type to filter (e.g. 'GL', 'CURRENCY', 'JTYPE', 'JCODE', 'DBCR')
+     * @returns An Effect resolving to an array of { id, name } options
+     */
+    getOptionsByType: (ruleType: string) => {
+        return pipe(
+            RuleBaseSettingsRepository.findHeadersByType(ruleType, true),
+            Effect.map(headers =>
+                headers
+                    .filter(h => h.value !== null && h.value !== '')
+                    .map(h => ({
+                        id: String(h.value),
+                        name: String(h.ruleName ?? h.value)
+                    }))
+            )
+        )
+    },
+
+    /**
      * Get available operators based on data type.
      * 
      * @param dataType - The column data type (varchar, int, date)

@@ -252,7 +252,7 @@ export default function JournalParametersPage() {
         api.banking.journalParameters.getDbcrOptions()
       ]);
 
-      // Per tech spec: all dropdown values must come from business settings (B0001, B0005, B0006, B0007)
+      // Per tech spec: all dropdown values must come from Rule Base Setting (by rule type)
       // If DB returns empty, the dropdown is empty — no hardcoded fallbacks
       setGlGroupOptions(glGroup.success && glGroup.data?.length ? glGroup.data : []);
       setCurrencyOptions(currency.success && currency.data?.length ? currency.data : []);

@@ -70,9 +70,6 @@ export default function ProductDrawer({
     if (initialData) {
       setFormData({
         ...initialData,
-        expectedLife: initialData.expectedLife ?? '',
-        borrowingRate: initialData.borrowingRate ?? '',
-        marketRate: initialData.marketRate ?? '',
       });
     } else {
       setFormData({
@@ -85,10 +82,6 @@ export default function ProductDrawer({
         amortizationType: options.amortizationTypes[0]?.id || '',
         alFlag: options.instrumentClasses[0]?.id || '',
         impairedFlag: false,
-        bmFlag: false,
-        expectedLife: '',
-        borrowingRate: '',
-        marketRate: '',
         activeFlag: true
       });
     }
@@ -119,7 +112,12 @@ export default function ProductDrawer({
 
   const handleSave = () => {
     if (validate()) {
-      onSave(formData);
+      // Clean up empty strings for optional fields
+      const cleaned = { ...formData };
+      for (const key of Object.keys(cleaned)) {
+        if (cleaned[key] === '') cleaned[key] = undefined;
+      }
+      onSave(cleaned);
     }
   };
 
@@ -309,30 +307,6 @@ export default function ProductDrawer({
               <FormHelperText>Source: Business Setting B0002</FormHelperText>
             </FormControl>
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2 }}>
-              <TextField
-                label="Exp. Life (Mths)"
-                type="number"
-                value={formData.expectedLife}
-                onChange={(e) => handleChange('expectedLife', e.target.value)}
-                disabled={loading}
-              />
-              <TextField
-                label="Borrowing %"
-                type="number"
-                value={formData.borrowingRate}
-                onChange={(e) => handleChange('borrowingRate', e.target.value)}
-                disabled={loading}
-              />
-              <TextField
-                label="Market %"
-                type="number"
-                value={formData.marketRate}
-                onChange={(e) => handleChange('marketRate', e.target.value)}
-                disabled={loading}
-              />
-            </Box>
-
             <Divider>Flags & Status</Divider>
 
             <Stack direction="row" spacing={2}>
@@ -345,16 +319,6 @@ export default function ProductDrawer({
                   />
                 }
                 label="Impaired"
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formData.bmFlag}
-                    onChange={(e) => handleChange('bmFlag', e.target.checked)}
-                    disabled={loading}
-                  />
-                }
-                label="Below Market"
               />
               <FormControlLabel
                 control={

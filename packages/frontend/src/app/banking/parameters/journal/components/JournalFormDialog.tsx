@@ -222,7 +222,7 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         required
                         disabled={optionsLoading}
                         error={!formData.currency.trim()}
-                        helperText={!formData.currency.trim() ? 'Currency is required' : 'Source: Business Setting B0001'}
+                        helperText={!formData.currency.trim() ? 'Currency is required' : 'Source: Rule Based Setting (type = CURRENCY)'}
                         SelectProps={{ inputProps: { 'data-testid': 'select-journal-currency' } }}
                     >
                         {currencyOptions.length > 0 ? (
@@ -230,7 +230,7 @@ const JournalFormDialog = memo(function JournalFormDialog({
                                 <MenuItem key={`${option.id}-${idx}`} value={option.id}>{option.name}</MenuItem>
                             ))
                         ) : (
-                            <MenuItem disabled value="">No options — configure B0001 in Business Settings</MenuItem>
+                            <MenuItem disabled value="">No options — configure CURRENCY rules in Rule Based Settings</MenuItem>
                         )}
                     </TextField>
                     <TextField
@@ -242,7 +242,7 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         required
                         disabled={optionsLoading}
                         error={!formData.glType.trim()}
-                        helperText={!formData.glType.trim() ? 'Journal Type is required' : 'Source: Business Setting B0005'}
+                        helperText={!formData.glType.trim() ? 'Journal Type is required' : 'Source: Rule Based Setting (type = JTYPE)'}
                         SelectProps={{ inputProps: { 'data-testid': 'select-journal-type' } }}
                     >
                         {journalTypeOptions.length > 0 ? (
@@ -250,7 +250,7 @@ const JournalFormDialog = memo(function JournalFormDialog({
                                 <MenuItem key={`${option.id}-${idx}`} value={option.id}>{option.name}</MenuItem>
                             ))
                         ) : (
-                            <MenuItem disabled value="">No options — configure B0005 in Business Settings</MenuItem>
+                            <MenuItem disabled value="">No options — configure JTYPE rules in Rule Based Settings</MenuItem>
                         )}
                     </TextField>
                     <TextField
@@ -262,7 +262,7 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         required
                         disabled={optionsLoading}
                         error={!formData.glCode.trim()}
-                        helperText={!formData.glCode.trim() ? 'Journal Code is required' : 'Source: Business Setting B0006'}
+                        helperText={!formData.glCode.trim() ? 'Journal Code is required' : 'Source: Rule Based Setting (type = JCODE)'}
                         SelectProps={{ inputProps: { 'data-testid': 'select-journal-code' } }}
                     >
                         {journalCodeOptions.length > 0 ? (
@@ -270,7 +270,7 @@ const JournalFormDialog = memo(function JournalFormDialog({
                                 <MenuItem key={`${option.id}-${idx}`} value={option.id}>{option.id} - {option.name}</MenuItem>
                             ))
                         ) : (
-                            <MenuItem disabled value="">No options — configure B0006 in Business Settings</MenuItem>
+                            <MenuItem disabled value="">No options — configure JCODE rules in Rule Based Settings</MenuItem>
                         )}
                     </TextField>
                     <TextField
@@ -291,7 +291,7 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         required
                         disabled={optionsLoading}
                         error={!formData.dbcr.trim()}
-                        helperText={!formData.dbcr.trim() ? 'DB/CR is required' : 'Source: Business Setting B0007'}
+                        helperText={!formData.dbcr.trim() ? 'DB/CR is required' : 'Source: Rule Based Setting (type = DBCR)'}
                         SelectProps={{ inputProps: { 'data-testid': 'select-journal-dbcr' } }}
                     >
                         {dbcrOptions.length > 0 ? (
@@ -299,7 +299,7 @@ const JournalFormDialog = memo(function JournalFormDialog({
                                 <MenuItem key={`${option.id}-${idx}`} value={option.id}>{option.name}</MenuItem>
                             ))
                         ) : (
-                            <MenuItem disabled value="">No options — configure B0007 in Business Settings</MenuItem>
+                            <MenuItem disabled value="">No options — configure DBCR rules in Rule Based Settings</MenuItem>
                         )}
                     </TextField>
                     <TextField
