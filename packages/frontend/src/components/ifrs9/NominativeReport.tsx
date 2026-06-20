@@ -467,8 +467,20 @@ const NominativeReport: React.FC = () => {
         Object.fromEntries(
           columns.map((col) => {
             const raw = row[col.key];
-            // Convert to proper number type so Excel gets numbers, not strings
-            if (col.type === 'currency' || col.type === 'percentage' || col.type === 'number' || col.type === 'stage') {
+            // Percentage: format with comma decimal separator + '%' (Indonesian locale)
+            if (col.type === 'percentage') {
+              const num = typeof raw === 'string' ? parseFloat(raw.replace(/,/g, '')) : Number(raw);
+              if (!Number.isNaN(num)) return [col.label, (num * 100).toFixed(2).replace('.', ',') + '%'];
+              return [col.label, raw];
+            }
+            // Currency: format as IDR with comma decimal separator
+            if (col.type === 'currency') {
+              const num = typeof raw === 'string' ? parseFloat(raw.replace(/,/g, '')) : Number(raw);
+              if (!Number.isNaN(num)) return [col.label, num];
+              return [col.label, raw];
+            }
+            // Number / Stage: keep as raw number for Excel
+            if (col.type === 'number' || col.type === 'stage') {
               const num = typeof raw === 'string' ? parseFloat(raw.replace(/,/g, '')) : Number(raw);
               if (!Number.isNaN(num)) return [col.label, num];
             }
