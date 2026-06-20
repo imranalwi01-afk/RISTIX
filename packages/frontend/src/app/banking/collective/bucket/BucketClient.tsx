@@ -98,6 +98,7 @@ interface BucketDetailsPanelProps {
   onAddDetail: (header: BucketParameterHeader) => void;
   onEditDetail: (detail: BucketParameterDetail) => void;
   onDeleteDetail: (detail: BucketParameterDetail) => void;
+  refreshKey?: number;
 }
 
 const BucketDetailsPanel = ({
@@ -106,6 +107,7 @@ const BucketDetailsPanel = ({
   onAddDetail,
   onEditDetail,
   onDeleteDetail,
+  refreshKey,
 }: BucketDetailsPanelProps) => {
   const [details, setDetails] = useState<BucketParameterDetail[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -127,7 +129,7 @@ const BucketDetailsPanel = ({
 
   useEffect(() => {
     void loadDetails();
-  }, [loadDetails]);
+  }, [loadDetails, refreshKey]);
 
   const detailColumns = useMemo<GridColDef[]>(() => [
     {
@@ -277,6 +279,7 @@ export default function BucketParameterPage() {
   const [headerDialogOpen, setHeaderDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [detailRefreshKey, setDetailRefreshKey] = useState(0);
 
   // Form States
   const [selectedHeader, setSelectedHeader] = useState<BucketParameterHeader | null>(null);
@@ -467,6 +470,7 @@ export default function BucketParameterPage() {
       } else {
         setSnackbar({ open: true, message: 'Detail deleted successfully', type: 'success' });
       }
+      setDetailRefreshKey(k => k + 1);
       bucketRefetch();
       loadPendingApprovals();
     } catch (error) {
@@ -540,6 +544,7 @@ export default function BucketParameterPage() {
       }
 
       setDetailDialogOpen(false);
+      setDetailRefreshKey(k => k + 1);
       bucketRefetch();
       loadPendingApprovals();
     } catch (error) {
@@ -836,6 +841,7 @@ export default function BucketParameterPage() {
                   onAddDetail={handleAddDetail}
                   onEditDetail={handleEditDetail}
                   onDeleteDetail={handleDeleteDetail}
+                  refreshKey={detailRefreshKey}
                 />
               )}
             />
