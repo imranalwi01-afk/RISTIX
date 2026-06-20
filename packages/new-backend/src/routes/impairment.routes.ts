@@ -316,7 +316,7 @@ impairmentRoutes.openapi(
                 } as any)
             }
 
-            const conditions = [eq(frs9MasterAccount.prcDate, effectivePrcDate)]
+            const conditions = [eq(frs9MasterAccount.prcDate, effectivePrcDate), eq(frs9MasterAccount.accountStatus, 'A')]
 
             if (search) {
                 conditions.push(or(
