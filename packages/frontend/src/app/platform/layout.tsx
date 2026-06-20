@@ -30,7 +30,6 @@ import {
     Logout as LogoutIcon,
     Security as SecurityIcon,
     Email as EmailIcon,
-    Tune as TuneIcon,
     Menu as MenuIcon,
     Dashboard as DashboardIcon,
     ChevronLeft as ChevronLeftIcon,
@@ -64,7 +63,7 @@ const menuItems = [
     { text: 'RBAC', icon: <SecurityIcon />, path: '/platform/rbac' },
     { text: 'Menus', icon: <MenuIcon />, path: '/platform/menus' },
     { text: 'SMTP Settings', icon: <EmailIcon />, path: '/platform/settings/smtp' },
-    { text: 'Impact Config', icon: <TuneIcon />, path: '/platform/impact-config' },
+
 ];
 
 // ─── Sidebar Navigation List ──────────────────────────────────────────

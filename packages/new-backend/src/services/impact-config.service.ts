@@ -1,6 +1,5 @@
-import { platformDb } from '../config/database'
-import { platformSettings } from '../db/schema/platform.schema'
-import { eq } from 'drizzle-orm'
+import { ParametersRepository } from '../repositories/parameters.repository'
+import { Effect } from 'effect'
 
 export type ImpactLevel = 'low' | 'medium' | 'high' | 'critical'
 
@@ -9,7 +8,7 @@ export interface ImpactLevelConfig {
     slaHours: number
     escalationAfterHours: number
     requireDecisionComment: boolean
-    queuePriority: number // BullMQ priority (0=highest)
+    queuePriority: number
 }
 
 export interface ImpactConfig {
@@ -37,84 +36,87 @@ const DEFAULT_CONFIG: ImpactConfig = {
         LEGACY: 'high',
     },
     levels: {
-        low: {
-            approvalsRequired: 1,
-            slaHours: 24,
-            escalationAfterHours: 12,
-            requireDecisionComment: false,
-            queuePriority: 5,
-        },
-        medium: {
-            approvalsRequired: 1,
-            slaHours: 8,
-            escalationAfterHours: 4,
-            requireDecisionComment: false,
-            queuePriority: 5,
-        },
-        high: {
-            approvalsRequired: 2,
-            slaHours: 4,
-            escalationAfterHours: 2,
-            requireDecisionComment: true,
-            queuePriority: 1,
-        },
-        critical: {
-            approvalsRequired: 2,
-            slaHours: 2,
-            escalationAfterHours: 1,
-            requireDecisionComment: true,
-            queuePriority: 0,
-        },
+        low: { approvalsRequired: 1, slaHours: 24, escalationAfterHours: 12, requireDecisionComment: false, queuePriority: 5 },
+        medium: { approvalsRequired: 1, slaHours: 8, escalationAfterHours: 4, requireDecisionComment: false, queuePriority: 5 },
+        high: { approvalsRequired: 2, slaHours: 4, escalationAfterHours: 2, requireDecisionComment: true, queuePriority: 1 },
+        critical: { approvalsRequired: 2, slaHours: 2, escalationAfterHours: 1, requireDecisionComment: true, queuePriority: 0 },
     },
     defaultPriority: 'NORMAL',
     defaultImpact: 'medium',
 }
 
-let cachedConfig: ImpactConfig | null = null
+const BUSINESS_SETTING_CODE = 'B0031'
 
-function mergeConfig(base: ImpactConfig, override: Partial<ImpactConfig>): ImpactConfig {
-    return {
-        ...base,
-        ...override,
-        priorityMapping: { ...base.priorityMapping, ...override.priorityMapping },
-        jobTypeMinimums: { ...base.jobTypeMinimums, ...override.jobTypeMinimums },
-        targetDbElevations: { ...base.targetDbElevations, ...override.targetDbElevations },
-        levels: {
-            low: { ...base.levels.low, ...override.levels?.low },
-            medium: { ...base.levels.medium, ...override.levels?.medium },
-            high: { ...base.levels.high, ...override.levels?.high },
-            critical: { ...base.levels.critical, ...override.levels?.critical },
-        },
+let cachedConfig: ImpactConfig | null = null
+let lastFetch = 0
+const CACHE_TTL = 30000 // 30s
+
+/**
+ * Read impact config from Business Setting B0030 details.
+ * Each detail row: value1 = config path (e.g. "levels.low.approvalsRequired"), value2 = value
+ * Falls back to DEFAULT_CONFIG if not found.
+ */
+async function fetchFromBusinessSettings(): Promise<ImpactConfig> {
+    try {
+        const effect = ParametersRepository.findDetailByCode(BUSINESS_SETTING_CODE)
+        const details = await Effect.runPromise(effect)
+
+        if (!details || details.length === 0) return DEFAULT_CONFIG
+
+        const cfg: Record<string, string> = {}
+        for (const d of details) {
+            const key = d.value1?.trim()
+            const val = d.value2?.trim()
+            if (key && val !== undefined && val !== null) {
+                cfg[key] = val
+            }
+        }
+
+        if (Object.keys(cfg).length === 0) return DEFAULT_CONFIG
+
+        const merged: ImpactConfig = JSON.parse(JSON.stringify(DEFAULT_CONFIG))
+
+        for (const [path, value] of Object.entries(cfg)) {
+            const parts = path.split('.')
+            let obj: any = merged
+            for (let i = 0; i < parts.length - 1; i++) {
+                if (!(parts[i] in obj)) obj[parts[i]] = {}
+                obj = obj[parts[i]]
+            }
+            const lastKey = parts[parts.length - 1]
+            const existing = obj[lastKey]
+            if (typeof existing === 'boolean') {
+                obj[lastKey] = value === 'true' || value === '1'
+            } else if (typeof existing === 'number') {
+                obj[lastKey] = Number(value)
+            } else {
+                obj[lastKey] = value
+            }
+        }
+
+        return merged
+    } catch {
+        return DEFAULT_CONFIG
     }
 }
 
 export async function getImpactConfig(): Promise<ImpactConfig> {
-    if (cachedConfig) return cachedConfig
+    const now = Date.now()
+    if (cachedConfig && now - lastFetch < CACHE_TTL) return cachedConfig
 
-    try {
-        const rows = await platformDb
-            .select({ value: platformSettings.value })
-            .from(platformSettings)
-            .where(eq(platformSettings.key, 'impact_level_config'))
-            .limit(1)
-
-        if (rows.length > 0 && rows[0].value) {
-            const override = rows[0].value as Partial<ImpactConfig>
-            cachedConfig = mergeConfig(DEFAULT_CONFIG, override)
-        } else {
-            cachedConfig = DEFAULT_CONFIG
-        }
-    } catch {
-        cachedConfig = DEFAULT_CONFIG
-    }
-
+    cachedConfig = await fetchFromBusinessSettings()
+    lastFetch = now
     return cachedConfig!
 }
 
 export function clearImpactConfigCache(): void {
     cachedConfig = null
+    lastFetch = 0
 }
 
+/**
+ * Derive impact level and requirements from priority, job type, and target database.
+ */
 export function deriveImpactLevel(
     priority: string | null | undefined,
     jobType: string | null | undefined,
@@ -123,30 +125,22 @@ export function deriveImpactLevel(
 ): { impactLevel: ImpactLevel; approvalsRequired: number; slaHours: number; escalationAfterHours: number; requireDecisionComment: boolean; queuePriority: number } {
     const normalizedPriority = String(priority || config.defaultPriority).toUpperCase()
     const normalizedJobType = String(jobType || '').toUpperCase()
+    const normalizedDb = String(targetDatabase || '').toUpperCase()
 
     let impactLevel = config.priorityMapping[normalizedPriority] || config.defaultImpact
+    const rank = (l: ImpactLevel) => ['low', 'medium', 'high', 'critical'].indexOf(l)
 
-    // Job type minimums can elevate impact
     const typeGuard = config.jobTypeMinimums[normalizedJobType]
-    if (typeGuard?.minImpact) {
-        const rank = (l: ImpactLevel) => ['low', 'medium', 'high', 'critical'].indexOf(l)
-        if (rank(typeGuard.minImpact) > rank(impactLevel)) {
-            impactLevel = typeGuard.minImpact
-        }
+    if (typeGuard?.minImpact && rank(typeGuard.minImpact) > rank(impactLevel)) {
+        impactLevel = typeGuard.minImpact
     }
 
-    // Target database can elevate impact
-    const normalizedDb = String(targetDatabase || '').toUpperCase()
     const dbElevation = config.targetDbElevations[normalizedDb]
-    if (dbElevation) {
-        const rank = (l: ImpactLevel) => ['low', 'medium', 'high', 'critical'].indexOf(l)
-        if (rank(dbElevation) > rank(impactLevel)) {
-            impactLevel = dbElevation
-        }
+    if (dbElevation && rank(dbElevation) > rank(impactLevel)) {
+        impactLevel = dbElevation
     }
 
     const levelConfig = config.levels[impactLevel]
-
     let approvalsRequired = levelConfig.approvalsRequired
     if (typeGuard?.minApprovals && typeGuard.minApprovals > approvalsRequired) {
         approvalsRequired = typeGuard.minApprovals
