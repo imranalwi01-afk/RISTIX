@@ -75,7 +75,6 @@ import {
   BugReport as IssueIcon,
   Notifications as NotificationIcon,
   MoreVert as MoreIcon,
-  Visibility as ViewIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Schedule as ScheduleIcon,
@@ -532,16 +531,7 @@ export default function DataValidationDashboard() {
           onClick={() => runValidation(params.row.id)}
           showInMenu={false}
         />,
-        <SafeGridActionsCellItem
-          key="view"
-          icon={<ViewIcon />}
-          label="View"
-          onClick={() => {
-            setSelectedRule(params.row);
-            setRuleDialogOpen(true);
-          }}
-          showInMenu={false}
-        />,
+        
       ],
     },
   ], []);

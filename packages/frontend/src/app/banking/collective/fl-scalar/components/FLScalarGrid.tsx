@@ -15,7 +15,6 @@ import {
   Download as DownloadIcon,
   Edit as EditIcon,
   TrendingUp as TrendingUpIcon,
-  Visibility as ViewIcon,
 } from '@mui/icons-material';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { ApprovalStatusBadge } from '@/components/approval';
@@ -26,7 +25,6 @@ interface FLScalarGridProps {
   loading: boolean;
   pendingRequests: any[];
   canManage: boolean;
-  onView: (row: FLScalarWithDetails) => void;
   onEdit: (row: FLScalarWithDetails) => void;
   onDelete: (id: GridRowId) => void;
   onUpload: () => void;
@@ -39,7 +37,6 @@ export const FLScalarGrid = memo(function FLScalarGrid({
   loading,
   pendingRequests,
   canManage,
-  onView,
   onEdit,
   onDelete,
   onUpload,
@@ -47,39 +44,6 @@ export const FLScalarGrid = memo(function FLScalarGrid({
   onCreate,
 }: FLScalarGridProps) {
   const columns: GridColDef[] = [
-    {
-      field: 'actions',
-      headerName: 'Actions',
-      width: 120,
-      type: 'actions',
-      getActions: (params) => [
-        <SafeGridActionsCellItem
-          key="view"
-          icon={<ViewIcon />}
-          label="View"
-          data-testid={`fl-scalar-view-button-${params.id}`}
-          onClick={() => onView(params.row)}
-        />,
-        ...(canManage
-          ? [
-              <SafeGridActionsCellItem
-                key="edit"
-                icon={<EditIcon color="primary" />}
-                label="Edit"
-                data-testid={`fl-scalar-edit-button-${params.id}`}
-                onClick={() => onEdit(params.row)}
-              />,
-              <SafeGridActionsCellItem
-                key="delete"
-                icon={<DeleteIcon color="error" />}
-                label="Delete"
-                data-testid={`fl-scalar-delete-button-${params.id}`}
-                onClick={() => onDelete(params.id)}
-              />,
-            ]
-          : []),
-      ],
-    },
     {
       field: 'scalar_name',
       headerName: 'Scalar Name',
@@ -143,6 +107,32 @@ export const FLScalarGrid = memo(function FLScalarGrid({
       headerName: 'Updated Date',
       width: 130,
       renderCell: (params) => (params.value ? new Date(params.value).toLocaleDateString() : '-'),
+    },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 120,
+      type: 'actions',
+      getActions: (params) => [
+        ...(canManage
+          ? [
+              <SafeGridActionsCellItem
+                key="edit"
+                icon={<EditIcon color="primary" />}
+                label="Edit"
+                data-testid={`fl-scalar-edit-button-${params.id}`}
+                onClick={() => onEdit(params.row)}
+              />,
+              <SafeGridActionsCellItem
+                key="delete"
+                icon={<DeleteIcon color="error" />}
+                label="Delete"
+                data-testid={`fl-scalar-delete-button-${params.id}`}
+                onClick={() => onDelete(params.id)}
+              />,
+            ]
+          : []),
+      ],
     },
   ];
 

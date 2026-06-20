@@ -23,7 +23,6 @@ import Typography from '@mui/material/Typography'
 import AddIcon from '@mui/icons-material/Add'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
-import VisibilityIcon from '@mui/icons-material/Visibility'
 
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
@@ -869,13 +868,6 @@ export default function PageContent() {
       type: 'actions',
       width: 160,
       getActions: (params: any) => [
-        <SafeGridActionsCellItem
-          key="view"
-          label="View"
-          icon={<VisibilityIcon color="info" />}
-          onClick={() => handleView(params.row)}
-          data-testid="btn-view-app-setting"
-        />,
         ...(canManageApplication ? [
         <SafeGridActionsCellItem
           key="edit"

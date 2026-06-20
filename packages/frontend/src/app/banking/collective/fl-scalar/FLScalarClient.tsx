@@ -437,7 +437,6 @@ export default function FLScalarManagementPage() {
         loading={flLoading}
         pendingRequests={pendingRequests}
         canManage={canManageFlScalar}
-        onView={(row) => openDialog('view', row)}
         onEdit={(row) => openDialog('edit', row)}
         onDelete={handleDelete}
         onUpload={handleUploadExcel}

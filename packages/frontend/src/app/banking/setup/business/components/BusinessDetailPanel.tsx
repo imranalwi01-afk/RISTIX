@@ -110,7 +110,7 @@ const BusinessDetailPanel = memo(function BusinessDetailPanel({
           <Button
             size="small"
             startIcon={<AddIcon />}
-            variant="outlined"
+            variant="contained"
             onClick={() => onAddDetail(row.param_code, nextSeq)}
             sx={{ borderRadius: 2, textTransform: 'none' }}
           >

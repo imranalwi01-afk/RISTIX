@@ -300,16 +300,30 @@ export class BucketParameterAPI {
   // ==========================================================================
 
   /**
-   * Get basis options
+   * Get basis options (from Business Setting B0017)
    */
   async getBasisOptions(): Promise<ApiResponse<{ value1: string, paramdesc: string }[]>> {
-    return {
-      success: true,
-      data: [
-        { value1: 'D', paramdesc: 'Day Past Due' },
-        { value1: 'R', paramdesc: 'Rating' }
-      ]
-    };
+    try {
+      const response = await apiClient.get('/banking/business-settings/B0017/details');
+      const payload = response.data;
+      if (payload.success && payload.data) {
+        // Map param_desc (backend camelCase) -> paramdesc (frontend expectation)
+        payload.data = payload.data.map((item: any) => ({
+          value1: item.value1 || '',
+          paramdesc: item.param_desc || item.value1 || ''
+        }));
+      }
+      return this.unwrap(payload);
+    } catch (error) {
+      console.error('Error fetching basis options from B0017:', error);
+      return {
+        success: true,
+        data: [
+          { value1: 'D', paramdesc: 'Day Past Due' },
+          { value1: 'R', paramdesc: 'Rating' }
+        ]
+      };
+    }
   }
 
   /**
