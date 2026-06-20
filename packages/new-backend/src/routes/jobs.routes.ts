@@ -151,85 +151,43 @@ type JobApprovalPolicy = {
     slaHours: number
     escalationAfterHours: number
     requireDecisionComment: boolean
+    queuePriority: number
     rationale: string[]
 }
 
-const JOB_TYPE_APPROVAL_MINIMUMS: Record<string, { minImpact?: 'high' | 'critical'; minApprovals?: number; forceComment?: boolean }> = {
-    SQL_SP: { minImpact: 'high', minApprovals: 2, forceComment: true },
-    SHELL_COMMAND: { minImpact: 'critical', minApprovals: 2, forceComment: true },
-}
+const deriveApprovalPolicy = async (definition: any): Promise<JobApprovalPolicy> => {
+    const { deriveImpactLevel, getImpactConfig } = await import('../services/impact-config.service')
+    const config = await getImpactConfig()
 
-const IMPACT_ORDER: Array<'low' | 'medium' | 'high' | 'critical'> = ['low', 'medium', 'high', 'critical']
-const impactRank = (level: 'low' | 'medium' | 'high' | 'critical') => IMPACT_ORDER.indexOf(level)
-
-const maxImpact = (a: 'low' | 'medium' | 'high' | 'critical', b: 'low' | 'medium' | 'high' | 'critical') =>
-    impactRank(a) >= impactRank(b) ? a : b
-
-const deriveApprovalPolicy = (definition: any): JobApprovalPolicy => {
-    const normalizedJobType = String(definition.jobType || '').toUpperCase()
     const parameters = definition.defaultParameters && typeof definition.defaultParameters === 'object'
         ? definition.defaultParameters
         : {}
     const targetDatabase = String((parameters as any).targetDatabase || '').toUpperCase()
 
-    let impactLevel: 'low' | 'medium' | 'high' | 'critical'
-    switch (String(definition.priority || '').toUpperCase()) {
-        case 'CRITICAL':
-            impactLevel = 'critical'
-            break
-        case 'HIGH':
-            impactLevel = 'high'
-            break
-        case 'LOW':
-            impactLevel = 'low'
-            break
-        case 'NORMAL':
-        default:
-            impactLevel = 'medium'
-            break
+    const result = deriveImpactLevel(
+        definition.priority,
+        definition.jobType,
+        targetDatabase,
+        config,
+    )
+
+    const rationale: string[] = [
+        `Priority ${String(definition.priority || config.defaultPriority).toUpperCase()} mapped to ${result.impactLevel}`,
+    ]
+
+    const normalizedJobType = String(definition.jobType || '').toUpperCase()
+    const typeGuard = config.jobTypeMinimums[normalizedJobType]
+    if (typeGuard?.minApprovals && typeGuard.minApprovals > result.approvalsRequired) {
+        rationale.push(`Job type ${normalizedJobType} requires at least ${typeGuard.minApprovals} approvers`)
     }
-
-    const rationale: string[] = [`Priority ${String(definition.priority || 'NORMAL').toUpperCase()} mapped to ${impactLevel}`]
-    const typeGuard = JOB_TYPE_APPROVAL_MINIMUMS[normalizedJobType]
-    if (typeGuard?.minImpact) {
-        const elevated = maxImpact(impactLevel, typeGuard.minImpact)
-        if (elevated !== impactLevel) {
-            rationale.push(`Job type ${normalizedJobType} elevated impact to ${elevated}`)
-            impactLevel = elevated
-        }
-    }
-
-    if (normalizedJobType === 'SQL_SP' && targetDatabase === 'LEGACY') {
-        const elevated = maxImpact(impactLevel, 'high')
-        if (elevated !== impactLevel) {
-            rationale.push('Legacy SQL stored procedure elevated impact to high')
-            impactLevel = elevated
-        }
-    }
-
-    let approvalsRequired = impactLevel === 'critical' || impactLevel === 'high' ? 2 : 1
-    if (typeGuard?.minApprovals && typeGuard.minApprovals > approvalsRequired) {
-        approvalsRequired = typeGuard.minApprovals
-        rationale.push(`Job type ${normalizedJobType} requires at least ${approvalsRequired} approvers`)
-    }
-
-    const slaHours = impactLevel === 'critical'
-        ? 2
-        : impactLevel === 'high'
-            ? 4
-            : impactLevel === 'medium'
-                ? 8
-                : 24
-
-    const escalationAfterHours = Math.max(1, Math.floor(slaHours / 2))
-    const requireDecisionComment = Boolean(typeGuard?.forceComment || impactLevel === 'critical' || impactLevel === 'high')
 
     return {
-        impactLevel,
-        approvalsRequired,
-        slaHours,
-        escalationAfterHours,
-        requireDecisionComment,
+        impactLevel: result.impactLevel,
+        approvalsRequired: result.approvalsRequired,
+        slaHours: result.slaHours,
+        escalationAfterHours: result.escalationAfterHours,
+        requireDecisionComment: result.requireDecisionComment,
+        queuePriority: result.queuePriority,
         rationale,
     }
 }
@@ -1431,7 +1389,7 @@ jobsRoutes.openapi(
 
         // Generate execution ID
         const executionId = crypto.randomUUID()
-        const approvalPolicy = deriveApprovalPolicy(definition)
+        const approvalPolicy = await deriveApprovalPolicy(definition)
 
         // Check if approval is required
         if (definition.requiresApproval) {
@@ -1521,7 +1479,7 @@ jobsRoutes.openapi(
                 parameters: definition.defaultParameters,
             }, {
                 jobId: executionId,
-                priority: definition.priority === 'HIGH' ? 1 : definition.priority === 'CRITICAL' ? 0 : 5,
+                priority: approvalPolicy.queuePriority,
                 attempts: (definition.maxRetries || 0) + 1,
                 timeout: (definition.timeout || 3600) * 1000,
             }) as any
