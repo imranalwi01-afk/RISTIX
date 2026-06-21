@@ -167,6 +167,7 @@ const JournalFormDialog = memo(function JournalFormDialog({
         if (!formData.glType.trim()) errors.push('Journal Type is required');
         if (!formData.glCode.trim()) errors.push('Journal Code is required');
         if (!formData.dbcr.trim()) errors.push('DB/CR is required');
+        if (!formData.glNumber.trim()) errors.push('COA (GL Number) is required');
 
         if (errors.length > 0) {
             setError(errors.join(', '));
@@ -274,13 +275,15 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         )}
                     </TextField>
                     <TextField
-                        label="COA (GL Number)"
+                        label="COA (GL Number) *"
                         value={formData.glNumber}
                         onChange={handleFieldChange('glNumber')}
                         fullWidth
+                        required
                         placeholder="COA Number"
                         slotProps={{ htmlInput: { maxLength: 20, 'data-testid': 'input-journal-gl-number' } }}
-                        helperText="Chart of Accounts number (optional)"
+                        helperText={!formData.glNumber.trim() ? 'COA Number is required' : 'Chart of Accounts number'}
+                        error={!formData.glNumber.trim()}
                     />
                     <TextField
                         label="DB/CR *"
