@@ -89,15 +89,18 @@ export default function ApprovalLevelInfo() {
   const [open, setOpen] = useState(false);
   const [config, setConfig] = useState<ImpactConfig | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (!open) return;
+    if (loaded) return;
     setLoading(true);
     api.client.get('/impact-config')
       .then((res) => setConfig(res.data?.data || null))
       .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [open]);
+      .finally(() => { setLoading(false); setLoaded(true); });
+  }, [loaded]);
+
+  if (!loaded || loading || !config) return null;
 
   const levels = config?.levels || {};
   const roles = config?.roles || [];
