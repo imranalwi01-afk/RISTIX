@@ -30,9 +30,22 @@ type ReportDebugCatalogEntry = {
     sqlPreview: string
 }
 
+// Helper: choose cursor or offset pagination based on query mode
+function toPagination(query: import('../lib/http/list-query').ListQuery, result: { total?: number; hasMore?: boolean; nextCursor?: string | null; hasPreviousPage?: boolean }) {
+    if (query.paginationMode === 'cursor') {
+        return buildCursorPagination(query, {
+            nextCursor: result.nextCursor ?? null,
+            hasNextPage: result.hasMore ?? false,
+            total: result.total,
+        })
+    }
+    return buildOffsetPagination(query, result.total ?? 0)
+}
+
 const NOMINATIVE_LIST_QUERY_CONFIG: ListQueryConfig = {
     defaultLimit: 20,
     maxLimit: 500,
+    paginationMode: 'cursor',
     defaultSort: [{ field: 'account_number', direction: 'asc' }],
     filterDefinitions: {
         prc_date: { field: 'prc_date', label: 'Processing Date', type: 'date', operators: ['equals', 'from', 'to'] },
@@ -69,6 +82,7 @@ const NOMINATIVE_LIST_QUERY_CONFIG: ListQueryConfig = {
 const LIFETIME_PD_DETAIL_QUERY_CONFIG: ListQueryConfig = {
     defaultLimit: 100,
     maxLimit: 500,
+    paginationMode: 'cursor',
     defaultSort: [{ field: 'account_number', direction: 'asc' }],
     filterableColumns: ['prc_date', 'pd_config_id'],
     filterDefinitions: {
@@ -81,6 +95,7 @@ const LIFETIME_PD_DETAIL_QUERY_CONFIG: ListQueryConfig = {
 const LIFETIME_LGD_DETAIL_QUERY_CONFIG: ListQueryConfig = {
     defaultLimit: 100,
     maxLimit: 500,
+    paginationMode: 'cursor',
     defaultSort: [{ field: 'account_number', direction: 'asc' }],
     filterableColumns: ['prc_date', 'lgd_config_id', 'lgd_method', 'model_id', 'segment_id', 'fl_flag'],
     filterDefinitions: {
@@ -120,6 +135,7 @@ const LIFETIME_LGD_DETAIL_QUERY_CONFIG: ListQueryConfig = {
 const ECL_RESULT_QUERY_CONFIG: ListQueryConfig = {
     defaultLimit: 100,
     maxLimit: 500,
+    paginationMode: 'cursor',
     defaultSort: [{ field: 'segment_id', direction: 'asc' }, { field: 'stage', direction: 'asc' }],
     filterableColumns: ['prc_date', 'segment_id', 'stage'],
     filterDefinitions: {
@@ -174,6 +190,7 @@ const ECL_RESULT_QUERY_CONFIG: ListQueryConfig = {
 const EAD_MODEL_QUERY_CONFIG: ListQueryConfig = {
     defaultLimit: 100,
     maxLimit: 500,
+    paginationMode: 'cursor',
     defaultSort: [{ field: 'tenor', direction: 'asc' }],
     filterableColumns: ['prc_date', 'ead_config_id', 'segment_id'],
     filterDefinitions: {
@@ -189,6 +206,7 @@ const EAD_MODEL_QUERY_CONFIG: ListQueryConfig = {
 const MOVEMENT_QUERY_CONFIG: ListQueryConfig = {
     defaultLimit: 50,
     maxLimit: 200,
+    paginationMode: 'cursor',
     defaultSort: [{ field: 'movement_order', direction: 'asc' }],
     filterableColumns: ['prc_date', 'segment_id', 'stage', 'group_segment'],
     filterDefinitions: {
@@ -500,7 +518,7 @@ export const ifrs9ReportsController = {
             const response = buildListResponse(
                 result.data,
                 query,
-                buildOffsetPagination(query, result.total ?? 0),
+                toPagination(query, result),
                 { filterDefinitions: LIFETIME_PD_DETAIL_QUERY_CONFIG.filterDefinitions },
             );
 
@@ -558,7 +576,7 @@ export const ifrs9ReportsController = {
                     const response = buildListResponse(
                         summary.data,
                         query,
-                        buildOffsetPagination(query, summary.total ?? 0),
+                        toPagination(query, { total: summary.total }),
                         { filterDefinitions: LIFETIME_LGD_DETAIL_QUERY_CONFIG.filterDefinitions },
                     );
 
@@ -574,7 +592,7 @@ export const ifrs9ReportsController = {
             const response = buildListResponse(
                 result.data,
                 query,
-                buildOffsetPagination(query, result.total ?? 0),
+                toPagination(query, result),
                 { filterDefinitions: LIFETIME_LGD_DETAIL_QUERY_CONFIG.filterDefinitions },
             );
 
@@ -658,7 +676,7 @@ export const ifrs9ReportsController = {
             const response = buildListResponse(
                 result.data,
                 query,
-                buildOffsetPagination(query, result.total ?? 0),
+                toPagination(query, result),
                 { filterDefinitions: EAD_MODEL_QUERY_CONFIG.filterDefinitions },
             );
 
@@ -739,7 +757,7 @@ export const ifrs9ReportsController = {
             const response = buildListResponse(
                 result.data,
                 query,
-                buildOffsetPagination(query, result.total ?? 0),
+                toPagination(query, result),
                 { filterDefinitions: ECL_RESULT_QUERY_CONFIG.filterDefinitions },
             );
 
@@ -784,7 +802,7 @@ export const ifrs9ReportsController = {
             const response = buildListResponse(
                 result.data,
                 query,
-                buildOffsetPagination(query, result.total ?? 0),
+                toPagination(query, result),
                 { filterDefinitions: MOVEMENT_QUERY_CONFIG.filterDefinitions },
             );
             return c.json({
@@ -822,7 +840,7 @@ export const ifrs9ReportsController = {
             const response = buildListResponse(
                 result.data,
                 query,
-                buildOffsetPagination(query, result.total ?? 0),
+                toPagination(query, result),
                 { filterDefinitions: MOVEMENT_QUERY_CONFIG.filterDefinitions },
             );
             return c.json({

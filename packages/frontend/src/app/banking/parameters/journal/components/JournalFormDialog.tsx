@@ -222,7 +222,7 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         required
                         disabled={optionsLoading}
                         error={!formData.currency.trim()}
-                        helperText={!formData.currency.trim() ? 'Currency is required' : 'Source: Rule Based Setting (type = CURRENCY)'}
+                        helperText={!formData.currency.trim() ? 'Currency is required' : 'Source: Business Setting B0001'}
                         SelectProps={{ inputProps: { 'data-testid': 'select-journal-currency' } }}
                     >
                         {currencyOptions.length > 0 ? (
@@ -242,7 +242,7 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         required
                         disabled={optionsLoading}
                         error={!formData.glType.trim()}
-                        helperText={!formData.glType.trim() ? 'Journal Type is required' : 'Source: Rule Based Setting (type = JTYPE)'}
+                        helperText={!formData.glType.trim() ? 'Journal Type is required' : 'Source: Business Setting B0005'}
                         SelectProps={{ inputProps: { 'data-testid': 'select-journal-type' } }}
                     >
                         {journalTypeOptions.length > 0 ? (
@@ -262,7 +262,7 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         required
                         disabled={optionsLoading}
                         error={!formData.glCode.trim()}
-                        helperText={!formData.glCode.trim() ? 'Journal Code is required' : 'Source: Rule Based Setting (type = JCODE)'}
+                        helperText={!formData.glCode.trim() ? 'Journal Code is required' : 'Source: Business Setting B0006'}
                         SelectProps={{ inputProps: { 'data-testid': 'select-journal-code' } }}
                     >
                         {journalCodeOptions.length > 0 ? (
@@ -291,7 +291,7 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         required
                         disabled={optionsLoading}
                         error={!formData.dbcr.trim()}
-                        helperText={!formData.dbcr.trim() ? 'DB/CR is required' : 'Source: Rule Based Setting (type = DBCR)'}
+                        helperText={!formData.dbcr.trim() ? 'DB/CR is required' : 'Source: Business Setting B0007'}
                         SelectProps={{ inputProps: { 'data-testid': 'select-journal-dbcr' } }}
                     >
                         {dbcrOptions.length > 0 ? (

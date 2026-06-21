@@ -383,9 +383,14 @@ export const buildPermissionSelectionGroups = (
   return Array.from(groups.values())
     .map((group) => ({
       ...group,
-      permissions: [...group.permissions].sort((left, right) =>
-        getPermissionCanonicalKey(left).localeCompare(getPermissionCanonicalKey(right))
-      ),
+      permissions: [...group.permissions]
+        // Deduplicate: keep only first occurrence per canonical key
+        .filter((perm, idx, self) =>
+          idx === self.findIndex((p) => getPermissionCanonicalKey(p) === getPermissionCanonicalKey(perm))
+        )
+        .sort((left, right) =>
+          getPermissionCanonicalKey(left).localeCompare(getPermissionCanonicalKey(right))
+        ),
     }))
     .sort((left, right) => left.label.localeCompare(right.label));
 };
@@ -414,9 +419,14 @@ export const buildPermissionSelectionSections = (
     .map((section) => ({
       ...section,
       hint: `${section.permissions.length} permissions`,
-      permissions: [...section.permissions].sort((left, right) =>
-        getPermissionCanonicalKey(left).localeCompare(getPermissionCanonicalKey(right))
-      ),
+      permissions: [...section.permissions]
+        // Deduplicate: keep only first occurrence per canonical key
+        .filter((perm, idx, self) =>
+          idx === self.findIndex((p) => getPermissionCanonicalKey(p) === getPermissionCanonicalKey(perm))
+        )
+        .sort((left, right) =>
+          getPermissionCanonicalKey(left).localeCompare(getPermissionCanonicalKey(right))
+        ),
     }))
     .sort((left, right) => left.label.localeCompare(right.label));
 };

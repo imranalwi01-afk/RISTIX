@@ -29,6 +29,7 @@ export const auditSchema = pgSchema('audit')
 /**
  * Audit logs table definition.
  * Stores system-wide audit trail for critical actions and data changes.
+ * Columns match the existing production schema created by migration 0000.
  */
 export const auditLogs = auditSchema.table(
     'audit_logs',
@@ -38,25 +39,25 @@ export const auditLogs = auditSchema.table(
         // User context
         userId: uuid('user_id'),
 
-        // Tenant isolation - varchar to match actual database
-        tenantId: varchar('tenant_id', { length: 100 }).default('dana'),
+        // Tenant isolation - uuid to match existing database schema
+        tenantId: uuid('tenant_id'),
 
         // Event details
-        eventType: varchar('event_type', { length: 50 }).notNull(),
+        eventType: varchar('event_type', { length: 100 }).notNull(),
         action: varchar('action', { length: 100 }).notNull(),
         description: text('description'),
 
         // Entity information
-        entityType: varchar('entity_type', { length: 50 }),
-        entityId: uuid('entity_id'),
+        entityType: varchar('entity_type', { length: 100 }),
+        entityId: varchar('entity_id', { length: 255 }),
         entityName: varchar('entity_name', { length: 200 }),
 
         // Change tracking
         oldValues: jsonb('old_values'),
         newValues: jsonb('new_values'),
-        changedFields: text('changed_fields').array(),
+        changedFields: jsonb('changed_fields'),
 
-        // Additional metadata
+        // Additional metadata - added via migration 0054
         metadata: jsonb('metadata'),
 
         // Request context
@@ -64,7 +65,7 @@ export const auditLogs = auditSchema.table(
         userAgent: text('user_agent'),
 
         // Timestamps
-        createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        createdAt: timestamp('created_at').notNull().defaultNow(),
     },
     (table) => [
         index('audit_user_idx').on(table.userId),

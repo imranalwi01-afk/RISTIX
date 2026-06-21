@@ -1694,6 +1694,7 @@ export class Ifrs9ReportsService {
                     A.cif_name,
                     B.prc_date AS first_npl_date,
                     B.eqv_at_default AS os_at_default,
+                    B.eir_at_default AS eir_at_default,
                     D.lgd AS lgd_rate,
                     D.rec_rate AS recovery_rate,
                     D.npv_eqv_rec AS recovery_amount_pv,
@@ -1768,6 +1769,7 @@ export class Ifrs9ReportsService {
                     cif_name: row.cif_name,
                     first_npl_date: row.first_npl_date,
                     os_at_default: row.os_at_default,
+                    eir_at_default: row.eir_at_default,
                     lgd_rate: row.lgd_rate,
                     recovery_rate: row.recovery_rate,
                     recovery_amount_pv: row.recovery_amount_pv

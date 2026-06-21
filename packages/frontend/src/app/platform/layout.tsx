@@ -63,6 +63,7 @@ const menuItems = [
     { text: 'RBAC', icon: <SecurityIcon />, path: '/platform/rbac' },
     { text: 'Menus', icon: <MenuIcon />, path: '/platform/menus' },
     { text: 'SMTP Settings', icon: <EmailIcon />, path: '/platform/settings/smtp' },
+
 ];
 
 // ─── Sidebar Navigation List ──────────────────────────────────────────

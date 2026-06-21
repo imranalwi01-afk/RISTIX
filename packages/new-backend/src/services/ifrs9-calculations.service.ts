@@ -563,7 +563,7 @@ export class Ifrs9CalculationsService {
                     parameters: executionParameters,
                 }, {
                     jobId: executionId,
-                    priority: calculationJob.priority === 'CRITICAL' ? 0 : calculationJob.priority === 'HIGH' ? 1 : 5,
+                    priority: { CRITICAL: 0, HIGH: 1, NORMAL: 5, LOW: 5 }[String(calculationJob.priority).toUpperCase()] ?? 5,
                     attempts: (calculationJob.maxRetries || 0) + 1,
                     timeout: (calculationJob.timeout || 3600) * 1000,
                 });
@@ -695,7 +695,7 @@ export class Ifrs9CalculationsService {
                     parameters: executionParameters,
                 }, {
                     jobId: executionId,
-                    priority: calculationJob.priority === 'CRITICAL' ? 0 : calculationJob.priority === 'HIGH' ? 1 : 5,
+                    priority: { CRITICAL: 0, HIGH: 1, NORMAL: 5, LOW: 5 }[String(calculationJob.priority).toUpperCase()] ?? 5,
                     attempts: (calculationJob.maxRetries || 0) + 1,
                     timeout: (calculationJob.timeout || 3600) * 1000,
                 });

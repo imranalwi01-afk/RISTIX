@@ -187,6 +187,16 @@ export const renderLifetimeLgdDetailPanel = (params: { row: any }): React.ReactN
       minWidth: 180,
       type: 'number',
     },
+    {
+      field: 'eir_at_default',
+      headerName: 'EIR_AT_DEFAULT',
+      minWidth: 140,
+      type: 'number',
+      valueFormatter: (value: number | null | undefined) => {
+        if (value === null || value === undefined) return '';
+        return `${(value * 100).toFixed(2)}%`;
+      },
+    },
     ...sequenceFields.map((field: string): GridColDef => ({
       field,
       headerName: field.replace('seq_', ''),

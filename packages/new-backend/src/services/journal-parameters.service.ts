@@ -133,28 +133,18 @@ export const JournalParametersService = {
         )
     },
 
-    // Dropdown Options Helpers — sourced from Rule Base Setting
+    // Dropdown Options Helpers
 
-    /**
-     * Get GL Group options from Rule Base Setting (type = GL).
-     */
+    /** Get GL Group options from Rule Base Setting (type = GL). */
     getGlGroupOptions: () => RuleBaseSettingsService.getOptionsByType('GL'),
-    /**
-     * Get Currency options from Rule Base Setting (type = CURRENCY).
-     */
-    getCurrencyOptions: () => RuleBaseSettingsService.getOptionsByType('CURRENCY'),
-    /**
-     * Get Journal Type options from Rule Base Setting (type = JTYPE).
-     */
-    getJournalTypeOptions: () => RuleBaseSettingsService.getOptionsByType('JTYPE'),
-    /**
-     * Get Journal Code options from Rule Base Setting (type = JCODE).
-     */
-    getJournalCodeOptions: () => RuleBaseSettingsService.getOptionsByType('JCODE'),
-    /**
-     * Get Debit/Credit options from Rule Base Setting (type = DBCR).
-     */
-    getDbCrOptions: () => RuleBaseSettingsService.getOptionsByType('DBCR'),
+    /** Get Currency options from Business Setting B0001. */
+    getCurrencyOptions: () => JournalParametersService.getOptions('B0001'),
+    /** Get Journal Type options from Business Setting B0005 (per tech spec). */
+    getJournalTypeOptions: () => JournalParametersService.getOptions('B0005'),
+    /** Get Journal Code options from Business Setting B0006 (per tech spec). */
+    getJournalCodeOptions: () => JournalParametersService.getOptions('B0006'),
+    /** Get Debit/Credit options from Business Setting B0007. */
+    getDbCrOptions: () => JournalParametersService.getOptions('B0007'),
 }
 
 // Helper

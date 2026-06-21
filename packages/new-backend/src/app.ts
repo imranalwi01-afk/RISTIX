@@ -23,6 +23,7 @@ import { env, isProduction } from './config'
 }
 import { routes } from './routes'
 import { businessSettingsRoutes } from './routes/business-settings.routes'
+import { impactConfigRoutes } from './routes/impact-config.routes'
 import { auditMiddleware } from './middleware'
 import { individualImpairmentV2Routes } from './routes/individual-impairment-v2.routes'
 import { initTelemetry } from './lib/telemetry'
@@ -176,8 +177,9 @@ export function createApp() {
 
     // API routes
     app.route('/api/v2/individual-impairment', individualImpairmentV2Routes)
-    app.route('/api/v1/banking/business-settings', businessSettingsRoutes) // Explicit mount for business settings
-    app.route('/api/v1', routes)
+app.route('/api/v1/banking/business-settings', businessSettingsRoutes) // Explicit mount for business settings
+app.route('/api/v1/impact-config', impactConfigRoutes)
+app.route('/api/v1', routes)
 
     // OpenAPI Specification
     app.doc('/doc', {

@@ -60,7 +60,7 @@ import { AccessFilters } from './AccessFilters';
 import { AccessRoleTable } from './AccessRoleTable';
 import { AccessRoleDialog } from './AccessRoleDialog';
 import { AccessPermissionDialog } from './AccessPermissionDialog';
-import { AccessReviewTab } from './AccessReviewTab';
+// import { AccessReviewTab } from './AccessReviewTab';
 import { AccessStatCards } from './AccessStatCards';
 import { SecuritySettingsTab } from './SecuritySettingsTab';
 
@@ -374,11 +374,7 @@ function AccessManagementPage() {
             icon={<PeopleIcon />}
             iconPosition="start"
           />
-          <Tab
-            label="Access Review"
-            icon={<SecurityIcon />}
-            iconPosition="start"
-          />
+          {/* Access Review tab hidden */}
           <Tab
             label="Security"
             icon={<SecurityIcon />}
@@ -414,10 +410,7 @@ function AccessManagementPage() {
         <UserManagementPanel embedded />
       </TabPanel>
 
-      {/* Access Review Tab */}
-      <TabPanel value={currentTab} index={2}>
-        <AccessReviewTab roles={roles} permissions={permissions} />
-      </TabPanel>
+      {/* Access Review Tab hidden */}
 
       {/* Security Tab */}
       <TabPanel value={currentTab} index={3}>

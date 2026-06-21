@@ -242,7 +242,7 @@ export default function PageContent({ params }: { params: Promise<{}> }) {
     resetView,
   } = useEnterpriseTableQuery({
     pageKey: 'maintenance:user-activity',
-    paginationMode: 'client',
+    paginationMode: 'offset',
     initialPageSize: 25,
     syncUrl: true,
   });
@@ -297,12 +297,16 @@ export default function PageContent({ params }: { params: Promise<{}> }) {
     dateFrom: filters.dateFrom ?? undefined,
     dateTo: filters.dateTo ?? undefined,
     searchTerm: filters.searchTerm,
-    limit: 500,
-    offset: 0,
+    limit: queryState.paginationModel.pageSize,
+    offset: queryState.paginationModel.page * queryState.paginationModel.pageSize,
   });
   const activities = useMemo(
     () => (activitiesQuery.data?.rows ?? []) as UserActivityLog[],
     [activitiesQuery.data?.rows],
+  );
+  const totalActivities = useMemo(
+    () => activitiesQuery.data?.pagination?.total ?? 0,
+    [activitiesQuery.data?.pagination?.total],
   );
   const statistics = useMemo(
     () => (activitiesQuery.data?.statistics ?? null) as ActivityStatistics | null,
@@ -318,45 +322,9 @@ export default function PageContent({ params }: { params: Promise<{}> }) {
     setError(null);
   }, [activitiesQuery.error]);
 
-  const filteredActivities = useMemo(() => {
-    return activities.filter((activity) => {
-      if (filters.searchTerm?.trim()) {
-        const normalizedSearch = filters.searchTerm.trim().toLowerCase();
-        const matchesSearch = [
-          activity.userName,
-          activity.userEmail,
-          activity.actionPerformed,
-          activity.moduleAccessed,
-          activity.activityType,
-          activity.ipAddress,
-        ]
-          .filter(Boolean)
-          .some((value) => String(value).toLowerCase().includes(normalizedSearch));
-        if (!matchesSearch) return false;
-      }
-
-      if (filters.activityType && activity.activityType !== filters.activityType) return false;
-      if (filters.actionResult && activity.actionResult !== filters.actionResult) return false;
-      if (filters.riskLevel && activity.riskLevel !== filters.riskLevel) return false;
-      if (filters.bankingType && activity.bankingType !== filters.bankingType) return false;
-      if (filters.ipAddress && !activity.ipAddress.toLowerCase().includes(filters.ipAddress.toLowerCase())) return false;
-
-      if (filters.dateFrom) {
-        const fromDate = startOfDay(filters.dateFrom).getTime();
-        if (new Date(activity.timestamp).getTime() < fromDate) return false;
-      }
-      if (filters.dateTo) {
-        const toDate = endOfDay(filters.dateTo).getTime();
-        if (new Date(activity.timestamp).getTime() > toDate) return false;
-      }
-
-      return true;
-    });
-  }, [activities, filters]);
-
   const tableRows = useMemo(
-    () => applyActivityTableQuery(filteredActivities, queryState.columnFilters, queryState.sort),
-    [filteredActivities, queryState.columnFilters, queryState.sort],
+    () => applyActivityTableQuery(activities, queryState.columnFilters, queryState.sort),
+    [activities, queryState.columnFilters, queryState.sort],
   );
 
   // Handlers
@@ -901,7 +869,7 @@ export default function PageContent({ params }: { params: Promise<{}> }) {
           {/* Activity Logs DataGrid */}
           <Card>
             <CardHeader
-              title={`User Activities (${activities.length})`}
+              title={`User Activities (${totalActivities})`}
               subheader={`Last updated: ${format(new Date(), 'MMM dd, yyyy HH:mm')}`}
             />
             <CardContent>
@@ -909,8 +877,8 @@ export default function PageContent({ params }: { params: Promise<{}> }) {
                 rows={tableRows}
                 columns={columns}
                 loading={loading}
-                paginationMode="client"
-                rowCount={tableRows.length}
+                paginationMode="server"
+                rowCount={totalActivities}
                 paginationModel={queryState.paginationModel}
                 onPaginationModelChange={setPaginationModel}
                 pageSizeOptions={[10, 25, 50, 100]}
