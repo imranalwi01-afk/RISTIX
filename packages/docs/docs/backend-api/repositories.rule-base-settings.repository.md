@@ -16,7 +16,7 @@ Defined in: [src/repositories/rule-base-settings.repository.ts:7](https://github
 
 ##### createDetail()
 
-> **createDetail**: (`data`) => `Effect`{`<`}{`{`} `columnName`: `string`; `condition`: `string` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `dataType`: `string`; `detailType`: `string` {`|`} `null`; `operator`: `string` {`|`} `null`; `pkid`: `number`; `queryGroup`: `number` {`|`} `null`; `ruleId`: `number` {`|`} `null`; `seq`: `number` {`|`} `null`; `stageFrom`: `string` {`|`} `null`; `stageTo`: `string` {`|`} `null`; `tableName`: `string`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `value1`: `string`; `value2`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **createDetail**: (`data`) => `Effect`&lt;&#123; `columnName`: `string`; `condition`: `string` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `dataType`: `string`; `detailType`: `string` &#124; `null`; `operator`: `string` &#124; `null`; `pkid`: `number`; `queryGroup`: `number` &#124; `null`; `ruleId`: `number` &#124; `null`; `seq`: `number` &#124; `null`; `stageFrom`: `string` &#124; `null`; `stageTo`: `string` &#124; `null`; `tableName`: `string`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `value1`: `string`; `value2`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Create a new rule detail.
 
@@ -32,7 +32,7 @@ The detail data
 
 ###### condition?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### createdby
 
@@ -52,11 +52,11 @@ The detail data
 
 ###### detailType?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### operator?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### pkid?
 
@@ -64,23 +64,23 @@ The detail data
 
 ###### queryGroup?
 
-`number` {`|`} `null`
+`number` &#124; `null`
 
 ###### ruleId?
 
-`number` {`|`} `null`
+`number` &#124; `null`
 
 ###### seq?
 
-`number` {`|`} `null`
+`number` &#124; `null`
 
 ###### stageFrom?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### stageTo?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### tableName
 
@@ -88,15 +88,15 @@ The detail data
 
 ###### updatedby?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### updateddate?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### updatedhost?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### value1
 
@@ -104,17 +104,17 @@ The detail data
 
 ###### value2?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `columnName`: `string`; `condition`: `string` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `dataType`: `string`; `detailType`: `string` {`|`} `null`; `operator`: `string` {`|`} `null`; `pkid`: `number`; `queryGroup`: `number` {`|`} `null`; `ruleId`: `number` {`|`} `null`; `seq`: `number` {`|`} `null`; `stageFrom`: `string` {`|`} `null`; `stageTo`: `string` {`|`} `null`; `tableName`: `string`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `value1`: `string`; `value2`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;&#123; `columnName`: `string`; `condition`: `string` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `dataType`: `string`; `detailType`: `string` &#124; `null`; `operator`: `string` &#124; `null`; `pkid`: `number`; `queryGroup`: `number` &#124; `null`; `ruleId`: `number` &#124; `null`; `seq`: `number` &#124; `null`; `stageFrom`: `string` &#124; `null`; `stageTo`: `string` &#124; `null`; `tableName`: `string`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `value1`: `string`; `value2`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the created detail
 
 ##### createHeader()
 
-> **createHeader**: (`data`) => `Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `ruleName`: `string`; `ruleType`: `string`; `seq`: `number` {`|`} `null`; `updatedby`: `string` {`|`} `null`; `updatedColumn`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `updatedTable`: `string` {`|`} `null`; `value`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **createHeader**: (`data`) => `Effect`&lt;&#123; `activeFlag`: `boolean` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `ruleName`: `string`; `ruleType`: `string`; `seq`: `number` &#124; `null`; `updatedby`: `string` &#124; `null`; `updatedColumn`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `updatedTable`: `string` &#124; `null`; `value`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Create a new rule header.
 
@@ -126,7 +126,7 @@ The header data
 
 ###### activeFlag?
 
-`boolean` {`|`} `null`
+`boolean` &#124; `null`
 
 ###### createdby
 
@@ -154,41 +154,41 @@ The header data
 
 ###### seq?
 
-`number` {`|`} `null`
+`number` &#124; `null`
 
 ###### updatedby?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### updatedColumn?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### updateddate?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### updatedhost?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### updatedTable?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### value?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `ruleName`: `string`; `ruleType`: `string`; `seq`: `number` {`|`} `null`; `updatedby`: `string` {`|`} `null`; `updatedColumn`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `updatedTable`: `string` {`|`} `null`; `value`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;&#123; `activeFlag`: `boolean` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `ruleName`: `string`; `ruleType`: `string`; `seq`: `number` &#124; `null`; `updatedby`: `string` &#124; `null`; `updatedColumn`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `updatedTable`: `string` &#124; `null`; `value`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the created header
 
 ##### deleteDetail()
 
-> **deleteDetail**: (`id`) => `Effect`{`<`}`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **deleteDetail**: (`id`) => `Effect`&lt;`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Delete a rule detail.
 
@@ -202,13 +202,13 @@ The detail ID
 
 ###### Returns
 
-`Effect`{`<`}`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to true if deleted, false otherwise
 
 ##### deleteHeader()
 
-> **deleteHeader**: (`id`) => `Effect`{`<`}`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **deleteHeader**: (`id`) => `Effect`&lt;`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Delete a rule header and its associated details.
 
@@ -222,13 +222,13 @@ The header ID
 
 ###### Returns
 
-`Effect`{`<`}`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to true on success
 
 ##### findDetailById()
 
-> **findDetailById**: (`id`) => `Effect`{`<`}{`{`} `columnName`: `string`; `condition`: `string` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `dataType`: `string`; `detailType`: `string` {`|`} `null`; `operator`: `string` {`|`} `null`; `pkid`: `number`; `queryGroup`: `number` {`|`} `null`; `ruleId`: `number` {`|`} `null`; `seq`: `number` {`|`} `null`; `stageFrom`: `string` {`|`} `null`; `stageTo`: `string` {`|`} `null`; `tableName`: `string`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `value1`: `string`; `value2`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **findDetailById**: (`id`) => `Effect`&lt;&#123; `columnName`: `string`; `condition`: `string` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `dataType`: `string`; `detailType`: `string` &#124; `null`; `operator`: `string` &#124; `null`; `pkid`: `number`; `queryGroup`: `number` &#124; `null`; `ruleId`: `number` &#124; `null`; `seq`: `number` &#124; `null`; `stageFrom`: `string` &#124; `null`; `stageTo`: `string` &#124; `null`; `tableName`: `string`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `value1`: `string`; `value2`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Find a rule detail by ID.
 
@@ -242,13 +242,13 @@ The detail ID
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `columnName`: `string`; `condition`: `string` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `dataType`: `string`; `detailType`: `string` {`|`} `null`; `operator`: `string` {`|`} `null`; `pkid`: `number`; `queryGroup`: `number` {`|`} `null`; `ruleId`: `number` {`|`} `null`; `seq`: `number` {`|`} `null`; `stageFrom`: `string` {`|`} `null`; `stageTo`: `string` {`|`} `null`; `tableName`: `string`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `value1`: `string`; `value2`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;&#123; `columnName`: `string`; `condition`: `string` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `dataType`: `string`; `detailType`: `string` &#124; `null`; `operator`: `string` &#124; `null`; `pkid`: `number`; `queryGroup`: `number` &#124; `null`; `ruleId`: `number` &#124; `null`; `seq`: `number` &#124; `null`; `stageFrom`: `string` &#124; `null`; `stageTo`: `string` &#124; `null`; `tableName`: `string`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `value1`: `string`; `value2`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the detail or null
 
 ##### findDetailsByRuleId()
 
-> **findDetailsByRuleId**: (`ruleId`) => `Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **findDetailsByRuleId**: (`ruleId`) => `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Find details for a specific rule sorted by group and sequence.
 
@@ -262,13 +262,13 @@ The rule header ID
 
 ###### Returns
 
-`Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to an array of details
 
 ##### findHeaderById()
 
-> **findHeaderById**: (`id`) => `Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `ruleName`: `string`; `ruleType`: `string`; `seq`: `number` {`|`} `null`; `updatedby`: `string` {`|`} `null`; `updatedColumn`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `updatedTable`: `string` {`|`} `null`; `value`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **findHeaderById**: (`id`) => `Effect`&lt;&#123; `activeFlag`: `boolean` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `ruleName`: `string`; `ruleType`: `string`; `seq`: `number` &#124; `null`; `updatedby`: `string` &#124; `null`; `updatedColumn`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `updatedTable`: `string` &#124; `null`; `value`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Find a rule header by ID.
 
@@ -282,13 +282,13 @@ The header ID
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `ruleName`: `string`; `ruleType`: `string`; `seq`: `number` {`|`} `null`; `updatedby`: `string` {`|`} `null`; `updatedColumn`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `updatedTable`: `string` {`|`} `null`; `value`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;&#123; `activeFlag`: `boolean` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `ruleName`: `string`; `ruleType`: `string`; `seq`: `number` &#124; `null`; `updatedby`: `string` &#124; `null`; `updatedColumn`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `updatedTable`: `string` &#124; `null`; `value`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the header or null
 
 ##### findHeaders()
 
-> **findHeaders**: (`search?`, `ruleType?`, `activeFlag?`) => `Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **findHeaders**: (`search?`, `ruleType?`, `activeFlag?`) => `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Find rule headers with filtering.
 
@@ -314,13 +314,13 @@ Filter by active status
 
 ###### Returns
 
-`Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to an array of headers
 
 ##### updateDetail()
 
-> **updateDetail**: (`id`, `data`) => `Effect`{`<`}{`{`} `columnName`: `string`; `condition`: `string` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `dataType`: `string`; `detailType`: `string` {`|`} `null`; `operator`: `string` {`|`} `null`; `pkid`: `number`; `queryGroup`: `number` {`|`} `null`; `ruleId`: `number` {`|`} `null`; `seq`: `number` {`|`} `null`; `stageFrom`: `string` {`|`} `null`; `stageTo`: `string` {`|`} `null`; `tableName`: `string`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `value1`: `string`; `value2`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **updateDetail**: (`id`, `data`) => `Effect`&lt;&#123; `columnName`: `string`; `condition`: `string` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `dataType`: `string`; `detailType`: `string` &#124; `null`; `operator`: `string` &#124; `null`; `pkid`: `number`; `queryGroup`: `number` &#124; `null`; `ruleId`: `number` &#124; `null`; `seq`: `number` &#124; `null`; `stageFrom`: `string` &#124; `null`; `stageTo`: `string` &#124; `null`; `tableName`: `string`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `value1`: `string`; `value2`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Update an existing rule detail.
 
@@ -334,19 +334,19 @@ The detail ID
 
 ###### data
 
-`Partial`{`<`}*typeof* `frs9ParamScenarioRulesd.$inferInsert`{`>`}
+`Partial`&lt;*typeof* `frs9ParamScenarioRulesd.$inferInsert`&gt;
 
 The data to update
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `columnName`: `string`; `condition`: `string` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `dataType`: `string`; `detailType`: `string` {`|`} `null`; `operator`: `string` {`|`} `null`; `pkid`: `number`; `queryGroup`: `number` {`|`} `null`; `ruleId`: `number` {`|`} `null`; `seq`: `number` {`|`} `null`; `stageFrom`: `string` {`|`} `null`; `stageTo`: `string` {`|`} `null`; `tableName`: `string`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `value1`: `string`; `value2`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;&#123; `columnName`: `string`; `condition`: `string` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `dataType`: `string`; `detailType`: `string` &#124; `null`; `operator`: `string` &#124; `null`; `pkid`: `number`; `queryGroup`: `number` &#124; `null`; `ruleId`: `number` &#124; `null`; `seq`: `number` &#124; `null`; `stageFrom`: `string` &#124; `null`; `stageTo`: `string` &#124; `null`; `tableName`: `string`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `value1`: `string`; `value2`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the updated detail or null
 
 ##### updateHeader()
 
-> **updateHeader**: (`id`, `data`) => `Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `ruleName`: `string`; `ruleType`: `string`; `seq`: `number` {`|`} `null`; `updatedby`: `string` {`|`} `null`; `updatedColumn`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `updatedTable`: `string` {`|`} `null`; `value`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **updateHeader**: (`id`, `data`) => `Effect`&lt;&#123; `activeFlag`: `boolean` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `ruleName`: `string`; `ruleType`: `string`; `seq`: `number` &#124; `null`; `updatedby`: `string` &#124; `null`; `updatedColumn`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `updatedTable`: `string` &#124; `null`; `value`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Update an existing rule header.
 
@@ -360,12 +360,12 @@ The header ID
 
 ###### data
 
-`Partial`{`<`}*typeof* `frs9ParamScenarioRulesh.$inferInsert`{`>`}
+`Partial`&lt;*typeof* `frs9ParamScenarioRulesh.$inferInsert`&gt;
 
 The data to update
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `ruleName`: `string`; `ruleType`: `string`; `seq`: `number` {`|`} `null`; `updatedby`: `string` {`|`} `null`; `updatedColumn`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `updatedTable`: `string` {`|`} `null`; `value`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;&#123; `activeFlag`: `boolean` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `ruleName`: `string`; `ruleType`: `string`; `seq`: `number` &#124; `null`; `updatedby`: `string` &#124; `null`; `updatedColumn`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `updatedTable`: `string` &#124; `null`; `value`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the updated header or null

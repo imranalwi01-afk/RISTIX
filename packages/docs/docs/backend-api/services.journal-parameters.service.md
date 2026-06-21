@@ -16,7 +16,7 @@ Defined in: [src/services/journal-parameters.service.ts:7](https://github.com/if
 
 ##### create()
 
-> **create**: (`data`, `userId`) => `Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` {`|`} `null`; `dbcr`: `string` {`|`} `null`; `glCode`: `string` {`|`} `null`; `glDesc`: `string` {`|`} `null`; `glGroup`: `string` {`|`} `null`; `glNumber`: `string` {`|`} `null`; `glType`: `string` {`|`} `null`; `id`: `number`; `pkid`: `number`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **create**: (`data`, `userId`) => `Effect`&lt;&#123; `activeFlag`: `boolean` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` &#124; `null`; `dbcr`: `string` &#124; `null`; `glCode`: `string` &#124; `null`; `glDesc`: `string` &#124; `null`; `glGroup`: `string` &#124; `null`; `glNumber`: `string` &#124; `null`; `glType`: `string` &#124; `null`; `id`: `number`; `pkid`: `number`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Create a new journal parameter.
 
@@ -36,13 +36,13 @@ The ID of the user creating the parameter
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` {`|`} `null`; `dbcr`: `string` {`|`} `null`; `glCode`: `string` {`|`} `null`; `glDesc`: `string` {`|`} `null`; `glGroup`: `string` {`|`} `null`; `glNumber`: `string` {`|`} `null`; `glType`: `string` {`|`} `null`; `id`: `number`; `pkid`: `number`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;&#123; `activeFlag`: `boolean` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` &#124; `null`; `dbcr`: `string` &#124; `null`; `glCode`: `string` &#124; `null`; `glDesc`: `string` &#124; `null`; `glGroup`: `string` &#124; `null`; `glNumber`: `string` &#124; `null`; `glType`: `string` &#124; `null`; `id`: `number`; `pkid`: `number`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the created journal parameter
 
 ##### delete()
 
-> **delete**: (`id`) => `Effect`{`<`}{`{`} `message`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
+> **delete**: (`id`) => `Effect`&lt;&#123; `message`: `string`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror), `never`&gt;
 
 Delete a journal parameter.
 
@@ -56,13 +56,13 @@ The journal parameter ID
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `message`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
+`Effect`&lt;&#123; `message`: `string`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror), `never`&gt;
 
 An Effect resolving to a success message or NotFoundError
 
 ##### get()
 
-> **get**: (`id`) => `Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` {`|`} `null`; `dbcr`: `string` {`|`} `null`; `glCode`: `string` {`|`} `null`; `glDesc`: `string` {`|`} `null`; `glGroup`: `string` {`|`} `null`; `glNumber`: `string` {`|`} `null`; `glType`: `string` {`|`} `null`; `id`: `number`; `pkid`: `number`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
+> **get**: (`id`) => `Effect`&lt;&#123; `activeFlag`: `boolean` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` &#124; `null`; `dbcr`: `string` &#124; `null`; `glCode`: `string` &#124; `null`; `glDesc`: `string` &#124; `null`; `glGroup`: `string` &#124; `null`; `glNumber`: `string` &#124; `null`; `glType`: `string` &#124; `null`; `id`: `number`; `pkid`: `number`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror), `never`&gt;
 
 Get a journal parameter by ID.
 
@@ -76,63 +76,63 @@ The journal parameter ID
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` {`|`} `null`; `dbcr`: `string` {`|`} `null`; `glCode`: `string` {`|`} `null`; `glDesc`: `string` {`|`} `null`; `glGroup`: `string` {`|`} `null`; `glNumber`: `string` {`|`} `null`; `glType`: `string` {`|`} `null`; `id`: `number`; `pkid`: `number`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
+`Effect`&lt;&#123; `activeFlag`: `boolean` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` &#124; `null`; `dbcr`: `string` &#124; `null`; `glCode`: `string` &#124; `null`; `glDesc`: `string` &#124; `null`; `glGroup`: `string` &#124; `null`; `glNumber`: `string` &#124; `null`; `glType`: `string` &#124; `null`; `id`: `number`; `pkid`: `number`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror), `never`&gt;
 
 An Effect resolving to the journal parameter or NotFoundError
 
 ##### getCurrencyOptions()
 
-> **getCurrencyOptions**: () => `Effect`{`<`}`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **getCurrencyOptions**: () => `Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Get Currency options
 
 ###### Returns
 
-`Effect`{`<`}`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 ##### getDbCrOptions()
 
-> **getDbCrOptions**: () => `Effect`{`<`}`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **getDbCrOptions**: () => `Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Get Debit/Credit options
 
 ###### Returns
 
-`Effect`{`<`}`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 ##### getGlGroupOptions()
 
-> **getGlGroupOptions**: () => `Effect`{`<`}`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **getGlGroupOptions**: () => `Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Get GL Group options
 
 ###### Returns
 
-`Effect`{`<`}`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 ##### getJournalCodeOptions()
 
-> **getJournalCodeOptions**: () => `Effect`{`<`}`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **getJournalCodeOptions**: () => `Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Get Journal Code options
 
 ###### Returns
 
-`Effect`{`<`}`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 ##### getJournalTypeOptions()
 
-> **getJournalTypeOptions**: () => `Effect`{`<`}`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **getJournalTypeOptions**: () => `Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Get Journal Type options
 
 ###### Returns
 
-`Effect`{`<`}`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 ##### getOptions()
 
-> **getOptions**: (`paramCode`) => `Effect`{`<`}`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **getOptions**: (`paramCode`) => `Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Get dropdown options for a specific parameter code (internal helper).
 
@@ -144,23 +144,23 @@ Get dropdown options for a specific parameter code (internal helper).
 
 ###### Returns
 
-`Effect`{`<`}`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 ##### list()
 
-> **list**: () => `Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **list**: () => `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 List all journal parameters.
 
 ###### Returns
 
-`Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to an array of journal parameters
 
 ##### update()
 
-> **update**: (`id`, `data`, `userId`) => `Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` {`|`} `null`; `dbcr`: `string` {`|`} `null`; `glCode`: `string` {`|`} `null`; `glDesc`: `string` {`|`} `null`; `glGroup`: `string` {`|`} `null`; `glNumber`: `string` {`|`} `null`; `glType`: `string` {`|`} `null`; `id`: `number`; `pkid`: `number`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
+> **update**: (`id`, `data`, `userId`) => `Effect`&lt;&#123; `activeFlag`: `boolean` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` &#124; `null`; `dbcr`: `string` &#124; `null`; `glCode`: `string` &#124; `null`; `glDesc`: `string` &#124; `null`; `glGroup`: `string` &#124; `null`; `glNumber`: `string` &#124; `null`; `glType`: `string` &#124; `null`; `id`: `number`; `pkid`: `number`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror), `never`&gt;
 
 Update an existing journal parameter.
 
@@ -186,6 +186,6 @@ The ID of the user updating the parameter
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` {`|`} `null`; `dbcr`: `string` {`|`} `null`; `glCode`: `string` {`|`} `null`; `glDesc`: `string` {`|`} `null`; `glGroup`: `string` {`|`} `null`; `glNumber`: `string` {`|`} `null`; `glType`: `string` {`|`} `null`; `id`: `number`; `pkid`: `number`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
+`Effect`&lt;&#123; `activeFlag`: `boolean` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` &#124; `null`; `dbcr`: `string` &#124; `null`; `glCode`: `string` &#124; `null`; `glDesc`: `string` &#124; `null`; `glGroup`: `string` &#124; `null`; `glNumber`: `string` &#124; `null`; `glType`: `string` &#124; `null`; `id`: `number`; `pkid`: `number`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror), `never`&gt;
 
 An Effect resolving to the updated journal parameter or NotFoundError

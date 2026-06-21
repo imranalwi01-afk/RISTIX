@@ -26,7 +26,7 @@ Repository for managing granular permissions.
 
 ##### create()
 
-> **create**(`db`, `data`): `Effect`{`<`}{`{`} `action`: `string`; `category`: `string` {`|`} `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `module`: `string`; `name`: `string`; `resource`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+> **create**(`db`, `data`): `Effect`&lt;&#123; `action`: `string`; `category`: `string` &#124; `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `id`: `string`; `isActive`: `boolean`; `module`: `string`; `name`: `string`; `resource`: `string`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/repositories/rbac.repository.ts:354](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/rbac.repository.ts#L354)
 
@@ -44,7 +44,7 @@ Defined in: [src/repositories/rbac.repository.ts:354](https://github.com/ifrspro
 
 ###### category?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### code
 
@@ -56,7 +56,7 @@ Defined in: [src/repositories/rbac.repository.ts:354](https://github.com/ifrspro
 
 ###### description?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### id?
 
@@ -80,11 +80,11 @@ Defined in: [src/repositories/rbac.repository.ts:354](https://github.com/ifrspro
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `action`: `string`; `category`: `string` {`|`} `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `module`: `string`; `name`: `string`; `resource`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+`Effect`&lt;&#123; `action`: `string`; `category`: `string` &#124; `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `id`: `string`; `isActive`: `boolean`; `module`: `string`; `name`: `string`; `resource`: `string`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 ##### findAll()
 
-> **findAll**(`db`, `options?`): `Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+> **findAll**(`db`, `options?`): `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/repositories/rbac.repository.ts:337](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/rbac.repository.ts#L337)
 
@@ -106,13 +106,13 @@ Query options for filtering permissions
 
 ###### Returns
 
-`Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+`Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 An Effect that succeeds with an array of Permissions
 
 ##### findByCode()
 
-> **findByCode**(`db`, `code`): `Effect`{`<`}{`{`} `action`: `string`; `category`: `string` {`|`} `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `module`: `string`; `name`: `string`; `resource`: `string`; {`}`} {`|`} `undefined`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+> **findByCode**(`db`, `code`): `Effect`&lt;&#123; `action`: `string`; `category`: `string` &#124; `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `id`: `string`; `isActive`: `boolean`; `module`: `string`; `name`: `string`; `resource`: `string`; &#125; &#124; `undefined`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/repositories/rbac.repository.ts:324](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/rbac.repository.ts#L324)
 
@@ -134,13 +134,13 @@ The permission code (e.g., 'user:read')
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `action`: `string`; `category`: `string` {`|`} `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `module`: `string`; `name`: `string`; `resource`: `string`; {`}`} {`|`} `undefined`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+`Effect`&lt;&#123; `action`: `string`; `category`: `string` &#124; `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `id`: `string`; `isActive`: `boolean`; `module`: `string`; `name`: `string`; `resource`: `string`; &#125; &#124; `undefined`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 An Effect that succeeds with the Permission if found
 
 ##### findById()
 
-> **findById**(`db`, `id`): `Effect`{`<`}{`{`} `action`: `string`; `category`: `string` {`|`} `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `module`: `string`; `name`: `string`; `resource`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}
+> **findById**(`db`, `id`): `Effect`&lt;&#123; `action`: `string`; `category`: `string` &#124; `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `id`: `string`; `isActive`: `boolean`; `module`: `string`; `name`: `string`; `resource`: `string`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
 Defined in: [src/repositories/rbac.repository.ts:308](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/rbac.repository.ts#L308)
 
@@ -162,7 +162,7 @@ The permission ID
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `action`: `string`; `category`: `string` {`|`} `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `module`: `string`; `name`: `string`; `resource`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}
+`Effect`&lt;&#123; `action`: `string`; `category`: `string` &#124; `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `id`: `string`; `isActive`: `boolean`; `module`: `string`; `name`: `string`; `resource`: `string`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
 An Effect that succeeds with the Permission record
 
@@ -188,7 +188,7 @@ Repository for managing permissions assigned to roles.
 
 ##### assign()
 
-> **assign**(`db`, `roleId`, `permissionId`): `Effect`{`<`}{`{`} `grantedAt`: `Date`; `grantedBy`: `string` {`|`} `null`; `id`: `string`; `permissionId`: `string`; `roleId`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+> **assign**(`db`, `roleId`, `permissionId`): `Effect`&lt;&#123; `grantedAt`: `Date`; `grantedBy`: `string` &#124; `null`; `id`: `string`; `permissionId`: `string`; `roleId`: `string`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/repositories/rbac.repository.ts:380](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/rbac.repository.ts#L380)
 
@@ -216,13 +216,13 @@ The permission ID
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `grantedAt`: `Date`; `grantedBy`: `string` {`|`} `null`; `id`: `string`; `permissionId`: `string`; `roleId`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+`Effect`&lt;&#123; `grantedAt`: `Date`; `grantedBy`: `string` &#124; `null`; `id`: `string`; `permissionId`: `string`; `roleId`: `string`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 An Effect that succeeds with the created RolePermission record
 
 ##### findByRole()
 
-> **findByRole**(`db`, `roleId`): `Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+> **findByRole**(`db`, `roleId`): `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/repositories/rbac.repository.ts:411](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/rbac.repository.ts#L411)
 
@@ -238,11 +238,11 @@ Defined in: [src/repositories/rbac.repository.ts:411](https://github.com/ifrspro
 
 ###### Returns
 
-`Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+`Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 ##### remove()
 
-> **remove**(`db`, `roleId`, `permissionId`): `Effect`{`<`}`void`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+> **remove**(`db`, `roleId`, `permissionId`): `Effect`&lt;`void`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/repositories/rbac.repository.ts:389](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/rbac.repository.ts#L389)
 
@@ -262,11 +262,11 @@ Defined in: [src/repositories/rbac.repository.ts:389](https://github.com/ifrspro
 
 ###### Returns
 
-`Effect`{`<`}`void`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+`Effect`&lt;`void`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 ##### set()
 
-> **set**(`db`, `roleId`, `permissionIds`): `Effect`{`<`}`void`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+> **set**(`db`, `roleId`, `permissionIds`): `Effect`&lt;`void`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/repositories/rbac.repository.ts:397](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/rbac.repository.ts#L397)
 
@@ -286,7 +286,7 @@ Defined in: [src/repositories/rbac.repository.ts:397](https://github.com/ifrspro
 
 ###### Returns
 
-`Effect`{`<`}`void`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+`Effect`&lt;`void`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 ***
 
@@ -310,7 +310,7 @@ Repository for managing roles in the database.
 
 ##### create()
 
-> **create**(`db`, `data`): `Effect`{`<`}{`{`} `complianceLevel`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `createdBy`: `string` {`|`} `null`; `description`: `string` {`|`} `null`; `hierarchyLevel`: `number`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isSystemRole`: `boolean` {`|`} `null`; `roleCode`: `string`; `roleName`: `string`; `tenantId`: `string` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `updatedBy`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+> **create**(`db`, `data`): `Effect`&lt;&#123; `complianceLevel`: `string` &#124; `null`; `createdAt`: `Date` &#124; `null`; `createdBy`: `string` &#124; `null`; `description`: `string` &#124; `null`; `hierarchyLevel`: `number`; `id`: `string`; `isActive`: `boolean` &#124; `null`; `isSystemRole`: `boolean` &#124; `null`; `roleCode`: `string`; `roleName`: `string`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date` &#124; `null`; `updatedBy`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/repositories/rbac.repository.ts:217](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/rbac.repository.ts#L217)
 
@@ -330,19 +330,19 @@ The role data to insert
 
 ###### complianceLevel?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### createdAt?
 
-`Date` {`|`} `null`
+`Date` &#124; `null`
 
 ###### createdBy?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### description?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### hierarchyLevel?
 
@@ -354,11 +354,11 @@ The role data to insert
 
 ###### isActive?
 
-`boolean` {`|`} `null`
+`boolean` &#124; `null`
 
 ###### isSystemRole?
 
-`boolean` {`|`} `null`
+`boolean` &#124; `null`
 
 ###### roleCode
 
@@ -370,25 +370,25 @@ The role data to insert
 
 ###### tenantId?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### updatedAt?
 
-`Date` {`|`} `null`
+`Date` &#124; `null`
 
 ###### updatedBy?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `complianceLevel`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `createdBy`: `string` {`|`} `null`; `description`: `string` {`|`} `null`; `hierarchyLevel`: `number`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isSystemRole`: `boolean` {`|`} `null`; `roleCode`: `string`; `roleName`: `string`; `tenantId`: `string` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `updatedBy`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+`Effect`&lt;&#123; `complianceLevel`: `string` &#124; `null`; `createdAt`: `Date` &#124; `null`; `createdBy`: `string` &#124; `null`; `description`: `string` &#124; `null`; `hierarchyLevel`: `number`; `id`: `string`; `isActive`: `boolean` &#124; `null`; `isSystemRole`: `boolean` &#124; `null`; `roleCode`: `string`; `roleName`: `string`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date` &#124; `null`; `updatedBy`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 An Effect that succeeds with the created Role
 
 ##### delete()
 
-> **delete**(`db`, `id`): `Effect`{`<`}{`{`} `complianceLevel`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `createdBy`: `string` {`|`} `null`; `description`: `string` {`|`} `null`; `hierarchyLevel`: `number`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isSystemRole`: `boolean` {`|`} `null`; `roleCode`: `string`; `roleName`: `string`; `tenantId`: `string` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `updatedBy`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}
+> **delete**(`db`, `id`): `Effect`&lt;&#123; `complianceLevel`: `string` &#124; `null`; `createdAt`: `Date` &#124; `null`; `createdBy`: `string` &#124; `null`; `description`: `string` &#124; `null`; `hierarchyLevel`: `number`; `id`: `string`; `isActive`: `boolean` &#124; `null`; `isSystemRole`: `boolean` &#124; `null`; `roleCode`: `string`; `roleName`: `string`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date` &#124; `null`; `updatedBy`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
 Defined in: [src/repositories/rbac.repository.ts:267](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/rbac.repository.ts#L267)
 
@@ -410,13 +410,13 @@ The ID of the role to deactivate
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `complianceLevel`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `createdBy`: `string` {`|`} `null`; `description`: `string` {`|`} `null`; `hierarchyLevel`: `number`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isSystemRole`: `boolean` {`|`} `null`; `roleCode`: `string`; `roleName`: `string`; `tenantId`: `string` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `updatedBy`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}
+`Effect`&lt;&#123; `complianceLevel`: `string` &#124; `null`; `createdAt`: `Date` &#124; `null`; `createdBy`: `string` &#124; `null`; `description`: `string` &#124; `null`; `hierarchyLevel`: `number`; `id`: `string`; `isActive`: `boolean` &#124; `null`; `isSystemRole`: `boolean` &#124; `null`; `roleCode`: `string`; `roleName`: `string`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date` &#124; `null`; `updatedBy`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
 An Effect that succeeds with the updated Role
 
 ##### existsByName()
 
-> **existsByName**(`db`, `roleName`): `Effect`{`<`}`boolean`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+> **existsByName**(`db`, `roleName`): `Effect`&lt;`boolean`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/repositories/rbac.repository.ts:278](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/rbac.repository.ts#L278)
 
@@ -438,13 +438,13 @@ The role name to check
 
 ###### Returns
 
-`Effect`{`<`}`boolean`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+`Effect`&lt;`boolean`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 An Effect that succeeds with true if the name is taken
 
 ##### findAll()
 
-> **findAll**(`db`, `options?`): `Effect`{`<`}[`PaginatedResult`](repositories.base.repository.md#paginatedresult){`<`}{`{`} `complianceLevel`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `createdBy`: `string` {`|`} `null`; `description`: `string` {`|`} `null`; `hierarchyLevel`: `number`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isSystemRole`: `boolean` {`|`} `null`; `roleCode`: `string`; `roleName`: `string`; `tenantId`: `string` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `updatedBy`: `string` {`|`} `null`; {`}`}{`>`}, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+> **findAll**(`db`, `options?`): `Effect`&lt;[`PaginatedResult`](repositories.base.repository.md#paginatedresult)&lt;&#123; `complianceLevel`: `string` &#124; `null`; `createdAt`: `Date` &#124; `null`; `createdBy`: `string` &#124; `null`; `description`: `string` &#124; `null`; `hierarchyLevel`: `number`; `id`: `string`; `isActive`: `boolean` &#124; `null`; `isSystemRole`: `boolean` &#124; `null`; `roleCode`: `string`; `roleName`: `string`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date` &#124; `null`; `updatedBy`: `string` &#124; `null`; &#125;&gt;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/repositories/rbac.repository.ts:113](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/rbac.repository.ts#L113)
 
@@ -466,13 +466,13 @@ Query options including pagination, filters, and includeInactive
 
 ###### Returns
 
-`Effect`{`<`}[`PaginatedResult`](repositories.base.repository.md#paginatedresult){`<`}{`{`} `complianceLevel`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `createdBy`: `string` {`|`} `null`; `description`: `string` {`|`} `null`; `hierarchyLevel`: `number`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isSystemRole`: `boolean` {`|`} `null`; `roleCode`: `string`; `roleName`: `string`; `tenantId`: `string` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `updatedBy`: `string` {`|`} `null`; {`}`}{`>`}, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+`Effect`&lt;[`PaginatedResult`](repositories.base.repository.md#paginatedresult)&lt;&#123; `complianceLevel`: `string` &#124; `null`; `createdAt`: `Date` &#124; `null`; `createdBy`: `string` &#124; `null`; `description`: `string` &#124; `null`; `hierarchyLevel`: `number`; `id`: `string`; `isActive`: `boolean` &#124; `null`; `isSystemRole`: `boolean` &#124; `null`; `roleCode`: `string`; `roleName`: `string`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date` &#124; `null`; `updatedBy`: `string` &#124; `null`; &#125;&gt;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 An Effect that succeeds with a paginated result of Roles
 
 ##### findById()
 
-> **findById**(`db`, `id`): `Effect`{`<`}[`RoleWithPermissions`](#rolewithpermissions), [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}
+> **findById**(`db`, `id`): `Effect`&lt;[`RoleWithPermissions`](#rolewithpermissions), [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
 Defined in: [src/repositories/rbac.repository.ts:76](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/rbac.repository.ts#L76)
 
@@ -494,13 +494,13 @@ The role ID to search for
 
 ###### Returns
 
-`Effect`{`<`}[`RoleWithPermissions`](#rolewithpermissions), [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}
+`Effect`&lt;[`RoleWithPermissions`](#rolewithpermissions), [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
 An Effect that succeeds with the Role and its permissions
 
 ##### findByName()
 
-> **findByName**(`db`, `roleName`, `tenantId?`): `Effect`{`<`}{`{`} `complianceLevel`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `createdBy`: `string` {`|`} `null`; `description`: `string` {`|`} `null`; `hierarchyLevel`: `number`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isSystemRole`: `boolean` {`|`} `null`; `roleCode`: `string`; `roleName`: `string`; `tenantId`: `string` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `updatedBy`: `string` {`|`} `null`; {`}`} {`|`} `undefined`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+> **findByName**(`db`, `roleName`, `tenantId?`): `Effect`&lt;&#123; `complianceLevel`: `string` &#124; `null`; `createdAt`: `Date` &#124; `null`; `createdBy`: `string` &#124; `null`; `description`: `string` &#124; `null`; `hierarchyLevel`: `number`; `id`: `string`; `isActive`: `boolean` &#124; `null`; `isSystemRole`: `boolean` &#124; `null`; `roleCode`: `string`; `roleName`: `string`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date` &#124; `null`; `updatedBy`: `string` &#124; `null`; &#125; &#124; `undefined`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/repositories/rbac.repository.ts:96](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/rbac.repository.ts#L96)
 
@@ -528,13 +528,13 @@ Optional tenant ID for scoping
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `complianceLevel`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `createdBy`: `string` {`|`} `null`; `description`: `string` {`|`} `null`; `hierarchyLevel`: `number`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isSystemRole`: `boolean` {`|`} `null`; `roleCode`: `string`; `roleName`: `string`; `tenantId`: `string` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `updatedBy`: `string` {`|`} `null`; {`}`} {`|`} `undefined`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+`Effect`&lt;&#123; `complianceLevel`: `string` &#124; `null`; `createdAt`: `Date` &#124; `null`; `createdBy`: `string` &#124; `null`; `description`: `string` &#124; `null`; `hierarchyLevel`: `number`; `id`: `string`; `isActive`: `boolean` &#124; `null`; `isSystemRole`: `boolean` &#124; `null`; `roleCode`: `string`; `roleName`: `string`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date` &#124; `null`; `updatedBy`: `string` &#124; `null`; &#125; &#124; `undefined`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 An Effect that succeeds with the Role if found, or undefined
 
 ##### findByTenant()
 
-> **findByTenant**(`db`, `tenantId`, `options?`): `Effect`{`<`}[`PaginatedResult`](repositories.base.repository.md#paginatedresult){`<`}[`RoleWithPermissions`](#rolewithpermissions){`>`}, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+> **findByTenant**(`db`, `tenantId`, `options?`): `Effect`&lt;[`PaginatedResult`](repositories.base.repository.md#paginatedresult)&lt;[`RoleWithPermissions`](#rolewithpermissions)&gt;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/repositories/rbac.repository.ts:162](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/rbac.repository.ts#L162)
 
@@ -562,13 +562,13 @@ Query options including pagination and filters
 
 ###### Returns
 
-`Effect`{`<`}[`PaginatedResult`](repositories.base.repository.md#paginatedresult){`<`}[`RoleWithPermissions`](#rolewithpermissions){`>`}, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+`Effect`&lt;[`PaginatedResult`](repositories.base.repository.md#paginatedresult)&lt;[`RoleWithPermissions`](#rolewithpermissions)&gt;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 An Effect that succeeds with a paginated result of Roles
 
 ##### update()
 
-> **update**(`db`, `id`, `data`): `Effect`{`<`}{`{`} `complianceLevel`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `createdBy`: `string` {`|`} `null`; `description`: `string` {`|`} `null`; `hierarchyLevel`: `number`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isSystemRole`: `boolean` {`|`} `null`; `roleCode`: `string`; `roleName`: `string`; `tenantId`: `string` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `updatedBy`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}
+> **update**(`db`, `id`, `data`): `Effect`&lt;&#123; `complianceLevel`: `string` &#124; `null`; `createdAt`: `Date` &#124; `null`; `createdBy`: `string` &#124; `null`; `description`: `string` &#124; `null`; `hierarchyLevel`: `number`; `id`: `string`; `isActive`: `boolean` &#124; `null`; `isSystemRole`: `boolean` &#124; `null`; `roleCode`: `string`; `roleName`: `string`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date` &#124; `null`; `updatedBy`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
 Defined in: [src/repositories/rbac.repository.ts:238](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/rbac.repository.ts#L238)
 
@@ -590,13 +590,13 @@ The role ID to update
 
 ###### data
 
-`Partial`{`<`}[`NewRole`](db.schema.rbac.schema.md#newrole){`>`}
+`Partial`&lt;[`NewRole`](db.schema.rbac.schema.md#newrole)&gt;
 
 Partial role data containing updates
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `complianceLevel`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `createdBy`: `string` {`|`} `null`; `description`: `string` {`|`} `null`; `hierarchyLevel`: `number`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isSystemRole`: `boolean` {`|`} `null`; `roleCode`: `string`; `roleName`: `string`; `tenantId`: `string` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `updatedBy`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}
+`Effect`&lt;&#123; `complianceLevel`: `string` &#124; `null`; `createdAt`: `Date` &#124; `null`; `createdBy`: `string` &#124; `null`; `description`: `string` &#124; `null`; `hierarchyLevel`: `number`; `id`: `string`; `isActive`: `boolean` &#124; `null`; `isSystemRole`: `boolean` &#124; `null`; `roleCode`: `string`; `roleName`: `string`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date` &#124; `null`; `updatedBy`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
 An Effect that succeeds with the updated Role
 
@@ -622,7 +622,7 @@ Repository for managing user-role associations.
 
 ##### assign()
 
-> **assign**(`db`, `data`): `Effect`{`<`}{`{`} `assignedAt`: `Date` {`|`} `null`; `assignedBy`: `string` {`|`} `null`; `bankingTypeRestriction`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isTemporary`: `boolean` {`|`} `null`; `roleId`: `string`; `temporaryReason`: `string` {`|`} `null`; `tenantId`: `string`; `updatedAt`: `Date` {`|`} `null`; `userId`: `string`; `validFrom`: `Date` {`|`} `null`; `validUntil`: `Date` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+> **assign**(`db`, `data`): `Effect`&lt;&#123; `assignedAt`: `Date` &#124; `null`; `assignedBy`: `string` &#124; `null`; `bankingTypeRestriction`: `string` &#124; `null`; `createdAt`: `Date` &#124; `null`; `id`: `string`; `isActive`: `boolean` &#124; `null`; `isTemporary`: `boolean` &#124; `null`; `roleId`: `string`; `temporaryReason`: `string` &#124; `null`; `tenantId`: `string`; `updatedAt`: `Date` &#124; `null`; `userId`: `string`; `validFrom`: `Date` &#124; `null`; `validUntil`: `Date` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/repositories/rbac.repository.ts:521](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/rbac.repository.ts#L521)
 
@@ -642,19 +642,19 @@ The assignment data
 
 ###### assignedAt?
 
-`Date` {`|`} `null`
+`Date` &#124; `null`
 
 ###### assignedBy?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### bankingTypeRestriction?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### createdAt?
 
-`Date` {`|`} `null`
+`Date` &#124; `null`
 
 ###### id?
 
@@ -662,11 +662,11 @@ The assignment data
 
 ###### isActive?
 
-`boolean` {`|`} `null`
+`boolean` &#124; `null`
 
 ###### isTemporary?
 
-`boolean` {`|`} `null`
+`boolean` &#124; `null`
 
 ###### roleId
 
@@ -674,7 +674,7 @@ The assignment data
 
 ###### temporaryReason?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### tenantId
 
@@ -682,7 +682,7 @@ The assignment data
 
 ###### updatedAt?
 
-`Date` {`|`} `null`
+`Date` &#124; `null`
 
 ###### userId
 
@@ -690,21 +690,21 @@ The assignment data
 
 ###### validFrom?
 
-`Date` {`|`} `null`
+`Date` &#124; `null`
 
 ###### validUntil?
 
-`Date` {`|`} `null`
+`Date` &#124; `null`
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `assignedAt`: `Date` {`|`} `null`; `assignedBy`: `string` {`|`} `null`; `bankingTypeRestriction`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isTemporary`: `boolean` {`|`} `null`; `roleId`: `string`; `temporaryReason`: `string` {`|`} `null`; `tenantId`: `string`; `updatedAt`: `Date` {`|`} `null`; `userId`: `string`; `validFrom`: `Date` {`|`} `null`; `validUntil`: `Date` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+`Effect`&lt;&#123; `assignedAt`: `Date` &#124; `null`; `assignedBy`: `string` &#124; `null`; `bankingTypeRestriction`: `string` &#124; `null`; `createdAt`: `Date` &#124; `null`; `id`: `string`; `isActive`: `boolean` &#124; `null`; `isTemporary`: `boolean` &#124; `null`; `roleId`: `string`; `temporaryReason`: `string` &#124; `null`; `tenantId`: `string`; `updatedAt`: `Date` &#124; `null`; `userId`: `string`; `validFrom`: `Date` &#124; `null`; `validUntil`: `Date` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 An Effect that succeeds with the created assignment
 
 ##### exists()
 
-> **exists**(`db`, `userId`, `roleId`): `Effect`{`<`}`boolean`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+> **exists**(`db`, `userId`, `roleId`): `Effect`&lt;`boolean`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/repositories/rbac.repository.ts:561](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/rbac.repository.ts#L561)
 
@@ -726,11 +726,11 @@ Check if user has role
 
 ###### Returns
 
-`Effect`{`<`}`boolean`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+`Effect`&lt;`boolean`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 ##### findByRole()
 
-> **findByRole**(`db`, `roleId`, `options?`): `Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+> **findByRole**(`db`, `roleId`, `options?`): `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/repositories/rbac.repository.ts:494](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/rbac.repository.ts#L494)
 
@@ -758,13 +758,13 @@ Filter options
 
 ###### Returns
 
-`Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+`Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 An Effect that succeeds with an array of UserRole assignments
 
 ##### findByUser()
 
-> **findByUser**(`db`, `userId`, `tenantId?`, `options?`): `Effect`{`<`}`object` & `object`[], [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+> **findByUser**(`db`, `userId`, `tenantId?`, `options?`): `Effect`&lt;`object` & `object`[], [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/repositories/rbac.repository.ts:444](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/rbac.repository.ts#L444)
 
@@ -798,13 +798,13 @@ Optional query params (activeOnly)
 
 ###### Returns
 
-`Effect`{`<`}`object` & `object`[], [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+`Effect`&lt;`object` & `object`[], [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 An Effect that succeeds with a rich array of UserRoles with associated role and permission data
 
 ##### remove()
 
-> **remove**(`db`, `userId`, `roleId`): `Effect`{`<`}{`{`} `assignedAt`: `Date` {`|`} `null`; `assignedBy`: `string` {`|`} `null`; `bankingTypeRestriction`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isTemporary`: `boolean` {`|`} `null`; `roleId`: `string`; `temporaryReason`: `string` {`|`} `null`; `tenantId`: `string`; `updatedAt`: `Date` {`|`} `null`; `userId`: `string`; `validFrom`: `Date` {`|`} `null`; `validUntil`: `Date` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}
+> **remove**(`db`, `userId`, `roleId`): `Effect`&lt;&#123; `assignedAt`: `Date` &#124; `null`; `assignedBy`: `string` &#124; `null`; `bankingTypeRestriction`: `string` &#124; `null`; `createdAt`: `Date` &#124; `null`; `id`: `string`; `isActive`: `boolean` &#124; `null`; `isTemporary`: `boolean` &#124; `null`; `roleId`: `string`; `temporaryReason`: `string` &#124; `null`; `tenantId`: `string`; `updatedAt`: `Date` &#124; `null`; `userId`: `string`; `validFrom`: `Date` &#124; `null`; `validUntil`: `Date` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
 Defined in: [src/repositories/rbac.repository.ts:538](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/rbac.repository.ts#L538)
 
@@ -826,7 +826,7 @@ Remove role assignment
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `assignedAt`: `Date` {`|`} `null`; `assignedBy`: `string` {`|`} `null`; `bankingTypeRestriction`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isTemporary`: `boolean` {`|`} `null`; `roleId`: `string`; `temporaryReason`: `string` {`|`} `null`; `tenantId`: `string`; `updatedAt`: `Date` {`|`} `null`; `userId`: `string`; `validFrom`: `Date` {`|`} `null`; `validUntil`: `Date` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}
+`Effect`&lt;&#123; `assignedAt`: `Date` &#124; `null`; `assignedBy`: `string` &#124; `null`; `bankingTypeRestriction`: `string` &#124; `null`; `createdAt`: `Date` &#124; `null`; `id`: `string`; `isActive`: `boolean` &#124; `null`; `isTemporary`: `boolean` &#124; `null`; `roleId`: `string`; `temporaryReason`: `string` &#124; `null`; `tenantId`: `string`; `updatedAt`: `Date` &#124; `null`; `userId`: `string`; `validFrom`: `Date` &#124; `null`; `validUntil`: `Date` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
 ## Interfaces
 
@@ -1008,7 +1008,7 @@ Pagination parameters (page and limit)
 
 ### DrizzleDB
 
-> **DrizzleDB** = `PostgresJsDatabase`{`<`}*typeof* [`db/schema`](db.schema.md){`>`}
+> **DrizzleDB** = `PostgresJsDatabase`&lt;*typeof* [`db/schema`](db.schema.md)&gt;
 
 Defined in: [src/repositories/rbac.repository.ts:44](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/rbac.repository.ts#L44)
 

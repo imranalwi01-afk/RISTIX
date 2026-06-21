@@ -16,7 +16,7 @@ Defined in: [src/repositories/pd-configurations.repository.ts:7](https://github.
 
 ##### create()
 
-> **create**: (`data`) => `Effect`{`<`}{`{`} `activeFlag`: `boolean`; `bucketGroup`: `string` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean` {`|`} `null`; `flScalarId`: `number` {`|`} `null`; `iaFlag`: `boolean`; `interval`: `number` {`|`} `null`; `multiplication`: `number` {`|`} `null`; `observationPeriod`: `number` {`|`} `null`; `observationStartDate`: `string` {`|`} `null`; `pdMethod`: `string` {`|`} `null`; `pdModelName`: `string` {`|`} `null`; `pkid`: `number`; `populationType`: `string` {`|`} `null`; `segmentId`: `number` {`|`} `null`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **create**: (`data`) => `Effect`&lt;&#123; `activeFlag`: `boolean`; `bucketGroup`: `string` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean` &#124; `null`; `flScalarId`: `number` &#124; `null`; `iaFlag`: `boolean`; `interval`: `number` &#124; `null`; `multiplication`: `number` &#124; `null`; `observationPeriod`: `number` &#124; `null`; `observationStartDate`: `string` &#124; `null`; `pdMethod`: `string` &#124; `null`; `pdModelName`: `string` &#124; `null`; `pkid`: `number`; `populationType`: `string` &#124; `null`; `segmentId`: `number` &#124; `null`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Create a new PD configuration.
 
@@ -32,7 +32,7 @@ The configuration data
 
 ###### bucketGroup?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### createdby
 
@@ -48,11 +48,11 @@ The configuration data
 
 ###### flFlag?
 
-`boolean` {`|`} `null`
+`boolean` &#124; `null`
 
 ###### flScalarId?
 
-`number` {`|`} `null`
+`number` &#124; `null`
 
 ###### iaFlag
 
@@ -60,27 +60,27 @@ The configuration data
 
 ###### interval?
 
-`number` {`|`} `null`
+`number` &#124; `null`
 
 ###### multiplication?
 
-`number` {`|`} `null`
+`number` &#124; `null`
 
 ###### observationPeriod?
 
-`number` {`|`} `null`
+`number` &#124; `null`
 
 ###### observationStartDate?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### pdMethod?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### pdModelName?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### pkid?
 
@@ -88,33 +88,33 @@ The configuration data
 
 ###### populationType?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### segmentId?
 
-`number` {`|`} `null`
+`number` &#124; `null`
 
 ###### updatedby?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### updateddate?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### updatedhost?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `activeFlag`: `boolean`; `bucketGroup`: `string` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean` {`|`} `null`; `flScalarId`: `number` {`|`} `null`; `iaFlag`: `boolean`; `interval`: `number` {`|`} `null`; `multiplication`: `number` {`|`} `null`; `observationPeriod`: `number` {`|`} `null`; `observationStartDate`: `string` {`|`} `null`; `pdMethod`: `string` {`|`} `null`; `pdModelName`: `string` {`|`} `null`; `pkid`: `number`; `populationType`: `string` {`|`} `null`; `segmentId`: `number` {`|`} `null`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;&#123; `activeFlag`: `boolean`; `bucketGroup`: `string` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean` &#124; `null`; `flScalarId`: `number` &#124; `null`; `iaFlag`: `boolean`; `interval`: `number` &#124; `null`; `multiplication`: `number` &#124; `null`; `observationPeriod`: `number` &#124; `null`; `observationStartDate`: `string` &#124; `null`; `pdMethod`: `string` &#124; `null`; `pdModelName`: `string` &#124; `null`; `pkid`: `number`; `populationType`: `string` &#124; `null`; `segmentId`: `number` &#124; `null`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the created configuration
 
 ##### delete()
 
-> **delete**: (`id`) => `Effect`{`<`}`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **delete**: (`id`) => `Effect`&lt;`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Delete a PD configuration.
 
@@ -128,13 +128,13 @@ The configuration ID
 
 ###### Returns
 
-`Effect`{`<`}`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to true on success
 
 ##### findAll()
 
-> **findAll**: (`search?`, `selectedMethod?`, `bucket?`, `activeFlag?`) => `Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **findAll**: (`search?`, `selectedMethod?`, `bucket?`, `activeFlag?`) => `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Find all PD configurations with filters.
 
@@ -166,13 +166,13 @@ Active status flag
 
 ###### Returns
 
-`Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to an array of PD configurations
 
 ##### findById()
 
-> **findById**: (`id`) => `Effect`{`<`}{`{`} `activeFlag`: `boolean`; `bucketGroup`: `string` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean` {`|`} `null`; `flScalarId`: `number` {`|`} `null`; `iaFlag`: `boolean`; `interval`: `number` {`|`} `null`; `multiplication`: `number` {`|`} `null`; `observationPeriod`: `number` {`|`} `null`; `observationStartDate`: `string` {`|`} `null`; `pdMethod`: `string` {`|`} `null`; `pdModelName`: `string` {`|`} `null`; `pkid`: `number`; `populationType`: `string` {`|`} `null`; `segmentId`: `number` {`|`} `null`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **findById**: (`id`) => `Effect`&lt;&#123; `activeFlag`: `boolean`; `bucketGroup`: `string` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean` &#124; `null`; `flScalarId`: `number` &#124; `null`; `iaFlag`: `boolean`; `interval`: `number` &#124; `null`; `multiplication`: `number` &#124; `null`; `observationPeriod`: `number` &#124; `null`; `observationStartDate`: `string` &#124; `null`; `pdMethod`: `string` &#124; `null`; `pdModelName`: `string` &#124; `null`; `pkid`: `number`; `populationType`: `string` &#124; `null`; `segmentId`: `number` &#124; `null`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Find a PD configuration by ID.
 
@@ -186,13 +186,13 @@ The configuration ID
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `activeFlag`: `boolean`; `bucketGroup`: `string` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean` {`|`} `null`; `flScalarId`: `number` {`|`} `null`; `iaFlag`: `boolean`; `interval`: `number` {`|`} `null`; `multiplication`: `number` {`|`} `null`; `observationPeriod`: `number` {`|`} `null`; `observationStartDate`: `string` {`|`} `null`; `pdMethod`: `string` {`|`} `null`; `pdModelName`: `string` {`|`} `null`; `pkid`: `number`; `populationType`: `string` {`|`} `null`; `segmentId`: `number` {`|`} `null`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;&#123; `activeFlag`: `boolean`; `bucketGroup`: `string` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean` &#124; `null`; `flScalarId`: `number` &#124; `null`; `iaFlag`: `boolean`; `interval`: `number` &#124; `null`; `multiplication`: `number` &#124; `null`; `observationPeriod`: `number` &#124; `null`; `observationStartDate`: `string` &#124; `null`; `pdMethod`: `string` &#124; `null`; `pdModelName`: `string` &#124; `null`; `pkid`: `number`; `populationType`: `string` &#124; `null`; `segmentId`: `number` &#124; `null`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the configuration or null
 
 ##### update()
 
-> **update**: (`id`, `data`) => `Effect`{`<`}{`{`} `activeFlag`: `boolean`; `bucketGroup`: `string` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean` {`|`} `null`; `flScalarId`: `number` {`|`} `null`; `iaFlag`: `boolean`; `interval`: `number` {`|`} `null`; `multiplication`: `number` {`|`} `null`; `observationPeriod`: `number` {`|`} `null`; `observationStartDate`: `string` {`|`} `null`; `pdMethod`: `string` {`|`} `null`; `pdModelName`: `string` {`|`} `null`; `pkid`: `number`; `populationType`: `string` {`|`} `null`; `segmentId`: `number` {`|`} `null`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **update**: (`id`, `data`) => `Effect`&lt;&#123; `activeFlag`: `boolean`; `bucketGroup`: `string` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean` &#124; `null`; `flScalarId`: `number` &#124; `null`; `iaFlag`: `boolean`; `interval`: `number` &#124; `null`; `multiplication`: `number` &#124; `null`; `observationPeriod`: `number` &#124; `null`; `observationStartDate`: `string` &#124; `null`; `pdMethod`: `string` &#124; `null`; `pdModelName`: `string` &#124; `null`; `pkid`: `number`; `populationType`: `string` &#124; `null`; `segmentId`: `number` &#124; `null`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Update an existing PD configuration.
 
@@ -206,12 +206,12 @@ The configuration ID
 
 ###### data
 
-`Partial`{`<`}*typeof* `frs9ImpCaPdConfig.$inferInsert`{`>`}
+`Partial`&lt;*typeof* `frs9ImpCaPdConfig.$inferInsert`&gt;
 
 The data to update
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `activeFlag`: `boolean`; `bucketGroup`: `string` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean` {`|`} `null`; `flScalarId`: `number` {`|`} `null`; `iaFlag`: `boolean`; `interval`: `number` {`|`} `null`; `multiplication`: `number` {`|`} `null`; `observationPeriod`: `number` {`|`} `null`; `observationStartDate`: `string` {`|`} `null`; `pdMethod`: `string` {`|`} `null`; `pdModelName`: `string` {`|`} `null`; `pkid`: `number`; `populationType`: `string` {`|`} `null`; `segmentId`: `number` {`|`} `null`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;&#123; `activeFlag`: `boolean`; `bucketGroup`: `string` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean` &#124; `null`; `flScalarId`: `number` &#124; `null`; `iaFlag`: `boolean`; `interval`: `number` &#124; `null`; `multiplication`: `number` &#124; `null`; `observationPeriod`: `number` &#124; `null`; `observationStartDate`: `string` &#124; `null`; `pdMethod`: `string` &#124; `null`; `pdModelName`: `string` &#124; `null`; `pkid`: `number`; `populationType`: `string` &#124; `null`; `segmentId`: `number` &#124; `null`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the updated configuration or null

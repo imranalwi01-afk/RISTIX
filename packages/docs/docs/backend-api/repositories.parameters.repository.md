@@ -18,7 +18,7 @@ Repository for accessing Parameters data (App Settings and Business Settings).
 
 ##### createDetail()
 
-> **createDetail**: (`data`) => `Effect`{`<`}{`{`} `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string`; `paramdesc`: `string` {`|`} `null`; `paramSeq`: `number`; `pkid`: `bigint`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `value1`: `string`; `value2`: `string`; `value3`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **createDetail**: (`data`) => `Effect`&lt;&#123; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string`; `paramdesc`: `string` &#124; `null`; `paramSeq`: `number`; `pkid`: `bigint`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `value1`: `string`; `value2`: `string`; `value3`: `string`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Create a new parameter detail.
 
@@ -46,7 +46,7 @@ The data for the new detail
 
 ###### paramdesc?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### paramSeq
 
@@ -58,15 +58,15 @@ The data for the new detail
 
 ###### updatedby?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### updateddate?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### updatedhost?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### value1
 
@@ -82,13 +82,13 @@ The data for the new detail
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string`; `paramdesc`: `string` {`|`} `null`; `paramSeq`: `number`; `pkid`: `bigint`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `value1`: `string`; `value2`: `string`; `value3`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;&#123; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string`; `paramdesc`: `string` &#124; `null`; `paramSeq`: `number`; `pkid`: `bigint`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `value1`: `string`; `value2`: `string`; `value3`: `string`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the created detail
 
 ##### createHeader()
 
-> **createHeader**: (`data`) => `Effect`{`<`}{`{`} `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string` {`|`} `null`; `paramName`: `string` {`|`} `null`; `paramType`: `string` {`|`} `null`; `paramUsage`: `string` {`|`} `null`; `pkid`: `bigint`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **createHeader**: (`data`) => `Effect`&lt;&#123; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string` &#124; `null`; `paramName`: `string` &#124; `null`; `paramType`: `string` &#124; `null`; `paramUsage`: `string` &#124; `null`; `pkid`: `bigint`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Create a new parameter header.
 
@@ -112,19 +112,19 @@ The data for the new header
 
 ###### paramCode?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### paramName?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### paramType?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### paramUsage?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### pkid?
 
@@ -132,25 +132,25 @@ The data for the new header
 
 ###### updatedby?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### updateddate?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### updatedhost?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string` {`|`} `null`; `paramName`: `string` {`|`} `null`; `paramType`: `string` {`|`} `null`; `paramUsage`: `string` {`|`} `null`; `pkid`: `bigint`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;&#123; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string` &#124; `null`; `paramName`: `string` &#124; `null`; `paramType`: `string` &#124; `null`; `paramUsage`: `string` &#124; `null`; `pkid`: `bigint`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the created header
 
 ##### deleteDetail()
 
-> **deleteDetail**: (`id`) => `Effect`{`<`}{`{`} `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string`; `paramdesc`: `string` {`|`} `null`; `paramSeq`: `number`; `pkid`: `bigint`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `value1`: `string`; `value2`: `string`; `value3`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **deleteDetail**: (`id`) => `Effect`&lt;&#123; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string`; `paramdesc`: `string` &#124; `null`; `paramSeq`: `number`; `pkid`: `bigint`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `value1`: `string`; `value2`: `string`; `value3`: `string`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Delete a parameter detail.
 
@@ -164,13 +164,13 @@ The ID of the detail
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string`; `paramdesc`: `string` {`|`} `null`; `paramSeq`: `number`; `pkid`: `bigint`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `value1`: `string`; `value2`: `string`; `value3`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;&#123; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string`; `paramdesc`: `string` &#124; `null`; `paramSeq`: `number`; `pkid`: `bigint`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `value1`: `string`; `value2`: `string`; `value3`: `string`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the deleted detail
 
 ##### deleteHeader()
 
-> **deleteHeader**: (`code`) => `Effect`{`<`}{`{`} `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string` {`|`} `null`; `paramName`: `string` {`|`} `null`; `paramType`: `string` {`|`} `null`; `paramUsage`: `string` {`|`} `null`; `pkid`: `bigint`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **deleteHeader**: (`code`) => `Effect`&lt;&#123; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string` &#124; `null`; `paramName`: `string` &#124; `null`; `paramType`: `string` &#124; `null`; `paramUsage`: `string` &#124; `null`; `pkid`: `bigint`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Delete a parameter header and its details.
 
@@ -184,13 +184,13 @@ The parameter code
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string` {`|`} `null`; `paramName`: `string` {`|`} `null`; `paramType`: `string` {`|`} `null`; `paramUsage`: `string` {`|`} `null`; `pkid`: `bigint`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;&#123; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string` &#124; `null`; `paramName`: `string` &#124; `null`; `paramType`: `string` &#124; `null`; `paramUsage`: `string` &#124; `null`; `pkid`: `bigint`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the deleted header
 
 ##### findByFilters()
 
-> **findByFilters**: (`code`, `filters`) => `Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **findByFilters**: (`code`, `filters`) => `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Find parameter details by filters.
 
@@ -204,19 +204,19 @@ The parameter code
 
 ###### filters
 
-`Record`{`<`}`string`, `any`{`>`}
+`Record`&lt;`string`, `any`&gt;
 
 The filters to apply (value1, value2, value3)
 
 ###### Returns
 
-`Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to an array of details
 
 ##### findDetailByCode()
 
-> **findDetailByCode**: (`code`) => `Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **findDetailByCode**: (`code`) => `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Find details for a specific parameter code.
 
@@ -230,13 +230,13 @@ The parameter code
 
 ###### Returns
 
-`Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to an array of details
 
 ##### findDetailBySeq()
 
-> **findDetailBySeq**: (`code`, `seq`) => `Effect`{`<`}{`{`} `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string`; `paramdesc`: `string` {`|`} `null`; `paramSeq`: `number`; `pkid`: `bigint`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `value1`: `string`; `value2`: `string`; `value3`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **findDetailBySeq**: (`code`, `seq`) => `Effect`&lt;&#123; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string`; `paramdesc`: `string` &#124; `null`; `paramSeq`: `number`; `pkid`: `bigint`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `value1`: `string`; `value2`: `string`; `value3`: `string`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Find a specific detail by paramCode and paramSeq.
 Used for duplicate sequence validation.
@@ -257,13 +257,13 @@ The sequence number
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string`; `paramdesc`: `string` {`|`} `null`; `paramSeq`: `number`; `pkid`: `bigint`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `value1`: `string`; `value2`: `string`; `value3`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;&#123; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string`; `paramdesc`: `string` &#124; `null`; `paramSeq`: `number`; `pkid`: `bigint`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `value1`: `string`; `value2`: `string`; `value3`: `string`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the detail or null
 
 ##### findDetailByValues()
 
-> **findDetailByValues**: (`code`, `value1`, `value2`, `value3`) => `Effect`{`<`}{`{`} `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string`; `paramdesc`: `string` {`|`} `null`; `paramSeq`: `number`; `pkid`: `bigint`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `value1`: `string`; `value2`: `string`; `value3`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **findDetailByValues**: (`code`, `value1`, `value2`, `value3`) => `Effect`&lt;&#123; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string`; `paramdesc`: `string` &#124; `null`; `paramSeq`: `number`; `pkid`: `bigint`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `value1`: `string`; `value2`: `string`; `value3`: `string`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Find a specific detail by paramCode and values.
 Used for duplicate record validation in Business Setup.
@@ -296,13 +296,13 @@ Value 3
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string`; `paramdesc`: `string` {`|`} `null`; `paramSeq`: `number`; `pkid`: `bigint`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `value1`: `string`; `value2`: `string`; `value3`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;&#123; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string`; `paramdesc`: `string` &#124; `null`; `paramSeq`: `number`; `pkid`: `bigint`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `value1`: `string`; `value2`: `string`; `value3`: `string`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the detail or null
 
 ##### findDistinct()
 
-> **findDistinct**: (`code`, `field`, `filters?`) => `Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **findDistinct**: (`code`, `field`, `filters?`) => `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Find distinct values for a field.
 
@@ -322,19 +322,19 @@ The field to select distinct values from
 
 ###### filters?
 
-`Record`{`<`}`string`, `any`{`>`}
+`Record`&lt;`string`, `any`&gt;
 
 Optional additional filters
 
 ###### Returns
 
-`Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to an array of distinct values
 
 ##### findHeaderByCode()
 
-> **findHeaderByCode**: (`code`) => `Effect`{`<`}{`{`} `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `details`: `object`[]; `paramCode`: `string` {`|`} `null`; `paramName`: `string` {`|`} `null`; `paramType`: `string` {`|`} `null`; `paramUsage`: `string` {`|`} `null`; `pkid`: `bigint`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`} {`|`} `undefined`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **findHeaderByCode**: (`code`) => `Effect`&lt;&#123; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `details`: `object`[]; `paramCode`: `string` &#124; `null`; `paramName`: `string` &#124; `null`; `paramType`: `string` &#124; `null`; `paramUsage`: `string` &#124; `null`; `pkid`: `bigint`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125; &#124; `undefined`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Find a single header by its unique code.
 
@@ -348,13 +348,13 @@ The parameter code
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `details`: `object`[]; `paramCode`: `string` {`|`} `null`; `paramName`: `string` {`|`} `null`; `paramType`: `string` {`|`} `null`; `paramUsage`: `string` {`|`} `null`; `pkid`: `bigint`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`} {`|`} `undefined`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;&#123; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `details`: `object`[]; `paramCode`: `string` &#124; `null`; `paramName`: `string` &#124; `null`; `paramType`: `string` &#124; `null`; `paramUsage`: `string` &#124; `null`; `pkid`: `bigint`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125; &#124; `undefined`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the header or null
 
 ##### findHeaders()
 
-> **findHeaders**: (`paramType`, `code?`) => `Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **findHeaders**: (`paramType`, `code?`) => `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Find parameter headers.
 
@@ -374,13 +374,13 @@ Optional parameter code to filter by
 
 ###### Returns
 
-`Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to an array of headers
 
 ##### updateDetail()
 
-> **updateDetail**: (`id`, `data`) => `Effect`{`<`}{`{`} `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string`; `paramdesc`: `string` {`|`} `null`; `paramSeq`: `number`; `pkid`: `bigint`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `value1`: `string`; `value2`: `string`; `value3`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **updateDetail**: (`id`, `data`) => `Effect`&lt;&#123; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string`; `paramdesc`: `string` &#124; `null`; `paramSeq`: `number`; `pkid`: `bigint`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `value1`: `string`; `value2`: `string`; `value3`: `string`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Update an existing parameter detail.
 
@@ -394,19 +394,19 @@ The ID of the detail
 
 ###### data
 
-`Partial`{`<`}`InferInsertModel`{`<`}*typeof* [`frs9ParamCommond`](db.schema.md#frs9paramcommond){`>`}{`>`}
+`Partial`&lt;`InferInsertModel`&lt;*typeof* [`frs9ParamCommond`](db.schema.md#frs9paramcommond)&gt;&gt;
 
 The data to update
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string`; `paramdesc`: `string` {`|`} `null`; `paramSeq`: `number`; `pkid`: `bigint`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `value1`: `string`; `value2`: `string`; `value3`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;&#123; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string`; `paramdesc`: `string` &#124; `null`; `paramSeq`: `number`; `pkid`: `bigint`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `value1`: `string`; `value2`: `string`; `value3`: `string`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the updated detail
 
 ##### updateHeader()
 
-> **updateHeader**: (`code`, `data`) => `Effect`{`<`}{`{`} `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string` {`|`} `null`; `paramName`: `string` {`|`} `null`; `paramType`: `string` {`|`} `null`; `paramUsage`: `string` {`|`} `null`; `pkid`: `bigint`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **updateHeader**: (`code`, `data`) => `Effect`&lt;&#123; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string` &#124; `null`; `paramName`: `string` &#124; `null`; `paramType`: `string` &#124; `null`; `paramUsage`: `string` &#124; `null`; `pkid`: `bigint`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Update an existing parameter header.
 
@@ -420,12 +420,12 @@ The parameter code
 
 ###### data
 
-`Partial`{`<`}`InferInsertModel`{`<`}*typeof* [`frs9ParamCommonh`](db.schema.md#frs9paramcommonh){`>`}{`>`}
+`Partial`&lt;`InferInsertModel`&lt;*typeof* [`frs9ParamCommonh`](db.schema.md#frs9paramcommonh)&gt;&gt;
 
 The data to update
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string` {`|`} `null`; `paramName`: `string` {`|`} `null`; `paramType`: `string` {`|`} `null`; `paramUsage`: `string` {`|`} `null`; `pkid`: `bigint`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;&#123; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `paramCode`: `string` &#124; `null`; `paramName`: `string` &#124; `null`; `paramType`: `string` &#124; `null`; `paramUsage`: `string` &#124; `null`; `pkid`: `bigint`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the updated header

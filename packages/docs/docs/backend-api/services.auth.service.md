@@ -80,7 +80,7 @@ Optional tenant ID associated with the user
 
 ##### type
 
-> **type**: `"access"` {`|`} `"refresh"`
+> **type**: `"access"` &#124; `"refresh"`
 
 Defined in: [src/services/auth.service.ts:78](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/auth.service.ts#L78)
 
@@ -178,7 +178,7 @@ Extended User type with roles and permissions injected at runtime.
 
 ##### backupCodes
 
-> **backupCodes**: `string`[] {`|`} `null`
+> **backupCodes**: `string`[] &#124; `null`
 
 ###### Inherited from
 
@@ -186,7 +186,7 @@ Extended User type with roles and permissions injected at runtime.
 
 ##### bankId
 
-> **bankId**: `string` {`|`} `null`
+> **bankId**: `string` &#124; `null`
 
 ###### Inherited from
 
@@ -194,7 +194,7 @@ Extended User type with roles and permissions injected at runtime.
 
 ##### createdAt
 
-> **createdAt**: `Date` {`|`} `null`
+> **createdAt**: `Date` &#124; `null`
 
 ###### Inherited from
 
@@ -202,7 +202,7 @@ Extended User type with roles and permissions injected at runtime.
 
 ##### department
 
-> **department**: `string` {`|`} `null`
+> **department**: `string` &#124; `null`
 
 ###### Inherited from
 
@@ -218,7 +218,7 @@ Extended User type with roles and permissions injected at runtime.
 
 ##### emailVerifiedAt
 
-> **emailVerifiedAt**: `Date` {`|`} `null`
+> **emailVerifiedAt**: `Date` &#124; `null`
 
 ###### Inherited from
 
@@ -226,7 +226,7 @@ Extended User type with roles and permissions injected at runtime.
 
 ##### employeeId
 
-> **employeeId**: `string` {`|`} `null`
+> **employeeId**: `string` &#124; `null`
 
 ###### Inherited from
 
@@ -234,7 +234,7 @@ Extended User type with roles and permissions injected at runtime.
 
 ##### failedLoginAttempts
 
-> **failedLoginAttempts**: `number` {`|`} `null`
+> **failedLoginAttempts**: `number` &#124; `null`
 
 ###### Inherited from
 
@@ -242,7 +242,7 @@ Extended User type with roles and permissions injected at runtime.
 
 ##### forcePasswordChange
 
-> **forcePasswordChange**: `boolean` {`|`} `null`
+> **forcePasswordChange**: `boolean` &#124; `null`
 
 ###### Inherited from
 
@@ -266,7 +266,7 @@ Extended User type with roles and permissions injected at runtime.
 
 ##### isActive
 
-> **isActive**: `boolean` {`|`} `null`
+> **isActive**: `boolean` &#124; `null`
 
 ###### Inherited from
 
@@ -274,7 +274,7 @@ Extended User type with roles and permissions injected at runtime.
 
 ##### isVerified
 
-> **isVerified**: `boolean` {`|`} `null`
+> **isVerified**: `boolean` &#124; `null`
 
 ###### Inherited from
 
@@ -282,7 +282,7 @@ Extended User type with roles and permissions injected at runtime.
 
 ##### lastLoginAt
 
-> **lastLoginAt**: `Date` {`|`} `null`
+> **lastLoginAt**: `Date` &#124; `null`
 
 ###### Inherited from
 
@@ -290,7 +290,7 @@ Extended User type with roles and permissions injected at runtime.
 
 ##### loginCount
 
-> **loginCount**: `number` {`|`} `null`
+> **loginCount**: `number` &#124; `null`
 
 ###### Inherited from
 
@@ -298,7 +298,7 @@ Extended User type with roles and permissions injected at runtime.
 
 ##### mfaEnabled
 
-> **mfaEnabled**: `boolean` {`|`} `null`
+> **mfaEnabled**: `boolean` &#124; `null`
 
 ###### Inherited from
 
@@ -306,7 +306,7 @@ Extended User type with roles and permissions injected at runtime.
 
 ##### mfaSecret
 
-> **mfaSecret**: `string` {`|`} `null`
+> **mfaSecret**: `string` &#124; `null`
 
 ###### Inherited from
 
@@ -314,7 +314,7 @@ Extended User type with roles and permissions injected at runtime.
 
 ##### passwordChangedAt
 
-> **passwordChangedAt**: `Date` {`|`} `null`
+> **passwordChangedAt**: `Date` &#124; `null`
 
 ###### Inherited from
 
@@ -336,7 +336,7 @@ Defined in: [src/services/auth.service.ts:18](https://github.com/ifrspro/ifrs9-i
 
 ##### phone
 
-> **phone**: `string` {`|`} `null`
+> **phone**: `string` &#124; `null`
 
 ###### Inherited from
 
@@ -344,7 +344,7 @@ Defined in: [src/services/auth.service.ts:18](https://github.com/ifrspro/ifrs9-i
 
 ##### position
 
-> **position**: `string` {`|`} `null`
+> **position**: `string` &#124; `null`
 
 ###### Inherited from
 
@@ -358,7 +358,7 @@ Defined in: [src/services/auth.service.ts:17](https://github.com/ifrspro/ifrs9-i
 
 ##### tenantId
 
-> **tenantId**: `string` {`|`} `null`
+> **tenantId**: `string` &#124; `null`
 
 ###### Inherited from
 
@@ -366,7 +366,7 @@ Defined in: [src/services/auth.service.ts:17](https://github.com/ifrspro/ifrs9-i
 
 ##### updatedAt
 
-> **updatedAt**: `Date` {`|`} `null`
+> **updatedAt**: `Date` &#124; `null`
 
 ###### Inherited from
 
@@ -384,7 +384,7 @@ Defined in: [src/services/auth.service.ts:17](https://github.com/ifrspro/ifrs9-i
 
 ### getSession()
 
-> **getSession**(`accessTokenId`): `Effect`{`<`}`any`, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`AuthenticationError`](lib.errors.md#authenticationerror){`>`}
+> **getSession**(`accessTokenId`): `Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`AuthenticationError`](lib.errors.md#authenticationerror)&gt;
 
 Defined in: [src/services/auth.service.ts:775](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/auth.service.ts#L775)
 
@@ -400,7 +400,7 @@ The unique ID of the access token
 
 #### Returns
 
-`Effect`{`<`}`any`, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`AuthenticationError`](lib.errors.md#authenticationerror){`>`}
+`Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`AuthenticationError`](lib.errors.md#authenticationerror)&gt;
 
 An Effect that succeeds with the session data object
 
@@ -408,7 +408,7 @@ An Effect that succeeds with the session data object
 
 ### hashPassword()
 
-> **hashPassword**(`password`): `Promise`{`<`}`string`{`>`}
+> **hashPassword**(`password`): `Promise`&lt;`string`&gt;
 
 Defined in: [src/services/auth.service.ts:253](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/auth.service.ts#L253)
 
@@ -424,7 +424,7 @@ The plain text password to hash
 
 #### Returns
 
-`Promise`{`<`}`string`{`>`}
+`Promise`&lt;`string`&gt;
 
 A promise that resolves to the hashed password string
 
@@ -432,7 +432,7 @@ A promise that resolves to the hashed password string
 
 ### login()
 
-> **login**(`input`, `metadata?`): `Effect`{`<`}{`{`} `tokens`: [`TokenPair`](#tokenpair); `user`: [`UserWithRoles`](#userwithroles); {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`AuthenticationError`](lib.errors.md#authenticationerror){`>`}
+> **login**(`input`, `metadata?`): `Effect`&lt;&#123; `tokens`: [`TokenPair`](#tokenpair); `user`: [`UserWithRoles`](#userwithroles); &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`AuthenticationError`](lib.errors.md#authenticationerror)&gt;
 
 Defined in: [src/services/auth.service.ts:288](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/auth.service.ts#L288)
 
@@ -464,7 +464,7 @@ Optional metadata like IP address and User Agent for logging
 
 #### Returns
 
-`Effect`{`<`}{`{`} `tokens`: [`TokenPair`](#tokenpair); `user`: [`UserWithRoles`](#userwithroles); {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`AuthenticationError`](lib.errors.md#authenticationerror){`>`}
+`Effect`&lt;&#123; `tokens`: [`TokenPair`](#tokenpair); `user`: [`UserWithRoles`](#userwithroles); &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`AuthenticationError`](lib.errors.md#authenticationerror)&gt;
 
 An Effect that succeeds with the user and token pair, or fails with a Database/Authentication error
 
@@ -472,7 +472,7 @@ An Effect that succeeds with the user and token pair, or fails with a Database/A
 
 ### logout()
 
-> **logout**(`accessTokenId`, `reason?`): `Effect`{`<`}`void`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+> **logout**(`accessTokenId`, `reason?`): `Effect`&lt;`void`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/services/auth.service.ts:632](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/auth.service.ts#L632)
 
@@ -494,7 +494,7 @@ Optional reason for logging out
 
 #### Returns
 
-`Effect`{`<`}`void`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+`Effect`&lt;`void`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 An Effect that succeeds when the session is removed
 
@@ -502,7 +502,7 @@ An Effect that succeeds when the session is removed
 
 ### refreshTokens()
 
-> **refreshTokens**(`refreshToken`): `Effect`{`<`}[`TokenPair`](#tokenpair), [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`AuthenticationError`](lib.errors.md#authenticationerror){`>`}
+> **refreshTokens**(`refreshToken`): `Effect`&lt;[`TokenPair`](#tokenpair), [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`AuthenticationError`](lib.errors.md#authenticationerror)&gt;
 
 Defined in: [src/services/auth.service.ts:656](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/auth.service.ts#L656)
 
@@ -518,7 +518,7 @@ The valid refresh token string
 
 #### Returns
 
-`Effect`{`<`}[`TokenPair`](#tokenpair), [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`AuthenticationError`](lib.errors.md#authenticationerror){`>`}
+`Effect`&lt;[`TokenPair`](#tokenpair), [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`AuthenticationError`](lib.errors.md#authenticationerror)&gt;
 
 An Effect that succeeds with a new TokenPair
 
@@ -526,7 +526,7 @@ An Effect that succeeds with a new TokenPair
 
 ### revokeAllSessions()
 
-> **revokeAllSessions**(`userId`, `reason?`): `Effect`{`<`}`void`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+> **revokeAllSessions**(`userId`, `reason?`): `Effect`&lt;`void`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/services/auth.service.ts:800](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/auth.service.ts#L800)
 
@@ -548,7 +548,7 @@ Optional reason for revocation
 
 #### Returns
 
-`Effect`{`<`}`void`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
+`Effect`&lt;`void`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 An Effect that succeeds when all sessions are deleted from Redis
 
@@ -556,7 +556,7 @@ An Effect that succeeds when all sessions are deleted from Redis
 
 ### verifyPassword()
 
-> **verifyPassword**(`password`, `hash`): `Promise`{`<`}`boolean`{`>`}
+> **verifyPassword**(`password`, `hash`): `Promise`&lt;`boolean`&gt;
 
 Defined in: [src/services/auth.service.ts:269](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/auth.service.ts#L269)
 
@@ -578,7 +578,7 @@ The stored password hash
 
 #### Returns
 
-`Promise`{`<`}`boolean`{`>`}
+`Promise`&lt;`boolean`&gt;
 
 A promise that resolves to true if the password matches, false otherwise
 
@@ -586,7 +586,7 @@ A promise that resolves to true if the password matches, false otherwise
 
 ### verifyToken()
 
-> **verifyToken**(`token`, `expectedType?`): `Promise`{`<`}[`JwtPayload`](#jwtpayload){`>`}
+> **verifyToken**(`token`, `expectedType?`): `Promise`&lt;[`JwtPayload`](#jwtpayload)&gt;
 
 Defined in: [src/services/auth.service.ts:202](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/auth.service.ts#L202)
 
@@ -606,7 +606,7 @@ The JWT string to verify
 
 #### Returns
 
-`Promise`{`<`}[`JwtPayload`](#jwtpayload){`>`}
+`Promise`&lt;[`JwtPayload`](#jwtpayload)&gt;
 
 The decoded payload as a JwtPayload object
 

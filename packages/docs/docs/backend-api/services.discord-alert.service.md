@@ -14,7 +14,7 @@ Defined in: [src/services/discord-alert.service.ts:6](https://github.com/ifrspro
 
 ##### context?
 
-> `optional` **context**: `Record`{`<`}`string`, `unknown`{`>`}
+> `optional` **context**: `Record`&lt;`string`, `unknown`&gt;
 
 Defined in: [src/services/discord-alert.service.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/discord-alert.service.ts#L14)
 
@@ -44,7 +44,7 @@ Defined in: [src/services/discord-alert.service.ts:8](https://github.com/ifrspro
 
 ##### source
 
-> **source**: `"backend"` {`|`} `"frontend"` {`|`} `"worker"` {`|`} `"system"`
+> **source**: `"backend"` &#124; `"frontend"` &#124; `"worker"` &#124; `"system"`
 
 Defined in: [src/services/discord-alert.service.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/discord-alert.service.ts#L7)
 
@@ -64,7 +64,7 @@ Defined in: [src/services/discord-alert.service.ts:13](https://github.com/ifrspr
 
 ### AlertSeverity
 
-> **AlertSeverity** = `"info"` {`|`} `"warn"` {`|`} `"error"` {`|`} `"critical"`
+> **AlertSeverity** = `"info"` &#124; `"warn"` &#124; `"error"` &#124; `"critical"`
 
 Defined in: [src/services/discord-alert.service.ts:4](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/discord-alert.service.ts#L4)
 
@@ -72,7 +72,7 @@ Defined in: [src/services/discord-alert.service.ts:4](https://github.com/ifrspro
 
 ### sendDiscordAlert()
 
-> **sendDiscordAlert**(`payload`): `Promise`{`<`}`boolean`{`>`}
+> **sendDiscordAlert**(`payload`): `Promise`&lt;`boolean`&gt;
 
 Defined in: [src/services/discord-alert.service.ts:71](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/discord-alert.service.ts#L71)
 
@@ -84,4 +84,4 @@ Defined in: [src/services/discord-alert.service.ts:71](https://github.com/ifrspr
 
 #### Returns
 
-`Promise`{`<`}`boolean`{`>`}
+`Promise`&lt;`boolean`&gt;

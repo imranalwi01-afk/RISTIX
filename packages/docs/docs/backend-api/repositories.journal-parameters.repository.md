@@ -16,7 +16,7 @@ Defined in: [src/repositories/journal-parameters.repository.ts:7](https://github
 
 ##### create()
 
-> **create**: (`data`) => `Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` {`|`} `null`; `dbcr`: `string` {`|`} `null`; `glCode`: `string` {`|`} `null`; `glDesc`: `string` {`|`} `null`; `glGroup`: `string` {`|`} `null`; `glNumber`: `string` {`|`} `null`; `glType`: `string` {`|`} `null`; `pkid`: `number`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **create**: (`data`) => `Effect`&lt;&#123; `activeFlag`: `boolean` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` &#124; `null`; `dbcr`: `string` &#124; `null`; `glCode`: `string` &#124; `null`; `glDesc`: `string` &#124; `null`; `glGroup`: `string` &#124; `null`; `glNumber`: `string` &#124; `null`; `glType`: `string` &#124; `null`; `pkid`: `number`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Create a new journal parameter.
 
@@ -28,7 +28,7 @@ The journal parameter data
 
 ###### activeFlag?
 
-`boolean` {`|`} `null`
+`boolean` &#124; `null`
 
 ###### createdby
 
@@ -44,31 +44,31 @@ The journal parameter data
 
 ###### currency?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### dbcr?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### glCode?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### glDesc?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### glGroup?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### glNumber?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### glType?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### pkid?
 
@@ -76,25 +76,25 @@ The journal parameter data
 
 ###### updatedby?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### updateddate?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### updatedhost?
 
-`string` {`|`} `null`
+`string` &#124; `null`
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` {`|`} `null`; `dbcr`: `string` {`|`} `null`; `glCode`: `string` {`|`} `null`; `glDesc`: `string` {`|`} `null`; `glGroup`: `string` {`|`} `null`; `glNumber`: `string` {`|`} `null`; `glType`: `string` {`|`} `null`; `pkid`: `number`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;&#123; `activeFlag`: `boolean` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` &#124; `null`; `dbcr`: `string` &#124; `null`; `glCode`: `string` &#124; `null`; `glDesc`: `string` &#124; `null`; `glGroup`: `string` &#124; `null`; `glNumber`: `string` &#124; `null`; `glType`: `string` &#124; `null`; `pkid`: `number`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the created journal parameter
 
 ##### delete()
 
-> **delete**: (`id`) => `Effect`{`<`}`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **delete**: (`id`) => `Effect`&lt;`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Delete a journal parameter.
 
@@ -108,25 +108,25 @@ The journal parameter ID
 
 ###### Returns
 
-`Effect`{`<`}`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to true if deleted, false otherwise
 
 ##### findAll()
 
-> **findAll**: () => `Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **findAll**: () => `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Find all journal parameters.
 
 ###### Returns
 
-`Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to an array of journal parameters
 
 ##### findById()
 
-> **findById**: (`id`) => `Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` {`|`} `null`; `dbcr`: `string` {`|`} `null`; `glCode`: `string` {`|`} `null`; `glDesc`: `string` {`|`} `null`; `glGroup`: `string` {`|`} `null`; `glNumber`: `string` {`|`} `null`; `glType`: `string` {`|`} `null`; `pkid`: `number`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **findById**: (`id`) => `Effect`&lt;&#123; `activeFlag`: `boolean` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` &#124; `null`; `dbcr`: `string` &#124; `null`; `glCode`: `string` &#124; `null`; `glDesc`: `string` &#124; `null`; `glGroup`: `string` &#124; `null`; `glNumber`: `string` &#124; `null`; `glType`: `string` &#124; `null`; `pkid`: `number`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Find a journal parameter by ID.
 
@@ -140,13 +140,13 @@ The journal parameter ID
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` {`|`} `null`; `dbcr`: `string` {`|`} `null`; `glCode`: `string` {`|`} `null`; `glDesc`: `string` {`|`} `null`; `glGroup`: `string` {`|`} `null`; `glNumber`: `string` {`|`} `null`; `glType`: `string` {`|`} `null`; `pkid`: `number`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;&#123; `activeFlag`: `boolean` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` &#124; `null`; `dbcr`: `string` &#124; `null`; `glCode`: `string` &#124; `null`; `glDesc`: `string` &#124; `null`; `glGroup`: `string` &#124; `null`; `glNumber`: `string` &#124; `null`; `glType`: `string` &#124; `null`; `pkid`: `number`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the journal parameter or null
 
 ##### update()
 
-> **update**: (`id`, `data`) => `Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` {`|`} `null`; `dbcr`: `string` {`|`} `null`; `glCode`: `string` {`|`} `null`; `glDesc`: `string` {`|`} `null`; `glGroup`: `string` {`|`} `null`; `glNumber`: `string` {`|`} `null`; `glType`: `string` {`|`} `null`; `pkid`: `number`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **update**: (`id`, `data`) => `Effect`&lt;&#123; `activeFlag`: `boolean` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` &#124; `null`; `dbcr`: `string` &#124; `null`; `glCode`: `string` &#124; `null`; `glDesc`: `string` &#124; `null`; `glGroup`: `string` &#124; `null`; `glNumber`: `string` &#124; `null`; `glType`: `string` &#124; `null`; `pkid`: `number`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Update an existing journal parameter.
 
@@ -160,12 +160,12 @@ The journal parameter ID
 
 ###### data
 
-`Partial`{`<`}*typeof* `frs9ParamJournal.$inferInsert`{`>`}
+`Partial`&lt;*typeof* `frs9ParamJournal.$inferInsert`&gt;
 
 The data to update
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` {`|`} `null`; `dbcr`: `string` {`|`} `null`; `glCode`: `string` {`|`} `null`; `glDesc`: `string` {`|`} `null`; `glGroup`: `string` {`|`} `null`; `glNumber`: `string` {`|`} `null`; `glType`: `string` {`|`} `null`; `pkid`: `number`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;&#123; `activeFlag`: `boolean` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` &#124; `null`; `dbcr`: `string` &#124; `null`; `glCode`: `string` &#124; `null`; `glDesc`: `string` &#124; `null`; `glGroup`: `string` &#124; `null`; `glNumber`: `string` &#124; `null`; `glType`: `string` &#124; `null`; `pkid`: `number`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the updated journal parameter or null

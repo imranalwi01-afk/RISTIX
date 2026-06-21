@@ -22,7 +22,7 @@ Defined in: [src/services/permission-approval.service.ts:31](https://github.com/
 
 ###### db
 
-`PostgresJsDatabase`{`<`}[`db/schema`](db.schema.md){`>`}
+`PostgresJsDatabase`&lt;[`db/schema`](db.schema.md)&gt;
 
 ###### Returns
 
@@ -54,7 +54,7 @@ Check if user can approve based on their role hierarchy level
 
 ##### deletePolicy()
 
-> **deletePolicy**(`id`): `Effect`{`<`}`void`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **deletePolicy**(`id`): `Effect`&lt;`void`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Defined in: [src/services/permission-approval.service.ts:214](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/permission-approval.service.ts#L214)
 
@@ -68,11 +68,11 @@ Delete approval policy
 
 ###### Returns
 
-`Effect`{`<`}`void`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;`void`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 ##### getApprovalRequirement()
 
-> **getApprovalRequirement**(`tenantId`, `permissionId`): `Effect`{`<`}[`ApprovalRequirement`](#approvalrequirement), [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **getApprovalRequirement**(`tenantId`, `permissionId`): `Effect`&lt;[`ApprovalRequirement`](#approvalrequirement), [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Defined in: [src/services/permission-approval.service.ts:38](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/permission-approval.service.ts#L38)
 
@@ -90,11 +90,11 @@ Get approval requirements for a specific permission
 
 ###### Returns
 
-`Effect`{`<`}[`ApprovalRequirement`](#approvalrequirement), [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;[`ApprovalRequirement`](#approvalrequirement), [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 ##### getBulkApprovalRequirements()
 
-> **getBulkApprovalRequirements**(`tenantId`, `permissionIds`): `Effect`{`<`}`Map`{`<`}`string`, [`ApprovalRequirement`](#approvalrequirement){`>`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **getBulkApprovalRequirements**(`tenantId`, `permissionIds`): `Effect`&lt;`Map`&lt;`string`, [`ApprovalRequirement`](#approvalrequirement)&gt;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Defined in: [src/services/permission-approval.service.ts:159](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/permission-approval.service.ts#L159)
 
@@ -112,11 +112,11 @@ Bulk get approval requirements for multiple permissions
 
 ###### Returns
 
-`Effect`{`<`}`Map`{`<`}`string`, [`ApprovalRequirement`](#approvalrequirement){`>`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;`Map`&lt;`string`, [`ApprovalRequirement`](#approvalrequirement)&gt;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 ##### getEligibleApproverLevel()
 
-> **getEligibleApproverLevel**(`tenantId`, `permissionId`): `Effect`{`<`}`number` {`|`} `null`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **getEligibleApproverLevel**(`tenantId`, `permissionId`): `Effect`&lt;`number` &#124; `null`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Defined in: [src/services/permission-approval.service.ts:124](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/permission-approval.service.ts#L124)
 
@@ -135,11 +135,11 @@ Returns the minimum hierarchy level needed
 
 ###### Returns
 
-`Effect`{`<`}`number` {`|`} `null`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;`number` &#124; `null`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 ##### getPermissionsRequiringApproval()
 
-> **getPermissionsRequiringApproval**(`tenantId`): `Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **getPermissionsRequiringApproval**(`tenantId`): `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Defined in: [src/services/permission-approval.service.ts:73](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/permission-approval.service.ts#L73)
 
@@ -153,11 +153,11 @@ Get all permissions requiring approval for a tenant
 
 ###### Returns
 
-`Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 ##### requiresApproval()
 
-> **requiresApproval**(`tenantId`, `permissionId`): `Effect`{`<`}`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **requiresApproval**(`tenantId`, `permissionId`): `Effect`&lt;`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Defined in: [src/services/permission-approval.service.ts:59](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/permission-approval.service.ts#L59)
 
@@ -175,11 +175,11 @@ Check if a permission requires approval
 
 ###### Returns
 
-`Effect`{`<`}`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 ##### upsertPolicy()
 
-> **upsertPolicy**(`tenantId`, `permissionId`, `data`): `Effect`{`<`}{`{`} `createdAt`: `Date`; `description`: `string` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `matrixId`: `string` {`|`} `null`; `minHierarchyLevel`: `number` {`|`} `null`; `permissionId`: `string`; `requiredApprovers`: `number`; `requiresApproval`: `boolean`; `tenantId`: `string`; `updatedAt`: `Date`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **upsertPolicy**(`tenantId`, `permissionId`, `data`): `Effect`&lt;&#123; `createdAt`: `Date`; `description`: `string` &#124; `null`; `id`: `string`; `isActive`: `boolean`; `matrixId`: `string` &#124; `null`; `minHierarchyLevel`: `number` &#124; `null`; `permissionId`: `string`; `requiredApprovers`: `number`; `requiresApproval`: `boolean`; `tenantId`: `string`; `updatedAt`: `Date`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Defined in: [src/services/permission-approval.service.ts:87](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/permission-approval.service.ts#L87)
 
@@ -203,7 +203,7 @@ Create or update an approval policy
 
 ###### minHierarchyLevel?
 
-`number` {`|`} `null`
+`number` &#124; `null`
 
 ###### requiredApprovers?
 
@@ -215,11 +215,11 @@ Create or update an approval policy
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `createdAt`: `Date`; `description`: `string` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `matrixId`: `string` {`|`} `null`; `minHierarchyLevel`: `number` {`|`} `null`; `permissionId`: `string`; `requiredApprovers`: `number`; `requiresApproval`: `boolean`; `tenantId`: `string`; `updatedAt`: `Date`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;&#123; `createdAt`: `Date`; `description`: `string` &#124; `null`; `id`: `string`; `isActive`: `boolean`; `matrixId`: `string` &#124; `null`; `minHierarchyLevel`: `number` &#124; `null`; `permissionId`: `string`; `requiredApprovers`: `number`; `requiresApproval`: `boolean`; `tenantId`: `string`; `updatedAt`: `Date`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 ##### validateApprovalRequest()
 
-> **validateApprovalRequest**(`tenantId`, `permissionId`): `Effect`{`<`}{`{`} `needsApproval`: `boolean`; `requirement`: `null`; {`}`} {`|`} {`{`} `needsApproval`: `boolean`; `requirement`: [`ApprovalRequirement`](#approvalrequirement); {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+> **validateApprovalRequest**(`tenantId`, `permissionId`): `Effect`&lt;&#123; `needsApproval`: `boolean`; `requirement`: `null`; &#125; &#124; &#123; `needsApproval`: `boolean`; `requirement`: [`ApprovalRequirement`](#approvalrequirement); &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Defined in: [src/services/permission-approval.service.ts:139](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/permission-approval.service.ts#L139)
 
@@ -238,7 +238,7 @@ Checks if the permission requires approval and returns requirements
 
 ###### Returns
 
-`Effect`{`<`}{`{`} `needsApproval`: `boolean`; `requirement`: `null`; {`}`} {`|`} {`{`} `needsApproval`: `boolean`; `requirement`: [`ApprovalRequirement`](#approvalrequirement); {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
+`Effect`&lt;&#123; `needsApproval`: `boolean`; `requirement`: `null`; &#125; &#124; &#123; `needsApproval`: `boolean`; `requirement`: [`ApprovalRequirement`](#approvalrequirement); &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 ## Interfaces
 
@@ -256,7 +256,7 @@ Defined in: [src/services/permission-approval.service.ts:15](https://github.com/
 
 ##### minHierarchyLevel
 
-> **minHierarchyLevel**: `number` {`|`} `null`
+> **minHierarchyLevel**: `number` &#124; `null`
 
 Defined in: [src/services/permission-approval.service.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/permission-approval.service.ts#L13)
 
@@ -306,7 +306,7 @@ Defined in: [src/services/permission-approval.service.ts:19](https://github.com/
 
 ##### requiredApprovalLevel
 
-> **requiredApprovalLevel**: `number` {`|`} `null`
+> **requiredApprovalLevel**: `number` &#124; `null`
 
 Defined in: [src/services/permission-approval.service.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/permission-approval.service.ts#L24)
 
