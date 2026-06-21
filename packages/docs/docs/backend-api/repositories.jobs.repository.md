@@ -16,7 +16,7 @@ Defined in: [src/repositories/jobs.repository.ts:14](https://github.com/ifrspro/
 
 ##### createDefinition()
 
-> **createDefinition**(`data`): `Promise`\<\{ `approvalMatrixId`: `string` \| `null`; `autoApproveConditions`: `unknown`; `createdAt`: `Date` \| `null`; `createdBy`: `string` \| `null`; `cronExpression`: `string` \| `null`; `defaultParameters`: `unknown`; `description`: `string` \| `null`; `id`: `string`; `isEnabled`: `boolean` \| `null`; `jobType`: `string`; `lastRunStatus`: `string` \| `null`; `lastRunTime`: `Date` \| `null`; `maxRetries`: `number` \| `null`; `name`: `string`; `nextRunTime`: `Date` \| `null`; `priority`: `string` \| `null`; `requiresApproval`: `boolean` \| `null`; `tenantId`: `string`; `timeout`: `number` \| `null`; `updatedAt`: `Date` \| `null`; `updatedBy`: `string` \| `null`; \}\>
+> **createDefinition**(`data`): `Promise`{`<`}{`{`} `approvalMatrixId`: `string` {`|`} `null`; `autoApproveConditions`: `unknown`; `createdAt`: `Date` {`|`} `null`; `createdBy`: `string` {`|`} `null`; `cronExpression`: `string` {`|`} `null`; `defaultParameters`: `unknown`; `description`: `string` {`|`} `null`; `id`: `string`; `isEnabled`: `boolean` {`|`} `null`; `jobType`: `string`; `lastRunStatus`: `string` {`|`} `null`; `lastRunTime`: `Date` {`|`} `null`; `maxRetries`: `number` {`|`} `null`; `name`: `string`; `nextRunTime`: `Date` {`|`} `null`; `priority`: `string` {`|`} `null`; `requiresApproval`: `boolean` {`|`} `null`; `tenantId`: `string`; `timeout`: `number` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `updatedBy`: `string` {`|`} `null`; {`}`}{`>`}
 
 ###### Parameters
 
@@ -26,11 +26,11 @@ Defined in: [src/repositories/jobs.repository.ts:14](https://github.com/ifrspro/
 
 ###### Returns
 
-`Promise`\<\{ `approvalMatrixId`: `string` \| `null`; `autoApproveConditions`: `unknown`; `createdAt`: `Date` \| `null`; `createdBy`: `string` \| `null`; `cronExpression`: `string` \| `null`; `defaultParameters`: `unknown`; `description`: `string` \| `null`; `id`: `string`; `isEnabled`: `boolean` \| `null`; `jobType`: `string`; `lastRunStatus`: `string` \| `null`; `lastRunTime`: `Date` \| `null`; `maxRetries`: `number` \| `null`; `name`: `string`; `nextRunTime`: `Date` \| `null`; `priority`: `string` \| `null`; `requiresApproval`: `boolean` \| `null`; `tenantId`: `string`; `timeout`: `number` \| `null`; `updatedAt`: `Date` \| `null`; `updatedBy`: `string` \| `null`; \}\>
+`Promise`{`<`}{`{`} `approvalMatrixId`: `string` {`|`} `null`; `autoApproveConditions`: `unknown`; `createdAt`: `Date` {`|`} `null`; `createdBy`: `string` {`|`} `null`; `cronExpression`: `string` {`|`} `null`; `defaultParameters`: `unknown`; `description`: `string` {`|`} `null`; `id`: `string`; `isEnabled`: `boolean` {`|`} `null`; `jobType`: `string`; `lastRunStatus`: `string` {`|`} `null`; `lastRunTime`: `Date` {`|`} `null`; `maxRetries`: `number` {`|`} `null`; `name`: `string`; `nextRunTime`: `Date` {`|`} `null`; `priority`: `string` {`|`} `null`; `requiresApproval`: `boolean` {`|`} `null`; `tenantId`: `string`; `timeout`: `number` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `updatedBy`: `string` {`|`} `null`; {`}`}{`>`}
 
 ##### createExecution()
 
-> **createExecution**(`data`): `Promise`\<\{ `approvalRequestId`: `string` \| `null`; `approvalStatus`: `string` \| `null`; `approvedAt`: `Date` \| `null`; `approvedBy`: `string` \| `null`; `duration`: `number` \| `null`; `endTime`: `Date` \| `null`; `error`: `string` \| `null`; `id`: `string`; `jobDefinitionId`: `string` \| `null`; `jobName`: `string`; `jobType`: `string`; `parameters`: `unknown`; `progress`: `number` \| `null`; `result`: `unknown`; `startTime`: `Date` \| `null`; `status`: `string`; `tags`: `unknown`; `tenantId`: `string`; `triggeredBy`: `string` \| `null`; `workerId`: `string` \| `null`; \}\>
+> **createExecution**(`data`): `Promise`{`<`}{`{`} `approvalRequestId`: `string` {`|`} `null`; `approvalStatus`: `string` {`|`} `null`; `approvedAt`: `Date` {`|`} `null`; `approvedBy`: `string` {`|`} `null`; `duration`: `number` {`|`} `null`; `endTime`: `Date` {`|`} `null`; `error`: `string` {`|`} `null`; `id`: `string`; `jobDefinitionId`: `string` {`|`} `null`; `jobName`: `string`; `jobType`: `string`; `parameters`: `unknown`; `progress`: `number` {`|`} `null`; `result`: `unknown`; `startTime`: `Date` {`|`} `null`; `status`: `string`; `tags`: `unknown`; `tenantId`: `string`; `triggeredBy`: `string` {`|`} `null`; `workerId`: `string` {`|`} `null`; {`}`}{`>`}
 
 ###### Parameters
 
@@ -40,11 +40,11 @@ Defined in: [src/repositories/jobs.repository.ts:14](https://github.com/ifrspro/
 
 ###### Returns
 
-`Promise`\<\{ `approvalRequestId`: `string` \| `null`; `approvalStatus`: `string` \| `null`; `approvedAt`: `Date` \| `null`; `approvedBy`: `string` \| `null`; `duration`: `number` \| `null`; `endTime`: `Date` \| `null`; `error`: `string` \| `null`; `id`: `string`; `jobDefinitionId`: `string` \| `null`; `jobName`: `string`; `jobType`: `string`; `parameters`: `unknown`; `progress`: `number` \| `null`; `result`: `unknown`; `startTime`: `Date` \| `null`; `status`: `string`; `tags`: `unknown`; `tenantId`: `string`; `triggeredBy`: `string` \| `null`; `workerId`: `string` \| `null`; \}\>
+`Promise`{`<`}{`{`} `approvalRequestId`: `string` {`|`} `null`; `approvalStatus`: `string` {`|`} `null`; `approvedAt`: `Date` {`|`} `null`; `approvedBy`: `string` {`|`} `null`; `duration`: `number` {`|`} `null`; `endTime`: `Date` {`|`} `null`; `error`: `string` {`|`} `null`; `id`: `string`; `jobDefinitionId`: `string` {`|`} `null`; `jobName`: `string`; `jobType`: `string`; `parameters`: `unknown`; `progress`: `number` {`|`} `null`; `result`: `unknown`; `startTime`: `Date` {`|`} `null`; `status`: `string`; `tags`: `unknown`; `tenantId`: `string`; `triggeredBy`: `string` {`|`} `null`; `workerId`: `string` {`|`} `null`; {`}`}{`>`}
 
 ##### findAllDefinitions()
 
-> **findAllDefinitions**(`tenantId`): `Promise`\<`object`[]\>
+> **findAllDefinitions**(`tenantId`): `Promise`{`<`}`object`[]{`>`}
 
 ###### Parameters
 
@@ -54,11 +54,11 @@ Defined in: [src/repositories/jobs.repository.ts:14](https://github.com/ifrspro/
 
 ###### Returns
 
-`Promise`\<`object`[]\>
+`Promise`{`<`}`object`[]{`>`}
 
 ##### findDefinitionById()
 
-> **findDefinitionById**(`id`, `tenantId?`): `Promise`\<\{ `approvalMatrixId`: `string` \| `null`; `autoApproveConditions`: `unknown`; `createdAt`: `Date` \| `null`; `createdBy`: `string` \| `null`; `cronExpression`: `string` \| `null`; `defaultParameters`: `unknown`; `description`: `string` \| `null`; `id`: `string`; `isEnabled`: `boolean` \| `null`; `jobType`: `string`; `lastRunStatus`: `string` \| `null`; `lastRunTime`: `Date` \| `null`; `maxRetries`: `number` \| `null`; `name`: `string`; `nextRunTime`: `Date` \| `null`; `priority`: `string` \| `null`; `requiresApproval`: `boolean` \| `null`; `tenantId`: `string`; `timeout`: `number` \| `null`; `updatedAt`: `Date` \| `null`; `updatedBy`: `string` \| `null`; \}\>
+> **findDefinitionById**(`id`, `tenantId?`): `Promise`{`<`}{`{`} `approvalMatrixId`: `string` {`|`} `null`; `autoApproveConditions`: `unknown`; `createdAt`: `Date` {`|`} `null`; `createdBy`: `string` {`|`} `null`; `cronExpression`: `string` {`|`} `null`; `defaultParameters`: `unknown`; `description`: `string` {`|`} `null`; `id`: `string`; `isEnabled`: `boolean` {`|`} `null`; `jobType`: `string`; `lastRunStatus`: `string` {`|`} `null`; `lastRunTime`: `Date` {`|`} `null`; `maxRetries`: `number` {`|`} `null`; `name`: `string`; `nextRunTime`: `Date` {`|`} `null`; `priority`: `string` {`|`} `null`; `requiresApproval`: `boolean` {`|`} `null`; `tenantId`: `string`; `timeout`: `number` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `updatedBy`: `string` {`|`} `null`; {`}`}{`>`}
 
 ###### Parameters
 
@@ -72,11 +72,11 @@ Defined in: [src/repositories/jobs.repository.ts:14](https://github.com/ifrspro/
 
 ###### Returns
 
-`Promise`\<\{ `approvalMatrixId`: `string` \| `null`; `autoApproveConditions`: `unknown`; `createdAt`: `Date` \| `null`; `createdBy`: `string` \| `null`; `cronExpression`: `string` \| `null`; `defaultParameters`: `unknown`; `description`: `string` \| `null`; `id`: `string`; `isEnabled`: `boolean` \| `null`; `jobType`: `string`; `lastRunStatus`: `string` \| `null`; `lastRunTime`: `Date` \| `null`; `maxRetries`: `number` \| `null`; `name`: `string`; `nextRunTime`: `Date` \| `null`; `priority`: `string` \| `null`; `requiresApproval`: `boolean` \| `null`; `tenantId`: `string`; `timeout`: `number` \| `null`; `updatedAt`: `Date` \| `null`; `updatedBy`: `string` \| `null`; \}\>
+`Promise`{`<`}{`{`} `approvalMatrixId`: `string` {`|`} `null`; `autoApproveConditions`: `unknown`; `createdAt`: `Date` {`|`} `null`; `createdBy`: `string` {`|`} `null`; `cronExpression`: `string` {`|`} `null`; `defaultParameters`: `unknown`; `description`: `string` {`|`} `null`; `id`: `string`; `isEnabled`: `boolean` {`|`} `null`; `jobType`: `string`; `lastRunStatus`: `string` {`|`} `null`; `lastRunTime`: `Date` {`|`} `null`; `maxRetries`: `number` {`|`} `null`; `name`: `string`; `nextRunTime`: `Date` {`|`} `null`; `priority`: `string` {`|`} `null`; `requiresApproval`: `boolean` {`|`} `null`; `tenantId`: `string`; `timeout`: `number` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `updatedBy`: `string` {`|`} `null`; {`}`}{`>`}
 
 ##### findExecutionById()
 
-> **findExecutionById**(`id`, `tenantId?`): `Promise`\<\{ `approvalRequestId`: `string` \| `null`; `approvalStatus`: `string` \| `null`; `approvedAt`: `Date` \| `null`; `approvedBy`: `string` \| `null`; `definition`: `never`; `duration`: `number` \| `null`; `endTime`: `Date` \| `null`; `error`: `string` \| `null`; `id`: `string`; `jobDefinitionId`: `string` \| `null`; `jobName`: `string`; `jobType`: `string`; `parameters`: `unknown`; `progress`: `number` \| `null`; `result`: `unknown`; `startTime`: `Date` \| `null`; `status`: `string`; `tags`: `unknown`; `tenantId`: `string`; `triggeredBy`: `string` \| `null`; `workerId`: `string` \| `null`; \} \| `undefined`\>
+> **findExecutionById**(`id`, `tenantId?`): `Promise`{`<`}{`{`} `approvalRequestId`: `string` {`|`} `null`; `approvalStatus`: `string` {`|`} `null`; `approvedAt`: `Date` {`|`} `null`; `approvedBy`: `string` {`|`} `null`; `definition`: `never`; `duration`: `number` {`|`} `null`; `endTime`: `Date` {`|`} `null`; `error`: `string` {`|`} `null`; `id`: `string`; `jobDefinitionId`: `string` {`|`} `null`; `jobName`: `string`; `jobType`: `string`; `parameters`: `unknown`; `progress`: `number` {`|`} `null`; `result`: `unknown`; `startTime`: `Date` {`|`} `null`; `status`: `string`; `tags`: `unknown`; `tenantId`: `string`; `triggeredBy`: `string` {`|`} `null`; `workerId`: `string` {`|`} `null`; {`}`} {`|`} `undefined`{`>`}
 
 ###### Parameters
 
@@ -90,11 +90,11 @@ Defined in: [src/repositories/jobs.repository.ts:14](https://github.com/ifrspro/
 
 ###### Returns
 
-`Promise`\<\{ `approvalRequestId`: `string` \| `null`; `approvalStatus`: `string` \| `null`; `approvedAt`: `Date` \| `null`; `approvedBy`: `string` \| `null`; `definition`: `never`; `duration`: `number` \| `null`; `endTime`: `Date` \| `null`; `error`: `string` \| `null`; `id`: `string`; `jobDefinitionId`: `string` \| `null`; `jobName`: `string`; `jobType`: `string`; `parameters`: `unknown`; `progress`: `number` \| `null`; `result`: `unknown`; `startTime`: `Date` \| `null`; `status`: `string`; `tags`: `unknown`; `tenantId`: `string`; `triggeredBy`: `string` \| `null`; `workerId`: `string` \| `null`; \} \| `undefined`\>
+`Promise`{`<`}{`{`} `approvalRequestId`: `string` {`|`} `null`; `approvalStatus`: `string` {`|`} `null`; `approvedAt`: `Date` {`|`} `null`; `approvedBy`: `string` {`|`} `null`; `definition`: `never`; `duration`: `number` {`|`} `null`; `endTime`: `Date` {`|`} `null`; `error`: `string` {`|`} `null`; `id`: `string`; `jobDefinitionId`: `string` {`|`} `null`; `jobName`: `string`; `jobType`: `string`; `parameters`: `unknown`; `progress`: `number` {`|`} `null`; `result`: `unknown`; `startTime`: `Date` {`|`} `null`; `status`: `string`; `tags`: `unknown`; `tenantId`: `string`; `triggeredBy`: `string` {`|`} `null`; `workerId`: `string` {`|`} `null`; {`}`} {`|`} `undefined`{`>`}
 
 ##### findExecutions()
 
-> **findExecutions**(`tenantId`, `limit`): `Promise`\<`RowList`\<`Row`[]\>\>
+> **findExecutions**(`tenantId`, `limit`): `Promise`{`<`}`RowList`{`<`}`Row`[]{`>`}{`>`}
 
 ###### Parameters
 
@@ -108,11 +108,11 @@ Defined in: [src/repositories/jobs.repository.ts:14](https://github.com/ifrspro/
 
 ###### Returns
 
-`Promise`\<`RowList`\<`Row`[]\>\>
+`Promise`{`<`}`RowList`{`<`}`Row`[]{`>`}{`>`}
 
 ##### getStats()
 
-> **getStats**(`tenantId`): `Promise`\<\{ `activeJobs`: `number`; `failedToday`: `number`; \}\>
+> **getStats**(`tenantId`): `Promise`{`<`}{`{`} `activeJobs`: `number`; `failedToday`: `number`; {`}`}{`>`}
 
 ###### Parameters
 
@@ -122,11 +122,11 @@ Defined in: [src/repositories/jobs.repository.ts:14](https://github.com/ifrspro/
 
 ###### Returns
 
-`Promise`\<\{ `activeJobs`: `number`; `failedToday`: `number`; \}\>
+`Promise`{`<`}{`{`} `activeJobs`: `number`; `failedToday`: `number`; {`}`}{`>`}
 
 ##### updateDefinition()
 
-> **updateDefinition**(`id`, `data`, `tenantId?`): `Promise`\<\{ `approvalMatrixId`: `string` \| `null`; `autoApproveConditions`: `unknown`; `createdAt`: `Date` \| `null`; `createdBy`: `string` \| `null`; `cronExpression`: `string` \| `null`; `defaultParameters`: `unknown`; `description`: `string` \| `null`; `id`: `string`; `isEnabled`: `boolean` \| `null`; `jobType`: `string`; `lastRunStatus`: `string` \| `null`; `lastRunTime`: `Date` \| `null`; `maxRetries`: `number` \| `null`; `name`: `string`; `nextRunTime`: `Date` \| `null`; `priority`: `string` \| `null`; `requiresApproval`: `boolean` \| `null`; `tenantId`: `string`; `timeout`: `number` \| `null`; `updatedAt`: `Date` \| `null`; `updatedBy`: `string` \| `null`; \}\>
+> **updateDefinition**(`id`, `data`, `tenantId?`): `Promise`{`<`}{`{`} `approvalMatrixId`: `string` {`|`} `null`; `autoApproveConditions`: `unknown`; `createdAt`: `Date` {`|`} `null`; `createdBy`: `string` {`|`} `null`; `cronExpression`: `string` {`|`} `null`; `defaultParameters`: `unknown`; `description`: `string` {`|`} `null`; `id`: `string`; `isEnabled`: `boolean` {`|`} `null`; `jobType`: `string`; `lastRunStatus`: `string` {`|`} `null`; `lastRunTime`: `Date` {`|`} `null`; `maxRetries`: `number` {`|`} `null`; `name`: `string`; `nextRunTime`: `Date` {`|`} `null`; `priority`: `string` {`|`} `null`; `requiresApproval`: `boolean` {`|`} `null`; `tenantId`: `string`; `timeout`: `number` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `updatedBy`: `string` {`|`} `null`; {`}`}{`>`}
 
 ###### Parameters
 
@@ -144,11 +144,11 @@ Defined in: [src/repositories/jobs.repository.ts:14](https://github.com/ifrspro/
 
 ###### Returns
 
-`Promise`\<\{ `approvalMatrixId`: `string` \| `null`; `autoApproveConditions`: `unknown`; `createdAt`: `Date` \| `null`; `createdBy`: `string` \| `null`; `cronExpression`: `string` \| `null`; `defaultParameters`: `unknown`; `description`: `string` \| `null`; `id`: `string`; `isEnabled`: `boolean` \| `null`; `jobType`: `string`; `lastRunStatus`: `string` \| `null`; `lastRunTime`: `Date` \| `null`; `maxRetries`: `number` \| `null`; `name`: `string`; `nextRunTime`: `Date` \| `null`; `priority`: `string` \| `null`; `requiresApproval`: `boolean` \| `null`; `tenantId`: `string`; `timeout`: `number` \| `null`; `updatedAt`: `Date` \| `null`; `updatedBy`: `string` \| `null`; \}\>
+`Promise`{`<`}{`{`} `approvalMatrixId`: `string` {`|`} `null`; `autoApproveConditions`: `unknown`; `createdAt`: `Date` {`|`} `null`; `createdBy`: `string` {`|`} `null`; `cronExpression`: `string` {`|`} `null`; `defaultParameters`: `unknown`; `description`: `string` {`|`} `null`; `id`: `string`; `isEnabled`: `boolean` {`|`} `null`; `jobType`: `string`; `lastRunStatus`: `string` {`|`} `null`; `lastRunTime`: `Date` {`|`} `null`; `maxRetries`: `number` {`|`} `null`; `name`: `string`; `nextRunTime`: `Date` {`|`} `null`; `priority`: `string` {`|`} `null`; `requiresApproval`: `boolean` {`|`} `null`; `tenantId`: `string`; `timeout`: `number` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `updatedBy`: `string` {`|`} `null`; {`}`}{`>`}
 
 ##### updateExecution()
 
-> **updateExecution**(`id`, `data`, `tenantId?`): `Promise`\<\{ `approvalRequestId`: `string` \| `null`; `approvalStatus`: `string` \| `null`; `approvedAt`: `Date` \| `null`; `approvedBy`: `string` \| `null`; `duration`: `number` \| `null`; `endTime`: `Date` \| `null`; `error`: `string` \| `null`; `id`: `string`; `jobDefinitionId`: `string` \| `null`; `jobName`: `string`; `jobType`: `string`; `parameters`: `unknown`; `progress`: `number` \| `null`; `result`: `unknown`; `startTime`: `Date` \| `null`; `status`: `string`; `tags`: `unknown`; `tenantId`: `string`; `triggeredBy`: `string` \| `null`; `workerId`: `string` \| `null`; \}\>
+> **updateExecution**(`id`, `data`, `tenantId?`): `Promise`{`<`}{`{`} `approvalRequestId`: `string` {`|`} `null`; `approvalStatus`: `string` {`|`} `null`; `approvedAt`: `Date` {`|`} `null`; `approvedBy`: `string` {`|`} `null`; `duration`: `number` {`|`} `null`; `endTime`: `Date` {`|`} `null`; `error`: `string` {`|`} `null`; `id`: `string`; `jobDefinitionId`: `string` {`|`} `null`; `jobName`: `string`; `jobType`: `string`; `parameters`: `unknown`; `progress`: `number` {`|`} `null`; `result`: `unknown`; `startTime`: `Date` {`|`} `null`; `status`: `string`; `tags`: `unknown`; `tenantId`: `string`; `triggeredBy`: `string` {`|`} `null`; `workerId`: `string` {`|`} `null`; {`}`}{`>`}
 
 ###### Parameters
 
@@ -166,4 +166,4 @@ Defined in: [src/repositories/jobs.repository.ts:14](https://github.com/ifrspro/
 
 ###### Returns
 
-`Promise`\<\{ `approvalRequestId`: `string` \| `null`; `approvalStatus`: `string` \| `null`; `approvedAt`: `Date` \| `null`; `approvedBy`: `string` \| `null`; `duration`: `number` \| `null`; `endTime`: `Date` \| `null`; `error`: `string` \| `null`; `id`: `string`; `jobDefinitionId`: `string` \| `null`; `jobName`: `string`; `jobType`: `string`; `parameters`: `unknown`; `progress`: `number` \| `null`; `result`: `unknown`; `startTime`: `Date` \| `null`; `status`: `string`; `tags`: `unknown`; `tenantId`: `string`; `triggeredBy`: `string` \| `null`; `workerId`: `string` \| `null`; \}\>
+`Promise`{`<`}{`{`} `approvalRequestId`: `string` {`|`} `null`; `approvalStatus`: `string` {`|`} `null`; `approvedAt`: `Date` {`|`} `null`; `approvedBy`: `string` {`|`} `null`; `duration`: `number` {`|`} `null`; `endTime`: `Date` {`|`} `null`; `error`: `string` {`|`} `null`; `id`: `string`; `jobDefinitionId`: `string` {`|`} `null`; `jobName`: `string`; `jobType`: `string`; `parameters`: `unknown`; `progress`: `number` {`|`} `null`; `result`: `unknown`; `startTime`: `Date` {`|`} `null`; `status`: `string`; `tags`: `unknown`; `tenantId`: `string`; `triggeredBy`: `string` {`|`} `null`; `workerId`: `string` {`|`} `null`; {`}`}{`>`}

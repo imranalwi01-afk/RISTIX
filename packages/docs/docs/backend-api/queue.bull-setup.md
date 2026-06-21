@@ -14,7 +14,7 @@ Defined in: [src/queue/bull-setup.ts:61](https://github.com/ifrspro/ifrs9-iaf/bl
 
 ##### action
 
-> **action**: `"APPROVED"` \| `"REJECTED"` \| `"REQUESTED_CHANGES"`
+> **action**: `"APPROVED"` {`|`} `"REJECTED"` {`|`} `"REQUESTED_CHANGES"`
 
 Defined in: [src/queue/bull-setup.ts:66](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/queue/bull-setup.ts#L66)
 
@@ -44,7 +44,7 @@ Defined in: [src/queue/bull-setup.ts:68](https://github.com/ifrspro/ifrs9-iaf/bl
 
 ##### template
 
-> **template**: `"approval_pending"` \| `"approval_approved"` \| `"approval_rejected"`
+> **template**: `"approval_pending"` {`|`} `"approval_approved"` {`|`} `"approval_rejected"`
 
 Defined in: [src/queue/bull-setup.ts:70](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/queue/bull-setup.ts#L70)
 
@@ -76,7 +76,7 @@ Defined in: [src/queue/bull-setup.ts:82](https://github.com/ifrspro/ifrs9-iaf/bl
 
 ##### checkType
 
-> **checkType**: `"IFRS9"` \| `"AML"` \| `"SANCTIONS"` \| `"EXPOSURE_LIMIT"`
+> **checkType**: `"IFRS9"` {`|`} `"AML"` {`|`} `"SANCTIONS"` {`|`} `"EXPOSURE_LIMIT"`
 
 Defined in: [src/queue/bull-setup.ts:86](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/queue/bull-setup.ts#L86)
 
@@ -88,7 +88,7 @@ Defined in: [src/queue/bull-setup.ts:85](https://github.com/ifrspro/ifrs9-iaf/bl
 
 ##### rules?
 
-> `optional` **rules**: `Record`\<`string`, `unknown`\>
+> `optional` **rules**: `Record`{`<`}`string`, `unknown`{`>`}
 
 Defined in: [src/queue/bull-setup.ts:87](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/queue/bull-setup.ts#L87)
 
@@ -114,7 +114,7 @@ Defined in: [src/queue/bull-setup.ts:90](https://github.com/ifrspro/ifrs9-iaf/bl
 
 ##### data
 
-> **data**: `Record`\<`string`, `unknown`\>
+> **data**: `Record`{`<`}`string`, `unknown`{`>`}
 
 Defined in: [src/queue/bull-setup.ts:94](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/queue/bull-setup.ts#L94)
 
@@ -138,7 +138,7 @@ Defined in: [src/queue/bull-setup.ts:93](https://github.com/ifrspro/ifrs9-iaf/bl
 
 ##### originalJobId
 
-> **originalJobId**: `string` \| `number`
+> **originalJobId**: `string` {`|`} `number`
 
 Defined in: [src/queue/bull-setup.ts:92](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/queue/bull-setup.ts#L92)
 
@@ -170,7 +170,7 @@ Defined in: [src/queue/bull-setup.ts:76](https://github.com/ifrspro/ifrs9-iaf/bl
 
 ##### parameters?
 
-> `optional` **parameters**: `Record`\<`string`, `unknown`\>
+> `optional` **parameters**: `Record`{`<`}`string`, `unknown`{`>`}
 
 Defined in: [src/queue/bull-setup.ts:78](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/queue/bull-setup.ts#L78)
 
@@ -196,7 +196,7 @@ Defined in: [src/queue/bull-setup.ts:74](https://github.com/ifrspro/ifrs9-iaf/bl
 
 ### approvalDLQ
 
-> `const` **approvalDLQ**: `Queue`\<`any`, `any`, `string`, `any`, `any`, `string`\>
+> `const` **approvalDLQ**: `Queue`{`<`}`any`, `any`, `string`, `any`, `any`, `string`{`>`}
 
 Defined in: [src/queue/bull-setup.ts:56](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/queue/bull-setup.ts#L56)
 
@@ -204,7 +204,7 @@ Defined in: [src/queue/bull-setup.ts:56](https://github.com/ifrspro/ifrs9-iaf/bl
 
 ### approvalNotificationQueue
 
-> `const` **approvalNotificationQueue**: `Queue`\<`any`, `any`, `string`, `any`, `any`, `string`\>
+> `const` **approvalNotificationQueue**: `Queue`{`<`}`any`, `any`, `string`, `any`, `any`, `string`{`>`}
 
 Defined in: [src/queue/bull-setup.ts:46](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/queue/bull-setup.ts#L46)
 
@@ -212,7 +212,7 @@ Defined in: [src/queue/bull-setup.ts:46](https://github.com/ifrspro/ifrs9-iaf/bl
 
 ### complianceCheckQueue
 
-> `const` **complianceCheckQueue**: `Queue`\<`any`, `any`, `string`, `any`, `any`, `string`\>
+> `const` **complianceCheckQueue**: `Queue`{`<`}`any`, `any`, `string`, `any`, `any`, `string`{`>`}
 
 Defined in: [src/queue/bull-setup.ts:52](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/queue/bull-setup.ts#L52)
 
@@ -220,7 +220,7 @@ Defined in: [src/queue/bull-setup.ts:52](https://github.com/ifrspro/ifrs9-iaf/bl
 
 ### complianceDLQ
 
-> `const` **complianceDLQ**: `Queue`\<`any`, `any`, `string`, `any`, `any`, `string`\>
+> `const` **complianceDLQ**: `Queue`{`<`}`any`, `any`, `string`, `any`, `any`, `string`{`>`}
 
 Defined in: [src/queue/bull-setup.ts:58](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/queue/bull-setup.ts#L58)
 
@@ -228,7 +228,7 @@ Defined in: [src/queue/bull-setup.ts:58](https://github.com/ifrspro/ifrs9-iaf/bl
 
 ### eclCalculationQueue
 
-> `const` **eclCalculationQueue**: `Queue`\<`any`, `any`, `string`, `any`, `any`, `string`\>
+> `const` **eclCalculationQueue**: `Queue`{`<`}`any`, `any`, `string`, `any`, `any`, `string`{`>`}
 
 Defined in: [src/queue/bull-setup.ts:49](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/queue/bull-setup.ts#L49)
 
@@ -236,7 +236,7 @@ Defined in: [src/queue/bull-setup.ts:49](https://github.com/ifrspro/ifrs9-iaf/bl
 
 ### eclDLQ
 
-> `const` **eclDLQ**: `Queue`\<`any`, `any`, `string`, `any`, `any`, `string`\>
+> `const` **eclDLQ**: `Queue`{`<`}`any`, `any`, `string`, `any`, `any`, `string`{`>`}
 
 Defined in: [src/queue/bull-setup.ts:57](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/queue/bull-setup.ts#L57)
 
@@ -244,19 +244,19 @@ Defined in: [src/queue/bull-setup.ts:57](https://github.com/ifrspro/ifrs9-iaf/bl
 
 ### closeQueues()
 
-> **closeQueues**(): `Promise`\<`void`\>
+> **closeQueues**(): `Promise`{`<`}`void`{`>`}
 
 Defined in: [src/queue/bull-setup.ts:106](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/queue/bull-setup.ts#L106)
 
 #### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ***
 
 ### enqueueDeadLetter()
 
-> **enqueueDeadLetter**(`queueName`, `payload`): `Promise`\<`void`\>
+> **enqueueDeadLetter**(`queueName`, `payload`): `Promise`{`<`}`void`{`>`}
 
 Defined in: [src/queue/bull-setup.ts:120](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/queue/bull-setup.ts#L120)
 
@@ -274,13 +274,13 @@ Move a failed job payload to the corresponding dead-letter queue
 
 #### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ***
 
 ### getQueueMetrics()
 
-> **getQueueMetrics**(): `Promise`\<\{ `approval`: \{ `dlq`: `number`; \}; `compliance`: \{ `dlq`: `number`; \}; `ecl`: \{ `dlq`: `number`; \}; \}\>
+> **getQueueMetrics**(): `Promise`{`<`}{`{`} `approval`: {`{`} `dlq`: `number`; {`}`}; `compliance`: {`{`} `dlq`: `number`; {`}`}; `ecl`: {`{`} `dlq`: `number`; {`}`}; {`}`}{`>`}
 
 Defined in: [src/queue/bull-setup.ts:139](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/queue/bull-setup.ts#L139)
 
@@ -288,13 +288,13 @@ Lightweight queue health snapshot (use in /health or dashboards)
 
 #### Returns
 
-`Promise`\<\{ `approval`: \{ `dlq`: `number`; \}; `compliance`: \{ `dlq`: `number`; \}; `ecl`: \{ `dlq`: `number`; \}; \}\>
+`Promise`{`<`}{`{`} `approval`: {`{`} `dlq`: `number`; {`}`}; `compliance`: {`{`} `dlq`: `number`; {`}`}; `ecl`: {`{`} `dlq`: `number`; {`}`}; {`}`}{`>`}
 
 ***
 
 ### queueApprovalNotification()
 
-> **queueApprovalNotification**(`job`): `Promise`\<`string`\>
+> **queueApprovalNotification**(`job`): `Promise`{`<`}`string`{`>`}
 
 Defined in: [src/queue/bull-setup.ts:159](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/queue/bull-setup.ts#L159)
 
@@ -308,13 +308,13 @@ Add job to approval notification queue
 
 #### Returns
 
-`Promise`\<`string`\>
+`Promise`{`<`}`string`{`>`}
 
 ***
 
 ### queueComplianceCheck()
 
-> **queueComplianceCheck**(`job`): `Promise`\<`string`\>
+> **queueComplianceCheck**(`job`): `Promise`{`<`}`string`{`>`}
 
 Defined in: [src/queue/bull-setup.ts:195](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/queue/bull-setup.ts#L195)
 
@@ -328,13 +328,13 @@ Add job to compliance check queue
 
 #### Returns
 
-`Promise`\<`string`\>
+`Promise`{`<`}`string`{`>`}
 
 ***
 
 ### queueECLCalculation()
 
-> **queueECLCalculation**(`job`): `Promise`\<`string`\>
+> **queueECLCalculation**(`job`): `Promise`{`<`}`string`{`>`}
 
 Defined in: [src/queue/bull-setup.ts:178](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/queue/bull-setup.ts#L178)
 
@@ -348,16 +348,16 @@ Add job to ECL calculation queue
 
 #### Returns
 
-`Promise`\<`string`\>
+`Promise`{`<`}`string`{`>`}
 
 ***
 
 ### setupQueues()
 
-> **setupQueues**(): `Promise`\<`void`\>
+> **setupQueues**(): `Promise`{`<`}`void`{`>`}
 
 Defined in: [src/queue/bull-setup.ts:100](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/queue/bull-setup.ts#L100)
 
 #### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}

@@ -14,7 +14,7 @@ Defined in: [src/services/approval.service.ts:74](https://github.com/ifrspro/ifr
 
 ##### department
 
-> **department**: `string` \| `null`
+> **department**: `string` {`|`} `null`
 
 Defined in: [src/services/approval.service.ts:78](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L78)
 
@@ -32,7 +32,7 @@ Defined in: [src/services/approval.service.ts:76](https://github.com/ifrspro/ifr
 
 ##### position
 
-> **position**: `string` \| `null`
+> **position**: `string` {`|`} `null`
 
 Defined in: [src/services/approval.service.ts:79](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L79)
 
@@ -132,7 +132,7 @@ Defined in: [src/services/approval.service.ts:100](https://github.com/ifrspro/if
 
 ##### matrixId
 
-> **matrixId**: `string` \| `null`
+> **matrixId**: `string` {`|`} `null`
 
 Defined in: [src/services/approval.service.ts:97](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L97)
 
@@ -214,13 +214,13 @@ Defined in: [src/services/approval.service.ts:28](https://github.com/ifrspro/ifr
 
 ##### impactLevel?
 
-> `optional` **impactLevel**: `"low"` \| `"medium"` \| `"high"` \| `"critical"`
+> `optional` **impactLevel**: `"low"` {`|`} `"medium"` {`|`} `"high"` {`|`} `"critical"`
 
 Defined in: [src/services/approval.service.ts:34](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L34)
 
 ##### requestData?
 
-> `optional` **requestData**: `Record`\<`string`, `unknown`\>
+> `optional` **requestData**: `Record`{`<`}`string`, `unknown`{`>`}
 
 Defined in: [src/services/approval.service.ts:32](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L32)
 
@@ -252,7 +252,7 @@ Defined in: [src/services/approval.service.ts:38](https://github.com/ifrspro/ifr
 
 ##### action
 
-> **action**: `"approve"` \| `"reject"` \| `"request_info"` \| `"delegate"`
+> **action**: `"approve"` {`|`} `"reject"` {`|`} `"request_info"` {`|`} `"delegate"`
 
 Defined in: [src/services/approval.service.ts:42](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L42)
 
@@ -302,7 +302,7 @@ Defined in: [src/services/approval.service.ts:46](https://github.com/ifrspro/ifr
 
 ### cancelApprovalRequest()
 
-> **cancelApprovalRequest**(`input`): `Effect`\<\{ `completed`: `boolean`; `status`: `string`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror) \| [`BusinessError`](lib.errors.md#businesserror)\>
+> **cancelApprovalRequest**(`input`): `Effect`{`<`}{`{`} `completed`: `boolean`; `status`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror) {`|`} [`BusinessError`](lib.errors.md#businesserror){`>`}
 
 Defined in: [src/services/approval.service.ts:610](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L610)
 
@@ -317,13 +317,13 @@ Requesters can cancel their own pending request; system users can cancel any.
 
 #### Returns
 
-`Effect`\<\{ `completed`: `boolean`; `status`: `string`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror) \| [`BusinessError`](lib.errors.md#businesserror)\>
+`Effect`{`<`}{`{`} `completed`: `boolean`; `status`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror) {`|`} [`BusinessError`](lib.errors.md#businesserror){`>`}
 
 ***
 
 ### createApprovalMatrix()
 
-> **createApprovalMatrix**(`data`, `levels`): `Effect`\<`any`, [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **createApprovalMatrix**(`data`, `levels`): `Effect`{`<`}`any`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 Defined in: [src/services/approval.service.ts:148](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L148)
 
@@ -337,7 +337,7 @@ The matrix data
 
 ###### amountThresholds?
 
-\{ `critical?`: `number`; `high?`: `number`; `low?`: `number`; `medium?`: `number`; \} \| `null`
+{`{`} `critical?`: `number`; `high?`: `number`; `low?`: `number`; `medium?`: `number`; {`}`} {`|`} `null`
 
 ###### autoApprovalRules?
 
@@ -345,7 +345,7 @@ The matrix data
 
 ###### bankingMode?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### createdAt?
 
@@ -353,7 +353,7 @@ The matrix data
 
 ###### description?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### entityType
 
@@ -377,19 +377,19 @@ The matrix data
 
 ###### operationType?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### riskThresholds?
 
-\{ `high?`: `number`; `low?`: `number`; `medium?`: `number`; \} \| `null`
+{`{`} `high?`: `number`; `low?`: `number`; `medium?`: `number`; {`}`} {`|`} `null`
 
 ###### syariahBoardRequired?
 
-`boolean` \| `null`
+`boolean` {`|`} `null`
 
 ###### tenantId?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### updatedAt?
 
@@ -397,13 +397,13 @@ The matrix data
 
 ##### levels
 
-`Omit`\<\{ `canDelegate?`: `boolean` \| `null`; `conditions?`: `Record`\<`string`, `unknown`\> \| `null`; `createdAt?`: `Date`; `description?`: `string` \| `null`; `id?`: `string`; `level`: `number`; `matrixId`: `string`; `maxAmount?`: `number` \| `null`; `name`: `string`; `permissionMatchMode?`: `string`; `requiredCount?`: `number`; `requiredPermissionCodes?`: `string`[]; `requiredRoleCodes?`: `string`[]; `roleMatchMode?`: `string`; `timeoutHours?`: `number` \| `null`; \}, `"matrixId"`\>[]
+`Omit`{`<`}{`{`} `canDelegate?`: `boolean` {`|`} `null`; `conditions?`: `Record`{`<`}`string`, `unknown`{`>`} {`|`} `null`; `createdAt?`: `Date`; `description?`: `string` {`|`} `null`; `id?`: `string`; `level`: `number`; `matrixId`: `string`; `maxAmount?`: `number` {`|`} `null`; `name`: `string`; `permissionMatchMode?`: `string`; `requiredCount?`: `number`; `requiredPermissionCodes?`: `string`[]; `requiredRoleCodes?`: `string`[]; `roleMatchMode?`: `string`; `timeoutHours?`: `number` {`|`} `null`; {`}`}, `"matrixId"`{`>`}[]
 
 The levels data
 
 #### Returns
 
-`Effect`\<`any`, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`{`<`}`any`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 An Effect resolving to the created matrix
 
@@ -411,7 +411,7 @@ An Effect resolving to the created matrix
 
 ### createApprovalRequest()
 
-> **createApprovalRequest**(`input`): `Effect`\<\{ `approvalsReceived`: `number`; `approvalsRequired`: `number`; `completedAt`: `Date` \| `null`; `completedBy`: `string` \| `null`; `createdAt`: `Date`; `currentLevel`: `number`; `description`: `string` \| `null`; `entityId`: `string` \| `null`; `entityType`: `string`; `expiresAt`: `Date` \| `null`; `id`: `string`; `impactLevel`: `string` \| `null`; `matrixId`: `string` \| `null`; `requestData`: `Record`\<`string`, `unknown`\> \| `null`; `requestedBy`: `string`; `status`: `string`; `tenantId`: `string`; `title`: `string`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`ConflictError`](lib.errors.md#conflicterror)\>
+> **createApprovalRequest**(`input`): `Effect`{`<`}{`{`} `approvalsReceived`: `number`; `approvalsRequired`: `number`; `completedAt`: `Date` {`|`} `null`; `completedBy`: `string` {`|`} `null`; `createdAt`: `Date`; `currentLevel`: `number`; `description`: `string` {`|`} `null`; `entityId`: `string` {`|`} `null`; `entityType`: `string`; `expiresAt`: `Date` {`|`} `null`; `id`: `string`; `impactLevel`: `string` {`|`} `null`; `matrixId`: `string` {`|`} `null`; `requestData`: `Record`{`<`}`string`, `unknown`{`>`} {`|`} `null`; `requestedBy`: `string`; `status`: `string`; `tenantId`: `string`; `title`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`ConflictError`](lib.errors.md#conflicterror){`>`}
 
 Defined in: [src/services/approval.service.ts:204](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L204)
 
@@ -427,7 +427,7 @@ The request input data
 
 #### Returns
 
-`Effect`\<\{ `approvalsReceived`: `number`; `approvalsRequired`: `number`; `completedAt`: `Date` \| `null`; `completedBy`: `string` \| `null`; `createdAt`: `Date`; `currentLevel`: `number`; `description`: `string` \| `null`; `entityId`: `string` \| `null`; `entityType`: `string`; `expiresAt`: `Date` \| `null`; `id`: `string`; `impactLevel`: `string` \| `null`; `matrixId`: `string` \| `null`; `requestData`: `Record`\<`string`, `unknown`\> \| `null`; `requestedBy`: `string`; `status`: `string`; `tenantId`: `string`; `title`: `string`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`ConflictError`](lib.errors.md#conflicterror)\>
+`Effect`{`<`}{`{`} `approvalsReceived`: `number`; `approvalsRequired`: `number`; `completedAt`: `Date` {`|`} `null`; `completedBy`: `string` {`|`} `null`; `createdAt`: `Date`; `currentLevel`: `number`; `description`: `string` {`|`} `null`; `entityId`: `string` {`|`} `null`; `entityType`: `string`; `expiresAt`: `Date` {`|`} `null`; `id`: `string`; `impactLevel`: `string` {`|`} `null`; `matrixId`: `string` {`|`} `null`; `requestData`: `Record`{`<`}`string`, `unknown`{`>`} {`|`} `null`; `requestedBy`: `string`; `status`: `string`; `tenantId`: `string`; `title`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`ConflictError`](lib.errors.md#conflicterror){`>`}
 
 An Effect resolving to the created approval request
 
@@ -435,7 +435,7 @@ An Effect resolving to the created approval request
 
 ### getApprovalHistory()
 
-> **getApprovalHistory**(`tenantId`, `entityType?`, `entityId?`): `Effect`\<`object`[], [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **getApprovalHistory**(`tenantId`, `entityType?`, `entityId?`): `Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 Defined in: [src/services/approval.service.ts:1736](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L1736)
 
@@ -463,7 +463,7 @@ Optional entity ID filter
 
 #### Returns
 
-`Effect`\<`object`[], [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 An Effect resolving to an array of approval requests
 
@@ -471,7 +471,7 @@ An Effect resolving to an array of approval requests
 
 ### getApprovalMatrices()
 
-> **getApprovalMatrices**(`tenantId`): `Effect`\<`any`[], [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **getApprovalMatrices**(`tenantId`): `Effect`{`<`}`any`[], [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 Defined in: [src/services/approval.service.ts:134](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L134)
 
@@ -487,7 +487,7 @@ The tenant ID
 
 #### Returns
 
-`Effect`\<`any`[], [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`{`<`}`any`[], [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 An Effect resolving to an array of approval matrices
 
@@ -495,7 +495,7 @@ An Effect resolving to an array of approval matrices
 
 ### getApprovalMatrix()
 
-> **getApprovalMatrix**(`tenantId`, `entityType`, `bankingMode?`): `Effect`\<`any`, [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **getApprovalMatrix**(`tenantId`, `entityType`, `bankingMode?`): `Effect`{`<`}`any`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 Defined in: [src/services/approval.service.ts:119](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L119)
 
@@ -523,7 +523,7 @@ Optional banking mode filter
 
 #### Returns
 
-`Effect`\<`any`, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`{`<`}`any`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 An Effect resolving to the approval matrix or database error
 
@@ -531,7 +531,7 @@ An Effect resolving to the approval matrix or database error
 
 ### getApprovalRequest()
 
-> **getApprovalRequest**(`requestId`): `Effect`\<`object` & `object`, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+> **getApprovalRequest**(`requestId`): `Effect`{`<`}`object` & `object`, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}
 
 Defined in: [src/services/approval.service.ts:1714](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L1714)
 
@@ -547,7 +547,7 @@ The request ID
 
 #### Returns
 
-`Effect`\<`object` & `object`, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+`Effect`{`<`}`object` & `object`, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}
 
 An Effect resolving to the request with actions or NotFoundError
 
@@ -555,7 +555,7 @@ An Effect resolving to the request with actions or NotFoundError
 
 ### getApprovalRoutingOverview()
 
-> **getApprovalRoutingOverview**(`input`): `Effect`\<[`ApprovalRoutingOverview`](#approvalroutingoverview)[], [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **getApprovalRoutingOverview**(`input`): `Effect`{`<`}[`ApprovalRoutingOverview`](#approvalroutingoverview)[], [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 Defined in: [src/services/approval.service.ts:2302](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L2302)
 
@@ -580,7 +580,7 @@ Use this in UI so users know exactly who should review a request.
 
 ###### operation?
 
-`"update"` \| `"delete"` \| `"create"`
+`"update"` {`|`} `"delete"` {`|`} `"create"`
 
 ###### tenantId
 
@@ -588,13 +588,13 @@ Use this in UI so users know exactly who should review a request.
 
 #### Returns
 
-`Effect`\<[`ApprovalRoutingOverview`](#approvalroutingoverview)[], [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`{`<`}[`ApprovalRoutingOverview`](#approvalroutingoverview)[], [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 ***
 
 ### getPendingApprovalsForUser()
 
-> **getPendingApprovalsForUser**(`userId`, `tenantId`): `Effect`\<`object`[], [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **getPendingApprovalsForUser**(`userId`, `tenantId`): `Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 Defined in: [src/services/approval.service.ts:1664](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L1664)
 
@@ -616,7 +616,7 @@ The tenant ID
 
 #### Returns
 
-`Effect`\<`object`[], [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 An Effect resolving to an array of pending requests available for the user to approve
 
@@ -624,7 +624,7 @@ An Effect resolving to an array of pending requests available for the user to ap
 
 ### processApprovalAction()
 
-> **processApprovalAction**(`input`): `Effect`\<\{ `completed`: `boolean`; `status`: `string`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`AuthorizationError`](lib.errors.md#authorizationerror) \| [`NotFoundError`](lib.errors.md#notfounderror) \| [`BusinessError`](lib.errors.md#businesserror)\>
+> **processApprovalAction**(`input`): `Effect`{`<`}{`{`} `completed`: `boolean`; `status`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`AuthorizationError`](lib.errors.md#authorizationerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror) {`|`} [`BusinessError`](lib.errors.md#businesserror){`>`}
 
 Defined in: [src/services/approval.service.ts:307](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L307)
 
@@ -640,7 +640,7 @@ The action input data
 
 #### Returns
 
-`Effect`\<\{ `completed`: `boolean`; `status`: `string`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`AuthorizationError`](lib.errors.md#authorizationerror) \| [`NotFoundError`](lib.errors.md#notfounderror) \| [`BusinessError`](lib.errors.md#businesserror)\>
+`Effect`{`<`}{`{`} `completed`: `boolean`; `status`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`AuthorizationError`](lib.errors.md#authorizationerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror) {`|`} [`BusinessError`](lib.errors.md#businesserror){`>`}
 
 An Effect resolving to the completion status
 
@@ -656,7 +656,7 @@ BusinessError if request is not pending or other business rule violations
 
 ### updateApprovalMatrix()
 
-> **updateApprovalMatrix**(`tenantId`, `matrixId`, `data`, `levels?`): `Effect`\<`any`, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+> **updateApprovalMatrix**(`tenantId`, `matrixId`, `data`, `levels?`): `Effect`{`<`}`any`, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}
 
 Defined in: [src/services/approval.service.ts:159](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L159)
 
@@ -674,12 +674,12 @@ Update an approval matrix and optionally replace its levels.
 
 ##### data
 
-`Partial`\<[`NewApprovalMatrix`](db.schema.approval.schema.md#newapprovalmatrix)\>
+`Partial`{`<`}[`NewApprovalMatrix`](db.schema.approval.schema.md#newapprovalmatrix){`>`}
 
 ##### levels?
 
-`Omit`\<\{ `canDelegate?`: `boolean` \| `null`; `conditions?`: `Record`\<`string`, `unknown`\> \| `null`; `createdAt?`: `Date`; `description?`: `string` \| `null`; `id?`: `string`; `level`: `number`; `matrixId`: `string`; `maxAmount?`: `number` \| `null`; `name`: `string`; `permissionMatchMode?`: `string`; `requiredCount?`: `number`; `requiredPermissionCodes?`: `string`[]; `requiredRoleCodes?`: `string`[]; `roleMatchMode?`: `string`; `timeoutHours?`: `number` \| `null`; \}, `"matrixId"`\>[]
+`Omit`{`<`}{`{`} `canDelegate?`: `boolean` {`|`} `null`; `conditions?`: `Record`{`<`}`string`, `unknown`{`>`} {`|`} `null`; `createdAt?`: `Date`; `description?`: `string` {`|`} `null`; `id?`: `string`; `level`: `number`; `matrixId`: `string`; `maxAmount?`: `number` {`|`} `null`; `name`: `string`; `permissionMatchMode?`: `string`; `requiredCount?`: `number`; `requiredPermissionCodes?`: `string`[]; `requiredRoleCodes?`: `string`[]; `roleMatchMode?`: `string`; `timeoutHours?`: `number` {`|`} `null`; {`}`}, `"matrixId"`{`>`}[]
 
 #### Returns
 
-`Effect`\<`any`, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+`Effect`{`<`}`any`, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}

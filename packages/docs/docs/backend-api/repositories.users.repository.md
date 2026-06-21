@@ -14,7 +14,7 @@ Extension of IRepository that specifically handles tenant isolation.
 
 #### Implements
 
-- [`ITenantRepository`](repositories.base.repository.md#itenantrepository)\<[`User`](db.schema.core.md#user), [`NewUser`](db.schema.core.md#newuser)\>
+- [`ITenantRepository`](repositories.base.repository.md#itenantrepository){`<`}[`User`](db.schema.core.md#user), [`NewUser`](db.schema.core.md#newuser){`>`}
 
 #### Constructors
 
@@ -30,7 +30,7 @@ Extension of IRepository that specifically handles tenant isolation.
 
 ##### create()
 
-> **create**(`data`): `Effect`\<\{ `backupCodes`: `string`[] \| `null`; `bankId`: `string` \| `null`; `createdAt`: `Date` \| `null`; `department`: `string` \| `null`; `email`: `string`; `emailVerifiedAt`: `Date` \| `null`; `employeeId`: `string` \| `null`; `failedLoginAttempts`: `number` \| `null`; `forcePasswordChange`: `boolean` \| `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` \| `null`; `isVerified`: `boolean` \| `null`; `lastLoginAt`: `Date` \| `null`; `loginCount`: `number` \| `null`; `mfaEnabled`: `boolean` \| `null`; `mfaSecret`: `string` \| `null`; `passwordChangedAt`: `Date` \| `null`; `passwordHash`: `string`; `phone`: `string` \| `null`; `position`: `string` \| `null`; `tenantId`: `string` \| `null`; `updatedAt`: `Date` \| `null`; `username`: `string`; \}, [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **create**(`data`): `Effect`{`<`}{`{`} `backupCodes`: `string`[] {`|`} `null`; `bankId`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `department`: `string` {`|`} `null`; `email`: `string`; `emailVerifiedAt`: `Date` {`|`} `null`; `employeeId`: `string` {`|`} `null`; `failedLoginAttempts`: `number` {`|`} `null`; `forcePasswordChange`: `boolean` {`|`} `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isVerified`: `boolean` {`|`} `null`; `lastLoginAt`: `Date` {`|`} `null`; `loginCount`: `number` {`|`} `null`; `mfaEnabled`: `boolean` {`|`} `null`; `mfaSecret`: `string` {`|`} `null`; `passwordChangedAt`: `Date` {`|`} `null`; `passwordHash`: `string`; `phone`: `string` {`|`} `null`; `position`: `string` {`|`} `null`; `tenantId`: `string` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `username`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 Defined in: [src/repositories/users.repository.ts:185](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/users.repository.ts#L185)
 
@@ -44,19 +44,19 @@ The user data
 
 ###### backupCodes?
 
-`string`[] \| `null`
+`string`[] {`|`} `null`
 
 ###### bankId?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### createdAt?
 
-`Date` \| `null`
+`Date` {`|`} `null`
 
 ###### department?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### email
 
@@ -64,19 +64,19 @@ The user data
 
 ###### emailVerifiedAt?
 
-`Date` \| `null`
+`Date` {`|`} `null`
 
 ###### employeeId?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### failedLoginAttempts?
 
-`number` \| `null`
+`number` {`|`} `null`
 
 ###### forcePasswordChange?
 
-`boolean` \| `null`
+`boolean` {`|`} `null`
 
 ###### fullName
 
@@ -88,31 +88,31 @@ The user data
 
 ###### isActive?
 
-`boolean` \| `null`
+`boolean` {`|`} `null`
 
 ###### isVerified?
 
-`boolean` \| `null`
+`boolean` {`|`} `null`
 
 ###### lastLoginAt?
 
-`Date` \| `null`
+`Date` {`|`} `null`
 
 ###### loginCount?
 
-`number` \| `null`
+`number` {`|`} `null`
 
 ###### mfaEnabled?
 
-`boolean` \| `null`
+`boolean` {`|`} `null`
 
 ###### mfaSecret?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### passwordChangedAt?
 
-`Date` \| `null`
+`Date` {`|`} `null`
 
 ###### passwordHash
 
@@ -120,19 +120,19 @@ The user data
 
 ###### phone?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### position?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### tenantId?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### updatedAt?
 
-`Date` \| `null`
+`Date` {`|`} `null`
 
 ###### username
 
@@ -140,7 +140,7 @@ The user data
 
 ###### Returns
 
-`Effect`\<\{ `backupCodes`: `string`[] \| `null`; `bankId`: `string` \| `null`; `createdAt`: `Date` \| `null`; `department`: `string` \| `null`; `email`: `string`; `emailVerifiedAt`: `Date` \| `null`; `employeeId`: `string` \| `null`; `failedLoginAttempts`: `number` \| `null`; `forcePasswordChange`: `boolean` \| `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` \| `null`; `isVerified`: `boolean` \| `null`; `lastLoginAt`: `Date` \| `null`; `loginCount`: `number` \| `null`; `mfaEnabled`: `boolean` \| `null`; `mfaSecret`: `string` \| `null`; `passwordChangedAt`: `Date` \| `null`; `passwordHash`: `string`; `phone`: `string` \| `null`; `position`: `string` \| `null`; `tenantId`: `string` \| `null`; `updatedAt`: `Date` \| `null`; `username`: `string`; \}, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`{`<`}{`{`} `backupCodes`: `string`[] {`|`} `null`; `bankId`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `department`: `string` {`|`} `null`; `email`: `string`; `emailVerifiedAt`: `Date` {`|`} `null`; `employeeId`: `string` {`|`} `null`; `failedLoginAttempts`: `number` {`|`} `null`; `forcePasswordChange`: `boolean` {`|`} `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isVerified`: `boolean` {`|`} `null`; `lastLoginAt`: `Date` {`|`} `null`; `loginCount`: `number` {`|`} `null`; `mfaEnabled`: `boolean` {`|`} `null`; `mfaSecret`: `string` {`|`} `null`; `passwordChangedAt`: `Date` {`|`} `null`; `passwordHash`: `string`; `phone`: `string` {`|`} `null`; `position`: `string` {`|`} `null`; `tenantId`: `string` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `username`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 An Effect resolving to the created user
 
@@ -150,7 +150,7 @@ An Effect resolving to the created user
 
 ##### delete()
 
-> **delete**(`id`): `Effect`\<\{ `backupCodes`: `string`[] \| `null`; `bankId`: `string` \| `null`; `createdAt`: `Date` \| `null`; `department`: `string` \| `null`; `email`: `string`; `emailVerifiedAt`: `Date` \| `null`; `employeeId`: `string` \| `null`; `failedLoginAttempts`: `number` \| `null`; `forcePasswordChange`: `boolean` \| `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` \| `null`; `isVerified`: `boolean` \| `null`; `lastLoginAt`: `Date` \| `null`; `loginCount`: `number` \| `null`; `mfaEnabled`: `boolean` \| `null`; `mfaSecret`: `string` \| `null`; `passwordChangedAt`: `Date` \| `null`; `passwordHash`: `string`; `phone`: `string` \| `null`; `position`: `string` \| `null`; `tenantId`: `string` \| `null`; `updatedAt`: `Date` \| `null`; `username`: `string`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+> **delete**(`id`): `Effect`{`<`}{`{`} `backupCodes`: `string`[] {`|`} `null`; `bankId`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `department`: `string` {`|`} `null`; `email`: `string`; `emailVerifiedAt`: `Date` {`|`} `null`; `employeeId`: `string` {`|`} `null`; `failedLoginAttempts`: `number` {`|`} `null`; `forcePasswordChange`: `boolean` {`|`} `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isVerified`: `boolean` {`|`} `null`; `lastLoginAt`: `Date` {`|`} `null`; `loginCount`: `number` {`|`} `null`; `mfaEnabled`: `boolean` {`|`} `null`; `mfaSecret`: `string` {`|`} `null`; `passwordChangedAt`: `Date` {`|`} `null`; `passwordHash`: `string`; `phone`: `string` {`|`} `null`; `position`: `string` {`|`} `null`; `tenantId`: `string` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `username`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}
 
 Defined in: [src/repositories/users.repository.ts:233](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/users.repository.ts#L233)
 
@@ -166,7 +166,7 @@ The user ID
 
 ###### Returns
 
-`Effect`\<\{ `backupCodes`: `string`[] \| `null`; `bankId`: `string` \| `null`; `createdAt`: `Date` \| `null`; `department`: `string` \| `null`; `email`: `string`; `emailVerifiedAt`: `Date` \| `null`; `employeeId`: `string` \| `null`; `failedLoginAttempts`: `number` \| `null`; `forcePasswordChange`: `boolean` \| `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` \| `null`; `isVerified`: `boolean` \| `null`; `lastLoginAt`: `Date` \| `null`; `loginCount`: `number` \| `null`; `mfaEnabled`: `boolean` \| `null`; `mfaSecret`: `string` \| `null`; `passwordChangedAt`: `Date` \| `null`; `passwordHash`: `string`; `phone`: `string` \| `null`; `position`: `string` \| `null`; `tenantId`: `string` \| `null`; `updatedAt`: `Date` \| `null`; `username`: `string`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+`Effect`{`<`}{`{`} `backupCodes`: `string`[] {`|`} `null`; `bankId`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `department`: `string` {`|`} `null`; `email`: `string`; `emailVerifiedAt`: `Date` {`|`} `null`; `employeeId`: `string` {`|`} `null`; `failedLoginAttempts`: `number` {`|`} `null`; `forcePasswordChange`: `boolean` {`|`} `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isVerified`: `boolean` {`|`} `null`; `lastLoginAt`: `Date` {`|`} `null`; `loginCount`: `number` {`|`} `null`; `mfaEnabled`: `boolean` {`|`} `null`; `mfaSecret`: `string` {`|`} `null`; `passwordChangedAt`: `Date` {`|`} `null`; `passwordHash`: `string`; `phone`: `string` {`|`} `null`; `position`: `string` {`|`} `null`; `tenantId`: `string` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `username`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}
 
 An Effect resolving to the updated (deleted) user
 
@@ -176,7 +176,7 @@ An Effect resolving to the updated (deleted) user
 
 ##### findAll()
 
-> **findAll**(`options?`): `Effect`\<[`PaginatedResult`](repositories.base.repository.md#paginatedresult)\<\{ `backupCodes`: `string`[] \| `null`; `bankId`: `string` \| `null`; `createdAt`: `Date` \| `null`; `department`: `string` \| `null`; `email`: `string`; `emailVerifiedAt`: `Date` \| `null`; `employeeId`: `string` \| `null`; `failedLoginAttempts`: `number` \| `null`; `forcePasswordChange`: `boolean` \| `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` \| `null`; `isVerified`: `boolean` \| `null`; `lastLoginAt`: `Date` \| `null`; `loginCount`: `number` \| `null`; `mfaEnabled`: `boolean` \| `null`; `mfaSecret`: `string` \| `null`; `passwordChangedAt`: `Date` \| `null`; `passwordHash`: `string`; `phone`: `string` \| `null`; `position`: `string` \| `null`; `tenantId`: `string` \| `null`; `updatedAt`: `Date` \| `null`; `username`: `string`; \}\>, [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **findAll**(`options?`): `Effect`{`<`}[`PaginatedResult`](repositories.base.repository.md#paginatedresult){`<`}{`{`} `backupCodes`: `string`[] {`|`} `null`; `bankId`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `department`: `string` {`|`} `null`; `email`: `string`; `emailVerifiedAt`: `Date` {`|`} `null`; `employeeId`: `string` {`|`} `null`; `failedLoginAttempts`: `number` {`|`} `null`; `forcePasswordChange`: `boolean` {`|`} `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isVerified`: `boolean` {`|`} `null`; `lastLoginAt`: `Date` {`|`} `null`; `loginCount`: `number` {`|`} `null`; `mfaEnabled`: `boolean` {`|`} `null`; `mfaSecret`: `string` {`|`} `null`; `passwordChangedAt`: `Date` {`|`} `null`; `passwordHash`: `string`; `phone`: `string` {`|`} `null`; `position`: `string` {`|`} `null`; `tenantId`: `string` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `username`: `string`; {`}`}{`>`}, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 Defined in: [src/repositories/users.repository.ts:73](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/users.repository.ts#L73)
 
@@ -192,7 +192,7 @@ Query options including pagination and filters
 
 ###### Returns
 
-`Effect`\<[`PaginatedResult`](repositories.base.repository.md#paginatedresult)\<\{ `backupCodes`: `string`[] \| `null`; `bankId`: `string` \| `null`; `createdAt`: `Date` \| `null`; `department`: `string` \| `null`; `email`: `string`; `emailVerifiedAt`: `Date` \| `null`; `employeeId`: `string` \| `null`; `failedLoginAttempts`: `number` \| `null`; `forcePasswordChange`: `boolean` \| `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` \| `null`; `isVerified`: `boolean` \| `null`; `lastLoginAt`: `Date` \| `null`; `loginCount`: `number` \| `null`; `mfaEnabled`: `boolean` \| `null`; `mfaSecret`: `string` \| `null`; `passwordChangedAt`: `Date` \| `null`; `passwordHash`: `string`; `phone`: `string` \| `null`; `position`: `string` \| `null`; `tenantId`: `string` \| `null`; `updatedAt`: `Date` \| `null`; `username`: `string`; \}\>, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`{`<`}[`PaginatedResult`](repositories.base.repository.md#paginatedresult){`<`}{`{`} `backupCodes`: `string`[] {`|`} `null`; `bankId`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `department`: `string` {`|`} `null`; `email`: `string`; `emailVerifiedAt`: `Date` {`|`} `null`; `employeeId`: `string` {`|`} `null`; `failedLoginAttempts`: `number` {`|`} `null`; `forcePasswordChange`: `boolean` {`|`} `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isVerified`: `boolean` {`|`} `null`; `lastLoginAt`: `Date` {`|`} `null`; `loginCount`: `number` {`|`} `null`; `mfaEnabled`: `boolean` {`|`} `null`; `mfaSecret`: `string` {`|`} `null`; `passwordChangedAt`: `Date` {`|`} `null`; `passwordHash`: `string`; `phone`: `string` {`|`} `null`; `position`: `string` {`|`} `null`; `tenantId`: `string` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `username`: `string`; {`}`}{`>`}, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 An Effect resolving to paginated user results
 
@@ -202,7 +202,7 @@ An Effect resolving to paginated user results
 
 ##### findByEmail()
 
-> **findByEmail**(`email`, `tenantId?`): `Effect`\<\{ `backupCodes`: `string`[] \| `null`; `bankId`: `string` \| `null`; `createdAt`: `Date` \| `null`; `department`: `string` \| `null`; `email`: `string`; `emailVerifiedAt`: `Date` \| `null`; `employeeId`: `string` \| `null`; `failedLoginAttempts`: `number` \| `null`; `forcePasswordChange`: `boolean` \| `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` \| `null`; `isVerified`: `boolean` \| `null`; `lastLoginAt`: `Date` \| `null`; `loginCount`: `number` \| `null`; `mfaEnabled`: `boolean` \| `null`; `mfaSecret`: `string` \| `null`; `passwordChangedAt`: `Date` \| `null`; `passwordHash`: `string`; `phone`: `string` \| `null`; `position`: `string` \| `null`; `tenantId`: `string` \| `null`; `updatedAt`: `Date` \| `null`; `username`: `string`; \} \| `undefined`, [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **findByEmail**(`email`, `tenantId?`): `Effect`{`<`}{`{`} `backupCodes`: `string`[] {`|`} `null`; `bankId`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `department`: `string` {`|`} `null`; `email`: `string`; `emailVerifiedAt`: `Date` {`|`} `null`; `employeeId`: `string` {`|`} `null`; `failedLoginAttempts`: `number` {`|`} `null`; `forcePasswordChange`: `boolean` {`|`} `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isVerified`: `boolean` {`|`} `null`; `lastLoginAt`: `Date` {`|`} `null`; `loginCount`: `number` {`|`} `null`; `mfaEnabled`: `boolean` {`|`} `null`; `mfaSecret`: `string` {`|`} `null`; `passwordChangedAt`: `Date` {`|`} `null`; `passwordHash`: `string`; `phone`: `string` {`|`} `null`; `position`: `string` {`|`} `null`; `tenantId`: `string` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `username`: `string`; {`}`} {`|`} `undefined`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 Defined in: [src/repositories/users.repository.ts:54](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/users.repository.ts#L54)
 
@@ -224,13 +224,13 @@ Optional tenant ID filter
 
 ###### Returns
 
-`Effect`\<\{ `backupCodes`: `string`[] \| `null`; `bankId`: `string` \| `null`; `createdAt`: `Date` \| `null`; `department`: `string` \| `null`; `email`: `string`; `emailVerifiedAt`: `Date` \| `null`; `employeeId`: `string` \| `null`; `failedLoginAttempts`: `number` \| `null`; `forcePasswordChange`: `boolean` \| `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` \| `null`; `isVerified`: `boolean` \| `null`; `lastLoginAt`: `Date` \| `null`; `loginCount`: `number` \| `null`; `mfaEnabled`: `boolean` \| `null`; `mfaSecret`: `string` \| `null`; `passwordChangedAt`: `Date` \| `null`; `passwordHash`: `string`; `phone`: `string` \| `null`; `position`: `string` \| `null`; `tenantId`: `string` \| `null`; `updatedAt`: `Date` \| `null`; `username`: `string`; \} \| `undefined`, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`{`<`}{`{`} `backupCodes`: `string`[] {`|`} `null`; `bankId`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `department`: `string` {`|`} `null`; `email`: `string`; `emailVerifiedAt`: `Date` {`|`} `null`; `employeeId`: `string` {`|`} `null`; `failedLoginAttempts`: `number` {`|`} `null`; `forcePasswordChange`: `boolean` {`|`} `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isVerified`: `boolean` {`|`} `null`; `lastLoginAt`: `Date` {`|`} `null`; `loginCount`: `number` {`|`} `null`; `mfaEnabled`: `boolean` {`|`} `null`; `mfaSecret`: `string` {`|`} `null`; `passwordChangedAt`: `Date` {`|`} `null`; `passwordHash`: `string`; `phone`: `string` {`|`} `null`; `position`: `string` {`|`} `null`; `tenantId`: `string` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `username`: `string`; {`}`} {`|`} `undefined`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 An Effect resolving to the user or undefined
 
 ##### findById()
 
-> **findById**(`id`): `Effect`\<\{ `backupCodes`: `string`[] \| `null`; `bankId`: `string` \| `null`; `createdAt`: `Date` \| `null`; `department`: `string` \| `null`; `email`: `string`; `emailVerifiedAt`: `Date` \| `null`; `employeeId`: `string` \| `null`; `failedLoginAttempts`: `number` \| `null`; `forcePasswordChange`: `boolean` \| `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` \| `null`; `isVerified`: `boolean` \| `null`; `lastLoginAt`: `Date` \| `null`; `loginCount`: `number` \| `null`; `mfaEnabled`: `boolean` \| `null`; `mfaSecret`: `string` \| `null`; `passwordChangedAt`: `Date` \| `null`; `passwordHash`: `string`; `phone`: `string` \| `null`; `position`: `string` \| `null`; `tenantId`: `string` \| `null`; `updatedAt`: `Date` \| `null`; `username`: `string`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+> **findById**(`id`): `Effect`{`<`}{`{`} `backupCodes`: `string`[] {`|`} `null`; `bankId`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `department`: `string` {`|`} `null`; `email`: `string`; `emailVerifiedAt`: `Date` {`|`} `null`; `employeeId`: `string` {`|`} `null`; `failedLoginAttempts`: `number` {`|`} `null`; `forcePasswordChange`: `boolean` {`|`} `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isVerified`: `boolean` {`|`} `null`; `lastLoginAt`: `Date` {`|`} `null`; `loginCount`: `number` {`|`} `null`; `mfaEnabled`: `boolean` {`|`} `null`; `mfaSecret`: `string` {`|`} `null`; `passwordChangedAt`: `Date` {`|`} `null`; `passwordHash`: `string`; `phone`: `string` {`|`} `null`; `position`: `string` {`|`} `null`; `tenantId`: `string` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `username`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}
 
 Defined in: [src/repositories/users.repository.ts:36](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/users.repository.ts#L36)
 
@@ -246,7 +246,7 @@ The user ID
 
 ###### Returns
 
-`Effect`\<\{ `backupCodes`: `string`[] \| `null`; `bankId`: `string` \| `null`; `createdAt`: `Date` \| `null`; `department`: `string` \| `null`; `email`: `string`; `emailVerifiedAt`: `Date` \| `null`; `employeeId`: `string` \| `null`; `failedLoginAttempts`: `number` \| `null`; `forcePasswordChange`: `boolean` \| `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` \| `null`; `isVerified`: `boolean` \| `null`; `lastLoginAt`: `Date` \| `null`; `loginCount`: `number` \| `null`; `mfaEnabled`: `boolean` \| `null`; `mfaSecret`: `string` \| `null`; `passwordChangedAt`: `Date` \| `null`; `passwordHash`: `string`; `phone`: `string` \| `null`; `position`: `string` \| `null`; `tenantId`: `string` \| `null`; `updatedAt`: `Date` \| `null`; `username`: `string`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+`Effect`{`<`}{`{`} `backupCodes`: `string`[] {`|`} `null`; `bankId`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `department`: `string` {`|`} `null`; `email`: `string`; `emailVerifiedAt`: `Date` {`|`} `null`; `employeeId`: `string` {`|`} `null`; `failedLoginAttempts`: `number` {`|`} `null`; `forcePasswordChange`: `boolean` {`|`} `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isVerified`: `boolean` {`|`} `null`; `lastLoginAt`: `Date` {`|`} `null`; `loginCount`: `number` {`|`} `null`; `mfaEnabled`: `boolean` {`|`} `null`; `mfaSecret`: `string` {`|`} `null`; `passwordChangedAt`: `Date` {`|`} `null`; `passwordHash`: `string`; `phone`: `string` {`|`} `null`; `position`: `string` {`|`} `null`; `tenantId`: `string` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `username`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}
 
 An Effect resolving to the user or NotFoundError
 
@@ -256,7 +256,7 @@ An Effect resolving to the user or NotFoundError
 
 ##### findByTenant()
 
-> **findByTenant**(`tenantId`, `options?`): `Effect`\<[`PaginatedResult`](repositories.base.repository.md#paginatedresult)\<\{ `backupCodes`: `string`[] \| `null`; `bankId`: `string` \| `null`; `createdAt`: `Date` \| `null`; `department`: `string` \| `null`; `email`: `string`; `emailVerifiedAt`: `Date` \| `null`; `employeeId`: `string` \| `null`; `failedLoginAttempts`: `number` \| `null`; `forcePasswordChange`: `boolean` \| `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` \| `null`; `isVerified`: `boolean` \| `null`; `lastLoginAt`: `Date` \| `null`; `loginCount`: `number` \| `null`; `mfaEnabled`: `boolean` \| `null`; `mfaSecret`: `string` \| `null`; `passwordChangedAt`: `Date` \| `null`; `passwordHash`: `string`; `phone`: `string` \| `null`; `position`: `string` \| `null`; `tenantId`: `string` \| `null`; `updatedAt`: `Date` \| `null`; `username`: `string`; \}\>, [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **findByTenant**(`tenantId`, `options?`): `Effect`{`<`}[`PaginatedResult`](repositories.base.repository.md#paginatedresult){`<`}{`{`} `backupCodes`: `string`[] {`|`} `null`; `bankId`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `department`: `string` {`|`} `null`; `email`: `string`; `emailVerifiedAt`: `Date` {`|`} `null`; `employeeId`: `string` {`|`} `null`; `failedLoginAttempts`: `number` {`|`} `null`; `forcePasswordChange`: `boolean` {`|`} `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isVerified`: `boolean` {`|`} `null`; `lastLoginAt`: `Date` {`|`} `null`; `loginCount`: `number` {`|`} `null`; `mfaEnabled`: `boolean` {`|`} `null`; `mfaSecret`: `string` {`|`} `null`; `passwordChangedAt`: `Date` {`|`} `null`; `passwordHash`: `string`; `phone`: `string` {`|`} `null`; `position`: `string` {`|`} `null`; `tenantId`: `string` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `username`: `string`; {`}`}{`>`}, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 Defined in: [src/repositories/users.repository.ts:128](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/users.repository.ts#L128)
 
@@ -278,7 +278,7 @@ Query options including pagination and filters
 
 ###### Returns
 
-`Effect`\<[`PaginatedResult`](repositories.base.repository.md#paginatedresult)\<\{ `backupCodes`: `string`[] \| `null`; `bankId`: `string` \| `null`; `createdAt`: `Date` \| `null`; `department`: `string` \| `null`; `email`: `string`; `emailVerifiedAt`: `Date` \| `null`; `employeeId`: `string` \| `null`; `failedLoginAttempts`: `number` \| `null`; `forcePasswordChange`: `boolean` \| `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` \| `null`; `isVerified`: `boolean` \| `null`; `lastLoginAt`: `Date` \| `null`; `loginCount`: `number` \| `null`; `mfaEnabled`: `boolean` \| `null`; `mfaSecret`: `string` \| `null`; `passwordChangedAt`: `Date` \| `null`; `passwordHash`: `string`; `phone`: `string` \| `null`; `position`: `string` \| `null`; `tenantId`: `string` \| `null`; `updatedAt`: `Date` \| `null`; `username`: `string`; \}\>, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`{`<`}[`PaginatedResult`](repositories.base.repository.md#paginatedresult){`<`}{`{`} `backupCodes`: `string`[] {`|`} `null`; `bankId`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `department`: `string` {`|`} `null`; `email`: `string`; `emailVerifiedAt`: `Date` {`|`} `null`; `employeeId`: `string` {`|`} `null`; `failedLoginAttempts`: `number` {`|`} `null`; `forcePasswordChange`: `boolean` {`|`} `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isVerified`: `boolean` {`|`} `null`; `lastLoginAt`: `Date` {`|`} `null`; `loginCount`: `number` {`|`} `null`; `mfaEnabled`: `boolean` {`|`} `null`; `mfaSecret`: `string` {`|`} `null`; `passwordChangedAt`: `Date` {`|`} `null`; `passwordHash`: `string`; `phone`: `string` {`|`} `null`; `position`: `string` {`|`} `null`; `tenantId`: `string` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `username`: `string`; {`}`}{`>`}, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 An Effect resolving to paginated user results for the tenant
 
@@ -288,7 +288,7 @@ An Effect resolving to paginated user results for the tenant
 
 ##### getStats()
 
-> **getStats**(`tenantId`): `Effect`\<\{ `active`: `number`; `inactive`: `number`; `total`: `number`; `verifiedEmail`: `number`; \}, [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **getStats**(`tenantId`): `Effect`{`<`}{`{`} `active`: `number`; `inactive`: `number`; `total`: `number`; `verifiedEmail`: `number`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 Defined in: [src/repositories/users.repository.ts:243](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/users.repository.ts#L243)
 
@@ -304,13 +304,13 @@ The tenant ID
 
 ###### Returns
 
-`Effect`\<\{ `active`: `number`; `inactive`: `number`; `total`: `number`; `verifiedEmail`: `number`; \}, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`{`<`}{`{`} `active`: `number`; `inactive`: `number`; `total`: `number`; `verifiedEmail`: `number`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 An Effect resolving to user statistics (total, active, inactive, verified)
 
 ##### update()
 
-> **update**(`id`, `data`): `Effect`\<\{ `backupCodes`: `string`[] \| `null`; `bankId`: `string` \| `null`; `createdAt`: `Date` \| `null`; `department`: `string` \| `null`; `email`: `string`; `emailVerifiedAt`: `Date` \| `null`; `employeeId`: `string` \| `null`; `failedLoginAttempts`: `number` \| `null`; `forcePasswordChange`: `boolean` \| `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` \| `null`; `isVerified`: `boolean` \| `null`; `lastLoginAt`: `Date` \| `null`; `loginCount`: `number` \| `null`; `mfaEnabled`: `boolean` \| `null`; `mfaSecret`: `string` \| `null`; `passwordChangedAt`: `Date` \| `null`; `passwordHash`: `string`; `phone`: `string` \| `null`; `position`: `string` \| `null`; `tenantId`: `string` \| `null`; `updatedAt`: `Date` \| `null`; `username`: `string`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+> **update**(`id`, `data`): `Effect`{`<`}{`{`} `backupCodes`: `string`[] {`|`} `null`; `bankId`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `department`: `string` {`|`} `null`; `email`: `string`; `emailVerifiedAt`: `Date` {`|`} `null`; `employeeId`: `string` {`|`} `null`; `failedLoginAttempts`: `number` {`|`} `null`; `forcePasswordChange`: `boolean` {`|`} `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isVerified`: `boolean` {`|`} `null`; `lastLoginAt`: `Date` {`|`} `null`; `loginCount`: `number` {`|`} `null`; `mfaEnabled`: `boolean` {`|`} `null`; `mfaSecret`: `string` {`|`} `null`; `passwordChangedAt`: `Date` {`|`} `null`; `passwordHash`: `string`; `phone`: `string` {`|`} `null`; `position`: `string` {`|`} `null`; `tenantId`: `string` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `username`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}
 
 Defined in: [src/repositories/users.repository.ts:206](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/users.repository.ts#L206)
 
@@ -326,13 +326,13 @@ The user ID
 
 ###### data
 
-`Partial`\<[`NewUser`](db.schema.core.md#newuser)\>
+`Partial`{`<`}[`NewUser`](db.schema.core.md#newuser){`>`}
 
 The data to update
 
 ###### Returns
 
-`Effect`\<\{ `backupCodes`: `string`[] \| `null`; `bankId`: `string` \| `null`; `createdAt`: `Date` \| `null`; `department`: `string` \| `null`; `email`: `string`; `emailVerifiedAt`: `Date` \| `null`; `employeeId`: `string` \| `null`; `failedLoginAttempts`: `number` \| `null`; `forcePasswordChange`: `boolean` \| `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` \| `null`; `isVerified`: `boolean` \| `null`; `lastLoginAt`: `Date` \| `null`; `loginCount`: `number` \| `null`; `mfaEnabled`: `boolean` \| `null`; `mfaSecret`: `string` \| `null`; `passwordChangedAt`: `Date` \| `null`; `passwordHash`: `string`; `phone`: `string` \| `null`; `position`: `string` \| `null`; `tenantId`: `string` \| `null`; `updatedAt`: `Date` \| `null`; `username`: `string`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+`Effect`{`<`}{`{`} `backupCodes`: `string`[] {`|`} `null`; `bankId`: `string` {`|`} `null`; `createdAt`: `Date` {`|`} `null`; `department`: `string` {`|`} `null`; `email`: `string`; `emailVerifiedAt`: `Date` {`|`} `null`; `employeeId`: `string` {`|`} `null`; `failedLoginAttempts`: `number` {`|`} `null`; `forcePasswordChange`: `boolean` {`|`} `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `isVerified`: `boolean` {`|`} `null`; `lastLoginAt`: `Date` {`|`} `null`; `loginCount`: `number` {`|`} `null`; `mfaEnabled`: `boolean` {`|`} `null`; `mfaSecret`: `string` {`|`} `null`; `passwordChangedAt`: `Date` {`|`} `null`; `passwordHash`: `string`; `phone`: `string` {`|`} `null`; `position`: `string` {`|`} `null`; `tenantId`: `string` {`|`} `null`; `updatedAt`: `Date` {`|`} `null`; `username`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}
 
 An Effect resolving to the updated user or NotFoundError
 

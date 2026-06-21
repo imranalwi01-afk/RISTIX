@@ -62,7 +62,7 @@ Defined in: [src/app.ts:39](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb9123
 
 ### app
 
-> `const` **app**: `OpenAPIHono`\<[`AppContext`](#appcontext), \{ \}, `"/"`\>
+> `const` **app**: `OpenAPIHono`{`<`}[`AppContext`](#appcontext), {`{`} {`}`}, `"/"`{`>`}
 
 Defined in: [src/app.ts:243](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/app.ts#L243)
 
@@ -70,7 +70,7 @@ Defined in: [src/app.ts:243](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912
 
 ### createApp()
 
-> **createApp**(): `OpenAPIHono`\<[`AppContext`](#appcontext), \{ \}, `"/"`\>
+> **createApp**(): `OpenAPIHono`{`<`}[`AppContext`](#appcontext), {`{`} {`}`}, `"/"`{`>`}
 
 Defined in: [src/app.ts:55](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/app.ts#L55)
 
@@ -78,4 +78,4 @@ Create the Hono application
 
 #### Returns
 
-`OpenAPIHono`\<[`AppContext`](#appcontext), \{ \}, `"/"`\>
+`OpenAPIHono`{`<`}[`AppContext`](#appcontext), {`{`} {`}`}, `"/"`{`>`}

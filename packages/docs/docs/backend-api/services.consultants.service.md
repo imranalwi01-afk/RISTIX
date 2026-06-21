@@ -8,7 +8,7 @@
 
 ### createConsultant()
 
-> **createConsultant**(`data`): `Effect`\<\{ `createdAt`: `Date`; `email`: `string`; `endDate`: `string` \| `null`; `firmName`: `string` \| `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` \| `null`; `notes`: `string` \| `null`; `specialization`: `string` \| `null`; `startDate`: `string` \| `null`; `status`: `string` \| `null`; `updatedAt`: `Date`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **createConsultant**(`data`): `Effect`{`<`}{`{`} `createdAt`: `Date`; `email`: `string`; `endDate`: `string` {`|`} `null`; `firmName`: `string` {`|`} `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `notes`: `string` {`|`} `null`; `specialization`: `string` {`|`} `null`; `startDate`: `string` {`|`} `null`; `status`: `string` {`|`} `null`; `updatedAt`: `Date`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 Defined in: [src/services/consultants.service.ts:93](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/consultants.service.ts#L93)
 
@@ -30,11 +30,11 @@ The consultant data
 
 ###### endDate?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### firmName?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### fullName
 
@@ -46,23 +46,23 @@ The consultant data
 
 ###### isActive?
 
-`boolean` \| `null`
+`boolean` {`|`} `null`
 
 ###### notes?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### specialization?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### startDate?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### status?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### updatedAt?
 
@@ -70,7 +70,7 @@ The consultant data
 
 #### Returns
 
-`Effect`\<\{ `createdAt`: `Date`; `email`: `string`; `endDate`: `string` \| `null`; `firmName`: `string` \| `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` \| `null`; `notes`: `string` \| `null`; `specialization`: `string` \| `null`; `startDate`: `string` \| `null`; `status`: `string` \| `null`; `updatedAt`: `Date`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`{`<`}{`{`} `createdAt`: `Date`; `email`: `string`; `endDate`: `string` {`|`} `null`; `firmName`: `string` {`|`} `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `notes`: `string` {`|`} `null`; `specialization`: `string` {`|`} `null`; `startDate`: `string` {`|`} `null`; `status`: `string` {`|`} `null`; `updatedAt`: `Date`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 An Effect resolving to the created consultant record
 
@@ -78,7 +78,7 @@ An Effect resolving to the created consultant record
 
 ### deleteConsultant()
 
-> **deleteConsultant**(`id`): `Effect`\<\{ `createdAt`: `Date`; `email`: `string`; `endDate`: `string` \| `null`; `firmName`: `string` \| `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` \| `null`; `notes`: `string` \| `null`; `specialization`: `string` \| `null`; `startDate`: `string` \| `null`; `status`: `string` \| `null`; `updatedAt`: `Date`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror), `never`\>
+> **deleteConsultant**(`id`): `Effect`{`<`}{`{`} `createdAt`: `Date`; `email`: `string`; `endDate`: `string` {`|`} `null`; `firmName`: `string` {`|`} `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `notes`: `string` {`|`} `null`; `specialization`: `string` {`|`} `null`; `startDate`: `string` {`|`} `null`; `status`: `string` {`|`} `null`; `updatedAt`: `Date`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
 
 Defined in: [src/services/consultants.service.ts:136](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/consultants.service.ts#L136)
 
@@ -94,7 +94,7 @@ The consultant ID
 
 #### Returns
 
-`Effect`\<\{ `createdAt`: `Date`; `email`: `string`; `endDate`: `string` \| `null`; `firmName`: `string` \| `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` \| `null`; `notes`: `string` \| `null`; `specialization`: `string` \| `null`; `startDate`: `string` \| `null`; `status`: `string` \| `null`; `updatedAt`: `Date`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror), `never`\>
+`Effect`{`<`}{`{`} `createdAt`: `Date`; `email`: `string`; `endDate`: `string` {`|`} `null`; `firmName`: `string` {`|`} `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `notes`: `string` {`|`} `null`; `specialization`: `string` {`|`} `null`; `startDate`: `string` {`|`} `null`; `status`: `string` {`|`} `null`; `updatedAt`: `Date`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
 
 An Effect resolving to the deleted consultant record or NotFoundError
 
@@ -102,7 +102,7 @@ An Effect resolving to the deleted consultant record or NotFoundError
 
 ### getConsultantById()
 
-> **getConsultantById**(`id`): `Effect`\<\{ `createdAt`: `Date`; `email`: `string`; `endDate`: `string` \| `null`; `firmName`: `string` \| `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` \| `null`; `notes`: `string` \| `null`; `specialization`: `string` \| `null`; `startDate`: `string` \| `null`; `status`: `string` \| `null`; `updatedAt`: `Date`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror), `never`\>
+> **getConsultantById**(`id`): `Effect`{`<`}{`{`} `createdAt`: `Date`; `email`: `string`; `endDate`: `string` {`|`} `null`; `firmName`: `string` {`|`} `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `notes`: `string` {`|`} `null`; `specialization`: `string` {`|`} `null`; `startDate`: `string` {`|`} `null`; `status`: `string` {`|`} `null`; `updatedAt`: `Date`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
 
 Defined in: [src/services/consultants.service.ts:72](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/consultants.service.ts#L72)
 
@@ -118,7 +118,7 @@ The consultant ID
 
 #### Returns
 
-`Effect`\<\{ `createdAt`: `Date`; `email`: `string`; `endDate`: `string` \| `null`; `firmName`: `string` \| `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` \| `null`; `notes`: `string` \| `null`; `specialization`: `string` \| `null`; `startDate`: `string` \| `null`; `status`: `string` \| `null`; `updatedAt`: `Date`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror), `never`\>
+`Effect`{`<`}{`{`} `createdAt`: `Date`; `email`: `string`; `endDate`: `string` {`|`} `null`; `firmName`: `string` {`|`} `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `notes`: `string` {`|`} `null`; `specialization`: `string` {`|`} `null`; `startDate`: `string` {`|`} `null`; `status`: `string` {`|`} `null`; `updatedAt`: `Date`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
 
 An Effect resolving to the consultant record or NotFoundError
 
@@ -126,7 +126,7 @@ An Effect resolving to the consultant record or NotFoundError
 
 ### getConsultants()
 
-> **getConsultants**(`options`): `Effect`\<\{ `data`: `object`[]; `total`: `number`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **getConsultants**(`options`): `Effect`{`<`}{`{`} `data`: `object`[]; `total`: `number`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 Defined in: [src/services/consultants.service.ts:21](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/consultants.service.ts#L21)
 
@@ -164,7 +164,7 @@ Filter by consultant status
 
 #### Returns
 
-`Effect`\<\{ `data`: `object`[]; `total`: `number`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`{`<`}{`{`} `data`: `object`[]; `total`: `number`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 An Effect resolving to an object with data array and total count
 
@@ -172,7 +172,7 @@ An Effect resolving to an object with data array and total count
 
 ### updateConsultant()
 
-> **updateConsultant**(`id`, `data`): `Effect`\<\{ `createdAt`: `Date`; `email`: `string`; `endDate`: `string` \| `null`; `firmName`: `string` \| `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` \| `null`; `notes`: `string` \| `null`; `specialization`: `string` \| `null`; `startDate`: `string` \| `null`; `status`: `string` \| `null`; `updatedAt`: `Date`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror), `never`\>
+> **updateConsultant**(`id`, `data`): `Effect`{`<`}{`{`} `createdAt`: `Date`; `email`: `string`; `endDate`: `string` {`|`} `null`; `firmName`: `string` {`|`} `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `notes`: `string` {`|`} `null`; `specialization`: `string` {`|`} `null`; `startDate`: `string` {`|`} `null`; `status`: `string` {`|`} `null`; `updatedAt`: `Date`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
 
 Defined in: [src/services/consultants.service.ts:109](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/consultants.service.ts#L109)
 
@@ -188,12 +188,12 @@ The consultant ID
 
 ##### data
 
-`Partial`\<[`NewConsultant`](db.schema.consultants.schema.md#newconsultant)\>
+`Partial`{`<`}[`NewConsultant`](db.schema.consultants.schema.md#newconsultant){`>`}
 
 The data to update
 
 #### Returns
 
-`Effect`\<\{ `createdAt`: `Date`; `email`: `string`; `endDate`: `string` \| `null`; `firmName`: `string` \| `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` \| `null`; `notes`: `string` \| `null`; `specialization`: `string` \| `null`; `startDate`: `string` \| `null`; `status`: `string` \| `null`; `updatedAt`: `Date`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror), `never`\>
+`Effect`{`<`}{`{`} `createdAt`: `Date`; `email`: `string`; `endDate`: `string` {`|`} `null`; `firmName`: `string` {`|`} `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` {`|`} `null`; `notes`: `string` {`|`} `null`; `specialization`: `string` {`|`} `null`; `startDate`: `string` {`|`} `null`; `status`: `string` {`|`} `null`; `updatedAt`: `Date`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
 
 An Effect resolving to the updated consultant record or NotFoundError

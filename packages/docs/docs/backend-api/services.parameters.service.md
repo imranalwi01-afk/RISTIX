@@ -19,7 +19,7 @@ Handles CRUD operations for parameters and metadata.
 
 ##### createAppSetting()
 
-> **createAppSetting**: (`data`, `userId`) => `Effect`\<\{ `banking_type`: `any`; `created_date`: `any`; `details`: `any`; `is_active`: `any`; `param_code`: `any`; `param_name`: `any`; `param_type`: `any`; `param_usage`: `any`; `pkid`: `number`; `requires_approval`: `any`; \}, `unknown`, `unknown`\>
+> **createAppSetting**: (`data`, `userId`) => `Effect`{`<`}{`{`} `banking_type`: `any`; `created_date`: `any`; `details`: `any`; `is_active`: `any`; `param_code`: `any`; `param_name`: `any`; `param_type`: `any`; `param_usage`: `any`; `pkid`: `number`; `requires_approval`: `any`; {`}`}, `unknown`, `unknown`{`>`}
 
 Create a new app setting.
 
@@ -39,13 +39,13 @@ The ID of the user creating the setting
 
 ###### Returns
 
-`Effect`\<\{ `banking_type`: `any`; `created_date`: `any`; `details`: `any`; `is_active`: `any`; `param_code`: `any`; `param_name`: `any`; `param_type`: `any`; `param_usage`: `any`; `pkid`: `number`; `requires_approval`: `any`; \}, `unknown`, `unknown`\>
+`Effect`{`<`}{`{`} `banking_type`: `any`; `created_date`: `any`; `details`: `any`; `is_active`: `any`; `param_code`: `any`; `param_name`: `any`; `param_type`: `any`; `param_usage`: `any`; `pkid`: `number`; `requires_approval`: `any`; {`}`}, `unknown`, `unknown`{`>`}
 
 An Effect resolving to the created setting header
 
 ##### createAppSettingDetail()
 
-> **createAppSettingDetail**: (`data`, `userId`) => `Effect`\<\{ `id`: `number`; `is_active`: `boolean`; `param_code`: `string`; `param_desc`: `string` \| `null`; `param_seq`: `number`; `value1`: `string`; `value2`: `string`; `value3`: `string`; \}, `unknown`, `unknown`\>
+> **createAppSettingDetail**: (`data`, `userId`) => `Effect`{`<`}{`{`} `id`: `number`; `is_active`: `boolean`; `param_code`: `string`; `param_desc`: `string` {`|`} `null`; `param_seq`: `number`; `value1`: `string`; `value2`: `string`; `value3`: `string`; {`}`}, `unknown`, `unknown`{`>`}
 
 Create a new detail for an app setting.
 
@@ -65,7 +65,7 @@ The ID of the user creating the detail
 
 ###### Returns
 
-`Effect`\<\{ `id`: `number`; `is_active`: `boolean`; `param_code`: `string`; `param_desc`: `string` \| `null`; `param_seq`: `number`; `value1`: `string`; `value2`: `string`; `value3`: `string`; \}, `unknown`, `unknown`\>
+`Effect`{`<`}{`{`} `id`: `number`; `is_active`: `boolean`; `param_code`: `string`; `param_desc`: `string` {`|`} `null`; `param_seq`: `number`; `value1`: `string`; `value2`: `string`; `value3`: `string`; {`}`}, `unknown`, `unknown`{`>`}
 
 An Effect resolving to the created detail
 
@@ -75,7 +75,7 @@ NotFoundError if the parent setting is not found
 
 ##### deleteAppSetting()
 
-> **deleteAppSetting**: (`code`) => `Effect`\<`unknown`, `unknown`, `unknown`\>
+> **deleteAppSetting**: (`code`) => `Effect`{`<`}`unknown`, `unknown`, `unknown`{`>`}
 
 Delete an app setting header.
 
@@ -89,7 +89,7 @@ The parameter code
 
 ###### Returns
 
-`Effect`\<`unknown`, `unknown`, `unknown`\>
+`Effect`{`<`}`unknown`, `unknown`, `unknown`{`>`}
 
 An Effect resolving to a success message
 
@@ -99,7 +99,7 @@ NotFoundError if the setting is not found
 
 ##### deleteAppSettingDetail()
 
-> **deleteAppSettingDetail**: (`id`) => `Effect`\<`unknown`, `unknown`, `unknown`\>
+> **deleteAppSettingDetail**: (`id`) => `Effect`{`<`}`unknown`, `unknown`, `unknown`{`>`}
 
 Delete an app setting detail.
 
@@ -113,7 +113,7 @@ The ID of the detail to delete
 
 ###### Returns
 
-`Effect`\<`unknown`, `unknown`, `unknown`\>
+`Effect`{`<`}`unknown`, `unknown`, `unknown`{`>`}
 
 An Effect resolving to a success message
 
@@ -123,7 +123,7 @@ NotFoundError if the detail is not found
 
 ##### getAppSetting()
 
-> **getAppSetting**: (`code`) => `Effect`\<`unknown`, `unknown`, `unknown`\>
+> **getAppSetting**: (`code`) => `Effect`{`<`}`unknown`, `unknown`, `unknown`{`>`}
 
 Get a specific app setting by code.
 
@@ -137,7 +137,7 @@ The parameter code
 
 ###### Returns
 
-`Effect`\<`unknown`, `unknown`, `unknown`\>
+`Effect`{`<`}`unknown`, `unknown`, `unknown`{`>`}
 
 An Effect resolving to the parameter header
 
@@ -147,7 +147,7 @@ NotFoundError if the setting is not found
 
 ##### getAppSettingDetail()
 
-> **getAppSettingDetail**: (`id`) => `Effect`\<`unknown`, `unknown`, `unknown`\>
+> **getAppSettingDetail**: (`id`) => `Effect`{`<`}`unknown`, `unknown`, `unknown`{`>`}
 
 Get a specific app/business setting detail by ID.
 
@@ -161,7 +161,7 @@ The detail ID
 
 ###### Returns
 
-`Effect`\<`unknown`, `unknown`, `unknown`\>
+`Effect`{`<`}`unknown`, `unknown`, `unknown`{`>`}
 
 An Effect resolving to the parameter detail
 
@@ -171,7 +171,7 @@ NotFoundError if the detail is not found
 
 ##### getAppSettingDetails()
 
-> **getAppSettingDetails**: (`code`) => `Effect`\<`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **getAppSettingDetails**: (`code`) => `Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 Get details for a specific app setting.
 
@@ -185,13 +185,13 @@ The parameter code
 
 ###### Returns
 
-`Effect`\<`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 An Effect resolving to an array of parameter details
 
 ##### getColumns()
 
-> **getColumns**: (`table`) => `Effect`\<`string`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **getColumns**: (`table`) => `Effect`{`<`}`string`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 Get list of columns for a specific table (metadata: B0013).
 
@@ -205,13 +205,13 @@ The table name
 
 ###### Returns
 
-`Effect`\<`string`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`{`<`}`string`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 An Effect resolving to an array of column names
 
 ##### getColumnValues()
 
-> **getColumnValues**: (`table`, `column`) => `Effect`\<`string`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **getColumnValues**: (`table`, `column`) => `Effect`{`<`}`string`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 Get list of valid values for a column (metadata: B0016).
 
@@ -231,25 +231,25 @@ The column name
 
 ###### Returns
 
-`Effect`\<`string`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`{`<`}`string`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 An Effect resolving to an array of valid values
 
 ##### getConditions()
 
-> **getConditions**: () => `Effect`\<`string`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **getConditions**: () => `Effect`{`<`}`string`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 Get list of conditions (metadata: B0015).
 
 ###### Returns
 
-`Effect`\<`string`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`{`<`}`string`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 An Effect resolving to an array of conditions
 
 ##### getDataType()
 
-> **getDataType**: (`table`, `column`) => `Effect`\<`string` \| `null`, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **getDataType**: (`table`, `column`) => `Effect`{`<`}`string` {`|`} `null`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 Get data type for a specific column (metadata: B0013).
 
@@ -269,13 +269,13 @@ The column name
 
 ###### Returns
 
-`Effect`\<`string` \| `null`, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`{`<`}`string` {`|`} `null`, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 An Effect resolving to the data type or null
 
 ##### getOperators()
 
-> **getOperators**: (`dataType`) => `Effect`\<`string`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **getOperators**: (`dataType`) => `Effect`{`<`}`string`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 Get list of operators for a specific data type (metadata: B0014).
 
@@ -289,25 +289,25 @@ The data type
 
 ###### Returns
 
-`Effect`\<`string`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`{`<`}`string`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 An Effect resolving to an array of operators
 
 ##### getTables()
 
-> **getTables**: () => `Effect`\<`string`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **getTables**: () => `Effect`{`<`}`string`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 Get list of distinct tables (metadata: B0012).
 
 ###### Returns
 
-`Effect`\<`string`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`{`<`}`string`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 An Effect resolving to an array of table names
 
 ##### listAppSettings()
 
-> **listAppSettings**: (`code?`, `paramType`) => `Effect`\<`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **listAppSettings**: (`code?`, `paramType`) => `Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 List application settings (parameters).
 
@@ -327,13 +327,13 @@ Parameter type filter (default 'S' for System)
 
 ###### Returns
 
-`Effect`\<`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 An Effect resolving to an array of parameter headers
 
 ##### listBusinessSettings()
 
-> **listBusinessSettings**: (`code?`) => `Effect`\<`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\> \| `Effect`\<`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **listBusinessSettings**: (`code?`) => `Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`} {`|`} `Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 List business settings or get details for a specific setting.
 
@@ -347,13 +347,13 @@ Optional parameter code to filter by (if provided, returns details)
 
 ###### Returns
 
-`Effect`\<`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\> \| `Effect`\<`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`} {`|`} `Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 An Effect resolving to an array of details or success
 
 ##### updateAppSetting()
 
-> **updateAppSetting**: (`code`, `data`, `userId`) => `Effect`\<`unknown`, `unknown`, `unknown`\>
+> **updateAppSetting**: (`code`, `data`, `userId`) => `Effect`{`<`}`unknown`, `unknown`, `unknown`{`>`}
 
 Update an existing app setting.
 
@@ -379,7 +379,7 @@ The ID of the user updating the setting
 
 ###### Returns
 
-`Effect`\<`unknown`, `unknown`, `unknown`\>
+`Effect`{`<`}`unknown`, `unknown`, `unknown`{`>`}
 
 An Effect resolving to the updated setting header
 
@@ -389,7 +389,7 @@ NotFoundError if the setting is not found
 
 ##### updateAppSettingDetail()
 
-> **updateAppSettingDetail**: (`id`, `data`, `userId`) => `Effect`\<`unknown`, `unknown`, `unknown`\>
+> **updateAppSettingDetail**: (`id`, `data`, `userId`) => `Effect`{`<`}`unknown`, `unknown`, `unknown`{`>`}
 
 Update an app setting detail.
 
@@ -415,6 +415,6 @@ The ID of the user updating the detail
 
 ###### Returns
 
-`Effect`\<`unknown`, `unknown`, `unknown`\>
+`Effect`{`<`}`unknown`, `unknown`, `unknown`{`>`}
 
 An Effect resolving to the updated detail

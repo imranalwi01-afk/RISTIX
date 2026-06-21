@@ -14,7 +14,7 @@ Core interface for standard CRUD repository operations.
 
 #### Implements
 
-- [`IRepository`](repositories.base.repository.md#irepository)\<[`Tenant`](db.schema.core.md#tenant), [`NewTenant`](db.schema.core.md#newtenant)\>
+- [`IRepository`](repositories.base.repository.md#irepository){`<`}[`Tenant`](db.schema.core.md#tenant), [`NewTenant`](db.schema.core.md#newtenant){`>`}
 
 #### Constructors
 
@@ -30,7 +30,7 @@ Core interface for standard CRUD repository operations.
 
 ##### create()
 
-> **create**(`data`): `Effect`\<\{ `bankingMode`: `string` \| `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` \| `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` \| `null`; `type`: `string` \| `null`; `updatedAt`: `Date`; \}, [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **create**(`data`): `Effect`{`<`}{`{`} `bankingMode`: `string` {`|`} `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` {`|`} `null`; `type`: `string` {`|`} `null`; `updatedAt`: `Date`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 Defined in: [src/repositories/tenants.repository.ts:133](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/tenants.repository.ts#L133)
 
@@ -44,7 +44,7 @@ The tenant data
 
 ###### bankingMode?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### code
 
@@ -56,7 +56,7 @@ The tenant data
 
 ###### description?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### id?
 
@@ -76,11 +76,11 @@ The tenant data
 
 ###### slug?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### type?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### updatedAt?
 
@@ -88,7 +88,7 @@ The tenant data
 
 ###### Returns
 
-`Effect`\<\{ `bankingMode`: `string` \| `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` \| `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` \| `null`; `type`: `string` \| `null`; `updatedAt`: `Date`; \}, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`{`<`}{`{`} `bankingMode`: `string` {`|`} `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` {`|`} `null`; `type`: `string` {`|`} `null`; `updatedAt`: `Date`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 An Effect resolving to the created tenant
 
@@ -98,7 +98,7 @@ An Effect resolving to the created tenant
 
 ##### delete()
 
-> **delete**(`id`): `Effect`\<\{ `bankingMode`: `string` \| `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` \| `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` \| `null`; `type`: `string` \| `null`; `updatedAt`: `Date`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+> **delete**(`id`): `Effect`{`<`}{`{`} `bankingMode`: `string` {`|`} `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` {`|`} `null`; `type`: `string` {`|`} `null`; `updatedAt`: `Date`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}
 
 Defined in: [src/repositories/tenants.repository.ts:180](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/tenants.repository.ts#L180)
 
@@ -114,7 +114,7 @@ The tenant ID
 
 ###### Returns
 
-`Effect`\<\{ `bankingMode`: `string` \| `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` \| `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` \| `null`; `type`: `string` \| `null`; `updatedAt`: `Date`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+`Effect`{`<`}{`{`} `bankingMode`: `string` {`|`} `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` {`|`} `null`; `type`: `string` {`|`} `null`; `updatedAt`: `Date`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}
 
 An Effect resolving to the updated (deleted) tenant
 
@@ -124,7 +124,7 @@ An Effect resolving to the updated (deleted) tenant
 
 ##### findAll()
 
-> **findAll**(`options?`): `Effect`\<[`PaginatedResult`](repositories.base.repository.md#paginatedresult)\<\{ `bankingMode`: `string` \| `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` \| `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` \| `null`; `type`: `string` \| `null`; `updatedAt`: `Date`; \}\>, [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **findAll**(`options?`): `Effect`{`<`}[`PaginatedResult`](repositories.base.repository.md#paginatedresult){`<`}{`{`} `bankingMode`: `string` {`|`} `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` {`|`} `null`; `type`: `string` {`|`} `null`; `updatedAt`: `Date`; {`}`}{`>`}, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 Defined in: [src/repositories/tenants.repository.ts:81](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/tenants.repository.ts#L81)
 
@@ -140,7 +140,7 @@ Query options including pagination and filters
 
 ###### Returns
 
-`Effect`\<[`PaginatedResult`](repositories.base.repository.md#paginatedresult)\<\{ `bankingMode`: `string` \| `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` \| `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` \| `null`; `type`: `string` \| `null`; `updatedAt`: `Date`; \}\>, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`{`<`}[`PaginatedResult`](repositories.base.repository.md#paginatedresult){`<`}{`{`} `bankingMode`: `string` {`|`} `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` {`|`} `null`; `type`: `string` {`|`} `null`; `updatedAt`: `Date`; {`}`}{`>`}, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 An Effect resolving to paginated tenant results
 
@@ -150,7 +150,7 @@ An Effect resolving to paginated tenant results
 
 ##### findByCode()
 
-> **findByCode**(`code`): `Effect`\<\{ `bankingMode`: `string` \| `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` \| `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` \| `null`; `type`: `string` \| `null`; `updatedAt`: `Date`; \} \| `undefined`, [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **findByCode**(`code`): `Effect`{`<`}{`{`} `bankingMode`: `string` {`|`} `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` {`|`} `null`; `type`: `string` {`|`} `null`; `updatedAt`: `Date`; {`}`} {`|`} `undefined`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 Defined in: [src/repositories/tenants.repository.ts:53](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/tenants.repository.ts#L53)
 
@@ -166,13 +166,13 @@ The tenant code
 
 ###### Returns
 
-`Effect`\<\{ `bankingMode`: `string` \| `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` \| `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` \| `null`; `type`: `string` \| `null`; `updatedAt`: `Date`; \} \| `undefined`, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`{`<`}{`{`} `bankingMode`: `string` {`|`} `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` {`|`} `null`; `type`: `string` {`|`} `null`; `updatedAt`: `Date`; {`}`} {`|`} `undefined`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 An Effect resolving to the tenant or undefined
 
 ##### findById()
 
-> **findById**(`id`): `Effect`\<\{ `bankingMode`: `string` \| `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` \| `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` \| `null`; `type`: `string` \| `null`; `updatedAt`: `Date`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+> **findById**(`id`): `Effect`{`<`}{`{`} `bankingMode`: `string` {`|`} `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` {`|`} `null`; `type`: `string` {`|`} `null`; `updatedAt`: `Date`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}
 
 Defined in: [src/repositories/tenants.repository.ts:36](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/tenants.repository.ts#L36)
 
@@ -188,7 +188,7 @@ The tenant ID
 
 ###### Returns
 
-`Effect`\<\{ `bankingMode`: `string` \| `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` \| `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` \| `null`; `type`: `string` \| `null`; `updatedAt`: `Date`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+`Effect`{`<`}{`{`} `bankingMode`: `string` {`|`} `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` {`|`} `null`; `type`: `string` {`|`} `null`; `updatedAt`: `Date`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}
 
 An Effect resolving to the tenant or NotFoundError
 
@@ -198,7 +198,7 @@ An Effect resolving to the tenant or NotFoundError
 
 ##### findBySlug()
 
-> **findBySlug**(`slug`): `Effect`\<\{ `bankingMode`: `string` \| `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` \| `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` \| `null`; `type`: `string` \| `null`; `updatedAt`: `Date`; \} \| `undefined`, [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **findBySlug**(`slug`): `Effect`{`<`}{`{`} `bankingMode`: `string` {`|`} `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` {`|`} `null`; `type`: `string` {`|`} `null`; `updatedAt`: `Date`; {`}`} {`|`} `undefined`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 Defined in: [src/repositories/tenants.repository.ts:67](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/tenants.repository.ts#L67)
 
@@ -214,13 +214,13 @@ The tenant slug
 
 ###### Returns
 
-`Effect`\<\{ `bankingMode`: `string` \| `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` \| `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` \| `null`; `type`: `string` \| `null`; `updatedAt`: `Date`; \} \| `undefined`, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`{`<`}{`{`} `bankingMode`: `string` {`|`} `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` {`|`} `null`; `type`: `string` {`|`} `null`; `updatedAt`: `Date`; {`}`} {`|`} `undefined`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 An Effect resolving to the tenant or undefined
 
 ##### update()
 
-> **update**(`id`, `data`): `Effect`\<\{ `bankingMode`: `string` \| `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` \| `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` \| `null`; `type`: `string` \| `null`; `updatedAt`: `Date`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+> **update**(`id`, `data`): `Effect`{`<`}{`{`} `bankingMode`: `string` {`|`} `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` {`|`} `null`; `type`: `string` {`|`} `null`; `updatedAt`: `Date`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}
 
 Defined in: [src/repositories/tenants.repository.ts:153](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/tenants.repository.ts#L153)
 
@@ -236,13 +236,13 @@ The tenant ID
 
 ###### data
 
-`Partial`\<[`NewTenant`](db.schema.core.md#newtenant)\>
+`Partial`{`<`}[`NewTenant`](db.schema.core.md#newtenant){`>`}
 
 The data to update
 
 ###### Returns
 
-`Effect`\<\{ `bankingMode`: `string` \| `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` \| `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` \| `null`; `type`: `string` \| `null`; `updatedAt`: `Date`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+`Effect`{`<`}{`{`} `bankingMode`: `string` {`|`} `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` {`|`} `null`; `type`: `string` {`|`} `null`; `updatedAt`: `Date`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror){`>`}
 
 An Effect resolving to the updated tenant or NotFoundError
 

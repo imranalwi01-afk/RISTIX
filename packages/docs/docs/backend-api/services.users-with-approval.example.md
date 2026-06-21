@@ -139,7 +139,7 @@ Defined in: [src/services/users-with-approval.example.ts:39](https://github.com/
 
 ### createUserWithApproval()
 
-> **createUserWithApproval**(`input`): `Effect`\<[`ApprovalResponse`](lib.approval-helpers.md#approvalresponse), `any`\>
+> **createUserWithApproval**(`input`): `Effect`{`<`}[`ApprovalResponse`](lib.approval-helpers.md#approvalresponse), `any`{`>`}
 
 Defined in: [src/services/users-with-approval.example.ts:62](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/users-with-approval.example.ts#L62)
 
@@ -158,13 +158,13 @@ This function will:
 
 #### Returns
 
-`Effect`\<[`ApprovalResponse`](lib.approval-helpers.md#approvalresponse), `any`\>
+`Effect`{`<`}[`ApprovalResponse`](lib.approval-helpers.md#approvalresponse), `any`{`>`}
 
 ***
 
 ### deleteUserWithApproval()
 
-> **deleteUserWithApproval**(`input`): `Effect`\<[`ApprovalResponse`](lib.approval-helpers.md#approvalresponse), `any`\>
+> **deleteUserWithApproval**(`input`): `Effect`{`<`}[`ApprovalResponse`](lib.approval-helpers.md#approvalresponse), `any`{`>`}
 
 Defined in: [src/services/users-with-approval.example.ts:158](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/users-with-approval.example.ts#L158)
 
@@ -178,13 +178,13 @@ Delete user with approval workflow
 
 #### Returns
 
-`Effect`\<[`ApprovalResponse`](lib.approval-helpers.md#approvalresponse), `any`\>
+`Effect`{`<`}[`ApprovalResponse`](lib.approval-helpers.md#approvalresponse), `any`{`>`}
 
 ***
 
 ### updateUserWithApproval()
 
-> **updateUserWithApproval**(`input`): `Effect`\<[`ApprovalResponse`](lib.approval-helpers.md#approvalresponse), `any`\>
+> **updateUserWithApproval**(`input`): `Effect`{`<`}[`ApprovalResponse`](lib.approval-helpers.md#approvalresponse), `any`{`>`}
 
 Defined in: [src/services/users-with-approval.example.ts:108](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/users-with-approval.example.ts#L108)
 
@@ -198,4 +198,4 @@ Update user with approval workflow
 
 #### Returns
 
-`Effect`\<[`ApprovalResponse`](lib.approval-helpers.md#approvalresponse), `any`\>
+`Effect`{`<`}[`ApprovalResponse`](lib.approval-helpers.md#approvalresponse), `any`{`>`}

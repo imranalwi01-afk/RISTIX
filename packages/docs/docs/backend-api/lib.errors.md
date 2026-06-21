@@ -14,7 +14,7 @@ Base application error - all errors extend from this
 
 #### Extends
 
-- `YieldableError`\<`this`\> & `object` & `Readonly`\<\{ `cause?`: `unknown`; `code`: `string`; `message`: `string`; \}\>
+- `YieldableError`{`<`}`this`{`>`} & `object` & `Readonly`{`<`}{`{`} `cause?`: `unknown`; `code`: `string`; `message`: `string`; {`}`}{`>`}
 
 #### Constructors
 
@@ -46,7 +46,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:610
 
 ###### Inherited from
 
-`Data.TaggedError('AppError')<{ readonly message: string readonly code: string readonly cause?: unknown }>.constructor`
+`Data.TaggedError('AppError'){`<`}{ readonly message: string readonly code: string readonly cause?: unknown }{`>`}.constructor`
 
 #### Properties
 
@@ -62,7 +62,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
 
 ##### \[ChannelTypeId\]
 
-> `readonly` **\[ChannelTypeId\]**: `VarianceStruct`\<`never`, `unknown`, [`AppError`](#apperror), `unknown`, `never`, `unknown`, `never`\>
+> `readonly` **\[ChannelTypeId\]**: `VarianceStruct`{`<`}`never`, `unknown`, [`AppError`](#apperror), `unknown`, `never`, `unknown`, `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
@@ -72,7 +72,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
 ##### \[EffectTypeId\]
 
-> `readonly` **\[EffectTypeId\]**: `VarianceStruct`\<`never`, [`AppError`](#apperror), `never`\>
+> `readonly` **\[EffectTypeId\]**: `VarianceStruct`{`<`}`never`, [`AppError`](#apperror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
@@ -82,7 +82,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
 ##### \[SinkTypeId\]
 
-> `readonly` **\[SinkTypeId\]**: `VarianceStruct`\<`never`, `unknown`, `never`, [`AppError`](#apperror), `never`\>
+> `readonly` **\[SinkTypeId\]**: `VarianceStruct`{`<`}`never`, `unknown`, `never`, [`AppError`](#apperror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
@@ -92,7 +92,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
 ##### \[StreamTypeId\]
 
-> `readonly` **\[StreamTypeId\]**: `VarianceStruct`\<`never`, [`AppError`](#apperror), `never`\>
+> `readonly` **\[StreamTypeId\]**: `VarianceStruct`{`<`}`never`, [`AppError`](#apperror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
 
@@ -156,13 +156,13 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 ##### \[iterator\]()
 
-> **\[iterator\]**(): `EffectGenerator`\<`Effect`\<`never`, [`AppError`](#apperror), `never`\>\>
+> **\[iterator\]**(): `EffectGenerator`{`<`}`Effect`{`<`}`never`, [`AppError`](#apperror), `never`{`>`}{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
 
 ###### Returns
 
-`EffectGenerator`\<`Effect`\<`never`, [`AppError`](#apperror), `never`\>\>
+`EffectGenerator`{`<`}`Effect`{`<`}`never`, [`AppError`](#apperror), `never`{`>`}{`>`}
 
 ###### Inherited from
 
@@ -186,7 +186,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 ###### Call Signature
 
-> **pipe**\<`A`\>(`this`): `A`
+> **pipe**{`<`}`A`{`>`}(`this`): `A`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
@@ -212,7 +212,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`\>(`this`, `ab`): `B`
+> **pipe**{`<`}`A`, `B`{`>`}(`this`, `ab`): `B`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
@@ -246,7 +246,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`\>(`this`, `ab`, `bc`): `C`
+> **pipe**{`<`}`A`, `B`, `C`{`>`}(`this`, `ab`, `bc`): `C`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
@@ -288,7 +288,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`\>(`this`, `ab`, `bc`, `cd`): `D`
+> **pipe**{`<`}`A`, `B`, `C`, `D`{`>`}(`this`, `ab`, `bc`, `cd`): `D`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
@@ -338,7 +338,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`\>(`this`, `ab`, `bc`, `cd`, `de`): `E`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`{`>`}(`this`, `ab`, `bc`, `cd`, `de`): `E`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
@@ -396,7 +396,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
@@ -462,7 +462,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
@@ -536,7 +536,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
@@ -618,7 +618,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
@@ -708,7 +708,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
@@ -806,7 +806,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
@@ -912,7 +912,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
@@ -1026,7 +1026,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
@@ -1148,7 +1148,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
@@ -1278,7 +1278,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
@@ -1416,7 +1416,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
@@ -1562,7 +1562,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
@@ -1716,7 +1716,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
@@ -1878,7 +1878,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
@@ -2048,7 +2048,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
@@ -2226,7 +2226,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
@@ -2412,7 +2412,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
@@ -2634,7 +2634,7 @@ Authentication error - token invalid or missing
 
 #### Extends
 
-- `YieldableError`\<`this`\> & `object` & `Readonly`\<\{ `code?`: `string`; `message`: `string`; `reason`: `"missing_token"` \| `"invalid_token"` \| `"expired_token"` \| `"invalid_credentials"` \| `"refactor_pending"` \| `"unexpected_error"`; \}\>
+- `YieldableError`{`<`}`this`{`>`} & `object` & `Readonly`{`<`}{`{`} `code?`: `string`; `message`: `string`; `reason`: `"missing_token"` {`|`} `"invalid_token"` {`|`} `"expired_token"` {`|`} `"invalid_credentials"` {`|`} `"refactor_pending"` {`|`} `"unexpected_error"`; {`}`}{`>`}
 
 #### Constructors
 
@@ -2658,7 +2658,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:610
 
 ###### reason
 
-`"missing_token"` \| `"invalid_token"` \| `"expired_token"` \| `"invalid_credentials"` \| `"refactor_pending"` \| `"unexpected_error"`
+`"missing_token"` {`|`} `"invalid_token"` {`|`} `"expired_token"` {`|`} `"invalid_credentials"` {`|`} `"refactor_pending"` {`|`} `"unexpected_error"`
 
 ###### Returns
 
@@ -2666,7 +2666,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:610
 
 ###### Inherited from
 
-Data.TaggedError('AuthenticationError')\<\{ readonly message: string readonly reason: 'missing\_token' \| 'invalid\_token' \| 'expired\_token' \| 'invalid\_credentials' \| 'refactor\_pending' \| 'unexpected\_error' readonly code?: string \}\>.constructor
+Data.TaggedError('AuthenticationError'){`<`}{`{`} readonly message: string readonly reason: 'missing\_token' {`|`} 'invalid\_token' {`|`} 'expired\_token' {`|`} 'invalid\_credentials' {`|`} 'refactor\_pending' {`|`} 'unexpected\_error' readonly code?: string {`}`}{`>`}.constructor
 
 #### Properties
 
@@ -2682,7 +2682,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
 
 ##### \[ChannelTypeId\]
 
-> `readonly` **\[ChannelTypeId\]**: `VarianceStruct`\<`never`, `unknown`, [`AuthenticationError`](#authenticationerror), `unknown`, `never`, `unknown`, `never`\>
+> `readonly` **\[ChannelTypeId\]**: `VarianceStruct`{`<`}`never`, `unknown`, [`AuthenticationError`](#authenticationerror), `unknown`, `never`, `unknown`, `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
@@ -2692,7 +2692,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
 ##### \[EffectTypeId\]
 
-> `readonly` **\[EffectTypeId\]**: `VarianceStruct`\<`never`, [`AuthenticationError`](#authenticationerror), `never`\>
+> `readonly` **\[EffectTypeId\]**: `VarianceStruct`{`<`}`never`, [`AuthenticationError`](#authenticationerror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
@@ -2702,7 +2702,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
 ##### \[SinkTypeId\]
 
-> `readonly` **\[SinkTypeId\]**: `VarianceStruct`\<`never`, `unknown`, `never`, [`AuthenticationError`](#authenticationerror), `never`\>
+> `readonly` **\[SinkTypeId\]**: `VarianceStruct`{`<`}`never`, `unknown`, `never`, [`AuthenticationError`](#authenticationerror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
@@ -2712,7 +2712,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
 ##### \[StreamTypeId\]
 
-> `readonly` **\[StreamTypeId\]**: `VarianceStruct`\<`never`, [`AuthenticationError`](#authenticationerror), `never`\>
+> `readonly` **\[StreamTypeId\]**: `VarianceStruct`{`<`}`never`, [`AuthenticationError`](#authenticationerror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
 
@@ -2764,7 +2764,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1076
 
 ##### reason
 
-> `readonly` **reason**: `"missing_token"` \| `"invalid_token"` \| `"expired_token"` \| `"invalid_credentials"` \| `"refactor_pending"` \| `"unexpected_error"`
+> `readonly` **reason**: `"missing_token"` {`|`} `"invalid_token"` {`|`} `"expired_token"` {`|`} `"invalid_credentials"` {`|`} `"refactor_pending"` {`|`} `"unexpected_error"`
 
 Defined in: [src/lib/errors.ts:44](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L44)
 
@@ -2786,13 +2786,13 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 ##### \[iterator\]()
 
-> **\[iterator\]**(): `EffectGenerator`\<`Effect`\<`never`, [`AuthenticationError`](#authenticationerror), `never`\>\>
+> **\[iterator\]**(): `EffectGenerator`{`<`}`Effect`{`<`}`never`, [`AuthenticationError`](#authenticationerror), `never`{`>`}{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
 
 ###### Returns
 
-`EffectGenerator`\<`Effect`\<`never`, [`AuthenticationError`](#authenticationerror), `never`\>\>
+`EffectGenerator`{`<`}`Effect`{`<`}`never`, [`AuthenticationError`](#authenticationerror), `never`{`>`}{`>`}
 
 ###### Inherited from
 
@@ -2816,7 +2816,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 ###### Call Signature
 
-> **pipe**\<`A`\>(`this`): `A`
+> **pipe**{`<`}`A`{`>`}(`this`): `A`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
@@ -2842,7 +2842,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`\>(`this`, `ab`): `B`
+> **pipe**{`<`}`A`, `B`{`>`}(`this`, `ab`): `B`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
@@ -2876,7 +2876,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`\>(`this`, `ab`, `bc`): `C`
+> **pipe**{`<`}`A`, `B`, `C`{`>`}(`this`, `ab`, `bc`): `C`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
@@ -2918,7 +2918,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`\>(`this`, `ab`, `bc`, `cd`): `D`
+> **pipe**{`<`}`A`, `B`, `C`, `D`{`>`}(`this`, `ab`, `bc`, `cd`): `D`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
@@ -2968,7 +2968,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`\>(`this`, `ab`, `bc`, `cd`, `de`): `E`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`{`>`}(`this`, `ab`, `bc`, `cd`, `de`): `E`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
@@ -3026,7 +3026,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
@@ -3092,7 +3092,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
@@ -3166,7 +3166,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
@@ -3248,7 +3248,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
@@ -3338,7 +3338,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
@@ -3436,7 +3436,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
@@ -3542,7 +3542,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
@@ -3656,7 +3656,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
@@ -3778,7 +3778,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
@@ -3908,7 +3908,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
@@ -4046,7 +4046,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
@@ -4192,7 +4192,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
@@ -4346,7 +4346,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
@@ -4508,7 +4508,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
@@ -4678,7 +4678,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
@@ -4856,7 +4856,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
@@ -5042,7 +5042,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
@@ -5264,7 +5264,7 @@ Authorization error - user lacks permission
 
 #### Extends
 
-- `YieldableError`\<`this`\> & `object` & `Readonly`\<\{ `details?`: `Record`\<`string`, `unknown`\>; `message`: `string`; `requiredPermission`: `string`; `userId?`: `string`; \}\>
+- `YieldableError`{`<`}`this`{`>`} & `object` & `Readonly`{`<`}{`{`} `details?`: `Record`{`<`}`string`, `unknown`{`>`}; `message`: `string`; `requiredPermission`: `string`; `userId?`: `string`; {`}`}{`>`}
 
 #### Constructors
 
@@ -5280,7 +5280,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:610
 
 ###### details?
 
-`Record`\<`string`, `unknown`\>
+`Record`{`<`}`string`, `unknown`{`>`}
 
 ###### message
 
@@ -5316,7 +5316,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
 
 ##### \[ChannelTypeId\]
 
-> `readonly` **\[ChannelTypeId\]**: `VarianceStruct`\<`never`, `unknown`, [`AuthorizationError`](#authorizationerror), `unknown`, `never`, `unknown`, `never`\>
+> `readonly` **\[ChannelTypeId\]**: `VarianceStruct`{`<`}`never`, `unknown`, [`AuthorizationError`](#authorizationerror), `unknown`, `never`, `unknown`, `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
@@ -5326,7 +5326,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
 ##### \[EffectTypeId\]
 
-> `readonly` **\[EffectTypeId\]**: `VarianceStruct`\<`never`, [`AuthorizationError`](#authorizationerror), `never`\>
+> `readonly` **\[EffectTypeId\]**: `VarianceStruct`{`<`}`never`, [`AuthorizationError`](#authorizationerror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
@@ -5336,7 +5336,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
 ##### \[SinkTypeId\]
 
-> `readonly` **\[SinkTypeId\]**: `VarianceStruct`\<`never`, `unknown`, `never`, [`AuthorizationError`](#authorizationerror), `never`\>
+> `readonly` **\[SinkTypeId\]**: `VarianceStruct`{`<`}`never`, `unknown`, `never`, [`AuthorizationError`](#authorizationerror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
@@ -5346,7 +5346,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
 ##### \[StreamTypeId\]
 
-> `readonly` **\[StreamTypeId\]**: `VarianceStruct`\<`never`, [`AuthorizationError`](#authorizationerror), `never`\>
+> `readonly` **\[StreamTypeId\]**: `VarianceStruct`{`<`}`never`, [`AuthorizationError`](#authorizationerror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
 
@@ -5368,7 +5368,7 @@ The cause of the error.
 
 ##### details?
 
-> `readonly` `optional` **details**: `Record`\<`string`, `unknown`\>
+> `readonly` `optional` **details**: `Record`{`<`}`string`, `unknown`{`>`}
 
 Defined in: [src/lib/errors.ts:55](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L55)
 
@@ -5430,13 +5430,13 @@ Defined in: [src/lib/errors.ts:54](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 ##### \[iterator\]()
 
-> **\[iterator\]**(): `EffectGenerator`\<`Effect`\<`never`, [`AuthorizationError`](#authorizationerror), `never`\>\>
+> **\[iterator\]**(): `EffectGenerator`{`<`}`Effect`{`<`}`never`, [`AuthorizationError`](#authorizationerror), `never`{`>`}{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
 
 ###### Returns
 
-`EffectGenerator`\<`Effect`\<`never`, [`AuthorizationError`](#authorizationerror), `never`\>\>
+`EffectGenerator`{`<`}`Effect`{`<`}`never`, [`AuthorizationError`](#authorizationerror), `never`{`>`}{`>`}
 
 ###### Inherited from
 
@@ -5460,7 +5460,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 ###### Call Signature
 
-> **pipe**\<`A`\>(`this`): `A`
+> **pipe**{`<`}`A`{`>`}(`this`): `A`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
@@ -5486,7 +5486,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`\>(`this`, `ab`): `B`
+> **pipe**{`<`}`A`, `B`{`>`}(`this`, `ab`): `B`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
@@ -5520,7 +5520,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`\>(`this`, `ab`, `bc`): `C`
+> **pipe**{`<`}`A`, `B`, `C`{`>`}(`this`, `ab`, `bc`): `C`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
@@ -5562,7 +5562,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`\>(`this`, `ab`, `bc`, `cd`): `D`
+> **pipe**{`<`}`A`, `B`, `C`, `D`{`>`}(`this`, `ab`, `bc`, `cd`): `D`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
@@ -5612,7 +5612,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`\>(`this`, `ab`, `bc`, `cd`, `de`): `E`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`{`>`}(`this`, `ab`, `bc`, `cd`, `de`): `E`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
@@ -5670,7 +5670,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
@@ -5736,7 +5736,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
@@ -5810,7 +5810,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
@@ -5892,7 +5892,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
@@ -5982,7 +5982,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
@@ -6080,7 +6080,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
@@ -6186,7 +6186,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
@@ -6300,7 +6300,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
@@ -6422,7 +6422,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
@@ -6552,7 +6552,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
@@ -6690,7 +6690,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
@@ -6836,7 +6836,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
@@ -6990,7 +6990,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
@@ -7152,7 +7152,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
@@ -7322,7 +7322,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
@@ -7500,7 +7500,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
@@ -7686,7 +7686,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
@@ -7908,7 +7908,7 @@ Business rule violation
 
 #### Extends
 
-- `YieldableError`\<`this`\> & `object` & `Readonly`\<\{ `code`: `string`; `details?`: `Record`\<`string`, `unknown`\>; `message`: `string`; \}\>
+- `YieldableError`{`<`}`this`{`>`} & `object` & `Readonly`{`<`}{`{`} `code`: `string`; `details?`: `Record`{`<`}`string`, `unknown`{`>`}; `message`: `string`; {`}`}{`>`}
 
 #### Constructors
 
@@ -7928,7 +7928,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:610
 
 ###### details?
 
-`Record`\<`string`, `unknown`\>
+`Record`{`<`}`string`, `unknown`{`>`}
 
 ###### message
 
@@ -7956,7 +7956,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
 
 ##### \[ChannelTypeId\]
 
-> `readonly` **\[ChannelTypeId\]**: `VarianceStruct`\<`never`, `unknown`, [`BusinessError`](#businesserror), `unknown`, `never`, `unknown`, `never`\>
+> `readonly` **\[ChannelTypeId\]**: `VarianceStruct`{`<`}`never`, `unknown`, [`BusinessError`](#businesserror), `unknown`, `never`, `unknown`, `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
@@ -7966,7 +7966,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
 ##### \[EffectTypeId\]
 
-> `readonly` **\[EffectTypeId\]**: `VarianceStruct`\<`never`, [`BusinessError`](#businesserror), `never`\>
+> `readonly` **\[EffectTypeId\]**: `VarianceStruct`{`<`}`never`, [`BusinessError`](#businesserror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
@@ -7976,7 +7976,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
 ##### \[SinkTypeId\]
 
-> `readonly` **\[SinkTypeId\]**: `VarianceStruct`\<`never`, `unknown`, `never`, [`BusinessError`](#businesserror), `never`\>
+> `readonly` **\[SinkTypeId\]**: `VarianceStruct`{`<`}`never`, `unknown`, `never`, [`BusinessError`](#businesserror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
@@ -7986,7 +7986,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
 ##### \[StreamTypeId\]
 
-> `readonly` **\[StreamTypeId\]**: `VarianceStruct`\<`never`, [`BusinessError`](#businesserror), `never`\>
+> `readonly` **\[StreamTypeId\]**: `VarianceStruct`{`<`}`never`, [`BusinessError`](#businesserror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
 
@@ -8018,7 +8018,7 @@ Defined in: [src/lib/errors.ts:63](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 ##### details?
 
-> `readonly` `optional` **details**: `Record`\<`string`, `unknown`\>
+> `readonly` `optional` **details**: `Record`{`<`}`string`, `unknown`{`>`}
 
 Defined in: [src/lib/errors.ts:64](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L64)
 
@@ -8060,13 +8060,13 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 ##### \[iterator\]()
 
-> **\[iterator\]**(): `EffectGenerator`\<`Effect`\<`never`, [`BusinessError`](#businesserror), `never`\>\>
+> **\[iterator\]**(): `EffectGenerator`{`<`}`Effect`{`<`}`never`, [`BusinessError`](#businesserror), `never`{`>`}{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
 
 ###### Returns
 
-`EffectGenerator`\<`Effect`\<`never`, [`BusinessError`](#businesserror), `never`\>\>
+`EffectGenerator`{`<`}`Effect`{`<`}`never`, [`BusinessError`](#businesserror), `never`{`>`}{`>`}
 
 ###### Inherited from
 
@@ -8090,7 +8090,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 ###### Call Signature
 
-> **pipe**\<`A`\>(`this`): `A`
+> **pipe**{`<`}`A`{`>`}(`this`): `A`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
@@ -8116,7 +8116,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`\>(`this`, `ab`): `B`
+> **pipe**{`<`}`A`, `B`{`>`}(`this`, `ab`): `B`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
@@ -8150,7 +8150,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`\>(`this`, `ab`, `bc`): `C`
+> **pipe**{`<`}`A`, `B`, `C`{`>`}(`this`, `ab`, `bc`): `C`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
@@ -8192,7 +8192,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`\>(`this`, `ab`, `bc`, `cd`): `D`
+> **pipe**{`<`}`A`, `B`, `C`, `D`{`>`}(`this`, `ab`, `bc`, `cd`): `D`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
@@ -8242,7 +8242,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`\>(`this`, `ab`, `bc`, `cd`, `de`): `E`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`{`>`}(`this`, `ab`, `bc`, `cd`, `de`): `E`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
@@ -8300,7 +8300,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
@@ -8366,7 +8366,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
@@ -8440,7 +8440,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
@@ -8522,7 +8522,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
@@ -8612,7 +8612,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
@@ -8710,7 +8710,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
@@ -8816,7 +8816,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
@@ -8930,7 +8930,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
@@ -9052,7 +9052,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
@@ -9182,7 +9182,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
@@ -9320,7 +9320,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
@@ -9466,7 +9466,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
@@ -9620,7 +9620,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
@@ -9782,7 +9782,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
@@ -9952,7 +9952,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
@@ -10130,7 +10130,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
@@ -10316,7 +10316,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
@@ -10538,7 +10538,7 @@ Conflict error - duplicate resource or version mismatch
 
 #### Extends
 
-- `YieldableError`\<`this`\> & `object` & `Readonly`\<\{ `details?`: `Record`\<`string`, `unknown`\>; `field?`: `string`; `message`: `string`; `resource`: `string`; `value?`: `unknown`; \}\>
+- `YieldableError`{`<`}`this`{`>`} & `object` & `Readonly`{`<`}{`{`} `details?`: `Record`{`<`}`string`, `unknown`{`>`}; `field?`: `string`; `message`: `string`; `resource`: `string`; `value?`: `unknown`; {`}`}{`>`}
 
 #### Constructors
 
@@ -10554,7 +10554,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:610
 
 ###### details?
 
-`Record`\<`string`, `unknown`\>
+`Record`{`<`}`string`, `unknown`{`>`}
 
 ###### field?
 
@@ -10594,7 +10594,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
 
 ##### \[ChannelTypeId\]
 
-> `readonly` **\[ChannelTypeId\]**: `VarianceStruct`\<`never`, `unknown`, [`ConflictError`](#conflicterror), `unknown`, `never`, `unknown`, `never`\>
+> `readonly` **\[ChannelTypeId\]**: `VarianceStruct`{`<`}`never`, `unknown`, [`ConflictError`](#conflicterror), `unknown`, `never`, `unknown`, `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
@@ -10604,7 +10604,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
 ##### \[EffectTypeId\]
 
-> `readonly` **\[EffectTypeId\]**: `VarianceStruct`\<`never`, [`ConflictError`](#conflicterror), `never`\>
+> `readonly` **\[EffectTypeId\]**: `VarianceStruct`{`<`}`never`, [`ConflictError`](#conflicterror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
@@ -10614,7 +10614,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
 ##### \[SinkTypeId\]
 
-> `readonly` **\[SinkTypeId\]**: `VarianceStruct`\<`never`, `unknown`, `never`, [`ConflictError`](#conflicterror), `never`\>
+> `readonly` **\[SinkTypeId\]**: `VarianceStruct`{`<`}`never`, `unknown`, `never`, [`ConflictError`](#conflicterror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
@@ -10624,7 +10624,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
 ##### \[StreamTypeId\]
 
-> `readonly` **\[StreamTypeId\]**: `VarianceStruct`\<`never`, [`ConflictError`](#conflicterror), `never`\>
+> `readonly` **\[StreamTypeId\]**: `VarianceStruct`{`<`}`never`, [`ConflictError`](#conflicterror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
 
@@ -10646,7 +10646,7 @@ The cause of the error.
 
 ##### details?
 
-> `readonly` `optional` **details**: `Record`\<`string`, `unknown`\>
+> `readonly` `optional` **details**: `Record`{`<`}`string`, `unknown`{`>`}
 
 Defined in: [src/lib/errors.ts:83](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L83)
 
@@ -10718,13 +10718,13 @@ Defined in: [src/lib/errors.ts:82](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 ##### \[iterator\]()
 
-> **\[iterator\]**(): `EffectGenerator`\<`Effect`\<`never`, [`ConflictError`](#conflicterror), `never`\>\>
+> **\[iterator\]**(): `EffectGenerator`{`<`}`Effect`{`<`}`never`, [`ConflictError`](#conflicterror), `never`{`>`}{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
 
 ###### Returns
 
-`EffectGenerator`\<`Effect`\<`never`, [`ConflictError`](#conflicterror), `never`\>\>
+`EffectGenerator`{`<`}`Effect`{`<`}`never`, [`ConflictError`](#conflicterror), `never`{`>`}{`>`}
 
 ###### Inherited from
 
@@ -10748,7 +10748,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 ###### Call Signature
 
-> **pipe**\<`A`\>(`this`): `A`
+> **pipe**{`<`}`A`{`>`}(`this`): `A`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
@@ -10774,7 +10774,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`\>(`this`, `ab`): `B`
+> **pipe**{`<`}`A`, `B`{`>`}(`this`, `ab`): `B`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
@@ -10808,7 +10808,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`\>(`this`, `ab`, `bc`): `C`
+> **pipe**{`<`}`A`, `B`, `C`{`>`}(`this`, `ab`, `bc`): `C`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
@@ -10850,7 +10850,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`\>(`this`, `ab`, `bc`, `cd`): `D`
+> **pipe**{`<`}`A`, `B`, `C`, `D`{`>`}(`this`, `ab`, `bc`, `cd`): `D`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
@@ -10900,7 +10900,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`\>(`this`, `ab`, `bc`, `cd`, `de`): `E`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`{`>`}(`this`, `ab`, `bc`, `cd`, `de`): `E`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
@@ -10958,7 +10958,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
@@ -11024,7 +11024,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
@@ -11098,7 +11098,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
@@ -11180,7 +11180,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
@@ -11270,7 +11270,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
@@ -11368,7 +11368,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
@@ -11474,7 +11474,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
@@ -11588,7 +11588,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
@@ -11710,7 +11710,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
@@ -11840,7 +11840,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
@@ -11978,7 +11978,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
@@ -12124,7 +12124,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
@@ -12278,7 +12278,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
@@ -12440,7 +12440,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
@@ -12610,7 +12610,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
@@ -12788,7 +12788,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
@@ -12974,7 +12974,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
@@ -13196,7 +13196,7 @@ Database operation errors
 
 #### Extends
 
-- `YieldableError`\<`this`\> & `object` & `Readonly`\<\{ `cause?`: `unknown`; `message`: `string`; `operation`: `"query"` \| `"insert"` \| `"update"` \| `"delete"` \| `"upsert"` \| `"transaction"`; \}\>
+- `YieldableError`{`<`}`this`{`>`} & `object` & `Readonly`{`<`}{`{`} `cause?`: `unknown`; `message`: `string`; `operation`: `"query"` {`|`} `"insert"` {`|`} `"update"` {`|`} `"delete"` {`|`} `"upsert"` {`|`} `"transaction"`; {`}`}{`>`}
 
 #### Constructors
 
@@ -13220,7 +13220,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:610
 
 ###### operation
 
-`"query"` \| `"insert"` \| `"update"` \| `"delete"` \| `"upsert"` \| `"transaction"`
+`"query"` {`|`} `"insert"` {`|`} `"update"` {`|`} `"delete"` {`|`} `"upsert"` {`|`} `"transaction"`
 
 ###### Returns
 
@@ -13228,7 +13228,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:610
 
 ###### Inherited from
 
-Data.TaggedError('DatabaseError')\<\{ readonly message: string readonly operation: 'query' \| 'insert' \| 'update' \| 'delete' \| 'upsert' \| 'transaction' readonly cause?: unknown \}\>.constructor
+Data.TaggedError('DatabaseError'){`<`}{`{`} readonly message: string readonly operation: 'query' {`|`} 'insert' {`|`} 'update' {`|`} 'delete' {`|`} 'upsert' {`|`} 'transaction' readonly cause?: unknown {`}`}{`>`}.constructor
 
 #### Properties
 
@@ -13244,7 +13244,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
 
 ##### \[ChannelTypeId\]
 
-> `readonly` **\[ChannelTypeId\]**: `VarianceStruct`\<`never`, `unknown`, [`DatabaseError`](#databaseerror), `unknown`, `never`, `unknown`, `never`\>
+> `readonly` **\[ChannelTypeId\]**: `VarianceStruct`{`<`}`never`, `unknown`, [`DatabaseError`](#databaseerror), `unknown`, `never`, `unknown`, `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
@@ -13254,7 +13254,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
 ##### \[EffectTypeId\]
 
-> `readonly` **\[EffectTypeId\]**: `VarianceStruct`\<`never`, [`DatabaseError`](#databaseerror), `never`\>
+> `readonly` **\[EffectTypeId\]**: `VarianceStruct`{`<`}`never`, [`DatabaseError`](#databaseerror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
@@ -13264,7 +13264,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
 ##### \[SinkTypeId\]
 
-> `readonly` **\[SinkTypeId\]**: `VarianceStruct`\<`never`, `unknown`, `never`, [`DatabaseError`](#databaseerror), `never`\>
+> `readonly` **\[SinkTypeId\]**: `VarianceStruct`{`<`}`never`, `unknown`, `never`, [`DatabaseError`](#databaseerror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
@@ -13274,7 +13274,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
 ##### \[StreamTypeId\]
 
-> `readonly` **\[StreamTypeId\]**: `VarianceStruct`\<`never`, [`DatabaseError`](#databaseerror), `never`\>
+> `readonly` **\[StreamTypeId\]**: `VarianceStruct`{`<`}`never`, [`DatabaseError`](#databaseerror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
 
@@ -13316,7 +13316,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1076
 
 ##### operation
 
-> `readonly` **operation**: `"query"` \| `"insert"` \| `"update"` \| `"delete"` \| `"upsert"` \| `"transaction"`
+> `readonly` **operation**: `"query"` {`|`} `"insert"` {`|`} `"update"` {`|`} `"delete"` {`|`} `"upsert"` {`|`} `"transaction"`
 
 Defined in: [src/lib/errors.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L17)
 
@@ -13338,13 +13338,13 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 ##### \[iterator\]()
 
-> **\[iterator\]**(): `EffectGenerator`\<`Effect`\<`never`, [`DatabaseError`](#databaseerror), `never`\>\>
+> **\[iterator\]**(): `EffectGenerator`{`<`}`Effect`{`<`}`never`, [`DatabaseError`](#databaseerror), `never`{`>`}{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
 
 ###### Returns
 
-`EffectGenerator`\<`Effect`\<`never`, [`DatabaseError`](#databaseerror), `never`\>\>
+`EffectGenerator`{`<`}`Effect`{`<`}`never`, [`DatabaseError`](#databaseerror), `never`{`>`}{`>`}
 
 ###### Inherited from
 
@@ -13368,7 +13368,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 ###### Call Signature
 
-> **pipe**\<`A`\>(`this`): `A`
+> **pipe**{`<`}`A`{`>`}(`this`): `A`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
@@ -13394,7 +13394,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`\>(`this`, `ab`): `B`
+> **pipe**{`<`}`A`, `B`{`>`}(`this`, `ab`): `B`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
@@ -13428,7 +13428,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`\>(`this`, `ab`, `bc`): `C`
+> **pipe**{`<`}`A`, `B`, `C`{`>`}(`this`, `ab`, `bc`): `C`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
@@ -13470,7 +13470,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`\>(`this`, `ab`, `bc`, `cd`): `D`
+> **pipe**{`<`}`A`, `B`, `C`, `D`{`>`}(`this`, `ab`, `bc`, `cd`): `D`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
@@ -13520,7 +13520,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`\>(`this`, `ab`, `bc`, `cd`, `de`): `E`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`{`>`}(`this`, `ab`, `bc`, `cd`, `de`): `E`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
@@ -13578,7 +13578,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
@@ -13644,7 +13644,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
@@ -13718,7 +13718,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
@@ -13800,7 +13800,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
@@ -13890,7 +13890,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
@@ -13988,7 +13988,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
@@ -14094,7 +14094,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
@@ -14208,7 +14208,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
@@ -14330,7 +14330,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
@@ -14460,7 +14460,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
@@ -14598,7 +14598,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
@@ -14744,7 +14744,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
@@ -14898,7 +14898,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
@@ -15060,7 +15060,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
@@ -15230,7 +15230,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
@@ -15408,7 +15408,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
@@ -15594,7 +15594,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
@@ -15816,7 +15816,7 @@ Resource not found error
 
 #### Extends
 
-- `YieldableError`\<`this`\> & `object` & `Readonly`\<\{ `id`: `string` \| `number`; `message`: `string`; `resource`: `string`; \}\>
+- `YieldableError`{`<`}`this`{`>`} & `object` & `Readonly`{`<`}{`{`} `id`: `string` {`|`} `number`; `message`: `string`; `resource`: `string`; {`}`}{`>`}
 
 #### Constructors
 
@@ -15832,7 +15832,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:610
 
 ###### id
 
-`string` \| `number`
+`string` {`|`} `number`
 
 ###### message
 
@@ -15848,7 +15848,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:610
 
 ###### Inherited from
 
-Data.TaggedError('NotFoundError')\<\{ readonly message: string readonly resource: string readonly id: string \| number \}\>.constructor
+Data.TaggedError('NotFoundError'){`<`}{`{`} readonly message: string readonly resource: string readonly id: string {`|`} number {`}`}{`>`}.constructor
 
 #### Properties
 
@@ -15864,7 +15864,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
 
 ##### \[ChannelTypeId\]
 
-> `readonly` **\[ChannelTypeId\]**: `VarianceStruct`\<`never`, `unknown`, [`NotFoundError`](#notfounderror), `unknown`, `never`, `unknown`, `never`\>
+> `readonly` **\[ChannelTypeId\]**: `VarianceStruct`{`<`}`never`, `unknown`, [`NotFoundError`](#notfounderror), `unknown`, `never`, `unknown`, `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
@@ -15874,7 +15874,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
 ##### \[EffectTypeId\]
 
-> `readonly` **\[EffectTypeId\]**: `VarianceStruct`\<`never`, [`NotFoundError`](#notfounderror), `never`\>
+> `readonly` **\[EffectTypeId\]**: `VarianceStruct`{`<`}`never`, [`NotFoundError`](#notfounderror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
@@ -15884,7 +15884,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
 ##### \[SinkTypeId\]
 
-> `readonly` **\[SinkTypeId\]**: `VarianceStruct`\<`never`, `unknown`, `never`, [`NotFoundError`](#notfounderror), `never`\>
+> `readonly` **\[SinkTypeId\]**: `VarianceStruct`{`<`}`never`, `unknown`, `never`, [`NotFoundError`](#notfounderror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
@@ -15894,7 +15894,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
 ##### \[StreamTypeId\]
 
-> `readonly` **\[StreamTypeId\]**: `VarianceStruct`\<`never`, [`NotFoundError`](#notfounderror), `never`\>
+> `readonly` **\[StreamTypeId\]**: `VarianceStruct`{`<`}`never`, [`NotFoundError`](#notfounderror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
 
@@ -15916,7 +15916,7 @@ The cause of the error.
 
 ##### id
 
-> `readonly` **id**: `string` \| `number`
+> `readonly` **id**: `string` {`|`} `number`
 
 Defined in: [src/lib/errors.ts:36](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L36)
 
@@ -15968,13 +15968,13 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 ##### \[iterator\]()
 
-> **\[iterator\]**(): `EffectGenerator`\<`Effect`\<`never`, [`NotFoundError`](#notfounderror), `never`\>\>
+> **\[iterator\]**(): `EffectGenerator`{`<`}`Effect`{`<`}`never`, [`NotFoundError`](#notfounderror), `never`{`>`}{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
 
 ###### Returns
 
-`EffectGenerator`\<`Effect`\<`never`, [`NotFoundError`](#notfounderror), `never`\>\>
+`EffectGenerator`{`<`}`Effect`{`<`}`never`, [`NotFoundError`](#notfounderror), `never`{`>`}{`>`}
 
 ###### Inherited from
 
@@ -15998,7 +15998,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 ###### Call Signature
 
-> **pipe**\<`A`\>(`this`): `A`
+> **pipe**{`<`}`A`{`>`}(`this`): `A`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
@@ -16024,7 +16024,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`\>(`this`, `ab`): `B`
+> **pipe**{`<`}`A`, `B`{`>`}(`this`, `ab`): `B`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
@@ -16058,7 +16058,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`\>(`this`, `ab`, `bc`): `C`
+> **pipe**{`<`}`A`, `B`, `C`{`>`}(`this`, `ab`, `bc`): `C`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
@@ -16100,7 +16100,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`\>(`this`, `ab`, `bc`, `cd`): `D`
+> **pipe**{`<`}`A`, `B`, `C`, `D`{`>`}(`this`, `ab`, `bc`, `cd`): `D`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
@@ -16150,7 +16150,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`\>(`this`, `ab`, `bc`, `cd`, `de`): `E`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`{`>`}(`this`, `ab`, `bc`, `cd`, `de`): `E`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
@@ -16208,7 +16208,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
@@ -16274,7 +16274,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
@@ -16348,7 +16348,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
@@ -16430,7 +16430,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
@@ -16520,7 +16520,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
@@ -16618,7 +16618,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
@@ -16724,7 +16724,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
@@ -16838,7 +16838,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
@@ -16960,7 +16960,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
@@ -17090,7 +17090,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
@@ -17228,7 +17228,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
@@ -17374,7 +17374,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
@@ -17528,7 +17528,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
@@ -17690,7 +17690,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
@@ -17860,7 +17860,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
@@ -18038,7 +18038,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
@@ -18224,7 +18224,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
@@ -18446,7 +18446,7 @@ Rate limit exceeded
 
 #### Extends
 
-- `YieldableError`\<`this`\> & `object` & `Readonly`\<\{ `message`: `string`; `retryAfter`: `number`; \}\>
+- `YieldableError`{`<`}`this`{`>`} & `object` & `Readonly`{`<`}{`{`} `message`: `string`; `retryAfter`: `number`; {`}`}{`>`}
 
 #### Constructors
 
@@ -18490,7 +18490,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
 
 ##### \[ChannelTypeId\]
 
-> `readonly` **\[ChannelTypeId\]**: `VarianceStruct`\<`never`, `unknown`, [`RateLimitError`](#ratelimiterror), `unknown`, `never`, `unknown`, `never`\>
+> `readonly` **\[ChannelTypeId\]**: `VarianceStruct`{`<`}`never`, `unknown`, [`RateLimitError`](#ratelimiterror), `unknown`, `never`, `unknown`, `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
@@ -18500,7 +18500,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
 ##### \[EffectTypeId\]
 
-> `readonly` **\[EffectTypeId\]**: `VarianceStruct`\<`never`, [`RateLimitError`](#ratelimiterror), `never`\>
+> `readonly` **\[EffectTypeId\]**: `VarianceStruct`{`<`}`never`, [`RateLimitError`](#ratelimiterror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
@@ -18510,7 +18510,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
 ##### \[SinkTypeId\]
 
-> `readonly` **\[SinkTypeId\]**: `VarianceStruct`\<`never`, `unknown`, `never`, [`RateLimitError`](#ratelimiterror), `never`\>
+> `readonly` **\[SinkTypeId\]**: `VarianceStruct`{`<`}`never`, `unknown`, `never`, [`RateLimitError`](#ratelimiterror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
@@ -18520,7 +18520,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
 ##### \[StreamTypeId\]
 
-> `readonly` **\[StreamTypeId\]**: `VarianceStruct`\<`never`, [`RateLimitError`](#ratelimiterror), `never`\>
+> `readonly` **\[StreamTypeId\]**: `VarianceStruct`{`<`}`never`, [`RateLimitError`](#ratelimiterror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
 
@@ -18584,13 +18584,13 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 ##### \[iterator\]()
 
-> **\[iterator\]**(): `EffectGenerator`\<`Effect`\<`never`, [`RateLimitError`](#ratelimiterror), `never`\>\>
+> **\[iterator\]**(): `EffectGenerator`{`<`}`Effect`{`<`}`never`, [`RateLimitError`](#ratelimiterror), `never`{`>`}{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
 
 ###### Returns
 
-`EffectGenerator`\<`Effect`\<`never`, [`RateLimitError`](#ratelimiterror), `never`\>\>
+`EffectGenerator`{`<`}`Effect`{`<`}`never`, [`RateLimitError`](#ratelimiterror), `never`{`>`}{`>`}
 
 ###### Inherited from
 
@@ -18614,7 +18614,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 ###### Call Signature
 
-> **pipe**\<`A`\>(`this`): `A`
+> **pipe**{`<`}`A`{`>`}(`this`): `A`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
@@ -18640,7 +18640,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`\>(`this`, `ab`): `B`
+> **pipe**{`<`}`A`, `B`{`>`}(`this`, `ab`): `B`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
@@ -18674,7 +18674,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`\>(`this`, `ab`, `bc`): `C`
+> **pipe**{`<`}`A`, `B`, `C`{`>`}(`this`, `ab`, `bc`): `C`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
@@ -18716,7 +18716,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`\>(`this`, `ab`, `bc`, `cd`): `D`
+> **pipe**{`<`}`A`, `B`, `C`, `D`{`>`}(`this`, `ab`, `bc`, `cd`): `D`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
@@ -18766,7 +18766,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`\>(`this`, `ab`, `bc`, `cd`, `de`): `E`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`{`>`}(`this`, `ab`, `bc`, `cd`, `de`): `E`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
@@ -18824,7 +18824,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
@@ -18890,7 +18890,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
@@ -18964,7 +18964,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
@@ -19046,7 +19046,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
@@ -19136,7 +19136,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
@@ -19234,7 +19234,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
@@ -19340,7 +19340,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
@@ -19454,7 +19454,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
@@ -19576,7 +19576,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
@@ -19706,7 +19706,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
@@ -19844,7 +19844,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
@@ -19990,7 +19990,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
@@ -20144,7 +20144,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
@@ -20306,7 +20306,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
@@ -20476,7 +20476,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
@@ -20654,7 +20654,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
@@ -20840,7 +20840,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
@@ -21062,7 +21062,7 @@ Validation errors from Zod or business rules
 
 #### Extends
 
-- `YieldableError`\<`this`\> & `object` & `Readonly`\<\{ `errors`: readonly `string`[]; `field?`: `string`; `message`: `string`; \}\>
+- `YieldableError`{`<`}`this`{`>`} & `object` & `Readonly`{`<`}{`{`} `errors`: readonly `string`[]; `field?`: `string`; `message`: `string`; {`}`}{`>`}
 
 #### Constructors
 
@@ -21110,7 +21110,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
 
 ##### \[ChannelTypeId\]
 
-> `readonly` **\[ChannelTypeId\]**: `VarianceStruct`\<`never`, `unknown`, [`ValidationError`](#validationerror), `unknown`, `never`, `unknown`, `never`\>
+> `readonly` **\[ChannelTypeId\]**: `VarianceStruct`{`<`}`never`, `unknown`, [`ValidationError`](#validationerror), `unknown`, `never`, `unknown`, `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
@@ -21120,7 +21120,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
 ##### \[EffectTypeId\]
 
-> `readonly` **\[EffectTypeId\]**: `VarianceStruct`\<`never`, [`ValidationError`](#validationerror), `never`\>
+> `readonly` **\[EffectTypeId\]**: `VarianceStruct`{`<`}`never`, [`ValidationError`](#validationerror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
@@ -21130,7 +21130,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
 ##### \[SinkTypeId\]
 
-> `readonly` **\[SinkTypeId\]**: `VarianceStruct`\<`never`, `unknown`, `never`, [`ValidationError`](#validationerror), `never`\>
+> `readonly` **\[SinkTypeId\]**: `VarianceStruct`{`<`}`never`, `unknown`, `never`, [`ValidationError`](#validationerror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
@@ -21140,7 +21140,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
 ##### \[StreamTypeId\]
 
-> `readonly` **\[StreamTypeId\]**: `VarianceStruct`\<`never`, [`ValidationError`](#validationerror), `never`\>
+> `readonly` **\[StreamTypeId\]**: `VarianceStruct`{`<`}`never`, [`ValidationError`](#validationerror), `never`{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
 
@@ -21214,13 +21214,13 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 ##### \[iterator\]()
 
-> **\[iterator\]**(): `EffectGenerator`\<`Effect`\<`never`, [`ValidationError`](#validationerror), `never`\>\>
+> **\[iterator\]**(): `EffectGenerator`{`<`}`Effect`{`<`}`never`, [`ValidationError`](#validationerror), `never`{`>`}{`>`}
 
 Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
 
 ###### Returns
 
-`EffectGenerator`\<`Effect`\<`never`, [`ValidationError`](#validationerror), `never`\>\>
+`EffectGenerator`{`<`}`Effect`{`<`}`never`, [`ValidationError`](#validationerror), `never`{`>`}{`>`}
 
 ###### Inherited from
 
@@ -21244,7 +21244,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 ###### Call Signature
 
-> **pipe**\<`A`\>(`this`): `A`
+> **pipe**{`<`}`A`{`>`}(`this`): `A`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
@@ -21270,7 +21270,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`\>(`this`, `ab`): `B`
+> **pipe**{`<`}`A`, `B`{`>`}(`this`, `ab`): `B`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
@@ -21304,7 +21304,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`\>(`this`, `ab`, `bc`): `C`
+> **pipe**{`<`}`A`, `B`, `C`{`>`}(`this`, `ab`, `bc`): `C`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
@@ -21346,7 +21346,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`\>(`this`, `ab`, `bc`, `cd`): `D`
+> **pipe**{`<`}`A`, `B`, `C`, `D`{`>`}(`this`, `ab`, `bc`, `cd`): `D`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
@@ -21396,7 +21396,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`\>(`this`, `ab`, `bc`, `cd`, `de`): `E`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`{`>`}(`this`, `ab`, `bc`, `cd`, `de`): `E`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
@@ -21454,7 +21454,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
@@ -21520,7 +21520,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
@@ -21594,7 +21594,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
@@ -21676,7 +21676,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
@@ -21766,7 +21766,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
@@ -21864,7 +21864,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
@@ -21970,7 +21970,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
@@ -22084,7 +22084,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
@@ -22206,7 +22206,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
@@ -22336,7 +22336,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
@@ -22474,7 +22474,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
@@ -22620,7 +22620,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
@@ -22774,7 +22774,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
@@ -22936,7 +22936,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
@@ -23106,7 +23106,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
@@ -23284,7 +23284,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
@@ -23470,7 +23470,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 ###### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`\>(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
+> **pipe**{`<`}`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`{`>`}(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
 Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
@@ -23686,7 +23686,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:20
 
 ### CommonError
 
-> **CommonError** = [`DatabaseError`](#databaseerror) \| [`ValidationError`](#validationerror) \| [`NotFoundError`](#notfounderror) \| [`AuthenticationError`](#authenticationerror) \| [`AuthorizationError`](#authorizationerror) \| [`BusinessError`](#businesserror) \| [`ConflictError`](#conflicterror)
+> **CommonError** = [`DatabaseError`](#databaseerror) {`|`} [`ValidationError`](#validationerror) {`|`} [`NotFoundError`](#notfounderror) {`|`} [`AuthenticationError`](#authenticationerror) {`|`} [`AuthorizationError`](#authorizationerror) {`|`} [`BusinessError`](#businesserror) {`|`} [`ConflictError`](#conflicterror)
 
 Defined in: [src/lib/errors.ts:89](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L89)
 

@@ -18,7 +18,7 @@ Log approval events
 
 ##### approved()
 
-> **approved**: (`requestId`, `title`, `approvedBy`, `tenantId`, `comment?`, `details?`) => `Promise`\<`void`\>
+> **approved**: (`requestId`, `title`, `approvedBy`, `tenantId`, `comment?`, `details?`) => `Promise`{`<`}`void`{`>`}
 
 ###### Parameters
 
@@ -58,11 +58,11 @@ Log approval events
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ##### cancelled()
 
-> **cancelled**: (`requestId`, `title`, `cancelledBy`, `tenantId`, `reason?`, `details?`) => `Promise`\<`void`\>
+> **cancelled**: (`requestId`, `title`, `cancelledBy`, `tenantId`, `reason?`, `details?`) => `Promise`{`<`}`void`{`>`}
 
 ###### Parameters
 
@@ -102,11 +102,11 @@ Log approval events
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ##### delegated()
 
-> **delegated**: (`requestId`, `title`, `delegatedBy`, `tenantId`, `delegatedTo?`, `details?`) => `Promise`\<`void`\>
+> **delegated**: (`requestId`, `title`, `delegatedBy`, `tenantId`, `delegatedTo?`, `details?`) => `Promise`{`<`}`void`{`>`}
 
 ###### Parameters
 
@@ -146,11 +146,11 @@ Log approval events
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ##### infoRequested()
 
-> **infoRequested**: (`requestId`, `title`, `requestedBy`, `tenantId`, `comment?`, `details?`) => `Promise`\<`void`\>
+> **infoRequested**: (`requestId`, `title`, `requestedBy`, `tenantId`, `comment?`, `details?`) => `Promise`{`<`}`void`{`>`}
 
 ###### Parameters
 
@@ -190,11 +190,11 @@ Log approval events
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ##### rejected()
 
-> **rejected**: (`requestId`, `title`, `rejectedBy`, `tenantId`, `reason?`, `details?`) => `Promise`\<`void`\>
+> **rejected**: (`requestId`, `title`, `rejectedBy`, `tenantId`, `reason?`, `details?`) => `Promise`{`<`}`void`{`>`}
 
 ###### Parameters
 
@@ -234,11 +234,11 @@ Log approval events
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ##### requested()
 
-> **requested**: (`requestId`, `title`, `requestedBy`, `tenantId`, `details?`) => `Promise`\<`void`\>
+> **requested**: (`requestId`, `title`, `requestedBy`, `tenantId`, `details?`) => `Promise`{`<`}`void`{`>`}
 
 ###### Parameters
 
@@ -286,7 +286,7 @@ Log approval events
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ***
 
@@ -302,7 +302,7 @@ Log authentication events
 
 ##### login()
 
-> **login**: (`userId`, `tenantId`, `ipAddress?`, `userAgent?`) => `Promise`\<`void`\>
+> **login**: (`userId`, `tenantId`, `ipAddress?`, `userAgent?`) => `Promise`{`<`}`void`{`>`}
 
 ###### Parameters
 
@@ -324,11 +324,11 @@ Log authentication events
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ##### loginFailed()
 
-> **loginFailed**: (`email`, `tenantId?`, `ipAddress?`, `reason?`) => `Promise`\<`void`\>
+> **loginFailed**: (`email`, `tenantId?`, `ipAddress?`, `reason?`) => `Promise`{`<`}`void`{`>`}
 
 ###### Parameters
 
@@ -350,11 +350,11 @@ Log authentication events
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ##### logout()
 
-> **logout**: (`userId`, `tenantId`, `ipAddress?`) => `Promise`\<`void`\>
+> **logout**: (`userId`, `tenantId`, `ipAddress?`) => `Promise`{`<`}`void`{`>`}
 
 ###### Parameters
 
@@ -372,11 +372,11 @@ Log authentication events
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ##### sessionExpired()
 
-> **sessionExpired**: (`userId`, `tenantId`) => `Promise`\<`void`\>
+> **sessionExpired**: (`userId`, `tenantId`) => `Promise`{`<`}`void`{`>`}
 
 ###### Parameters
 
@@ -390,7 +390,7 @@ Log authentication events
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ***
 
@@ -406,7 +406,7 @@ Log data modification events
 
 ##### create()
 
-> **create**: (`resource`, `resourceId`, `newValues`, `userId`, `tenantId`) => `Promise`\<`void`\>
+> **create**: (`resource`, `resourceId`, `newValues`, `userId`, `tenantId`) => `Promise`{`<`}`void`{`>`}
 
 ###### Parameters
 
@@ -432,11 +432,11 @@ Log data modification events
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ##### delete()
 
-> **delete**: (`resource`, `resourceId`, `oldValues`, `userId`, `tenantId`) => `Promise`\<`void`\>
+> **delete**: (`resource`, `resourceId`, `oldValues`, `userId`, `tenantId`) => `Promise`{`<`}`void`{`>`}
 
 ###### Parameters
 
@@ -462,11 +462,11 @@ Log data modification events
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ##### update()
 
-> **update**: (`resource`, `resourceId`, `oldValues`, `newValues`, `userId`, `tenantId`) => `Promise`\<`void`\>
+> **update**: (`resource`, `resourceId`, `oldValues`, `newValues`, `userId`, `tenantId`) => `Promise`{`<`}`void`{`>`}
 
 ###### Parameters
 
@@ -496,7 +496,7 @@ Log data modification events
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ***
 
@@ -512,7 +512,7 @@ Log job events
 
 ##### completed()
 
-> **completed**: (`executionId`, `jobName`, `duration`, `tenantId`) => `Promise`\<`void`\>
+> **completed**: (`executionId`, `jobName`, `duration`, `tenantId`) => `Promise`{`<`}`void`{`>`}
 
 ###### Parameters
 
@@ -534,11 +534,11 @@ Log job events
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ##### created()
 
-> **created**: (`jobId`, `jobName`, `jobType`, `userId`, `tenantId`) => `Promise`\<`void`\>
+> **created**: (`jobId`, `jobName`, `jobType`, `userId`, `tenantId`) => `Promise`{`<`}`void`{`>`}
 
 ###### Parameters
 
@@ -564,11 +564,11 @@ Log job events
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ##### failed()
 
-> **failed**: (`executionId`, `jobName`, `error`, `tenantId`) => `Promise`\<`void`\>
+> **failed**: (`executionId`, `jobName`, `error`, `tenantId`) => `Promise`{`<`}`void`{`>`}
 
 ###### Parameters
 
@@ -590,11 +590,11 @@ Log job events
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ##### triggered()
 
-> **triggered**: (`executionId`, `jobName`, `jobType`, `userId`, `tenantId`, `parameters?`) => `Promise`\<`void`\>
+> **triggered**: (`executionId`, `jobName`, `jobType`, `userId`, `tenantId`, `parameters?`) => `Promise`{`<`}`void`{`>`}
 
 ###### Parameters
 
@@ -624,7 +624,7 @@ Log job events
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ***
 
@@ -640,7 +640,7 @@ Log permission changes
 
 ##### permissionsUpdated()
 
-> **permissionsUpdated**: (`roleId`, `roleName`, `oldPermissions`, `newPermissions`, `updatedBy`, `tenantId`) => `Promise`\<`void`\>
+> **permissionsUpdated**: (`roleId`, `roleName`, `oldPermissions`, `newPermissions`, `updatedBy`, `tenantId`) => `Promise`{`<`}`void`{`>`}
 
 ###### Parameters
 
@@ -670,11 +670,11 @@ Log permission changes
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ##### roleAssigned()
 
-> **roleAssigned**: (`userId`, `roleId`, `roleName`, `assignedBy`, `tenantId`) => `Promise`\<`void`\>
+> **roleAssigned**: (`userId`, `roleId`, `roleName`, `assignedBy`, `tenantId`) => `Promise`{`<`}`void`{`>`}
 
 ###### Parameters
 
@@ -700,11 +700,11 @@ Log permission changes
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ##### roleRevoked()
 
-> **roleRevoked**: (`userId`, `roleId`, `roleName`, `revokedBy`, `tenantId`) => `Promise`\<`void`\>
+> **roleRevoked**: (`userId`, `roleId`, `roleName`, `revokedBy`, `tenantId`) => `Promise`{`<`}`void`{`>`}
 
 ###### Parameters
 
@@ -730,7 +730,7 @@ Log permission changes
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ***
 
@@ -746,7 +746,7 @@ Log system events
 
 ##### backupCreated()
 
-> **backupCreated**: (`backupId`, `userId`, `tenantId`) => `Promise`\<`void`\>
+> **backupCreated**: (`backupId`, `userId`, `tenantId`) => `Promise`{`<`}`void`{`>`}
 
 ###### Parameters
 
@@ -764,11 +764,11 @@ Log system events
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ##### configChanged()
 
-> **configChanged**: (`configKey`, `oldValue`, `newValue`, `userId`, `tenantId`) => `Promise`\<`void`\>
+> **configChanged**: (`configKey`, `oldValue`, `newValue`, `userId`, `tenantId`) => `Promise`{`<`}`void`{`>`}
 
 ###### Parameters
 
@@ -794,13 +794,13 @@ Log system events
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ## Functions
 
 ### logAuditEvent()
 
-> **logAuditEvent**(`params`): `Promise`\<`void`\>
+> **logAuditEvent**(`params`): `Promise`{`<`}`void`{`>`}
 
 Defined in: [src/services/audit.service.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/audit.service.ts#L12)
 
@@ -811,13 +811,13 @@ Uses tenantDb since audit schema exists in tenant database.
 
 ##### params
 
-`Partial`\<[`NewAuditLog`](db.schema.audit.schema.md#newauditlog)\>
+`Partial`{`<`}[`NewAuditLog`](db.schema.audit.schema.md#newauditlog){`>`}
 
 Partial audit log data used to create the log entry
 
 #### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 A Promise that resolves when the log is written, or catches error silently
 
@@ -825,7 +825,7 @@ A Promise that resolves when the log is written, or catches error silently
 
 ### logCalculation()
 
-> **logCalculation**(`params`): `Promise`\<`void`\>
+> **logCalculation**(`params`): `Promise`{`<`}`void`{`>`}
 
 Defined in: [src/services/audit.service.ts:68](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/audit.service.ts#L68)
 
@@ -835,13 +835,13 @@ Log calculation execution.
 
 ##### params
 
-`Partial`\<[`NewCalculationAuditLog`](db.schema.audit.schema.md#newcalculationauditlog)\>
+`Partial`{`<`}[`NewCalculationAuditLog`](db.schema.audit.schema.md#newcalculationauditlog){`>`}
 
 Partial calculation audit log data
 
 #### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 A Promise that resolves when the log is written
 
@@ -849,7 +849,7 @@ A Promise that resolves when the log is written
 
 ### logDataAccess()
 
-> **logDataAccess**(`params`): `Promise`\<`void`\>
+> **logDataAccess**(`params`): `Promise`{`<`}`void`{`>`}
 
 Defined in: [src/services/audit.service.ts:49](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/audit.service.ts#L49)
 
@@ -859,13 +859,13 @@ Log data access.
 
 ##### params
 
-`Partial`\<[`NewDataAccessLog`](db.schema.audit.schema.md#newdataaccesslog)\>
+`Partial`{`<`}[`NewDataAccessLog`](db.schema.audit.schema.md#newdataaccesslog){`>`}
 
 Partial data access log data
 
 #### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 A Promise that resolves when the log is written
 
@@ -873,7 +873,7 @@ A Promise that resolves when the log is written
 
 ### logUserActivity()
 
-> **logUserActivity**(`params`): `Promise`\<`void`\>
+> **logUserActivity**(`params`): `Promise`{`<`}`void`{`>`}
 
 Defined in: [src/services/audit.service.ts:31](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/audit.service.ts#L31)
 
@@ -883,12 +883,12 @@ Log user activity.
 
 ##### params
 
-`Partial`\<[`NewUserActivityLog`](db.schema.audit.schema.md#newuseractivitylog)\>
+`Partial`{`<`}[`NewUserActivityLog`](db.schema.audit.schema.md#newuseractivitylog){`>`}
 
 Partial user activity log data
 
 #### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 A Promise that resolves when the log is written

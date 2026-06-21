@@ -28,7 +28,7 @@ Defined in: [src/repositories/workflows.repository.ts:149](https://github.com/if
 
 ###### db
 
-`PostgresJsDatabase`\<`any`\>
+`PostgresJsDatabase`{`<`}`any`{`>`}
 
 ###### Returns
 
@@ -38,7 +38,7 @@ Defined in: [src/repositories/workflows.repository.ts:149](https://github.com/if
 
 ##### handleApprovalCompleted()
 
-> **handleApprovalCompleted**(`workflowId`, `tenantId`, `action`, `approverUserId`, `approverName`, `requesterUserId`, `requesterEmail`, `workflowName`, `eclParams?`): `Promise`\<`void`\>
+> **handleApprovalCompleted**(`workflowId`, `tenantId`, `action`, `approverUserId`, `approverName`, `requesterUserId`, `requesterEmail`, `workflowName`, `eclParams?`): `Promise`{`<`}`void`{`>`}
 
 Defined in: [src/repositories/workflows.repository.ts:158](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/workflows.repository.ts#L158)
 
@@ -81,15 +81,15 @@ Triggers: ECL calculation, notifications, audit log
 
 ###### eclParams?
 
-`Record`\<`string`, `unknown`\>
+`Record`{`<`}`string`, `unknown`{`>`}
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ##### handleECLCalculationCompleted()
 
-> **handleECLCalculationCompleted**(`workflowId`, `tenantId`, `jobId`, `result`, `userId`): `Promise`\<`void`\>
+> **handleECLCalculationCompleted**(`workflowId`, `tenantId`, `jobId`, `result`, `userId`): `Promise`{`<`}`void`{`>`}
 
 Defined in: [src/repositories/workflows.repository.ts:260](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/workflows.repository.ts#L260)
 
@@ -112,7 +112,7 @@ Updates workflow, logs result, triggers compliance checks
 
 ###### result
 
-`Record`\<`string`, `unknown`\>
+`Record`{`<`}`string`, `unknown`{`>`}
 
 ###### userId
 
@@ -120,7 +120,7 @@ Updates workflow, logs result, triggers compliance checks
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`{`<`}`void`{`>`}
 
 ***
 
@@ -142,7 +142,7 @@ Defined in: [src/repositories/workflows.repository.ts:24](https://github.com/ifr
 
 ###### db
 
-`PostgresJsDatabase`\<`any`\>
+`PostgresJsDatabase`{`<`}`any`{`>`}
 
 ###### Returns
 
@@ -152,7 +152,7 @@ Defined in: [src/repositories/workflows.repository.ts:24](https://github.com/ifr
 
 ##### createWorkflow()
 
-> **createWorkflow**(`data`): `Promise`\<\{ `completedAt`: `Date` \| `null`; `createdAt`: `Date`; `currentState`: `string`; `description`: `string` \| `null`; `entityId`: `string`; `entityType`: `string`; `expectedCompletionAt`: `Date` \| `null`; `id`: `string`; `isActive`: `boolean`; `metadata`: `unknown`; `previousState`: `string` \| `null`; `requestedBy`: `string` \| `null`; `requestReason`: `string` \| `null`; `tenantId`: `string`; `updatedAt`: `Date`; `workflowName`: `string`; `workflowType`: `string`; \}\>
+> **createWorkflow**(`data`): `Promise`{`<`}{`{`} `completedAt`: `Date` {`|`} `null`; `createdAt`: `Date`; `currentState`: `string`; `description`: `string` {`|`} `null`; `entityId`: `string`; `entityType`: `string`; `expectedCompletionAt`: `Date` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `metadata`: `unknown`; `previousState`: `string` {`|`} `null`; `requestedBy`: `string` {`|`} `null`; `requestReason`: `string` {`|`} `null`; `tenantId`: `string`; `updatedAt`: `Date`; `workflowName`: `string`; `workflowType`: `string`; {`}`}{`>`}
 
 Defined in: [src/repositories/workflows.repository.ts:29](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/workflows.repository.ts#L29)
 
@@ -164,7 +164,7 @@ Create new workflow
 
 ###### completedAt?
 
-`Date` \| `null`
+`Date` {`|`} `null`
 
 ###### createdAt?
 
@@ -176,7 +176,7 @@ Create new workflow
 
 ###### description?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### entityId
 
@@ -188,7 +188,7 @@ Create new workflow
 
 ###### expectedCompletionAt?
 
-`Date` \| `null`
+`Date` {`|`} `null`
 
 ###### id?
 
@@ -204,15 +204,15 @@ Create new workflow
 
 ###### previousState?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### requestedBy?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### requestReason?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### tenantId
 
@@ -232,11 +232,11 @@ Create new workflow
 
 ###### Returns
 
-`Promise`\<\{ `completedAt`: `Date` \| `null`; `createdAt`: `Date`; `currentState`: `string`; `description`: `string` \| `null`; `entityId`: `string`; `entityType`: `string`; `expectedCompletionAt`: `Date` \| `null`; `id`: `string`; `isActive`: `boolean`; `metadata`: `unknown`; `previousState`: `string` \| `null`; `requestedBy`: `string` \| `null`; `requestReason`: `string` \| `null`; `tenantId`: `string`; `updatedAt`: `Date`; `workflowName`: `string`; `workflowType`: `string`; \}\>
+`Promise`{`<`}{`{`} `completedAt`: `Date` {`|`} `null`; `createdAt`: `Date`; `currentState`: `string`; `description`: `string` {`|`} `null`; `entityId`: `string`; `entityType`: `string`; `expectedCompletionAt`: `Date` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `metadata`: `unknown`; `previousState`: `string` {`|`} `null`; `requestedBy`: `string` {`|`} `null`; `requestReason`: `string` {`|`} `null`; `tenantId`: `string`; `updatedAt`: `Date`; `workflowName`: `string`; `workflowType`: `string`; {`}`}{`>`}
 
 ##### createWorkflowJob()
 
-> **createWorkflowJob**(`data`): `Promise`\<\{ `attempts`: `number` \| `null`; `completedAt`: `Date` \| `null`; `createdAt`: `Date`; `errorMessage`: `string` \| `null`; `id`: `string`; `jobId`: `string` \| `null`; `jobName`: `string` \| `null`; `jobType`: `string`; `maxAttempts`: `number` \| `null`; `result`: `unknown`; `startedAt`: `Date` \| `null`; `status`: `string`; `tenantId`: `string`; `updatedAt`: `Date`; `workflowId`: `string`; \}\>
+> **createWorkflowJob**(`data`): `Promise`{`<`}{`{`} `attempts`: `number` {`|`} `null`; `completedAt`: `Date` {`|`} `null`; `createdAt`: `Date`; `errorMessage`: `string` {`|`} `null`; `id`: `string`; `jobId`: `string` {`|`} `null`; `jobName`: `string` {`|`} `null`; `jobType`: `string`; `maxAttempts`: `number` {`|`} `null`; `result`: `unknown`; `startedAt`: `Date` {`|`} `null`; `status`: `string`; `tenantId`: `string`; `updatedAt`: `Date`; `workflowId`: `string`; {`}`}{`>`}
 
 Defined in: [src/repositories/workflows.repository.ts:115](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/workflows.repository.ts#L115)
 
@@ -248,11 +248,11 @@ Create workflow job (for Bull queue tracking)
 
 ###### attempts?
 
-`number` \| `null`
+`number` {`|`} `null`
 
 ###### completedAt?
 
-`Date` \| `null`
+`Date` {`|`} `null`
 
 ###### createdAt?
 
@@ -260,7 +260,7 @@ Create workflow job (for Bull queue tracking)
 
 ###### errorMessage?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### id?
 
@@ -268,11 +268,11 @@ Create workflow job (for Bull queue tracking)
 
 ###### jobId?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### jobName?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### jobType
 
@@ -280,7 +280,7 @@ Create workflow job (for Bull queue tracking)
 
 ###### maxAttempts?
 
-`number` \| `null`
+`number` {`|`} `null`
 
 ###### result?
 
@@ -288,7 +288,7 @@ Create workflow job (for Bull queue tracking)
 
 ###### startedAt?
 
-`Date` \| `null`
+`Date` {`|`} `null`
 
 ###### status?
 
@@ -308,11 +308,11 @@ Create workflow job (for Bull queue tracking)
 
 ###### Returns
 
-`Promise`\<\{ `attempts`: `number` \| `null`; `completedAt`: `Date` \| `null`; `createdAt`: `Date`; `errorMessage`: `string` \| `null`; `id`: `string`; `jobId`: `string` \| `null`; `jobName`: `string` \| `null`; `jobType`: `string`; `maxAttempts`: `number` \| `null`; `result`: `unknown`; `startedAt`: `Date` \| `null`; `status`: `string`; `tenantId`: `string`; `updatedAt`: `Date`; `workflowId`: `string`; \}\>
+`Promise`{`<`}{`{`} `attempts`: `number` {`|`} `null`; `completedAt`: `Date` {`|`} `null`; `createdAt`: `Date`; `errorMessage`: `string` {`|`} `null`; `id`: `string`; `jobId`: `string` {`|`} `null`; `jobName`: `string` {`|`} `null`; `jobType`: `string`; `maxAttempts`: `number` {`|`} `null`; `result`: `unknown`; `startedAt`: `Date` {`|`} `null`; `status`: `string`; `tenantId`: `string`; `updatedAt`: `Date`; `workflowId`: `string`; {`}`}{`>`}
 
 ##### getWorkflow()
 
-> **getWorkflow**(`workflowId`): `Promise`\<\{ `completedAt`: `Date` \| `null`; `createdAt`: `Date`; `currentState`: `string`; `description`: `string` \| `null`; `entityId`: `string`; `entityType`: `string`; `expectedCompletionAt`: `Date` \| `null`; `id`: `string`; `isActive`: `boolean`; `metadata`: `unknown`; `previousState`: `string` \| `null`; `requestedBy`: `string` \| `null`; `requestReason`: `string` \| `null`; `tenantId`: `string`; `updatedAt`: `Date`; `workflowName`: `string`; `workflowType`: `string`; \} \| `undefined`\>
+> **getWorkflow**(`workflowId`): `Promise`{`<`}{`{`} `completedAt`: `Date` {`|`} `null`; `createdAt`: `Date`; `currentState`: `string`; `description`: `string` {`|`} `null`; `entityId`: `string`; `entityType`: `string`; `expectedCompletionAt`: `Date` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `metadata`: `unknown`; `previousState`: `string` {`|`} `null`; `requestedBy`: `string` {`|`} `null`; `requestReason`: `string` {`|`} `null`; `tenantId`: `string`; `updatedAt`: `Date`; `workflowName`: `string`; `workflowType`: `string`; {`}`} {`|`} `undefined`{`>`}
 
 Defined in: [src/repositories/workflows.repository.ts:37](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/workflows.repository.ts#L37)
 
@@ -326,11 +326,11 @@ Get workflow by ID
 
 ###### Returns
 
-`Promise`\<\{ `completedAt`: `Date` \| `null`; `createdAt`: `Date`; `currentState`: `string`; `description`: `string` \| `null`; `entityId`: `string`; `entityType`: `string`; `expectedCompletionAt`: `Date` \| `null`; `id`: `string`; `isActive`: `boolean`; `metadata`: `unknown`; `previousState`: `string` \| `null`; `requestedBy`: `string` \| `null`; `requestReason`: `string` \| `null`; `tenantId`: `string`; `updatedAt`: `Date`; `workflowName`: `string`; `workflowType`: `string`; \} \| `undefined`\>
+`Promise`{`<`}{`{`} `completedAt`: `Date` {`|`} `null`; `createdAt`: `Date`; `currentState`: `string`; `description`: `string` {`|`} `null`; `entityId`: `string`; `entityType`: `string`; `expectedCompletionAt`: `Date` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `metadata`: `unknown`; `previousState`: `string` {`|`} `null`; `requestedBy`: `string` {`|`} `null`; `requestReason`: `string` {`|`} `null`; `tenantId`: `string`; `updatedAt`: `Date`; `workflowName`: `string`; `workflowType`: `string`; {`}`} {`|`} `undefined`{`>`}
 
 ##### getWorkflowsByTenant()
 
-> **getWorkflowsByTenant**(`tenantId`): `Promise`\<`object`[]\>
+> **getWorkflowsByTenant**(`tenantId`): `Promise`{`<`}`object`[]{`>`}
 
 Defined in: [src/repositories/workflows.repository.ts:51](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/workflows.repository.ts#L51)
 
@@ -344,11 +344,11 @@ Get workflows for tenant
 
 ###### Returns
 
-`Promise`\<`object`[]\>
+`Promise`{`<`}`object`[]{`>`}
 
 ##### transitionWorkflow()
 
-> **transitionWorkflow**(`workflowId`, `toState`, `triggeredBy`, `transitionReason?`, `transitionNotes?`, `approvalAction?`, `approvalComment?`): `Promise`\<\{ `transition`: \{ `approvalAction`: `string` \| `null`; `approvalComment`: `string` \| `null`; `fromState`: `string`; `id`: `string`; `metadata`: `unknown`; `tenantId`: `string`; `toState`: `string`; `transitionNotes`: `string` \| `null`; `transitionReason`: `string` \| `null`; `triggeredAt`: `Date`; `triggeredBy`: `string` \| `null`; `workflowId`: `string`; \}; `workflow`: \{ `completedAt`: `Date` \| `null`; `createdAt`: `Date`; `currentState`: `string`; `description`: `string` \| `null`; `entityId`: `string`; `entityType`: `string`; `expectedCompletionAt`: `Date` \| `null`; `id`: `string`; `isActive`: `boolean`; `metadata`: `unknown`; `previousState`: `string` \| `null`; `requestedBy`: `string` \| `null`; `requestReason`: `string` \| `null`; `tenantId`: `string`; `updatedAt`: `Date`; `workflowName`: `string`; `workflowType`: `string`; \}; \}\>
+> **transitionWorkflow**(`workflowId`, `toState`, `triggeredBy`, `transitionReason?`, `transitionNotes?`, `approvalAction?`, `approvalComment?`): `Promise`{`<`}{`{`} `transition`: {`{`} `approvalAction`: `string` {`|`} `null`; `approvalComment`: `string` {`|`} `null`; `fromState`: `string`; `id`: `string`; `metadata`: `unknown`; `tenantId`: `string`; `toState`: `string`; `transitionNotes`: `string` {`|`} `null`; `transitionReason`: `string` {`|`} `null`; `triggeredAt`: `Date`; `triggeredBy`: `string` {`|`} `null`; `workflowId`: `string`; {`}`}; `workflow`: {`{`} `completedAt`: `Date` {`|`} `null`; `createdAt`: `Date`; `currentState`: `string`; `description`: `string` {`|`} `null`; `entityId`: `string`; `entityType`: `string`; `expectedCompletionAt`: `Date` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `metadata`: `unknown`; `previousState`: `string` {`|`} `null`; `requestedBy`: `string` {`|`} `null`; `requestReason`: `string` {`|`} `null`; `tenantId`: `string`; `updatedAt`: `Date`; `workflowName`: `string`; `workflowType`: `string`; {`}`}; {`}`}{`>`}
 
 Defined in: [src/repositories/workflows.repository.ts:61](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/workflows.repository.ts#L61)
 
@@ -386,11 +386,11 @@ Transition workflow state + audit trail
 
 ###### Returns
 
-`Promise`\<\{ `transition`: \{ `approvalAction`: `string` \| `null`; `approvalComment`: `string` \| `null`; `fromState`: `string`; `id`: `string`; `metadata`: `unknown`; `tenantId`: `string`; `toState`: `string`; `transitionNotes`: `string` \| `null`; `transitionReason`: `string` \| `null`; `triggeredAt`: `Date`; `triggeredBy`: `string` \| `null`; `workflowId`: `string`; \}; `workflow`: \{ `completedAt`: `Date` \| `null`; `createdAt`: `Date`; `currentState`: `string`; `description`: `string` \| `null`; `entityId`: `string`; `entityType`: `string`; `expectedCompletionAt`: `Date` \| `null`; `id`: `string`; `isActive`: `boolean`; `metadata`: `unknown`; `previousState`: `string` \| `null`; `requestedBy`: `string` \| `null`; `requestReason`: `string` \| `null`; `tenantId`: `string`; `updatedAt`: `Date`; `workflowName`: `string`; `workflowType`: `string`; \}; \}\>
+`Promise`{`<`}{`{`} `transition`: {`{`} `approvalAction`: `string` {`|`} `null`; `approvalComment`: `string` {`|`} `null`; `fromState`: `string`; `id`: `string`; `metadata`: `unknown`; `tenantId`: `string`; `toState`: `string`; `transitionNotes`: `string` {`|`} `null`; `transitionReason`: `string` {`|`} `null`; `triggeredAt`: `Date`; `triggeredBy`: `string` {`|`} `null`; `workflowId`: `string`; {`}`}; `workflow`: {`{`} `completedAt`: `Date` {`|`} `null`; `createdAt`: `Date`; `currentState`: `string`; `description`: `string` {`|`} `null`; `entityId`: `string`; `entityType`: `string`; `expectedCompletionAt`: `Date` {`|`} `null`; `id`: `string`; `isActive`: `boolean`; `metadata`: `unknown`; `previousState`: `string` {`|`} `null`; `requestedBy`: `string` {`|`} `null`; `requestReason`: `string` {`|`} `null`; `tenantId`: `string`; `updatedAt`: `Date`; `workflowName`: `string`; `workflowType`: `string`; {`}`}; {`}`}{`>`}
 
 ##### updateJobStatus()
 
-> **updateJobStatus**(`jobId`, `status`, `result?`, `errorMessage?`): `Promise`\<\{ `attempts`: `number` \| `null`; `completedAt`: `Date` \| `null`; `createdAt`: `Date`; `errorMessage`: `string` \| `null`; `id`: `string`; `jobId`: `string` \| `null`; `jobName`: `string` \| `null`; `jobType`: `string`; `maxAttempts`: `number` \| `null`; `result`: `unknown`; `startedAt`: `Date` \| `null`; `status`: `string`; `tenantId`: `string`; `updatedAt`: `Date`; `workflowId`: `string`; \}\>
+> **updateJobStatus**(`jobId`, `status`, `result?`, `errorMessage?`): `Promise`{`<`}{`{`} `attempts`: `number` {`|`} `null`; `completedAt`: `Date` {`|`} `null`; `createdAt`: `Date`; `errorMessage`: `string` {`|`} `null`; `id`: `string`; `jobId`: `string` {`|`} `null`; `jobName`: `string` {`|`} `null`; `jobType`: `string`; `maxAttempts`: `number` {`|`} `null`; `result`: `unknown`; `startedAt`: `Date` {`|`} `null`; `status`: `string`; `tenantId`: `string`; `updatedAt`: `Date`; `workflowId`: `string`; {`}`}{`>`}
 
 Defined in: [src/repositories/workflows.repository.ts:123](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/workflows.repository.ts#L123)
 
@@ -408,7 +408,7 @@ Update workflow job status
 
 ###### result?
 
-`Record`\<`string`, `unknown`\>
+`Record`{`<`}`string`, `unknown`{`>`}
 
 ###### errorMessage?
 
@@ -416,7 +416,7 @@ Update workflow job status
 
 ###### Returns
 
-`Promise`\<\{ `attempts`: `number` \| `null`; `completedAt`: `Date` \| `null`; `createdAt`: `Date`; `errorMessage`: `string` \| `null`; `id`: `string`; `jobId`: `string` \| `null`; `jobName`: `string` \| `null`; `jobType`: `string`; `maxAttempts`: `number` \| `null`; `result`: `unknown`; `startedAt`: `Date` \| `null`; `status`: `string`; `tenantId`: `string`; `updatedAt`: `Date`; `workflowId`: `string`; \}\>
+`Promise`{`<`}{`{`} `attempts`: `number` {`|`} `null`; `completedAt`: `Date` {`|`} `null`; `createdAt`: `Date`; `errorMessage`: `string` {`|`} `null`; `id`: `string`; `jobId`: `string` {`|`} `null`; `jobName`: `string` {`|`} `null`; `jobType`: `string`; `maxAttempts`: `number` {`|`} `null`; `result`: `unknown`; `startedAt`: `Date` {`|`} `null`; `status`: `string`; `tenantId`: `string`; `updatedAt`: `Date`; `workflowId`: `string`; {`}`}{`>`}
 
 ## Functions
 
@@ -434,7 +434,7 @@ Defined in: [src/repositories/workflows.repository.ts:313](https://github.com/if
 
 ##### db
 
-`PostgresJsDatabase`\<`any`\>
+`PostgresJsDatabase`{`<`}`any`{`>`}
 
 #### Returns
 
@@ -454,7 +454,7 @@ Export repository factory
 
 ##### db
 
-`PostgresJsDatabase`\<`any`\>
+`PostgresJsDatabase`{`<`}`any`{`>`}
 
 #### Returns
 

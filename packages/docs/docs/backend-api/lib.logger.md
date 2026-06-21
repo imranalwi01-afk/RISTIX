@@ -16,7 +16,7 @@ Defined in: [src/lib/logger.ts:32](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 ### logger
 
-> `const` **logger**: `Logger`\<`never`, `boolean`\>
+> `const` **logger**: `Logger`{`<`}`never`, `boolean`{`>`}
 
 Defined in: [src/lib/logger.ts:6](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/logger.ts#L6)
 
@@ -24,7 +24,7 @@ Defined in: [src/lib/logger.ts:6](https://github.com/ifrspro/ifrs9-iaf/blob/4458
 
 ### withRequestIds()
 
-> **withRequestIds**(`ctx`): `Logger`\<`never`, `boolean`\>
+> **withRequestIds**(`ctx`): `Logger`{`<`}`never`, `boolean`{`>`}
 
 Defined in: [src/lib/logger.ts:27](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/logger.ts#L27)
 
@@ -46,4 +46,4 @@ Defined in: [src/lib/logger.ts:27](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 #### Returns
 
-`Logger`\<`never`, `boolean`\>
+`Logger`{`<`}`never`, `boolean`{`>`}

@@ -28,7 +28,7 @@ Defined in: [src/services/job-approval.service.ts:13](https://github.com/ifrspro
 
 ##### impactLevel
 
-> **impactLevel**: `"low"` \| `"medium"` \| `"high"` \| `"critical"`
+> **impactLevel**: `"low"` {`|`} `"medium"` {`|`} `"high"` {`|`} `"critical"`
 
 Defined in: [src/services/job-approval.service.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-approval.service.ts#L10)
 
@@ -48,7 +48,7 @@ Defined in: [src/services/job-approval.service.ts:12](https://github.com/ifrspro
 
 ### checkAutoApprovalConditions()
 
-> **checkAutoApprovalConditions**(`jobDefinitionId`, `tenantId`, `triggeredBy`, `parameters?`): `Promise`\<`boolean`\>
+> **checkAutoApprovalConditions**(`jobDefinitionId`, `tenantId`, `triggeredBy`, `parameters?`): `Promise`{`<`}`boolean`{`>`}
 
 Defined in: [src/services/job-approval.service.ts:325](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-approval.service.ts#L325)
 
@@ -81,7 +81,7 @@ Job parameters
 
 #### Returns
 
-`Promise`\<`boolean`\>
+`Promise`{`<`}`boolean`{`>`}
 
 A Promise resolving to true if auto-approval conditions are met
 
@@ -89,7 +89,7 @@ A Promise resolving to true if auto-approval conditions are met
 
 ### createJobApprovalRequest()
 
-> **createJobApprovalRequest**(`params`): `Promise`\<\{ `approvalsReceived`: `number`; `approvalsRequired`: `number`; `completedAt`: `Date` \| `null`; `completedBy`: `string` \| `null`; `createdAt`: `Date`; `currentLevel`: `number`; `description`: `string` \| `null`; `entityId`: `string` \| `null`; `entityType`: `string`; `expiresAt`: `Date` \| `null`; `id`: `string`; `impactLevel`: `string` \| `null`; `matrixId`: `string` \| `null`; `requestData`: `Record`\<`string`, `unknown`\> \| `null`; `requestedBy`: `string`; `status`: `string`; `tenantId`: `string`; `title`: `string`; \} \| `null`\>
+> **createJobApprovalRequest**(`params`): `Promise`{`<`}{`{`} `approvalsReceived`: `number`; `approvalsRequired`: `number`; `completedAt`: `Date` {`|`} `null`; `completedBy`: `string` {`|`} `null`; `createdAt`: `Date`; `currentLevel`: `number`; `description`: `string` {`|`} `null`; `entityId`: `string` {`|`} `null`; `entityType`: `string`; `expiresAt`: `Date` {`|`} `null`; `id`: `string`; `impactLevel`: `string` {`|`} `null`; `matrixId`: `string` {`|`} `null`; `requestData`: `Record`{`<`}`string`, `unknown`{`>`} {`|`} `null`; `requestedBy`: `string`; `status`: `string`; `tenantId`: `string`; `title`: `string`; {`}`} {`|`} `null`{`>`}
 
 Defined in: [src/services/job-approval.service.ts:45](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-approval.service.ts#L45)
 
@@ -137,7 +137,7 @@ The user who triggered the job
 
 #### Returns
 
-`Promise`\<\{ `approvalsReceived`: `number`; `approvalsRequired`: `number`; `completedAt`: `Date` \| `null`; `completedBy`: `string` \| `null`; `createdAt`: `Date`; `currentLevel`: `number`; `description`: `string` \| `null`; `entityId`: `string` \| `null`; `entityType`: `string`; `expiresAt`: `Date` \| `null`; `id`: `string`; `impactLevel`: `string` \| `null`; `matrixId`: `string` \| `null`; `requestData`: `Record`\<`string`, `unknown`\> \| `null`; `requestedBy`: `string`; `status`: `string`; `tenantId`: `string`; `title`: `string`; \} \| `null`\>
+`Promise`{`<`}{`{`} `approvalsReceived`: `number`; `approvalsRequired`: `number`; `completedAt`: `Date` {`|`} `null`; `completedBy`: `string` {`|`} `null`; `createdAt`: `Date`; `currentLevel`: `number`; `description`: `string` {`|`} `null`; `entityId`: `string` {`|`} `null`; `entityType`: `string`; `expiresAt`: `Date` {`|`} `null`; `id`: `string`; `impactLevel`: `string` {`|`} `null`; `matrixId`: `string` {`|`} `null`; `requestData`: `Record`{`<`}`string`, `unknown`{`>`} {`|`} `null`; `requestedBy`: `string`; `status`: `string`; `tenantId`: `string`; `title`: `string`; {`}`} {`|`} `null`{`>`}
 
 A Promise resolving to the created approval request or null if no approval needed
 
@@ -149,7 +149,7 @@ Error if definition not found or matrix not configured
 
 ### getPendingJobApprovals()
 
-> **getPendingJobApprovals**(`tenantId`): `Promise`\<`object`[]\>
+> **getPendingJobApprovals**(`tenantId`): `Promise`{`<`}`object`[]{`>`}
 
 Defined in: [src/services/job-approval.service.ts:308](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-approval.service.ts#L308)
 
@@ -165,7 +165,7 @@ The tenant ID
 
 #### Returns
 
-`Promise`\<`object`[]\>
+`Promise`{`<`}`object`[]{`>`}
 
 A Promise resolving to an array of pending job executions
 
@@ -173,7 +173,7 @@ A Promise resolving to an array of pending job executions
 
 ### handleJobApprovalComplete()
 
-> **handleJobApprovalComplete**(`approvalRequestId`, `status`, `approvedBy?`, `input?`): `Promise`\<\{ `approvalsReceived`: `number`; `approvalsRequired`: `number`; `completed`: `boolean`; `queued`: `boolean`; `remainingApprovals`: `number`; `status`: `string`; \}\>
+> **handleJobApprovalComplete**(`approvalRequestId`, `status`, `approvedBy?`, `input?`): `Promise`{`<`}{`{`} `approvalsReceived`: `number`; `approvalsRequired`: `number`; `completed`: `boolean`; `queued`: `boolean`; `remainingApprovals`: `number`; `status`: `string`; {`}`}{`>`}
 
 Defined in: [src/services/job-approval.service.ts:146](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-approval.service.ts#L146)
 
@@ -207,7 +207,7 @@ The user who approved/rejected
 
 #### Returns
 
-`Promise`\<\{ `approvalsReceived`: `number`; `approvalsRequired`: `number`; `completed`: `boolean`; `queued`: `boolean`; `remainingApprovals`: `number`; `status`: `string`; \}\>
+`Promise`{`<`}{`{`} `approvalsReceived`: `number`; `approvalsRequired`: `number`; `completed`: `boolean`; `queued`: `boolean`; `remainingApprovals`: `number`; `status`: `string`; {`}`}{`>`}
 
 A Promise resolving when handling is complete
 
@@ -215,7 +215,7 @@ A Promise resolving when handling is complete
 
 ### requiresApproval()
 
-> **requiresApproval**(`jobDefinitionId`, `tenantId`): `Promise`\<`boolean`\>
+> **requiresApproval**(`jobDefinitionId`, `tenantId`): `Promise`{`<`}`boolean`{`>`}
 
 Defined in: [src/services/job-approval.service.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-approval.service.ts#L23)
 
@@ -235,6 +235,6 @@ The ID of the job definition
 
 #### Returns
 
-`Promise`\<`boolean`\>
+`Promise`{`<`}`boolean`{`>`}
 
 A Promise resolving to true if approval is required

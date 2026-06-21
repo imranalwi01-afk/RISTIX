@@ -14,13 +14,13 @@ Defined in: [src/services/job-executor.service.ts:33](https://github.com/ifrspro
 
 ##### TSchema
 
-`TSchema` *extends* `Record`\<`string`, `unknown`\> = *typeof* [`db/schema`](db.schema.md)
+`TSchema` *extends* `Record`{`<`}`string`, `unknown`{`>`} = *typeof* [`db/schema`](db.schema.md)
 
 #### Constructors
 
 ##### Constructor
 
-> **new JobExecutorService**\<`TSchema`\>(`db`, `options`): [`JobExecutorService`](#jobexecutorservice)\<`TSchema`\>
+> **new JobExecutorService**{`<`}`TSchema`{`>`}(`db`, `options`): [`JobExecutorService`](#jobexecutorservice){`<`}`TSchema`{`>`}
 
 Defined in: [src/services/job-executor.service.ts:34](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-executor.service.ts#L34)
 
@@ -28,7 +28,7 @@ Defined in: [src/services/job-executor.service.ts:34](https://github.com/ifrspro
 
 ###### db
 
-`PostgresJsDatabase`\<`TSchema`\>
+`PostgresJsDatabase`{`<`}`TSchema`{`>`}
 
 ###### options
 
@@ -36,13 +36,13 @@ Defined in: [src/services/job-executor.service.ts:34](https://github.com/ifrspro
 
 ###### Returns
 
-[`JobExecutorService`](#jobexecutorservice)\<`TSchema`\>
+[`JobExecutorService`](#jobexecutorservice){`<`}`TSchema`{`>`}
 
 #### Methods
 
 ##### execute()
 
-> **execute**(`jobType`, `parameters`): `Promise`\<[`JobResult`](#jobresult)\>
+> **execute**(`jobType`, `parameters`): `Promise`{`<`}[`JobResult`](#jobresult){`>`}
 
 Defined in: [src/services/job-executor.service.ts:99](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-executor.service.ts#L99)
 
@@ -60,7 +60,7 @@ Main entry point to execute a job based on its type
 
 ###### Returns
 
-`Promise`\<[`JobResult`](#jobresult)\>
+`Promise`{`<`}[`JobResult`](#jobresult){`>`}
 
 ## Type Aliases
 
@@ -74,7 +74,7 @@ Defined in: [src/services/job-executor.service.ts:29](https://github.com/ifrspro
 
 ##### onSqlRuntime()?
 
-> `optional` **onSqlRuntime**: (`metadata`) => `Promise`\<`void`\> \| `void`
+> `optional` **onSqlRuntime**: (`metadata`) => `Promise`{`<`}`void`{`>`} {`|`} `void`
 
 Defined in: [src/services/job-executor.service.ts:30](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-executor.service.ts#L30)
 
@@ -86,7 +86,7 @@ Defined in: [src/services/job-executor.service.ts:30](https://github.com/ifrspro
 
 ###### Returns
 
-`Promise`\<`void`\> \| `void`
+`Promise`{`<`}`void`{`>`} {`|`} `void`
 
 ***
 

@@ -8,7 +8,7 @@
 
 ### dbOperation()
 
-> **dbOperation**\<`A`\>(`operation`, `fn`): `Effect`\<`A`, [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **dbOperation**{`<`}`A`{`>`}(`operation`, `fn`): `Effect`{`<`}`A`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 Defined in: [src/lib/effect/runtime.ts:295](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/effect/runtime.ts#L295)
 
@@ -28,11 +28,11 @@ Wrap a database operation with proper error handling
 
 ##### fn
 
-() => `Promise`\<`A`\>
+() => `Promise`{`<`}`A`{`>`}
 
 #### Returns
 
-`Effect`\<`A`, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`{`<`}`A`, [`DatabaseError`](lib.errors.md#databaseerror){`>`}
 
 ***
 
@@ -62,7 +62,7 @@ Handle Effect errors and convert to HTTP responses
 
 ### runEffect()
 
-> **runEffect**\<`A`\>(`c`, `effect`, `successStatus?`): `Promise`\<`any`\>
+> **runEffect**{`<`}`A`{`>`}(`c`, `effect`, `successStatus?`): `Promise`{`<`}`any`{`>`}
 
 Defined in: [src/lib/effect/runtime.ts:20](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/effect/runtime.ts#L20)
 
@@ -82,7 +82,7 @@ Run an Effect and convert the result to a Hono response
 
 ##### effect
 
-`Effect`\<`A`, [`CommonError`](lib.errors.md#commonerror)\>
+`Effect`{`<`}`A`, [`CommonError`](lib.errors.md#commonerror){`>`}
 
 ##### successStatus?
 
@@ -90,13 +90,13 @@ Run an Effect and convert the result to a Hono response
 
 #### Returns
 
-`Promise`\<`any`\>
+`Promise`{`<`}`any`{`>`}
 
 ***
 
 ### validate()
 
-> **validate**\<`T`\>(`schema`, `data`): `Effect`\<`T`, [`ValidationError`](lib.errors.md#validationerror)\>
+> **validate**{`<`}`T`{`>`}(`schema`, `data`): `Effect`{`<`}`T`, [`ValidationError`](lib.errors.md#validationerror){`>`}
 
 Defined in: [src/lib/effect/runtime.ts:313](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/effect/runtime.ts#L313)
 
@@ -122,7 +122,7 @@ Validate data with Zod and return Effect
 
 #### Returns
 
-`Effect`\<`T`, [`ValidationError`](lib.errors.md#validationerror)\>
+`Effect`{`<`}`T`, [`ValidationError`](lib.errors.md#validationerror){`>`}
 
 ## References
 

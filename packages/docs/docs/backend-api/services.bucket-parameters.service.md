@@ -19,7 +19,7 @@ Handles business logic for bucket headers and details.
 
 ##### createDetail()
 
-> **createDetail**: (`headerId`, `data`, `userId`) => `Effect`\<\{ `active_flag`: `boolean`; `bucket_id`: `number` \| `null`; `bucket_name`: `string` \| `null`; `created_by`: `string`; `created_date`: `string`; `id`: `number`; `range_end`: `number` \| `null`; `range_start`: `number` \| `null`; `seq`: `number` \| `null`; `updated_by`: `string` \| `null`; `updated_date`: `string` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **createDetail**: (`headerId`, `data`, `userId`) => `Effect`{`<`}{`{`} `active_flag`: `boolean`; `bucket_id`: `number` {`|`} `null`; `bucket_name`: `string` {`|`} `null`; `created_by`: `string`; `created_date`: `string`; `id`: `number`; `range_end`: `number` {`|`} `null`; `range_start`: `number` {`|`} `null`; `seq`: `number` {`|`} `null`; `updated_by`: `string` {`|`} `null`; `updated_date`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 Create a new bucket detail.
 
@@ -45,13 +45,13 @@ The ID of the user creating the detail
 
 ###### Returns
 
-`Effect`\<\{ `active_flag`: `boolean`; `bucket_id`: `number` \| `null`; `bucket_name`: `string` \| `null`; `created_by`: `string`; `created_date`: `string`; `id`: `number`; `range_end`: `number` \| `null`; `range_start`: `number` \| `null`; `seq`: `number` \| `null`; `updated_by`: `string` \| `null`; `updated_date`: `string` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`{`<`}{`{`} `active_flag`: `boolean`; `bucket_id`: `number` {`|`} `null`; `bucket_name`: `string` {`|`} `null`; `created_by`: `string`; `created_date`: `string`; `id`: `number`; `range_end`: `number` {`|`} `null`; `range_start`: `number` {`|`} `null`; `seq`: `number` {`|`} `null`; `updated_by`: `string` {`|`} `null`; `updated_date`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 A promise resolving to the created bucket detail
 
 ##### createHeader()
 
-> **createHeader**: (`data`, `userId`) => `Effect`\<\{ `active_flag`: `boolean`; `basis`: `string`; `bucket_group`: `string` \| `null`; `bucket_group_desc`: `string` \| `null`; `created_by`: `string`; `created_date`: `string`; `id`: `number`; `include_close`: `boolean`; `include_wo`: `boolean`; `updated_by`: `string` \| `null`; `updated_date`: `string` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **createHeader**: (`data`, `userId`) => `Effect`{`<`}{`{`} `active_flag`: `boolean`; `basis`: `string`; `bucket_group`: `string` {`|`} `null`; `bucket_group_desc`: `string` {`|`} `null`; `created_by`: `string`; `created_date`: `string`; `id`: `number`; `include_close`: `boolean`; `include_wo`: `boolean`; `updated_by`: `string` {`|`} `null`; `updated_date`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 Create a new bucket header.
 
@@ -71,13 +71,13 @@ The ID of the user creating the header
 
 ###### Returns
 
-`Effect`\<\{ `active_flag`: `boolean`; `basis`: `string`; `bucket_group`: `string` \| `null`; `bucket_group_desc`: `string` \| `null`; `created_by`: `string`; `created_date`: `string`; `id`: `number`; `include_close`: `boolean`; `include_wo`: `boolean`; `updated_by`: `string` \| `null`; `updated_date`: `string` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`{`<`}{`{`} `active_flag`: `boolean`; `basis`: `string`; `bucket_group`: `string` {`|`} `null`; `bucket_group_desc`: `string` {`|`} `null`; `created_by`: `string`; `created_date`: `string`; `id`: `number`; `include_close`: `boolean`; `include_wo`: `boolean`; `updated_by`: `string` {`|`} `null`; `updated_date`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 A promise resolving to the created bucket header
 
 ##### deleteDetail()
 
-> **deleteDetail**: (`id`) => `Effect`\<\{ `message`: `string`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror), `never`\>
+> **deleteDetail**: (`id`) => `Effect`{`<`}{`{`} `message`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
 
 Delete a bucket detail.
 
@@ -91,7 +91,7 @@ The ID of the bucket detail to delete
 
 ###### Returns
 
-`Effect`\<\{ `message`: `string`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror), `never`\>
+`Effect`{`<`}{`{`} `message`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
 
 A promise resolving to a success message
 
@@ -101,7 +101,7 @@ NotFoundError if the detail is not found
 
 ##### deleteHeader()
 
-> **deleteHeader**: (`id`) => `Effect`\<\{ `message`: `string`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **deleteHeader**: (`id`) => `Effect`{`<`}{`{`} `message`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 Delete a bucket header.
 
@@ -115,13 +115,13 @@ The ID of the bucket header to delete
 
 ###### Returns
 
-`Effect`\<\{ `message`: `string`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`{`<`}{`{`} `message`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 A promise resolving to a success message
 
 ##### getDetail()
 
-> **getDetail**: (`id`) => `Effect`\<\{ `active_flag`: `boolean`; `bucket_id`: `number` \| `null`; `bucket_name`: `string` \| `null`; `created_by`: `string`; `created_date`: `string`; `id`: `number`; `range_end`: `number` \| `null`; `range_start`: `number` \| `null`; `seq`: `number` \| `null`; `updated_by`: `string` \| `null`; `updated_date`: `string` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror), `never`\>
+> **getDetail**: (`id`) => `Effect`{`<`}{`{`} `active_flag`: `boolean`; `bucket_id`: `number` {`|`} `null`; `bucket_name`: `string` {`|`} `null`; `created_by`: `string`; `created_date`: `string`; `id`: `number`; `range_end`: `number` {`|`} `null`; `range_start`: `number` {`|`} `null`; `seq`: `number` {`|`} `null`; `updated_by`: `string` {`|`} `null`; `updated_date`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
 
 Get a bucket detail by ID.
 
@@ -135,7 +135,7 @@ The ID of the bucket detail
 
 ###### Returns
 
-`Effect`\<\{ `active_flag`: `boolean`; `bucket_id`: `number` \| `null`; `bucket_name`: `string` \| `null`; `created_by`: `string`; `created_date`: `string`; `id`: `number`; `range_end`: `number` \| `null`; `range_start`: `number` \| `null`; `seq`: `number` \| `null`; `updated_by`: `string` \| `null`; `updated_date`: `string` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror), `never`\>
+`Effect`{`<`}{`{`} `active_flag`: `boolean`; `bucket_id`: `number` {`|`} `null`; `bucket_name`: `string` {`|`} `null`; `created_by`: `string`; `created_date`: `string`; `id`: `number`; `range_end`: `number` {`|`} `null`; `range_start`: `number` {`|`} `null`; `seq`: `number` {`|`} `null`; `updated_by`: `string` {`|`} `null`; `updated_date`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
 
 A promise resolving to the bucket detail
 
@@ -145,7 +145,7 @@ NotFoundError if the detail is not found
 
 ##### getHeader()
 
-> **getHeader**: (`id`) => `Effect`\<\{ `active_flag`: `boolean`; `basis`: `string`; `bucket_group`: `string` \| `null`; `bucket_group_desc`: `string` \| `null`; `created_by`: `string`; `created_date`: `string`; `id`: `number`; `include_close`: `boolean`; `include_wo`: `boolean`; `updated_by`: `string` \| `null`; `updated_date`: `string` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror), `never`\>
+> **getHeader**: (`id`) => `Effect`{`<`}{`{`} `active_flag`: `boolean`; `basis`: `string`; `bucket_group`: `string` {`|`} `null`; `bucket_group_desc`: `string` {`|`} `null`; `created_by`: `string`; `created_date`: `string`; `id`: `number`; `include_close`: `boolean`; `include_wo`: `boolean`; `updated_by`: `string` {`|`} `null`; `updated_date`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
 
 Get a bucket header by ID.
 
@@ -159,7 +159,7 @@ The ID of the bucket header
 
 ###### Returns
 
-`Effect`\<\{ `active_flag`: `boolean`; `basis`: `string`; `bucket_group`: `string` \| `null`; `bucket_group_desc`: `string` \| `null`; `created_by`: `string`; `created_date`: `string`; `id`: `number`; `include_close`: `boolean`; `include_wo`: `boolean`; `updated_by`: `string` \| `null`; `updated_date`: `string` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror), `never`\>
+`Effect`{`<`}{`{`} `active_flag`: `boolean`; `basis`: `string`; `bucket_group`: `string` {`|`} `null`; `bucket_group_desc`: `string` {`|`} `null`; `created_by`: `string`; `created_date`: `string`; `id`: `number`; `include_close`: `boolean`; `include_wo`: `boolean`; `updated_by`: `string` {`|`} `null`; `updated_date`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
 
 A promise resolving to the bucket header
 
@@ -169,7 +169,7 @@ NotFoundError if the header is not found
 
 ##### listDetails()
 
-> **listDetails**: (`headerId`) => `Effect`\<`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **listDetails**: (`headerId`) => `Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 List details for a specific bucket header.
 
@@ -183,13 +183,13 @@ The ID of the bucket header
 
 ###### Returns
 
-`Effect`\<`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 A promise resolving to an array of bucket details
 
 ##### listHeaders()
 
-> **listHeaders**: (`query`) => `Effect`\<`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **listHeaders**: (`query`) => `Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 List bucket headers with optional search and filtering.
 
@@ -209,13 +209,13 @@ Query parameters for search and filtering
 
 ###### Returns
 
-`Effect`\<`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 A promise resolving to an array of bucket headers
 
 ##### updateDetail()
 
-> **updateDetail**: (`id`, `data`, `userId`) => `Effect`\<\{ `active_flag`: `boolean`; `bucket_id`: `number` \| `null`; `bucket_name`: `string` \| `null`; `created_by`: `string`; `created_date`: `string`; `id`: `number`; `range_end`: `number` \| `null`; `range_start`: `number` \| `null`; `seq`: `number` \| `null`; `updated_by`: `string` \| `null`; `updated_date`: `string` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror), `never`\>
+> **updateDetail**: (`id`, `data`, `userId`) => `Effect`{`<`}{`{`} `active_flag`: `boolean`; `bucket_id`: `number` {`|`} `null`; `bucket_name`: `string` {`|`} `null`; `created_by`: `string`; `created_date`: `string`; `id`: `number`; `range_end`: `number` {`|`} `null`; `range_start`: `number` {`|`} `null`; `seq`: `number` {`|`} `null`; `updated_by`: `string` {`|`} `null`; `updated_date`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
 
 Update an existing bucket detail.
 
@@ -241,7 +241,7 @@ The ID of the user updating the detail
 
 ###### Returns
 
-`Effect`\<\{ `active_flag`: `boolean`; `bucket_id`: `number` \| `null`; `bucket_name`: `string` \| `null`; `created_by`: `string`; `created_date`: `string`; `id`: `number`; `range_end`: `number` \| `null`; `range_start`: `number` \| `null`; `seq`: `number` \| `null`; `updated_by`: `string` \| `null`; `updated_date`: `string` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror), `never`\>
+`Effect`{`<`}{`{`} `active_flag`: `boolean`; `bucket_id`: `number` {`|`} `null`; `bucket_name`: `string` {`|`} `null`; `created_by`: `string`; `created_date`: `string`; `id`: `number`; `range_end`: `number` {`|`} `null`; `range_start`: `number` {`|`} `null`; `seq`: `number` {`|`} `null`; `updated_by`: `string` {`|`} `null`; `updated_date`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
 
 A promise resolving to the updated bucket detail
 
@@ -251,7 +251,7 @@ NotFoundError if the detail is not found
 
 ##### updateHeader()
 
-> **updateHeader**: (`id`, `data`, `userId`) => `Effect`\<\{ `active_flag`: `boolean`; `basis`: `string`; `bucket_group`: `string` \| `null`; `bucket_group_desc`: `string` \| `null`; `created_by`: `string`; `created_date`: `string`; `id`: `number`; `include_close`: `boolean`; `include_wo`: `boolean`; `updated_by`: `string` \| `null`; `updated_date`: `string` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror), `never`\>
+> **updateHeader**: (`id`, `data`, `userId`) => `Effect`{`<`}{`{`} `active_flag`: `boolean`; `basis`: `string`; `bucket_group`: `string` {`|`} `null`; `bucket_group_desc`: `string` {`|`} `null`; `created_by`: `string`; `created_date`: `string`; `id`: `number`; `include_close`: `boolean`; `include_wo`: `boolean`; `updated_by`: `string` {`|`} `null`; `updated_date`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
 
 Update an existing bucket header.
 
@@ -277,7 +277,7 @@ The ID of the user updating the header
 
 ###### Returns
 
-`Effect`\<\{ `active_flag`: `boolean`; `basis`: `string`; `bucket_group`: `string` \| `null`; `bucket_group_desc`: `string` \| `null`; `created_by`: `string`; `created_date`: `string`; `id`: `number`; `include_close`: `boolean`; `include_wo`: `boolean`; `updated_by`: `string` \| `null`; `updated_date`: `string` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror), `never`\>
+`Effect`{`<`}{`{`} `active_flag`: `boolean`; `basis`: `string`; `bucket_group`: `string` {`|`} `null`; `bucket_group_desc`: `string` {`|`} `null`; `created_by`: `string`; `created_date`: `string`; `id`: `number`; `include_close`: `boolean`; `include_wo`: `boolean`; `updated_by`: `string` {`|`} `null`; `updated_date`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
 
 A promise resolving to the updated bucket header
 

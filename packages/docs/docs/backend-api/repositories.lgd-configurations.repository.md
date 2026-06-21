@@ -20,7 +20,7 @@ Defined in: [src/repositories/lgd-configurations.repository.ts:11](https://githu
 
 ##### lgdMethod?
 
-> `optional` **lgdMethod**: `string` \| `number`
+> `optional` **lgdMethod**: `string` {`|`} `number`
 
 Defined in: [src/repositories/lgd-configurations.repository.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/lgd-configurations.repository.ts#L10)
 
@@ -42,7 +42,7 @@ Defined in: [src/repositories/lgd-configurations.repository.ts:14](https://githu
 
 ##### create()
 
-> **create**: (`data`) => `Effect`\<\{ `activeFlag`: `boolean` \| `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean`; `flScalarId`: `number` \| `null`; `lgdMethod`: `number` \| `null`; `lgdModelName`: `string` \| `null`; `lgdRate`: `number` \| `null`; `observationPeriod`: `string` \| `null`; `observationStartDate`: `string` \| `null`; `pkid`: `number`; `populationType`: `string` \| `null`; `segmentId`: `number` \| `null`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; `workoutPeriod`: `number` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **create**: (`data`) => `Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean`; `flScalarId`: `number` {`|`} `null`; `lgdMethod`: `number` {`|`} `null`; `lgdModelName`: `string` {`|`} `null`; `lgdRate`: `number` {`|`} `null`; `observationPeriod`: `string` {`|`} `null`; `observationStartDate`: `string` {`|`} `null`; `pkid`: `number`; `populationType`: `string` {`|`} `null`; `segmentId`: `number` {`|`} `null`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `workoutPeriod`: `number` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 Create a new LGD configuration.
 
@@ -54,7 +54,7 @@ The configuration data
 
 ###### activeFlag?
 
-`boolean` \| `null`
+`boolean` {`|`} `null`
 
 ###### createdby
 
@@ -74,27 +74,27 @@ The configuration data
 
 ###### flScalarId?
 
-`number` \| `null`
+`number` {`|`} `null`
 
 ###### lgdMethod?
 
-`number` \| `null`
+`number` {`|`} `null`
 
 ###### lgdModelName?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### lgdRate?
 
-`number` \| `null`
+`number` {`|`} `null`
 
 ###### observationPeriod?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### observationStartDate?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### pkid?
 
@@ -102,37 +102,37 @@ The configuration data
 
 ###### populationType?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### segmentId?
 
-`number` \| `null`
+`number` {`|`} `null`
 
 ###### updatedby?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### updateddate?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### updatedhost?
 
-`string` \| `null`
+`string` {`|`} `null`
 
 ###### workoutPeriod?
 
-`number` \| `null`
+`number` {`|`} `null`
 
 ###### Returns
 
-`Effect`\<\{ `activeFlag`: `boolean` \| `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean`; `flScalarId`: `number` \| `null`; `lgdMethod`: `number` \| `null`; `lgdModelName`: `string` \| `null`; `lgdRate`: `number` \| `null`; `observationPeriod`: `string` \| `null`; `observationStartDate`: `string` \| `null`; `pkid`: `number`; `populationType`: `string` \| `null`; `segmentId`: `number` \| `null`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; `workoutPeriod`: `number` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean`; `flScalarId`: `number` {`|`} `null`; `lgdMethod`: `number` {`|`} `null`; `lgdModelName`: `string` {`|`} `null`; `lgdRate`: `number` {`|`} `null`; `observationPeriod`: `string` {`|`} `null`; `observationStartDate`: `string` {`|`} `null`; `pkid`: `number`; `populationType`: `string` {`|`} `null`; `segmentId`: `number` {`|`} `null`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `workoutPeriod`: `number` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 An Effect resolving to the created configuration
 
 ##### delete()
 
-> **delete**: (`id`) => `Effect`\<\{ `activeFlag`: `boolean` \| `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean`; `flScalarId`: `number` \| `null`; `lgdMethod`: `number` \| `null`; `lgdModelName`: `string` \| `null`; `lgdRate`: `number` \| `null`; `observationPeriod`: `string` \| `null`; `observationStartDate`: `string` \| `null`; `pkid`: `number`; `populationType`: `string` \| `null`; `segmentId`: `number` \| `null`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; `workoutPeriod`: `number` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **delete**: (`id`) => `Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean`; `flScalarId`: `number` {`|`} `null`; `lgdMethod`: `number` {`|`} `null`; `lgdModelName`: `string` {`|`} `null`; `lgdRate`: `number` {`|`} `null`; `observationPeriod`: `string` {`|`} `null`; `observationStartDate`: `string` {`|`} `null`; `pkid`: `number`; `populationType`: `string` {`|`} `null`; `segmentId`: `number` {`|`} `null`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `workoutPeriod`: `number` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 Delete an LGD configuration.
 
@@ -146,13 +146,13 @@ The configuration ID
 
 ###### Returns
 
-`Effect`\<\{ `activeFlag`: `boolean` \| `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean`; `flScalarId`: `number` \| `null`; `lgdMethod`: `number` \| `null`; `lgdModelName`: `string` \| `null`; `lgdRate`: `number` \| `null`; `observationPeriod`: `string` \| `null`; `observationStartDate`: `string` \| `null`; `pkid`: `number`; `populationType`: `string` \| `null`; `segmentId`: `number` \| `null`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; `workoutPeriod`: `number` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean`; `flScalarId`: `number` {`|`} `null`; `lgdMethod`: `number` {`|`} `null`; `lgdModelName`: `string` {`|`} `null`; `lgdRate`: `number` {`|`} `null`; `observationPeriod`: `string` {`|`} `null`; `observationStartDate`: `string` {`|`} `null`; `pkid`: `number`; `populationType`: `string` {`|`} `null`; `segmentId`: `number` {`|`} `null`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `workoutPeriod`: `number` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 An Effect resolving to the deleted configuration
 
 ##### findAll()
 
-> **findAll**: (`options?`) => `Effect`\<`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **findAll**: (`options?`) => `Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 Find all LGD configurations with optional filtering.
 
@@ -166,13 +166,13 @@ Filter options
 
 ###### Returns
 
-`Effect`\<`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 An Effect resolving to an array of configurations
 
 ##### findById()
 
-> **findById**: (`id`) => `Effect`\<\{ `activeFlag`: `boolean` \| `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean`; `flScalarId`: `number` \| `null`; `lgdMethod`: `number` \| `null`; `lgdModelName`: `string` \| `null`; `lgdRate`: `number` \| `null`; `observationPeriod`: `string` \| `null`; `observationStartDate`: `string` \| `null`; `pkid`: `number`; `populationType`: `string` \| `null`; `segmentId`: `number` \| `null`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; `workoutPeriod`: `number` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **findById**: (`id`) => `Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean`; `flScalarId`: `number` {`|`} `null`; `lgdMethod`: `number` {`|`} `null`; `lgdModelName`: `string` {`|`} `null`; `lgdRate`: `number` {`|`} `null`; `observationPeriod`: `string` {`|`} `null`; `observationStartDate`: `string` {`|`} `null`; `pkid`: `number`; `populationType`: `string` {`|`} `null`; `segmentId`: `number` {`|`} `null`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `workoutPeriod`: `number` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 Find an LGD configuration by ID.
 
@@ -186,13 +186,13 @@ The configuration ID
 
 ###### Returns
 
-`Effect`\<\{ `activeFlag`: `boolean` \| `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean`; `flScalarId`: `number` \| `null`; `lgdMethod`: `number` \| `null`; `lgdModelName`: `string` \| `null`; `lgdRate`: `number` \| `null`; `observationPeriod`: `string` \| `null`; `observationStartDate`: `string` \| `null`; `pkid`: `number`; `populationType`: `string` \| `null`; `segmentId`: `number` \| `null`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; `workoutPeriod`: `number` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean`; `flScalarId`: `number` {`|`} `null`; `lgdMethod`: `number` {`|`} `null`; `lgdModelName`: `string` {`|`} `null`; `lgdRate`: `number` {`|`} `null`; `observationPeriod`: `string` {`|`} `null`; `observationStartDate`: `string` {`|`} `null`; `pkid`: `number`; `populationType`: `string` {`|`} `null`; `segmentId`: `number` {`|`} `null`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `workoutPeriod`: `number` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 An Effect resolving to the configuration or undefined
 
 ##### update()
 
-> **update**: (`id`, `data`) => `Effect`\<\{ `activeFlag`: `boolean` \| `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean`; `flScalarId`: `number` \| `null`; `lgdMethod`: `number` \| `null`; `lgdModelName`: `string` \| `null`; `lgdRate`: `number` \| `null`; `observationPeriod`: `string` \| `null`; `observationStartDate`: `string` \| `null`; `pkid`: `number`; `populationType`: `string` \| `null`; `segmentId`: `number` \| `null`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; `workoutPeriod`: `number` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **update**: (`id`, `data`) => `Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean`; `flScalarId`: `number` {`|`} `null`; `lgdMethod`: `number` {`|`} `null`; `lgdModelName`: `string` {`|`} `null`; `lgdRate`: `number` {`|`} `null`; `observationPeriod`: `string` {`|`} `null`; `observationStartDate`: `string` {`|`} `null`; `pkid`: `number`; `populationType`: `string` {`|`} `null`; `segmentId`: `number` {`|`} `null`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `workoutPeriod`: `number` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 Update an existing LGD configuration.
 
@@ -206,12 +206,12 @@ The configuration ID
 
 ###### data
 
-`Partial`\<*typeof* `frs9ImpCaLgdConfig.$inferInsert`\>
+`Partial`{`<`}*typeof* `frs9ImpCaLgdConfig.$inferInsert`{`>`}
 
 The data to update
 
 ###### Returns
 
-`Effect`\<\{ `activeFlag`: `boolean` \| `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean`; `flScalarId`: `number` \| `null`; `lgdMethod`: `number` \| `null`; `lgdModelName`: `string` \| `null`; `lgdRate`: `number` \| `null`; `observationPeriod`: `string` \| `null`; `observationStartDate`: `string` \| `null`; `pkid`: `number`; `populationType`: `string` \| `null`; `segmentId`: `number` \| `null`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; `workoutPeriod`: `number` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`{`<`}{`{`} `activeFlag`: `boolean` {`|`} `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean`; `flScalarId`: `number` {`|`} `null`; `lgdMethod`: `number` {`|`} `null`; `lgdModelName`: `string` {`|`} `null`; `lgdRate`: `number` {`|`} `null`; `observationPeriod`: `string` {`|`} `null`; `observationStartDate`: `string` {`|`} `null`; `pkid`: `number`; `populationType`: `string` {`|`} `null`; `segmentId`: `number` {`|`} `null`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; `workoutPeriod`: `number` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 An Effect resolving to the updated configuration

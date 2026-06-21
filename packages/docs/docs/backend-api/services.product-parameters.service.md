@@ -16,7 +16,7 @@ Defined in: [src/services/product-parameters.service.ts:7](https://github.com/if
 
 ##### create()
 
-> **create**: (`data`, `userId`) => `Effect`\<\{ `activeFlag`: `boolean`; `alFlag`: `string` \| `null`; `amortizationType`: `string` \| `null`; `bmFlag`: `boolean` \| `null`; `borrowingRate`: `number` \| `null`; `createdby`: `string`; `createddate`: `string` \| `null`; `createdhost`: `string`; `currency`: `string`; `dataSource`: `string`; `expectedLife`: `number` \| `null`; `id`: `number`; `impairedFlag`: `boolean` \| `null`; `marketRate`: `number` \| `null`; `pkid`: `number`; `prdCode`: `string`; `prdDesc`: `string`; `prdGroup`: `string`; `prdType`: `string`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; \}, `any`, `never`\>
+> **create**: (`data`, `userId`) => `Effect`{`<`}{`{`} `activeFlag`: `boolean`; `alFlag`: `string` {`|`} `null`; `amortizationType`: `string` {`|`} `null`; `bmFlag`: `boolean` {`|`} `null`; `borrowingRate`: `number` {`|`} `null`; `createdby`: `string`; `createddate`: `string` {`|`} `null`; `createdhost`: `string`; `currency`: `string`; `dataSource`: `string`; `expectedLife`: `number` {`|`} `null`; `id`: `number`; `impairedFlag`: `boolean` {`|`} `null`; `marketRate`: `number` {`|`} `null`; `pkid`: `number`; `prdCode`: `string`; `prdDesc`: `string`; `prdGroup`: `string`; `prdType`: `string`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, `any`, `never`{`>`}
 
 Create a new product parameter.
 
@@ -36,13 +36,13 @@ The ID of the user creating the parameter
 
 ###### Returns
 
-`Effect`\<\{ `activeFlag`: `boolean`; `alFlag`: `string` \| `null`; `amortizationType`: `string` \| `null`; `bmFlag`: `boolean` \| `null`; `borrowingRate`: `number` \| `null`; `createdby`: `string`; `createddate`: `string` \| `null`; `createdhost`: `string`; `currency`: `string`; `dataSource`: `string`; `expectedLife`: `number` \| `null`; `id`: `number`; `impairedFlag`: `boolean` \| `null`; `marketRate`: `number` \| `null`; `pkid`: `number`; `prdCode`: `string`; `prdDesc`: `string`; `prdGroup`: `string`; `prdType`: `string`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; \}, `any`, `never`\>
+`Effect`{`<`}{`{`} `activeFlag`: `boolean`; `alFlag`: `string` {`|`} `null`; `amortizationType`: `string` {`|`} `null`; `bmFlag`: `boolean` {`|`} `null`; `borrowingRate`: `number` {`|`} `null`; `createdby`: `string`; `createddate`: `string` {`|`} `null`; `createdhost`: `string`; `currency`: `string`; `dataSource`: `string`; `expectedLife`: `number` {`|`} `null`; `id`: `number`; `impairedFlag`: `boolean` {`|`} `null`; `marketRate`: `number` {`|`} `null`; `pkid`: `number`; `prdCode`: `string`; `prdDesc`: `string`; `prdGroup`: `string`; `prdType`: `string`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, `any`, `never`{`>`}
 
 An Effect resolving to the created product parameter
 
 ##### delete()
 
-> **delete**: (`id`) => `Effect`\<\{ `message`: `string`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror), `never`\>
+> **delete**: (`id`) => `Effect`{`<`}{`{`} `message`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
 
 Delete a product parameter.
 
@@ -56,13 +56,13 @@ The product parameter ID
 
 ###### Returns
 
-`Effect`\<\{ `message`: `string`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror), `never`\>
+`Effect`{`<`}{`{`} `message`: `string`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
 
 An Effect resolving to a success message or NotFoundError
 
 ##### get()
 
-> **get**: (`id`) => `Effect`\<\{ `activeFlag`: `boolean`; `alFlag`: `string` \| `null`; `amortizationType`: `string` \| `null`; `bmFlag`: `boolean` \| `null`; `borrowingRate`: `number` \| `null`; `createdby`: `string`; `createddate`: `string` \| `null`; `createdhost`: `string`; `currency`: `string`; `dataSource`: `string`; `expectedLife`: `number` \| `null`; `id`: `number`; `impairedFlag`: `boolean` \| `null`; `marketRate`: `number` \| `null`; `pkid`: `number`; `prdCode`: `string`; `prdDesc`: `string`; `prdGroup`: `string`; `prdType`: `string`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror), `never`\>
+> **get**: (`id`) => `Effect`{`<`}{`{`} `activeFlag`: `boolean`; `alFlag`: `string` {`|`} `null`; `amortizationType`: `string` {`|`} `null`; `bmFlag`: `boolean` {`|`} `null`; `borrowingRate`: `number` {`|`} `null`; `createdby`: `string`; `createddate`: `string` {`|`} `null`; `createdhost`: `string`; `currency`: `string`; `dataSource`: `string`; `expectedLife`: `number` {`|`} `null`; `id`: `number`; `impairedFlag`: `boolean` {`|`} `null`; `marketRate`: `number` {`|`} `null`; `pkid`: `number`; `prdCode`: `string`; `prdDesc`: `string`; `prdGroup`: `string`; `prdType`: `string`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
 
 Get a product parameter by ID.
 
@@ -76,13 +76,13 @@ The product parameter ID
 
 ###### Returns
 
-`Effect`\<\{ `activeFlag`: `boolean`; `alFlag`: `string` \| `null`; `amortizationType`: `string` \| `null`; `bmFlag`: `boolean` \| `null`; `borrowingRate`: `number` \| `null`; `createdby`: `string`; `createddate`: `string` \| `null`; `createdhost`: `string`; `currency`: `string`; `dataSource`: `string`; `expectedLife`: `number` \| `null`; `id`: `number`; `impairedFlag`: `boolean` \| `null`; `marketRate`: `number` \| `null`; `pkid`: `number`; `prdCode`: `string`; `prdDesc`: `string`; `prdGroup`: `string`; `prdType`: `string`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror), `never`\>
+`Effect`{`<`}{`{`} `activeFlag`: `boolean`; `alFlag`: `string` {`|`} `null`; `amortizationType`: `string` {`|`} `null`; `bmFlag`: `boolean` {`|`} `null`; `borrowingRate`: `number` {`|`} `null`; `createdby`: `string`; `createddate`: `string` {`|`} `null`; `createdhost`: `string`; `currency`: `string`; `dataSource`: `string`; `expectedLife`: `number` {`|`} `null`; `id`: `number`; `impairedFlag`: `boolean` {`|`} `null`; `marketRate`: `number` {`|`} `null`; `pkid`: `number`; `prdCode`: `string`; `prdDesc`: `string`; `prdGroup`: `string`; `prdType`: `string`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
 
 An Effect resolving to the product parameter or NotFoundError
 
 ##### getInstrumentClassOptions()
 
-> **getInstrumentClassOptions**: () => `Effect`\<`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **getInstrumentClassOptions**: () => `Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 Get instrument class options (AL_FLAG field).
 Dynamically sourced from Business Setting B0003 in FRS9_PARAM_COMMOND.
@@ -90,11 +90,11 @@ Per tech spec: AL_FLAG = Combo Box (Business Setting 'B0003')
 
 ###### Returns
 
-`Effect`\<`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`{`<`}`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 ##### list()
 
-> **list**: (`mode`, `options`) => `Effect`\<\{ `pagination`: \{ `limit`: `number`; `page`: `number`; `pages`: `number`; `total`: `number`; \}; `products`: `object`[]; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **list**: (`mode`, `options`) => `Effect`{`<`}{`{`} `pagination`: {`{`} `limit`: `number`; `page`: `number`; `pages`: `number`; `total`: `number`; {`}`}; `products`: `object`[]; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 List product parameters filtered by mode with pagination.
 
@@ -124,13 +124,13 @@ Pagination and search options
 
 ###### Returns
 
-`Effect`\<\{ `pagination`: \{ `limit`: `number`; `page`: `number`; `pages`: `number`; `total`: `number`; \}; `products`: `object`[]; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`{`<`}{`{`} `pagination`: {`{`} `limit`: `number`; `page`: `number`; `pages`: `number`; `total`: `number`; {`}`}; `products`: `object`[]; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror), `never`{`>`}
 
 An Effect resolving to products and pagination metadata
 
 ##### update()
 
-> **update**: (`id`, `data`, `userId`) => `Effect`\<\{ `activeFlag`: `boolean`; `alFlag`: `string` \| `null`; `amortizationType`: `string` \| `null`; `bmFlag`: `boolean` \| `null`; `borrowingRate`: `number` \| `null`; `createdby`: `string`; `createddate`: `string` \| `null`; `createdhost`: `string`; `currency`: `string`; `dataSource`: `string`; `expectedLife`: `number` \| `null`; `id`: `number`; `impairedFlag`: `boolean` \| `null`; `marketRate`: `number` \| `null`; `pkid`: `number`; `prdCode`: `string`; `prdDesc`: `string`; `prdGroup`: `string`; `prdType`: `string`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror), `never`\>
+> **update**: (`id`, `data`, `userId`) => `Effect`{`<`}{`{`} `activeFlag`: `boolean`; `alFlag`: `string` {`|`} `null`; `amortizationType`: `string` {`|`} `null`; `bmFlag`: `boolean` {`|`} `null`; `borrowingRate`: `number` {`|`} `null`; `createdby`: `string`; `createddate`: `string` {`|`} `null`; `createdhost`: `string`; `currency`: `string`; `dataSource`: `string`; `expectedLife`: `number` {`|`} `null`; `id`: `number`; `impairedFlag`: `boolean` {`|`} `null`; `marketRate`: `number` {`|`} `null`; `pkid`: `number`; `prdCode`: `string`; `prdDesc`: `string`; `prdGroup`: `string`; `prdType`: `string`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
 
 Update an existing product parameter.
 
@@ -156,6 +156,6 @@ The ID of the user updating the parameter
 
 ###### Returns
 
-`Effect`\<\{ `activeFlag`: `boolean`; `alFlag`: `string` \| `null`; `amortizationType`: `string` \| `null`; `bmFlag`: `boolean` \| `null`; `borrowingRate`: `number` \| `null`; `createdby`: `string`; `createddate`: `string` \| `null`; `createdhost`: `string`; `currency`: `string`; `dataSource`: `string`; `expectedLife`: `number` \| `null`; `id`: `number`; `impairedFlag`: `boolean` \| `null`; `marketRate`: `number` \| `null`; `pkid`: `number`; `prdCode`: `string`; `prdDesc`: `string`; `prdGroup`: `string`; `prdType`: `string`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror), `never`\>
+`Effect`{`<`}{`{`} `activeFlag`: `boolean`; `alFlag`: `string` {`|`} `null`; `amortizationType`: `string` {`|`} `null`; `bmFlag`: `boolean` {`|`} `null`; `borrowingRate`: `number` {`|`} `null`; `createdby`: `string`; `createddate`: `string` {`|`} `null`; `createdhost`: `string`; `currency`: `string`; `dataSource`: `string`; `expectedLife`: `number` {`|`} `null`; `id`: `number`; `impairedFlag`: `boolean` {`|`} `null`; `marketRate`: `number` {`|`} `null`; `pkid`: `number`; `prdCode`: `string`; `prdDesc`: `string`; `prdGroup`: `string`; `prdType`: `string`; `updatedby`: `string` {`|`} `null`; `updateddate`: `string` {`|`} `null`; `updatedhost`: `string` {`|`} `null`; {`}`}, [`DatabaseError`](lib.errors.md#databaseerror) {`|`} [`NotFoundError`](lib.errors.md#notfounderror), `never`{`>`}
 
 An Effect resolving to the updated product parameter or NotFoundError
