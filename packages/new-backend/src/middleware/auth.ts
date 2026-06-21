@@ -17,21 +17,6 @@ type RoutePermissionRule = {
     fixed?: string[]
 }
 
-const LEGACY_PERMISSION_ALIASES: Record<string, string> = {
-    MANAGE_SYSTEM: 'admin.system.manage',
-    MANAGE_USERS: 'admin.users.manage',
-    VIEW_USERS: 'admin.users.view',
-    MANAGE_ROLES: 'admin.roles.manage',
-    VIEW_DASHBOARD: 'banking.dashboard.view',
-    VIEW_ANALYTICS: 'banking.analytics.view',
-    VIEW_IFRS9_REPORTS: 'banking.reports.ifrs9.view',
-    MANAGE_IFRS9_CONFIG: 'banking.configuration.ifrs9.manage',
-    VIEW_COLLECTIVE_IMPAIRMENT: 'banking.collective.view',
-    VIEW_INDIVIDUAL_IMPAIRMENT: 'banking.individual.view',
-    VIEW_IFRS9_PROCESSING: 'banking.processing.view',
-    VIEW_R_ANALYTICS: 'banking.analytics.r.view',
-}
-
 const ROUTE_PERMISSION_RULES: RoutePermissionRule[] = [
     { prefix: '/api/v1/banking/setup/application', base: 'banking.setup.application' },
     { prefix: '/api/v1/banking/setup/business', base: 'banking.setup.business' },
@@ -116,17 +101,8 @@ const toPermissionAction = (method: string): 'view' | 'create' | 'update' | 'del
     }
 }
 
-const normalizePermissions = (permissions: string[]): string[] => {
-    const normalized = new Set<string>()
-
-    for (const permission of permissions) {
-        normalized.add(permission)
-        const alias = LEGACY_PERMISSION_ALIASES[permission]
-        if (alias) normalized.add(alias)
-    }
-
-    return Array.from(normalized)
-}
+const normalizePermissions = (permissions: string[]): string[] =>
+    Array.from(new Set(permissions))
 
 const getRequiredPermissionCandidates = (path: string, method: string): string[] => {
     const matchedRule = routePermissionRules.find(
