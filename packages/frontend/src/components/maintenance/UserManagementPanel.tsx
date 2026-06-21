@@ -169,7 +169,25 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       }
 
       const userRows = responsePayload?.data?.users || responsePayload?.users || responsePayload?.data || [];
-      const normalizedUsers = Array.isArray(userRows) ? userRows : [];
+      let normalizedUsers = Array.isArray(userRows) ? userRows : [];
+      
+      normalizedUsers = await Promise.all(
+        normalizedUsers.map(async (u: any) => {
+          try {
+            const res = await api.roles.getUserRoles(u.id);
+            const rows = res?.data?.roles || res?.roles || res?.data || [];
+            const roleRows = Array.isArray(rows) ? rows : [];
+            const roleNames = roleRows.map((row: any) => {
+              const embeddedRole = row?.role || {};
+              return embeddedRole?.displayName || embeddedRole?.roleName || embeddedRole?.name || row?.roleName || row?.role_name;
+            }).filter(Boolean);
+            return { ...u, assignedRolesList: roleNames };
+          } catch (error) {
+            return { ...u, assignedRolesList: [] };
+          }
+        })
+      );
+
       const total = typeof responsePayload?.pagination?.total === 'number'
         ? responsePayload.pagination.total
         : normalizedUsers.length;

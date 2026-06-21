@@ -65,8 +65,9 @@ const ROUTE_PERMISSION_RULES: RoutePermissionRule[] = [
     { prefix: '/api/v1/ifrs9', base: 'banking.processing' },
     { prefix: '/api/v1/r-analytics', base: 'banking.analytics.r' },
 
+    { prefix: '/api/v1/users/profile' },
     { prefix: '/api/v1/users', base: 'admin.users' },
-    { prefix: '/api/v1/user', base: 'admin.users' },
+    { prefix: '/api/v1/user', fixed: [] }, // We will implement authorization inside the /user routes
     { prefix: '/api/v1/rbac', base: 'admin.roles' },
     { prefix: '/api/v1/roles', base: 'admin.roles' },
     { prefix: '/api/v1/approvals', fixed: ['approval.requests.approve', 'approval.all'] },
@@ -88,6 +89,7 @@ const ROUTE_PERMISSION_RULES: RoutePermissionRule[] = [
     { prefix: '/api/v1/jobs' },
     { prefix: '/api/v1/platform-admin', base: 'admin.system' },
     { prefix: '/api/v1/platform-users', base: 'admin.system' },
+    { prefix: '/api/v1/tenants/current' },
     { prefix: '/api/v1/tenants', base: 'admin.system' },
     { prefix: '/api/v1/consultants', base: 'admin.system' },
     { prefix: '/api/v1/admin-dashboard', base: 'admin.system' },

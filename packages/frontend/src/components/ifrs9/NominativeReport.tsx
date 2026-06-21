@@ -40,8 +40,6 @@ import { reportsAPI } from '../../services/api.reports';
 
 interface FilterState {
   asOfDate: string;
-  downloadDateStart: string;
-  downloadDateEnd: string;
   profitCenters: string[];
   branches: string[];
   stages: number[];
@@ -92,8 +90,6 @@ type NominativeColumnConfig = {
 
 const getDefaultFilters = (): FilterState => ({
   asOfDate: new Date().toISOString().split('T')[0],
-  downloadDateStart: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-  downloadDateEnd: new Date().toISOString().split('T')[0],
   profitCenters: [],
   branches: [],
   stages: [1, 2, 3]
@@ -154,9 +150,22 @@ const NominativeReport: React.FC = () => {
   const [availableDates, setAvailableDates] = useState<NominativeAvailableDateRow[]>([])
   const [availableDatesLoading, setAvailableDatesLoading] = useState(false)
   const [autoSnapshot, setAutoSnapshot] = useState<{ from: string; to: string; direction: 'before_or_equal' | 'after' | 'unknown' } | null>(null)
-  const [autoDownloadRange, setAutoDownloadRange] = useState<{ fromStart: string; fromEnd: string; toStart: string; toEnd: string } | null>(null)
   const latestFetchRef = useRef(0)
   const skipNextAutoFetchRef = useRef(false)
+
+  useEffect(() => {
+    const fetchDefaultProcessingDate = async () => {
+      try {
+        const response = await reportsAPI.getProcessingDate();
+        if (response?.data?.prc_date) {
+          setFilters(prev => ({ ...prev, asOfDate: response.data.prc_date }));
+        }
+      } catch (error) {
+        console.error('Error fetching processing date:', error);
+      }
+    };
+    fetchDefaultProcessingDate();
+  }, []);
 
   const monthLabels = useMemo(
     () => ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
@@ -234,8 +243,6 @@ const NominativeReport: React.FC = () => {
       // 1. Fetch Nominative Report Data (Paginated)
       const tableParams: Record<string, string | number | string[] | undefined> = {
         prc_date: nextFilters.asOfDate,
-        download_start_date: nextFilters.downloadDateStart,
-        download_end_date: nextFilters.downloadDateEnd,
         page: nextPaginationModel.page + 1,
         limit: nextPaginationModel.pageSize,
         segment: nextFilters.profitCenters.length > 0 ? nextFilters.profitCenters : undefined,
@@ -379,35 +386,6 @@ const NominativeReport: React.FC = () => {
     setAutoSnapshot({ from: normalized, to: resolvedNorm, direction })
   }, [availableDates, filters.asOfDate, resolveNearestSnapshotDate])
 
-  useEffect(() => {
-    if (!availableDates.length) return
-
-    const rangeStart = String(filters.downloadDateStart || '').slice(0, 10)
-    const rangeEnd = String(filters.downloadDateEnd || '').slice(0, 10)
-    if (!rangeStart || !rangeEnd) return
-
-    const hasSnapshotInRange = availableDates.some((row) => {
-      const d = String(row.prc_date || '').slice(0, 10)
-      return d >= rangeStart && d <= rangeEnd
-    })
-
-    if (hasSnapshotInRange) {
-      setAutoDownloadRange(null)
-      return
-    }
-
-    const nearest = resolveNearestSnapshotDate(filters.asOfDate, availableDates)
-    if (!nearest) return
-    const nearestNorm = String(nearest).slice(0, 10)
-
-    if (rangeStart === nearestNorm && rangeEnd === nearestNorm) {
-      setAutoDownloadRange(null)
-      return
-    }
-
-    setAutoDownloadRange({ fromStart: rangeStart, fromEnd: rangeEnd, toStart: nearestNorm, toEnd: nearestNorm })
-  }, [availableDates, filters.asOfDate, filters.downloadDateEnd, filters.downloadDateStart, resolveNearestSnapshotDate])
-
   const handleSearch = useCallback(() => {
     setPaginationModel((prev) => ({ ...prev, page: 0 }));
     setAppliedFilters(filters);
@@ -416,8 +394,6 @@ const NominativeReport: React.FC = () => {
   const filterSignature = useMemo(() => {
     return [
       filters.asOfDate,
-      filters.downloadDateStart,
-      filters.downloadDateEnd,
       filters.profitCenters.join('|'),
       filters.branches.join('|'),
       filters.stages.join('|'),
@@ -499,8 +475,6 @@ const NominativeReport: React.FC = () => {
         setLoading(true);
         const params = {
           prc_date: effectivePrcDate ?? appliedFilters.asOfDate,
-          download_start_date: appliedFilters.downloadDateStart,
-          download_end_date: appliedFilters.downloadDateEnd,
           segment: appliedFilters.profitCenters.length > 0 ? appliedFilters.profitCenters : undefined,
           branch_code: appliedFilters.branches.length > 0 ? appliedFilters.branches : undefined,
           stage: appliedFilters.stages.length > 0 ? appliedFilters.stages.map((s) => String(s)) : undefined,
@@ -548,8 +522,6 @@ const NominativeReport: React.FC = () => {
 
       const params: Record<string, string | number | string[] | undefined> = {
         prc_date: effectivePrcDate ?? appliedFilters.asOfDate,
-        download_start_date: appliedFilters.downloadDateStart,
-        download_end_date: appliedFilters.downloadDateEnd,
         page: 1,
         limit: pageSize,
         segment: appliedFilters.profitCenters.length > 0 ? appliedFilters.profitCenters : undefined,
@@ -573,7 +545,6 @@ const NominativeReport: React.FC = () => {
 
       const filterParts = [
         `As of: ${reportDate}`,
-        `Download: ${appliedFilters.downloadDateStart} to ${appliedFilters.downloadDateEnd}`,
         appliedFilters.stages?.length ? `Stages: ${appliedFilters.stages.join(', ')}` : undefined,
         appliedFilters.profitCenters?.length ? `Segment: ${appliedFilters.profitCenters.join(', ')}` : undefined,
         appliedFilters.branches?.length ? `Branch: ${appliedFilters.branches.join(', ')}` : undefined,
@@ -896,22 +867,23 @@ const NominativeReport: React.FC = () => {
           <Grid container spacing={3}>
             {/* Primary Filters (Always Visible) */}
             <Grid size={{ xs: 12, md: 3 }}>
-              <DatePicker
-                label="As-of Date"
-                value={new Date(filters.asOfDate)}
-                onChange={(newValue) => {
-                  if (newValue) {
-                    setAutoSnapshot(null)
-                    setFilters(prev => ({ ...prev, asOfDate: newValue.toISOString().split('T')[0] }));
-                  }
-                }}
-                slotProps={{
-                  textField: {
-                    fullWidth: true,
-                    size: 'small',
-                  }
-                }}
-              />
+              <FormControl fullWidth size="small">
+                <DatePicker
+                  label="Processing Date"
+                  value={new Date(filters.asOfDate)}
+                  onChange={(newValue) => {
+                    if (newValue) {
+                      setFilters(prev => ({ ...prev, asOfDate: newValue.toISOString().split('T')[0] }));
+                    }
+                  }}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      size: 'small',
+                    }
+                  }}
+                />
+              </FormControl>
               <Autocomplete
                 options={availableDates}
                 loading={availableDatesLoading}
@@ -1121,58 +1093,6 @@ const NominativeReport: React.FC = () => {
             </Grid>
 
             {/* Advanced Filters */}
-                 <Grid size={{ xs: 12, md: 3 }}>
-                  <DatePicker
-                    label="Download Start Date"
-                    value={new Date(filters.downloadDateStart)}
-                    onChange={(newValue) => {
-                      if (newValue) {
-                        setAutoDownloadRange(null)
-                        setFilters(prev => ({ ...prev, downloadDateStart: newValue.toISOString().split('T')[0] }));
-                      }
-                    }}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        size: 'small',
-                      }
-                    }}
-                  />
-                </Grid>
-
-                <Grid size={{ xs: 12, md: 3 }}>
-                  <DatePicker
-                    label="Download End Date"
-                    value={new Date(filters.downloadDateEnd)}
-                    onChange={(newValue) => {
-                      if (newValue) {
-                        setAutoDownloadRange(null)
-                        setFilters(prev => ({ ...prev, downloadDateEnd: newValue.toISOString().split('T')[0] }));
-                      }
-                    }}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        size: 'small',
-                      }
-                    }}
-                  />
-                </Grid>
-
-                {autoDownloadRange ? (
-                  <Grid size={{ xs: 12 }}>
-                    <Alert
-                      severity="info"
-                      variant="outlined"
-                      sx={{ py: 0.5, '& .MuiAlert-message': { fontSize: 12 } }}
-                    >
-                      Rentang Download Date {autoDownloadRange.fromStart}–{autoDownloadRange.fromEnd} tidak memiliki snapshot. Rekomendasi snapshot/range: {autoDownloadRange.toStart}–{autoDownloadRange.toEnd}.
-                    </Alert>
-                  </Grid>
-                ) : null}
-
-                <Grid size={{ xs: 12, md: 6 }} />
-
                 <Grid size={{ xs: 12, md: 6 }}>
                   <Autocomplete
                       multiple
@@ -1290,7 +1210,7 @@ const NominativeReport: React.FC = () => {
             {effectivePrcDate && effectivePrcDate !== filters.asOfDate && (
               <Grid size={{ xs: 12 }}>
                 <Typography variant="body2" color="text.secondary">
-                  Snapshot used: <strong>{effectivePrcDate}</strong> (snapshot yang tersedia paling dekat dengan As-of Date yang dipilih)
+                  Snapshot used: <strong>{effectivePrcDate}</strong> (snapshot yang tersedia paling dekat dengan Processing Date yang dipilih)
                 </Typography>
               </Grid>
             )}

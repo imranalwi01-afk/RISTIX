@@ -28,7 +28,7 @@ import { useRouter } from 'next/navigation';
 interface SegmentationHeaderProps {
   onRefresh: () => void;
   onExport: (format: 'xlsx' | 'csv' | 'pdf') => void;
-  onHelp: () => void;
+  onHelp?: () => void;
   lastUpdated: string;
   dbStatus: 'active' | 'inactive';
   canExport?: boolean;
@@ -138,15 +138,17 @@ export const SegmentationHeader: React.FC<SegmentationHeaderProps> = ({
               </>
             )}
 
-            <Button 
-              variant="outlined" 
-              startIcon={<HelpIcon />} 
-              onClick={onHelp}
-              size="small"
-              sx={{ borderRadius: 1.5, textTransform: 'none' }}
-            >
-              Help
-            </Button>
+            {onHelp && (
+              <Button 
+                variant="outlined" 
+                startIcon={<HelpIcon />} 
+                onClick={onHelp}
+                size="small"
+                sx={{ borderRadius: 1.5, textTransform: 'none' }}
+              >
+                Help
+              </Button>
+            )}
           </Stack>
 
           <Stack direction="row" spacing={2} alignItems="center">

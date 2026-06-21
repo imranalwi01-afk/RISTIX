@@ -259,7 +259,7 @@ export const frs9ImpCaEclConfigd = pgTable("frs9_imp_ca_ecl_configd", {
 	updatedby: varchar({ length: 50 }),
 	updateddate: timestamp({ mode: 'string' }),
 	updatedhost: varchar({ length: 50 }),
-	cifFlag: smallint("cif_flag").default(0),
+	// cifFlag: smallint("cif_flag").default(0),
 });
 
 export const frs9ImpCaEclConfigh = pgTable("frs9_imp_ca_ecl_configh", {
