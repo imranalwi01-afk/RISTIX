@@ -188,7 +188,7 @@ An Effect resolving to an array of operators
 
 Get available rule types options.
 Dynamically sourced from Business Setting B0008 in FRS9_PARAM_COMMOND.
-Per tech spec: RULE_TYPE = Combo Box (Business Setting B0008)
+Per tech spec: `RULE_TYPE` = Combo Box (Business Setting `B0008`)
 
 ###### Returns
 
