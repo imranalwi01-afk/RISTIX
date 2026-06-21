@@ -242,7 +242,7 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         required
                         disabled={optionsLoading}
                         error={!formData.glType.trim()}
-                        helperText={!formData.glType.trim() ? 'Journal Type is required' : 'Source: Business Setting B0006'}
+                        helperText={!formData.glType.trim() ? 'Journal Type is required' : 'Source: Business Setting B0005'}
                         SelectProps={{ inputProps: { 'data-testid': 'select-journal-type' } }}
                     >
                         {journalTypeOptions.length > 0 ? (
@@ -262,7 +262,7 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         required
                         disabled={optionsLoading}
                         error={!formData.glCode.trim()}
-                        helperText={!formData.glCode.trim() ? 'Journal Code is required' : 'Source: Business Setting B0008'}
+                        helperText={!formData.glCode.trim() ? 'Journal Code is required' : 'Source: Business Setting B0006'}
                         SelectProps={{ inputProps: { 'data-testid': 'select-journal-code' } }}
                     >
                         {journalCodeOptions.length > 0 ? (

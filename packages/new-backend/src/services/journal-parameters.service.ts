@@ -139,10 +139,10 @@ export const JournalParametersService = {
     getGlGroupOptions: () => RuleBaseSettingsService.getOptionsByType('GL'),
     /** Get Currency options from Business Setting B0001. */
     getCurrencyOptions: () => JournalParametersService.getOptions('B0001'),
-    /** Get Journal Type options from Business Setting B0006 (IMPC/IMPI). */
-    getJournalTypeOptions: () => JournalParametersService.getOptions('B0006'),
-    /** Get Journal Code options from Business Setting B0008 (GL/STAGE/DEFAULT/IA). */
-    getJournalCodeOptions: () => JournalParametersService.getOptions('B0008'),
+    /** Get Journal Type options from Business Setting B0005 (per tech spec). */
+    getJournalTypeOptions: () => JournalParametersService.getOptions('B0005'),
+    /** Get Journal Code options from Business Setting B0006 (per tech spec). */
+    getJournalCodeOptions: () => JournalParametersService.getOptions('B0006'),
     /** Get Debit/Credit options from Business Setting B0007. */
     getDbCrOptions: () => JournalParametersService.getOptions('B0007'),
 }
