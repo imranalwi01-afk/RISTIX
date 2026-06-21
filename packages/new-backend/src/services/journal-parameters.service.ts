@@ -1,6 +1,7 @@
 import { Effect, pipe } from 'effect'
 import { JournalParametersRepository } from '../repositories/journal-parameters.repository'
 import { RuleBaseSettingsService } from './rule-base-settings.service'
+import { ParametersRepository } from '../repositories/parameters.repository'
 import { NotFoundError } from '../lib/errors'
 import { frs9ParamJournal } from '../db/schema'
 import type { ListQuery } from '../lib/http/list-query'
@@ -134,6 +135,22 @@ export const JournalParametersService = {
     },
 
     // Dropdown Options Helpers
+
+    /** Get dropdown options from a Business Setting code (e.g. B0001). */
+    getOptions: (paramCode: string) => {
+        return pipe(
+            ParametersRepository.findHeaderByCode(paramCode),
+            Effect.map((param: any) => {
+                if (!param || !param.details) return []
+                return param.details
+                    .filter((d: any) => d.value1 !== null && d.value1 !== '')
+                    .map((d: any) => ({
+                        id: String(d.value1),
+                        name: String(d.paramdesc ?? d.value2 ?? d.value1)
+                    }))
+            })
+        )
+    },
 
     /** Get GL Group options from Rule Base Setting (type = GL). */
     getGlGroupOptions: () => RuleBaseSettingsService.getOptionsByType('GL'),

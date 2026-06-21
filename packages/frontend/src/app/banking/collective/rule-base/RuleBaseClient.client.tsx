@@ -613,7 +613,7 @@ export default function PageContent() {
       getActions: (params) => [
         <SafeGridActionsCellItem
           key="view"
-          label="View Rule Details"
+          label="Query Preview"
           icon={<FilterIcon color="info" />}
           onClick={() => handleViewRuleDetails(params.row)}
           disabled={loading}
@@ -1197,6 +1197,7 @@ export default function PageContent() {
       <RuleBaseDetailsDialog
         open={detailsDialogOpen}
         header={selectedHeader}
+        initialTab={1}
         onClose={() => setDetailsDialogOpen(false)}
       />
       <RuleBaseDetailDialog
