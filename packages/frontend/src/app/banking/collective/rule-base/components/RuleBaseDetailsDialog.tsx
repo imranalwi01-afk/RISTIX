@@ -27,6 +27,7 @@ interface RuleBaseDetailsDialogProps {
   open: boolean;
   header: RuleBaseHeader | null;
   onClose: () => void;
+  initialTab?: number;
 }
 
 const enterpriseTableSx = {
@@ -105,7 +106,7 @@ const buildRuleBaseQueryPreview = (header: RuleBaseHeader, details: RuleBaseDeta
   ].join('\n');
 };
 
-function RuleBaseDetailsDialogComponent({ open, header, onClose }: RuleBaseDetailsDialogProps) {
+function RuleBaseDetailsDialogComponent({ open, header, onClose, initialTab = 0 }: RuleBaseDetailsDialogProps) {
   const [details, setDetails] = useState<RuleBaseDetail[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -134,7 +135,7 @@ function RuleBaseDetailsDialogComponent({ open, header, onClose }: RuleBaseDetai
       }
     };
 
-    if (open) setTabValue(0);
+    if (open) setTabValue(initialTab);
     loadDetails();
     return () => {
       mounted = false;
