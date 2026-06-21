@@ -33,6 +33,7 @@ type ReportDebugCatalogEntry = {
 const NOMINATIVE_LIST_QUERY_CONFIG: ListQueryConfig = {
     defaultLimit: 20,
     maxLimit: 500,
+    paginationMode: 'cursor',
     defaultSort: [{ field: 'account_number', direction: 'asc' }],
     filterDefinitions: {
         prc_date: { field: 'prc_date', label: 'Processing Date', type: 'date', operators: ['equals', 'from', 'to'] },
@@ -69,6 +70,7 @@ const NOMINATIVE_LIST_QUERY_CONFIG: ListQueryConfig = {
 const LIFETIME_PD_DETAIL_QUERY_CONFIG: ListQueryConfig = {
     defaultLimit: 100,
     maxLimit: 500,
+    paginationMode: 'cursor',
     defaultSort: [{ field: 'account_number', direction: 'asc' }],
     filterableColumns: ['prc_date', 'pd_config_id'],
     filterDefinitions: {
@@ -81,6 +83,7 @@ const LIFETIME_PD_DETAIL_QUERY_CONFIG: ListQueryConfig = {
 const LIFETIME_LGD_DETAIL_QUERY_CONFIG: ListQueryConfig = {
     defaultLimit: 100,
     maxLimit: 500,
+    paginationMode: 'cursor',
     defaultSort: [{ field: 'account_number', direction: 'asc' }],
     filterableColumns: ['prc_date', 'lgd_config_id', 'lgd_method', 'model_id', 'segment_id', 'fl_flag'],
     filterDefinitions: {
@@ -120,6 +123,7 @@ const LIFETIME_LGD_DETAIL_QUERY_CONFIG: ListQueryConfig = {
 const ECL_RESULT_QUERY_CONFIG: ListQueryConfig = {
     defaultLimit: 100,
     maxLimit: 500,
+    paginationMode: 'cursor',
     defaultSort: [{ field: 'segment_id', direction: 'asc' }, { field: 'stage', direction: 'asc' }],
     filterableColumns: ['prc_date', 'segment_id', 'stage'],
     filterDefinitions: {
