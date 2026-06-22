@@ -53,10 +53,7 @@ export const GROUP_SEGMENT_ALLOWLIST_ORDER = [
 ] as const;
 
 export const getDefaultFilters = (reportType: BaseIfrs9ReportProps['reportType']): ReportFilters => ({
-  prc_date: reportType === 'ead-model' ? new Date('2020-12-31') :
-            reportType.includes('pd') ? new Date('2022-10-31') :
-            reportType === 'lifetime-lgd' ? new Date() :
-            new Date('2023-12-31'),
+  prc_date: null,
   page: 1,
   limit: 20,
   segment_id: undefined,

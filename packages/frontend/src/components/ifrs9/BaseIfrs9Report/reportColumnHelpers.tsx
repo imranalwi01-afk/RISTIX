@@ -194,7 +194,7 @@ export const renderLifetimeLgdDetailPanel = (params: { row: any }): React.ReactN
       type: 'number',
       valueFormatter: (value: number | null | undefined) => {
         if (value === null || value === undefined) return '';
-        return `${(value * 100).toFixed(2)}%`;
+        return `${value.toFixed(2)}%`;
       },
     },
     ...sequenceFields.map((field: string): GridColDef => ({
