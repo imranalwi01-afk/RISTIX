@@ -29,7 +29,7 @@ Defined in: [src/lib/approval-helpers.ts:16](https://github.com/ifrspro/ifrs9-ia
 
 ###### amountThresholds
 
-> **amountThresholds**: \{ `critical?`: `number`; `high?`: `number`; `low?`: `number`; `medium?`: `number`; \} \| `null`
+> **amountThresholds**: &#123; `critical?`: `number`; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`
 
 ###### autoApprovalRules
 
@@ -37,7 +37,7 @@ Defined in: [src/lib/approval-helpers.ts:16](https://github.com/ifrspro/ifrs9-ia
 
 ###### bankingMode
 
-> **bankingMode**: `string` \| `null`
+> **bankingMode**: `string` &#124; `null`
 
 ###### createdAt
 
@@ -45,7 +45,7 @@ Defined in: [src/lib/approval-helpers.ts:16](https://github.com/ifrspro/ifrs9-ia
 
 ###### description
 
-> **description**: `string` \| `null`
+> **description**: `string` &#124; `null`
 
 ###### entityType
 
@@ -69,19 +69,19 @@ Defined in: [src/lib/approval-helpers.ts:16](https://github.com/ifrspro/ifrs9-ia
 
 ###### operationType
 
-> **operationType**: `string` \| `null`
+> **operationType**: `string` &#124; `null`
 
 ###### riskThresholds
 
-> **riskThresholds**: \{ `high?`: `number`; `low?`: `number`; `medium?`: `number`; \} \| `null`
+> **riskThresholds**: &#123; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`
 
 ###### syariahBoardRequired
 
-> **syariahBoardRequired**: `boolean` \| `null`
+> **syariahBoardRequired**: `boolean` &#124; `null`
 
 ###### tenantId
 
-> **tenantId**: `string` \| `null`
+> **tenantId**: `string` &#124; `null`
 
 ###### updatedAt
 
@@ -165,7 +165,7 @@ Defined in: [src/lib/approval-helpers.ts:356](https://github.com/ifrspro/ifrs9-i
 
 ##### permissionMatchMode
 
-> **permissionMatchMode**: `"ANY"` \| `"ALL"`
+> **permissionMatchMode**: `"ANY"` &#124; `"ALL"`
 
 Defined in: [src/lib/approval-helpers.ts:360](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L360)
 
@@ -189,7 +189,7 @@ Defined in: [src/lib/approval-helpers.ts:357](https://github.com/ifrspro/ifrs9-i
 
 ##### roleMatchMode
 
-> **roleMatchMode**: `"ANY"` \| `"ALL"`
+> **roleMatchMode**: `"ANY"` &#124; `"ALL"`
 
 Defined in: [src/lib/approval-helpers.ts:359](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L359)
 
@@ -221,7 +221,7 @@ Build approval request description
 
 ##### data
 
-`Record`\<`string`, `any`\>
+`Record`&lt;`string`, `any`&gt;
 
 #### Returns
 
@@ -350,11 +350,11 @@ Calculate approval progress percentage
 
 ###### completedAt
 
-`Date` \| `null`
+`Date` &#124; `null`
 
 ###### completedBy
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### createdAt
 
@@ -366,11 +366,11 @@ Calculate approval progress percentage
 
 ###### description
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### entityId
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### entityType
 
@@ -378,7 +378,7 @@ Calculate approval progress percentage
 
 ###### expiresAt
 
-`Date` \| `null`
+`Date` &#124; `null`
 
 ###### id
 
@@ -386,15 +386,15 @@ Calculate approval progress percentage
 
 ###### impactLevel
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### matrixId
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### requestData
 
-`Record`\<`string`, `unknown`\> \| `null`
+`Record`&lt;`string`, `unknown`&gt; &#124; `null`
 
 ###### requestedBy
 
@@ -440,11 +440,11 @@ Check if approval can be processed
 
 ###### completedAt
 
-`Date` \| `null`
+`Date` &#124; `null`
 
 ###### completedBy
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### createdAt
 
@@ -456,11 +456,11 @@ Check if approval can be processed
 
 ###### description
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### entityId
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### entityType
 
@@ -468,7 +468,7 @@ Check if approval can be processed
 
 ###### expiresAt
 
-`Date` \| `null`
+`Date` &#124; `null`
 
 ###### id
 
@@ -476,15 +476,15 @@ Check if approval can be processed
 
 ###### impactLevel
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### matrixId
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### requestData
 
-`Record`\<`string`, `unknown`\> \| `null`
+`Record`&lt;`string`, `unknown`&gt; &#124; `null`
 
 ###### requestedBy
 
@@ -518,7 +518,7 @@ Check if approval can be processed
 
 ### extractPendingData()
 
-> **extractPendingData**\<`T`\>(`request`): `T` \| `null`
+> **extractPendingData**&lt;`T`&gt;(`request`): `T` &#124; `null`
 
 Defined in: [src/lib/approval-helpers.ts:145](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L145)
 
@@ -544,11 +544,11 @@ Extract original request data from approval request
 
 ###### completedAt
 
-`Date` \| `null`
+`Date` &#124; `null`
 
 ###### completedBy
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### createdAt
 
@@ -560,11 +560,11 @@ Extract original request data from approval request
 
 ###### description
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### entityId
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### entityType
 
@@ -572,7 +572,7 @@ Extract original request data from approval request
 
 ###### expiresAt
 
-`Date` \| `null`
+`Date` &#124; `null`
 
 ###### id
 
@@ -580,15 +580,15 @@ Extract original request data from approval request
 
 ###### impactLevel
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### matrixId
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### requestData
 
-`Record`\<`string`, `unknown`\> \| `null`
+`Record`&lt;`string`, `unknown`&gt; &#124; `null`
 
 ###### requestedBy
 
@@ -608,7 +608,7 @@ Extract original request data from approval request
 
 #### Returns
 
-`T` \| `null`
+`T` &#124; `null`
 
 ***
 
@@ -634,11 +634,11 @@ Format response when approval is required
 
 ###### completedAt
 
-`Date` \| `null`
+`Date` &#124; `null`
 
 ###### completedBy
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### createdAt
 
@@ -650,11 +650,11 @@ Format response when approval is required
 
 ###### description
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### entityId
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### entityType
 
@@ -662,7 +662,7 @@ Format response when approval is required
 
 ###### expiresAt
 
-`Date` \| `null`
+`Date` &#124; `null`
 
 ###### id
 
@@ -670,15 +670,15 @@ Format response when approval is required
 
 ###### impactLevel
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### matrixId
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### requestData
 
-`Record`\<`string`, `unknown`\> \| `null`
+`Record`&lt;`string`, `unknown`&gt; &#124; `null`
 
 ###### requestedBy
 
@@ -704,7 +704,7 @@ Format response when approval is required
 
 ### formatDirectExecutionResponse()
 
-> **formatDirectExecutionResponse**\<`T`\>(`data`, `message?`): [`ApprovalResponse`](#approvalresponse)
+> **formatDirectExecutionResponse**&lt;`T`&gt;(`data`, `message?`): [`ApprovalResponse`](#approvalresponse)
 
 Defined in: [src/lib/approval-helpers.ts:126](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L126)
 
@@ -784,7 +784,7 @@ Get required approval level for operation
 
 ##### matrix
 
-\{ `amountThresholds`: \{ `critical?`: `number`; `high?`: `number`; `low?`: `number`; `medium?`: `number`; \} \| `null`; `autoApprovalRules`: `unknown`; `bankingMode`: `string` \| `null`; `createdAt`: `Date`; `description`: `string` \| `null`; `entityType`: `string`; `escalationRules`: `unknown`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `operationType`: `string` \| `null`; `riskThresholds`: \{ `high?`: `number`; `low?`: `number`; `medium?`: `number`; \} \| `null`; `syariahBoardRequired`: `boolean` \| `null`; `tenantId`: `string` \| `null`; `updatedAt`: `Date`; \} | `null` | `undefined`
+&#123; `amountThresholds`: &#123; `critical?`: `number`; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `autoApprovalRules`: `unknown`; `bankingMode`: `string` &#124; `null`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `entityType`: `string`; `escalationRules`: `unknown`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `operationType`: `string` &#124; `null`; `riskThresholds`: &#123; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `syariahBoardRequired`: `boolean` &#124; `null`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date`; &#125; | `null` | `undefined`
 
 ##### impactLevel?
 
@@ -874,11 +874,11 @@ Check if approval request has expired
 
 ###### completedAt
 
-`Date` \| `null`
+`Date` &#124; `null`
 
 ###### completedBy
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### createdAt
 
@@ -890,11 +890,11 @@ Check if approval request has expired
 
 ###### description
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### entityId
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### entityType
 
@@ -902,7 +902,7 @@ Check if approval request has expired
 
 ###### expiresAt
 
-`Date` \| `null`
+`Date` &#124; `null`
 
 ###### id
 
@@ -910,15 +910,15 @@ Check if approval request has expired
 
 ###### impactLevel
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### matrixId
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### requestData
 
-`Record`\<`string`, `unknown`\> \| `null`
+`Record`&lt;`string`, `unknown`&gt; &#124; `null`
 
 ###### requestedBy
 
@@ -975,7 +975,7 @@ Determine if auto-approval should apply based on matrix rules
 
 ##### matrix
 
-\{ `amountThresholds`: \{ `critical?`: `number`; `high?`: `number`; `low?`: `number`; `medium?`: `number`; \} \| `null`; `autoApprovalRules`: `unknown`; `bankingMode`: `string` \| `null`; `createdAt`: `Date`; `description`: `string` \| `null`; `entityType`: `string`; `escalationRules`: `unknown`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `operationType`: `string` \| `null`; `riskThresholds`: \{ `high?`: `number`; `low?`: `number`; `medium?`: `number`; \} \| `null`; `syariahBoardRequired`: `boolean` \| `null`; `tenantId`: `string` \| `null`; `updatedAt`: `Date`; \} | `null` | `undefined`
+&#123; `amountThresholds`: &#123; `critical?`: `number`; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `autoApprovalRules`: `unknown`; `bankingMode`: `string` &#124; `null`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `entityType`: `string`; `escalationRules`: `unknown`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `operationType`: `string` &#124; `null`; `riskThresholds`: &#123; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `syariahBoardRequired`: `boolean` &#124; `null`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date`; &#125; | `null` | `undefined`
 
 ##### userPermissions
 

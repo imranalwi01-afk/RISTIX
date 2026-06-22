@@ -23,11 +23,20 @@ export const validatePasswordPolicy = (password: string, tenantId: string): Effe
         getTenantById(tenantId),
         Effect.flatMap((tenant) => {
             let policy = DEFAULT_POLICY;
-            if (tenant?.settings && typeof tenant.settings === 'object') {
-                const settings = tenant.settings as any;
-                if (settings.passwordPolicy) {
-                    policy = { ...DEFAULT_POLICY, ...settings.passwordPolicy };
+            let settingsObj: any = null;
+
+            if (tenant?.settings) {
+                if (typeof tenant.settings === 'string') {
+                    try {
+                        settingsObj = JSON.parse(tenant.settings);
+                    } catch (e) {}
+                } else if (typeof tenant.settings === 'object') {
+                    settingsObj = tenant.settings;
                 }
+            }
+
+            if (settingsObj && settingsObj.passwordPolicy) {
+                policy = { ...DEFAULT_POLICY, ...settingsObj.passwordPolicy };
             }
 
             const errors: string[] = [];

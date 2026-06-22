@@ -12,7 +12,7 @@ Defined in: [src/lib/react-admin.ts:37](https://github.com/ifrspro/ifrs9-iaf/blo
 
 #### Indexable
 
-\[`key`: `string`\]: `string` \| `number` \| `boolean` \| `undefined`
+\[`key`: `string`\]: `string` &#124; `number` &#124; `boolean` &#124; `undefined`
 
 ***
 
@@ -78,7 +78,7 @@ Defined in: [src/lib/react-admin.ts:32](https://github.com/ifrspro/ifrs9-iaf/blo
 
 ##### order?
 
-> `optional` **order**: `"asc"` \| `"desc"`
+> `optional` **order**: `"asc"` &#124; `"desc"`
 
 Defined in: [src/lib/react-admin.ts:34](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/react-admin.ts#L34)
 
@@ -118,7 +118,7 @@ Defined in: [src/lib/react-admin.ts:27](https://github.com/ifrspro/ifrs9-iaf/blo
 
 ### SortDirection
 
-> **SortDirection** = `"asc"` \| `"desc"`
+> **SortDirection** = `"asc"` &#124; `"desc"`
 
 Defined in: [src/lib/react-admin.ts:182](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/react-admin.ts#L182)
 
@@ -160,7 +160,7 @@ Calculate offset from page and limit
 
 ### createListResponse()
 
-> **createListResponse**\<`T`\>(`data`, `total`, `pagination?`): [`ListResponse`](#listresponse)\<`T`\>
+> **createListResponse**&lt;`T`&gt;(`data`, `total`, `pagination?`): [`ListResponse`](#listresponse)&lt;`T`&gt;
 
 Defined in: [src/lib/react-admin.ts:48](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/react-admin.ts#L48)
 
@@ -184,17 +184,17 @@ Create a list response compatible with react-admin
 
 ##### pagination?
 
-`Partial`\<[`PaginationParams`](#paginationparams)\>
+`Partial`&lt;[`PaginationParams`](#paginationparams)&gt;
 
 #### Returns
 
-[`ListResponse`](#listresponse)\<`T`\>
+[`ListResponse`](#listresponse)&lt;`T`&gt;
 
 ***
 
 ### createSingleResponse()
 
-> **createSingleResponse**\<`T`\>(`data`): [`SingleResponse`](#singleresponse)\<`T`\>
+> **createSingleResponse**&lt;`T`&gt;(`data`): [`SingleResponse`](#singleresponse)&lt;`T`&gt;
 
 Defined in: [src/lib/react-admin.ts:64](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/react-admin.ts#L64)
 
@@ -214,7 +214,7 @@ Create a single item response compatible with react-admin
 
 #### Returns
 
-[`SingleResponse`](#singleresponse)\<`T`\>
+[`SingleResponse`](#singleresponse)&lt;`T`&gt;
 
 ***
 
@@ -295,7 +295,7 @@ Supports: "name", "-name" (desc), "+name" (asc)
 
 ### sendListResponse()
 
-> **sendListResponse**\<`T`\>(`c`, `data`, `total`, `pagination?`): `JSONRespondReturn`\<`any`, `ContentfulStatusCode`\>
+> **sendListResponse**&lt;`T`&gt;(`c`, `data`, `total`, `pagination?`): `JSONRespondReturn`&lt;`any`, `ContentfulStatusCode`&gt;
 
 Defined in: [src/lib/react-admin.ts:71](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/react-admin.ts#L71)
 
@@ -323,17 +323,17 @@ Send a list response with proper headers
 
 ##### pagination?
 
-`Partial`\<[`PaginationParams`](#paginationparams)\>
+`Partial`&lt;[`PaginationParams`](#paginationparams)&gt;
 
 #### Returns
 
-`JSONRespondReturn`\<`any`, `ContentfulStatusCode`\>
+`JSONRespondReturn`&lt;`any`, `ContentfulStatusCode`&gt;
 
 ***
 
 ### sendSingleResponse()
 
-> **sendSingleResponse**\<`T`\>(`c`, `data`): `JSONRespondReturn`\<`any`, `ContentfulStatusCode`\>
+> **sendSingleResponse**&lt;`T`&gt;(`c`, `data`): `JSONRespondReturn`&lt;`any`, `ContentfulStatusCode`&gt;
 
 Defined in: [src/lib/react-admin.ts:87](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/react-admin.ts#L87)
 
@@ -357,4 +357,4 @@ Send a single item response
 
 #### Returns
 
-`JSONRespondReturn`\<`any`, `ContentfulStatusCode`\>
+`JSONRespondReturn`&lt;`any`, `ContentfulStatusCode`&gt;

@@ -267,7 +267,7 @@ services:
       target: builder
     container_name: ifrs9-new-backend-dev
     env_file:
-      - backend.env.example
+      - backend.env
     environment:
       # Only set what needs to be different from .env
       NODE_ENV: development
@@ -325,7 +325,7 @@ services:
       target: builder
     container_name: ifrs9-new-backend-legacy-vpn
     env_file:
-      - backend.env.example
+      - backend.env
     environment:
       NODE_ENV: development
       PORT: 4232

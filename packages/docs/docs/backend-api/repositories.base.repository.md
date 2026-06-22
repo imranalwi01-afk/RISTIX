@@ -34,7 +34,7 @@ Core interface for standard CRUD repository operations.
 
 ##### create()
 
-> **create**(`data`): `Effect`\<`T`, [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **create**(`data`): `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/repositories/base.repository.ts:58](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L58)
 
@@ -48,11 +48,11 @@ Create a new record
 
 ###### Returns
 
-`Effect`\<`T`, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 ##### delete()
 
-> **delete**(`id`): `Effect`\<`T`, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+> **delete**(`id`): `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
 Defined in: [src/repositories/base.repository.ts:62](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L62)
 
@@ -66,11 +66,11 @@ Categorically delete/soft-delete a record
 
 ###### Returns
 
-`Effect`\<`T`, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+`Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
 ##### findAll()
 
-> **findAll**(`options?`): `Effect`\<[`PaginatedResult`](#paginatedresult)\<`T`\>, [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **findAll**(`options?`): `Effect`&lt;[`PaginatedResult`](#paginatedresult)&lt;`T`&gt;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/repositories/base.repository.ts:56](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L56)
 
@@ -84,11 +84,11 @@ Find all items matching optional criteria with pagination
 
 ###### Returns
 
-`Effect`\<[`PaginatedResult`](#paginatedresult)\<`T`\>, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`&lt;[`PaginatedResult`](#paginatedresult)&lt;`T`&gt;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 ##### findById()
 
-> **findById**(`id`): `Effect`\<`T`, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+> **findById**(`id`): `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
 Defined in: [src/repositories/base.repository.ts:54](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L54)
 
@@ -102,11 +102,11 @@ Find an item by its primary key
 
 ###### Returns
 
-`Effect`\<`T`, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+`Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
 ##### update()
 
-> **update**(`id`, `data`): `Effect`\<`T`, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+> **update**(`id`, `data`): `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
 Defined in: [src/repositories/base.repository.ts:60](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L60)
 
@@ -120,11 +120,11 @@ Update an existing record partially
 
 ###### data
 
-`Partial`\<`TInsert`\>
+`Partial`&lt;`TInsert`&gt;
 
 ###### Returns
 
-`Effect`\<`T`, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+`Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
 ***
 
@@ -136,7 +136,7 @@ Extension of IRepository that specifically handles tenant isolation.
 
 #### Extends
 
-- [`IRepository`](#irepository)\<`T`, `TInsert`, `TId`\>
+- [`IRepository`](#irepository)&lt;`T`, `TInsert`, `TId`&gt;
 
 #### Type Parameters
 
@@ -156,7 +156,7 @@ Extension of IRepository that specifically handles tenant isolation.
 
 ##### create()
 
-> **create**(`data`): `Effect`\<`T`, [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **create**(`data`): `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/repositories/base.repository.ts:58](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L58)
 
@@ -170,7 +170,7 @@ Create a new record
 
 ###### Returns
 
-`Effect`\<`T`, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 ###### Inherited from
 
@@ -178,7 +178,7 @@ Create a new record
 
 ##### delete()
 
-> **delete**(`id`): `Effect`\<`T`, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+> **delete**(`id`): `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
 Defined in: [src/repositories/base.repository.ts:62](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L62)
 
@@ -192,7 +192,7 @@ Categorically delete/soft-delete a record
 
 ###### Returns
 
-`Effect`\<`T`, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+`Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
 ###### Inherited from
 
@@ -200,7 +200,7 @@ Categorically delete/soft-delete a record
 
 ##### findAll()
 
-> **findAll**(`options?`): `Effect`\<[`PaginatedResult`](#paginatedresult)\<`T`\>, [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **findAll**(`options?`): `Effect`&lt;[`PaginatedResult`](#paginatedresult)&lt;`T`&gt;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/repositories/base.repository.ts:56](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L56)
 
@@ -214,7 +214,7 @@ Find all items matching optional criteria with pagination
 
 ###### Returns
 
-`Effect`\<[`PaginatedResult`](#paginatedresult)\<`T`\>, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`&lt;[`PaginatedResult`](#paginatedresult)&lt;`T`&gt;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 ###### Inherited from
 
@@ -222,7 +222,7 @@ Find all items matching optional criteria with pagination
 
 ##### findById()
 
-> **findById**(`id`): `Effect`\<`T`, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+> **findById**(`id`): `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
 Defined in: [src/repositories/base.repository.ts:54](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L54)
 
@@ -236,7 +236,7 @@ Find an item by its primary key
 
 ###### Returns
 
-`Effect`\<`T`, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+`Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
 ###### Inherited from
 
@@ -244,7 +244,7 @@ Find an item by its primary key
 
 ##### findByTenant()
 
-> **findByTenant**(`tenantId`, `options?`): `Effect`\<[`PaginatedResult`](#paginatedresult)\<`T`\>, [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **findByTenant**(`tenantId`, `options?`): `Effect`&lt;[`PaginatedResult`](#paginatedresult)&lt;`T`&gt;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/repositories/base.repository.ts:128](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L128)
 
@@ -262,11 +262,11 @@ Find all items belonging to a specific tenant
 
 ###### Returns
 
-`Effect`\<[`PaginatedResult`](#paginatedresult)\<`T`\>, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`&lt;[`PaginatedResult`](#paginatedresult)&lt;`T`&gt;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 ##### update()
 
-> **update**(`id`, `data`): `Effect`\<`T`, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+> **update**(`id`, `data`): `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
 Defined in: [src/repositories/base.repository.ts:60](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L60)
 
@@ -280,11 +280,11 @@ Update an existing record partially
 
 ###### data
 
-`Partial`\<`TInsert`\>
+`Partial`&lt;`TInsert`&gt;
 
 ###### Returns
 
-`Effect`\<`T`, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+`Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
 ###### Inherited from
 
@@ -384,7 +384,7 @@ Pagination parameters (page and limit)
 
 ### buildOrderBy()
 
-> **buildOrderBy**\<`TTable`\>(`table`, `sort?`, `order?`): `SQL`\<`unknown`\> \| `undefined`
+> **buildOrderBy**&lt;`TTable`&gt;(`table`, `sort?`, `order?`): `SQL`&lt;`unknown`&gt; &#124; `undefined`
 
 Defined in: [src/repositories/base.repository.ts:77](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L77)
 
@@ -394,7 +394,7 @@ Build a Drizzle-ORM orderBy clause from sorting parameters.
 
 ##### TTable
 
-`TTable` *extends* `PgTable`\<`TableConfig`\>
+`TTable` *extends* `PgTable`&lt;`TableConfig`&gt;
 
 #### Parameters
 
@@ -418,7 +418,7 @@ Sort direction ('asc' or 'desc')
 
 #### Returns
 
-`SQL`\<`unknown`\> \| `undefined`
+`SQL`&lt;`unknown`&gt; &#124; `undefined`
 
 A Drizzle SQL ordering expression or undefined if sort is missing/invalid
 
@@ -456,7 +456,7 @@ The calculate offset index
 
 ### insertEffect()
 
-> **insertEffect**\<`T`\>(`operation`): `Effect`\<`T`, [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **insertEffect**&lt;`T`&gt;(`operation`): `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/repositories/base.repository.ts:153](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L153)
 
@@ -473,13 +473,13 @@ Maps the result array to the first (newly created) element.
 
 ##### operation
 
-() => `Promise`\<`T`[]\>
+() => `Promise`&lt;`T`[]&gt;
 
 Async function returning the inserted record(s)
 
 #### Returns
 
-`Effect`\<`T`, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 An Effect that succeeds with the first inserted record
 
@@ -487,7 +487,7 @@ An Effect that succeeds with the first inserted record
 
 ### paginatedQuery()
 
-> **paginatedQuery**\<`T`\>(`queryFn`, `countFn`, `pagination`): `Promise`\<[`PaginatedResult`](#paginatedresult)\<`T`\>\>
+> **paginatedQuery**&lt;`T`&gt;(`queryFn`, `countFn`, `pagination`): `Promise`&lt;[`PaginatedResult`](#paginatedresult)&lt;`T`&gt;&gt;
 
 Defined in: [src/repositories/base.repository.ts:104](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L104)
 
@@ -503,11 +503,11 @@ Create a paginated query wrapper
 
 ##### queryFn
 
-() => `Promise`\<`T`[]\>
+() => `Promise`&lt;`T`[]&gt;
 
 ##### countFn
 
-() => `Promise`\<`object`[]\>
+() => `Promise`&lt;`object`[]&gt;
 
 ##### pagination
 
@@ -515,13 +515,13 @@ Create a paginated query wrapper
 
 #### Returns
 
-`Promise`\<[`PaginatedResult`](#paginatedresult)\<`T`\>\>
+`Promise`&lt;[`PaginatedResult`](#paginatedresult)&lt;`T`&gt;&gt;
 
 ***
 
 ### queryEffect()
 
-> **queryEffect**\<`T`\>(`operation`): `Effect`\<`T`, [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **queryEffect**&lt;`T`&gt;(`operation`): `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/repositories/base.repository.ts:141](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L141)
 
@@ -537,13 +537,13 @@ Wrap a promise-based database query operation in an Effect.
 
 ##### operation
 
-() => `Promise`\<`T`\>
+() => `Promise`&lt;`T`&gt;
 
 Async function returning the query result
 
 #### Returns
 
-`Effect`\<`T`, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 An Effect that handles database error mapping
 
@@ -551,7 +551,7 @@ An Effect that handles database error mapping
 
 ### updateEffect()
 
-> **updateEffect**\<`T`\>(`operation`): `Effect`\<`T`, [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **updateEffect**&lt;`T`&gt;(`operation`): `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/repositories/base.repository.ts:164](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L164)
 
@@ -567,17 +567,17 @@ Wrap an update operation in Effect
 
 ##### operation
 
-() => `Promise`\<`T`[]\>
+() => `Promise`&lt;`T`[]&gt;
 
 #### Returns
 
-`Effect`\<`T`, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 ***
 
 ### withNotFound()
 
-> **withNotFound**\<`T`\>(`resource`, `id`): (`effect`) => `Effect`\<`T`, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+> **withNotFound**&lt;`T`&gt;(`resource`, `id`): (`effect`) => `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
 Defined in: [src/repositories/base.repository.ts:179](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L179)
 
@@ -607,14 +607,14 @@ ID of the resource being queried
 
 A transform function for Effects
 
-> (`effect`): `Effect`\<`T`, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+> (`effect`): `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
 ##### Parameters
 
 ###### effect
 
-`Effect`\<`T` \| `undefined`, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`&lt;`T` &#124; `undefined`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 ##### Returns
 
-`Effect`\<`T`, [`DatabaseError`](lib.errors.md#databaseerror) \| [`NotFoundError`](lib.errors.md#notfounderror)\>
+`Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;

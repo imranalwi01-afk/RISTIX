@@ -584,8 +584,7 @@ export const login = (
                         !resolvedTenantId &&
                         (
                             permissions.includes('admin.super_admin') ||
-                            permissions.includes('admin.system.manage') ||
-                            permissions.includes('MANAGE_SYSTEM') // backward-compat
+                            permissions.includes('admin.system.manage')
                         )
                     ) {
                         stakeholderType = 'platform'

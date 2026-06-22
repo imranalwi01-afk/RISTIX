@@ -12,6 +12,11 @@ export const reportsAPI = {
         },
     },
 
+    getProcessingDate: async () => {
+        const response = await apiClient.get('/ifrs9/reports/processing-date');
+        return response.data;
+    },
+
     lifetimePD: {
         getYearly: async (params?: { prcDate?: string; pdModelId?: string; page?: string; limit?: string }) => {
             const response = await apiClient.get('/ifrs9/reports/lifetime-pd/yearly', { params });

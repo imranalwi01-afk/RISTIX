@@ -95,6 +95,9 @@ import { useUserProfileQuery, useUpdateProfileMutation, useUserActivitiesQuery }
 import { useSelector } from 'react-redux';
 import type { RootState } from "../../../../store";
 import { getAuthToken } from '@/utils/auth-token';
+import { useQuery } from '@tanstack/react-query';
+import { securityConfigAPI } from '@/services/api/security-config.api';
+import { PasswordInput } from '@/components/users/PasswordInput';
 
 // ✅ User Profile Interface
 interface UserProfile {
@@ -180,6 +183,49 @@ export default function ProfileSettingsPage() {
   // ✅ Activity State
   const [userActivities, setUserActivities] = useState([]);
 
+  // ✅ Password Policy
+  const { data: securityConfig } = useQuery({
+    queryKey: ['security-config'],
+    queryFn: () => securityConfigAPI.get(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const validatePassword = (password: string) => {
+    if (!password) return { isValid: true, errors: [] };
+    
+    const policy = securityConfig?.passwordPolicy || {
+      minLength: 8,
+      requireUppercase: false,
+      requireLowercase: false,
+      requireNumbers: false,
+      requireSpecialChars: false,
+    };
+
+    const errors: string[] = [];
+    if (password.length < policy.minLength) {
+      errors.push(`at least ${policy.minLength} characters`);
+    }
+    if (policy.requireUppercase && !/[A-Z]/.test(password)) {
+      errors.push('uppercase letter');
+    }
+    if (policy.requireLowercase && !/[a-z]/.test(password)) {
+      errors.push('lowercase letter');
+    }
+    if (policy.requireNumbers && !/[0-9]/.test(password)) {
+      errors.push('number (0-9)');
+    }
+    if (policy.requireSpecialChars && !/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      errors.push('special character');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  };
+
+  const passwordValidation = validatePassword(passwordData.newPassword);
+
   // ✅ API Base URL - Use centralized dual-mode configuration
   const getApiBase = (): string => {
     try {
@@ -210,7 +256,8 @@ export default function ProfileSettingsPage() {
   // ✅ API Headers
   const getHeaders = useCallback(() => ({
     'Content-Type': 'application/json',
-  }), [getAuthToken]);
+    'Authorization': `Bearer ${getAuthTokenValue()}`
+  }), [getAuthTokenValue]);
 
   // ✅ Profile loaded via React Query (useUserProfileQuery)
 
@@ -323,13 +370,26 @@ export default function ProfileSettingsPage() {
           confirmPassword: ''
         });
       } else {
-        throw new Error('Failed to change password');
+        const errorData = await response.json().catch(() => ({}));
+        let errorMessage = 'Failed to change password';
+        if (errorData.errors && Array.isArray(errorData.errors) && errorData.errors.length > 0) {
+          errorMessage = errorData.errors.join(', ');
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+        
+        setSnackbar({
+          open: true,
+          message: errorMessage,
+          severity: 'error'
+        });
       }
-    } catch (error) {
-      console.error('Error changing password:', error);
+    } catch (error: any) {
       setSnackbar({
         open: true,
-        message: 'Failed to change password',
+        message: 'Network error or failed to change password',
         severity: 'error'
       });
     }
@@ -935,12 +995,11 @@ export default function ProfileSettingsPage() {
         </DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField
+            <PasswordInput
               fullWidth
               label="Current Password"
-              type="password"
               value={passwordData.currentPassword}
-              onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+              onChange={(value) => setPasswordData({ ...passwordData, currentPassword: value })}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -949,12 +1008,14 @@ export default function ProfileSettingsPage() {
                 ),
               }}
             />
-            <TextField
+            <PasswordInput
               fullWidth
               label="New Password"
-              type="password"
               value={passwordData.newPassword}
-              onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+              onChange={(value) => setPasswordData({ ...passwordData, newPassword: value })}
+              error={passwordData.newPassword !== '' && !passwordValidation.isValid}
+              helperText={passwordData.newPassword !== '' && !passwordValidation.isValid ? `Missing: ${passwordValidation.errors.join(', ')}` : ''}
+              showValidation={true}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -963,12 +1024,11 @@ export default function ProfileSettingsPage() {
                 ),
               }}
             />
-            <TextField
+            <PasswordInput
               fullWidth
               label="Confirm New Password"
-              type="password"
               value={passwordData.confirmPassword}
-              onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+              onChange={(value) => setPasswordData({ ...passwordData, confirmPassword: value })}
               error={passwordData.newPassword !== passwordData.confirmPassword && passwordData.confirmPassword !== ''}
               helperText={passwordData.newPassword !== passwordData.confirmPassword && passwordData.confirmPassword !== '' ? 'Passwords do not match' : ''}
               InputProps={{
@@ -983,7 +1043,11 @@ export default function ProfileSettingsPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setChangePasswordDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={changePassword}>
+          <Button 
+            variant="contained" 
+            onClick={changePassword}
+            disabled={!passwordData.currentPassword || !passwordData.newPassword || !passwordValidation.isValid || passwordData.newPassword !== passwordData.confirmPassword}
+          >
             Change Password
           </Button>
         </DialogActions>

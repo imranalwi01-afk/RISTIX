@@ -196,7 +196,7 @@ const ECLDetailModal: React.FC<ECLDetailModalProps> = ({
             <Box>
               <Typography variant="h6">ECL Detail Analysis</Typography>
               <Typography variant="caption" color="text.secondary">
-                Contract: {contractNo} | As-of: {asOfDate}
+                Contract: {contractNo} | Processing Date: {asOfDate}
               </Typography>
             </Box>
           </Box>
@@ -231,7 +231,7 @@ const ECLDetailModal: React.FC<ECLDetailModalProps> = ({
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>{eclData.account_id}</Typography>
                 </Grid>
                 <Grid size={{ xs: 12, md: 3 }}>
-                  <Typography variant="caption" color="text.secondary">As-of Date</Typography>
+                  <Typography variant="caption" color="text.secondary">Processing Date</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>{eclData.as_of_date}</Typography>
                 </Grid>
                 <Grid size={{ xs: 12, md: 3 }}>

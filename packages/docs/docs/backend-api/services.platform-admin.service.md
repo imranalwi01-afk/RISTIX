@@ -64,7 +64,7 @@ Defined in: [src/services/platform-admin.service.ts:29](https://github.com/ifrsp
 
 ##### database
 
-> **database**: `"healthy"` \| `"degraded"` \| `"unhealthy"`
+> **database**: `"healthy"` &#124; `"degraded"` &#124; `"unhealthy"`
 
 Defined in: [src/services/platform-admin.service.ts:30](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/platform-admin.service.ts#L30)
 
@@ -108,7 +108,7 @@ Defined in: [src/services/platform-admin.service.ts:40](https://github.com/ifrsp
 
 ##### bankingMode
 
-> **bankingMode**: `string` \| `null`
+> **bankingMode**: `string` &#124; `null`
 
 Defined in: [src/services/platform-admin.service.ts:44](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/platform-admin.service.ts#L44)
 
@@ -152,7 +152,7 @@ Defined in: [src/services/platform-admin.service.ts:45](https://github.com/ifrsp
 
 ### getPlatformStats()
 
-> **getPlatformStats**(): `Effect`\<[`PlatformStats`](#platformstats), [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **getPlatformStats**(): `Effect`&lt;[`PlatformStats`](#platformstats), [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/services/platform-admin.service.ts:60](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/platform-admin.service.ts#L60)
 
@@ -161,7 +161,7 @@ Aggregates counts for tenants, users, roles, active sessions, and audit logs.
 
 #### Returns
 
-`Effect`\<[`PlatformStats`](#platformstats), [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`&lt;[`PlatformStats`](#platformstats), [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 An Effect resolving to PlatformStats object
 
@@ -169,7 +169,7 @@ An Effect resolving to PlatformStats object
 
 ### getRecentActivity()
 
-> **getRecentActivity**(`limit`): `Effect`\<`any`[], [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **getRecentActivity**(`limit`): `Effect`&lt;`any`[], [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/services/platform-admin.service.ts:193](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/platform-admin.service.ts#L193)
 
@@ -186,7 +186,7 @@ Number of logs to return (default 10)
 
 #### Returns
 
-`Effect`\<`any`[], [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`&lt;`any`[], [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 An Effect resolving to an array of log objects
 
@@ -194,7 +194,7 @@ An Effect resolving to an array of log objects
 
 ### getSystemHealth()
 
-> **getSystemHealth**(): `Effect`\<[`SystemHealth`](#systemhealth), [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **getSystemHealth**(): `Effect`&lt;[`SystemHealth`](#systemhealth), [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/services/platform-admin.service.ts:111](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/platform-admin.service.ts#L111)
 
@@ -203,7 +203,7 @@ Checks database connectivity and memory usage.
 
 #### Returns
 
-`Effect`\<[`SystemHealth`](#systemhealth), [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`&lt;[`SystemHealth`](#systemhealth), [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 An Effect resolving to SystemHealth object
 
@@ -211,7 +211,7 @@ An Effect resolving to SystemHealth object
 
 ### getTenantOverview()
 
-> **getTenantOverview**(): `Effect`\<[`TenantOverview`](#tenantoverview)[], [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **getTenantOverview**(): `Effect`&lt;[`TenantOverview`](#tenantoverview)[], [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/services/platform-admin.service.ts:145](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/platform-admin.service.ts#L145)
 
@@ -220,6 +220,6 @@ Lists tenants with their user counts.
 
 #### Returns
 
-`Effect`\<[`TenantOverview`](#tenantoverview)[], [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`&lt;[`TenantOverview`](#tenantoverview)[], [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 An Effect resolving to an array of TenantOverview objects

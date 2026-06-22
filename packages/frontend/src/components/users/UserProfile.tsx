@@ -30,6 +30,7 @@ import { z } from 'zod';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { usersAPI, authAPI } from '@/services/api';
+import { PasswordInput } from './PasswordInput';
 
 const profileSchema = z.object({
     fullName: z.string().min(1, 'Full name is required'),
@@ -247,11 +248,11 @@ const UserProfile: React.FC = () => {
                                     name="currentPassword"
                                     control={passwordControl}
                                     render={({ field }) => (
-                                        <TextField
+                                        <PasswordInput
                                             {...field}
+                                            onChange={(val: any) => field.onChange(val)}
                                             fullWidth
                                             label="Current Password"
-                                            type="password"
                                             error={!!passwordErrors.currentPassword}
                                             helperText={passwordErrors.currentPassword?.message}
                                         />
@@ -261,13 +262,14 @@ const UserProfile: React.FC = () => {
                                     name="newPassword"
                                     control={passwordControl}
                                     render={({ field }) => (
-                                        <TextField
+                                        <PasswordInput
                                             {...field}
+                                            onChange={(val: any) => field.onChange(val)}
                                             fullWidth
                                             label="New Password"
-                                            type="password"
                                             error={!!passwordErrors.newPassword}
                                             helperText={passwordErrors.newPassword?.message}
+                                            showValidation={true}
                                         />
                                     )}
                                 />
@@ -275,11 +277,11 @@ const UserProfile: React.FC = () => {
                                     name="confirmPassword"
                                     control={passwordControl}
                                     render={({ field }) => (
-                                        <TextField
+                                        <PasswordInput
                                             {...field}
+                                            onChange={(val: any) => field.onChange(val)}
                                             fullWidth
                                             label="Confirm New Password"
-                                            type="password"
                                             error={!!passwordErrors.confirmPassword}
                                             helperText={passwordErrors.confirmPassword?.message}
                                         />

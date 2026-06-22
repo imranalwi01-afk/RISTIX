@@ -141,8 +141,8 @@ const normalizeModelOptions = (
     .filter((item: LookupOption) => item.value && item.label);
 
 // PD Model Outputs from frs9_r_pd_output_monthly — flat model_id + model_name, no segment join
-const normalizePdModelOutputOptions = (outputs: any[]): LookupOption[] =>
-  outputs
+const normalizePdModelOutputOptions = (outputs: any): LookupOption[] =>
+  getResponseRows(outputs)
     .map((output: any) => ({
       value: String(output.model_id ?? ''),
       label: String(output.model_name ?? '').trim(),

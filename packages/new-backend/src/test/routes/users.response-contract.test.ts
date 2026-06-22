@@ -61,7 +61,7 @@ const passthroughMiddleware = async (c: any, next: any) => {
   c.set('tenantId', 'tenant-test')
   c.set('userId', 'user-test')
   c.set('isSystemUser', false)
-  c.set('userPermissions', ['admin.users.manage', 'MANAGE_USERS'])
+  c.set('userPermissions', ['admin.users.manage'])
   await next()
 }
 

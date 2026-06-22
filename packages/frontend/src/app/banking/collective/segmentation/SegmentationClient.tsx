@@ -540,7 +540,6 @@ export default function SegmentationClient() {
       <SegmentationHeader
         onRefresh={segRefetch}
         onExport={handleExport}
-        onHelp={() => window.open('#', '_blank')}
         lastUpdated={new Date().toLocaleTimeString()}
         dbStatus="active"
         canExport={canExportSegmentation}

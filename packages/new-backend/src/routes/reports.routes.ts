@@ -419,6 +419,21 @@ reportsRoutes.openapi(
     (c: any) => ifrs9ReportsController.getNominativeAvailableDates(c)
 )
 
+// GET /processing-date
+reportsRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/processing-date',
+        tags: ['Reports'],
+        summary: 'Get processing date from frs9_prc_date',
+        responses: {
+            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: z.object({ prc_date: z.string().nullable() }) }) } }, description: 'Processing Date' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c: any) => ifrs9ReportsController.getProcessingDate(c)
+)
+
 // POST /export
 reportsRoutes.openapi(
     createRoute({
@@ -432,3 +447,4 @@ reportsRoutes.openapi(
     }),
     (c: any) => ifrs9ReportsController.exportReport(c)
 )
+

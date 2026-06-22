@@ -76,13 +76,19 @@ import {
 
 export default function PageContent() {
   const { user } = useAuth();
-  const { hasAnyPermission } = usePermission();
+  const { hasAnyPermission, isSuperAdmin } = usePermission();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<ApplicationSettingDataTable[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [pendingApprovalRequests, setPendingApprovalRequests] = useState<any[]>([]);
   const canViewApplication = hasAnyPermission(['banking.setup.application.view', 'banking.setup.application.manage', 'banking.setup.application']);
   const canManageApplication = hasAnyPermission(['banking.setup.application.manage', 'banking.setup.application.create', 'banking.setup.application.update', 'banking.setup.application.delete']);
+  
+  // Explicit check for admin / superadmin for display setting
+  const userRole = String(user?.role || user?.roles?.[0] || user?.userRole || '').toLowerCase();
+  const isAdminOrSuperadmin = isSuperAdmin || userRole.includes('admin') || userRole.includes('superadmin');
+  const canManageDisplaySetting = canManageApplication || isAdminOrSuperadmin;
+
   const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all']);
   const { showCurrencySymbol } = useCurrencyDisplay();
 
@@ -910,7 +916,7 @@ export default function PageContent() {
         setCurrencySymbolEnabled={setCurrencySymbolEnabled}
         currencySettingDirty={currencySettingDirty}
         setCurrencySettingDirty={setCurrencySettingDirty}
-        canManageApplication={canManageApplication}
+        canManageApplication={canManageDisplaySetting}
         currencySettingLoading={currencySettingLoading}
         currencySettingSaving={currencySettingSaving}
         saveCurrencySymbolSetting={saveCurrencySymbolSetting}

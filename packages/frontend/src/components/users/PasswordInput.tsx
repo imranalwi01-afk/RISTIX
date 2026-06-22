@@ -11,6 +11,8 @@ import {
     Chip,
     Stack,
 } from '@mui/material';
+import { useQuery } from '@tanstack/react-query';
+import { securityConfigAPI } from '@/services/api/security-config.api';
 import {
     Visibility as VisibilityIcon,
     VisibilityOff as VisibilityOffIcon,
@@ -82,30 +84,48 @@ type PasswordInputProps = Omit<TextFieldProps, 'onChange'> & {
     generateLength?: number;
     showValidation?: boolean;
     policy?: PasswordPolicy;
+    showGenerate?: boolean;
+    showCopy?: boolean;
 };
 
 export const PasswordInput: React.FC<PasswordInputProps> = ({
     value,
     onChange,
     generateLength = 12,
-    showValidation,
+    showValidation = false,
+    showGenerate = false,
+    showCopy = false,
     policy = DEFAULT_PASSWORD_POLICY,
     ...props
 }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [copied, setCopied] = useState(false);
 
+    const { data: securityConfig } = useQuery({
+        queryKey: ['security-config'],
+        queryFn: () => securityConfigAPI.get(),
+        staleTime: 5 * 60 * 1000,
+    });
+
+    const activePolicy = useMemo(() => {
+        if (policy !== DEFAULT_PASSWORD_POLICY) return policy;
+        if (securityConfig?.passwordPolicy) {
+            return { ...DEFAULT_PASSWORD_POLICY, ...securityConfig.passwordPolicy };
+        }
+        return DEFAULT_PASSWORD_POLICY;
+    }, [policy, securityConfig]);
+
     const ruleChecks = useMemo(() => {
         if (!showValidation || !value) return null;
-        return buildPasswordRules(policy).map(r => ({ ...r, pass: r.test(value) }));
-    }, [value, showValidation, policy]);
+        return buildPasswordRules(activePolicy).map(r => ({ ...r, pass: r.test(value) }));
+    }, [value, showValidation, activePolicy]);
 
     const handleToggleVisibility = () => {
         setShowPassword(!showPassword);
     };
 
     const handleGenerate = () => {
-        const newPassword = generatePassword(policy, generateLength);
+        const newPassword = generatePassword(activePolicy, generateLength);
         onChange(newPassword);
         setShowPassword(true);
     };
@@ -132,16 +152,20 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
                     ...props.InputProps,
                     endAdornment: (
                         <InputAdornment position="end" sx={{ display: 'flex', gap: 0.5 }}>
-                            <Tooltip title="Generate secure password">
-                                <IconButton onClick={handleGenerate} edge="end" size="small" color="primary">
-                                    <GenerateIcon fontSize="small" />
-                                </IconButton>
-                            </Tooltip>
-                            <Tooltip title={copied ? "Copied!" : "Copy to clipboard"}>
-                                <IconButton onClick={handleCopy} edge="end" size="small" disabled={!value}>
-                                    {copied ? <CheckIcon fontSize="small" color="success" /> : <CopyIcon fontSize="small" />}
-                                </IconButton>
-                            </Tooltip>
+                            {showGenerate && (
+                                <Tooltip title="Generate secure password">
+                                    <IconButton onClick={handleGenerate} edge="end" size="small" color="primary">
+                                        <GenerateIcon fontSize="small" />
+                                    </IconButton>
+                                </Tooltip>
+                            )}
+                            {showCopy && (
+                                <Tooltip title={copied ? "Copied!" : "Copy to clipboard"}>
+                                    <IconButton onClick={handleCopy} edge="end" size="small" disabled={!value}>
+                                        {copied ? <CheckIcon fontSize="small" color="success" /> : <CopyIcon fontSize="small" />}
+                                    </IconButton>
+                                </Tooltip>
+                            )}
                             <Tooltip title={showPassword ? "Hide password" : "Show password"}>
                                 <IconButton onClick={handleToggleVisibility} edge="end" size="small">
                                     {showPassword ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}

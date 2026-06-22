@@ -10,6 +10,7 @@ export interface User {
   lastLoginAt?: string;
   createdAt: string;
   updatedAt?: string;
+  assignedRolesList?: string[];
 }
 
 export interface UserRoleSummary {

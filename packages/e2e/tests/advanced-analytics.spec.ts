@@ -12,7 +12,7 @@ test.describe('Advanced Analytics - R Analytics', () => {
             bankingType: "conventional",
             isActive: true, // Assuming active
             fullName: "Admin User",
-            permissions: ["VIEW_R_ANALYTICS"]
+            permissions: ["banking.analytics.r.view"]
         };
         const mockToken = "mock-jwt-token";
 

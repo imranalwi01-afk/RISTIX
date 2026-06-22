@@ -962,6 +962,22 @@ export const ifrs9ReportsController = {
         })
     },
 
+    getProcessingDate: async (c: Context) => {
+        try {
+            const { legacyDb } = await import('../config/database');
+            const { frs9PrcDate } = await import('../db/schema/legacy');
+            const { desc } = await import('drizzle-orm');
+            const row = await legacyDb.select({ currdate: frs9PrcDate.currdate }).from(frs9PrcDate).orderBy(desc(frs9PrcDate.currdate)).limit(1);
+            return c.json({
+                success: true,
+                data: { prc_date: row[0]?.currdate ?? null }
+            });
+        } catch (error: any) {
+            console.error('❌ [IFRS9] Error in getProcessingDate:', error);
+            return c.json({ success: false, message: error.message }, 500);
+        }
+    },
+
     updateDebugConfig: async (c: Context) => {
         try {
             if (!canManageReportDebug(c)) {

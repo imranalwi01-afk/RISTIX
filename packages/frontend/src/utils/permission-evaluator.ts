@@ -12,21 +12,7 @@ export interface PermissionEvaluation {
   matchedPermission?: string;
 }
 
-const LEGACY_PERMISSION_ALIASES: Record<string, string> = {
-  manage_system: 'admin.system.manage',
-  manage_users: 'admin.users.manage',
-  view_users: 'admin.users.view',
-  manage_roles: 'admin.roles.manage',
-  view_dashboard: 'banking.dashboard.view',
-  view_analytics: 'banking.analytics.view',
-  view_ifrs9_reports: 'banking.reports.ifrs9.view',
-  manage_ifrs9_config: 'banking.configuration.ifrs9.manage',
-  view_collective_impairment: 'banking.collective.view',
-  view_individual_impairment: 'banking.individual.view',
-  view_ifrs9_processing: 'banking.processing.view',
-  view_r_analytics: 'banking.analytics.r.view',
-  approve_requests: 'approval.requests.approve',
-};
+
 
 const ACTION_SUFFIXES = new Set([
   'view',
@@ -46,20 +32,11 @@ const ACTION_SUFFIXES = new Set([
 export const normalizePermissionInput = (value: string): string =>
   value.trim().replace(/:/g, '.').replace(/\s+/g, '_').toLowerCase();
 
-const normalizeLegacyKey = (value: string): string =>
-  normalizePermissionInput(value).replace(/\./g, '_');
-
-export const toCanonicalPermission = (value: string): string => {
-  const normalized = normalizePermissionInput(value);
-  return LEGACY_PERMISSION_ALIASES[normalizeLegacyKey(normalized)] || normalized;
-};
-
 export const buildPermissionContext = (permissions: string[]): PermissionContext => {
   const rawPermissions = (permissions || []).filter((item): item is string => typeof item === 'string');
   const normalizedPermissionSet = new Set<string>();
 
   for (const permission of rawPermissions) {
-    normalizedPermissionSet.add(toCanonicalPermission(permission));
     normalizedPermissionSet.add(normalizePermissionInput(permission));
   }
 
@@ -82,7 +59,7 @@ export const evaluatePermission = (
 ): PermissionEvaluation => {
   const context = getContext(contextOrPermissions);
   const requested = requestedPermission || '';
-  const canonicalRequested = toCanonicalPermission(requested);
+  const canonicalRequested = normalizePermissionInput(requested);
 
   if (!requested) {
     return {

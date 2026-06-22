@@ -18,7 +18,7 @@ Repository for accessing Bucket Parameters data.
 
 ##### createDetail()
 
-> **createDetail**: (`data`) => `Effect`\<\{ `bucketId`: `number` \| `null`; `bucketName`: `string` \| `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `pkidHeader`: `number` \| `null`; `rangeEnd`: `number` \| `null`; `rangeStart`: `number` \| `null`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **createDetail**: (`data`) => `Effect`&lt;&#123; `bucketId`: `number` &#124; `null`; `bucketName`: `string` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `pkidHeader`: `number` &#124; `null`; `rangeEnd`: `number` &#124; `null`; `rangeStart`: `number` &#124; `null`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Create a new bucket detail.
 
@@ -30,11 +30,11 @@ The data for the new bucket detail
 
 ###### bucketId?
 
-`number` \| `null`
+`number` &#124; `null`
 
 ###### bucketName?
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### createdby
 
@@ -54,37 +54,37 @@ The data for the new bucket detail
 
 ###### pkidHeader?
 
-`number` \| `null`
+`number` &#124; `null`
 
 ###### rangeEnd?
 
-`number` \| `null`
+`number` &#124; `null`
 
 ###### rangeStart?
 
-`number` \| `null`
+`number` &#124; `null`
 
 ###### updatedby?
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### updateddate?
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### updatedhost?
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### Returns
 
-`Effect`\<\{ `bucketId`: `number` \| `null`; `bucketName`: `string` \| `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `pkidHeader`: `number` \| `null`; `rangeEnd`: `number` \| `null`; `rangeStart`: `number` \| `null`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`&lt;&#123; `bucketId`: `number` &#124; `null`; `bucketName`: `string` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `pkidHeader`: `number` &#124; `null`; `rangeEnd`: `number` &#124; `null`; `rangeStart`: `number` &#124; `null`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the created bucket detail
 
 ##### createHeader()
 
-> **createHeader**: (`data`) => `Effect`\<\{ `basis`: `string` \| `null`; `bucketDefault`: `number` \| `null`; `bucketDesc`: `string` \| `null`; `bucketGroup`: `string` \| `null`; `closedFlag`: `boolean`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; `woFlag`: `boolean`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **createHeader**: (`data`) => `Effect`&lt;&#123; `basis`: `string` &#124; `null`; `bucketDefault`: `number` &#124; `null`; `bucketDesc`: `string` &#124; `null`; `bucketGroup`: `string` &#124; `null`; `closedFlag`: `boolean`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `woFlag`: `boolean`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Create a new bucket header.
 
@@ -96,19 +96,19 @@ The data for the new bucket header
 
 ###### basis?
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### bucketDefault?
 
-`number` \| `null`
+`number` &#124; `null`
 
 ###### bucketDesc?
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### bucketGroup?
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### closedFlag
 
@@ -132,15 +132,15 @@ The data for the new bucket header
 
 ###### updatedby?
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### updateddate?
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### updatedhost?
 
-`string` \| `null`
+`string` &#124; `null`
 
 ###### woFlag
 
@@ -148,13 +148,13 @@ The data for the new bucket header
 
 ###### Returns
 
-`Effect`\<\{ `basis`: `string` \| `null`; `bucketDefault`: `number` \| `null`; `bucketDesc`: `string` \| `null`; `bucketGroup`: `string` \| `null`; `closedFlag`: `boolean`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; `woFlag`: `boolean`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`&lt;&#123; `basis`: `string` &#124; `null`; `bucketDefault`: `number` &#124; `null`; `bucketDesc`: `string` &#124; `null`; `bucketGroup`: `string` &#124; `null`; `closedFlag`: `boolean`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `woFlag`: `boolean`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the created bucket header
 
 ##### deleteDetail()
 
-> **deleteDetail**: (`id`) => `Effect`\<`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **deleteDetail**: (`id`) => `Effect`&lt;`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Delete a bucket detail.
 
@@ -168,13 +168,13 @@ The ID of the bucket detail
 
 ###### Returns
 
-`Effect`\<`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`&lt;`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to true on success
 
 ##### deleteHeader()
 
-> **deleteHeader**: (`id`) => `Effect`\<`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **deleteHeader**: (`id`) => `Effect`&lt;`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Delete a bucket header and its details.
 
@@ -188,13 +188,13 @@ The ID of the bucket header
 
 ###### Returns
 
-`Effect`\<`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`&lt;`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to true on success
 
 ##### findDetailById()
 
-> **findDetailById**: (`id`) => `Effect`\<\{ `bucketId`: `number` \| `null`; `bucketName`: `string` \| `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `pkidHeader`: `number` \| `null`; `rangeEnd`: `number` \| `null`; `rangeStart`: `number` \| `null`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **findDetailById**: (`id`) => `Effect`&lt;&#123; `bucketId`: `number` &#124; `null`; `bucketName`: `string` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `pkidHeader`: `number` &#124; `null`; `rangeEnd`: `number` &#124; `null`; `rangeStart`: `number` &#124; `null`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Find a bucket detail by ID.
 
@@ -208,13 +208,13 @@ The ID of the bucket detail
 
 ###### Returns
 
-`Effect`\<\{ `bucketId`: `number` \| `null`; `bucketName`: `string` \| `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `pkidHeader`: `number` \| `null`; `rangeEnd`: `number` \| `null`; `rangeStart`: `number` \| `null`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`&lt;&#123; `bucketId`: `number` &#124; `null`; `bucketName`: `string` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `pkidHeader`: `number` &#124; `null`; `rangeEnd`: `number` &#124; `null`; `rangeStart`: `number` &#124; `null`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the bucket detail or null
 
 ##### findDetailsByHeaderId()
 
-> **findDetailsByHeaderId**: (`headerId`) => `Effect`\<`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **findDetailsByHeaderId**: (`headerId`) => `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Find bucket details for a specific header.
 
@@ -228,13 +228,13 @@ The ID of the bucket header
 
 ###### Returns
 
-`Effect`\<`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to an array of bucket details
 
 ##### findHeaderById()
 
-> **findHeaderById**: (`id`) => `Effect`\<\{ `basis`: `string` \| `null`; `bucketDefault`: `number` \| `null`; `bucketDesc`: `string` \| `null`; `bucketGroup`: `string` \| `null`; `closedFlag`: `boolean`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; `woFlag`: `boolean`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **findHeaderById**: (`id`) => `Effect`&lt;&#123; `basis`: `string` &#124; `null`; `bucketDefault`: `number` &#124; `null`; `bucketDesc`: `string` &#124; `null`; `bucketGroup`: `string` &#124; `null`; `closedFlag`: `boolean`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `woFlag`: `boolean`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Find a bucket header by ID.
 
@@ -248,13 +248,13 @@ The ID of the bucket header
 
 ###### Returns
 
-`Effect`\<\{ `basis`: `string` \| `null`; `bucketDefault`: `number` \| `null`; `bucketDesc`: `string` \| `null`; `bucketGroup`: `string` \| `null`; `closedFlag`: `boolean`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; `woFlag`: `boolean`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`&lt;&#123; `basis`: `string` &#124; `null`; `bucketDefault`: `number` &#124; `null`; `bucketDesc`: `string` &#124; `null`; `bucketGroup`: `string` &#124; `null`; `closedFlag`: `boolean`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `woFlag`: `boolean`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the bucket header or null
 
 ##### findHeaders()
 
-> **findHeaders**: (`search?`, `basis?`) => `Effect`\<`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **findHeaders**: (`search?`, `basis?`) => `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Find bucket headers with optional filtering.
 
@@ -274,13 +274,13 @@ Filter by basis
 
 ###### Returns
 
-`Effect`\<`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to an array of bucket headers
 
 ##### updateDetail()
 
-> **updateDetail**: (`id`, `data`) => `Effect`\<\{ `bucketId`: `number` \| `null`; `bucketName`: `string` \| `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `pkidHeader`: `number` \| `null`; `rangeEnd`: `number` \| `null`; `rangeStart`: `number` \| `null`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **updateDetail**: (`id`, `data`) => `Effect`&lt;&#123; `bucketId`: `number` &#124; `null`; `bucketName`: `string` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `pkidHeader`: `number` &#124; `null`; `rangeEnd`: `number` &#124; `null`; `rangeStart`: `number` &#124; `null`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Update an existing bucket detail.
 
@@ -294,19 +294,19 @@ The ID of the bucket detail
 
 ###### data
 
-`Partial`\<*typeof* `frs9ParamBucketd.$inferInsert`\>
+`Partial`&lt;*typeof* `frs9ParamBucketd.$inferInsert`&gt;
 
 The updated data
 
 ###### Returns
 
-`Effect`\<\{ `bucketId`: `number` \| `null`; `bucketName`: `string` \| `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `pkidHeader`: `number` \| `null`; `rangeEnd`: `number` \| `null`; `rangeStart`: `number` \| `null`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`&lt;&#123; `bucketId`: `number` &#124; `null`; `bucketName`: `string` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `pkidHeader`: `number` &#124; `null`; `rangeEnd`: `number` &#124; `null`; `rangeStart`: `number` &#124; `null`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the updated bucket detail or null
 
 ##### updateHeader()
 
-> **updateHeader**: (`id`, `data`) => `Effect`\<\{ `basis`: `string` \| `null`; `bucketDefault`: `number` \| `null`; `bucketDesc`: `string` \| `null`; `bucketGroup`: `string` \| `null`; `closedFlag`: `boolean`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; `woFlag`: `boolean`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **updateHeader**: (`id`, `data`) => `Effect`&lt;&#123; `basis`: `string` &#124; `null`; `bucketDefault`: `number` &#124; `null`; `bucketDesc`: `string` &#124; `null`; `bucketGroup`: `string` &#124; `null`; `closedFlag`: `boolean`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `woFlag`: `boolean`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Update an existing bucket header.
 
@@ -320,12 +320,12 @@ The ID of the bucket header
 
 ###### data
 
-`Partial`\<*typeof* `frs9ParamBucketh.$inferInsert`\>
+`Partial`&lt;*typeof* `frs9ParamBucketh.$inferInsert`&gt;
 
 The updated data
 
 ###### Returns
 
-`Effect`\<\{ `basis`: `string` \| `null`; `bucketDefault`: `number` \| `null`; `bucketDesc`: `string` \| `null`; `bucketGroup`: `string` \| `null`; `closedFlag`: `boolean`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; `updatedhost`: `string` \| `null`; `woFlag`: `boolean`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`&lt;&#123; `basis`: `string` &#124; `null`; `bucketDefault`: `number` &#124; `null`; `bucketDesc`: `string` &#124; `null`; `bucketGroup`: `string` &#124; `null`; `closedFlag`: `boolean`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `pkid`: `number`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; `woFlag`: `boolean`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the updated bucket header or null

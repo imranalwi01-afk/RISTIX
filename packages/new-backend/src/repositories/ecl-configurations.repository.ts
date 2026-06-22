@@ -57,7 +57,10 @@ export const EclConfigurationsRepository = {
                     .from(frs9ImpCaEclConfigd)
                     .where(eq(frs9ImpCaEclConfigd.eclModelId, Number(headerId)))
             },
-            catch: (error) => new DatabaseError({ message: 'Failed to find ECL details', operation: 'query', cause: error })
+            catch: (error) => {
+                console.error('[EclConfigurationsRepository] Failed to find ECL details', error);
+                return new DatabaseError({ message: 'Failed to find ECL details', operation: 'query', cause: error })
+            }
         })
     },
 

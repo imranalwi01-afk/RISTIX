@@ -36,6 +36,7 @@ import { format } from 'date-fns';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { exportToCsv } from '@/utils/export-csv';
 import { getErrorMessage } from '@/utils/error-message';
+import { PasswordInput } from '@/components/users/PasswordInput';
 import {
     useCreatePlatformUserMutation,
     useDeletePlatformUserMutation,
@@ -433,14 +434,15 @@ const PlatformUserManagement = () => {
                             </Grid>
                             {formMode === 'create' && (
                                 <Grid size={12}>
-                                    <TextField
+                                    <PasswordInput
                                         fullWidth
                                         label="Password"
-                                        type="password"
-                                        value={formData.password}
-                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                        value={formData.password || ''}
+                                        onChange={(value) => setFormData({ ...formData, password: value })}
                                         required
-                                        helperText="Min. 8 characters"
+                                        showValidation={true}
+                                        showGenerate={true}
+                                        showCopy={true}
                                     />
                                 </Grid>
                             )}

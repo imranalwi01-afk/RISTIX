@@ -26,7 +26,7 @@ Defined in: [src/repositories/notification.repository.ts:12](https://github.com/
 
 ##### channel?
 
-> `optional` **channel**: `"email"` \| `"in_app"` \| `"socket"` \| `"webhook"`
+> `optional` **channel**: `"email"` &#124; `"in_app"` &#124; `"socket"` &#124; `"webhook"`
 
 Defined in: [src/repositories/notification.repository.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/notification.repository.ts#L26)
 
@@ -38,7 +38,7 @@ Defined in: [src/repositories/notification.repository.ts:28](https://github.com/
 
 ##### deliveryStatus?
 
-> `optional` **deliveryStatus**: `"pending"` \| `"sent"` \| `"read"` \| `"failed"`
+> `optional` **deliveryStatus**: `"pending"` &#124; `"sent"` &#124; `"read"` &#124; `"failed"`
 
 Defined in: [src/repositories/notification.repository.ts:27](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/notification.repository.ts#L27)
 
@@ -68,7 +68,7 @@ Defined in: [src/repositories/notification.repository.ts:17](https://github.com/
 
 ##### metadata?
 
-> `optional` **metadata**: `Record`\<`string`, `unknown`\>
+> `optional` **metadata**: `Record`&lt;`string`, `unknown`&gt;
 
 Defined in: [src/repositories/notification.repository.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/notification.repository.ts#L23)
 
@@ -80,7 +80,7 @@ Defined in: [src/repositories/notification.repository.ts:25](https://github.com/
 
 ##### severity
 
-> **severity**: `"info"` \| `"error"` \| `"warning"` \| `"success"`
+> **severity**: `"info"` &#124; `"error"` &#124; `"warning"` &#124; `"success"`
 
 Defined in: [src/repositories/notification.repository.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/notification.repository.ts#L15)
 
@@ -136,13 +136,13 @@ Defined in: [src/repositories/notification.repository.ts:32](https://github.com/
 
 ##### actionUrl
 
-> **actionUrl**: `string` \| `null`
+> **actionUrl**: `string` &#124; `null`
 
 Defined in: [src/repositories/notification.repository.ts:39](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/notification.repository.ts#L39)
 
 ##### approvalRequestId
 
-> **approvalRequestId**: `string` \| `null`
+> **approvalRequestId**: `string` &#124; `null`
 
 Defined in: [src/repositories/notification.repository.ts:41](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/notification.repository.ts#L41)
 
@@ -154,7 +154,7 @@ Defined in: [src/repositories/notification.repository.ts:49](https://github.com/
 
 ##### deliveredAt
 
-> **deliveredAt**: `Date` \| `null`
+> **deliveredAt**: `Date` &#124; `null`
 
 Defined in: [src/repositories/notification.repository.ts:47](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/notification.repository.ts#L47)
 
@@ -166,13 +166,13 @@ Defined in: [src/repositories/notification.repository.ts:46](https://github.com/
 
 ##### entityId
 
-> **entityId**: `string` \| `null`
+> **entityId**: `string` &#124; `null`
 
 Defined in: [src/repositories/notification.repository.ts:43](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/notification.repository.ts#L43)
 
 ##### entityType
 
-> **entityType**: `string` \| `null`
+> **entityType**: `string` &#124; `null`
 
 Defined in: [src/repositories/notification.repository.ts:42](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/notification.repository.ts#L42)
 
@@ -190,7 +190,7 @@ Defined in: [src/repositories/notification.repository.ts:38](https://github.com/
 
 ##### metadata
 
-> **metadata**: `Record`\<`string`, `unknown`\> \| `null`
+> **metadata**: `Record`&lt;`string`, `unknown`&gt; &#124; `null`
 
 Defined in: [src/repositories/notification.repository.ts:45](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/notification.repository.ts#L45)
 
@@ -202,7 +202,7 @@ Defined in: [src/repositories/notification.repository.ts:34](https://github.com/
 
 ##### readAt
 
-> **readAt**: `Date` \| `null`
+> **readAt**: `Date` &#124; `null`
 
 Defined in: [src/repositories/notification.repository.ts:48](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/notification.repository.ts#L48)
 
@@ -232,7 +232,7 @@ Defined in: [src/repositories/notification.repository.ts:35](https://github.com/
 
 ##### workflowId
 
-> **workflowId**: `string` \| `null`
+> **workflowId**: `string` &#124; `null`
 
 Defined in: [src/repositories/notification.repository.ts:40](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/notification.repository.ts#L40)
 
@@ -240,7 +240,7 @@ Defined in: [src/repositories/notification.repository.ts:40](https://github.com/
 
 ### NotificationCategory
 
-> **NotificationCategory** = `"approval"` \| `"workflow"` \| `"analytics"` \| `"system"`
+> **NotificationCategory** = `"approval"` &#124; `"workflow"` &#124; `"analytics"` &#124; `"system"`
 
 Defined in: [src/repositories/notification.repository.ts:52](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/notification.repository.ts#L52)
 
@@ -248,7 +248,7 @@ Defined in: [src/repositories/notification.repository.ts:52](https://github.com/
 
 ### NotificationReadStatus
 
-> **NotificationReadStatus** = `"all"` \| `"read"` \| `"unread"`
+> **NotificationReadStatus** = `"all"` &#124; `"read"` &#124; `"unread"`
 
 Defined in: [src/repositories/notification.repository.ts:53](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/notification.repository.ts#L53)
 
@@ -264,7 +264,7 @@ Defined in: [src/repositories/notification.repository.ts:82](https://github.com/
 
 ##### createWithDeliveries()
 
-> **createWithDeliveries**(`input`): `Promise`\<\{ `deliveries`: `object`[]; `notification`: \{ `actionUrl`: `string` \| `null`; `approvalRequestId`: `string` \| `null`; `createdAt`: `Date`; `entityId`: `string` \| `null`; `entityType`: `string` \| `null`; `id`: `string`; `message`: `string`; `metadata`: `unknown`; `severity`: `string`; `source`: `string`; `tenantId`: `string`; `title`: `string`; `triggeredBy`: `string` \| `null`; `type`: `string`; `workflowId`: `string` \| `null`; \}; \}\>
+> **createWithDeliveries**(`input`): `Promise`&lt;&#123; `deliveries`: `object`[]; `notification`: &#123; `actionUrl`: `string` &#124; `null`; `approvalRequestId`: `string` &#124; `null`; `createdAt`: `Date`; `entityId`: `string` &#124; `null`; `entityType`: `string` &#124; `null`; `id`: `string`; `message`: `string`; `metadata`: `unknown`; `severity`: `string`; `source`: `string`; `tenantId`: `string`; `title`: `string`; `triggeredBy`: `string` &#124; `null`; `type`: `string`; `workflowId`: `string` &#124; `null`; &#125;; &#125;&gt;
 
 ###### Parameters
 
@@ -274,11 +274,11 @@ Defined in: [src/repositories/notification.repository.ts:82](https://github.com/
 
 ###### Returns
 
-`Promise`\<\{ `deliveries`: `object`[]; `notification`: \{ `actionUrl`: `string` \| `null`; `approvalRequestId`: `string` \| `null`; `createdAt`: `Date`; `entityId`: `string` \| `null`; `entityType`: `string` \| `null`; `id`: `string`; `message`: `string`; `metadata`: `unknown`; `severity`: `string`; `source`: `string`; `tenantId`: `string`; `title`: `string`; `triggeredBy`: `string` \| `null`; `type`: `string`; `workflowId`: `string` \| `null`; \}; \}\>
+`Promise`&lt;&#123; `deliveries`: `object`[]; `notification`: &#123; `actionUrl`: `string` &#124; `null`; `approvalRequestId`: `string` &#124; `null`; `createdAt`: `Date`; `entityId`: `string` &#124; `null`; `entityType`: `string` &#124; `null`; `id`: `string`; `message`: `string`; `metadata`: `unknown`; `severity`: `string`; `source`: `string`; `tenantId`: `string`; `title`: `string`; `triggeredBy`: `string` &#124; `null`; `type`: `string`; `workflowId`: `string` &#124; `null`; &#125;; &#125;&gt;
 
 ##### getUnreadCount()
 
-> **getUnreadCount**(`tenantId`, `userId`): `Promise`\<`number`\>
+> **getUnreadCount**(`tenantId`, `userId`): `Promise`&lt;`number`&gt;
 
 ###### Parameters
 
@@ -292,11 +292,11 @@ Defined in: [src/repositories/notification.repository.ts:82](https://github.com/
 
 ###### Returns
 
-`Promise`\<`number`\>
+`Promise`&lt;`number`&gt;
 
 ##### listForUser()
 
-> **listForUser**(`input`): `Promise`\<\{ `rows`: [`UserNotificationRow`](#usernotificationrow)[]; `total`: `number`; \}\>
+> **listForUser**(`input`): `Promise`&lt;&#123; `rows`: [`UserNotificationRow`](#usernotificationrow)[]; `total`: `number`; &#125;&gt;
 
 ###### Parameters
 
@@ -344,11 +344,11 @@ Defined in: [src/repositories/notification.repository.ts:82](https://github.com/
 
 ###### Returns
 
-`Promise`\<\{ `rows`: [`UserNotificationRow`](#usernotificationrow)[]; `total`: `number`; \}\>
+`Promise`&lt;&#123; `rows`: [`UserNotificationRow`](#usernotificationrow)[]; `total`: `number`; &#125;&gt;
 
 ##### markAllAsRead()
 
-> **markAllAsRead**(`input`): `Promise`\<`number`\>
+> **markAllAsRead**(`input`): `Promise`&lt;`number`&gt;
 
 ###### Parameters
 
@@ -364,11 +364,11 @@ Defined in: [src/repositories/notification.repository.ts:82](https://github.com/
 
 ###### Returns
 
-`Promise`\<`number`\>
+`Promise`&lt;`number`&gt;
 
 ##### markAsRead()
 
-> **markAsRead**(`input`): `Promise`\<`boolean`\>
+> **markAsRead**(`input`): `Promise`&lt;`boolean`&gt;
 
 ###### Parameters
 
@@ -388,11 +388,11 @@ Defined in: [src/repositories/notification.repository.ts:82](https://github.com/
 
 ###### Returns
 
-`Promise`\<`boolean`\>
+`Promise`&lt;`boolean`&gt;
 
 ##### markManyReadStatus()
 
-> **markManyReadStatus**(`input`): `Promise`\<`number`\>
+> **markManyReadStatus**(`input`): `Promise`&lt;`number`&gt;
 
 ###### Parameters
 
@@ -416,4 +416,4 @@ Defined in: [src/repositories/notification.repository.ts:82](https://github.com/
 
 ###### Returns
 
-`Promise`\<`number`\>
+`Promise`&lt;`number`&gt;

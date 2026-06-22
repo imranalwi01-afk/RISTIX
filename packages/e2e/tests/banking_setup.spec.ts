@@ -20,7 +20,7 @@ test.describe('Banking Setup with Admin Login', () => {
                             email: USER_EMAIL,
                             name: 'Admin User',
                             role: 'PLATFORM_ADMIN',
-                            permissions: ['MANAGE_SYSTEM', 'VIEW_DASHBOARD', 'MANAGE_SETTINGS'],
+                            permissions: ['admin.system.manage', 'banking.dashboard.view', 'admin.system.manage'],
                             tenantId: 'iaf'
                         }
                     }
@@ -40,7 +40,7 @@ test.describe('Banking Setup with Admin Login', () => {
                         email: USER_EMAIL,
                         role: 'PLATFORM_ADMIN',
                         tenantId: 'iaf',
-                        permissions: ['MANAGE_SYSTEM', 'VIEW_DASHBOARD', 'MANAGE_SETTINGS']
+                        permissions: ['admin.system.manage', 'banking.dashboard.view', 'admin.system.manage']
                     }
                 })
             });

@@ -120,17 +120,6 @@ const ACTION_SUFFIXES = new Set([
     'control',
 ])
 
-const LEGACY_PERMISSION_ALIASES: Record<string, string> = {
-    manage_system: 'admin.system.manage',
-    super_admin: 'admin.super_admin',
-    platform_admin: 'admin.super_admin',
-    jobs_view: 'jobs.view',
-    jobs_create: 'jobs.create',
-    jobs_run: 'jobs.run',
-    jobs_control: 'jobs.control',
-    jobs_approve: 'jobs.approve',
-}
-
 const JOB_PERMISSION_REQUIREMENTS = {
     view: ['jobs.view', 'jobs.manage', 'jobs.access', 'admin.system.view', 'admin.system.manage'],
     create: ['jobs.create', 'jobs.manage', 'jobs.access', 'admin.system.manage'],
@@ -359,11 +348,8 @@ const reconcilePendingApprovals = async (targetDb: any, tenantId?: string | null
 const normalizePermissionCode = (value: string): string =>
     value.trim().replace(/:/g, '.').replace(/\s+/g, '_').toLowerCase()
 
-const toCanonicalPermissionCode = (value: string): string => {
-    const normalized = normalizePermissionCode(value)
-    const aliasKey = normalized.replace(/\./g, '_')
-    return LEGACY_PERMISSION_ALIASES[aliasKey] || normalized
-}
+const toCanonicalPermissionCode = (value: string): string =>
+    normalizePermissionCode(value)
 
 const getNormalizedPermissionSet = (c: any): Set<string> => {
     const rawPermissions = ((c.get('permissions') || c.get('userPermissions') || []) as string[])

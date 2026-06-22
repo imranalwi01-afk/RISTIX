@@ -63,11 +63,15 @@ const UserManagementTable = memo(function UserManagementTable({
       ),
     },
     {
-      field: 'position',
+      field: 'assignedRolesList',
       headerName: 'Role',
       minWidth: 160,
       flex: 0.8,
-      renderCell: (params) => params.value || '-',
+      renderCell: (params) => {
+        const roles = params.row.assignedRolesList;
+        if (!roles || roles.length === 0) return '-';
+        return roles.join(', ');
+      },
     },
     {
       field: 'isActive',
