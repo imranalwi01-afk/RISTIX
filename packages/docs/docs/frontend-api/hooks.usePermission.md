@@ -8,17 +8,17 @@
 
 ### ActionOrResource
 
-> **ActionOrResource** = `string` \| `string`[]
+> **ActionOrResource** = `string` &#124; `string`[]
 
-Defined in: [hooks/usePermission.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/usePermission.ts#L17)
+Defined in: [hooks/usePermission.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/usePermission.ts#L17)
 
 ***
 
 ### MatchMode
 
-> **MatchMode** = `"any"` \| `"all"`
+> **MatchMode** = `"any"` &#124; `"all"`
 
-Defined in: [hooks/usePermission.ts:18](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/usePermission.ts#L18)
+Defined in: [hooks/usePermission.ts:18](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/usePermission.ts#L18)
 
 ## Functions
 
@@ -26,7 +26,7 @@ Defined in: [hooks/usePermission.ts:18](https://github.com/ifrspro/ifrs9-iaf/blo
 
 > **usePermission**(): `object`
 
-Defined in: [hooks/usePermission.ts:52](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/usePermission.ts#L52)
+Defined in: [hooks/usePermission.ts:52](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/usePermission.ts#L52)
 
 #### Returns
 

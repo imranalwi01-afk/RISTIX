@@ -10,11 +10,11 @@
 
 > `const` **EclConfigurationsService**: `object`
 
-Defined in: [src/services/ecl-configurations.service.ts:6](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ecl-configurations.service.ts#L6)
+Defined in: [src/services/ecl-configurations.service.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ecl-configurations.service.ts#L8)
 
 #### Type Declaration
 
-##### create()
+##### create
 
 > **create**: (`data`, `userId`) => `any`
 
@@ -40,7 +40,7 @@ The ID of the user creating the configuration
 
 An Effect resolving to the created configuration with details
 
-##### delete()
+##### delete
 
 > **delete**: (`id`) => `any`
 
@@ -60,7 +60,7 @@ The ECL configuration ID
 
 An Effect resolving to a success message
 
-##### get()
+##### get
 
 > **get**: (`id`) => `any`
 
@@ -80,7 +80,47 @@ The ECL configuration ID
 
 An Effect resolving to the transformed configuration with details, or NotFoundError
 
-##### list()
+##### getPdModelOutputs
+
+> **getPdModelOutputs**: () => `any`
+
+###### Returns
+
+`any`
+
+##### getPreviewResultDetail
+
+> **getPreviewResultDetail**: (`id`, `accountId`) => `any`
+
+###### Parameters
+
+###### id
+
+`number`
+
+###### accountId
+
+`number`
+
+###### Returns
+
+`any`
+
+##### getPreviewResults
+
+> **getPreviewResults**: (`id`) => `any`
+
+###### Parameters
+
+###### id
+
+`number`
+
+###### Returns
+
+`any`
+
+##### list
 
 > **list**: () => `any`
 
@@ -92,7 +132,7 @@ List all ECL configurations with simplified header information.
 
 An Effect resolving to an array of transformed ECL headers
 
-##### update()
+##### update
 
 > **update**: (`id`, `data`, `userId`) => `any`
 

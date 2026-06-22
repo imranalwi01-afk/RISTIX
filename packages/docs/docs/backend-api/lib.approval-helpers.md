@@ -8,7 +8,7 @@
 
 ### ApprovalCheckResult
 
-Defined in: [src/lib/approval-helpers.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L13)
+Defined in: [src/lib/approval-helpers.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L13)
 
 Approval Helper Utilities
 Provides common functions for working with the approval workflow system
@@ -19,13 +19,13 @@ Provides common functions for working with the approval workflow system
 
 > **canSelfApprove**: `boolean`
 
-Defined in: [src/lib/approval-helpers.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L15)
+Defined in: [src/lib/approval-helpers.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L15)
 
 ##### matrix?
 
-> `optional` **matrix**: `object`
+> `optional` **matrix?**: `object`
 
-Defined in: [src/lib/approval-helpers.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L16)
+Defined in: [src/lib/approval-helpers.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L16)
 
 ###### amountThresholds
 
@@ -89,21 +89,21 @@ Defined in: [src/lib/approval-helpers.ts:16](https://github.com/ifrspro/ifrs9-ia
 
 ##### reason?
 
-> `optional` **reason**: `string`
+> `optional` **reason?**: `string`
 
-Defined in: [src/lib/approval-helpers.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L17)
+Defined in: [src/lib/approval-helpers.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L17)
 
 ##### requiresApproval
 
 > **requiresApproval**: `boolean`
 
-Defined in: [src/lib/approval-helpers.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L14)
+Defined in: [src/lib/approval-helpers.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L14)
 
 ***
 
 ### ApprovalResponse
 
-Defined in: [src/lib/approval-helpers.ts:20](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L20)
+Defined in: [src/lib/approval-helpers.ts:20](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L20)
 
 #### Properties
 
@@ -111,43 +111,43 @@ Defined in: [src/lib/approval-helpers.ts:20](https://github.com/ifrspro/ifrs9-ia
 
 > **approvalRequired**: `boolean`
 
-Defined in: [src/lib/approval-helpers.ts:22](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L22)
+Defined in: [src/lib/approval-helpers.ts:22](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L22)
 
 ##### autoApproved?
 
-> `optional` **autoApproved**: `boolean`
+> `optional` **autoApproved?**: `boolean`
 
-Defined in: [src/lib/approval-helpers.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L23)
+Defined in: [src/lib/approval-helpers.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L23)
 
 ##### data?
 
-> `optional` **data**: `any`
+> `optional` **data?**: `any`
 
-Defined in: [src/lib/approval-helpers.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L25)
+Defined in: [src/lib/approval-helpers.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L25)
 
 ##### message?
 
-> `optional` **message**: `string`
+> `optional` **message?**: `string`
 
-Defined in: [src/lib/approval-helpers.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L26)
+Defined in: [src/lib/approval-helpers.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L26)
 
 ##### requestId?
 
-> `optional` **requestId**: `string`
+> `optional` **requestId?**: `string`
 
-Defined in: [src/lib/approval-helpers.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L24)
+Defined in: [src/lib/approval-helpers.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L24)
 
 ##### success
 
 > **success**: `boolean`
 
-Defined in: [src/lib/approval-helpers.ts:21](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L21)
+Defined in: [src/lib/approval-helpers.ts:21](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L21)
 
 ***
 
 ### ApprovalRoutingLevel
 
-Defined in: [src/lib/approval-helpers.ts:354](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L354)
+Defined in: [src/lib/approval-helpers.ts:355](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L355)
 
 #### Properties
 
@@ -155,49 +155,49 @@ Defined in: [src/lib/approval-helpers.ts:354](https://github.com/ifrspro/ifrs9-i
 
 > **level**: `number`
 
-Defined in: [src/lib/approval-helpers.ts:355](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L355)
+Defined in: [src/lib/approval-helpers.ts:356](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L356)
 
 ##### name
 
 > **name**: `string`
 
-Defined in: [src/lib/approval-helpers.ts:356](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L356)
+Defined in: [src/lib/approval-helpers.ts:357](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L357)
 
 ##### permissionMatchMode
 
 > **permissionMatchMode**: `"ANY"` &#124; `"ALL"`
 
-Defined in: [src/lib/approval-helpers.ts:360](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L360)
+Defined in: [src/lib/approval-helpers.ts:361](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L361)
 
 ##### requiredCount
 
 > **requiredCount**: `number`
 
-Defined in: [src/lib/approval-helpers.ts:361](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L361)
+Defined in: [src/lib/approval-helpers.ts:362](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L362)
 
 ##### requiredPermissionCodes
 
 > **requiredPermissionCodes**: `string`[]
 
-Defined in: [src/lib/approval-helpers.ts:358](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L358)
+Defined in: [src/lib/approval-helpers.ts:359](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L359)
 
 ##### requiredRoleCodes
 
 > **requiredRoleCodes**: `string`[]
 
-Defined in: [src/lib/approval-helpers.ts:357](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L357)
+Defined in: [src/lib/approval-helpers.ts:358](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L358)
 
 ##### roleMatchMode
 
 > **roleMatchMode**: `"ANY"` &#124; `"ALL"`
 
-Defined in: [src/lib/approval-helpers.ts:359](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L359)
+Defined in: [src/lib/approval-helpers.ts:360](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L360)
 
 ##### timeoutHours?
 
-> `optional` **timeoutHours**: `number`
+> `optional` **timeoutHours?**: `number`
 
-Defined in: [src/lib/approval-helpers.ts:362](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L362)
+Defined in: [src/lib/approval-helpers.ts:363](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L363)
 
 ## Functions
 
@@ -205,7 +205,7 @@ Defined in: [src/lib/approval-helpers.ts:362](https://github.com/ifrspro/ifrs9-i
 
 > **buildApprovalDescription**(`operation`, `entityType`, `data`): `string`
 
-Defined in: [src/lib/approval-helpers.ts:174](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L174)
+Defined in: [src/lib/approval-helpers.ts:174](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L174)
 
 Build approval request description
 
@@ -213,7 +213,7 @@ Build approval request description
 
 ##### operation
 
-`"update"` | `"delete"` | `"create"`
+`"update"` &#124; `"delete"` &#124; `"create"`
 
 ##### entityType
 
@@ -233,7 +233,7 @@ Build approval request description
 
 > **buildApprovalPermission**(`entityType`, `operation`): `string`
 
-Defined in: [src/lib/approval-helpers.ts:196](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L196)
+Defined in: [src/lib/approval-helpers.ts:196](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L196)
 
 Build approval permission code from entity and operation
 Example: 'user' + 'create' => 'approval.user.create'
@@ -246,7 +246,7 @@ Example: 'user' + 'create' => 'approval.user.create'
 
 ##### operation
 
-`"update"` | `"delete"` | `"create"`
+`"update"` &#124; `"delete"` &#124; `"create"`
 
 #### Returns
 
@@ -258,7 +258,7 @@ Example: 'user' + 'create' => 'approval.user.create'
 
 > **buildApprovalTitle**(`operation`, `entityType`, `identifier?`): `string`
 
-Defined in: [src/lib/approval-helpers.ts:157](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L157)
+Defined in: [src/lib/approval-helpers.ts:157](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L157)
 
 Build approval request title
 
@@ -266,7 +266,7 @@ Build approval request title
 
 ##### operation
 
-`"update"` | `"delete"` | `"create"`
+`"update"` &#124; `"delete"` &#124; `"create"`
 
 ##### entityType
 
@@ -286,7 +286,7 @@ Build approval request title
 
 > **buildDefaultFourEyesRouting**(`_entityType`): [`ApprovalRoutingLevel`](#approvalroutinglevel)[]
 
-Defined in: [src/lib/approval-helpers.ts:380](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L380)
+Defined in: [src/lib/approval-helpers.ts:381](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L381)
 
 Default fallback routing for strict entities when matrix data is missing.
 This keeps approval eligibility deterministic and visible.
@@ -307,7 +307,7 @@ This keeps approval eligibility deterministic and visible.
 
 > **buildOperationPermission**(`entityType`, `operation`): `string`
 
-Defined in: [src/lib/approval-helpers.ts:208](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L208)
+Defined in: [src/lib/approval-helpers.ts:208](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L208)
 
 Build canonical banking CRUD permission code.
 Example: 'product_parameter' + 'create' => 'banking.parameter.product.create'
@@ -320,7 +320,7 @@ Example: 'product_parameter' + 'create' => 'banking.parameter.product.create'
 
 ##### operation
 
-`"update"` | `"delete"` | `"create"`
+`"update"` &#124; `"delete"` &#124; `"create"`
 
 #### Returns
 
@@ -332,7 +332,7 @@ Example: 'product_parameter' + 'create' => 'banking.parameter.product.create'
 
 > **calculateApprovalProgress**(`request`): `number`
 
-Defined in: [src/lib/approval-helpers.ts:64](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L64)
+Defined in: [src/lib/approval-helpers.ts:64](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L64)
 
 Calculate approval progress percentage
 
@@ -422,7 +422,7 @@ Calculate approval progress percentage
 
 > **canProcessApproval**(`request`): `object`
 
-Defined in: [src/lib/approval-helpers.ts:281](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L281)
+Defined in: [src/lib/approval-helpers.ts:281](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L281)
 
 Check if approval can be processed
 
@@ -512,7 +512,7 @@ Check if approval can be processed
 
 ##### reason?
 
-> `optional` **reason**: `string`
+> `optional` **reason?**: `string`
 
 ***
 
@@ -520,7 +520,7 @@ Check if approval can be processed
 
 > **extractPendingData**&lt;`T`&gt;(`request`): `T` &#124; `null`
 
-Defined in: [src/lib/approval-helpers.ts:145](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L145)
+Defined in: [src/lib/approval-helpers.ts:145](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L145)
 
 Extract original request data from approval request
 
@@ -616,7 +616,7 @@ Extract original request data from approval request
 
 > **formatApprovalRequiredResponse**(`request`): [`ApprovalResponse`](#approvalresponse)
 
-Defined in: [src/lib/approval-helpers.ts:79](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L79)
+Defined in: [src/lib/approval-helpers.ts:79](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L79)
 
 Format response when approval is required
 
@@ -706,7 +706,7 @@ Format response when approval is required
 
 > **formatDirectExecutionResponse**&lt;`T`&gt;(`data`, `message?`): [`ApprovalResponse`](#approvalresponse)
 
-Defined in: [src/lib/approval-helpers.ts:126](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L126)
+Defined in: [src/lib/approval-helpers.ts:126](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L126)
 
 Format response when operation is executed directly (no approval needed)
 
@@ -736,7 +736,7 @@ Format response when operation is executed directly (no approval needed)
 
 > **getApprovalStatusColor**(`status`): `string`
 
-Defined in: [src/lib/approval-helpers.ts:50](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L50)
+Defined in: [src/lib/approval-helpers.ts:50](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L50)
 
 Get approval status color for UI
 
@@ -756,7 +756,7 @@ Get approval status color for UI
 
 > **getApprovalStatusLabel**(`status`): `string`
 
-Defined in: [src/lib/approval-helpers.ts:36](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L36)
+Defined in: [src/lib/approval-helpers.ts:36](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L36)
 
 Get human-readable approval status
 
@@ -776,7 +776,7 @@ Get human-readable approval status
 
 > **getRequiredApprovalLevel**(`matrix`, `impactLevel?`): `number`
 
-Defined in: [src/lib/approval-helpers.ts:406](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L406)
+Defined in: [src/lib/approval-helpers.ts:407](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L407)
 
 Get required approval level for operation
 
@@ -784,7 +784,7 @@ Get required approval level for operation
 
 ##### matrix
 
-&#123; `amountThresholds`: &#123; `critical?`: `number`; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `autoApprovalRules`: `unknown`; `bankingMode`: `string` &#124; `null`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `entityType`: `string`; `escalationRules`: `unknown`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `operationType`: `string` &#124; `null`; `riskThresholds`: &#123; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `syariahBoardRequired`: `boolean` &#124; `null`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date`; &#125; | `null` | `undefined`
+&#123; `amountThresholds`: &#123; `critical?`: `number`; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `autoApprovalRules`: `unknown`; `bankingMode`: `string` &#124; `null`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `entityType`: `string`; `escalationRules`: `unknown`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `operationType`: `string` &#124; `null`; `riskThresholds`: &#123; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `syariahBoardRequired`: `boolean` &#124; `null`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date`; &#125; &#124; `null` &#124; `undefined`
 
 ##### impactLevel?
 
@@ -800,7 +800,7 @@ Get required approval level for operation
 
 > **hasApprovalPermission**(`userPermissions`, `entityType`, `operation`): `boolean`
 
-Defined in: [src/lib/approval-helpers.ts:233](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L233)
+Defined in: [src/lib/approval-helpers.ts:233](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L233)
 
 Check if user has approval permission
 
@@ -816,7 +816,7 @@ Check if user has approval permission
 
 ##### operation
 
-`"update"` | `"delete"` | `"create"`
+`"update"` &#124; `"delete"` &#124; `"create"`
 
 #### Returns
 
@@ -828,7 +828,7 @@ Check if user has approval permission
 
 > **hasOperationPermission**(`userPermissions`, `entityType`, `operation`): `boolean`
 
-Defined in: [src/lib/approval-helpers.ts:245](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L245)
+Defined in: [src/lib/approval-helpers.ts:245](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L245)
 
 Check if user has operation permission
 
@@ -844,7 +844,7 @@ Check if user has operation permission
 
 ##### operation
 
-`"update"` | `"delete"` | `"create"`
+`"update"` &#124; `"delete"` &#124; `"create"`
 
 #### Returns
 
@@ -856,7 +856,7 @@ Check if user has operation permission
 
 > **isApprovalExpired**(`request`): `boolean`
 
-Defined in: [src/lib/approval-helpers.ts:273](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L273)
+Defined in: [src/lib/approval-helpers.ts:273](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L273)
 
 Check if approval request has expired
 
@@ -946,7 +946,7 @@ Check if approval request has expired
 
 > **requiresStrictFourEyes**(`entityType`): `boolean`
 
-Defined in: [src/lib/approval-helpers.ts:369](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L369)
+Defined in: [src/lib/approval-helpers.ts:370](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L370)
 
 Strict 4-eyes mode can be disabled explicitly for lower environments.
 By default it is enabled to prevent self-approval bypass for privileged entities.
@@ -967,7 +967,7 @@ By default it is enabled to prevent self-approval bypass for privileged entities
 
 > **shouldAutoApprove**(`matrix`, `userPermissions`, `entityType`, `operation`, `impactLevel?`): `boolean`
 
-Defined in: [src/lib/approval-helpers.ts:309](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L309)
+Defined in: [src/lib/approval-helpers.ts:309](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L309)
 
 Determine if auto-approval should apply based on matrix rules
 
@@ -975,7 +975,7 @@ Determine if auto-approval should apply based on matrix rules
 
 ##### matrix
 
-&#123; `amountThresholds`: &#123; `critical?`: `number`; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `autoApprovalRules`: `unknown`; `bankingMode`: `string` &#124; `null`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `entityType`: `string`; `escalationRules`: `unknown`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `operationType`: `string` &#124; `null`; `riskThresholds`: &#123; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `syariahBoardRequired`: `boolean` &#124; `null`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date`; &#125; | `null` | `undefined`
+&#123; `amountThresholds`: &#123; `critical?`: `number`; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `autoApprovalRules`: `unknown`; `bankingMode`: `string` &#124; `null`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `entityType`: `string`; `escalationRules`: `unknown`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `operationType`: `string` &#124; `null`; `riskThresholds`: &#123; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `syariahBoardRequired`: `boolean` &#124; `null`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date`; &#125; &#124; `null` &#124; `undefined`
 
 ##### userPermissions
 
@@ -987,7 +987,7 @@ Determine if auto-approval should apply based on matrix rules
 
 ##### operation
 
-`"update"` | `"delete"` | `"create"`
+`"update"` &#124; `"delete"` &#124; `"create"`
 
 ##### impactLevel?
 
@@ -1003,7 +1003,7 @@ Determine if auto-approval should apply based on matrix rules
 
 > **validateApproverNotRequester**(`approverId`, `requesterId`): `boolean`
 
-Defined in: [src/lib/approval-helpers.ts:263](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/approval-helpers.ts#L263)
+Defined in: [src/lib/approval-helpers.ts:263](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/approval-helpers.ts#L263)
 
 Validate that approver is not the requester
 

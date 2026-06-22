@@ -10,7 +10,7 @@
 
 > **useApiClient**(): `object`
 
-Defined in: [hooks/useApiClient.ts:5](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useApiClient.ts#L5)
+Defined in: [hooks/useApiClient.ts:6](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useApiClient.ts#L6)
 
 #### Returns
 
@@ -18,7 +18,7 @@ Defined in: [hooks/useApiClient.ts:5](https://github.com/ifrspro/ifrs9-iaf/blob/
 
 ##### apiCall()
 
-> **apiCall**: (`url`, `options?`) => `Promise`\<`any`\>
+> **apiCall**: (`url`, `options?`) => `Promise`&lt;`any`&gt;
 
 ###### Parameters
 
@@ -32,11 +32,11 @@ Defined in: [hooks/useApiClient.ts:5](https://github.com/ifrspro/ifrs9-iaf/blob/
 
 ###### Returns
 
-`Promise`\<`any`\>
+`Promise`&lt;`any`&gt;
 
 ##### error
 
-> **error**: `string` \| `null`
+> **error**: `string` &#124; `null`
 
 ##### loading
 

@@ -8,7 +8,7 @@
 
 ### ApprovalRoutingCandidate
 
-Defined in: [src/services/approval.service.ts:74](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L74)
+Defined in: [src/services/approval.service.ts:112](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L112)
 
 #### Properties
 
@@ -16,43 +16,43 @@ Defined in: [src/services/approval.service.ts:74](https://github.com/ifrspro/ifr
 
 > **department**: `string` &#124; `null`
 
-Defined in: [src/services/approval.service.ts:78](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L78)
+Defined in: [src/services/approval.service.ts:116](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L116)
 
 ##### email
 
 > **email**: `string`
 
-Defined in: [src/services/approval.service.ts:77](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L77)
+Defined in: [src/services/approval.service.ts:115](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L115)
 
 ##### fullName
 
 > **fullName**: `string`
 
-Defined in: [src/services/approval.service.ts:76](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L76)
+Defined in: [src/services/approval.service.ts:114](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L114)
 
 ##### position
 
 > **position**: `string` &#124; `null`
 
-Defined in: [src/services/approval.service.ts:79](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L79)
+Defined in: [src/services/approval.service.ts:117](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L117)
 
 ##### roleCodes
 
 > **roleCodes**: `string`[]
 
-Defined in: [src/services/approval.service.ts:80](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L80)
+Defined in: [src/services/approval.service.ts:118](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L118)
 
 ##### userId
 
 > **userId**: `string`
 
-Defined in: [src/services/approval.service.ts:75](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L75)
+Defined in: [src/services/approval.service.ts:113](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L113)
 
 ***
 
 ### ApprovalRoutingLevelOverview
 
-Defined in: [src/services/approval.service.ts:83](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L83)
+Defined in: [src/services/approval.service.ts:121](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L121)
 
 #### Properties
 
@@ -60,55 +60,55 @@ Defined in: [src/services/approval.service.ts:83](https://github.com/ifrspro/ifr
 
 > **candidateCount**: `number`
 
-Defined in: [src/services/approval.service.ts:90](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L90)
+Defined in: [src/services/approval.service.ts:128](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L128)
 
 ##### candidates
 
 > **candidates**: [`ApprovalRoutingCandidate`](#approvalroutingcandidate)[]
 
-Defined in: [src/services/approval.service.ts:91](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L91)
+Defined in: [src/services/approval.service.ts:129](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L129)
 
 ##### level
 
 > **level**: `number`
 
-Defined in: [src/services/approval.service.ts:84](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L84)
+Defined in: [src/services/approval.service.ts:122](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L122)
 
 ##### name
 
 > **name**: `string`
 
-Defined in: [src/services/approval.service.ts:85](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L85)
+Defined in: [src/services/approval.service.ts:123](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L123)
 
 ##### requiredCount
 
 > **requiredCount**: `number`
 
-Defined in: [src/services/approval.service.ts:88](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L88)
+Defined in: [src/services/approval.service.ts:126](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L126)
 
 ##### requiredPermissionCodes
 
 > **requiredPermissionCodes**: `string`[]
 
-Defined in: [src/services/approval.service.ts:87](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L87)
+Defined in: [src/services/approval.service.ts:125](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L125)
 
 ##### requiredRoleCodes
 
 > **requiredRoleCodes**: `string`[]
 
-Defined in: [src/services/approval.service.ts:86](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L86)
+Defined in: [src/services/approval.service.ts:124](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L124)
 
 ##### timeoutHours?
 
-> `optional` **timeoutHours**: `number`
+> `optional` **timeoutHours?**: `number`
 
-Defined in: [src/services/approval.service.ts:89](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L89)
+Defined in: [src/services/approval.service.ts:127](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L127)
 
 ***
 
 ### ApprovalRoutingOverview
 
-Defined in: [src/services/approval.service.ts:94](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L94)
+Defined in: [src/services/approval.service.ts:132](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L132)
 
 #### Properties
 
@@ -116,43 +116,43 @@ Defined in: [src/services/approval.service.ts:94](https://github.com/ifrspro/ifr
 
 > **entityType**: `string`
 
-Defined in: [src/services/approval.service.ts:95](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L95)
+Defined in: [src/services/approval.service.ts:133](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L133)
 
 ##### isActive
 
 > **isActive**: `boolean`
 
-Defined in: [src/services/approval.service.ts:99](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L99)
+Defined in: [src/services/approval.service.ts:137](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L137)
 
 ##### levels
 
 > **levels**: [`ApprovalRoutingLevelOverview`](#approvalroutingleveloverview)[]
 
-Defined in: [src/services/approval.service.ts:100](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L100)
+Defined in: [src/services/approval.service.ts:138](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L138)
 
 ##### matrixId
 
 > **matrixId**: `string` &#124; `null`
 
-Defined in: [src/services/approval.service.ts:97](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L97)
+Defined in: [src/services/approval.service.ts:135](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L135)
 
 ##### matrixName
 
 > **matrixName**: `string`
 
-Defined in: [src/services/approval.service.ts:98](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L98)
+Defined in: [src/services/approval.service.ts:136](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L136)
 
 ##### operationType
 
 > **operationType**: `string`
 
-Defined in: [src/services/approval.service.ts:96](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L96)
+Defined in: [src/services/approval.service.ts:134](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L134)
 
 ***
 
 ### CancelApprovalRequestInput
 
-Defined in: [src/services/approval.service.ts:67](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L67)
+Defined in: [src/services/approval.service.ts:105](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L105)
 
 #### Properties
 
@@ -160,93 +160,93 @@ Defined in: [src/services/approval.service.ts:67](https://github.com/ifrspro/ifr
 
 > **cancelledBy**: `string`
 
-Defined in: [src/services/approval.service.ts:69](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L69)
+Defined in: [src/services/approval.service.ts:107](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L107)
 
 ##### isSystemUser?
 
-> `optional` **isSystemUser**: `boolean`
+> `optional` **isSystemUser?**: `boolean`
 
-Defined in: [src/services/approval.service.ts:70](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L70)
+Defined in: [src/services/approval.service.ts:108](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L108)
 
 ##### reason?
 
-> `optional` **reason**: `string`
+> `optional` **reason?**: `string`
 
-Defined in: [src/services/approval.service.ts:71](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L71)
+Defined in: [src/services/approval.service.ts:109](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L109)
 
 ##### requestId
 
 > **requestId**: `string`
 
-Defined in: [src/services/approval.service.ts:68](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L68)
+Defined in: [src/services/approval.service.ts:106](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L106)
 
 ***
 
 ### CreateApprovalRequestInput
 
-Defined in: [src/services/approval.service.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L26)
+Defined in: [src/services/approval.service.ts:30](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L30)
 
 #### Properties
 
 ##### bankingMode?
 
-> `optional` **bankingMode**: `string`
+> `optional` **bankingMode?**: `string`
 
-Defined in: [src/services/approval.service.ts:35](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L35)
+Defined in: [src/services/approval.service.ts:39](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L39)
 
 ##### description?
 
-> `optional` **description**: `string`
+> `optional` **description?**: `string`
 
-Defined in: [src/services/approval.service.ts:31](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L31)
+Defined in: [src/services/approval.service.ts:35](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L35)
 
 ##### entityId?
 
-> `optional` **entityId**: `string`
+> `optional` **entityId?**: `string`
 
-Defined in: [src/services/approval.service.ts:29](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L29)
+Defined in: [src/services/approval.service.ts:33](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L33)
 
 ##### entityType
 
 > **entityType**: `string`
 
-Defined in: [src/services/approval.service.ts:28](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L28)
+Defined in: [src/services/approval.service.ts:32](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L32)
 
 ##### impactLevel?
 
-> `optional` **impactLevel**: `"low"` &#124; `"medium"` &#124; `"high"` &#124; `"critical"`
+> `optional` **impactLevel?**: `"low"` &#124; `"medium"` &#124; `"high"` &#124; `"critical"`
 
-Defined in: [src/services/approval.service.ts:34](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L34)
+Defined in: [src/services/approval.service.ts:38](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L38)
 
 ##### requestData?
 
-> `optional` **requestData**: `Record`&lt;`string`, `unknown`&gt;
+> `optional` **requestData?**: `Record`&lt;`string`, `unknown`&gt;
 
-Defined in: [src/services/approval.service.ts:32](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L32)
+Defined in: [src/services/approval.service.ts:36](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L36)
 
 ##### requestedBy
 
 > **requestedBy**: `string`
 
-Defined in: [src/services/approval.service.ts:33](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L33)
+Defined in: [src/services/approval.service.ts:37](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L37)
 
 ##### tenantId
 
 > **tenantId**: `string`
 
-Defined in: [src/services/approval.service.ts:27](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L27)
+Defined in: [src/services/approval.service.ts:31](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L31)
 
 ##### title
 
 > **title**: `string`
 
-Defined in: [src/services/approval.service.ts:30](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L30)
+Defined in: [src/services/approval.service.ts:34](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L34)
 
 ***
 
 ### ProcessApprovalInput
 
-Defined in: [src/services/approval.service.ts:38](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L38)
+Defined in: [src/services/approval.service.ts:42](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L42)
 
 #### Properties
 
@@ -254,49 +254,49 @@ Defined in: [src/services/approval.service.ts:38](https://github.com/ifrspro/ifr
 
 > **action**: `"approve"` &#124; `"reject"` &#124; `"request_info"` &#124; `"delegate"`
 
-Defined in: [src/services/approval.service.ts:42](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L42)
+Defined in: [src/services/approval.service.ts:46](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L46)
 
 ##### approverId
 
 > **approverId**: `string`
 
-Defined in: [src/services/approval.service.ts:40](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L40)
+Defined in: [src/services/approval.service.ts:44](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L44)
 
 ##### approverRole?
 
-> `optional` **approverRole**: `string`
+> `optional` **approverRole?**: `string`
 
-Defined in: [src/services/approval.service.ts:41](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L41)
+Defined in: [src/services/approval.service.ts:45](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L45)
 
 ##### comment?
 
-> `optional` **comment**: `string`
+> `optional` **comment?**: `string`
 
-Defined in: [src/services/approval.service.ts:43](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L43)
+Defined in: [src/services/approval.service.ts:47](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L47)
 
 ##### conditions?
 
-> `optional` **conditions**: `string`
+> `optional` **conditions?**: `string`
 
-Defined in: [src/services/approval.service.ts:44](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L44)
+Defined in: [src/services/approval.service.ts:48](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L48)
 
 ##### delegatedTo?
 
-> `optional` **delegatedTo**: `string`
+> `optional` **delegatedTo?**: `string`
 
-Defined in: [src/services/approval.service.ts:45](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L45)
+Defined in: [src/services/approval.service.ts:49](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L49)
 
 ##### requestId
 
 > **requestId**: `string`
 
-Defined in: [src/services/approval.service.ts:39](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L39)
+Defined in: [src/services/approval.service.ts:43](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L43)
 
 ##### riskScore?
 
-> `optional` **riskScore**: `number`
+> `optional` **riskScore?**: `number`
 
-Defined in: [src/services/approval.service.ts:46](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L46)
+Defined in: [src/services/approval.service.ts:50](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L50)
 
 ## Functions
 
@@ -304,7 +304,7 @@ Defined in: [src/services/approval.service.ts:46](https://github.com/ifrspro/ifr
 
 > **cancelApprovalRequest**(`input`): `Effect`&lt;&#123; `completed`: `boolean`; `status`: `string`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror) &#124; [`BusinessError`](lib.errors.md#businesserror)&gt;
 
-Defined in: [src/services/approval.service.ts:610](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L610)
+Defined in: [src/services/approval.service.ts:699](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L699)
 
 Cancel an existing approval request.
 Requesters can cancel their own pending request; system users can cancel any.
@@ -325,7 +325,7 @@ Requesters can cancel their own pending request; system users can cancel any.
 
 > **createApprovalMatrix**(`data`, `levels`): `Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/services/approval.service.ts:148](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L148)
+Defined in: [src/services/approval.service.ts:186](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L186)
 
 Create an approval matrix.
 
@@ -413,7 +413,7 @@ An Effect resolving to the created matrix
 
 > **createApprovalRequest**(`input`): `Effect`&lt;&#123; `approvalsReceived`: `number`; `approvalsRequired`: `number`; `completedAt`: `Date` &#124; `null`; `completedBy`: `string` &#124; `null`; `createdAt`: `Date`; `currentLevel`: `number`; `description`: `string` &#124; `null`; `entityId`: `string` &#124; `null`; `entityType`: `string`; `expiresAt`: `Date` &#124; `null`; `id`: `string`; `impactLevel`: `string` &#124; `null`; `matrixId`: `string` &#124; `null`; `requestData`: `Record`&lt;`string`, `unknown`&gt; &#124; `null`; `requestedBy`: `string`; `status`: `string`; `tenantId`: `string`; `title`: `string`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`ConflictError`](lib.errors.md#conflicterror)&gt;
 
-Defined in: [src/services/approval.service.ts:204](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L204)
+Defined in: [src/services/approval.service.ts:242](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L242)
 
 Create a new approval request.
 
@@ -437,7 +437,7 @@ An Effect resolving to the created approval request
 
 > **getApprovalHistory**(`tenantId`, `entityType?`, `entityId?`): `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/services/approval.service.ts:1736](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L1736)
+Defined in: [src/services/approval.service.ts:2019](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L2019)
 
 Get approval history for an entity.
 
@@ -469,11 +469,107 @@ An Effect resolving to an array of approval requests
 
 ***
 
+### getApprovalHistoryList()
+
+> **getApprovalHistoryList**(`input`): `Effect`&lt;&#123; `data`: `object`[]; `total`: `number`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
+
+Defined in: [src/services/approval.service.ts:2033](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L2033)
+
+#### Parameters
+
+##### input
+
+###### bankingType?
+
+`string`
+
+###### createdAtFrom?
+
+`Date`
+
+###### createdAtTo?
+
+`Date`
+
+###### currentLevel?
+
+`number`
+
+###### currentLevelMax?
+
+`number`
+
+###### currentLevelMin?
+
+`number`
+
+###### entityId?
+
+`string`
+
+###### entityType?
+
+`string`
+
+###### impactLevel?
+
+`string`
+
+###### limit
+
+`number`
+
+###### offset
+
+`number`
+
+###### operation?
+
+`string`
+
+###### requestedBy?
+
+`string`
+
+###### riskLevel?
+
+`string`
+
+###### search?
+
+`string`
+
+###### sort?
+
+&#123; `direction`: `"asc"` &#124; `"desc"`; `field`: `string`; &#125;
+
+###### sort.direction
+
+`"asc"` &#124; `"desc"`
+
+###### sort.field
+
+`string`
+
+###### status?
+
+`string`
+
+###### tenantId
+
+`string`
+
+#### Returns
+
+`Effect`&lt;&#123; `data`: `object`[]; `total`: `number`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
+
+***
+
 ### getApprovalMatrices()
 
 > **getApprovalMatrices**(`tenantId`): `Effect`&lt;`any`[], [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/services/approval.service.ts:134](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L134)
+Defined in: [src/services/approval.service.ts:172](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L172)
 
 Get all matrices for a tenant.
 
@@ -497,7 +593,7 @@ An Effect resolving to an array of approval matrices
 
 > **getApprovalMatrix**(`tenantId`, `entityType`, `bankingMode?`): `Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/services/approval.service.ts:119](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L119)
+Defined in: [src/services/approval.service.ts:157](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L157)
 
 Get approval matrix for entity type.
 
@@ -533,7 +629,7 @@ An Effect resolving to the approval matrix or database error
 
 > **getApprovalRequest**(`requestId`): `Effect`&lt;`object` & `object`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
-Defined in: [src/services/approval.service.ts:1714](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L1714)
+Defined in: [src/services/approval.service.ts:1997](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L1997)
 
 Get approval request by ID with full details.
 
@@ -557,7 +653,7 @@ An Effect resolving to the request with actions or NotFoundError
 
 > **getApprovalRoutingOverview**(`input`): `Effect`&lt;[`ApprovalRoutingOverview`](#approvalroutingoverview)[], [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/services/approval.service.ts:2302](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L2302)
+Defined in: [src/services/approval.service.ts:2626](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L2626)
 
 Get matrix/routing overview and potential approvers for each level.
 Use this in UI so users know exactly who should review a request.
@@ -596,7 +692,7 @@ Use this in UI so users know exactly who should review a request.
 
 > **getPendingApprovalsForUser**(`userId`, `tenantId`): `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/services/approval.service.ts:1664](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L1664)
+Defined in: [src/services/approval.service.ts:1947](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L1947)
 
 Get pending approvals for a user by checking their roles against matrix requirements.
 
@@ -626,7 +722,7 @@ An Effect resolving to an array of pending requests available for the user to ap
 
 > **processApprovalAction**(`input`): `Effect`&lt;&#123; `completed`: `boolean`; `status`: `string`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`AuthorizationError`](lib.errors.md#authorizationerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror) &#124; [`BusinessError`](lib.errors.md#businesserror)&gt;
 
-Defined in: [src/services/approval.service.ts:307](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L307)
+Defined in: [src/services/approval.service.ts:378](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L378)
 
 Process an approval action (approve, reject, request_info, delegate).
 
@@ -654,11 +750,38 @@ BusinessError if request is not pending or other business rule violations
 
 ***
 
+### replayApprovedRequestSideEffect()
+
+> **replayApprovedRequestSideEffect**(`request`, `approvedBy?`): `Promise`&lt;`void`&gt;
+
+Defined in: [src/services/approval.service.ts:895](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L895)
+
+Replay the side effect for an already-approved request.
+
+Intended for operational reconciliation of older approval requests whose
+status reached `approved` before the executor wrote the live row.
+
+#### Parameters
+
+##### request
+
+`any`
+
+##### approvedBy?
+
+`string`
+
+#### Returns
+
+`Promise`&lt;`void`&gt;
+
+***
+
 ### updateApprovalMatrix()
 
 > **updateApprovalMatrix**(`tenantId`, `matrixId`, `data`, `levels?`): `Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
-Defined in: [src/services/approval.service.ts:159](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval.service.ts#L159)
+Defined in: [src/services/approval.service.ts:197](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval.service.ts#L197)
 
 Update an approval matrix and optionally replace its levels.
 

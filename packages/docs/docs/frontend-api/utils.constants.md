@@ -10,7 +10,7 @@
 
 > `const` **BANKING\_TYPES**: `object`
 
-Defined in: [utils/constants.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/constants.ts#L9)
+Defined in: [utils/constants.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/constants.ts#L9)
 
 #### Type Declaration
 
@@ -22,17 +22,13 @@ Defined in: [utils/constants.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 > `readonly` **DUAL**: `"dual"` = `'dual'`
 
-##### SYARIAH
-
-> `readonly` **SYARIAH**: `"syariah"` = `'syariah'`
-
 ***
 
 ### IFRS9\_STAGES
 
 > `const` **IFRS9\_STAGES**: `object`
 
-Defined in: [utils/constants.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/constants.ts#L15)
+Defined in: [utils/constants.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/constants.ts#L14)
 
 #### Type Declaration
 
@@ -54,7 +50,7 @@ Defined in: [utils/constants.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/44
 
 > `const` **PROJECT\_STATUSES**: `object`
 
-Defined in: [utils/constants.ts:28](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/constants.ts#L28)
+Defined in: [utils/constants.ts:27](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/constants.ts#L27)
 
 #### Type Declaration
 
@@ -84,7 +80,7 @@ Defined in: [utils/constants.ts:28](https://github.com/ifrspro/ifrs9-iaf/blob/44
 
 > `const` **PROJECT\_TYPES**: `object`
 
-Defined in: [utils/constants.ts:21](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/constants.ts#L21)
+Defined in: [utils/constants.ts:20](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/constants.ts#L20)
 
 #### Type Declaration
 
@@ -110,7 +106,7 @@ Defined in: [utils/constants.ts:21](https://github.com/ifrspro/ifrs9-iaf/blob/44
 
 > `const` **STAKEHOLDER\_TYPES**: `object`
 
-Defined in: [utils/constants.ts:1](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/constants.ts#L1)
+Defined in: [utils/constants.ts:1](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/constants.ts#L1)
 
 #### Type Declaration
 

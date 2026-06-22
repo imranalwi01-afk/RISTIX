@@ -10,7 +10,7 @@
 
 > **Logger** = *typeof* [`logger`](#logger-1)
 
-Defined in: [src/lib/logger.ts:32](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/logger.ts#L32)
+Defined in: [src/lib/logger.ts:35](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/logger.ts#L35)
 
 ## Variables
 
@@ -18,15 +18,33 @@ Defined in: [src/lib/logger.ts:32](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 > `const` **logger**: `Logger`&lt;`never`, `boolean`&gt;
 
-Defined in: [src/lib/logger.ts:6](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/logger.ts#L6)
+Defined in: [src/lib/logger.ts:4](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/logger.ts#L4)
 
 ## Functions
+
+### setEnvironment()
+
+> **setEnvironment**(`env`): `void`
+
+Defined in: [src/lib/logger.ts:19](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/logger.ts#L19)
+
+#### Parameters
+
+##### env
+
+`string`
+
+#### Returns
+
+`void`
+
+***
 
 ### withRequestIds()
 
 > **withRequestIds**(`ctx`): `Logger`&lt;`never`, `boolean`&gt;
 
-Defined in: [src/lib/logger.ts:27](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/logger.ts#L27)
+Defined in: [src/lib/logger.ts:30](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/logger.ts#L30)
 
 #### Parameters
 

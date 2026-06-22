@@ -10,13 +10,13 @@
 
 > `const` **logApproval**: `object`
 
-Defined in: [src/services/audit.service.ts:355](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/audit.service.ts#L355)
+Defined in: [src/services/audit.service.ts:379](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/audit.service.ts#L379)
 
 Log approval events
 
 #### Type Declaration
 
-##### approved()
+##### approved
 
 > **approved**: (`requestId`, `title`, `approvedBy`, `tenantId`, `comment?`, `details?`) => `Promise`&lt;`void`&gt;
 
@@ -60,7 +60,7 @@ Log approval events
 
 `Promise`&lt;`void`&gt;
 
-##### cancelled()
+##### cancelled
 
 > **cancelled**: (`requestId`, `title`, `cancelledBy`, `tenantId`, `reason?`, `details?`) => `Promise`&lt;`void`&gt;
 
@@ -104,7 +104,7 @@ Log approval events
 
 `Promise`&lt;`void`&gt;
 
-##### delegated()
+##### delegated
 
 > **delegated**: (`requestId`, `title`, `delegatedBy`, `tenantId`, `delegatedTo?`, `details?`) => `Promise`&lt;`void`&gt;
 
@@ -148,7 +148,7 @@ Log approval events
 
 `Promise`&lt;`void`&gt;
 
-##### infoRequested()
+##### infoRequested
 
 > **infoRequested**: (`requestId`, `title`, `requestedBy`, `tenantId`, `comment?`, `details?`) => `Promise`&lt;`void`&gt;
 
@@ -192,7 +192,7 @@ Log approval events
 
 `Promise`&lt;`void`&gt;
 
-##### rejected()
+##### rejected
 
 > **rejected**: (`requestId`, `title`, `rejectedBy`, `tenantId`, `reason?`, `details?`) => `Promise`&lt;`void`&gt;
 
@@ -236,7 +236,7 @@ Log approval events
 
 `Promise`&lt;`void`&gt;
 
-##### requested()
+##### requested
 
 > **requested**: (`requestId`, `title`, `requestedBy`, `tenantId`, `details?`) => `Promise`&lt;`void`&gt;
 
@@ -294,13 +294,13 @@ Log approval events
 
 > `const` **logAuth**: `object`
 
-Defined in: [src/services/audit.service.ts:89](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/audit.service.ts#L89)
+Defined in: [src/services/audit.service.ts:113](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/audit.service.ts#L113)
 
 Log authentication events
 
 #### Type Declaration
 
-##### login()
+##### login
 
 > **login**: (`userId`, `tenantId`, `ipAddress?`, `userAgent?`) => `Promise`&lt;`void`&gt;
 
@@ -326,7 +326,7 @@ Log authentication events
 
 `Promise`&lt;`void`&gt;
 
-##### loginFailed()
+##### loginFailed
 
 > **loginFailed**: (`email`, `tenantId?`, `ipAddress?`, `reason?`) => `Promise`&lt;`void`&gt;
 
@@ -352,7 +352,7 @@ Log authentication events
 
 `Promise`&lt;`void`&gt;
 
-##### logout()
+##### logout
 
 > **logout**: (`userId`, `tenantId`, `ipAddress?`) => `Promise`&lt;`void`&gt;
 
@@ -374,7 +374,7 @@ Log authentication events
 
 `Promise`&lt;`void`&gt;
 
-##### sessionExpired()
+##### sessionExpired
 
 > **sessionExpired**: (`userId`, `tenantId`) => `Promise`&lt;`void`&gt;
 
@@ -398,13 +398,13 @@ Log authentication events
 
 > `const` **logDataChange**: `object`
 
-Defined in: [src/services/audit.service.ts:143](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/audit.service.ts#L143)
+Defined in: [src/services/audit.service.ts:167](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/audit.service.ts#L167)
 
 Log data modification events
 
 #### Type Declaration
 
-##### create()
+##### create
 
 > **create**: (`resource`, `resourceId`, `newValues`, `userId`, `tenantId`) => `Promise`&lt;`void`&gt;
 
@@ -434,7 +434,7 @@ Log data modification events
 
 `Promise`&lt;`void`&gt;
 
-##### delete()
+##### delete
 
 > **delete**: (`resource`, `resourceId`, `oldValues`, `userId`, `tenantId`) => `Promise`&lt;`void`&gt;
 
@@ -464,7 +464,7 @@ Log data modification events
 
 `Promise`&lt;`void`&gt;
 
-##### update()
+##### update
 
 > **update**: (`resource`, `resourceId`, `oldValues`, `newValues`, `userId`, `tenantId`) => `Promise`&lt;`void`&gt;
 
@@ -504,13 +504,13 @@ Log data modification events
 
 > `const` **logJob**: `object`
 
-Defined in: [src/services/audit.service.ts:285](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/audit.service.ts#L285)
+Defined in: [src/services/audit.service.ts:309](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/audit.service.ts#L309)
 
 Log job events
 
 #### Type Declaration
 
-##### completed()
+##### completed
 
 > **completed**: (`executionId`, `jobName`, `duration`, `tenantId`) => `Promise`&lt;`void`&gt;
 
@@ -536,7 +536,7 @@ Log job events
 
 `Promise`&lt;`void`&gt;
 
-##### created()
+##### created
 
 > **created**: (`jobId`, `jobName`, `jobType`, `userId`, `tenantId`) => `Promise`&lt;`void`&gt;
 
@@ -566,7 +566,7 @@ Log job events
 
 `Promise`&lt;`void`&gt;
 
-##### failed()
+##### failed
 
 > **failed**: (`executionId`, `jobName`, `error`, `tenantId`) => `Promise`&lt;`void`&gt;
 
@@ -592,7 +592,7 @@ Log job events
 
 `Promise`&lt;`void`&gt;
 
-##### triggered()
+##### triggered
 
 > **triggered**: (`executionId`, `jobName`, `jobType`, `userId`, `tenantId`, `parameters?`) => `Promise`&lt;`void`&gt;
 
@@ -632,13 +632,13 @@ Log job events
 
 > `const` **logPermission**: `object`
 
-Defined in: [src/services/audit.service.ts:215](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/audit.service.ts#L215)
+Defined in: [src/services/audit.service.ts:239](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/audit.service.ts#L239)
 
 Log permission changes
 
 #### Type Declaration
 
-##### permissionsUpdated()
+##### permissionsUpdated
 
 > **permissionsUpdated**: (`roleId`, `roleName`, `oldPermissions`, `newPermissions`, `updatedBy`, `tenantId`) => `Promise`&lt;`void`&gt;
 
@@ -672,7 +672,7 @@ Log permission changes
 
 `Promise`&lt;`void`&gt;
 
-##### roleAssigned()
+##### roleAssigned
 
 > **roleAssigned**: (`userId`, `roleId`, `roleName`, `assignedBy`, `tenantId`) => `Promise`&lt;`void`&gt;
 
@@ -702,7 +702,7 @@ Log permission changes
 
 `Promise`&lt;`void`&gt;
 
-##### roleRevoked()
+##### roleRevoked
 
 > **roleRevoked**: (`userId`, `roleId`, `roleName`, `revokedBy`, `tenantId`) => `Promise`&lt;`void`&gt;
 
@@ -738,13 +738,13 @@ Log permission changes
 
 > `const` **logSystem**: `object`
 
-Defined in: [src/services/audit.service.ts:522](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/audit.service.ts#L522)
+Defined in: [src/services/audit.service.ts:546](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/audit.service.ts#L546)
 
 Log system events
 
 #### Type Declaration
 
-##### backupCreated()
+##### backupCreated
 
 > **backupCreated**: (`backupId`, `userId`, `tenantId`) => `Promise`&lt;`void`&gt;
 
@@ -766,7 +766,7 @@ Log system events
 
 `Promise`&lt;`void`&gt;
 
-##### configChanged()
+##### configChanged
 
 > **configChanged**: (`configKey`, `oldValue`, `newValue`, `userId`, `tenantId`) => `Promise`&lt;`void`&gt;
 
@@ -802,7 +802,7 @@ Log system events
 
 > **logAuditEvent**(`params`): `Promise`&lt;`void`&gt;
 
-Defined in: [src/services/audit.service.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/audit.service.ts#L12)
+Defined in: [src/services/audit.service.ts:34](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/audit.service.ts#L34)
 
 Core audit logging function.
 Uses tenantDb since audit schema exists in tenant database.
@@ -827,7 +827,7 @@ A Promise that resolves when the log is written, or catches error silently
 
 > **logCalculation**(`params`): `Promise`&lt;`void`&gt;
 
-Defined in: [src/services/audit.service.ts:68](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/audit.service.ts#L68)
+Defined in: [src/services/audit.service.ts:92](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/audit.service.ts#L92)
 
 Log calculation execution.
 
@@ -851,7 +851,7 @@ A Promise that resolves when the log is written
 
 > **logDataAccess**(`params`): `Promise`&lt;`void`&gt;
 
-Defined in: [src/services/audit.service.ts:49](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/audit.service.ts#L49)
+Defined in: [src/services/audit.service.ts:73](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/audit.service.ts#L73)
 
 Log data access.
 
@@ -875,7 +875,7 @@ A Promise that resolves when the log is written
 
 > **logUserActivity**(`params`): `Promise`&lt;`void`&gt;
 
-Defined in: [src/services/audit.service.ts:31](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/audit.service.ts#L31)
+Defined in: [src/services/audit.service.ts:55](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/audit.service.ts#L55)
 
 Log user activity.
 
@@ -892,3 +892,25 @@ Partial user activity log data
 `Promise`&lt;`void`&gt;
 
 A Promise that resolves when the log is written
+
+***
+
+### runAuditSafely()
+
+> **runAuditSafely**(`operation`, `context`): `void`
+
+Defined in: [src/services/audit.service.ts:5](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/audit.service.ts#L5)
+
+#### Parameters
+
+##### operation
+
+`Promise`&lt;`void`&gt;
+
+##### context
+
+`string`
+
+#### Returns
+
+`void`

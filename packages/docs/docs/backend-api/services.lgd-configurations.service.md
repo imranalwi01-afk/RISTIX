@@ -10,13 +10,13 @@
 
 > `const` **LgdConfigurationsService**: `object`
 
-Defined in: [src/services/lgd-configurations.service.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/lgd-configurations.service.ts#L7)
+Defined in: [src/services/lgd-configurations.service.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/lgd-configurations.service.ts#L7)
 
 #### Type Declaration
 
-##### create()
+##### create
 
-> **create**: (`data`, `userId`) => `Effect`&lt;&#123; `created_by`: `string`; `created_date`: `string`; `fl_flag`: `boolean`; `fl_scalar_id`: `number` &#124; `null`; `id`: `number`; `is_active`: `boolean` &#124; `null`; `lgd_method`: `number` &#124; `null`; `lgd_rate`: `number` &#124; `null`; `model_name`: `string` &#124; `null`; `observation_period`: `string` &#124; `null`; `observation_start_date`: `string` &#124; `null`; `population_type`: `string` &#124; `null`; `segment_id`: `number` &#124; `null`; `updated_by`: `string` &#124; `null`; `updated_date`: `string` &#124; `null`; `workout_period`: `number` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
+> **create**: (`data`, `userId`) => `Effect`&lt;&#123; `created_by`: `string`; `created_date`: `string`; `created_host`: `string`; `fl_flag`: `boolean`; `fl_scalar_id`: `number` &#124; `null`; `id`: `number`; `is_active`: `boolean` &#124; `null`; `lgd_method`: `number` &#124; `null`; `lgd_rate`: `number` &#124; `null`; `max_recovery_period`: `number` &#124; `null`; `model_name`: `string` &#124; `null`; `observation_period`: `string` &#124; `null`; `observation_start_date`: `string` &#124; `null`; `population_type`: `string` &#124; `null`; `segment_id`: `number` &#124; `null`; `updated_by`: `string` &#124; `null`; `updated_date`: `string` &#124; `null`; `updated_host`: `string` &#124; `null`; `workout_period`: `number` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Create a new LGD configuration.
 
@@ -36,11 +36,11 @@ The ID of the user creating the configuration
 
 ###### Returns
 
-`Effect`&lt;&#123; `created_by`: `string`; `created_date`: `string`; `fl_flag`: `boolean`; `fl_scalar_id`: `number` &#124; `null`; `id`: `number`; `is_active`: `boolean` &#124; `null`; `lgd_method`: `number` &#124; `null`; `lgd_rate`: `number` &#124; `null`; `model_name`: `string` &#124; `null`; `observation_period`: `string` &#124; `null`; `observation_start_date`: `string` &#124; `null`; `population_type`: `string` &#124; `null`; `segment_id`: `number` &#124; `null`; `updated_by`: `string` &#124; `null`; `updated_date`: `string` &#124; `null`; `workout_period`: `number` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
+`Effect`&lt;&#123; `created_by`: `string`; `created_date`: `string`; `created_host`: `string`; `fl_flag`: `boolean`; `fl_scalar_id`: `number` &#124; `null`; `id`: `number`; `is_active`: `boolean` &#124; `null`; `lgd_method`: `number` &#124; `null`; `lgd_rate`: `number` &#124; `null`; `max_recovery_period`: `number` &#124; `null`; `model_name`: `string` &#124; `null`; `observation_period`: `string` &#124; `null`; `observation_start_date`: `string` &#124; `null`; `population_type`: `string` &#124; `null`; `segment_id`: `number` &#124; `null`; `updated_by`: `string` &#124; `null`; `updated_date`: `string` &#124; `null`; `updated_host`: `string` &#124; `null`; `workout_period`: `number` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to the created configuration
 
-##### delete()
+##### delete
 
 > **delete**: (`id`) => `Effect`&lt;&#123; `message`: `string`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror), `never`&gt;
 
@@ -60,9 +60,9 @@ The configuration ID
 
 An Effect resolving to a success message or NotFoundError
 
-##### get()
+##### get
 
-> **get**: (`id`) => `Effect`&lt;&#123; `created_by`: `string`; `created_date`: `string`; `fl_flag`: `boolean`; `fl_scalar_id`: `number` &#124; `null`; `id`: `number`; `is_active`: `boolean` &#124; `null`; `lgd_method`: `number` &#124; `null`; `lgd_rate`: `number` &#124; `null`; `model_name`: `string` &#124; `null`; `observation_period`: `string` &#124; `null`; `observation_start_date`: `string` &#124; `null`; `population_type`: `string` &#124; `null`; `segment_id`: `number` &#124; `null`; `updated_by`: `string` &#124; `null`; `updated_date`: `string` &#124; `null`; `workout_period`: `number` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror), `never`&gt;
+> **get**: (`id`) => `Effect`&lt;&#123; `created_by`: `string`; `created_date`: `string`; `created_host`: `string`; `fl_flag`: `boolean`; `fl_scalar_id`: `number` &#124; `null`; `id`: `number`; `is_active`: `boolean` &#124; `null`; `lgd_method`: `number` &#124; `null`; `lgd_rate`: `number` &#124; `null`; `max_recovery_period`: `number` &#124; `null`; `model_name`: `string` &#124; `null`; `observation_period`: `string` &#124; `null`; `observation_start_date`: `string` &#124; `null`; `population_type`: `string` &#124; `null`; `segment_id`: `number` &#124; `null`; `updated_by`: `string` &#124; `null`; `updated_date`: `string` &#124; `null`; `updated_host`: `string` &#124; `null`; `workout_period`: `number` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror), `never`&gt;
 
 Get an LGD configuration by ID.
 
@@ -76,11 +76,11 @@ The configuration ID
 
 ###### Returns
 
-`Effect`&lt;&#123; `created_by`: `string`; `created_date`: `string`; `fl_flag`: `boolean`; `fl_scalar_id`: `number` &#124; `null`; `id`: `number`; `is_active`: `boolean` &#124; `null`; `lgd_method`: `number` &#124; `null`; `lgd_rate`: `number` &#124; `null`; `model_name`: `string` &#124; `null`; `observation_period`: `string` &#124; `null`; `observation_start_date`: `string` &#124; `null`; `population_type`: `string` &#124; `null`; `segment_id`: `number` &#124; `null`; `updated_by`: `string` &#124; `null`; `updated_date`: `string` &#124; `null`; `workout_period`: `number` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror), `never`&gt;
+`Effect`&lt;&#123; `created_by`: `string`; `created_date`: `string`; `created_host`: `string`; `fl_flag`: `boolean`; `fl_scalar_id`: `number` &#124; `null`; `id`: `number`; `is_active`: `boolean` &#124; `null`; `lgd_method`: `number` &#124; `null`; `lgd_rate`: `number` &#124; `null`; `max_recovery_period`: `number` &#124; `null`; `model_name`: `string` &#124; `null`; `observation_period`: `string` &#124; `null`; `observation_start_date`: `string` &#124; `null`; `population_type`: `string` &#124; `null`; `segment_id`: `number` &#124; `null`; `updated_by`: `string` &#124; `null`; `updated_date`: `string` &#124; `null`; `updated_host`: `string` &#124; `null`; `workout_period`: `number` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror), `never`&gt;
 
 An Effect resolving to the configuration or NotFoundError
 
-##### getMethods()
+##### getMethods
 
 > **getMethods**: () => `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -92,7 +92,7 @@ Per tech spec: LGD_METHOD = Combo Box (Business Setting B0022)
 
 `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
-##### getPopulationTypes()
+##### getPopulationTypes
 
 > **getPopulationTypes**: () => `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -104,7 +104,7 @@ Per tech spec: POLUPATION_TYPE = Combo Box (Business Setting B0023)
 
 `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
-##### list()
+##### list
 
 > **list**: (`options`) => `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -134,9 +134,9 @@ Filter options
 
 An Effect resolving to an array of transformed configurations
 
-##### update()
+##### update
 
-> **update**: (`id`, `data`, `userId`) => `Effect`&lt;&#123; `created_by`: `string`; `created_date`: `string`; `fl_flag`: `boolean`; `fl_scalar_id`: `number` &#124; `null`; `id`: `number`; `is_active`: `boolean` &#124; `null`; `lgd_method`: `number` &#124; `null`; `lgd_rate`: `number` &#124; `null`; `model_name`: `string` &#124; `null`; `observation_period`: `string` &#124; `null`; `observation_start_date`: `string` &#124; `null`; `population_type`: `string` &#124; `null`; `segment_id`: `number` &#124; `null`; `updated_by`: `string` &#124; `null`; `updated_date`: `string` &#124; `null`; `workout_period`: `number` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror), `never`&gt;
+> **update**: (`id`, `data`, `userId`) => `Effect`&lt;&#123; `created_by`: `string`; `created_date`: `string`; `created_host`: `string`; `fl_flag`: `boolean`; `fl_scalar_id`: `number` &#124; `null`; `id`: `number`; `is_active`: `boolean` &#124; `null`; `lgd_method`: `number` &#124; `null`; `lgd_rate`: `number` &#124; `null`; `max_recovery_period`: `number` &#124; `null`; `model_name`: `string` &#124; `null`; `observation_period`: `string` &#124; `null`; `observation_start_date`: `string` &#124; `null`; `population_type`: `string` &#124; `null`; `segment_id`: `number` &#124; `null`; `updated_by`: `string` &#124; `null`; `updated_date`: `string` &#124; `null`; `updated_host`: `string` &#124; `null`; `workout_period`: `number` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror), `never`&gt;
 
 Update an existing LGD configuration.
 
@@ -162,6 +162,6 @@ The ID of the user updating the configuration
 
 ###### Returns
 
-`Effect`&lt;&#123; `created_by`: `string`; `created_date`: `string`; `fl_flag`: `boolean`; `fl_scalar_id`: `number` &#124; `null`; `id`: `number`; `is_active`: `boolean` &#124; `null`; `lgd_method`: `number` &#124; `null`; `lgd_rate`: `number` &#124; `null`; `model_name`: `string` &#124; `null`; `observation_period`: `string` &#124; `null`; `observation_start_date`: `string` &#124; `null`; `population_type`: `string` &#124; `null`; `segment_id`: `number` &#124; `null`; `updated_by`: `string` &#124; `null`; `updated_date`: `string` &#124; `null`; `workout_period`: `number` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror), `never`&gt;
+`Effect`&lt;&#123; `created_by`: `string`; `created_date`: `string`; `created_host`: `string`; `fl_flag`: `boolean`; `fl_scalar_id`: `number` &#124; `null`; `id`: `number`; `is_active`: `boolean` &#124; `null`; `lgd_method`: `number` &#124; `null`; `lgd_rate`: `number` &#124; `null`; `max_recovery_period`: `number` &#124; `null`; `model_name`: `string` &#124; `null`; `observation_period`: `string` &#124; `null`; `observation_start_date`: `string` &#124; `null`; `population_type`: `string` &#124; `null`; `segment_id`: `number` &#124; `null`; `updated_by`: `string` &#124; `null`; `updated_date`: `string` &#124; `null`; `updated_host`: `string` &#124; `null`; `workout_period`: `number` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror), `never`&gt;
 
 An Effect resolving to the updated configuration or NotFoundError

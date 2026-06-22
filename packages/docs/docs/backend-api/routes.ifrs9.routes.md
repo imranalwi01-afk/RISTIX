@@ -10,7 +10,7 @@
 
 > `const` **ifrs9Routes**: `any`
 
-Defined in: [src/routes/ifrs9.routes.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/routes/ifrs9.routes.ts#L11)
+Defined in: [src/routes/ifrs9.routes.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/routes/ifrs9.routes.ts#L15)
 
 IFRS9 Main Routes (STUB)
 TODO: Implement IFRS9 calculations

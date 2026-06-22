@@ -10,7 +10,7 @@
 
 > **dbOperation**&lt;`A`&gt;(`operation`, `fn`): `Effect`&lt;`A`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/lib/effect/runtime.ts:295](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/effect/runtime.ts#L295)
+Defined in: [src/lib/effect/runtime.ts:295](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/effect/runtime.ts#L295)
 
 Wrap a database operation with proper error handling
 
@@ -24,7 +24,7 @@ Wrap a database operation with proper error handling
 
 ##### operation
 
-`"query"` | `"insert"` | `"update"` | `"delete"` | `"transaction"`
+`"query"` &#124; `"insert"` &#124; `"update"` &#124; `"delete"` &#124; `"transaction"`
 
 ##### fn
 
@@ -40,7 +40,7 @@ Wrap a database operation with proper error handling
 
 > **handleEffectError**(`c`, `cause`): `Response`
 
-Defined in: [src/lib/effect/runtime.ts:48](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/effect/runtime.ts#L48)
+Defined in: [src/lib/effect/runtime.ts:48](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/effect/runtime.ts#L48)
 
 Handle Effect errors and convert to HTTP responses
 
@@ -64,7 +64,7 @@ Handle Effect errors and convert to HTTP responses
 
 > **runEffect**&lt;`A`&gt;(`c`, `effect`, `successStatus?`): `Promise`&lt;`any`&gt;
 
-Defined in: [src/lib/effect/runtime.ts:20](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/effect/runtime.ts#L20)
+Defined in: [src/lib/effect/runtime.ts:20](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/effect/runtime.ts#L20)
 
 Run an Effect and convert the result to a Hono response
 
@@ -86,7 +86,7 @@ Run an Effect and convert the result to a Hono response
 
 ##### successStatus?
 
-`number` | (`value`) => `number`
+`number` &#124; ((`value`) => `number`)
 
 #### Returns
 
@@ -98,7 +98,7 @@ Run an Effect and convert the result to a Hono response
 
 > **validate**&lt;`T`&gt;(`schema`, `data`): `Effect`&lt;`T`, [`ValidationError`](lib.errors.md#validationerror)&gt;
 
-Defined in: [src/lib/effect/runtime.ts:313](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/effect/runtime.ts#L313)
+Defined in: [src/lib/effect/runtime.ts:313](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/effect/runtime.ts#L313)
 
 Validate data with Zod and return Effect
 

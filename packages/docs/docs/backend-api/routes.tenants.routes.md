@@ -10,7 +10,7 @@
 
 > `const` **tenantsRoutes**: `any`
 
-Defined in: [src/routes/tenants.routes.ts:18](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/routes/tenants.routes.ts#L18)
+Defined in: [src/routes/tenants.routes.ts:19](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/routes/tenants.routes.ts#L19)
 
 Tenants Routes
 Handles CRUD operations for Tenants.

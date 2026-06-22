@@ -8,9 +8,6 @@
 
 ### rAnalyticsRoutes
 
-> `const` **rAnalyticsRoutes**: `OpenAPIHono`&lt;[`AppContext`](app.md#appcontext), &#123; &#125;, `"/"`&gt;
+> `const` **rAnalyticsRoutes**: `OpenAPIHono`&lt;`any`, &#123; &#125;, `"/"`&gt;
 
-Defined in: [src/routes/r-analytics.routes.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/routes/r-analytics.routes.ts#L9)
-
-R Analytics Routes (STUB)
-TODO: Implement R bridge integration
+Defined in: [src/routes/r-analytics.routes.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/routes/r-analytics.routes.ts#L8)

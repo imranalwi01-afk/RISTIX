@@ -10,7 +10,7 @@
 
 > **clearAuthTokens**(): `void`
 
-Defined in: [utils/auth-token.ts:34](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/auth-token.ts#L34)
+Defined in: [utils/auth-token.ts:118](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/auth-token.ts#L118)
 
 Clear all authentication tokens from cookies and storage
 
@@ -22,16 +22,16 @@ Clear all authentication tokens from cookies and storage
 
 ### getAuthToken()
 
-> **getAuthToken**(): `string` \| `null`
+> **getAuthToken**(): `string` &#124; `null`
 
-Defined in: [utils/auth-token.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/auth-token.ts#L8)
+Defined in: [utils/auth-token.ts:92](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/auth-token.ts#L92)
 
 Get authentication token from cookies or localStorage
 Prioritizes cookies for better security and SSR/middleware consistency
 
 #### Returns
 
-`string` \| `null`
+`string` &#124; `null`
 
 ***
 
@@ -39,7 +39,7 @@ Prioritizes cookies for better security and SSR/middleware consistency
 
 > **syncTokenToCookie**(`token`): `void`
 
-Defined in: [utils/auth-token.ts:58](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/auth-token.ts#L58)
+Defined in: [utils/auth-token.ts:148](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/auth-token.ts#L148)
 
 Sync token to cookie (helper for non-AuthProvider contexts)
 

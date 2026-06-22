@@ -10,7 +10,7 @@
 
 > **exportToCsv**(`filename`, `headers`, `rows`): `void`
 
-Defined in: [utils/export-csv.ts:1](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/export-csv.ts#L1)
+Defined in: [utils/export-csv.ts:1](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/export-csv.ts#L1)
 
 #### Parameters
 
@@ -24,7 +24,7 @@ Defined in: [utils/export-csv.ts:1](https://github.com/ifrspro/ifrs9-iaf/blob/44
 
 ##### rows
 
-(`string` \| `number` \| `boolean` \| `null` \| `undefined`)[][]
+(`string` &#124; `number` &#124; `boolean` &#124; `null` &#124; `undefined`)[][]
 
 #### Returns
 

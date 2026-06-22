@@ -10,7 +10,7 @@
 
 > **AuditRepositoryType** = *typeof* [`AuditRepository`](#auditrepository)
 
-Defined in: [src/repositories/audit.repository.ts:294](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/audit.repository.ts#L294)
+Defined in: [src/repositories/audit.repository.ts:296](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/audit.repository.ts#L296)
 
 ## Variables
 
@@ -18,13 +18,13 @@ Defined in: [src/repositories/audit.repository.ts:294](https://github.com/ifrspr
 
 > `const` **AuditRepository**: `object`
 
-Defined in: [src/repositories/audit.repository.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/audit.repository.ts#L25)
+Defined in: [src/repositories/audit.repository.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/audit.repository.ts#L25)
 
 #### Type Declaration
 
-##### createAuditLog()
+##### createAuditLog
 
-> **createAuditLog**: (`data`) => `Promise`&lt;&#123; `action`: `string`; `changedFields`: `string`[] &#124; `null`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `entityId`: `string` &#124; `null`; `entityName`: `string` &#124; `null`; `entityType`: `string` &#124; `null`; `eventType`: `string`; `id`: `string`; `ipAddress`: `string` &#124; `null`; `metadata`: `unknown`; `newValues`: `unknown`; `oldValues`: `unknown`; `tenantId`: `string` &#124; `null`; `userAgent`: `string` &#124; `null`; `userId`: `string` &#124; `null`; &#125;&gt;
+> **createAuditLog**: (`data`) => `Promise`&lt;&#123; `action`: `string`; `changedFields`: `unknown`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `entityId`: `string` &#124; `null`; `entityName`: `string` &#124; `null`; `entityType`: `string` &#124; `null`; `eventType`: `string`; `id`: `string`; `ipAddress`: `string` &#124; `null`; `metadata`: `unknown`; `newValues`: `unknown`; `oldValues`: `unknown`; `tenantId`: `string` &#124; `null`; `userAgent`: `string` &#124; `null`; `userId`: `string` &#124; `null`; &#125;&gt;
 
 Create a new audit log entry.
 
@@ -40,7 +40,7 @@ The audit log data
 
 ###### changedFields?
 
-`string`[] &#124; `null`
+`unknown`
 
 ###### createdAt?
 
@@ -100,11 +100,11 @@ The audit log data
 
 ###### Returns
 
-`Promise`&lt;&#123; `action`: `string`; `changedFields`: `string`[] &#124; `null`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `entityId`: `string` &#124; `null`; `entityName`: `string` &#124; `null`; `entityType`: `string` &#124; `null`; `eventType`: `string`; `id`: `string`; `ipAddress`: `string` &#124; `null`; `metadata`: `unknown`; `newValues`: `unknown`; `oldValues`: `unknown`; `tenantId`: `string` &#124; `null`; `userAgent`: `string` &#124; `null`; `userId`: `string` &#124; `null`; &#125;&gt;
+`Promise`&lt;&#123; `action`: `string`; `changedFields`: `unknown`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `entityId`: `string` &#124; `null`; `entityName`: `string` &#124; `null`; `entityType`: `string` &#124; `null`; `eventType`: `string`; `id`: `string`; `ipAddress`: `string` &#124; `null`; `metadata`: `unknown`; `newValues`: `unknown`; `oldValues`: `unknown`; `tenantId`: `string` &#124; `null`; `userAgent`: `string` &#124; `null`; `userId`: `string` &#124; `null`; &#125;&gt;
 
 The created audit log
 
-##### createCalculationAuditLog()
+##### createCalculationAuditLog
 
 > **createCalculationAuditLog**: (`data`) => `Promise`&lt;&#123; `calculationDate`: `Date`; `calculationType`: `string`; `errorMessage`: `string` &#124; `null`; `executionTimeMs`: `number` &#124; `null`; `id`: `string`; `inputSummary`: `unknown`; `outputSummary`: `unknown`; `parameters`: `unknown`; `recordsProcessed`: `number` &#124; `null`; `status`: `string`; `tenantId`: `string` &#124; `null`; `timestamp`: `Date`; `userId`: `string`; &#125;&gt;
 
@@ -174,7 +174,7 @@ The calculation audit log data
 
 The created calculation audit log
 
-##### createDataAccessLog()
+##### createDataAccessLog
 
 > **createDataAccessLog**: (`data`) => `Promise`&lt;&#123; `accessType`: `string`; `id`: `string`; `ipAddress`: `string` &#124; `null`; `purpose`: `string` &#124; `null`; `recordCount`: `number` &#124; `null`; `resourceId`: `string` &#124; `null`; `resourceType`: `string`; `tenantId`: `string` &#124; `null`; `timestamp`: `Date`; `userId`: `string`; &#125;&gt;
 
@@ -232,9 +232,9 @@ The data access log data
 
 The created data access log
 
-##### createUserActivityLog()
+##### createUserActivityLog
 
-> **createUserActivityLog**: (`data`) => `Promise`&lt;&#123; `activityDescription`: `string` &#124; `null`; `activityType`: `string`; `createdAt`: `Date`; `deviceInfo`: `unknown`; `endpoint`: `string` &#124; `null`; `id`: `string`; `ipAddress`: `string` &#124; `null`; `method`: `string` &#124; `null`; `pageTitle`: `string` &#124; `null`; `pageUrl`: `string` &#124; `null`; `previousPage`: `string` &#124; `null`; `responseTimeMs`: `number` &#124; `null`; `sessionId`: `string` &#124; `null`; `statusCode`: `number` &#124; `null`; `tenantId`: `string` &#124; `null`; `userAgent`: `string` &#124; `null`; `userId`: `string`; &#125;&gt;
+> **createUserActivityLog**: (`data`) => `Promise`&lt;&#123; `activityDescription`: `string` &#124; `null`; `activityType`: `string`; `createdAt`: `Date`; `deviceInfo`: `unknown`; `endpoint`: `string` &#124; `null`; `id`: `string`; `ipAddress`: `string` &#124; `null`; `method`: `string` &#124; `null`; `pageTitle`: `string` &#124; `null`; `pageUrl`: `string` &#124; `null`; `previousPage`: `string` &#124; `null`; `responseTimeMs`: `number` &#124; `null`; `sessionId`: `string` &#124; `null`; `statusCode`: `number` &#124; `null`; `userAgent`: `string` &#124; `null`; `userId`: `string`; &#125;&gt;
 
 Create a new user activity log.
 
@@ -300,10 +300,6 @@ The activity log data
 
 `number` &#124; `null`
 
-###### tenantId?
-
-`string` &#124; `null`
-
 ###### userAgent?
 
 `string` &#124; `null`
@@ -314,13 +310,13 @@ The activity log data
 
 ###### Returns
 
-`Promise`&lt;&#123; `activityDescription`: `string` &#124; `null`; `activityType`: `string`; `createdAt`: `Date`; `deviceInfo`: `unknown`; `endpoint`: `string` &#124; `null`; `id`: `string`; `ipAddress`: `string` &#124; `null`; `method`: `string` &#124; `null`; `pageTitle`: `string` &#124; `null`; `pageUrl`: `string` &#124; `null`; `previousPage`: `string` &#124; `null`; `responseTimeMs`: `number` &#124; `null`; `sessionId`: `string` &#124; `null`; `statusCode`: `number` &#124; `null`; `tenantId`: `string` &#124; `null`; `userAgent`: `string` &#124; `null`; `userId`: `string`; &#125;&gt;
+`Promise`&lt;&#123; `activityDescription`: `string` &#124; `null`; `activityType`: `string`; `createdAt`: `Date`; `deviceInfo`: `unknown`; `endpoint`: `string` &#124; `null`; `id`: `string`; `ipAddress`: `string` &#124; `null`; `method`: `string` &#124; `null`; `pageTitle`: `string` &#124; `null`; `pageUrl`: `string` &#124; `null`; `previousPage`: `string` &#124; `null`; `responseTimeMs`: `number` &#124; `null`; `sessionId`: `string` &#124; `null`; `statusCode`: `number` &#124; `null`; `userAgent`: `string` &#124; `null`; `userId`: `string`; &#125;&gt;
 
 The created activity log
 
-##### findAuditLogById()
+##### findAuditLogById
 
-> **findAuditLogById**: (`id`) => `PgRelationalQuery`&lt;&#123; `action`: `string`; `changedFields`: `string`[] &#124; `null`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `entityId`: `string` &#124; `null`; `entityName`: `string` &#124; `null`; `entityType`: `string` &#124; `null`; `eventType`: `string`; `id`: `string`; `ipAddress`: `string` &#124; `null`; `metadata`: `unknown`; `newValues`: `unknown`; `oldValues`: `unknown`; `tenantId`: `string` &#124; `null`; `userAgent`: `string` &#124; `null`; `userId`: `string` &#124; `null`; &#125; &#124; `undefined`&gt;
+> **findAuditLogById**: (`id`) => `PgRelationalQuery`&lt;&#123; `action`: `string`; `changedFields`: `unknown`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `entityId`: `string` &#124; `null`; `entityName`: `string` &#124; `null`; `entityType`: `string` &#124; `null`; `eventType`: `string`; `id`: `string`; `ipAddress`: `string` &#124; `null`; `metadata`: `unknown`; `newValues`: `unknown`; `oldValues`: `unknown`; `tenantId`: `string` &#124; `null`; `userAgent`: `string` &#124; `null`; `userId`: `string` &#124; `null`; &#125; &#124; `undefined`&gt;
 
 Find a single audit log by ID.
 
@@ -334,11 +330,11 @@ The audit log ID
 
 ###### Returns
 
-`PgRelationalQuery`&lt;&#123; `action`: `string`; `changedFields`: `string`[] &#124; `null`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `entityId`: `string` &#124; `null`; `entityName`: `string` &#124; `null`; `entityType`: `string` &#124; `null`; `eventType`: `string`; `id`: `string`; `ipAddress`: `string` &#124; `null`; `metadata`: `unknown`; `newValues`: `unknown`; `oldValues`: `unknown`; `tenantId`: `string` &#124; `null`; `userAgent`: `string` &#124; `null`; `userId`: `string` &#124; `null`; &#125; &#124; `undefined`&gt;
+`PgRelationalQuery`&lt;&#123; `action`: `string`; `changedFields`: `unknown`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `entityId`: `string` &#124; `null`; `entityName`: `string` &#124; `null`; `entityType`: `string` &#124; `null`; `eventType`: `string`; `id`: `string`; `ipAddress`: `string` &#124; `null`; `metadata`: `unknown`; `newValues`: `unknown`; `oldValues`: `unknown`; `tenantId`: `string` &#124; `null`; `userAgent`: `string` &#124; `null`; `userId`: `string` &#124; `null`; &#125; &#124; `undefined`&gt;
 
 The audit log or undefined
 
-##### findAuditLogs()
+##### findAuditLogs
 
 > **findAuditLogs**: (`options`) => `Promise`&lt;&#123; `data`: `object`[]; `total`: `number`; &#125;&gt;
 
@@ -388,7 +384,7 @@ Filter options (tenantId, userId, entityType, action, date range, pagination)
 
 An object containing data array and total count
 
-##### findCalculationAuditLogs()
+##### findCalculationAuditLogs
 
 > **findCalculationAuditLogs**: (`options`) => `Promise`&lt;`object`[]&gt;
 
@@ -426,7 +422,7 @@ Filter options (tenantId, calculationType, status, pagination)
 
 An array of calculation audit logs
 
-##### findDataAccessLogs()
+##### findDataAccessLogs
 
 > **findDataAccessLogs**: (`options`) => `Promise`&lt;`object`[]&gt;
 
@@ -464,7 +460,7 @@ Filter options (tenantId, userId, resourceType, pagination)
 
 An array of data access logs
 
-##### findUserActivityLogs()
+##### findUserActivityLogs
 
 > **findUserActivityLogs**: (`options`) => `Promise`&lt;`object`[]&gt;
 
@@ -502,7 +498,7 @@ Filter options (tenantId, userId, activityType, pagination)
 
 An array of user activity logs
 
-##### getActivityStats()
+##### getActivityStats
 
 > **getActivityStats**: (`tenantId`, `days`) => `Promise`&lt;`object`[]&gt;
 
@@ -516,7 +512,7 @@ Get activity statistics grouped by action for a tenant.
 
 The tenant ID
 
-###### days
+###### days?
 
 `number` = `7`
 
@@ -528,7 +524,7 @@ Number of days to look back (default 7)
 
 An array of action counts
 
-##### getAuditSummary()
+##### getAuditSummary
 
 > **getAuditSummary**: (`tenantId`) => `Promise`&lt;&#123; `criticalEvents`: `number`; `highRiskEvents`: `number`; `todayLogs`: `number`; `totalLogs`: `number`; &#125;&gt;
 
@@ -548,7 +544,7 @@ The tenant ID
 
 An object with summary counts
 
-##### getRecentActivity()
+##### getRecentActivity
 
 > **getRecentActivity**: (`tenantId`, `limit`) => `Promise`&lt;`object`[]&gt;
 
@@ -562,7 +558,7 @@ Get recent activity logs for a tenant.
 
 The tenant ID
 
-###### limit
+###### limit?
 
 `number` = `10`
 

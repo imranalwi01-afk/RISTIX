@@ -10,14 +10,14 @@
 
 > `const` **ParametersService**: `object`
 
-Defined in: [src/services/parameters.service.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/parameters.service.ts#L13)
+Defined in: [src/services/parameters.service.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/parameters.service.ts#L14)
 
 Service for managing Application and Business parameters.
 Handles CRUD operations for parameters and metadata.
 
 #### Type Declaration
 
-##### createAppSetting()
+##### createAppSetting
 
 > **createAppSetting**: (`data`, `userId`) => `Effect`&lt;&#123; `banking_type`: `any`; `created_date`: `any`; `details`: `any`; `is_active`: `any`; `param_code`: `any`; `param_name`: `any`; `param_type`: `any`; `param_usage`: `any`; `pkid`: `number`; `requires_approval`: `any`; &#125;, `unknown`, `unknown`&gt;
 
@@ -43,7 +43,7 @@ The ID of the user creating the setting
 
 An Effect resolving to the created setting header
 
-##### createAppSettingDetail()
+##### createAppSettingDetail
 
 > **createAppSettingDetail**: (`data`, `userId`) => `Effect`&lt;&#123; `id`: `number`; `is_active`: `boolean`; `param_code`: `string`; `param_desc`: `string` &#124; `null`; `param_seq`: `number`; `value1`: `string`; `value2`: `string`; `value3`: `string`; &#125;, `unknown`, `unknown`&gt;
 
@@ -73,7 +73,7 @@ An Effect resolving to the created detail
 
 NotFoundError if the parent setting is not found
 
-##### deleteAppSetting()
+##### deleteAppSetting
 
 > **deleteAppSetting**: (`code`) => `Effect`&lt;`unknown`, `unknown`, `unknown`&gt;
 
@@ -97,7 +97,7 @@ An Effect resolving to a success message
 
 NotFoundError if the setting is not found
 
-##### deleteAppSettingDetail()
+##### deleteAppSettingDetail
 
 > **deleteAppSettingDetail**: (`id`) => `Effect`&lt;`unknown`, `unknown`, `unknown`&gt;
 
@@ -121,7 +121,7 @@ An Effect resolving to a success message
 
 NotFoundError if the detail is not found
 
-##### getAppSetting()
+##### getAppSetting
 
 > **getAppSetting**: (`code`) => `Effect`&lt;`unknown`, `unknown`, `unknown`&gt;
 
@@ -145,7 +145,7 @@ An Effect resolving to the parameter header
 
 NotFoundError if the setting is not found
 
-##### getAppSettingDetail()
+##### getAppSettingDetail
 
 > **getAppSettingDetail**: (`id`) => `Effect`&lt;`unknown`, `unknown`, `unknown`&gt;
 
@@ -169,7 +169,7 @@ An Effect resolving to the parameter detail
 
 NotFoundError if the detail is not found
 
-##### getAppSettingDetails()
+##### getAppSettingDetails
 
 > **getAppSettingDetails**: (`code`) => `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -189,7 +189,7 @@ The parameter code
 
 An Effect resolving to an array of parameter details
 
-##### getColumns()
+##### getColumns
 
 > **getColumns**: (`table`) => `Effect`&lt;`string`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -209,7 +209,7 @@ The table name
 
 An Effect resolving to an array of column names
 
-##### getColumnValues()
+##### getColumnValues
 
 > **getColumnValues**: (`table`, `column`) => `Effect`&lt;`string`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -235,7 +235,7 @@ The column name
 
 An Effect resolving to an array of valid values
 
-##### getConditions()
+##### getConditions
 
 > **getConditions**: () => `Effect`&lt;`string`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -247,7 +247,7 @@ Get list of conditions (metadata: B0015).
 
 An Effect resolving to an array of conditions
 
-##### getDataType()
+##### getDataType
 
 > **getDataType**: (`table`, `column`) => `Effect`&lt;`string` &#124; `null`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -273,7 +273,7 @@ The column name
 
 An Effect resolving to the data type or null
 
-##### getOperators()
+##### getOperators
 
 > **getOperators**: (`dataType`) => `Effect`&lt;`string`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -293,7 +293,7 @@ The data type
 
 An Effect resolving to an array of operators
 
-##### getTables()
+##### getTables
 
 > **getTables**: () => `Effect`&lt;`string`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -305,7 +305,7 @@ Get list of distinct tables (metadata: B0012).
 
 An Effect resolving to an array of table names
 
-##### listAppSettings()
+##### listAppSettings
 
 > **listAppSettings**: (`code?`, `paramType`) => `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -321,9 +321,9 @@ Optional parameter code to filter by
 
 ###### paramType?
 
-Parameter type filter (default 'S' for System)
+`string` &#124; `string`[]
 
-`string` | `string`[]
+Parameter type filter (default 'S' for System)
 
 ###### Returns
 
@@ -331,7 +331,25 @@ Parameter type filter (default 'S' for System)
 
 An Effect resolving to an array of parameter headers
 
-##### listBusinessSettings()
+##### listAppSettingsPage
+
+> **listAppSettingsPage**: (`query`, `paramType`) => `Effect`&lt;&#123; `rows`: `object`[]; `total`: `number`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
+
+###### Parameters
+
+###### query
+
+`ListQuery`
+
+###### paramType?
+
+`string` &#124; `string`[]
+
+###### Returns
+
+`Effect`&lt;&#123; `rows`: `object`[]; `total`: `number`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
+
+##### listBusinessSettings
 
 > **listBusinessSettings**: (`code?`) => `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt; &#124; `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -351,7 +369,21 @@ Optional parameter code to filter by (if provided, returns details)
 
 An Effect resolving to an array of details or success
 
-##### updateAppSetting()
+##### listBusinessSettingsPage
+
+> **listBusinessSettingsPage**: (`query`) => `Effect`&lt;&#123; `rows`: `object`[]; `total`: `number`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
+
+###### Parameters
+
+###### query
+
+`ListQuery`
+
+###### Returns
+
+`Effect`&lt;&#123; `rows`: `object`[]; `total`: `number`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
+
+##### updateAppSetting
 
 > **updateAppSetting**: (`code`, `data`, `userId`) => `Effect`&lt;`unknown`, `unknown`, `unknown`&gt;
 
@@ -387,7 +419,7 @@ An Effect resolving to the updated setting header
 
 NotFoundError if the setting is not found
 
-##### updateAppSettingDetail()
+##### updateAppSettingDetail
 
 > **updateAppSettingDetail**: (`id`, `data`, `userId`) => `Effect`&lt;`unknown`, `unknown`, `unknown`&gt;
 

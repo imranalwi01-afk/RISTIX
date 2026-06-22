@@ -10,7 +10,7 @@
 
 > `const` **jobsQueue**: `Queue`&lt;`any`, `any`, `string`, `any`, `any`, `string`&gt;
 
-Defined in: [src/services/queue.service.ts:19](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/queue.service.ts#L19)
+Defined in: [src/services/queue.service.ts:19](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/queue.service.ts#L19)
 
 ***
 
@@ -18,7 +18,7 @@ Defined in: [src/services/queue.service.ts:19](https://github.com/ifrspro/ifrs9-
 
 > `const` **jobsQueueRef**: `Queue`&lt;`any`, `any`, `string`, `any`, `any`, `string`&gt; = `jobsQueue`
 
-Defined in: [src/services/queue.service.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/queue.service.ts#L23)
+Defined in: [src/services/queue.service.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/queue.service.ts#L23)
 
 ***
 
@@ -26,7 +26,7 @@ Defined in: [src/services/queue.service.ts:23](https://github.com/ifrspro/ifrs9-
 
 > `const` **jobsWorker**: `Worker`&lt;`any`, [`JobResult`](services.job-executor.service.md#jobresult), `string`&gt;
 
-Defined in: [src/services/queue.service.ts:171](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/queue.service.ts#L171)
+Defined in: [src/services/queue.service.ts:171](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/queue.service.ts#L171)
 
 ## Functions
 
@@ -34,7 +34,7 @@ Defined in: [src/services/queue.service.ts:171](https://github.com/ifrspro/ifrs9
 
 > **addJob**(`name`, `data`, `opts?`): `Promise`&lt;`Job`&lt;`any`, `any`, `string`&gt;&gt;
 
-Defined in: [src/services/queue.service.ts:242](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/queue.service.ts#L242)
+Defined in: [src/services/queue.service.ts:242](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/queue.service.ts#L242)
 
 Add a job to the queue.
 
@@ -70,7 +70,7 @@ A Promise resolving to the added job
 
 > **getJob**(`jobId`): `Promise`&lt;`Job`&lt;`any`, `any`, `string`&gt; &#124; `undefined`&gt;
 
-Defined in: [src/services/queue.service.ts:253](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/queue.service.ts#L253)
+Defined in: [src/services/queue.service.ts:253](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/queue.service.ts#L253)
 
 Get a job by ID.
 

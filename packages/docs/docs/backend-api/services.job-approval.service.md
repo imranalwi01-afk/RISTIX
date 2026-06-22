@@ -10,7 +10,7 @@
 
 > **JobApprovalPolicy** = `object`
 
-Defined in: [src/services/job-approval.service.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-approval.service.ts#L9)
+Defined in: [src/services/job-approval.service.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/job-approval.service.ts#L9)
 
 #### Properties
 
@@ -18,31 +18,31 @@ Defined in: [src/services/job-approval.service.ts:9](https://github.com/ifrspro/
 
 > **approvalsRequired**: `number`
 
-Defined in: [src/services/job-approval.service.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-approval.service.ts#L11)
+Defined in: [src/services/job-approval.service.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/job-approval.service.ts#L11)
 
 ##### escalationAfterHours
 
 > **escalationAfterHours**: `number`
 
-Defined in: [src/services/job-approval.service.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-approval.service.ts#L13)
+Defined in: [src/services/job-approval.service.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/job-approval.service.ts#L13)
 
 ##### impactLevel
 
 > **impactLevel**: `"low"` &#124; `"medium"` &#124; `"high"` &#124; `"critical"`
 
-Defined in: [src/services/job-approval.service.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-approval.service.ts#L10)
+Defined in: [src/services/job-approval.service.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/job-approval.service.ts#L10)
 
 ##### requireDecisionComment
 
 > **requireDecisionComment**: `boolean`
 
-Defined in: [src/services/job-approval.service.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-approval.service.ts#L14)
+Defined in: [src/services/job-approval.service.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/job-approval.service.ts#L14)
 
 ##### slaHours
 
 > **slaHours**: `number`
 
-Defined in: [src/services/job-approval.service.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-approval.service.ts#L12)
+Defined in: [src/services/job-approval.service.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/job-approval.service.ts#L12)
 
 ## Functions
 
@@ -50,7 +50,7 @@ Defined in: [src/services/job-approval.service.ts:12](https://github.com/ifrspro
 
 > **checkAutoApprovalConditions**(`jobDefinitionId`, `tenantId`, `triggeredBy`, `parameters?`): `Promise`&lt;`boolean`&gt;
 
-Defined in: [src/services/job-approval.service.ts:325](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-approval.service.ts#L325)
+Defined in: [src/services/job-approval.service.ts:325](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/job-approval.service.ts#L325)
 
 Check auto-approval conditions.
 Returns true if the job can be auto-approved based on conditions.
@@ -91,7 +91,7 @@ A Promise resolving to true if auto-approval conditions are met
 
 > **createJobApprovalRequest**(`params`): `Promise`&lt;&#123; `approvalsReceived`: `number`; `approvalsRequired`: `number`; `completedAt`: `Date` &#124; `null`; `completedBy`: `string` &#124; `null`; `createdAt`: `Date`; `currentLevel`: `number`; `description`: `string` &#124; `null`; `entityId`: `string` &#124; `null`; `entityType`: `string`; `expiresAt`: `Date` &#124; `null`; `id`: `string`; `impactLevel`: `string` &#124; `null`; `matrixId`: `string` &#124; `null`; `requestData`: `Record`&lt;`string`, `unknown`&gt; &#124; `null`; `requestedBy`: `string`; `status`: `string`; `tenantId`: `string`; `title`: `string`; &#125; &#124; `null`&gt;
 
-Defined in: [src/services/job-approval.service.ts:45](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-approval.service.ts#L45)
+Defined in: [src/services/job-approval.service.ts:45](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/job-approval.service.ts#L45)
 
 Create an approval request for a job execution.
 
@@ -151,7 +151,7 @@ Error if definition not found or matrix not configured
 
 > **getPendingJobApprovals**(`tenantId`): `Promise`&lt;`object`[]&gt;
 
-Defined in: [src/services/job-approval.service.ts:308](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-approval.service.ts#L308)
+Defined in: [src/services/job-approval.service.ts:308](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/job-approval.service.ts#L308)
 
 Get pending job executions awaiting approval.
 
@@ -175,7 +175,7 @@ A Promise resolving to an array of pending job executions
 
 > **handleJobApprovalComplete**(`approvalRequestId`, `status`, `approvedBy?`, `input?`): `Promise`&lt;&#123; `approvalsReceived`: `number`; `approvalsRequired`: `number`; `completed`: `boolean`; `queued`: `boolean`; `remainingApprovals`: `number`; `status`: `string`; &#125;&gt;
 
-Defined in: [src/services/job-approval.service.ts:146](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-approval.service.ts#L146)
+Defined in: [src/services/job-approval.service.ts:146](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/job-approval.service.ts#L146)
 
 Handle approval completion - queue the job if approved.
 
@@ -189,9 +189,9 @@ The approval request ID
 
 ##### status
 
-The approval status ('approved' or 'rejected')
+`"approved"` &#124; `"rejected"`
 
-`"approved"` | `"rejected"`
+The approval status ('approved' or 'rejected')
 
 ##### approvedBy?
 
@@ -217,7 +217,7 @@ A Promise resolving when handling is complete
 
 > **requiresApproval**(`jobDefinitionId`, `tenantId`): `Promise`&lt;`boolean`&gt;
 
-Defined in: [src/services/job-approval.service.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-approval.service.ts#L23)
+Defined in: [src/services/job-approval.service.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/job-approval.service.ts#L23)
 
 Check if a job requires approval before execution.
 

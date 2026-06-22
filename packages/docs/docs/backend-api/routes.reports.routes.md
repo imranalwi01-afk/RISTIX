@@ -10,4 +10,4 @@
 
 > `const` **reportsRoutes**: `any`
 
-Defined in: [src/routes/reports.routes.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/routes/reports.routes.ts#L16)
+Defined in: [src/routes/reports.routes.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/routes/reports.routes.ts#L17)

@@ -8,7 +8,7 @@
 
 ### ApprovalRequest
 
-Defined in: [hooks/useApprovalStatus.ts:5](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useApprovalStatus.ts#L5)
+Defined in: [hooks/useApprovalStatus.ts:5](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useApprovalStatus.ts#L5)
 
 #### Properties
 
@@ -16,43 +16,43 @@ Defined in: [hooks/useApprovalStatus.ts:5](https://github.com/ifrspro/ifrs9-iaf/
 
 > **createdAt**: `string`
 
-Defined in: [hooks/useApprovalStatus.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useApprovalStatus.ts#L11)
+Defined in: [hooks/useApprovalStatus.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useApprovalStatus.ts#L11)
 
 ##### entityId?
 
 > `optional` **entityId**: `string`
 
-Defined in: [hooks/useApprovalStatus.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useApprovalStatus.ts#L8)
+Defined in: [hooks/useApprovalStatus.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useApprovalStatus.ts#L8)
 
 ##### entityType
 
 > **entityType**: `string`
 
-Defined in: [hooks/useApprovalStatus.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useApprovalStatus.ts#L7)
+Defined in: [hooks/useApprovalStatus.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useApprovalStatus.ts#L7)
 
 ##### id
 
 > **id**: `string`
 
-Defined in: [hooks/useApprovalStatus.ts:6](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useApprovalStatus.ts#L6)
+Defined in: [hooks/useApprovalStatus.ts:6](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useApprovalStatus.ts#L6)
 
 ##### requestData
 
 > **requestData**: `any`
 
-Defined in: [hooks/useApprovalStatus.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useApprovalStatus.ts#L10)
+Defined in: [hooks/useApprovalStatus.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useApprovalStatus.ts#L10)
 
 ##### status
 
-> **status**: `"pending"` \| `"rejected"` \| `"approved"`
+> **status**: `"pending"` &#124; `"rejected"` &#124; `"approved"`
 
-Defined in: [hooks/useApprovalStatus.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useApprovalStatus.ts#L9)
+Defined in: [hooks/useApprovalStatus.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useApprovalStatus.ts#L9)
 
 ##### updatedAt
 
 > **updatedAt**: `string`
 
-Defined in: [hooks/useApprovalStatus.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useApprovalStatus.ts#L12)
+Defined in: [hooks/useApprovalStatus.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useApprovalStatus.ts#L12)
 
 ## Functions
 
@@ -60,7 +60,7 @@ Defined in: [hooks/useApprovalStatus.ts:12](https://github.com/ifrspro/ifrs9-iaf
 
 > **useApprovalStatus**(`entityType`, `entityId?`): `object`
 
-Defined in: [hooks/useApprovalStatus.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useApprovalStatus.ts#L15)
+Defined in: [hooks/useApprovalStatus.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useApprovalStatus.ts#L15)
 
 #### Parameters
 
@@ -86,12 +86,12 @@ Defined in: [hooks/useApprovalStatus.ts:15](https://github.com/ifrspro/ifrs9-iaf
 
 ##### pendingRequest
 
-> **pendingRequest**: [`ApprovalRequest`](#approvalrequest) \| `null`
+> **pendingRequest**: [`ApprovalRequest`](#approvalrequest) &#124; `null`
 
 ##### refresh()
 
-> **refresh**: () => `Promise`\<`void`\> = `checkApprovalStatus`
+> **refresh**: () => `Promise`&lt;`void`&gt; = `checkApprovalStatus`
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`&lt;`void`&gt;

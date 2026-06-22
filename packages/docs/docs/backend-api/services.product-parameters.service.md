@@ -10,11 +10,11 @@
 
 > `const` **ProductParametersService**: `object`
 
-Defined in: [src/services/product-parameters.service.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/product-parameters.service.ts#L7)
+Defined in: [src/services/product-parameters.service.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/product-parameters.service.ts#L8)
 
 #### Type Declaration
 
-##### create()
+##### create
 
 > **create**: (`data`, `userId`) => `Effect`&lt;&#123; `activeFlag`: `boolean`; `alFlag`: `string` &#124; `null`; `amortizationType`: `string` &#124; `null`; `bmFlag`: `boolean` &#124; `null`; `borrowingRate`: `number` &#124; `null`; `createdby`: `string`; `createddate`: `string` &#124; `null`; `createdhost`: `string`; `currency`: `string`; `dataSource`: `string`; `expectedLife`: `number` &#124; `null`; `id`: `number`; `impairedFlag`: `boolean` &#124; `null`; `marketRate`: `number` &#124; `null`; `pkid`: `number`; `prdCode`: `string`; `prdDesc`: `string`; `prdGroup`: `string`; `prdType`: `string`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, `any`, `never`&gt;
 
@@ -40,7 +40,7 @@ The ID of the user creating the parameter
 
 An Effect resolving to the created product parameter
 
-##### delete()
+##### delete
 
 > **delete**: (`id`) => `Effect`&lt;&#123; `message`: `string`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror), `never`&gt;
 
@@ -60,7 +60,7 @@ The product parameter ID
 
 An Effect resolving to a success message or NotFoundError
 
-##### get()
+##### get
 
 > **get**: (`id`) => `Effect`&lt;&#123; `activeFlag`: `boolean`; `alFlag`: `string` &#124; `null`; `amortizationType`: `string` &#124; `null`; `bmFlag`: `boolean` &#124; `null`; `borrowingRate`: `number` &#124; `null`; `createdby`: `string`; `createddate`: `string` &#124; `null`; `createdhost`: `string`; `currency`: `string`; `dataSource`: `string`; `expectedLife`: `number` &#124; `null`; `id`: `number`; `impairedFlag`: `boolean` &#124; `null`; `marketRate`: `number` &#124; `null`; `pkid`: `number`; `prdCode`: `string`; `prdDesc`: `string`; `prdGroup`: `string`; `prdType`: `string`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror), `never`&gt;
 
@@ -80,7 +80,7 @@ The product parameter ID
 
 An Effect resolving to the product parameter or NotFoundError
 
-##### getInstrumentClassOptions()
+##### getInstrumentClassOptions
 
 > **getInstrumentClassOptions**: () => `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -92,7 +92,7 @@ Per tech spec: AL_FLAG = Combo Box (Business Setting 'B0003')
 
 `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
-##### list()
+##### list
 
 > **list**: (`mode`, `options`) => `Effect`&lt;&#123; `pagination`: &#123; `limit`: `number`; `page`: `number`; `pages`: `number`; `total`: `number`; &#125;; `products`: `object`[]; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -128,7 +128,25 @@ Pagination and search options
 
 An Effect resolving to products and pagination metadata
 
-##### update()
+##### listPage
+
+> **listPage**: (`mode`, `query`) => `Effect`&lt;&#123; `rows`: `object`[]; `total`: `number`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
+
+###### Parameters
+
+###### mode
+
+`string`
+
+###### query
+
+`ListQuery`
+
+###### Returns
+
+`Effect`&lt;&#123; `rows`: `object`[]; `total`: `number`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
+
+##### update
 
 > **update**: (`id`, `data`, `userId`) => `Effect`&lt;&#123; `activeFlag`: `boolean`; `alFlag`: `string` &#124; `null`; `amortizationType`: `string` &#124; `null`; `bmFlag`: `boolean` &#124; `null`; `borrowingRate`: `number` &#124; `null`; `createdby`: `string`; `createddate`: `string` &#124; `null`; `createdhost`: `string`; `currency`: `string`; `dataSource`: `string`; `expectedLife`: `number` &#124; `null`; `id`: `number`; `impairedFlag`: `boolean` &#124; `null`; `marketRate`: `number` &#124; `null`; `pkid`: `number`; `prdCode`: `string`; `prdDesc`: `string`; `prdGroup`: `string`; `prdType`: `string`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror), `never`&gt;
 
