@@ -286,10 +286,8 @@ export default function RuleBaseSettingModal({
     }
 
     try {
-      const response = await ruleBaseSettingAPI.getBusinessSettingsValues(tableName, columnName);
-      if (response.success) {
-        setBusinessValues(response.data || []);
-      }
+      const values = await ruleBaseSettingAPI.getBusinessSettingsValues(tableName, columnName);
+      setBusinessValues((Array.isArray(values) ? values : []).map(v => ({ value: v, label: v })));
     } catch (err) {
       console.error('Error loading values:', err);
     }

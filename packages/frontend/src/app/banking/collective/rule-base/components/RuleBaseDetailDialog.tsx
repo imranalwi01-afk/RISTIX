@@ -1,21 +1,24 @@
 'use client';
 
-import React, { memo } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  TextField,
-} from '@mui/material';
+import React, { memo, useMemo } from 'react';
+import Autocomplete from '@mui/material/Autocomplete';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox';
+import Chip from '@mui/material/Chip';
+import CircularProgress from '@mui/material/CircularProgress';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import FormControl from '@mui/material/FormControl';
+import FormHelperText from '@mui/material/FormHelperText';
+import InputLabel from '@mui/material/InputLabel';
+import ListItemText from '@mui/material/ListItemText';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
+import TextField from '@mui/material/TextField';
 import type { RuleBaseDetail } from '../types';
 
 interface Option {
@@ -35,6 +38,8 @@ interface RuleBaseDetailDialogProps {
   tableOptions: string[];
   detailColumnOptions: string[];
   detailOperatorOptions: string[];
+  columnValueOptions: string[];
+  loadingColumnValues: boolean;
   metadataLoading: {
     tables: boolean;
     detailColumns: boolean;
@@ -49,6 +54,11 @@ interface RuleBaseDetailDialogProps {
   onDetailOperatorChange: (operator: string) => void;
 }
 
+const isInOp = (op: string) => ['IN', 'NOT IN'].includes(op);
+const isLikeOp = (op: string) => ['LIKE', 'NOT LIKE'].includes(op);
+const isNullOp = (op: string) => ['IS NULL', 'IS NOT NULL'].includes(op);
+const isBetweenOp = (op: string) => op === 'BETWEEN';
+
 function RuleBaseDetailDialogComponent({
   open,
   loading,
@@ -61,6 +71,8 @@ function RuleBaseDetailDialogComponent({
   tableOptions,
   detailColumnOptions,
   detailOperatorOptions,
+  columnValueOptions,
+  loadingColumnValues,
   metadataLoading,
   onClose,
   onSave,
@@ -69,6 +81,138 @@ function RuleBaseDetailDialogComponent({
   onDetailColumnChange,
   onDetailOperatorChange,
 }: RuleBaseDetailDialogProps) {
+  const operator = String(detailFormData.operator || '').toUpperCase();
+
+  const selectedValues = useMemo(() => {
+    if (!detailFormData.value1) return [];
+    return String(detailFormData.value1).split(',').map(v => v.trim()).filter(Boolean);
+  }, [detailFormData.value1]);
+
+  const handleMultiSelectChange = (_: any, values: string[]) => {
+    onDetailFormChange({ ...detailFormData, value1: values.join(',') });
+  };
+
+  const renderValue1Field = () => {
+    if (isNullOp(operator)) {
+      return (
+        <TextField
+          label="Value 1"
+          value=""
+          fullWidth
+          disabled
+          helperText="No value needed for IS NULL / IS NOT NULL"
+          data-testid="val1-field"
+        />
+      );
+    }
+
+    if (isInOp(operator)) {
+      return (
+        <FormControl fullWidth>
+          <Autocomplete
+            multiple
+            options={columnValueOptions}
+            value={selectedValues}
+            onChange={handleMultiSelectChange}
+            disableCloseOnSelect
+            loading={loadingColumnValues}
+            renderTags={(values, getTagProps) =>
+              values.map((value, idx) => {
+                const { key, ...chipProps } = getTagProps({ index: idx });
+                return <Chip key={key ?? value} label={value} size="small" {...chipProps} />;
+              })
+            }
+            renderOption={(props, option, { selected }) => (
+              <li {...props}>
+                <Checkbox checked={selected} sx={{ mr: 1 }} />
+                <ListItemText primary={option} />
+              </li>
+            )}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Value 1"
+                placeholder="Select values..."
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {loadingColumnValues ? <CircularProgress size={16} /> : null}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
+            )}
+            data-testid="val1-multi-select"
+          />
+          <FormHelperText>
+            {columnValueOptions.length === 0 && !loadingColumnValues
+              ? 'No values available for this column'
+              : `Select one or more values (${columnValueOptions.length} options)`}
+          </FormHelperText>
+        </FormControl>
+      );
+    }
+
+    if (isLikeOp(operator)) {
+      return (
+        <TextField
+          label="Value 1"
+          value={detailFormData.value1 || ''}
+          onChange={(e) => onDetailFormChange({ ...detailFormData, value1: e.target.value })}
+          fullWidth
+          placeholder={'Use % for wildcard, e.g. R% or %account%'}
+          helperText={'Use % as wildcard: R% starts with R, %W% contains W'}
+          data-testid="val1-field"
+        />
+      );
+    }
+
+    const dataType = String(detailFormData.data_type || '').toUpperCase();
+    const isNumeric = dataType.includes('NUM') || dataType.includes('INT') || dataType.includes('DEC') || dataType.includes('FLOAT');
+    const isDate = dataType.includes('DATE') || dataType.includes('TIME') || dataType.includes('TIMESTAMP');
+
+    if (isDate) {
+      return (
+        <TextField
+          label="Value 1"
+          type="date"
+          value={detailFormData.value1 || ''}
+          onChange={(e) => onDetailFormChange({ ...detailFormData, value1: e.target.value })}
+          fullWidth
+          InputLabelProps={{ shrink: true }}
+          data-testid="val1-field"
+        />
+      );
+    }
+
+    if (isNumeric) {
+      return (
+        <TextField
+          label="Value 1"
+          type="number"
+          value={detailFormData.value1 || ''}
+          onChange={(e) => onDetailFormChange({ ...detailFormData, value1: e.target.value })}
+          fullWidth
+          placeholder="Numeric value"
+          data-testid="val1-field"
+        />
+      );
+    }
+
+    return (
+      <TextField
+        label="Value 1"
+        value={detailFormData.value1 || ''}
+        onChange={(e) => onDetailFormChange({ ...detailFormData, value1: e.target.value })}
+        fullWidth
+        placeholder="Primary comparison value"
+        data-testid="val1-field"
+      />
+    );
+  };
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
@@ -175,22 +319,14 @@ function RuleBaseDetailDialogComponent({
               ))}
             </Select>
           </FormControl>
-          <TextField
-            label="Value 1"
-            value={detailFormData.value1 || ''}
-            onChange={(e) => onDetailFormChange({ ...detailFormData, value1: e.target.value })}
-            fullWidth
-            disabled={['IS NULL', 'IS NOT NULL'].includes(String(detailFormData.operator || '').toUpperCase())}
-            placeholder="Primary comparison value"
-            data-testid="val1-field"
-          />
+          {renderValue1Field()}
           <TextField
             label="Value 2"
             value={detailFormData.value2 || ''}
             onChange={(e) => onDetailFormChange({ ...detailFormData, value2: e.target.value })}
             fullWidth
-            disabled={String(detailFormData.operator || '').toUpperCase() !== 'BETWEEN'}
-            placeholder="Secondary value (for BETWEEN, etc.)"
+            disabled={!isBetweenOp(operator)}
+            placeholder="Secondary value (for BETWEEN)"
             data-testid="val2-field"
           />
           <FormControl fullWidth required>
