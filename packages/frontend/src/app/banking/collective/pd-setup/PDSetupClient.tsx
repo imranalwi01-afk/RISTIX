@@ -56,8 +56,6 @@ const PdSetupPage = () => {
   const [popTypeOptions, setPopTypeOptions] = useState<{ value: string | number, label: string }[]>([]);
   const [bucketGroups, setBucketGroups] = useState<any[]>([]);
   const [populationSegments, setPopulationSegments] = useState<PopulationSegment[]>([]);
-  const [flScalars, setFlScalars] = useState<any[]>([]);
-
   // Dialog & Selection
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -67,7 +65,6 @@ const PdSetupPage = () => {
   const [isResultsDialogOpen, setIsResultsDialogOpen] = useState(false);
   const [resultsLoading, setResultsLoading] = useState(false);
   const [pdStructure, setPdStructure] = useState<any[]>([]);
-  const [scalarDetails, setScalarDetails] = useState<any[]>([]);
 
   // Form Data
   const [formData, setFormData] = useState<Partial<PDConfiguration>>({
@@ -79,7 +76,6 @@ const PdSetupPage = () => {
     historical_month: undefined,
     first_historical_date: undefined,
     multiplication: undefined,
-    fl_flag: false,
     ia_flag: false,
     bucket: '',
     is_active: true
@@ -107,7 +103,6 @@ const PdSetupPage = () => {
     setPopTypeOptions(pdCombined.popTypes);
     setBucketGroups(pdCombined.buckets);
     setPopulationSegments(pdCombined.pdSegments);
-    setFlScalars(pdCombined.flScalars);
     setPdConfigs(pdCombined.configs);
   }, [pdCombined]);
 
@@ -189,7 +184,6 @@ const PdSetupPage = () => {
         historical_month: undefined,
         first_historical_date: undefined,
         multiplication: undefined,
-        fl_flag: false,
         ia_flag: false,
         bucket: '',
         is_active: true
@@ -238,20 +232,12 @@ const PdSetupPage = () => {
     setIsResultsDialogOpen(true);
     setResultsLoading(true);
     setPdStructure([]);
-    setScalarDetails([]);
 
     try {
       // Fetch PD Structure
       const structureRes = await api.banking.pdSetup.getPDStructure(config.id!);
       if (structureRes.success) {
         setPdStructure(structureRes.data);
-      }
-
-      // Fetch FL Scalar Details if applicable
-      if (config.fl_flag && (config.fl_scalar_id || (config as any).fl_scalar)) {
-        const scalarId = config.fl_scalar_id || (config as any).fl_scalar;
-        const scalarRes = await api.banking.flScalar.getDetails(scalarId);
-        setScalarDetails(scalarRes || []);
       }
     } catch (err) {
       console.error('Failed to load results:', err);
@@ -326,7 +312,6 @@ const PdSetupPage = () => {
             historical_month: undefined,
             first_historical_date: undefined,
             multiplication: undefined,
-            fl_flag: false,
             ia_flag: false,
             bucket: '',
           });
@@ -355,7 +340,6 @@ const PdSetupPage = () => {
         popTypeOptions={popTypeOptions}
         bucketGroups={bucketGroups}
         populationSegments={populationSegments}
-        flScalars={flScalars}
         onClose={() => setIsDialogOpen(false)}
         onSave={handleSave}
         onChange={setFormData}
@@ -368,7 +352,6 @@ const PdSetupPage = () => {
         loading={resultsLoading}
         selectedConfig={selectedConfig}
         pdStructure={pdStructure}
-        scalarDetails={scalarDetails}
         onClose={() => setIsResultsDialogOpen(false)}
       />
 

@@ -569,6 +569,7 @@ customHeader <- tags$head(
 )
 
 
+
 ui <- dashboardPage(
   skin = "blue",
   
@@ -987,6 +988,7 @@ ui <- dashboardPage(
               selectInput("backtransform", "Transformasi data Y sebelumnya", choices = c("logit", "log", "others")),
               selectInput("replacenegatif", "Replace Negatif Forecast Boxplot", choices = c("0","Random")),
               selectInput("outliermet", "Outlier Method", choices = c("boxplot", "sd")),
+              selectInput("adjustforecastmet", "Adjust Forecast Method", choices = c("Adjust","Original","Order")),
               uiOutput("segmentationPDAFLUI"),
               actionButton("runpdafl", "RUN", class = "btn-success")
             )
@@ -2380,19 +2382,18 @@ server <- function(input, output, session) {
   
   
   df_forecast0 <- eventReactive(input$forecastX, {
-    namax <- names(df_final())
+    
+    df_final <- rename_date_column(df_final())
+    namax <- names(df_final)
     # Get original variables from df1, excluding the Date column
-    raw_names <- names(df1())
-    sources <- raw_names[!(raw_names %in% c("Date", "date", "DATE"))]
-    datacorex <- df_final()[, sources, drop = FALSE]
+    df2 <- rename_date_column(df1())
+    raw_names <- names(df2)
+    datacorex <- df_final[, raw_names, drop = FALSE]
     
     list_variabel <- konversi_ke_list_forecast(datacorex)
     hasil_akurasiL <- loop_akurasi_forecast_list(list_variabel, makur = input$akurasi_forecastx)
     hasil_akurasiL
     
-    # hasil_forecastmetode <- forecast_dengan_metode_terbaik(list_variabel,hasil_akurasiL,input$jumlah_forecast)
-    # hasilfulldf <- gabung_hasil_forecast(hasil_forecastmetode)
-    # hasilfulldf
   })
   
   output$summaryforecastx <- renderPrint({
@@ -2401,11 +2402,12 @@ server <- function(input, output, session) {
   
   
   df_forecast1 <- eventReactive(input$forecastX, {
-    namax <- names(df_final())
+    df_final <- rename_date_column(df_final())
+    namax <- names(df_final)
     # Get original variables from df1, excluding the Date column
-    raw_names <- names(df1())
-    sources <- raw_names[!(raw_names %in% c("Date", "date", "DATE"))]
-    datacorex <- df_final()[, sources, drop = FALSE]
+    df2 <- rename_date_column(df1())
+    raw_names <- names(df2)
+    datacorex <- df_final[, raw_names, drop = FALSE]
     list_variabel <- konversi_ke_list_forecast(datacorex)
     hasil_forecastmetode <- forecast_dengan_metode_terbaik(list_variabel, df_forecast0(), jf = input$jumlah_forecast)
     hasilfulldf <- gabung_hasil_forecast(hasil_forecastmetode)
@@ -2444,6 +2446,7 @@ server <- function(input, output, session) {
       df <- datainputforecast()
     }
     
+    df <- rename_date_column(df)
     date_col <- names(df)[sapply(df, inherits, "Date")]
     if (length(date_col) == 0) {
       showNotification("Tidak ditemukan kolom bertipe Date di df.", type = "error")
@@ -2451,7 +2454,7 @@ server <- function(input, output, session) {
     }
     
     date_col_name <- date_col[1] # ambil kolom tanggal pertama yang terdeteksi
-    names(df)[names(df1) == date_col_name] <- "Date"
+    names(df)[names(df) == date_col_name] <- "Date"
     
     # Ambil tanggal maksimum dari data awal
     tanggal_terakhir_awal <- max(data0()[, 1])
@@ -2480,7 +2483,7 @@ server <- function(input, output, session) {
     
     
     date_col_name <- date_col[1] # ambil kolom tanggal pertama yang terdeteksi
-    names(df)[names(df1) == date_col_name] <- "Date"
+    names(df)[names(df) == date_col_name] <- "Date"
     
     # Ambil tanggal maksimum dari data awal
     tanggal_terakhir_awal <- max(data0()[, 1])
@@ -2535,7 +2538,7 @@ server <- function(input, output, session) {
     
     
     date_col_name <- date_col[1] # ambil kolom tanggal pertama yang terdeteksi
-    names(df)[names(df1) == date_col_name] <- "Date"
+    names(df)[names(df) == date_col_name] <- "Date"
     
     # Ambil tanggal maksimum dari data awal
     tanggal_terakhir_awal <- max(data0()[, 1])
@@ -3794,7 +3797,7 @@ server <- function(input, output, session) {
     z <- input$backtransform
     vary <- vary_pdafl()
     # eksekusi
-    fo_boxplot <- forecast_mev_bxp(fmev_base2,datahisto,eksekusi_mev_BPF()$diff.base, modelku, z, vary, intuisi, metode = input$outliermet,penggantinegatif=input$replacenegatif)
+    fo_boxplot <- forecast_mev_bxp(fmev_base2,datahisto,eksekusi_mev_BPF()$diff.base, modelku, z, vary, intuisi, metode = input$outliermet,penggantinegatif=input$replacenegatif,adjustmet=input$adjustforecastmet)
     fo_boxplot
   })
   
@@ -4274,7 +4277,6 @@ server <- function(input, output, session) {
       saveWorkbook(wb, file, overwrite = TRUE)
     }
   )
-  
   
   
   create_pd_workbook <- function() {
@@ -5142,7 +5144,10 @@ server <- function(input, output, session) {
                          "frs9_r_pd_afl",
                          data_afl
                        )
-                       })
+                       
+                       
+                       
+                     })
                      
                      
                      
@@ -5169,4 +5174,3 @@ server <- function(input, output, session) {
 
 # shinyApp(ui, server)
 shinyApp(ui, server)
-

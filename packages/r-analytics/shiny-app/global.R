@@ -172,7 +172,7 @@ convert_dates <- function(df, threshold = 0.9,
       message(sprintf("- %s (format: %s)", changed_cols[j], best_formats[is_date_col][j]))
     }
   } else {
-    message("Tidak ada kolom yang terdeteksi sebagai tanggal.")
+    message("Tidak ada kolom yang terdeteksi sebagai tanggal..")
   }
   
   return(df)
@@ -231,7 +231,7 @@ convert_dates2 <- function(df, threshold = 0.9,
       message(sprintf("- %s (format: %s)", changed_cols[j], best_formats[is_date_col][j]))
     }
   } else {
-    message("Tidak ada kolom yang terdeteksi sebagai tanggal.")
+    message("Tidak ada kolom yang terdeteksi sebagai tanggal...")
   }
   
   return(list(df = df,
@@ -2344,7 +2344,7 @@ rename_date_column <- function(df) {
   })]
   
   if (length(kemungkinan_tanggal) == 0) {
-    stop("Tidak ada kolom yang terdeteksi sebagai tanggal.")
+    warning("Tidak ada kolom yang terdeteksi sebagai tanggal....")
   }
   
   if (length(kemungkinan_tanggal) > 1) {
@@ -2388,7 +2388,7 @@ konversi_ke_list_forecast <- function(datawide) {
   })]
   
   if (length(kemungkinan_tanggal) == 0) {
-    stop("Tidak ada kolom yang terdeteksi sebagai tanggal.")
+    stop("Tidak ada kolom yang terdeteksi sebagai tanggal.....")
   } else if (length(kemungkinan_tanggal) > 1) {
     warning("Lebih dari satu kolom terdeteksi sebagai tanggal. Menggunakan kolom pertama: ", kemungkinan_tanggal[1])
   }
@@ -3150,7 +3150,10 @@ make_scenario <- function(base_df, intuition_df, sd_vec) {
 adjust_scenario_by_coef <- function(mev_base,
                                     mev_best,
                                     mev_worst,
-                                    coef_vec) {
+                                    coef_vec,
+                                    metode = c("Original","Adjust","Order")) {
+  
+  metode <- match.arg(metode)
   
   stopifnot(is.data.frame(mev_base))
   stopifnot(is.data.frame(mev_best))
@@ -3160,7 +3163,6 @@ adjust_scenario_by_coef <- function(mev_base,
     stop("coef_vec harus memiliki nama variabel")
   }
   
-  # variabel yang ada di semua object
   vars <- Reduce(
     intersect,
     list(
@@ -3171,39 +3173,84 @@ adjust_scenario_by_coef <- function(mev_base,
     )
   )
   
-  for(v in vars){
+  if(metode == "Original"){
     
-    beta <- coef_vec[v]
+    return(list(
+      mev_best  = mev_best,
+      mev_base  = mev_base,
+      mev_worst = mev_worst
+    ))
     
-    if(is.na(beta) || beta == 0) next
+  } else if(metode == "Adjust") {
     
-    hasil <- t(
-      apply(
-        cbind(
-          mev_best[[v]],
-          mev_base[[v]],
-          mev_worst[[v]]
-        ),
-        1,
-        sort,
-        decreasing = beta < 0
+    for(v in vars){
+      
+      beta <- coef_vec[[v]]
+      
+      if(is.na(beta) || beta == 0) next
+      
+      best  <- mev_best[[v]]
+      base  <- mev_base[[v]]
+      worst <- mev_worst[[v]]
+      
+      kecil <- pmin(best, worst)
+      besar <- pmax(best, worst)
+      
+      if(beta > 0){
+        best  <- ifelse(kecil > base, kecil - base, kecil)
+        worst <- ifelse(besar < base, besar + base, besar)
+      } else {
+        best  <- ifelse(besar < base, besar + base, besar)
+        worst <- ifelse(kecil > base, kecil - base, kecil)
+      }
+      
+      mev_best[[v]]  <- best
+      mev_base[[v]]  <- base
+      mev_worst[[v]] <- worst
+    }
+    
+    return(list(
+      mev_best  = mev_best,
+      mev_base  = mev_base,
+      mev_worst = mev_worst
+    ))
+    
+  } else if(metode == "Order") {
+    
+    for(v in vars){
+      
+      beta <- coef_vec[[v]]
+      
+      if(is.na(beta) || beta == 0) next
+      
+      hasil <- t(
+        apply(
+          cbind(
+            mev_best[[v]],
+            mev_base[[v]],
+            mev_worst[[v]]
+          ),
+          1,
+          sort,
+          decreasing = beta < 0
+        )
       )
-    )
+      
+      mev_best[[v]]  <- hasil[, 1]
+      mev_base[[v]]  <- hasil[, 2]
+      mev_worst[[v]] <- hasil[, 3]
+    }
     
-    mev_best[[v]]  <- hasil[, 1]
-    mev_base[[v]]  <- hasil[, 2]
-    mev_worst[[v]] <- hasil[, 3]
+    return(list(
+      mev_best  = mev_best,
+      mev_base  = mev_base,
+      mev_worst = mev_worst
+    ))
   }
-  
-  return(list(
-    mev_best  = mev_best,
-    mev_base  = mev_base,
-    mev_worst = mev_worst
-  ))
 }
 
 
-forecast_mev_bxp=function(mev_base,datahistorical,db_boxplot,modely,z,coln,intuisi,metode="boxplot",penggantinegatif="0"){
+forecast_mev_bxp=function(mev_base,datahistorical,db_boxplot,modely,z,coln,intuisi,metode="boxplot",penggantinegatif="0",adjustmet="Adjust"){
   
   pred_vars <- all.vars(formula(modely))[-1]  # buang y
   
@@ -3267,7 +3314,8 @@ forecast_mev_bxp=function(mev_base,datahistorical,db_boxplot,modely,z,coln,intui
     mev_base  = mev_base,
     mev_best  = mev_best,
     mev_worst = mev_worst,
-    coef_vec  = coef_vec
+    coef_vec  = coef_vec,
+    metode=adjustmet
   )
   
   mev_best  <- adj$mev_best

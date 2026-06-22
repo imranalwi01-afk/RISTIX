@@ -172,7 +172,7 @@ convert_dates <- function(df, threshold = 0.9,
       message(sprintf("- %s (format: %s)", changed_cols[j], best_formats[is_date_col][j]))
     }
   } else {
-    message("Tidak ada kolom yang terdeteksi sebagai tanggal.")
+    message("Tidak ada kolom yang terdeteksi sebagai tanggal..")
   }
   
   return(df)
@@ -231,7 +231,7 @@ convert_dates2 <- function(df, threshold = 0.9,
       message(sprintf("- %s (format: %s)", changed_cols[j], best_formats[is_date_col][j]))
     }
   } else {
-    message("Tidak ada kolom yang terdeteksi sebagai tanggal.")
+    message("Tidak ada kolom yang terdeteksi sebagai tanggal...")
   }
   
   return(list(df = df,
@@ -2323,6 +2323,61 @@ memilih_metode=function(datku,metode,jf=12,byy="month"){
 
 
 
+########rename Date########
+rename_date_column <- function(df) {
+  
+  kemungkinan_tanggal <- names(df)[sapply(df, function(x) {
+    
+    # Sudah bertipe Date
+    if (inherits(x, "Date")) return(TRUE)
+    
+    # Cek apakah karakter menyerupai tanggal
+    x_non_na <- as.character(x[!is.na(x)])
+    
+    if (length(x_non_na) == 0) return(FALSE)
+    
+    all(grepl(
+      "^\\d{1,2}[-/]\\d{1,2}[-/]\\d{2,4}$|^\\d{4}-\\d{2}-\\d{2}$",
+      x_non_na
+    ))
+    
+  })]
+  
+  if (length(kemungkinan_tanggal) == 0) {
+    warning("Tidak ada kolom yang terdeteksi sebagai tanggal....")
+  }
+  
+  if (length(kemungkinan_tanggal) > 1) {
+    warning(
+      "Lebih dari satu kolom terdeteksi sebagai tanggal. Menggunakan kolom pertama: ",
+      kemungkinan_tanggal[1]
+    )
+  }
+  
+  kolom_tanggal <- kemungkinan_tanggal[1]
+  
+  # Konversi ke Date jika belum
+  if (!inherits(df[[kolom_tanggal]], "Date")) {
+    
+    df[[kolom_tanggal]] <- as.Date(
+      df[[kolom_tanggal]],
+      tryFormats = c(
+        "%d/%m/%Y",
+        "%d-%m-%Y",
+        "%Y-%m-%d",
+        "%m/%d/%Y"
+      )
+    )
+    
+  }
+  
+  # Rename menjadi Date
+  names(df)[names(df) == kolom_tanggal] <- "Date"
+  
+  df
+}
+
+
 
 
 konversi_ke_list_forecast <- function(datawide) {
@@ -2333,7 +2388,7 @@ konversi_ke_list_forecast <- function(datawide) {
   })]
   
   if (length(kemungkinan_tanggal) == 0) {
-    stop("Tidak ada kolom yang terdeteksi sebagai tanggal.")
+    stop("Tidak ada kolom yang terdeteksi sebagai tanggal.....")
   } else if (length(kemungkinan_tanggal) > 1) {
     warning("Lebih dari satu kolom terdeteksi sebagai tanggal. Menggunakan kolom pertama: ", kemungkinan_tanggal[1])
   }
@@ -2398,39 +2453,63 @@ loop_akurasi_forecast_list <- function(list_data, byy = "month", makur = "MAPE")
 
 
 
-
 gabung_hasil_forecast <- function(hasil_list) {
+  
   library(dplyr)
   
   df_final <- NULL
   
   for (nama_var in names(hasil_list)) {
+    
     hasil <- hasil_list[[nama_var]]
     
-    # Pastikan elemen ke-3 (forecast) ada dan berupa data.frame
-    if (length(hasil) >= 3 && is.data.frame(hasil[[3]])) {
-      df_forecast <- hasil[[3]]  # Forecast ada di elemen ke-3
-      
-      # Pastikan ada kolom "Forecast" dan "Date"
-      if (all(c("Date", "Forecast") %in% colnames(df_forecast))) {
-        df_var <- df_forecast %>%
-          rename(!!nama_var := Forecast)
-        
-        if (is.null(df_final)) {
-          df_final <- df_var
-        } else {
-          df_final <- full_join(df_final, df_var, by = "Date")
-        }
-      } else {
-        warning(paste("⛔ Format tidak sesuai untuk:", nama_var))
-      }
-    } else {
-      warning(paste("⛔ Hasil forecast kosong/tidak valid untuk variabel:", nama_var))
+    # Pastikan elemen ke-3 ada dan berupa data.frame
+    if (length(hasil) < 3 || !is.data.frame(hasil[[3]])) {
+      warning(paste("⛔ Hasil forecast kosong/tidak valid untuk:", nama_var))
+      next
     }
+    
+    df_forecast <- hasil[[3]]
+    
+    # Pastikan ada kolom Forecast
+    if (!"Forecast" %in% names(df_forecast)) {
+      warning(paste("⛔ Kolom Forecast tidak ditemukan untuk:", nama_var))
+      next
+    }
+    
+    # Ambil kolom pertama sebagai kolom tanggal
+    date_col <- names(df_forecast)[1]
+    
+    df_var <- df_forecast %>%
+      select(all_of(c(date_col, "Forecast"))) %>%
+      rename(
+        Date = all_of(date_col),
+        !!nama_var := Forecast
+      )
+    
+    if (is.null(df_final)) {
+      
+      df_final <- df_var
+      
+    } else {
+      
+      df_final <- full_join(
+        df_final,
+        df_var,
+        by = "Date"
+      )
+      
+    }
+  }
+  
+  if (!is.null(df_final)) {
+    df_final <- df_final %>%
+      arrange(Date)
   }
   
   return(df_final)
 }
+
 
 
 gabung_hasil_forecast1 <- function(hasil_list) {
@@ -3071,7 +3150,10 @@ make_scenario <- function(base_df, intuition_df, sd_vec) {
 adjust_scenario_by_coef <- function(mev_base,
                                     mev_best,
                                     mev_worst,
-                                    coef_vec) {
+                                    coef_vec,
+                                    metode = c("Original","Adjust","Order")) {
+  
+  metode <- match.arg(metode)
   
   stopifnot(is.data.frame(mev_base))
   stopifnot(is.data.frame(mev_best))
@@ -3081,7 +3163,6 @@ adjust_scenario_by_coef <- function(mev_base,
     stop("coef_vec harus memiliki nama variabel")
   }
   
-  # variabel yang ada di semua object
   vars <- Reduce(
     intersect,
     list(
@@ -3092,64 +3173,84 @@ adjust_scenario_by_coef <- function(mev_base,
     )
   )
   
-  for(v in vars){
+  if(metode == "Original"){
     
-    beta <- coef_vec[v]
+    return(list(
+      mev_best  = mev_best,
+      mev_base  = mev_base,
+      mev_worst = mev_worst
+    ))
     
-    if(is.na(beta) || beta == 0) next
+  } else if(metode == "Adjust") {
     
-    # =========================
-    # KOEF POSITIF
-    # best harus < base
-    # worst harus > base
-    # =========================
-    if(beta > 0){
+    for(v in vars){
       
-      # pastikan best lebih kecil dari base
-      mev_best[[v]] <- pmin(
-        mev_best[[v]],
-        mev_base[[v]],
-        mev_worst[[v]]
-      )
+      beta <- coef_vec[[v]]
       
-      # pastikan worst lebih besar dari base
-      mev_worst[[v]] <- pmax(
-        mev_worst[[v]],
-        mev_base[[v]],
-        mev_best[[v]]
-      )
+      if(is.na(beta) || beta == 0) next
       
-      # =========================
-      # KOEF NEGATIF
-      # best harus > base
-      # worst harus < base
-      # =========================
-    } else {
+      best  <- mev_best[[v]]
+      base  <- mev_base[[v]]
+      worst <- mev_worst[[v]]
       
-      # best harus lebih besar
-      mev_best[[v]] <- pmax(
-        mev_best[[v]],
-        mev_base[[v]],
-        mev_worst[[v]]
-      )
+      kecil <- pmin(best, worst)
+      besar <- pmax(best, worst)
       
-      # worst harus lebih kecil
-      mev_worst[[v]] <- pmin(
-        mev_worst[[v]],
-        mev_base[[v]]
-      )
+      if(beta > 0){
+        best  <- ifelse(kecil > base, kecil - base, kecil)
+        worst <- ifelse(besar < base, besar + base, besar)
+      } else {
+        best  <- ifelse(besar < base, besar + base, besar)
+        worst <- ifelse(kecil > base, kecil - base, kecil)
+      }
+      
+      mev_best[[v]]  <- best
+      mev_base[[v]]  <- base
+      mev_worst[[v]] <- worst
     }
+    
+    return(list(
+      mev_best  = mev_best,
+      mev_base  = mev_base,
+      mev_worst = mev_worst
+    ))
+    
+  } else if(metode == "Order") {
+    
+    for(v in vars){
+      
+      beta <- coef_vec[[v]]
+      
+      if(is.na(beta) || beta == 0) next
+      
+      hasil <- t(
+        apply(
+          cbind(
+            mev_best[[v]],
+            mev_base[[v]],
+            mev_worst[[v]]
+          ),
+          1,
+          sort,
+          decreasing = beta < 0
+        )
+      )
+      
+      mev_best[[v]]  <- hasil[, 1]
+      mev_base[[v]]  <- hasil[, 2]
+      mev_worst[[v]] <- hasil[, 3]
+    }
+    
+    return(list(
+      mev_best  = mev_best,
+      mev_base  = mev_base,
+      mev_worst = mev_worst
+    ))
   }
-  
-  return(list(
-    mev_best  = mev_best,
-    mev_base  = mev_base,
-    mev_worst = mev_worst
-  ))
 }
 
 
-forecast_mev_bxp=function(mev_base,datahistorical,db_boxplot,modely,z,coln,intuisi,metode="boxplot",penggantinegatif="0"){
+forecast_mev_bxp=function(mev_base,datahistorical,db_boxplot,modely,z,coln,intuisi,metode="boxplot",penggantinegatif="0",adjustmet="Adjust"){
   
   pred_vars <- all.vars(formula(modely))[-1]  # buang y
   
@@ -3213,7 +3314,8 @@ forecast_mev_bxp=function(mev_base,datahistorical,db_boxplot,modely,z,coln,intui
     mev_base  = mev_base,
     mev_best  = mev_best,
     mev_worst = mev_worst,
-    coef_vec  = coef_vec
+    coef_vec  = coef_vec,
+    metode=adjustmet
   )
   
   mev_best  <- adj$mev_best
