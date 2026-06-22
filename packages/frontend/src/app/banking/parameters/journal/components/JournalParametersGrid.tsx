@@ -99,30 +99,28 @@ const JournalParametersGrid = memo(function JournalParametersGrid({
         ),
       },
       {
-        field: 'activeFlag',
-        headerName: 'Active',
-        width: 80,
-        renderCell: (params) => (
-          <Chip label={params.value ? 'Active' : 'Inactive'} color={params.value ? 'success' : 'default'} size="small" />
-        ),
-      },
-      {
         field: 'status',
         headerName: 'Status',
         width: 150,
-        renderCell: (params) => (
-          <Box
-            onClick={(e) => {
-              if ((params.row as any).approvalStatus === 'pending') {
-                e.stopPropagation();
-                onOpenPending(params.row as JournalParameter);
-              }
-            }}
-            sx={{ cursor: (params.row as any).approvalStatus === 'pending' ? 'pointer' : 'default' }}
-          >
-            <ApprovalStatusBadge status={(params.row as any).approvalStatus || 'active'} size="small" />
-          </Box>
-        ),
+        renderCell: (params) => {
+          const row = params.row as JournalParameter;
+          if (!row.activeFlag) {
+            return <Chip label="Inactive" color="default" size="small" />;
+          }
+          return (
+            <Box
+              onClick={(e) => {
+                if (row.approvalStatus === 'pending') {
+                  e.stopPropagation();
+                  onOpenPending(row);
+                }
+              }}
+              sx={{ cursor: row.approvalStatus === 'pending' ? 'pointer' : 'default' }}
+            >
+              <ApprovalStatusBadge status={(row.approvalStatus || 'active') as 'active' | 'pending' | 'approved' | 'rejected' | 'completed'} size="small" />
+            </Box>
+          );
+        },
       },
       {
         field: 'actions',

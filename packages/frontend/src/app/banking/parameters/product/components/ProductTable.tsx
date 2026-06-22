@@ -135,35 +135,27 @@ export default function ProductTable({
       }
     },
     {
-      field: 'activeFlag',
-      headerName: 'Active',
-      width: 80,
-      renderCell: (params) => (
-        <Chip
-          label={params.value ? 'Yes' : 'No'}
-          color={params.value ? 'success' : 'default'}
-          size="small"
-          variant={params.value ? 'filled' : 'outlined'}
-        />
-      )
-    },
-    {
       field: 'approvalStatus',
-      headerName: 'Approval',
+      headerName: 'Status',
       width: 140,
-      renderCell: (params) => (
-        <Box
-          onClick={(e) => {
-            if (params.row.approvalStatus === 'pending' && onViewPending) {
-              e.stopPropagation();
-              onViewPending(params.row.pendingRequest, params.row);
-            }
-          }}
-          sx={{ cursor: params.row.approvalStatus === 'pending' ? 'pointer' : 'default' }}
-        >
-          <ApprovalStatusBadge status={params.row.approvalStatus || 'active'} size="small" />
-        </Box>
-      )
+      renderCell: (params) => {
+        if (!params.row.activeFlag) {
+          return <Chip label="Inactive" color="default" size="small" />;
+        }
+        return (
+          <Box
+            onClick={(e) => {
+              if (params.row.approvalStatus === 'pending' && onViewPending) {
+                e.stopPropagation();
+                onViewPending(params.row.pendingRequest, params.row);
+              }
+            }}
+            sx={{ cursor: params.row.approvalStatus === 'pending' ? 'pointer' : 'default' }}
+          >
+            <ApprovalStatusBadge status={params.row.approvalStatus || 'active'} size="small" />
+          </Box>
+        );
+      }
     },
     {
       field: 'actions',
