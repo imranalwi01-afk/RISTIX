@@ -222,6 +222,8 @@ export default function PageContent() {
   const [headerColumnOptions, setHeaderColumnOptions] = useState<string[]>([]);
   const [detailColumnOptions, setDetailColumnOptions] = useState<string[]>([]);
   const [detailOperatorOptions, setDetailOperatorOptions] = useState<string[]>([]);
+  const [columnValueOptions, setColumnValueOptions] = useState<string[]>([]);
+  const [loadingColumnValues, setLoadingColumnValues] = useState(false);
   const [metadataLoading, setMetadataLoading] = useState({
     tables: false,
     headerColumns: false,
@@ -377,6 +379,23 @@ export default function PageContent() {
       setDetailFormData(prev => ({ ...prev, data_type: '', operator: '' }));
     } finally {
       setMetadataLoading(prev => ({ ...prev, detailDataType: false, detailOperators: false }));
+    }
+  }, []);
+
+  const loadColumnValues = useCallback(async (tableName: string, columnName: string) => {
+    if (!tableName || !columnName) {
+      setColumnValueOptions([]);
+      return;
+    }
+    setLoadingColumnValues(true);
+    try {
+      const values = await bankingAPI.ruleBaseSetting.getBusinessSettingsValues(tableName, columnName);
+      setColumnValueOptions(Array.isArray(values) ? values : []);
+    } catch (err) {
+      console.error('Error loading column values:', err);
+      setColumnValueOptions([]);
+    } finally {
+      setLoadingColumnValues(false);
     }
   }, []);
 
@@ -752,11 +771,19 @@ export default function PageContent() {
   }, [detailFormData.table_name, loadDetailDataTypeAndOperators]);
 
   const handleDetailOperatorChange = useCallback((operator: string) => {
+    const upper = operator.toUpperCase();
     setDetailFormData(prev => ({
       ...prev,
       operator,
+      value1: '',
+      value2: '',
     }));
-  }, []);
+    if ((upper === 'IN' || upper === 'NOT IN') && detailFormData.table_name && detailFormData.column_name) {
+      loadColumnValues(detailFormData.table_name, detailFormData.column_name);
+    } else {
+      setColumnValueOptions([]);
+    }
+  }, [detailFormData.table_name, detailFormData.column_name, loadColumnValues]);
 
   const handleDeleteDetail = useCallback(async (detail: RuleBaseDetail) => {
     if (!canManageRuleBase) return;
@@ -1210,6 +1237,8 @@ export default function PageContent() {
         tableOptions={tableOptions}
         detailColumnOptions={detailColumnOptions}
         detailOperatorOptions={detailOperatorOptions}
+        columnValueOptions={columnValueOptions}
+        loadingColumnValues={loadingColumnValues}
         metadataLoading={{
           tables: metadataLoading.tables,
           detailColumns: metadataLoading.detailColumns,

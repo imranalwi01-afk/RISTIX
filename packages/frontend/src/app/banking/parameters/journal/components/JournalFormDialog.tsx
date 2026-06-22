@@ -39,6 +39,8 @@ export interface JournalParameter {
     dbcr?: string;
     glDesc?: string;
     activeFlag?: boolean;
+    approvalStatus?: string;
+    pendingRequest?: any;
     createdby?: string;
     createddate?: string;
     updatedby?: string;

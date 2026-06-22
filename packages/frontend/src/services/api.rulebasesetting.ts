@@ -363,13 +363,13 @@ export class RuleBaseSettingAPI {
   /**
    * Get distinct values for specific column from Business Settings (B0016)
    */
-  async getBusinessSettingsValues(tableName: string, columnName: string): Promise<ApiResponse<BusinessSettingsOption[]>> {
+  async getBusinessSettingsValues(tableName: string, columnName: string): Promise<string[]> {
     try {
-      const response = await apiClient.get(`${this.baseUrl}/business-settings/values/${encodeURIComponent(tableName)}/${encodeURIComponent(columnName)}`);
-      return response.data;
+      const response = await apiClient.get(`/banking/business-settings/column-values?table=${encodeURIComponent(tableName)}&column=${encodeURIComponent(columnName)}`);
+      return response.data?.data || [];
     } catch (error) {
       console.error('Error fetching business settings values:', error);
-      throw error;
+      return [];
     }
   }
 
