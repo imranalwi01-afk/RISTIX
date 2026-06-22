@@ -39,6 +39,7 @@ import ReportPageLayout from '@/components/ifrs9/ReportPageLayout';
 import ReportSummaryGrid, { KPIItem } from '@/components/ifrs9/ReportSummaryGrid';
 import ReportDataGrid from '@/components/ifrs9/ReportDataGrid';
 import { stagingApi } from '@/services/api/staging.api';
+import { reportsAPI } from '@/services/api.reports';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -57,11 +58,25 @@ export default function IFRS9StagingPage() {
 
   // Filter states
   const [filters, setFilters] = useState({
-    startDate: null as Date | null,
-    endDate: null as Date | null,
+    processingDate: null as Date | null,
     stage: '',
     segmentId: ''
   });
+
+  // Fetch default processing date from frs9_prc_date on mount
+  useEffect(() => {
+    const fetchPrcDate = async () => {
+      try {
+        const response = await reportsAPI.getProcessingDate();
+        if (response?.data?.prc_date) {
+          setFilters(prev => ({ ...prev, processingDate: new Date(response.data.prc_date) }));
+        }
+      } catch {
+        console.warn('Could not fetch processing date');
+      }
+    };
+    fetchPrcDate();
+  }, []);
 
 
   // Table columns setup
@@ -113,9 +128,10 @@ export default function IFRS9StagingPage() {
     setError(null);
 
     try {
+      const prcDate = filters.processingDate ? filters.processingDate.toISOString().split('T')[0] : undefined;
       const requestFilters = {
-        startDate: filters.startDate ? filters.startDate.toISOString().split('T')[0] : undefined,
-        endDate: filters.endDate ? filters.endDate.toISOString().split('T')[0] : undefined,
+        startDate: prcDate,
+        endDate: prcDate,
         stage: filters.stage || undefined,
         segmentId: filters.segmentId ? Number(filters.segmentId) : undefined
       };
@@ -248,17 +264,9 @@ export default function IFRS9StagingPage() {
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, md: 3 }}>
               <DatePicker
-                label="Start Date"
-                value={filters.startDate}
-                onChange={(newValue: any) => setFilters(prev => ({ ...prev, startDate: newValue as any }))}
-                slotProps={{ textField: { fullWidth: true, size: 'small' } }}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 3 }}>
-              <DatePicker
-                label="End Date"
-                value={filters.endDate}
-                onChange={(newValue: any) => setFilters(prev => ({ ...prev, endDate: newValue as any }))}
+                label="Processing Date"
+                value={filters.processingDate}
+                onChange={(newValue: any) => setFilters(prev => ({ ...prev, processingDate: newValue as any }))}
                 slotProps={{ textField: { fullWidth: true, size: 'small' } }}
               />
             </Grid>

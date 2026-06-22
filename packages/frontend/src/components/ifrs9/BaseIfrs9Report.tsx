@@ -8,6 +8,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { GridColDef } from '@mui/x-data-grid';
 import { useAuth } from '../../providers/AuthProvider';
 import api from '../../services/api';
+import { reportsAPI } from '../../services/api.reports';
 import ModernLoader from '../common/ModernLoader';
 import { useBankingTheme } from '../../providers/BankingThemeProvider';
 import { usePermission } from '@/hooks/usePermission';
@@ -99,6 +100,22 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   const [reportDebugEnabled, setReportDebugEnabled] = useState(false);
   const [reportDebugLoading, setReportDebugLoading] = useState(false);
   const [reportDebugSaving, setReportDebugSaving] = useState(false);
+
+  // Fetch default processing date from frs9_prc_date on mount
+  useEffect(() => {
+    if (filters.prc_date) return;
+    const fetchPrcDate = async () => {
+      try {
+        const response = await reportsAPI.getProcessingDate();
+        if (response?.data?.prc_date) {
+          setFilters(prev => ({ ...prev, prc_date: new Date(response.data.prc_date) }));
+        }
+      } catch {
+        console.warn('Could not fetch processing date, user must select manually');
+      }
+    };
+    fetchPrcDate();
+  }, []);
 
   const {
     queryState,
