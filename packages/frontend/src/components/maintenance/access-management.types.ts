@@ -71,14 +71,10 @@ export interface PermissionSelectionGroup {
 export const TAB_KEY_TO_INDEX: Record<string, number> = {
   roles: 0,
   users: 1,
-  permissions: 2,
-  matrix: 2,
-  assignments: 1,
-  'access-review': 2,
-  security: 3,
+  security: 2,
 };
 
-export const TAB_INDEX_TO_KEY = ['roles', 'users', 'access-review', 'security'] as const;
+export const TAB_INDEX_TO_KEY = ['roles', 'users', 'security'] as const;
 export const ACCESS_MANAGEMENT_BASE_PATH = '/banking/maintenance/access-management';
 
 export interface RoleFilters {

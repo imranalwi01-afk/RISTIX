@@ -413,7 +413,7 @@ function AccessManagementPage() {
       {/* Access Review Tab hidden */}
 
       {/* Security Tab */}
-      <TabPanel value={currentTab} index={3}>
+      <TabPanel value={currentTab} index={2}>
         <SecuritySettingsTab />
       </TabPanel>
 

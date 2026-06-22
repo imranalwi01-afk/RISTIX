@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Card from '@mui/material/Card';
@@ -18,8 +19,7 @@ import Grid from '@mui/material/Grid';
 import { securityConfigAPI } from '@/services/api/security-config.api';
 
 export function SecuritySettingsTab() {
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,37 +34,42 @@ export function SecuritySettingsTab() {
     sessionTimeout: 30
   });
 
+  const { data: initialData, isLoading, isError } = useQuery({
+    queryKey: ['security-config'],
+    queryFn: () => securityConfigAPI.get(),
+    staleTime: 5 * 60 * 1000, // cache for 5 minutes
+  });
+
   useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
-    try {
-      setLoading(true);
-      const data = await securityConfigAPI.get();
+    if (initialData) {
       setSettings({
-        passwordPolicy: data.passwordPolicy,
-        sessionTimeout: data.sessionTimeout
+        passwordPolicy: initialData.passwordPolicy,
+        sessionTimeout: initialData.sessionTimeout
       });
-    } catch (err: any) {
-      setError('Failed to load security settings');
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [initialData]);
 
-  const handleSave = async () => {
-    try {
-      setSaving(true);
-      setError(null);
-      setSuccess(null);
-      await securityConfigAPI.update(settings);
-      setSuccess('Security settings updated successfully');
-    } catch (err: any) {
-      setError('Failed to update security settings');
-    } finally {
-      setSaving(false);
+  useEffect(() => {
+    if (isError) {
+      setError('Failed to load security settings');
     }
+  }, [isError]);
+
+  const updateMutation = useMutation({
+    mutationFn: (newSettings: typeof settings) => securityConfigAPI.update(newSettings),
+    onSuccess: () => {
+      setSuccess('Security settings updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['security-config'] });
+    },
+    onError: () => {
+      setError('Failed to update security settings');
+    }
+  });
+
+  const handleSave = () => {
+    setError(null);
+    setSuccess(null);
+    updateMutation.mutate(settings);
   };
 
   const handleChange = (field: string, value: any) => {
@@ -81,7 +86,7 @@ export function SecuritySettingsTab() {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
         <CircularProgress />
@@ -191,11 +196,11 @@ export function SecuritySettingsTab() {
         <Button
           variant="contained"
           color="primary"
-          startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+          startIcon={updateMutation.isPending ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
           onClick={handleSave}
-          disabled={saving}
+          disabled={updateMutation.isPending}
         >
-          {saving ? 'Saving...' : 'Save Settings'}
+          {updateMutation.isPending ? 'Saving...' : 'Save Settings'}
         </Button>
       </Box>
     </Box>
