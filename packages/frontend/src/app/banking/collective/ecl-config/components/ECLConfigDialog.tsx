@@ -267,7 +267,7 @@ function ECLConfigDialogComponent({
                         ))}
                       </Select>
                       <FormHelperText error={!!formErrors.pd_model_id}>
-                        {formErrors.pd_model_id || 'Source: PD Output Monthly (frs9_r_pd_output_monthly)'}
+                        {formErrors.pd_model_id || 'Source: PD Active Model (frs9_r_pd_afl)'}
                       </FormHelperText>
                     </FormControl>
                   </Box>

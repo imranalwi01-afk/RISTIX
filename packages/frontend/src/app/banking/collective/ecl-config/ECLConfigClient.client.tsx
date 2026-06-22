@@ -140,7 +140,7 @@ const normalizeModelOptions = (
     }))
     .filter((item: LookupOption) => item.value && item.label);
 
-// PD Model Outputs from frs9_r_pd_output_monthly — flat model_id + model_name, no segment join
+// PD Model Outputs from frs9_r_pd_afl — flat model_id + model_name, filtered by model_status = 'active'
 const normalizePdModelOutputOptions = (outputs: any): LookupOption[] =>
   getResponseRows(outputs)
     .map((output: any) => ({

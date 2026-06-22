@@ -8,7 +8,7 @@
 
 ### Ifrs9CalculationsService
 
-Defined in: [src/services/ifrs9-calculations.service.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-calculations.service.ts#L8)
+Defined in: [src/services/ifrs9-calculations.service.ts:57](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-calculations.service.ts#L57)
 
 #### Constructors
 
@@ -24,9 +24,9 @@ Defined in: [src/services/ifrs9-calculations.service.ts:8](https://github.com/if
 
 ##### getAvailableDates()
 
-> **getAvailableDates**(`tenantId`, `mode?`): `Promise`&lt;`string`[]&gt;
+> **getAvailableDates**(`tenantId`, `mode?`, `groupBy?`): `Promise`&lt;`string`[] &#124; `Record`&lt;`string`, `string`[]&gt;&gt;
 
-Defined in: [src/services/ifrs9-calculations.service.ts:814](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-calculations.service.ts#L814)
+Defined in: [src/services/ifrs9-calculations.service.ts:883](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-calculations.service.ts#L883)
 
 ###### Parameters
 
@@ -38,15 +38,19 @@ Defined in: [src/services/ifrs9-calculations.service.ts:814](https://github.com/
 
 `string`
 
+###### groupBy?
+
+`string`
+
 ###### Returns
 
-`Promise`&lt;`string`[]&gt;
+`Promise`&lt;`string`[] &#124; `Record`&lt;`string`, `string`[]&gt;&gt;
 
 ##### getBatches()
 
 > **getBatches**(`tenantId`, `mode?`): `Promise`&lt;&#123; `batches`: `object`[]; &#125;&gt;
 
-Defined in: [src/services/ifrs9-calculations.service.ts:382](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-calculations.service.ts#L382)
+Defined in: [src/services/ifrs9-calculations.service.ts:421](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-calculations.service.ts#L421)
 
 ###### Parameters
 
@@ -66,7 +70,7 @@ Defined in: [src/services/ifrs9-calculations.service.ts:382](https://github.com/
 
 > **getBatchResults**(`tenantId`, `processDate`, `mode?`): `Promise`&lt;&#123; `data`: `object`[]; &#125;&gt;
 
-Defined in: [src/services/ifrs9-calculations.service.ts:775](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-calculations.service.ts#L775)
+Defined in: [src/services/ifrs9-calculations.service.ts:844](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-calculations.service.ts#L844)
 
 ###### Parameters
 
@@ -88,9 +92,9 @@ Defined in: [src/services/ifrs9-calculations.service.ts:775](https://github.com/
 
 ##### getPortfolioTrend()
 
-> **getPortfolioTrend**(`tenantId`, `endDate?`, `_mode?`): `Promise`&lt;`object`[]&gt;
+> **getPortfolioTrend**(`tenantId`, `endDate?`, `_mode?`): `Promise`&lt;`DashboardTrendPayload`&gt;
 
-Defined in: [src/services/ifrs9-calculations.service.ts:691](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-calculations.service.ts#L691)
+Defined in: [src/services/ifrs9-calculations.service.ts:736](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-calculations.service.ts#L736)
 
 ###### Parameters
 
@@ -108,13 +112,13 @@ Defined in: [src/services/ifrs9-calculations.service.ts:691](https://github.com/
 
 ###### Returns
 
-`Promise`&lt;`object`[]&gt;
+`Promise`&lt;`DashboardTrendPayload`&gt;
 
 ##### getSummary()
 
-> **getSummary**(`tenantId`, `requestedDate?`, `mode?`): `Promise`&lt;&#123; `activeAccounts`: `number`; `coverageRatio`: `number`; `currency`: `string`; `eclRate`: `number`; `impairedRatio`: `number`; `isFallback`: `boolean`; `lastUpdated`: `string`; `stage1Count`: `number`; `stage1ECL`: `number`; `stage2Count`: `number`; `stage2ECL`: `number`; `stage3Count`: `number`; `stage3ECL`: `number`; `totalAccounts`: `number`; `totalECL`: `number`; `totalExposure`: `number`; `totalPortfolio`: `number`; &#125; &#124; &#123; `activeAccounts`: `number`; `coverageRatio`: `number`; `currency`: `string`; `eclRate`: `number`; `impairedRatio`: `number`; `isFallback`: `boolean`; `lastUpdated`: `string`; `stage1Count?`: `undefined`; `stage1ECL`: `number`; `stage2Count?`: `undefined`; `stage2ECL`: `number`; `stage3Count?`: `undefined`; `stage3ECL`: `number`; `totalAccounts`: `number`; `totalECL`: `number`; `totalExposure`: `number`; `totalPortfolio`: `number`; &#125;&gt;
+> **getSummary**(`tenantId`, `requestedDate?`, `mode?`): `Promise`&lt;`DashboardSummaryPayload`&gt;
 
-Defined in: [src/services/ifrs9-calculations.service.ts:145](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-calculations.service.ts#L145)
+Defined in: [src/services/ifrs9-calculations.service.ts:253](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-calculations.service.ts#L253)
 
 ###### Parameters
 
@@ -132,13 +136,13 @@ Defined in: [src/services/ifrs9-calculations.service.ts:145](https://github.com/
 
 ###### Returns
 
-`Promise`&lt;&#123; `activeAccounts`: `number`; `coverageRatio`: `number`; `currency`: `string`; `eclRate`: `number`; `impairedRatio`: `number`; `isFallback`: `boolean`; `lastUpdated`: `string`; `stage1Count`: `number`; `stage1ECL`: `number`; `stage2Count`: `number`; `stage2ECL`: `number`; `stage3Count`: `number`; `stage3ECL`: `number`; `totalAccounts`: `number`; `totalECL`: `number`; `totalExposure`: `number`; `totalPortfolio`: `number`; &#125; &#124; &#123; `activeAccounts`: `number`; `coverageRatio`: `number`; `currency`: `string`; `eclRate`: `number`; `impairedRatio`: `number`; `isFallback`: `boolean`; `lastUpdated`: `string`; `stage1Count?`: `undefined`; `stage1ECL`: `number`; `stage2Count?`: `undefined`; `stage2ECL`: `number`; `stage3Count?`: `undefined`; `stage3ECL`: `number`; `totalAccounts`: `number`; `totalECL`: `number`; `totalExposure`: `number`; `totalPortfolio`: `number`; &#125;&gt;
+`Promise`&lt;`DashboardSummaryPayload`&gt;
 
 ##### runCalculation()
 
 > **runCalculation**(`tenantId`, `config`): `Promise`&lt;&#123; `activeExecutionId`: `string`; `executionId?`: `undefined`; `jobId?`: `undefined`; `message`: `string`; `processDate?`: `undefined`; `startTime`: `string` &#124; `null`; `status`: `string`; `success`: `boolean`; &#125; &#124; &#123; `activeExecutionId?`: `undefined`; `executionId`: `` `${string}-${string}-${string}-${string}-${string}` ``; `jobId`: `` `${string}-${string}-${string}-${string}-${string}` ``; `message`: `string`; `processDate?`: `undefined`; `startTime?`: `undefined`; `status`: `string`; `success`: `boolean`; &#125; &#124; &#123; `activeExecutionId?`: `undefined`; `executionId`: `` `${string}-${string}-${string}-${string}-${string}` ``; `jobId`: `` `${string}-${string}-${string}-${string}-${string}` ``; `message`: `string`; `processDate`: `any`; `startTime?`: `undefined`; `status`: `string`; `success`: `boolean`; &#125; &#124; &#123; `activeExecutionId?`: `undefined`; `executionId?`: `undefined`; `jobId?`: `undefined`; `message`: `string`; `processDate?`: `undefined`; `startTime?`: `undefined`; `status?`: `undefined`; `success`: `boolean`; &#125;&gt;
 
-Defined in: [src/services/ifrs9-calculations.service.ts:563](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-calculations.service.ts#L563)
+Defined in: [src/services/ifrs9-calculations.service.ts:605](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-calculations.service.ts#L605)
 
 ###### Parameters
 
@@ -158,7 +162,7 @@ Defined in: [src/services/ifrs9-calculations.service.ts:563](https://github.com/
 
 > **runPreviewCalculation**(`tenantId`, `config`): `Promise`&lt;&#123; `activeExecutionId`: `string`; `configHeader?`: `undefined`; `executionId?`: `undefined`; `jobId?`: `undefined`; `message`: `string`; `processDate?`: `undefined`; `startTime`: `string` &#124; `null`; `status`: `string`; `success`: `boolean`; &#125; &#124; &#123; `activeExecutionId?`: `undefined`; `configHeader?`: `undefined`; `executionId`: `` `${string}-${string}-${string}-${string}-${string}` ``; `jobId`: `` `${string}-${string}-${string}-${string}-${string}` ``; `message`: `string`; `processDate?`: `undefined`; `startTime?`: `undefined`; `status`: `string`; `success`: `boolean`; &#125; &#124; &#123; `activeExecutionId?`: `undefined`; `configHeader`: `string`; `executionId`: `` `${string}-${string}-${string}-${string}-${string}` ``; `jobId`: `` `${string}-${string}-${string}-${string}-${string}` ``; `message`: `string`; `processDate`: `any`; `startTime?`: `undefined`; `status`: `string`; `success`: `boolean`; &#125; &#124; &#123; `activeExecutionId?`: `undefined`; `configHeader?`: `undefined`; `executionId?`: `undefined`; `jobId?`: `undefined`; `message`: `string`; `processDate?`: `undefined`; `startTime?`: `undefined`; `status?`: `undefined`; `success`: `boolean`; &#125;&gt;
 
-Defined in: [src/services/ifrs9-calculations.service.ts:406](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-calculations.service.ts#L406)
+Defined in: [src/services/ifrs9-calculations.service.ts:445](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-calculations.service.ts#L445)
 
 ###### Parameters
 
@@ -180,4 +184,4 @@ Defined in: [src/services/ifrs9-calculations.service.ts:406](https://github.com/
 
 > `const` **ifrs9CalculationsService**: [`Ifrs9CalculationsService`](#ifrs9calculationsservice)
 
-Defined in: [src/services/ifrs9-calculations.service.ts:886](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-calculations.service.ts#L886)
+Defined in: [src/services/ifrs9-calculations.service.ts:959](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-calculations.service.ts#L959)

@@ -210,11 +210,10 @@ export const EclConfigurationsService = {
         return Effect.tryPromise({
             try: async () => {
                 const rows: any[] = await legacyDb.execute(sql`
-                    SELECT DISTINCT m.model_id, s.model_name
-                    FROM frs9_r_pd_output_monthly m
-                    LEFT JOIN frs9_r_model_summary s ON m.model_id = s.model_id
-                    WHERE m.model_id IS NOT NULL
-                    ORDER BY m.model_id
+                    SELECT model_id, model_name
+                    FROM frs9_r_pd_afl
+                    WHERE model_status = 'active'
+                    ORDER BY model_name
                 `)
                 const data = (rows as any).rows
                     ? (rows as any).rows.map((r: any) => ({ model_id: Number(r.model_id), model_name: r.model_name }))

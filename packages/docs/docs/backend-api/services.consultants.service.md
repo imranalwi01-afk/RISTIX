@@ -10,7 +10,7 @@
 
 > **createConsultant**(`data`): `Effect`&lt;&#123; `createdAt`: `Date`; `email`: `string`; `endDate`: `string` &#124; `null`; `firmName`: `string` &#124; `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` &#124; `null`; `notes`: `string` &#124; `null`; `specialization`: `string` &#124; `null`; `startDate`: `string` &#124; `null`; `status`: `string` &#124; `null`; `updatedAt`: `Date`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
-Defined in: [src/services/consultants.service.ts:93](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/consultants.service.ts#L93)
+Defined in: [src/services/consultants.service.ts:93](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/consultants.service.ts#L93)
 
 Create new consultant.
 
@@ -80,7 +80,7 @@ An Effect resolving to the created consultant record
 
 > **deleteConsultant**(`id`): `Effect`&lt;&#123; `createdAt`: `Date`; `email`: `string`; `endDate`: `string` &#124; `null`; `firmName`: `string` &#124; `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` &#124; `null`; `notes`: `string` &#124; `null`; `specialization`: `string` &#124; `null`; `startDate`: `string` &#124; `null`; `status`: `string` &#124; `null`; `updatedAt`: `Date`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror), `never`&gt;
 
-Defined in: [src/services/consultants.service.ts:136](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/consultants.service.ts#L136)
+Defined in: [src/services/consultants.service.ts:136](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/consultants.service.ts#L136)
 
 Delete consultant.
 
@@ -104,7 +104,7 @@ An Effect resolving to the deleted consultant record or NotFoundError
 
 > **getConsultantById**(`id`): `Effect`&lt;&#123; `createdAt`: `Date`; `email`: `string`; `endDate`: `string` &#124; `null`; `firmName`: `string` &#124; `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` &#124; `null`; `notes`: `string` &#124; `null`; `specialization`: `string` &#124; `null`; `startDate`: `string` &#124; `null`; `status`: `string` &#124; `null`; `updatedAt`: `Date`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror), `never`&gt;
 
-Defined in: [src/services/consultants.service.ts:72](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/consultants.service.ts#L72)
+Defined in: [src/services/consultants.service.ts:72](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/consultants.service.ts#L72)
 
 Get consultant by ID.
 
@@ -128,7 +128,7 @@ An Effect resolving to the consultant record or NotFoundError
 
 > **getConsultants**(`options`): `Effect`&lt;&#123; `data`: `object`[]; `total`: `number`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
-Defined in: [src/services/consultants.service.ts:21](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/consultants.service.ts#L21)
+Defined in: [src/services/consultants.service.ts:21](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/consultants.service.ts#L21)
 
 Get all consultants with pagination and filtering.
 
@@ -174,7 +174,7 @@ An Effect resolving to an object with data array and total count
 
 > **updateConsultant**(`id`, `data`): `Effect`&lt;&#123; `createdAt`: `Date`; `email`: `string`; `endDate`: `string` &#124; `null`; `firmName`: `string` &#124; `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` &#124; `null`; `notes`: `string` &#124; `null`; `specialization`: `string` &#124; `null`; `startDate`: `string` &#124; `null`; `status`: `string` &#124; `null`; `updatedAt`: `Date`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror), `never`&gt;
 
-Defined in: [src/services/consultants.service.ts:109](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/consultants.service.ts#L109)
+Defined in: [src/services/consultants.service.ts:109](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/consultants.service.ts#L109)
 
 Update consultant.
 

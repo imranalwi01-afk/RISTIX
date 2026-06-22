@@ -8,7 +8,7 @@
 
 ### ApprovalMetadata
 
-Defined in: [utils/approval.ts:5](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/approval.ts#L5)
+Defined in: [utils/approval.ts:5](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/approval.ts#L5)
 
 Approval utilities for checking user eligibility and permission requirements
 
@@ -16,27 +16,27 @@ Approval utilities for checking user eligibility and permission requirements
 
 ##### requiredApprovalLevel
 
-> **requiredApprovalLevel**: `number` \| `null`
+> **requiredApprovalLevel**: `number` &#124; `null`
 
-Defined in: [utils/approval.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/approval.ts#L7)
+Defined in: [utils/approval.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/approval.ts#L7)
 
 ##### requiredApprovers
 
 > **requiredApprovers**: `number`
 
-Defined in: [utils/approval.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/approval.ts#L8)
+Defined in: [utils/approval.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/approval.ts#L8)
 
 ##### requiresApproval
 
 > **requiresApproval**: `boolean`
 
-Defined in: [utils/approval.ts:6](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/approval.ts#L6)
+Defined in: [utils/approval.ts:6](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/approval.ts#L6)
 
 ***
 
 ### UserRoleInfo
 
-Defined in: [utils/approval.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/approval.ts#L11)
+Defined in: [utils/approval.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/approval.ts#L11)
 
 #### Properties
 
@@ -44,19 +44,19 @@ Defined in: [utils/approval.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 > **hierarchyLevel**: `number`
 
-Defined in: [utils/approval.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/approval.ts#L12)
+Defined in: [utils/approval.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/approval.ts#L12)
 
 ##### roleCode
 
 > **roleCode**: `string`
 
-Defined in: [utils/approval.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/approval.ts#L13)
+Defined in: [utils/approval.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/approval.ts#L13)
 
 ##### roleName
 
 > **roleName**: `string`
 
-Defined in: [utils/approval.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/approval.ts#L14)
+Defined in: [utils/approval.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/approval.ts#L14)
 
 ## Functions
 
@@ -64,7 +64,7 @@ Defined in: [utils/approval.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 > **canUserApprove**(`userMaxHierarchyLevel`, `requiredMinHierarchyLevel`): `boolean`
 
-Defined in: [utils/approval.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/approval.ts#L23)
+Defined in: [utils/approval.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/approval.ts#L23)
 
 Check if user can approve based on their highest hierarchy level
 
@@ -94,7 +94,7 @@ true if user meets or exceeds the required level
 
 > **checkApprovalEligibility**(`userRoles`, `approval`): `object`
 
-Defined in: [utils/approval.ts:49](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/approval.ts#L49)
+Defined in: [utils/approval.ts:49](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/approval.ts#L49)
 
 Check if user has sufficient privileges for a permission
 
@@ -132,15 +132,15 @@ Object with eligibility status and reason
 
 ##### requiredLevel
 
-> **requiredLevel**: `number` \| `null`
+> **requiredLevel**: `number` &#124; `null`
 
 ***
 
 ### getApprovalBadgeColor()
 
-> **getApprovalBadgeColor**(`level`): `"error"` \| `"default"` \| `"info"` \| `"warning"`
+> **getApprovalBadgeColor**(`level`): `"default"` &#124; `"error"` &#124; `"info"` &#124; `"warning"`
 
-Defined in: [utils/approval.ts:129](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/approval.ts#L129)
+Defined in: [utils/approval.ts:129](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/approval.ts#L129)
 
 Get approval badge color based on level
 
@@ -154,7 +154,7 @@ Required approval level
 
 #### Returns
 
-`"error"` \| `"default"` \| `"info"` \| `"warning"`
+`"default"` &#124; `"error"` &#124; `"info"` &#124; `"warning"`
 
 MUI color name
 
@@ -164,7 +164,7 @@ MUI color name
 
 > **getApprovalStatusMessage**(`approval`): `string`
 
-Defined in: [utils/approval.ts:96](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/approval.ts#L96)
+Defined in: [utils/approval.ts:96](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/approval.ts#L96)
 
 Get approval status message for UI display
 
@@ -188,7 +188,7 @@ Human-readable status string
 
 > **getHierarchyLevelName**(`level`): `string`
 
-Defined in: [utils/approval.ts:113](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/approval.ts#L113)
+Defined in: [utils/approval.ts:113](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/approval.ts#L113)
 
 Get hierarchy level display name
 
@@ -212,7 +212,7 @@ Human-readable level name
 
 > **getUserMaxHierarchyLevel**(`roles`): `number`
 
-Defined in: [utils/approval.ts:38](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/approval.ts#L38)
+Defined in: [utils/approval.ts:38](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/approval.ts#L38)
 
 Get the highest hierarchy level from user's roles
 

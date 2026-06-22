@@ -8,7 +8,7 @@
 
 ### SavedFilter
 
-Defined in: [hooks/useSavedFilters.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useSavedFilters.ts#L10)
+Defined in: [hooks/useSavedFilters.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useSavedFilters.ts#L10)
 
 #### Properties
 
@@ -16,37 +16,37 @@ Defined in: [hooks/useSavedFilters.ts:10](https://github.com/ifrspro/ifrs9-iaf/b
 
 > **createdAt**: `string`
 
-Defined in: [hooks/useSavedFilters.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useSavedFilters.ts#L14)
+Defined in: [hooks/useSavedFilters.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useSavedFilters.ts#L14)
 
 ##### filters
 
-> **filters**: `Record`\<`string`, `any`\>
+> **filters**: `Record`&lt;`string`, `any`&gt;
 
-Defined in: [hooks/useSavedFilters.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useSavedFilters.ts#L13)
+Defined in: [hooks/useSavedFilters.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useSavedFilters.ts#L13)
 
 ##### id
 
 > **id**: `string`
 
-Defined in: [hooks/useSavedFilters.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useSavedFilters.ts#L11)
+Defined in: [hooks/useSavedFilters.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useSavedFilters.ts#L11)
 
 ##### name
 
 > **name**: `string`
 
-Defined in: [hooks/useSavedFilters.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useSavedFilters.ts#L12)
+Defined in: [hooks/useSavedFilters.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useSavedFilters.ts#L12)
 
 ##### updatedAt
 
 > **updatedAt**: `string`
 
-Defined in: [hooks/useSavedFilters.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useSavedFilters.ts#L15)
+Defined in: [hooks/useSavedFilters.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useSavedFilters.ts#L15)
 
 ***
 
 ### UseSavedFiltersOptions
 
-Defined in: [hooks/useSavedFilters.ts:18](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useSavedFilters.ts#L18)
+Defined in: [hooks/useSavedFilters.ts:18](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useSavedFilters.ts#L18)
 
 #### Properties
 
@@ -54,13 +54,13 @@ Defined in: [hooks/useSavedFilters.ts:18](https://github.com/ifrspro/ifrs9-iaf/b
 
 > `optional` **maxSavedFilters**: `number`
 
-Defined in: [hooks/useSavedFilters.ts:20](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useSavedFilters.ts#L20)
+Defined in: [hooks/useSavedFilters.ts:20](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useSavedFilters.ts#L20)
 
 ##### storageKey
 
 > **storageKey**: `string`
 
-Defined in: [hooks/useSavedFilters.ts:19](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useSavedFilters.ts#L19)
+Defined in: [hooks/useSavedFilters.ts:19](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useSavedFilters.ts#L19)
 
 ## Functions
 
@@ -68,7 +68,7 @@ Defined in: [hooks/useSavedFilters.ts:19](https://github.com/ifrspro/ifrs9-iaf/b
 
 > **useSavedFilters**(`options`): `object`
 
-Defined in: [hooks/useSavedFilters.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useSavedFilters.ts#L23)
+Defined in: [hooks/useSavedFilters.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useSavedFilters.ts#L23)
 
 #### Parameters
 
@@ -104,7 +104,7 @@ Defined in: [hooks/useSavedFilters.ts:23](https://github.com/ifrspro/ifrs9-iaf/b
 
 ##### loadFilter()
 
-> **loadFilter**: (`id`) => [`SavedFilter`](#savedfilter) \| `undefined`
+> **loadFilter**: (`id`) => [`SavedFilter`](#savedfilter) &#124; `undefined`
 
 ###### Parameters
 
@@ -114,7 +114,7 @@ Defined in: [hooks/useSavedFilters.ts:23](https://github.com/ifrspro/ifrs9-iaf/b
 
 ###### Returns
 
-[`SavedFilter`](#savedfilter) \| `undefined`
+[`SavedFilter`](#savedfilter) &#124; `undefined`
 
 ##### loading
 
@@ -136,7 +136,7 @@ Defined in: [hooks/useSavedFilters.ts:23](https://github.com/ifrspro/ifrs9-iaf/b
 
 ###### filterData
 
-`Record`\<`string`, `any`\>
+`Record`&lt;`string`, `any`&gt;
 
 ###### Returns
 
@@ -158,7 +158,7 @@ Defined in: [hooks/useSavedFilters.ts:23](https://github.com/ifrspro/ifrs9-iaf/b
 
 ###### filterData
 
-`Record`\<`string`, `any`\>
+`Record`&lt;`string`, `any`&gt;
 
 ###### Returns
 

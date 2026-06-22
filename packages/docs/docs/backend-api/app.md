@@ -10,7 +10,7 @@
 
 > **AppContext** = `object`
 
-Defined in: [src/app.ts:38](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/app.ts#L38)
+Defined in: [src/app.ts:42](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/app.ts#L42)
 
 Application context type
 
@@ -20,43 +20,43 @@ Application context type
 
 > **Variables**: `object`
 
-Defined in: [src/app.ts:39](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/app.ts#L39)
+Defined in: [src/app.ts:43](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/app.ts#L43)
 
 ###### isSystemUser?
 
-> `optional` **isSystemUser**: `boolean`
+> `optional` **isSystemUser?**: `boolean`
 
 ###### logger?
 
-> `optional` **logger**: [`Logger`](lib.logger.md#logger)
+> `optional` **logger?**: [`Logger`](lib.logger.md#logger)
 
 ###### permissions?
 
-> `optional` **permissions**: `string`[]
+> `optional` **permissions?**: `string`[]
 
 ###### requestId?
 
-> `optional` **requestId**: `string`
+> `optional` **requestId?**: `string`
 
 ###### tenantId?
 
-> `optional` **tenantId**: `string`
+> `optional` **tenantId?**: `string`
 
 ###### tokenId?
 
-> `optional` **tokenId**: `string`
+> `optional` **tokenId?**: `string`
 
 ###### user?
 
-> `optional` **user**: [`User`](db.schema.core.md#user)
+> `optional` **user?**: [`User`](db.schema.core.md#user)
 
 ###### userId?
 
-> `optional` **userId**: `string`
+> `optional` **userId?**: `string`
 
 ###### userPermissions?
 
-> `optional` **userPermissions**: `string`[]
+> `optional` **userPermissions?**: `string`[]
 
 ## Variables
 
@@ -64,7 +64,7 @@ Defined in: [src/app.ts:39](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb9123
 
 > `const` **app**: `OpenAPIHono`&lt;[`AppContext`](#appcontext), &#123; &#125;, `"/"`&gt;
 
-Defined in: [src/app.ts:243](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/app.ts#L243)
+Defined in: [src/app.ts:233](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/app.ts#L233)
 
 ## Functions
 
@@ -72,7 +72,7 @@ Defined in: [src/app.ts:243](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912
 
 > **createApp**(): `OpenAPIHono`&lt;[`AppContext`](#appcontext), &#123; &#125;, `"/"`&gt;
 
-Defined in: [src/app.ts:55](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/app.ts#L55)
+Defined in: [src/app.ts:59](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/app.ts#L59)
 
 Create the Hono application
 

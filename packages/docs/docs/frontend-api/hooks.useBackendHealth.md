@@ -8,49 +8,49 @@
 
 ### BackendHealth
 
-Defined in: [hooks/useBackendHealth.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useBackendHealth.ts#L7)
+Defined in: [hooks/useBackendHealth.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useBackendHealth.ts#L7)
 
 #### Properties
 
 ##### checkNow()
 
-> **checkNow**: () => `Promise`\<`void`\>
+> **checkNow**: () => `Promise`&lt;`void`&gt;
 
-Defined in: [hooks/useBackendHealth.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useBackendHealth.ts#L12)
+Defined in: [hooks/useBackendHealth.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useBackendHealth.ts#L12)
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`&lt;`void`&gt;
 
 ##### error?
 
 > `optional` **error**: `string`
 
-Defined in: [hooks/useBackendHealth.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useBackendHealth.ts#L13)
+Defined in: [hooks/useBackendHealth.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useBackendHealth.ts#L13)
 
 ##### isChecking
 
 > **isChecking**: `boolean`
 
-Defined in: [hooks/useBackendHealth.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useBackendHealth.ts#L11)
+Defined in: [hooks/useBackendHealth.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useBackendHealth.ts#L11)
 
 ##### isOnline
 
 > **isOnline**: `boolean`
 
-Defined in: [hooks/useBackendHealth.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useBackendHealth.ts#L8)
+Defined in: [hooks/useBackendHealth.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useBackendHealth.ts#L8)
 
 ##### lastChecked
 
-> **lastChecked**: `Date` \| `null`
+> **lastChecked**: `Date` &#124; `null`
 
-Defined in: [hooks/useBackendHealth.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useBackendHealth.ts#L10)
+Defined in: [hooks/useBackendHealth.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useBackendHealth.ts#L10)
 
 ##### latency
 
-> **latency**: `number` \| `null`
+> **latency**: `number` &#124; `null`
 
-Defined in: [hooks/useBackendHealth.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useBackendHealth.ts#L9)
+Defined in: [hooks/useBackendHealth.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useBackendHealth.ts#L9)
 
 ## Functions
 
@@ -58,7 +58,7 @@ Defined in: [hooks/useBackendHealth.ts:9](https://github.com/ifrspro/ifrs9-iaf/b
 
 > **useBackendHealth**(`pollingIntervalMs?`): [`BackendHealth`](#backendhealth)
 
-Defined in: [hooks/useBackendHealth.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useBackendHealth.ts#L16)
+Defined in: [hooks/useBackendHealth.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useBackendHealth.ts#L16)
 
 #### Parameters
 

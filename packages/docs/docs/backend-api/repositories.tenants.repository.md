@@ -8,7 +8,7 @@
 
 ### TenantsRepository
 
-Defined in: [src/repositories/tenants.repository.ts:29](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/tenants.repository.ts#L29)
+Defined in: [src/repositories/tenants.repository.ts:29](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/tenants.repository.ts#L29)
 
 Core interface for standard CRUD repository operations.
 
@@ -32,7 +32,7 @@ Core interface for standard CRUD repository operations.
 
 > **create**(`data`): `Effect`&lt;&#123; `bankingMode`: `string` &#124; `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` &#124; `null`; `type`: `string` &#124; `null`; `updatedAt`: `Date`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/repositories/tenants.repository.ts:133](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/tenants.repository.ts#L133)
+Defined in: [src/repositories/tenants.repository.ts:133](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/tenants.repository.ts#L133)
 
 Create a new tenant.
 
@@ -100,7 +100,7 @@ An Effect resolving to the created tenant
 
 > **delete**(`id`): `Effect`&lt;&#123; `bankingMode`: `string` &#124; `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` &#124; `null`; `type`: `string` &#124; `null`; `updatedAt`: `Date`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
-Defined in: [src/repositories/tenants.repository.ts:180](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/tenants.repository.ts#L180)
+Defined in: [src/repositories/tenants.repository.ts:180](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/tenants.repository.ts#L180)
 
 Soft delete a tenant.
 
@@ -126,7 +126,7 @@ An Effect resolving to the updated (deleted) tenant
 
 > **findAll**(`options?`): `Effect`&lt;[`PaginatedResult`](repositories.base.repository.md#paginatedresult)&lt;&#123; `bankingMode`: `string` &#124; `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` &#124; `null`; `type`: `string` &#124; `null`; `updatedAt`: `Date`; &#125;&gt;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/repositories/tenants.repository.ts:81](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/tenants.repository.ts#L81)
+Defined in: [src/repositories/tenants.repository.ts:81](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/tenants.repository.ts#L81)
 
 Find all tenants with pagination.
 
@@ -152,7 +152,7 @@ An Effect resolving to paginated tenant results
 
 > **findByCode**(`code`): `Effect`&lt;&#123; `bankingMode`: `string` &#124; `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` &#124; `null`; `type`: `string` &#124; `null`; `updatedAt`: `Date`; &#125; &#124; `undefined`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/repositories/tenants.repository.ts:53](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/tenants.repository.ts#L53)
+Defined in: [src/repositories/tenants.repository.ts:53](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/tenants.repository.ts#L53)
 
 Find tenant by code.
 
@@ -174,7 +174,7 @@ An Effect resolving to the tenant or undefined
 
 > **findById**(`id`): `Effect`&lt;&#123; `bankingMode`: `string` &#124; `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` &#124; `null`; `type`: `string` &#124; `null`; `updatedAt`: `Date`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
-Defined in: [src/repositories/tenants.repository.ts:36](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/tenants.repository.ts#L36)
+Defined in: [src/repositories/tenants.repository.ts:36](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/tenants.repository.ts#L36)
 
 Find tenant by ID.
 
@@ -200,7 +200,7 @@ An Effect resolving to the tenant or NotFoundError
 
 > **findBySlug**(`slug`): `Effect`&lt;&#123; `bankingMode`: `string` &#124; `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` &#124; `null`; `type`: `string` &#124; `null`; `updatedAt`: `Date`; &#125; &#124; `undefined`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/repositories/tenants.repository.ts:67](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/tenants.repository.ts#L67)
+Defined in: [src/repositories/tenants.repository.ts:67](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/tenants.repository.ts#L67)
 
 Find tenant by slug.
 
@@ -222,7 +222,7 @@ An Effect resolving to the tenant or undefined
 
 > **update**(`id`, `data`): `Effect`&lt;&#123; `bankingMode`: `string` &#124; `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` &#124; `null`; `type`: `string` &#124; `null`; `updatedAt`: `Date`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
-Defined in: [src/repositories/tenants.repository.ts:153](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/tenants.repository.ts#L153)
+Defined in: [src/repositories/tenants.repository.ts:153](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/tenants.repository.ts#L153)
 
 Update an existing tenant.
 
@@ -254,7 +254,7 @@ An Effect resolving to the updated tenant or NotFoundError
 
 ### TenantsQueryOptions
 
-Defined in: [src/repositories/tenants.repository.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/tenants.repository.ts#L23)
+Defined in: [src/repositories/tenants.repository.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/tenants.repository.ts#L23)
 
 Common query options for repository methods.
 
@@ -266,15 +266,15 @@ Common query options for repository methods.
 
 ##### bankingMode?
 
-> `optional` **bankingMode**: `string`
+> `optional` **bankingMode?**: `string`
 
-Defined in: [src/repositories/tenants.repository.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/tenants.repository.ts#L26)
+Defined in: [src/repositories/tenants.repository.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/tenants.repository.ts#L26)
 
 ##### filters?
 
-> `optional` **filters**: [`FilterParams`](lib.react-admin.md#filterparams)
+> `optional` **filters?**: [`FilterParams`](lib.react-admin.md#filterparams)
 
-Defined in: [src/repositories/base.repository.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L26)
+Defined in: [src/repositories/base.repository.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L26)
 
 Filter parameters for searching and narrowing results
 
@@ -284,9 +284,9 @@ Filter parameters for searching and narrowing results
 
 ##### includeInactive?
 
-> `optional` **includeInactive**: `boolean`
+> `optional` **includeInactive?**: `boolean`
 
-Defined in: [src/repositories/base.repository.ts:28](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L28)
+Defined in: [src/repositories/base.repository.ts:28](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L28)
 
 Whether to include inactive/deleted records in the results
 
@@ -296,15 +296,15 @@ Whether to include inactive/deleted records in the results
 
 ##### isActive?
 
-> `optional` **isActive**: `boolean`
+> `optional` **isActive?**: `boolean`
 
-Defined in: [src/repositories/tenants.repository.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/tenants.repository.ts#L25)
+Defined in: [src/repositories/tenants.repository.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/tenants.repository.ts#L25)
 
 ##### pagination?
 
-> `optional` **pagination**: [`PaginationParams`](lib.react-admin.md#paginationparams)
+> `optional` **pagination?**: [`PaginationParams`](lib.react-admin.md#paginationparams)
 
-Defined in: [src/repositories/base.repository.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L24)
+Defined in: [src/repositories/base.repository.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L24)
 
 Pagination parameters (page and limit)
 
@@ -314,9 +314,9 @@ Pagination parameters (page and limit)
 
 ##### search?
 
-> `optional` **search**: `string`
+> `optional` **search?**: `string`
 
-Defined in: [src/repositories/tenants.repository.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/tenants.repository.ts#L24)
+Defined in: [src/repositories/tenants.repository.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/tenants.repository.ts#L24)
 
 ## Variables
 
@@ -324,4 +324,4 @@ Defined in: [src/repositories/tenants.repository.ts:24](https://github.com/ifrsp
 
 > `const` **tenantsRepository**: [`TenantsRepository`](#tenantsrepository)
 
-Defined in: [src/repositories/tenants.repository.ts:189](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/tenants.repository.ts#L189)
+Defined in: [src/repositories/tenants.repository.ts:189](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/tenants.repository.ts#L189)

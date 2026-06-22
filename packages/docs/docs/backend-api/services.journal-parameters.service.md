@@ -10,11 +10,11 @@
 
 > `const` **JournalParametersService**: `object`
 
-Defined in: [src/services/journal-parameters.service.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/journal-parameters.service.ts#L7)
+Defined in: [src/services/journal-parameters.service.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/journal-parameters.service.ts#L9)
 
 #### Type Declaration
 
-##### create()
+##### create
 
 > **create**: (`data`, `userId`) => `Effect`&lt;&#123; `activeFlag`: `boolean` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` &#124; `null`; `dbcr`: `string` &#124; `null`; `glCode`: `string` &#124; `null`; `glDesc`: `string` &#124; `null`; `glGroup`: `string` &#124; `null`; `glNumber`: `string` &#124; `null`; `glType`: `string` &#124; `null`; `id`: `number`; `pkid`: `number`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -40,7 +40,7 @@ The ID of the user creating the parameter
 
 An Effect resolving to the created journal parameter
 
-##### delete()
+##### delete
 
 > **delete**: (`id`) => `Effect`&lt;&#123; `message`: `string`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror), `never`&gt;
 
@@ -60,7 +60,7 @@ The journal parameter ID
 
 An Effect resolving to a success message or NotFoundError
 
-##### get()
+##### get
 
 > **get**: (`id`) => `Effect`&lt;&#123; `activeFlag`: `boolean` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` &#124; `null`; `dbcr`: `string` &#124; `null`; `glCode`: `string` &#124; `null`; `glDesc`: `string` &#124; `null`; `glGroup`: `string` &#124; `null`; `glNumber`: `string` &#124; `null`; `glType`: `string` &#124; `null`; `id`: `number`; `pkid`: `number`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror), `never`&gt;
 
@@ -80,61 +80,61 @@ The journal parameter ID
 
 An Effect resolving to the journal parameter or NotFoundError
 
-##### getCurrencyOptions()
+##### getCurrencyOptions
 
 > **getCurrencyOptions**: () => `Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
-Get Currency options
+Get Currency options from Business Setting B0001.
 
 ###### Returns
 
 `Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
-##### getDbCrOptions()
+##### getDbCrOptions
 
 > **getDbCrOptions**: () => `Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
-Get Debit/Credit options
+Get Debit/Credit options from Business Setting B0007.
 
 ###### Returns
 
 `Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
-##### getGlGroupOptions()
+##### getGlGroupOptions
 
-> **getGlGroupOptions**: () => `Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
+> **getGlGroupOptions**: () => `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
-Get GL Group options
+Get GL Group options from Rule Base Setting (type = GL).
 
 ###### Returns
 
-`Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
+`Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
-##### getJournalCodeOptions()
+##### getJournalCodeOptions
 
 > **getJournalCodeOptions**: () => `Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
-Get Journal Code options
+Get Journal Code options from Business Setting B0006 (per tech spec).
 
 ###### Returns
 
 `Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
-##### getJournalTypeOptions()
+##### getJournalTypeOptions
 
 > **getJournalTypeOptions**: () => `Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
-Get Journal Type options
+Get Journal Type options from Business Setting B0005 (per tech spec).
 
 ###### Returns
 
 `Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
-##### getOptions()
+##### getOptions
 
 > **getOptions**: (`paramCode`) => `Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
-Get dropdown options for a specific parameter code (internal helper).
+Get dropdown options from a Business Setting code (e.g. B0001).
 
 ###### Parameters
 
@@ -146,7 +146,7 @@ Get dropdown options for a specific parameter code (internal helper).
 
 `Effect`&lt;`any`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
-##### list()
+##### list
 
 > **list**: () => `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -158,7 +158,21 @@ List all journal parameters.
 
 An Effect resolving to an array of journal parameters
 
-##### update()
+##### listPage
+
+> **listPage**: (`query`) => `Effect`&lt;&#123; `rows`: `object`[]; `total`: `number`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
+
+###### Parameters
+
+###### query
+
+`ListQuery`
+
+###### Returns
+
+`Effect`&lt;&#123; `rows`: `object`[]; `total`: `number`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
+
+##### update
 
 > **update**: (`id`, `data`, `userId`) => `Effect`&lt;&#123; `activeFlag`: `boolean` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string` &#124; `null`; `dbcr`: `string` &#124; `null`; `glCode`: `string` &#124; `null`; `glDesc`: `string` &#124; `null`; `glGroup`: `string` &#124; `null`; `glNumber`: `string` &#124; `null`; `glType`: `string` &#124; `null`; `id`: `number`; `pkid`: `number`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror), `never`&gt;
 

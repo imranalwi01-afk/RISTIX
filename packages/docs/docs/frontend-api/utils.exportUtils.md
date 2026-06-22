@@ -8,7 +8,7 @@
 
 ### ExportOptions
 
-Defined in: [utils/exportUtils.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/exportUtils.ts#L8)
+Defined in: [utils/exportUtils.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/exportUtils.ts#L8)
 
 #### Properties
 
@@ -16,51 +16,51 @@ Defined in: [utils/exportUtils.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/4
 
 > `optional` **confidential**: `boolean`
 
-Defined in: [utils/exportUtils.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/exportUtils.ts#L15)
+Defined in: [utils/exportUtils.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/exportUtils.ts#L15)
 
 ##### exportedBy?
 
 > `optional` **exportedBy**: `string`
 
-Defined in: [utils/exportUtils.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/exportUtils.ts#L12)
+Defined in: [utils/exportUtils.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/exportUtils.ts#L12)
 
 ##### filename?
 
 > `optional` **filename**: `string`
 
-Defined in: [utils/exportUtils.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/exportUtils.ts#L9)
+Defined in: [utils/exportUtils.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/exportUtils.ts#L9)
 
 ##### filters?
 
-> `optional` **filters**: `Record`\<`string`, `any`\>
+> `optional` **filters**: `Record`&lt;`string`, `any`&gt;
 
-Defined in: [utils/exportUtils.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/exportUtils.ts#L13)
+Defined in: [utils/exportUtils.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/exportUtils.ts#L13)
 
 ##### modelVersion?
 
 > `optional` **modelVersion**: `string`
 
-Defined in: [utils/exportUtils.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/exportUtils.ts#L14)
+Defined in: [utils/exportUtils.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/exportUtils.ts#L14)
 
 ##### subtitle?
 
 > `optional` **subtitle**: `string`
 
-Defined in: [utils/exportUtils.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/exportUtils.ts#L11)
+Defined in: [utils/exportUtils.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/exportUtils.ts#L11)
 
 ##### title?
 
 > `optional` **title**: `string`
 
-Defined in: [utils/exportUtils.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/exportUtils.ts#L10)
+Defined in: [utils/exportUtils.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/exportUtils.ts#L10)
 
 ## Functions
 
 ### exportToCSV()
 
-> **exportToCSV**\<`T`\>(`data`, `columns`, `options?`): \{ `error?`: `undefined`; `filename`: `string`; `success`: `boolean`; \} \| \{ `error`: `string`; `filename?`: `undefined`; `success`: `boolean`; \}
+> **exportToCSV**&lt;`T`&gt;(`data`, `columns`, `options?`): &#123; `error?`: `undefined`; `filename`: `string`; `success`: `boolean`; &#125; &#124; &#123; `error`: `string`; `filename?`: `undefined`; `success`: `boolean`; &#125;
 
-Defined in: [utils/exportUtils.ts:106](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/exportUtils.ts#L106)
+Defined in: [utils/exportUtils.ts:106](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/exportUtils.ts#L106)
 
 Export to CSV
 
@@ -68,7 +68,7 @@ Export to CSV
 
 ##### T
 
-`T` *extends* `Record`\<`string`, `any`\>
+`T` *extends* `Record`&lt;`string`, `any`&gt;
 
 #### Parameters
 
@@ -86,15 +86,15 @@ Export to CSV
 
 #### Returns
 
-\{ `error?`: `undefined`; `filename`: `string`; `success`: `boolean`; \} \| \{ `error`: `string`; `filename?`: `undefined`; `success`: `boolean`; \}
+&#123; `error?`: `undefined`; `filename`: `string`; `success`: `boolean`; &#125; &#124; &#123; `error`: `string`; `filename?`: `undefined`; `success`: `boolean`; &#125;
 
 ***
 
 ### exportToPDF()
 
-> **exportToPDF**\<`T`\>(`data`, `columns`, `options?`): \{ `error?`: `undefined`; `filename`: `string`; `success`: `boolean`; \} \| \{ `error`: `string`; `filename?`: `undefined`; `success`: `boolean`; \}
+> **exportToPDF**&lt;`T`&gt;(`data`, `columns`, `options?`): &#123; `error?`: `undefined`; `filename`: `string`; `success`: `boolean`; &#125; &#124; &#123; `error`: `string`; `filename?`: `undefined`; `success`: `boolean`; &#125;
 
-Defined in: [utils/exportUtils.ts:158](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/exportUtils.ts#L158)
+Defined in: [utils/exportUtils.ts:158](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/exportUtils.ts#L158)
 
 Export to PDF (simplified - creates HTML that can be printed to PDF)
 
@@ -102,7 +102,7 @@ Export to PDF (simplified - creates HTML that can be printed to PDF)
 
 ##### T
 
-`T` *extends* `Record`\<`string`, `any`\>
+`T` *extends* `Record`&lt;`string`, `any`&gt;
 
 #### Parameters
 
@@ -120,15 +120,15 @@ Export to PDF (simplified - creates HTML that can be printed to PDF)
 
 #### Returns
 
-\{ `error?`: `undefined`; `filename`: `string`; `success`: `boolean`; \} \| \{ `error`: `string`; `filename?`: `undefined`; `success`: `boolean`; \}
+&#123; `error?`: `undefined`; `filename`: `string`; `success`: `boolean`; &#125; &#124; &#123; `error`: `string`; `filename?`: `undefined`; `success`: `boolean`; &#125;
 
 ***
 
 ### exportToXLSX()
 
-> **exportToXLSX**\<`T`\>(`data`, `columns`, `options?`): \{ `error?`: `undefined`; `filename`: `string`; `success`: `boolean`; \} \| \{ `error`: `string`; `filename?`: `undefined`; `success`: `boolean`; \}
+> **exportToXLSX**&lt;`T`&gt;(`data`, `columns`, `options?`): &#123; `error?`: `undefined`; `filename`: `string`; `success`: `boolean`; &#125; &#124; &#123; `error`: `string`; `filename?`: `undefined`; `success`: `boolean`; &#125;
 
-Defined in: [utils/exportUtils.ts:57](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/exportUtils.ts#L57)
+Defined in: [utils/exportUtils.ts:57](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/exportUtils.ts#L57)
 
 Export to XLSX (using CSV with .xlsx extension - Excel can open it)
 This is a simplified approach without external dependencies
@@ -137,7 +137,7 @@ This is a simplified approach without external dependencies
 
 ##### T
 
-`T` *extends* `Record`\<`string`, `any`\>
+`T` *extends* `Record`&lt;`string`, `any`&gt;
 
 #### Parameters
 
@@ -155,7 +155,7 @@ This is a simplified approach without external dependencies
 
 #### Returns
 
-\{ `error?`: `undefined`; `filename`: `string`; `success`: `boolean`; \} \| \{ `error`: `string`; `filename?`: `undefined`; `success`: `boolean`; \}
+&#123; `error?`: `undefined`; `filename`: `string`; `success`: `boolean`; &#125; &#124; &#123; `error`: `string`; `filename?`: `undefined`; `success`: `boolean`; &#125;
 
 ***
 
@@ -163,7 +163,7 @@ This is a simplified approach without external dependencies
 
 > **generateExportHeader**(`options?`): `string`
 
-Defined in: [utils/exportUtils.ts:21](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/exportUtils.ts#L21)
+Defined in: [utils/exportUtils.ts:21](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/exportUtils.ts#L21)
 
 Generate audit-ready export header (T1 Template)
 
@@ -183,9 +183,10 @@ Generate audit-ready export header (T1 Template)
 
 > **getCurrentUser**(): `string`
 
-Defined in: [utils/exportUtils.ts:276](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/exportUtils.ts#L276)
+Defined in: [utils/exportUtils.ts:277](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/exportUtils.ts#L277)
 
-Get current user info (placeholder - replace with actual auth context)
+Get current user info from localStorage (for non-React contexts).
+Returns the display name or username of the currently authenticated user.
 
 #### Returns
 

@@ -34,7 +34,6 @@
 | [utils/ifrs9](utils.ifrs9.md) | - |
 | [utils/loginRedirect](utils.loginRedirect.md) | - |
 | [utils/menu-hierarchy](utils.menu-hierarchy.md) | - |
-| [utils/menu-transform](utils.menu-transform.md) | - |
 | [utils/notification-utils](utils.notification-utils.md) | - |
 | [utils/permission-evaluator](utils.permission-evaluator.md) | - |
 | [utils/permissions](utils.permissions.md) | - |

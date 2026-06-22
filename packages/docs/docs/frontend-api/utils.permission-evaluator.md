@@ -8,7 +8,7 @@
 
 ### PermissionContext
 
-Defined in: [utils/permission-evaluator.ts:1](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/permission-evaluator.ts#L1)
+Defined in: [utils/permission-evaluator.ts:1](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/permission-evaluator.ts#L1)
 
 #### Properties
 
@@ -16,25 +16,25 @@ Defined in: [utils/permission-evaluator.ts:1](https://github.com/ifrspro/ifrs9-i
 
 > **isSuperAdmin**: `boolean`
 
-Defined in: [utils/permission-evaluator.ts:4](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/permission-evaluator.ts#L4)
+Defined in: [utils/permission-evaluator.ts:4](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/permission-evaluator.ts#L4)
 
 ##### normalizedPermissionSet
 
-> **normalizedPermissionSet**: `Set`\<`string`\>
+> **normalizedPermissionSet**: `Set`&lt;`string`&gt;
 
-Defined in: [utils/permission-evaluator.ts:3](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/permission-evaluator.ts#L3)
+Defined in: [utils/permission-evaluator.ts:3](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/permission-evaluator.ts#L3)
 
 ##### rawPermissions
 
 > **rawPermissions**: `string`[]
 
-Defined in: [utils/permission-evaluator.ts:2](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/permission-evaluator.ts#L2)
+Defined in: [utils/permission-evaluator.ts:2](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/permission-evaluator.ts#L2)
 
 ***
 
 ### PermissionEvaluation
 
-Defined in: [utils/permission-evaluator.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/permission-evaluator.ts#L7)
+Defined in: [utils/permission-evaluator.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/permission-evaluator.ts#L7)
 
 #### Properties
 
@@ -42,31 +42,31 @@ Defined in: [utils/permission-evaluator.ts:7](https://github.com/ifrspro/ifrs9-i
 
 > **allowed**: `boolean`
 
-Defined in: [utils/permission-evaluator.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/permission-evaluator.ts#L8)
+Defined in: [utils/permission-evaluator.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/permission-evaluator.ts#L8)
 
 ##### canonicalRequested
 
 > **canonicalRequested**: `string`
 
-Defined in: [utils/permission-evaluator.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/permission-evaluator.ts#L10)
+Defined in: [utils/permission-evaluator.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/permission-evaluator.ts#L10)
 
 ##### matchedPermission?
 
 > `optional` **matchedPermission**: `string`
 
-Defined in: [utils/permission-evaluator.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/permission-evaluator.ts#L12)
+Defined in: [utils/permission-evaluator.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/permission-evaluator.ts#L12)
 
 ##### reason
 
 > **reason**: `string`
 
-Defined in: [utils/permission-evaluator.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/permission-evaluator.ts#L11)
+Defined in: [utils/permission-evaluator.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/permission-evaluator.ts#L11)
 
 ##### requested
 
 > **requested**: `string`
 
-Defined in: [utils/permission-evaluator.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/permission-evaluator.ts#L9)
+Defined in: [utils/permission-evaluator.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/permission-evaluator.ts#L9)
 
 ## Functions
 
@@ -74,7 +74,7 @@ Defined in: [utils/permission-evaluator.ts:9](https://github.com/ifrspro/ifrs9-i
 
 > **buildPermissionContext**(`permissions`): [`PermissionContext`](#permissioncontext)
 
-Defined in: [utils/permission-evaluator.ts:57](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/permission-evaluator.ts#L57)
+Defined in: [utils/permission-evaluator.ts:35](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/permission-evaluator.ts#L35)
 
 #### Parameters
 
@@ -92,7 +92,7 @@ Defined in: [utils/permission-evaluator.ts:57](https://github.com/ifrspro/ifrs9-
 
 > **checkAllPermissions**(`requestedPermissions`, `contextOrPermissions`): `boolean`
 
-Defined in: [utils/permission-evaluator.ts:207](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/permission-evaluator.ts#L207)
+Defined in: [utils/permission-evaluator.ts:184](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/permission-evaluator.ts#L184)
 
 #### Parameters
 
@@ -114,7 +114,7 @@ Defined in: [utils/permission-evaluator.ts:207](https://github.com/ifrspro/ifrs9
 
 > **checkAnyPermission**(`requestedPermissions`, `contextOrPermissions`): `boolean`
 
-Defined in: [utils/permission-evaluator.ts:202](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/permission-evaluator.ts#L202)
+Defined in: [utils/permission-evaluator.ts:179](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/permission-evaluator.ts#L179)
 
 #### Parameters
 
@@ -136,7 +136,7 @@ Defined in: [utils/permission-evaluator.ts:202](https://github.com/ifrspro/ifrs9
 
 > **checkPermission**(`requestedPermission`, `contextOrPermissions`): `boolean`
 
-Defined in: [utils/permission-evaluator.ts:197](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/permission-evaluator.ts#L197)
+Defined in: [utils/permission-evaluator.ts:174](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/permission-evaluator.ts#L174)
 
 #### Parameters
 
@@ -158,7 +158,7 @@ Defined in: [utils/permission-evaluator.ts:197](https://github.com/ifrspro/ifrs9
 
 > **evaluatePermission**(`requestedPermission`, `contextOrPermissions`): [`PermissionEvaluation`](#permissionevaluation)
 
-Defined in: [utils/permission-evaluator.ts:79](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/permission-evaluator.ts#L79)
+Defined in: [utils/permission-evaluator.ts:56](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/permission-evaluator.ts#L56)
 
 #### Parameters
 
@@ -180,25 +180,7 @@ Defined in: [utils/permission-evaluator.ts:79](https://github.com/ifrspro/ifrs9-
 
 > **normalizePermissionInput**(`value`): `string`
 
-Defined in: [utils/permission-evaluator.ts:46](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/permission-evaluator.ts#L46)
-
-#### Parameters
-
-##### value
-
-`string`
-
-#### Returns
-
-`string`
-
-***
-
-### toCanonicalPermission()
-
-> **toCanonicalPermission**(`value`): `string`
-
-Defined in: [utils/permission-evaluator.ts:52](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/permission-evaluator.ts#L52)
+Defined in: [utils/permission-evaluator.ts:32](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/permission-evaluator.ts#L32)
 
 #### Parameters
 

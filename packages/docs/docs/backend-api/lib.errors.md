@@ -8,7 +8,7 @@
 
 ### AppError
 
-Defined in: [src/lib/errors.ts:6](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L6)
+Defined in: [src/lib/errors.ts:6](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L6)
 
 Base application error - all errors extend from this
 
@@ -22,7 +22,7 @@ Base application error - all errors extend from this
 
 > **new AppError**(`args`): [`AppError`](#apperror)
 
-Defined in: node\_modules/effect/dist/dts/Data.d.ts:610
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Data.d.ts:610
 
 ###### Parameters
 
@@ -54,7 +54,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:610
 
 > `readonly` **\_tag**: `"AppError"`
 
-Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Data.d.ts:611
 
 ###### Inherited from
 
@@ -64,7 +64,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
 
 > `readonly` **\[ChannelTypeId\]**: `VarianceStruct`&lt;`never`, `unknown`, [`AppError`](#apperror), `unknown`, `never`, `unknown`, `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:285
 
 ###### Inherited from
 
@@ -74,7 +74,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
 > `readonly` **\[EffectTypeId\]**: `VarianceStruct`&lt;`never`, [`AppError`](#apperror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:282
 
 ###### Inherited from
 
@@ -84,7 +84,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
 > `readonly` **\[SinkTypeId\]**: `VarianceStruct`&lt;`never`, `unknown`, `never`, [`AppError`](#apperror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:284
 
 ###### Inherited from
 
@@ -94,7 +94,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
 > `readonly` **\[StreamTypeId\]**: `VarianceStruct`&lt;`never`, [`AppError`](#apperror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:283
 
 ###### Inherited from
 
@@ -102,9 +102,9 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
 
 ##### cause?
 
-> `optional` **cause**: `unknown`
+> `optional` **cause?**: `unknown`
 
-Defined in: node\_modules/typescript/lib/lib.es2022.error.d.ts:26
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es2022.error.d.ts:26
 
 The cause of the error.
 
@@ -116,7 +116,7 @@ The cause of the error.
 
 > `readonly` **code**: `string`
 
-Defined in: [src/lib/errors.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L8)
+Defined in: [src/lib/errors.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L8)
 
 ###### Inherited from
 
@@ -126,7 +126,7 @@ Defined in: [src/lib/errors.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/4458
 
 > **message**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1077
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1077
 
 ###### Inherited from
 
@@ -136,7 +136,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1077
 
 > **name**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1076
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1076
 
 ###### Inherited from
 
@@ -144,9 +144,9 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1076
 
 ##### stack?
 
-> `optional` **stack**: `string`
+> `optional` **stack?**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 ###### Inherited from
 
@@ -158,7 +158,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 > **\[iterator\]**(): `EffectGenerator`&lt;`Effect`&lt;`never`, [`AppError`](#apperror), `never`&gt;&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:286
 
 ###### Returns
 
@@ -172,7 +172,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
 
 > **\[NodeInspectSymbol\]**(): `unknown`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 ###### Returns
 
@@ -188,7 +188,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 > **pipe**&lt;`A`&gt;(`this`): `A`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 ###### Type Parameters
 
@@ -214,7 +214,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 > **pipe**&lt;`A`, `B`&gt;(`this`, `ab`): `B`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 ###### Type Parameters
 
@@ -248,7 +248,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 > **pipe**&lt;`A`, `B`, `C`&gt;(`this`, `ab`, `bc`): `C`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 ###### Type Parameters
 
@@ -290,7 +290,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 > **pipe**&lt;`A`, `B`, `C`, `D`&gt;(`this`, `ab`, `bc`, `cd`): `D`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 ###### Type Parameters
 
@@ -340,7 +340,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`&gt;(`this`, `ab`, `bc`, `cd`, `de`): `E`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 ###### Type Parameters
 
@@ -398,7 +398,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 ###### Type Parameters
 
@@ -464,7 +464,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 ###### Type Parameters
 
@@ -538,7 +538,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 ###### Type Parameters
 
@@ -620,7 +620,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 ###### Type Parameters
 
@@ -710,7 +710,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 ###### Type Parameters
 
@@ -808,7 +808,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 ###### Type Parameters
 
@@ -914,7 +914,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 ###### Type Parameters
 
@@ -1028,7 +1028,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 ###### Type Parameters
 
@@ -1150,7 +1150,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 ###### Type Parameters
 
@@ -1280,7 +1280,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 ###### Type Parameters
 
@@ -1418,7 +1418,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 ###### Type Parameters
 
@@ -1564,7 +1564,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 ###### Type Parameters
 
@@ -1718,7 +1718,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 ###### Type Parameters
 
@@ -1880,7 +1880,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 ###### Type Parameters
 
@@ -2050,7 +2050,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 ###### Type Parameters
 
@@ -2228,7 +2228,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 ###### Type Parameters
 
@@ -2414,7 +2414,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
 ###### Type Parameters
 
@@ -2600,7 +2600,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
 > **toJSON**(): `unknown`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:21
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:21
 
 ###### Returns
 
@@ -2614,7 +2614,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:21
 
 > **toString**(): `string`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:20
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:20
 
 ###### Returns
 
@@ -2628,7 +2628,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:20
 
 ### AuthenticationError
 
-Defined in: [src/lib/errors.ts:42](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L42)
+Defined in: [src/lib/errors.ts:42](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L42)
 
 Authentication error - token invalid or missing
 
@@ -2642,7 +2642,7 @@ Authentication error - token invalid or missing
 
 > **new AuthenticationError**(`args`): [`AuthenticationError`](#authenticationerror)
 
-Defined in: node\_modules/effect/dist/dts/Data.d.ts:610
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Data.d.ts:610
 
 ###### Parameters
 
@@ -2674,7 +2674,7 @@ Data.TaggedError('AuthenticationError')&lt;&#123; readonly message: string reado
 
 > `readonly` **\_tag**: `"AuthenticationError"`
 
-Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Data.d.ts:611
 
 ###### Inherited from
 
@@ -2684,7 +2684,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
 
 > `readonly` **\[ChannelTypeId\]**: `VarianceStruct`&lt;`never`, `unknown`, [`AuthenticationError`](#authenticationerror), `unknown`, `never`, `unknown`, `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:285
 
 ###### Inherited from
 
@@ -2694,7 +2694,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
 > `readonly` **\[EffectTypeId\]**: `VarianceStruct`&lt;`never`, [`AuthenticationError`](#authenticationerror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:282
 
 ###### Inherited from
 
@@ -2704,7 +2704,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
 > `readonly` **\[SinkTypeId\]**: `VarianceStruct`&lt;`never`, `unknown`, `never`, [`AuthenticationError`](#authenticationerror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:284
 
 ###### Inherited from
 
@@ -2714,7 +2714,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
 > `readonly` **\[StreamTypeId\]**: `VarianceStruct`&lt;`never`, [`AuthenticationError`](#authenticationerror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:283
 
 ###### Inherited from
 
@@ -2722,9 +2722,9 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
 
 ##### cause?
 
-> `optional` **cause**: `unknown`
+> `optional` **cause?**: `unknown`
 
-Defined in: node\_modules/typescript/lib/lib.es2022.error.d.ts:26
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es2022.error.d.ts:26
 
 The cause of the error.
 
@@ -2734,9 +2734,9 @@ The cause of the error.
 
 ##### code?
 
-> `readonly` `optional` **code**: `string`
+> `readonly` `optional` **code?**: `string`
 
-Defined in: [src/lib/errors.ts:45](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L45)
+Defined in: [src/lib/errors.ts:45](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L45)
 
 ###### Inherited from
 
@@ -2746,7 +2746,7 @@ Defined in: [src/lib/errors.ts:45](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 > **message**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1077
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1077
 
 ###### Inherited from
 
@@ -2756,7 +2756,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1077
 
 > **name**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1076
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1076
 
 ###### Inherited from
 
@@ -2766,7 +2766,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1076
 
 > `readonly` **reason**: `"missing_token"` &#124; `"invalid_token"` &#124; `"expired_token"` &#124; `"invalid_credentials"` &#124; `"refactor_pending"` &#124; `"unexpected_error"`
 
-Defined in: [src/lib/errors.ts:44](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L44)
+Defined in: [src/lib/errors.ts:44](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L44)
 
 ###### Inherited from
 
@@ -2774,9 +2774,9 @@ Defined in: [src/lib/errors.ts:44](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 ##### stack?
 
-> `optional` **stack**: `string`
+> `optional` **stack?**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 ###### Inherited from
 
@@ -2788,7 +2788,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 > **\[iterator\]**(): `EffectGenerator`&lt;`Effect`&lt;`never`, [`AuthenticationError`](#authenticationerror), `never`&gt;&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:286
 
 ###### Returns
 
@@ -2802,7 +2802,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
 
 > **\[NodeInspectSymbol\]**(): `unknown`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 ###### Returns
 
@@ -2818,7 +2818,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 > **pipe**&lt;`A`&gt;(`this`): `A`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 ###### Type Parameters
 
@@ -2844,7 +2844,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 > **pipe**&lt;`A`, `B`&gt;(`this`, `ab`): `B`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 ###### Type Parameters
 
@@ -2878,7 +2878,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 > **pipe**&lt;`A`, `B`, `C`&gt;(`this`, `ab`, `bc`): `C`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 ###### Type Parameters
 
@@ -2920,7 +2920,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 > **pipe**&lt;`A`, `B`, `C`, `D`&gt;(`this`, `ab`, `bc`, `cd`): `D`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 ###### Type Parameters
 
@@ -2970,7 +2970,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`&gt;(`this`, `ab`, `bc`, `cd`, `de`): `E`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 ###### Type Parameters
 
@@ -3028,7 +3028,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 ###### Type Parameters
 
@@ -3094,7 +3094,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 ###### Type Parameters
 
@@ -3168,7 +3168,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 ###### Type Parameters
 
@@ -3250,7 +3250,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 ###### Type Parameters
 
@@ -3340,7 +3340,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 ###### Type Parameters
 
@@ -3438,7 +3438,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 ###### Type Parameters
 
@@ -3544,7 +3544,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 ###### Type Parameters
 
@@ -3658,7 +3658,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 ###### Type Parameters
 
@@ -3780,7 +3780,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 ###### Type Parameters
 
@@ -3910,7 +3910,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 ###### Type Parameters
 
@@ -4048,7 +4048,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 ###### Type Parameters
 
@@ -4194,7 +4194,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 ###### Type Parameters
 
@@ -4348,7 +4348,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 ###### Type Parameters
 
@@ -4510,7 +4510,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 ###### Type Parameters
 
@@ -4680,7 +4680,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 ###### Type Parameters
 
@@ -4858,7 +4858,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 ###### Type Parameters
 
@@ -5044,7 +5044,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
 ###### Type Parameters
 
@@ -5230,7 +5230,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
 > **toJSON**(): `unknown`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:21
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:21
 
 ###### Returns
 
@@ -5244,7 +5244,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:21
 
 > **toString**(): `string`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:20
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:20
 
 ###### Returns
 
@@ -5258,7 +5258,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:20
 
 ### AuthorizationError
 
-Defined in: [src/lib/errors.ts:51](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L51)
+Defined in: [src/lib/errors.ts:51](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L51)
 
 Authorization error - user lacks permission
 
@@ -5272,7 +5272,7 @@ Authorization error - user lacks permission
 
 > **new AuthorizationError**(`args`): [`AuthorizationError`](#authorizationerror)
 
-Defined in: node\_modules/effect/dist/dts/Data.d.ts:610
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Data.d.ts:610
 
 ###### Parameters
 
@@ -5308,7 +5308,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:610
 
 > `readonly` **\_tag**: `"AuthorizationError"`
 
-Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Data.d.ts:611
 
 ###### Inherited from
 
@@ -5318,7 +5318,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
 
 > `readonly` **\[ChannelTypeId\]**: `VarianceStruct`&lt;`never`, `unknown`, [`AuthorizationError`](#authorizationerror), `unknown`, `never`, `unknown`, `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:285
 
 ###### Inherited from
 
@@ -5328,7 +5328,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
 > `readonly` **\[EffectTypeId\]**: `VarianceStruct`&lt;`never`, [`AuthorizationError`](#authorizationerror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:282
 
 ###### Inherited from
 
@@ -5338,7 +5338,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
 > `readonly` **\[SinkTypeId\]**: `VarianceStruct`&lt;`never`, `unknown`, `never`, [`AuthorizationError`](#authorizationerror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:284
 
 ###### Inherited from
 
@@ -5348,7 +5348,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
 > `readonly` **\[StreamTypeId\]**: `VarianceStruct`&lt;`never`, [`AuthorizationError`](#authorizationerror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:283
 
 ###### Inherited from
 
@@ -5356,9 +5356,9 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
 
 ##### cause?
 
-> `optional` **cause**: `unknown`
+> `optional` **cause?**: `unknown`
 
-Defined in: node\_modules/typescript/lib/lib.es2022.error.d.ts:26
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es2022.error.d.ts:26
 
 The cause of the error.
 
@@ -5368,9 +5368,9 @@ The cause of the error.
 
 ##### details?
 
-> `readonly` `optional` **details**: `Record`&lt;`string`, `unknown`&gt;
+> `readonly` `optional` **details?**: `Record`&lt;`string`, `unknown`&gt;
 
-Defined in: [src/lib/errors.ts:55](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L55)
+Defined in: [src/lib/errors.ts:55](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L55)
 
 ###### Inherited from
 
@@ -5380,7 +5380,7 @@ Defined in: [src/lib/errors.ts:55](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 > **message**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1077
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1077
 
 ###### Inherited from
 
@@ -5390,7 +5390,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1077
 
 > **name**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1076
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1076
 
 ###### Inherited from
 
@@ -5400,7 +5400,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1076
 
 > `readonly` **requiredPermission**: `string`
 
-Defined in: [src/lib/errors.ts:53](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L53)
+Defined in: [src/lib/errors.ts:53](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L53)
 
 ###### Inherited from
 
@@ -5408,9 +5408,9 @@ Defined in: [src/lib/errors.ts:53](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 ##### stack?
 
-> `optional` **stack**: `string`
+> `optional` **stack?**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 ###### Inherited from
 
@@ -5418,9 +5418,9 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 ##### userId?
 
-> `readonly` `optional` **userId**: `string`
+> `readonly` `optional` **userId?**: `string`
 
-Defined in: [src/lib/errors.ts:54](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L54)
+Defined in: [src/lib/errors.ts:54](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L54)
 
 ###### Inherited from
 
@@ -5432,7 +5432,7 @@ Defined in: [src/lib/errors.ts:54](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 > **\[iterator\]**(): `EffectGenerator`&lt;`Effect`&lt;`never`, [`AuthorizationError`](#authorizationerror), `never`&gt;&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:286
 
 ###### Returns
 
@@ -5446,7 +5446,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
 
 > **\[NodeInspectSymbol\]**(): `unknown`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 ###### Returns
 
@@ -5462,7 +5462,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 > **pipe**&lt;`A`&gt;(`this`): `A`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 ###### Type Parameters
 
@@ -5488,7 +5488,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 > **pipe**&lt;`A`, `B`&gt;(`this`, `ab`): `B`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 ###### Type Parameters
 
@@ -5522,7 +5522,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 > **pipe**&lt;`A`, `B`, `C`&gt;(`this`, `ab`, `bc`): `C`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 ###### Type Parameters
 
@@ -5564,7 +5564,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 > **pipe**&lt;`A`, `B`, `C`, `D`&gt;(`this`, `ab`, `bc`, `cd`): `D`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 ###### Type Parameters
 
@@ -5614,7 +5614,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`&gt;(`this`, `ab`, `bc`, `cd`, `de`): `E`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 ###### Type Parameters
 
@@ -5672,7 +5672,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 ###### Type Parameters
 
@@ -5738,7 +5738,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 ###### Type Parameters
 
@@ -5812,7 +5812,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 ###### Type Parameters
 
@@ -5894,7 +5894,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 ###### Type Parameters
 
@@ -5984,7 +5984,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 ###### Type Parameters
 
@@ -6082,7 +6082,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 ###### Type Parameters
 
@@ -6188,7 +6188,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 ###### Type Parameters
 
@@ -6302,7 +6302,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 ###### Type Parameters
 
@@ -6424,7 +6424,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 ###### Type Parameters
 
@@ -6554,7 +6554,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 ###### Type Parameters
 
@@ -6692,7 +6692,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 ###### Type Parameters
 
@@ -6838,7 +6838,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 ###### Type Parameters
 
@@ -6992,7 +6992,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 ###### Type Parameters
 
@@ -7154,7 +7154,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 ###### Type Parameters
 
@@ -7324,7 +7324,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 ###### Type Parameters
 
@@ -7502,7 +7502,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 ###### Type Parameters
 
@@ -7688,7 +7688,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
 ###### Type Parameters
 
@@ -7874,7 +7874,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
 > **toJSON**(): `unknown`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:21
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:21
 
 ###### Returns
 
@@ -7888,7 +7888,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:21
 
 > **toString**(): `string`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:20
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:20
 
 ###### Returns
 
@@ -7902,7 +7902,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:20
 
 ### BusinessError
 
-Defined in: [src/lib/errors.ts:61](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L61)
+Defined in: [src/lib/errors.ts:61](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L61)
 
 Business rule violation
 
@@ -7916,7 +7916,7 @@ Business rule violation
 
 > **new BusinessError**(`args`): [`BusinessError`](#businesserror)
 
-Defined in: node\_modules/effect/dist/dts/Data.d.ts:610
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Data.d.ts:610
 
 ###### Parameters
 
@@ -7948,7 +7948,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:610
 
 > `readonly` **\_tag**: `"BusinessError"`
 
-Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Data.d.ts:611
 
 ###### Inherited from
 
@@ -7958,7 +7958,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
 
 > `readonly` **\[ChannelTypeId\]**: `VarianceStruct`&lt;`never`, `unknown`, [`BusinessError`](#businesserror), `unknown`, `never`, `unknown`, `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:285
 
 ###### Inherited from
 
@@ -7968,7 +7968,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
 > `readonly` **\[EffectTypeId\]**: `VarianceStruct`&lt;`never`, [`BusinessError`](#businesserror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:282
 
 ###### Inherited from
 
@@ -7978,7 +7978,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
 > `readonly` **\[SinkTypeId\]**: `VarianceStruct`&lt;`never`, `unknown`, `never`, [`BusinessError`](#businesserror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:284
 
 ###### Inherited from
 
@@ -7988,7 +7988,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
 > `readonly` **\[StreamTypeId\]**: `VarianceStruct`&lt;`never`, [`BusinessError`](#businesserror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:283
 
 ###### Inherited from
 
@@ -7996,9 +7996,9 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
 
 ##### cause?
 
-> `optional` **cause**: `unknown`
+> `optional` **cause?**: `unknown`
 
-Defined in: node\_modules/typescript/lib/lib.es2022.error.d.ts:26
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es2022.error.d.ts:26
 
 The cause of the error.
 
@@ -8010,7 +8010,7 @@ The cause of the error.
 
 > `readonly` **code**: `string`
 
-Defined in: [src/lib/errors.ts:63](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L63)
+Defined in: [src/lib/errors.ts:63](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L63)
 
 ###### Inherited from
 
@@ -8018,9 +8018,9 @@ Defined in: [src/lib/errors.ts:63](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 ##### details?
 
-> `readonly` `optional` **details**: `Record`&lt;`string`, `unknown`&gt;
+> `readonly` `optional` **details?**: `Record`&lt;`string`, `unknown`&gt;
 
-Defined in: [src/lib/errors.ts:64](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L64)
+Defined in: [src/lib/errors.ts:64](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L64)
 
 ###### Inherited from
 
@@ -8030,7 +8030,7 @@ Defined in: [src/lib/errors.ts:64](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 > **message**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1077
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1077
 
 ###### Inherited from
 
@@ -8040,7 +8040,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1077
 
 > **name**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1076
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1076
 
 ###### Inherited from
 
@@ -8048,9 +8048,9 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1076
 
 ##### stack?
 
-> `optional` **stack**: `string`
+> `optional` **stack?**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 ###### Inherited from
 
@@ -8062,7 +8062,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 > **\[iterator\]**(): `EffectGenerator`&lt;`Effect`&lt;`never`, [`BusinessError`](#businesserror), `never`&gt;&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:286
 
 ###### Returns
 
@@ -8076,7 +8076,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
 
 > **\[NodeInspectSymbol\]**(): `unknown`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 ###### Returns
 
@@ -8092,7 +8092,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 > **pipe**&lt;`A`&gt;(`this`): `A`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 ###### Type Parameters
 
@@ -8118,7 +8118,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 > **pipe**&lt;`A`, `B`&gt;(`this`, `ab`): `B`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 ###### Type Parameters
 
@@ -8152,7 +8152,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 > **pipe**&lt;`A`, `B`, `C`&gt;(`this`, `ab`, `bc`): `C`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 ###### Type Parameters
 
@@ -8194,7 +8194,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 > **pipe**&lt;`A`, `B`, `C`, `D`&gt;(`this`, `ab`, `bc`, `cd`): `D`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 ###### Type Parameters
 
@@ -8244,7 +8244,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`&gt;(`this`, `ab`, `bc`, `cd`, `de`): `E`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 ###### Type Parameters
 
@@ -8302,7 +8302,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 ###### Type Parameters
 
@@ -8368,7 +8368,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 ###### Type Parameters
 
@@ -8442,7 +8442,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 ###### Type Parameters
 
@@ -8524,7 +8524,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 ###### Type Parameters
 
@@ -8614,7 +8614,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 ###### Type Parameters
 
@@ -8712,7 +8712,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 ###### Type Parameters
 
@@ -8818,7 +8818,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 ###### Type Parameters
 
@@ -8932,7 +8932,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 ###### Type Parameters
 
@@ -9054,7 +9054,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 ###### Type Parameters
 
@@ -9184,7 +9184,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 ###### Type Parameters
 
@@ -9322,7 +9322,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 ###### Type Parameters
 
@@ -9468,7 +9468,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 ###### Type Parameters
 
@@ -9622,7 +9622,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 ###### Type Parameters
 
@@ -9784,7 +9784,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 ###### Type Parameters
 
@@ -9954,7 +9954,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 ###### Type Parameters
 
@@ -10132,7 +10132,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 ###### Type Parameters
 
@@ -10318,7 +10318,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
 ###### Type Parameters
 
@@ -10504,7 +10504,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
 > **toJSON**(): `unknown`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:21
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:21
 
 ###### Returns
 
@@ -10518,7 +10518,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:21
 
 > **toString**(): `string`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:20
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:20
 
 ###### Returns
 
@@ -10532,7 +10532,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:20
 
 ### ConflictError
 
-Defined in: [src/lib/errors.ts:78](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L78)
+Defined in: [src/lib/errors.ts:78](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L78)
 
 Conflict error - duplicate resource or version mismatch
 
@@ -10546,7 +10546,7 @@ Conflict error - duplicate resource or version mismatch
 
 > **new ConflictError**(`args`): [`ConflictError`](#conflicterror)
 
-Defined in: node\_modules/effect/dist/dts/Data.d.ts:610
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Data.d.ts:610
 
 ###### Parameters
 
@@ -10586,7 +10586,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:610
 
 > `readonly` **\_tag**: `"ConflictError"`
 
-Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Data.d.ts:611
 
 ###### Inherited from
 
@@ -10596,7 +10596,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
 
 > `readonly` **\[ChannelTypeId\]**: `VarianceStruct`&lt;`never`, `unknown`, [`ConflictError`](#conflicterror), `unknown`, `never`, `unknown`, `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:285
 
 ###### Inherited from
 
@@ -10606,7 +10606,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
 > `readonly` **\[EffectTypeId\]**: `VarianceStruct`&lt;`never`, [`ConflictError`](#conflicterror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:282
 
 ###### Inherited from
 
@@ -10616,7 +10616,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
 > `readonly` **\[SinkTypeId\]**: `VarianceStruct`&lt;`never`, `unknown`, `never`, [`ConflictError`](#conflicterror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:284
 
 ###### Inherited from
 
@@ -10626,7 +10626,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
 > `readonly` **\[StreamTypeId\]**: `VarianceStruct`&lt;`never`, [`ConflictError`](#conflicterror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:283
 
 ###### Inherited from
 
@@ -10634,9 +10634,9 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
 
 ##### cause?
 
-> `optional` **cause**: `unknown`
+> `optional` **cause?**: `unknown`
 
-Defined in: node\_modules/typescript/lib/lib.es2022.error.d.ts:26
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es2022.error.d.ts:26
 
 The cause of the error.
 
@@ -10646,9 +10646,9 @@ The cause of the error.
 
 ##### details?
 
-> `readonly` `optional` **details**: `Record`&lt;`string`, `unknown`&gt;
+> `readonly` `optional` **details?**: `Record`&lt;`string`, `unknown`&gt;
 
-Defined in: [src/lib/errors.ts:83](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L83)
+Defined in: [src/lib/errors.ts:83](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L83)
 
 ###### Inherited from
 
@@ -10656,9 +10656,9 @@ Defined in: [src/lib/errors.ts:83](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 ##### field?
 
-> `readonly` `optional` **field**: `string`
+> `readonly` `optional` **field?**: `string`
 
-Defined in: [src/lib/errors.ts:81](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L81)
+Defined in: [src/lib/errors.ts:81](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L81)
 
 ###### Inherited from
 
@@ -10668,7 +10668,7 @@ Defined in: [src/lib/errors.ts:81](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 > **message**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1077
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1077
 
 ###### Inherited from
 
@@ -10678,7 +10678,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1077
 
 > **name**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1076
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1076
 
 ###### Inherited from
 
@@ -10688,7 +10688,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1076
 
 > `readonly` **resource**: `string`
 
-Defined in: [src/lib/errors.ts:80](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L80)
+Defined in: [src/lib/errors.ts:80](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L80)
 
 ###### Inherited from
 
@@ -10696,9 +10696,9 @@ Defined in: [src/lib/errors.ts:80](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 ##### stack?
 
-> `optional` **stack**: `string`
+> `optional` **stack?**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 ###### Inherited from
 
@@ -10706,9 +10706,9 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 ##### value?
 
-> `readonly` `optional` **value**: `unknown`
+> `readonly` `optional` **value?**: `unknown`
 
-Defined in: [src/lib/errors.ts:82](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L82)
+Defined in: [src/lib/errors.ts:82](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L82)
 
 ###### Inherited from
 
@@ -10720,7 +10720,7 @@ Defined in: [src/lib/errors.ts:82](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 > **\[iterator\]**(): `EffectGenerator`&lt;`Effect`&lt;`never`, [`ConflictError`](#conflicterror), `never`&gt;&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:286
 
 ###### Returns
 
@@ -10734,7 +10734,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
 
 > **\[NodeInspectSymbol\]**(): `unknown`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 ###### Returns
 
@@ -10750,7 +10750,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 > **pipe**&lt;`A`&gt;(`this`): `A`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 ###### Type Parameters
 
@@ -10776,7 +10776,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 > **pipe**&lt;`A`, `B`&gt;(`this`, `ab`): `B`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 ###### Type Parameters
 
@@ -10810,7 +10810,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 > **pipe**&lt;`A`, `B`, `C`&gt;(`this`, `ab`, `bc`): `C`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 ###### Type Parameters
 
@@ -10852,7 +10852,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 > **pipe**&lt;`A`, `B`, `C`, `D`&gt;(`this`, `ab`, `bc`, `cd`): `D`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 ###### Type Parameters
 
@@ -10902,7 +10902,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`&gt;(`this`, `ab`, `bc`, `cd`, `de`): `E`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 ###### Type Parameters
 
@@ -10960,7 +10960,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 ###### Type Parameters
 
@@ -11026,7 +11026,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 ###### Type Parameters
 
@@ -11100,7 +11100,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 ###### Type Parameters
 
@@ -11182,7 +11182,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 ###### Type Parameters
 
@@ -11272,7 +11272,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 ###### Type Parameters
 
@@ -11370,7 +11370,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 ###### Type Parameters
 
@@ -11476,7 +11476,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 ###### Type Parameters
 
@@ -11590,7 +11590,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 ###### Type Parameters
 
@@ -11712,7 +11712,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 ###### Type Parameters
 
@@ -11842,7 +11842,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 ###### Type Parameters
 
@@ -11980,7 +11980,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 ###### Type Parameters
 
@@ -12126,7 +12126,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 ###### Type Parameters
 
@@ -12280,7 +12280,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 ###### Type Parameters
 
@@ -12442,7 +12442,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 ###### Type Parameters
 
@@ -12612,7 +12612,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 ###### Type Parameters
 
@@ -12790,7 +12790,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 ###### Type Parameters
 
@@ -12976,7 +12976,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
 ###### Type Parameters
 
@@ -13162,7 +13162,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
 > **toJSON**(): `unknown`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:21
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:21
 
 ###### Returns
 
@@ -13176,7 +13176,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:21
 
 > **toString**(): `string`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:20
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:20
 
 ###### Returns
 
@@ -13190,7 +13190,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:20
 
 ### DatabaseError
 
-Defined in: [src/lib/errors.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L15)
+Defined in: [src/lib/errors.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L15)
 
 Database operation errors
 
@@ -13204,7 +13204,7 @@ Database operation errors
 
 > **new DatabaseError**(`args`): [`DatabaseError`](#databaseerror)
 
-Defined in: node\_modules/effect/dist/dts/Data.d.ts:610
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Data.d.ts:610
 
 ###### Parameters
 
@@ -13236,7 +13236,7 @@ Data.TaggedError('DatabaseError')&lt;&#123; readonly message: string readonly op
 
 > `readonly` **\_tag**: `"DatabaseError"`
 
-Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Data.d.ts:611
 
 ###### Inherited from
 
@@ -13246,7 +13246,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
 
 > `readonly` **\[ChannelTypeId\]**: `VarianceStruct`&lt;`never`, `unknown`, [`DatabaseError`](#databaseerror), `unknown`, `never`, `unknown`, `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:285
 
 ###### Inherited from
 
@@ -13256,7 +13256,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
 > `readonly` **\[EffectTypeId\]**: `VarianceStruct`&lt;`never`, [`DatabaseError`](#databaseerror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:282
 
 ###### Inherited from
 
@@ -13266,7 +13266,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
 > `readonly` **\[SinkTypeId\]**: `VarianceStruct`&lt;`never`, `unknown`, `never`, [`DatabaseError`](#databaseerror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:284
 
 ###### Inherited from
 
@@ -13276,7 +13276,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
 > `readonly` **\[StreamTypeId\]**: `VarianceStruct`&lt;`never`, [`DatabaseError`](#databaseerror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:283
 
 ###### Inherited from
 
@@ -13284,9 +13284,9 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
 
 ##### cause?
 
-> `optional` **cause**: `unknown`
+> `optional` **cause?**: `unknown`
 
-Defined in: node\_modules/typescript/lib/lib.es2022.error.d.ts:26
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es2022.error.d.ts:26
 
 The cause of the error.
 
@@ -13298,7 +13298,7 @@ The cause of the error.
 
 > **message**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1077
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1077
 
 ###### Inherited from
 
@@ -13308,7 +13308,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1077
 
 > **name**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1076
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1076
 
 ###### Inherited from
 
@@ -13318,7 +13318,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1076
 
 > `readonly` **operation**: `"query"` &#124; `"insert"` &#124; `"update"` &#124; `"delete"` &#124; `"upsert"` &#124; `"transaction"`
 
-Defined in: [src/lib/errors.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L17)
+Defined in: [src/lib/errors.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L17)
 
 ###### Inherited from
 
@@ -13326,9 +13326,9 @@ Defined in: [src/lib/errors.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 ##### stack?
 
-> `optional` **stack**: `string`
+> `optional` **stack?**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 ###### Inherited from
 
@@ -13340,7 +13340,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 > **\[iterator\]**(): `EffectGenerator`&lt;`Effect`&lt;`never`, [`DatabaseError`](#databaseerror), `never`&gt;&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:286
 
 ###### Returns
 
@@ -13354,7 +13354,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
 
 > **\[NodeInspectSymbol\]**(): `unknown`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 ###### Returns
 
@@ -13370,7 +13370,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 > **pipe**&lt;`A`&gt;(`this`): `A`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 ###### Type Parameters
 
@@ -13396,7 +13396,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 > **pipe**&lt;`A`, `B`&gt;(`this`, `ab`): `B`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 ###### Type Parameters
 
@@ -13430,7 +13430,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 > **pipe**&lt;`A`, `B`, `C`&gt;(`this`, `ab`, `bc`): `C`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 ###### Type Parameters
 
@@ -13472,7 +13472,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 > **pipe**&lt;`A`, `B`, `C`, `D`&gt;(`this`, `ab`, `bc`, `cd`): `D`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 ###### Type Parameters
 
@@ -13522,7 +13522,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`&gt;(`this`, `ab`, `bc`, `cd`, `de`): `E`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 ###### Type Parameters
 
@@ -13580,7 +13580,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 ###### Type Parameters
 
@@ -13646,7 +13646,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 ###### Type Parameters
 
@@ -13720,7 +13720,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 ###### Type Parameters
 
@@ -13802,7 +13802,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 ###### Type Parameters
 
@@ -13892,7 +13892,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 ###### Type Parameters
 
@@ -13990,7 +13990,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 ###### Type Parameters
 
@@ -14096,7 +14096,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 ###### Type Parameters
 
@@ -14210,7 +14210,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 ###### Type Parameters
 
@@ -14332,7 +14332,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 ###### Type Parameters
 
@@ -14462,7 +14462,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 ###### Type Parameters
 
@@ -14600,7 +14600,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 ###### Type Parameters
 
@@ -14746,7 +14746,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 ###### Type Parameters
 
@@ -14900,7 +14900,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 ###### Type Parameters
 
@@ -15062,7 +15062,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 ###### Type Parameters
 
@@ -15232,7 +15232,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 ###### Type Parameters
 
@@ -15410,7 +15410,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 ###### Type Parameters
 
@@ -15596,7 +15596,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
 ###### Type Parameters
 
@@ -15782,7 +15782,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
 > **toJSON**(): `unknown`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:21
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:21
 
 ###### Returns
 
@@ -15796,7 +15796,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:21
 
 > **toString**(): `string`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:20
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:20
 
 ###### Returns
 
@@ -15810,7 +15810,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:20
 
 ### NotFoundError
 
-Defined in: [src/lib/errors.ts:33](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L33)
+Defined in: [src/lib/errors.ts:33](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L33)
 
 Resource not found error
 
@@ -15824,7 +15824,7 @@ Resource not found error
 
 > **new NotFoundError**(`args`): [`NotFoundError`](#notfounderror)
 
-Defined in: node\_modules/effect/dist/dts/Data.d.ts:610
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Data.d.ts:610
 
 ###### Parameters
 
@@ -15856,7 +15856,7 @@ Data.TaggedError('NotFoundError')&lt;&#123; readonly message: string readonly re
 
 > `readonly` **\_tag**: `"NotFoundError"`
 
-Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Data.d.ts:611
 
 ###### Inherited from
 
@@ -15866,7 +15866,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
 
 > `readonly` **\[ChannelTypeId\]**: `VarianceStruct`&lt;`never`, `unknown`, [`NotFoundError`](#notfounderror), `unknown`, `never`, `unknown`, `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:285
 
 ###### Inherited from
 
@@ -15876,7 +15876,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
 > `readonly` **\[EffectTypeId\]**: `VarianceStruct`&lt;`never`, [`NotFoundError`](#notfounderror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:282
 
 ###### Inherited from
 
@@ -15886,7 +15886,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
 > `readonly` **\[SinkTypeId\]**: `VarianceStruct`&lt;`never`, `unknown`, `never`, [`NotFoundError`](#notfounderror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:284
 
 ###### Inherited from
 
@@ -15896,7 +15896,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
 > `readonly` **\[StreamTypeId\]**: `VarianceStruct`&lt;`never`, [`NotFoundError`](#notfounderror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:283
 
 ###### Inherited from
 
@@ -15904,9 +15904,9 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
 
 ##### cause?
 
-> `optional` **cause**: `unknown`
+> `optional` **cause?**: `unknown`
 
-Defined in: node\_modules/typescript/lib/lib.es2022.error.d.ts:26
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es2022.error.d.ts:26
 
 The cause of the error.
 
@@ -15918,7 +15918,7 @@ The cause of the error.
 
 > `readonly` **id**: `string` &#124; `number`
 
-Defined in: [src/lib/errors.ts:36](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L36)
+Defined in: [src/lib/errors.ts:36](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L36)
 
 ###### Inherited from
 
@@ -15928,7 +15928,7 @@ Defined in: [src/lib/errors.ts:36](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 > **message**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1077
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1077
 
 ###### Inherited from
 
@@ -15938,7 +15938,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1077
 
 > **name**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1076
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1076
 
 ###### Inherited from
 
@@ -15948,7 +15948,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1076
 
 > `readonly` **resource**: `string`
 
-Defined in: [src/lib/errors.ts:35](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L35)
+Defined in: [src/lib/errors.ts:35](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L35)
 
 ###### Inherited from
 
@@ -15956,9 +15956,9 @@ Defined in: [src/lib/errors.ts:35](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 ##### stack?
 
-> `optional` **stack**: `string`
+> `optional` **stack?**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 ###### Inherited from
 
@@ -15970,7 +15970,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 > **\[iterator\]**(): `EffectGenerator`&lt;`Effect`&lt;`never`, [`NotFoundError`](#notfounderror), `never`&gt;&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:286
 
 ###### Returns
 
@@ -15984,7 +15984,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
 
 > **\[NodeInspectSymbol\]**(): `unknown`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 ###### Returns
 
@@ -16000,7 +16000,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 > **pipe**&lt;`A`&gt;(`this`): `A`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 ###### Type Parameters
 
@@ -16026,7 +16026,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 > **pipe**&lt;`A`, `B`&gt;(`this`, `ab`): `B`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 ###### Type Parameters
 
@@ -16060,7 +16060,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 > **pipe**&lt;`A`, `B`, `C`&gt;(`this`, `ab`, `bc`): `C`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 ###### Type Parameters
 
@@ -16102,7 +16102,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 > **pipe**&lt;`A`, `B`, `C`, `D`&gt;(`this`, `ab`, `bc`, `cd`): `D`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 ###### Type Parameters
 
@@ -16152,7 +16152,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`&gt;(`this`, `ab`, `bc`, `cd`, `de`): `E`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 ###### Type Parameters
 
@@ -16210,7 +16210,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 ###### Type Parameters
 
@@ -16276,7 +16276,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 ###### Type Parameters
 
@@ -16350,7 +16350,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 ###### Type Parameters
 
@@ -16432,7 +16432,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 ###### Type Parameters
 
@@ -16522,7 +16522,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 ###### Type Parameters
 
@@ -16620,7 +16620,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 ###### Type Parameters
 
@@ -16726,7 +16726,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 ###### Type Parameters
 
@@ -16840,7 +16840,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 ###### Type Parameters
 
@@ -16962,7 +16962,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 ###### Type Parameters
 
@@ -17092,7 +17092,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 ###### Type Parameters
 
@@ -17230,7 +17230,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 ###### Type Parameters
 
@@ -17376,7 +17376,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 ###### Type Parameters
 
@@ -17530,7 +17530,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 ###### Type Parameters
 
@@ -17692,7 +17692,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 ###### Type Parameters
 
@@ -17862,7 +17862,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 ###### Type Parameters
 
@@ -18040,7 +18040,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 ###### Type Parameters
 
@@ -18226,7 +18226,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
 ###### Type Parameters
 
@@ -18412,7 +18412,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
 > **toJSON**(): `unknown`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:21
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:21
 
 ###### Returns
 
@@ -18426,7 +18426,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:21
 
 > **toString**(): `string`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:20
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:20
 
 ###### Returns
 
@@ -18440,7 +18440,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:20
 
 ### RateLimitError
 
-Defined in: [src/lib/errors.ts:70](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L70)
+Defined in: [src/lib/errors.ts:70](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L70)
 
 Rate limit exceeded
 
@@ -18454,7 +18454,7 @@ Rate limit exceeded
 
 > **new RateLimitError**(`args`): [`RateLimitError`](#ratelimiterror)
 
-Defined in: node\_modules/effect/dist/dts/Data.d.ts:610
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Data.d.ts:610
 
 ###### Parameters
 
@@ -18482,7 +18482,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:610
 
 > `readonly` **\_tag**: `"RateLimitError"`
 
-Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Data.d.ts:611
 
 ###### Inherited from
 
@@ -18492,7 +18492,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
 
 > `readonly` **\[ChannelTypeId\]**: `VarianceStruct`&lt;`never`, `unknown`, [`RateLimitError`](#ratelimiterror), `unknown`, `never`, `unknown`, `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:285
 
 ###### Inherited from
 
@@ -18502,7 +18502,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
 > `readonly` **\[EffectTypeId\]**: `VarianceStruct`&lt;`never`, [`RateLimitError`](#ratelimiterror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:282
 
 ###### Inherited from
 
@@ -18512,7 +18512,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
 > `readonly` **\[SinkTypeId\]**: `VarianceStruct`&lt;`never`, `unknown`, `never`, [`RateLimitError`](#ratelimiterror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:284
 
 ###### Inherited from
 
@@ -18522,7 +18522,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
 > `readonly` **\[StreamTypeId\]**: `VarianceStruct`&lt;`never`, [`RateLimitError`](#ratelimiterror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:283
 
 ###### Inherited from
 
@@ -18530,9 +18530,9 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
 
 ##### cause?
 
-> `optional` **cause**: `unknown`
+> `optional` **cause?**: `unknown`
 
-Defined in: node\_modules/typescript/lib/lib.es2022.error.d.ts:26
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es2022.error.d.ts:26
 
 The cause of the error.
 
@@ -18544,7 +18544,7 @@ The cause of the error.
 
 > **message**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1077
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1077
 
 ###### Inherited from
 
@@ -18554,7 +18554,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1077
 
 > **name**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1076
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1076
 
 ###### Inherited from
 
@@ -18564,7 +18564,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1076
 
 > `readonly` **retryAfter**: `number`
 
-Defined in: [src/lib/errors.ts:72](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L72)
+Defined in: [src/lib/errors.ts:72](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L72)
 
 ###### Inherited from
 
@@ -18572,9 +18572,9 @@ Defined in: [src/lib/errors.ts:72](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 ##### stack?
 
-> `optional` **stack**: `string`
+> `optional` **stack?**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 ###### Inherited from
 
@@ -18586,7 +18586,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 > **\[iterator\]**(): `EffectGenerator`&lt;`Effect`&lt;`never`, [`RateLimitError`](#ratelimiterror), `never`&gt;&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:286
 
 ###### Returns
 
@@ -18600,7 +18600,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
 
 > **\[NodeInspectSymbol\]**(): `unknown`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 ###### Returns
 
@@ -18616,7 +18616,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 > **pipe**&lt;`A`&gt;(`this`): `A`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 ###### Type Parameters
 
@@ -18642,7 +18642,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 > **pipe**&lt;`A`, `B`&gt;(`this`, `ab`): `B`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 ###### Type Parameters
 
@@ -18676,7 +18676,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 > **pipe**&lt;`A`, `B`, `C`&gt;(`this`, `ab`, `bc`): `C`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 ###### Type Parameters
 
@@ -18718,7 +18718,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 > **pipe**&lt;`A`, `B`, `C`, `D`&gt;(`this`, `ab`, `bc`, `cd`): `D`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 ###### Type Parameters
 
@@ -18768,7 +18768,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`&gt;(`this`, `ab`, `bc`, `cd`, `de`): `E`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 ###### Type Parameters
 
@@ -18826,7 +18826,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 ###### Type Parameters
 
@@ -18892,7 +18892,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 ###### Type Parameters
 
@@ -18966,7 +18966,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 ###### Type Parameters
 
@@ -19048,7 +19048,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 ###### Type Parameters
 
@@ -19138,7 +19138,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 ###### Type Parameters
 
@@ -19236,7 +19236,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 ###### Type Parameters
 
@@ -19342,7 +19342,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 ###### Type Parameters
 
@@ -19456,7 +19456,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 ###### Type Parameters
 
@@ -19578,7 +19578,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 ###### Type Parameters
 
@@ -19708,7 +19708,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 ###### Type Parameters
 
@@ -19846,7 +19846,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 ###### Type Parameters
 
@@ -19992,7 +19992,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 ###### Type Parameters
 
@@ -20146,7 +20146,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 ###### Type Parameters
 
@@ -20308,7 +20308,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 ###### Type Parameters
 
@@ -20478,7 +20478,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 ###### Type Parameters
 
@@ -20656,7 +20656,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 ###### Type Parameters
 
@@ -20842,7 +20842,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
 ###### Type Parameters
 
@@ -21028,7 +21028,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
 > **toJSON**(): `unknown`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:21
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:21
 
 ###### Returns
 
@@ -21042,7 +21042,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:21
 
 > **toString**(): `string`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:20
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:20
 
 ###### Returns
 
@@ -21056,7 +21056,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:20
 
 ### ValidationError
 
-Defined in: [src/lib/errors.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L24)
+Defined in: [src/lib/errors.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L24)
 
 Validation errors from Zod or business rules
 
@@ -21070,7 +21070,7 @@ Validation errors from Zod or business rules
 
 > **new ValidationError**(`args`): [`ValidationError`](#validationerror)
 
-Defined in: node\_modules/effect/dist/dts/Data.d.ts:610
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Data.d.ts:610
 
 ###### Parameters
 
@@ -21102,7 +21102,7 @@ readonly `string`[]
 
 > `readonly` **\_tag**: `"ValidationError"`
 
-Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Data.d.ts:611
 
 ###### Inherited from
 
@@ -21112,7 +21112,7 @@ Defined in: node\_modules/effect/dist/dts/Data.d.ts:611
 
 > `readonly` **\[ChannelTypeId\]**: `VarianceStruct`&lt;`never`, `unknown`, [`ValidationError`](#validationerror), `unknown`, `never`, `unknown`, `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:285
 
 ###### Inherited from
 
@@ -21122,7 +21122,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:285
 
 > `readonly` **\[EffectTypeId\]**: `VarianceStruct`&lt;`never`, [`ValidationError`](#validationerror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:282
 
 ###### Inherited from
 
@@ -21132,7 +21132,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:282
 
 > `readonly` **\[SinkTypeId\]**: `VarianceStruct`&lt;`never`, `unknown`, `never`, [`ValidationError`](#validationerror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:284
 
 ###### Inherited from
 
@@ -21142,7 +21142,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:284
 
 > `readonly` **\[StreamTypeId\]**: `VarianceStruct`&lt;`never`, [`ValidationError`](#validationerror), `never`&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:283
 
 ###### Inherited from
 
@@ -21150,9 +21150,9 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:283
 
 ##### cause?
 
-> `optional` **cause**: `unknown`
+> `optional` **cause?**: `unknown`
 
-Defined in: node\_modules/typescript/lib/lib.es2022.error.d.ts:26
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es2022.error.d.ts:26
 
 The cause of the error.
 
@@ -21164,7 +21164,7 @@ The cause of the error.
 
 > `readonly` **errors**: readonly `string`[]
 
-Defined in: [src/lib/errors.ts:27](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L27)
+Defined in: [src/lib/errors.ts:27](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L27)
 
 ###### Inherited from
 
@@ -21172,9 +21172,9 @@ Defined in: [src/lib/errors.ts:27](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 ##### field?
 
-> `readonly` `optional` **field**: `string`
+> `readonly` `optional` **field?**: `string`
 
-Defined in: [src/lib/errors.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L26)
+Defined in: [src/lib/errors.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L26)
 
 ###### Inherited from
 
@@ -21184,7 +21184,7 @@ Defined in: [src/lib/errors.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/445
 
 > **message**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1077
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1077
 
 ###### Inherited from
 
@@ -21194,7 +21194,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1077
 
 > **name**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1076
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1076
 
 ###### Inherited from
 
@@ -21202,9 +21202,9 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1076
 
 ##### stack?
 
-> `optional` **stack**: `string`
+> `optional` **stack?**: `string`
 
-Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
+Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 ###### Inherited from
 
@@ -21216,7 +21216,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 > **\[iterator\]**(): `EffectGenerator`&lt;`Effect`&lt;`never`, [`ValidationError`](#validationerror), `never`&gt;&gt;
 
-Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Cause.d.ts:286
 
 ###### Returns
 
@@ -21230,7 +21230,7 @@ Defined in: node\_modules/effect/dist/dts/Cause.d.ts:286
 
 > **\[NodeInspectSymbol\]**(): `unknown`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 ###### Returns
 
@@ -21246,7 +21246,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:22
 
 > **pipe**&lt;`A`&gt;(`this`): `A`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 ###### Type Parameters
 
@@ -21272,7 +21272,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:10
 
 > **pipe**&lt;`A`, `B`&gt;(`this`, `ab`): `B`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 ###### Type Parameters
 
@@ -21306,7 +21306,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:11
 
 > **pipe**&lt;`A`, `B`, `C`&gt;(`this`, `ab`, `bc`): `C`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 ###### Type Parameters
 
@@ -21348,7 +21348,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:12
 
 > **pipe**&lt;`A`, `B`, `C`, `D`&gt;(`this`, `ab`, `bc`, `cd`): `D`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 ###### Type Parameters
 
@@ -21398,7 +21398,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:13
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`&gt;(`this`, `ab`, `bc`, `cd`, `de`): `E`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 ###### Type Parameters
 
@@ -21456,7 +21456,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:14
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`): `F`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 ###### Type Parameters
 
@@ -21522,7 +21522,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:15
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`): `G`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 ###### Type Parameters
 
@@ -21596,7 +21596,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:16
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`): `H`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 ###### Type Parameters
 
@@ -21678,7 +21678,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:17
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`): `I`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 ###### Type Parameters
 
@@ -21768,7 +21768,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:18
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`): `J`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 ###### Type Parameters
 
@@ -21866,7 +21866,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:19
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`): `K`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 ###### Type Parameters
 
@@ -21972,7 +21972,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:20
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`): `L`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 ###### Type Parameters
 
@@ -22086,7 +22086,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:21
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`): `M`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 ###### Type Parameters
 
@@ -22208,7 +22208,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:22
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`): `N`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 ###### Type Parameters
 
@@ -22338,7 +22338,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:23
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`): `O`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 ###### Type Parameters
 
@@ -22476,7 +22476,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:24
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`): `P`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 ###### Type Parameters
 
@@ -22622,7 +22622,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:25
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`): `Q`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 ###### Type Parameters
 
@@ -22776,7 +22776,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:26
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`): `R`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 ###### Type Parameters
 
@@ -22938,7 +22938,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:27
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`): `S`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 ###### Type Parameters
 
@@ -23108,7 +23108,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:28
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`): `T`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 ###### Type Parameters
 
@@ -23286,7 +23286,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:29
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 ###### Type Parameters
 
@@ -23472,7 +23472,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:30
 
 > **pipe**&lt;`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`&gt;(`this`, `ab`, `bc`, `cd`, `de`, `ef`, `fg`, `gh`, `hi`, `ij`, `jk`, `kl`, `lm`, `mn`, `no`, `op`, `pq`, `qr`, `rs`, `st`, `tu`): `U`
 
-Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
 ###### Type Parameters
 
@@ -23658,7 +23658,7 @@ Defined in: node\_modules/effect/dist/dts/Pipeable.d.ts:31
 
 > **toJSON**(): `unknown`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:21
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:21
 
 ###### Returns
 
@@ -23672,7 +23672,7 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:21
 
 > **toString**(): `string`
 
-Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:20
+Defined in: node\_modules/.pnpm/effect@3.21.0/node\_modules/effect/dist/dts/Inspectable.d.ts:20
 
 ###### Returns
 
@@ -23688,6 +23688,6 @@ Defined in: node\_modules/effect/dist/dts/Inspectable.d.ts:20
 
 > **CommonError** = [`DatabaseError`](#databaseerror) &#124; [`ValidationError`](#validationerror) &#124; [`NotFoundError`](#notfounderror) &#124; [`AuthenticationError`](#authenticationerror) &#124; [`AuthorizationError`](#authorizationerror) &#124; [`BusinessError`](#businesserror) &#124; [`ConflictError`](#conflicterror)
 
-Defined in: [src/lib/errors.ts:89](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/lib/errors.ts#L89)
+Defined in: [src/lib/errors.ts:89](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/lib/errors.ts#L89)
 
 Type alias for common error union

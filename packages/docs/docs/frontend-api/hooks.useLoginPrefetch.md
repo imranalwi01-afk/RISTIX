@@ -10,7 +10,7 @@
 
 > **useLoginPrefetch**(): `object`
 
-Defined in: [hooks/useLoginPrefetch.ts:79](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/hooks/useLoginPrefetch.ts#L79)
+Defined in: [hooks/useLoginPrefetch.ts:79](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/hooks/useLoginPrefetch.ts#L79)
 
 Hook to prefetch resources during login page load
 This reduces the time to navigate after successful login
@@ -43,11 +43,11 @@ This reduces the time to navigate after successful login
 
 ##### warmupAPIs()
 
-> **warmupAPIs**: () => `Promise`\<`void`\>
+> **warmupAPIs**: () => `Promise`&lt;`void`&gt;
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`&lt;`void`&gt;
 
 ## References
 

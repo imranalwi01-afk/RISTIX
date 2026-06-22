@@ -10,11 +10,11 @@
 
 > `const` **EclConfigurationsRepository**: `object`
 
-Defined in: [src/repositories/ecl-configurations.repository.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/ecl-configurations.repository.ts#L7)
+Defined in: [src/repositories/ecl-configurations.repository.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/ecl-configurations.repository.ts#L7)
 
 #### Type Declaration
 
-##### create()
+##### create
 
 > **create**: (`headerData`, `detailsData`) => `Effect`&lt;&#123; `activeFlag`: `boolean`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `eclModelName`: `string` &#124; `null`; `effectiveDate`: `string`; `lastRunDate`: `string` &#124; `null`; `lastRunPeriod`: `string` &#124; `null`; `lastRunStatus`: `string` &#124; `null`; `module`: `string` &#124; `null`; `pkid`: `number`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -94,7 +94,7 @@ The details data
 
 An Effect resolving to the created header
 
-##### delete()
+##### delete
 
 > **delete**: (`id`) => `Effect`&lt;`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -114,7 +114,7 @@ The ECL header ID
 
 An Effect resolving to true on success
 
-##### findAllHeaders()
+##### findAllHeaders
 
 > **findAllHeaders**: () => `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -126,7 +126,7 @@ Find all ECL configuration headers.
 
 An Effect resolving to an array of ECL headers
 
-##### findDetailsByHeaderId()
+##### findDetailsByHeaderId
 
 > **findDetailsByHeaderId**: (`headerId`) => `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -146,7 +146,7 @@ The ECL header ID
 
 An Effect resolving to an array of details
 
-##### findHeaderById()
+##### findHeaderById
 
 > **findHeaderById**: (`id`) => `Effect`&lt;&#123; `activeFlag`: `boolean`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `eclModelName`: `string` &#124; `null`; `effectiveDate`: `string`; `lastRunDate`: `string` &#124; `null`; `lastRunPeriod`: `string` &#124; `null`; `lastRunStatus`: `string` &#124; `null`; `module`: `string` &#124; `null`; `pkid`: `number`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -166,7 +166,7 @@ The ECL header ID
 
 An Effect resolving to the header or null
 
-##### update()
+##### update
 
 > **update**: (`id`, `headerData`, `detailsData?`) => `Effect`&lt;&#123; `activeFlag`: `boolean`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `eclModelName`: `string` &#124; `null`; `effectiveDate`: `string`; `lastRunDate`: `string` &#124; `null`; `lastRunPeriod`: `string` &#124; `null`; `lastRunStatus`: `string` &#124; `null`; `module`: `string` &#124; `null`; `pkid`: `number`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125; &#124; `null`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 

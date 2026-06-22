@@ -10,7 +10,7 @@
 
 > `const` **NOTIFICATION\_CATEGORIES**: [`NotificationCategory`](services.api.notification.api.md#notificationcategory)[]
 
-Defined in: [utils/notification-utils.ts:3](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/notification-utils.ts#L3)
+Defined in: [utils/notification-utils.ts:3](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/notification-utils.ts#L3)
 
 ## Functions
 
@@ -18,7 +18,7 @@ Defined in: [utils/notification-utils.ts:3](https://github.com/ifrspro/ifrs9-iaf
 
 > **formatNotificationCategory**(`category`): `string`
 
-Defined in: [utils/notification-utils.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/notification-utils.ts#L13)
+Defined in: [utils/notification-utils.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/notification-utils.ts#L13)
 
 #### Parameters
 
@@ -36,7 +36,7 @@ Defined in: [utils/notification-utils.ts:13](https://github.com/ifrspro/ifrs9-ia
 
 > **getNotificationCategory**(`type?`): [`NotificationCategory`](services.api.notification.api.md#notificationcategory)
 
-Defined in: [utils/notification-utils.ts:5](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/notification-utils.ts#L5)
+Defined in: [utils/notification-utils.ts:5](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/notification-utils.ts#L5)
 
 #### Parameters
 
@@ -52,9 +52,9 @@ Defined in: [utils/notification-utils.ts:5](https://github.com/ifrspro/ifrs9-iaf
 
 ### resolveNotificationActionRoute()
 
-> **resolveNotificationActionRoute**(`actionUrl?`): `string` \| `null`
+> **resolveNotificationActionRoute**(`actionUrl?`): `string` &#124; `null`
 
-Defined in: [utils/notification-utils.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/notification-utils.ts#L16)
+Defined in: [utils/notification-utils.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/notification-utils.ts#L16)
 
 #### Parameters
 
@@ -64,4 +64,4 @@ Defined in: [utils/notification-utils.ts:16](https://github.com/ifrspro/ifrs9-ia
 
 #### Returns
 
-`string` \| `null`
+`string` &#124; `null`

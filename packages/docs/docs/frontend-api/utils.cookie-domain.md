@@ -8,7 +8,7 @@
 
 ### CookieDomainConfig
 
-Defined in: [utils/cookie-domain.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/cookie-domain.ts#L7)
+Defined in: [utils/cookie-domain.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/cookie-domain.ts#L7)
 
 Utility for determining the correct cookie domain based on current hostname
 Supports: localhost, ifrspro.id, danafin.com, and other domains
@@ -19,19 +19,19 @@ Supports: localhost, ifrspro.id, danafin.com, and other domains
 
 > `optional` **domain**: `string`
 
-Defined in: [utils/cookie-domain.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/cookie-domain.ts#L8)
+Defined in: [utils/cookie-domain.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/cookie-domain.ts#L8)
 
 ##### sameSite
 
-> **sameSite**: `"none"` \| `"strict"` \| `"lax"`
+> **sameSite**: `"none"` &#124; `"strict"` &#124; `"lax"`
 
-Defined in: [utils/cookie-domain.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/cookie-domain.ts#L10)
+Defined in: [utils/cookie-domain.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/cookie-domain.ts#L10)
 
 ##### secure
 
 > **secure**: `boolean`
 
-Defined in: [utils/cookie-domain.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/cookie-domain.ts#L9)
+Defined in: [utils/cookie-domain.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/cookie-domain.ts#L9)
 
 ## Functions
 
@@ -39,7 +39,7 @@ Defined in: [utils/cookie-domain.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob
 
 > **buildCookieRemovalString**(`name`): `string`
 
-Defined in: [utils/cookie-domain.ts:108](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/cookie-domain.ts#L108)
+Defined in: [utils/cookie-domain.ts:108](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/cookie-domain.ts#L108)
 
 Build cookie removal string
 
@@ -59,7 +59,7 @@ Build cookie removal string
 
 > **buildCookieString**(`name`, `value`, `maxAge?`): `string`
 
-Defined in: [utils/cookie-domain.ts:92](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/cookie-domain.ts#L92)
+Defined in: [utils/cookie-domain.ts:92](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/cookie-domain.ts#L92)
 
 Build complete cookie string for document.cookie
 
@@ -87,7 +87,7 @@ Build complete cookie string for document.cookie
 
 > **getCookieConfig**(`expiryDays?`): [`CookieDomainConfig`](#cookiedomainconfig) & `object`
 
-Defined in: [utils/cookie-domain.ts:50](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/cookie-domain.ts#L50)
+Defined in: [utils/cookie-domain.ts:50](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/cookie-domain.ts#L50)
 
 Get complete cookie configuration based on environment
 
@@ -105,9 +105,9 @@ Get complete cookie configuration based on environment
 
 ### getCookieDomain()
 
-> **getCookieDomain**(): `string` \| `undefined`
+> **getCookieDomain**(): `string` &#124; `undefined`
 
-Defined in: [utils/cookie-domain.ts:18](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/cookie-domain.ts#L18)
+Defined in: [utils/cookie-domain.ts:18](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/cookie-domain.ts#L18)
 
 Get the appropriate cookie domain for the current hostname
 Returns undefined for localhost (cookies default to exact host)
@@ -115,7 +115,7 @@ Returns parent domain for production domains (.ifrspro.id, .danafin.com, etc.)
 
 #### Returns
 
-`string` \| `undefined`
+`string` &#124; `undefined`
 
 ***
 
@@ -123,7 +123,7 @@ Returns parent domain for production domains (.ifrspro.id, .danafin.com, etc.)
 
 > **getCookieDomainString**(): `string`
 
-Defined in: [utils/cookie-domain.ts:74](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/cookie-domain.ts#L74)
+Defined in: [utils/cookie-domain.ts:74](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/cookie-domain.ts#L74)
 
 Get cookie domain string for raw document.cookie manipulation
 Returns empty string for localhost, "domain=.example.com;" for production
@@ -138,7 +138,7 @@ Returns empty string for localhost, "domain=.example.com;" for production
 
 > **getCookieSameSiteString**(): `string`
 
-Defined in: [utils/cookie-domain.ts:82](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/cookie-domain.ts#L82)
+Defined in: [utils/cookie-domain.ts:82](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/cookie-domain.ts#L82)
 
 Get sameSite string for raw document.cookie manipulation
 

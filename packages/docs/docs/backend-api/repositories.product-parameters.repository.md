@@ -10,11 +10,11 @@
 
 > `const` **ProductParametersRepository**: `object`
 
-Defined in: [src/repositories/product-parameters.repository.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/product-parameters.repository.ts#L7)
+Defined in: [src/repositories/product-parameters.repository.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/product-parameters.repository.ts#L7)
 
 #### Type Declaration
 
-##### create()
+##### create
 
 > **create**: (`data`) => `Effect`&lt;&#123; `activeFlag`: `boolean`; `alFlag`: `string` &#124; `null`; `amortizationType`: `string` &#124; `null`; `bmFlag`: `boolean` &#124; `null`; `borrowingRate`: `number` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string`; `dataSource`: `string`; `expectedLife`: `number` &#124; `null`; `impairedFlag`: `boolean` &#124; `null`; `marketRate`: `number` &#124; `null`; `pkid`: `number`; `prdCode`: `string`; `prdDesc`: `string`; `prdGroup`: `string`; `prdType`: `string`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -116,7 +116,7 @@ The product parameter data
 
 An Effect resolving to the created product parameter
 
-##### delete()
+##### delete
 
 > **delete**: (`id`) => `Effect`&lt;`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -136,7 +136,7 @@ The product parameter ID
 
 An Effect resolving to true on success
 
-##### findAll()
+##### findAll
 
 > **findAll**: () => `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -144,7 +144,7 @@ An Effect resolving to true on success
 
 `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
-##### findByCode()
+##### findByCode
 
 > **findByCode**: (`prdCode`) => `Effect`&lt;&#123; `activeFlag`: `boolean`; `alFlag`: `string` &#124; `null`; `amortizationType`: `string` &#124; `null`; `bmFlag`: `boolean` &#124; `null`; `borrowingRate`: `number` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string`; `dataSource`: `string`; `expectedLife`: `number` &#124; `null`; `impairedFlag`: `boolean` &#124; `null`; `marketRate`: `number` &#124; `null`; `pkid`: `number`; `prdCode`: `string`; `prdDesc`: `string`; `prdGroup`: `string`; `prdType`: `string`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -164,7 +164,7 @@ The product code
 
 An Effect resolving to the product parameter or null
 
-##### findById()
+##### findById
 
 > **findById**: (`id`) => `Effect`&lt;&#123; `activeFlag`: `boolean`; `alFlag`: `string` &#124; `null`; `amortizationType`: `string` &#124; `null`; `bmFlag`: `boolean` &#124; `null`; `borrowingRate`: `number` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string`; `dataSource`: `string`; `expectedLife`: `number` &#124; `null`; `impairedFlag`: `boolean` &#124; `null`; `marketRate`: `number` &#124; `null`; `pkid`: `number`; `prdCode`: `string`; `prdDesc`: `string`; `prdGroup`: `string`; `prdType`: `string`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -184,7 +184,7 @@ The product parameter ID
 
 An Effect resolving to the product parameter or null
 
-##### findMany()
+##### findMany
 
 > **findMany**: (`options`) => `Effect`&lt;&#123; `products`: `object`[]; `total`: `number`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -196,11 +196,27 @@ Find product parameters with pagination and search.
 
 Pagination and search options
 
+###### activeFlag?
+
+`string` &#124; `boolean`
+
+###### currency?
+
+`string`
+
+###### dataSource?
+
+`string`
+
 ###### limit
 
 `number`
 
-###### page
+###### offset?
+
+`number`
+
+###### page?
 
 `number`
 
@@ -208,13 +224,17 @@ Pagination and search options
 
 `string`
 
+###### sort?
+
+`object`[]
+
 ###### Returns
 
 `Effect`&lt;&#123; `products`: `object`[]; `total`: `number`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 An Effect resolving to an array of product parameters and the total count
 
-##### update()
+##### update
 
 > **update**: (`id`, `data`) => `Effect`&lt;&#123; `activeFlag`: `boolean`; `alFlag`: `string` &#124; `null`; `amortizationType`: `string` &#124; `null`; `bmFlag`: `boolean` &#124; `null`; `borrowingRate`: `number` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `currency`: `string`; `dataSource`: `string`; `expectedLife`: `number` &#124; `null`; `impairedFlag`: `boolean` &#124; `null`; `marketRate`: `number` &#124; `null`; `pkid`: `number`; `prdCode`: `string`; `prdDesc`: `string`; `prdGroup`: `string`; `prdType`: `string`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 

@@ -10,7 +10,7 @@
 
 > **formatTerbilang**(`n`, `isCurrency?`): `string`
 
-Defined in: [utils/banking/terbilang.ts:41](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/banking/terbilang.ts#L41)
+Defined in: [utils/banking/terbilang.ts:41](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/banking/terbilang.ts#L41)
 
 Format terbilang with Rupiah suffix if applicable
 
@@ -34,7 +34,7 @@ Format terbilang with Rupiah suffix if applicable
 
 > **terbilang**(`n`): `string`
 
-Defined in: [utils/banking/terbilang.ts:20](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/banking/terbilang.ts#L20)
+Defined in: [utils/banking/terbilang.ts:20](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/banking/terbilang.ts#L20)
 
 #### Parameters
 

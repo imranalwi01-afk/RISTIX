@@ -132,9 +132,21 @@ Re-exports [enableUser](services.users.service.md#enableuser)
 
 ***
 
+### forgotPassword
+
+Re-exports [forgotPassword](services.auth.service.md#forgotpassword)
+
+***
+
 ### getApprovalHistory
 
 Re-exports [getApprovalHistory](services.approval.service.md#getapprovalhistory)
+
+***
+
+### getApprovalHistoryList
+
+Re-exports [getApprovalHistoryList](services.approval.service.md#getapprovalhistorylist)
 
 ***
 
@@ -300,6 +312,12 @@ Re-exports [hasPermission](services.rbac.service.md#haspermission)
 
 ***
 
+### importRoleMatrix
+
+Re-exports [importRoleMatrix](services.rbac.service.md#importrolematrix)
+
+***
+
 ### JwtPayload
 
 Re-exports [JwtPayload](services.auth.service.md#jwtpayload)
@@ -414,15 +432,33 @@ Re-exports [removeRole](services.rbac.service.md#removerole)
 
 ***
 
+### replayApprovedRequestSideEffect
+
+Re-exports [replayApprovedRequestSideEffect](services.approval.service.md#replayapprovedrequestsideeffect)
+
+***
+
 ### resetPassword
 
 Re-exports [resetPassword](services.users.service.md#resetpassword)
 
 ***
 
+### resetPasswordWithToken
+
+Re-exports [resetPasswordWithToken](services.auth.service.md#resetpasswordwithtoken)
+
+***
+
 ### revokeAllSessions
 
 Re-exports [revokeAllSessions](services.auth.service.md#revokeallsessions)
+
+***
+
+### runAuditSafely
+
+Re-exports [runAuditSafely](services.audit.service.md#runauditsafely)
 
 ***
 

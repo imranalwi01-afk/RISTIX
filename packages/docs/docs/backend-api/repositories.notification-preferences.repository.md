@@ -8,7 +8,7 @@
 
 ### NotificationPreferencesInput
 
-Defined in: [src/repositories/notification-preferences.repository.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/notification-preferences.repository.ts#L8)
+Defined in: [src/repositories/notification-preferences.repository.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/notification-preferences.repository.ts#L8)
 
 #### Properties
 
@@ -16,49 +16,49 @@ Defined in: [src/repositories/notification-preferences.repository.ts:8](https://
 
 > **muteAll**: `boolean`
 
-Defined in: [src/repositories/notification-preferences.repository.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/notification-preferences.repository.ts#L11)
+Defined in: [src/repositories/notification-preferences.repository.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/notification-preferences.repository.ts#L11)
 
 ##### mutedCategories
 
 > **mutedCategories**: `string`[]
 
-Defined in: [src/repositories/notification-preferences.repository.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/notification-preferences.repository.ts#L12)
+Defined in: [src/repositories/notification-preferences.repository.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/notification-preferences.repository.ts#L12)
 
 ##### quietHoursEnabled
 
 > **quietHoursEnabled**: `boolean`
 
-Defined in: [src/repositories/notification-preferences.repository.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/notification-preferences.repository.ts#L13)
+Defined in: [src/repositories/notification-preferences.repository.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/notification-preferences.repository.ts#L13)
 
 ##### quietHoursEnd
 
 > **quietHoursEnd**: `string`
 
-Defined in: [src/repositories/notification-preferences.repository.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/notification-preferences.repository.ts#L15)
+Defined in: [src/repositories/notification-preferences.repository.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/notification-preferences.repository.ts#L15)
 
 ##### quietHoursStart
 
 > **quietHoursStart**: `string`
 
-Defined in: [src/repositories/notification-preferences.repository.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/notification-preferences.repository.ts#L14)
+Defined in: [src/repositories/notification-preferences.repository.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/notification-preferences.repository.ts#L14)
 
 ##### tenantId
 
 > **tenantId**: `string`
 
-Defined in: [src/repositories/notification-preferences.repository.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/notification-preferences.repository.ts#L9)
+Defined in: [src/repositories/notification-preferences.repository.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/notification-preferences.repository.ts#L9)
 
 ##### timezone
 
 > **timezone**: `string`
 
-Defined in: [src/repositories/notification-preferences.repository.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/notification-preferences.repository.ts#L16)
+Defined in: [src/repositories/notification-preferences.repository.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/notification-preferences.repository.ts#L16)
 
 ##### userId
 
 > **userId**: `string`
 
-Defined in: [src/repositories/notification-preferences.repository.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/notification-preferences.repository.ts#L10)
+Defined in: [src/repositories/notification-preferences.repository.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/notification-preferences.repository.ts#L10)
 
 ## Variables
 
@@ -66,7 +66,7 @@ Defined in: [src/repositories/notification-preferences.repository.ts:10](https:/
 
 > `const` **NotificationPreferencesRepository**: `object`
 
-Defined in: [src/repositories/notification-preferences.repository.ts:19](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/notification-preferences.repository.ts#L19)
+Defined in: [src/repositories/notification-preferences.repository.ts:19](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/notification-preferences.repository.ts#L19)
 
 #### Type Declaration
 
