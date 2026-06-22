@@ -59,6 +59,17 @@ const isLikeOp = (op: string) => ['LIKE', 'NOT LIKE'].includes(op);
 const isNullOp = (op: string) => ['IS NULL', 'IS NOT NULL'].includes(op);
 const isBetweenOp = (op: string) => op === 'BETWEEN';
 
+type DataKind = 'date' | 'number' | 'varchar' | 'boolean' | 'unknown';
+
+const getDataKind = (dataType: string): DataKind => {
+  const normalized = String(dataType || '').trim().toUpperCase();
+  if (['DATE', 'DATETIME', 'TIMESTAMP'].includes(normalized)) return 'date';
+  if (['NUMBER', 'NUMERIC', 'INTEGER', 'INT', 'DECIMAL', 'FLOAT', 'DOUBLE'].includes(normalized)) return 'number';
+  if (['BOOLEAN', 'BOOL', 'BIT'].includes(normalized)) return 'boolean';
+  if (['VARCHAR', 'CHAR', 'STRING', 'TEXT'].includes(normalized)) return 'varchar';
+  return 'unknown';
+};
+
 function RuleBaseDetailDialogComponent({
   open,
   loading,
@@ -106,11 +117,29 @@ function RuleBaseDetailDialogComponent({
       );
     }
 
+    const dataType = String(detailFormData.data_type || '').toUpperCase();
+    const dataKind = getDataKind(dataType);
+
     if (isInOp(operator)) {
+      if (dataKind === 'number') {
+        return (
+          <TextField
+            label="Value 1"
+            value={detailFormData.value1 || ''}
+            onChange={(e) => onDetailFormChange({ ...detailFormData, value1: e.target.value })}
+            fullWidth
+            placeholder="e.g. 10,20,30"
+            helperText="Comma-separated numeric values"
+            data-testid="val1-field"
+          />
+        );
+      }
+
       return (
         <FormControl fullWidth>
           <Autocomplete
             multiple
+            freeSolo={dataKind === 'varchar'}
             options={columnValueOptions}
             value={selectedValues}
             onChange={handleMultiSelectChange}
@@ -169,11 +198,7 @@ function RuleBaseDetailDialogComponent({
       );
     }
 
-    const dataType = String(detailFormData.data_type || '').toUpperCase();
-    const isNumeric = dataType.includes('NUM') || dataType.includes('INT') || dataType.includes('DEC') || dataType.includes('FLOAT');
-    const isDate = dataType.includes('DATE') || dataType.includes('TIME') || dataType.includes('TIMESTAMP');
-
-    if (isDate) {
+    if (dataKind === 'date') {
       return (
         <TextField
           label="Value 1"
@@ -182,12 +207,13 @@ function RuleBaseDetailDialogComponent({
           onChange={(e) => onDetailFormChange({ ...detailFormData, value1: e.target.value })}
           fullWidth
           InputLabelProps={{ shrink: true }}
+          helperText="Date (YYYY-MM-DD)"
           data-testid="val1-field"
         />
       );
     }
 
-    if (isNumeric) {
+    if (dataKind === 'number') {
       return (
         <TextField
           label="Value 1"
@@ -201,6 +227,24 @@ function RuleBaseDetailDialogComponent({
       );
     }
 
+    if (dataKind === 'boolean') {
+      return (
+        <FormControl fullWidth>
+          <InputLabel id="boolean-value-label">Value 1</InputLabel>
+          <Select
+            labelId="boolean-value-label"
+            label="Value 1"
+            value={String(detailFormData.value1 || '')}
+            onChange={(e) => onDetailFormChange({ ...detailFormData, value1: e.target.value })}
+            data-testid="val1-field"
+          >
+            <MenuItem value="1">True</MenuItem>
+            <MenuItem value="0">False</MenuItem>
+          </Select>
+        </FormControl>
+      );
+    }
+
     return (
       <TextField
         label="Value 1"
@@ -209,6 +253,51 @@ function RuleBaseDetailDialogComponent({
         fullWidth
         placeholder="Primary comparison value"
         data-testid="val1-field"
+      />
+    );
+  };
+
+  const renderValue2Field = () => {
+    const dataType = String(detailFormData.data_type || '').toUpperCase();
+    const dataKind = getDataKind(dataType);
+
+    if (dataKind === 'date') {
+      return (
+        <TextField
+          label="Value 2"
+          type="date"
+          value={detailFormData.value2 || ''}
+          onChange={(e) => onDetailFormChange({ ...detailFormData, value2: e.target.value })}
+          fullWidth
+          InputLabelProps={{ shrink: true }}
+          helperText="End date (YYYY-MM-DD)"
+          data-testid="val2-field"
+        />
+      );
+    }
+
+    if (dataKind === 'number') {
+      return (
+        <TextField
+          label="Value 2"
+          type="number"
+          value={detailFormData.value2 || ''}
+          onChange={(e) => onDetailFormChange({ ...detailFormData, value2: e.target.value })}
+          fullWidth
+          placeholder="End value"
+          data-testid="val2-field"
+        />
+      );
+    }
+
+    return (
+      <TextField
+        label="Value 2"
+        value={detailFormData.value2 || ''}
+        onChange={(e) => onDetailFormChange({ ...detailFormData, value2: e.target.value })}
+        fullWidth
+        placeholder="Secondary value"
+        data-testid="val2-field"
       />
     );
   };
@@ -320,15 +409,9 @@ function RuleBaseDetailDialogComponent({
             </Select>
           </FormControl>
           {renderValue1Field()}
-          <TextField
-            label="Value 2"
-            value={detailFormData.value2 || ''}
-            onChange={(e) => onDetailFormChange({ ...detailFormData, value2: e.target.value })}
-            fullWidth
-            disabled={!isBetweenOp(operator)}
-            placeholder="Secondary value (for BETWEEN)"
-            data-testid="val2-field"
-          />
+          {isBetweenOp(operator) && (
+            renderValue2Field()
+          )}
           <FormControl fullWidth required>
             <InputLabel>Condition</InputLabel>
             <Select

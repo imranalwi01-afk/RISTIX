@@ -195,6 +195,11 @@ export default function SegmentationRuleDialog({
         loadColumnValues(prev.table_name || newData.table_name, value);
       }
 
+      if (field === 'operator') {
+        newData.value1 = '';
+        newData.value2 = '';
+      }
+
       if (field === 'data_type') {
         loadOperators(value);
       }

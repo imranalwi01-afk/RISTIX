@@ -775,8 +775,8 @@ export default function PageContent() {
     setDetailFormData(prev => ({
       ...prev,
       operator,
-      value1: upper === 'IS NULL' || upper === 'IS NOT NULL' ? '' : prev.value1 || '',
-      value2: upper === 'BETWEEN' ? prev.value2 || '' : '',
+      value1: '',
+      value2: '',
     }));
     if ((upper === 'IN' || upper === 'NOT IN') && detailFormData.table_name && detailFormData.column_name) {
       loadColumnValues(detailFormData.table_name, detailFormData.column_name);
