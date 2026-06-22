@@ -11,6 +11,8 @@ import { createApprovalRequest } from '../services/approval.service'
 import * as auditService from '../services/audit.service'
 import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 import { UserTableViewsRepository } from '@/repositories/user-table-views.repository'
+import { verifyPassword } from '../services/auth.service'
+import { ValidationError } from '../lib/errors'
 
 export const usersRoutes: any = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 
@@ -662,9 +664,18 @@ usersRoutes.openapi(
         }
 
         const effect = pipe(
-            // Need to verify current password first ideally, but updatePassword overrides it.
-            // Let's assume updatePassword takes care of it or we'll just allow it if they are authenticated as the user
-            usersService.updatePassword(id, body.newPassword, tenantId),
+            usersService.getUserById(id, tenantId),
+            Effect.flatMap((user) =>
+                Effect.tryPromise({
+                    try: () => verifyPassword(body.currentPassword, user.passwordHash),
+                    catch: (error) => new ValidationError({ message: 'Failed to verify password', field: 'currentPassword', errors: [String(error)] })
+                })
+            ),
+            Effect.flatMap((isValid) =>
+                isValid
+                    ? usersService.updatePassword(id, body.newPassword, tenantId)
+                    : Effect.fail(new ValidationError({ message: 'Current password is incorrect', field: 'currentPassword', errors: ['Password mismatch'] }))
+            ),
             Effect.map(() => ({
                 success: true,
                 message: 'Password changed successfully',
