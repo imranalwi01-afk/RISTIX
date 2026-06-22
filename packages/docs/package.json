@@ -6,7 +6,7 @@
     "docusaurus": "docusaurus",
     "start": "docusaurus start",
     "build": "docusaurus build",
-    "docs:generate": "cd ../new-backend && pnpm run docs && cd ../frontend && pnpm run docs && node scripts/fix-mdx-escapes.mjs",
+    "docs:generate": "cd ../new-backend && pnpm run docs && cd ../frontend && pnpm run docs && node $INIT_CWD/scripts/fix-mdx-escapes.mjs",
     "docs:all": "pnpm run docs:generate && pnpm run docs:validate:user-guides && pnpm run build",
     "docs:ci": "pnpm run docs:validate:user-guides && pnpm run build",
     "docs:validate:user-guides": "node ./scripts/validate-user-guides.mjs",
