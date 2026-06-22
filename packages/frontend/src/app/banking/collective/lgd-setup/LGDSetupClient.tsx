@@ -54,7 +54,6 @@ import { useRouter } from 'next/navigation';
 import { api } from '../../../../services/api';
 import { LGDConfiguration } from '../../../../services/api/lgd-configurations.api';
 import { PopulationSegment, filterPopulationSegmentsByType } from '../../../../services/api/population-segments.api';
-import { FLScalarWithDetails } from '../../../../services/api/fl-scalar.api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import { useLGDCombinedQuery } from '@/features/lgd-config/hooks/useLGDCombinedQuery';
 import { usePermission } from '@/hooks/usePermission';
@@ -79,8 +78,6 @@ const createEmptyFormData = (): Partial<LGDConfiguration> => ({
   observation_period: '',
   workout_period: undefined,
   max_recovery_period: undefined,
-  fl_flag: false,
-  fl_scalar_id: undefined,
   lgd_rate: undefined,
   is_active: true,
   observation_start_date: undefined,
@@ -103,7 +100,6 @@ export default function LGDSetupPage() {
   const [methodOptions, setMethodOptions] = useState<{ value: string | number, label: string }[]>([]);
   const [popTypeOptions, setPopTypeOptions] = useState<{ value: string | number, label: string }[]>([]);
   const [populationSegments, setPopulationSegments] = useState<PopulationSegment[]>([]);
-  const [flScalars, setFlScalars] = useState<FLScalarWithDetails[]>([]);
 
   // Dialog & Selection
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -143,7 +139,6 @@ export default function LGDSetupPage() {
     setMethodOptions(lgdCombined.methods);
     setPopTypeOptions(lgdCombined.popTypes);
     setPopulationSegments(lgdCombined.lgdSegments);
-    setFlScalars(lgdCombined.flScalars);
     setLgdConfigs(lgdCombined.configs);
   }, [lgdCombined]);
 
@@ -200,8 +195,6 @@ export default function LGDSetupPage() {
         observation_period: formData.observation_period,
         workout_period: formData.workout_period,
         max_recovery_period: formData.max_recovery_period,
-        fl_flag: formData.fl_flag,
-        fl_scalar_id: formData.fl_scalar_id,
         lgd_rate: formData.lgd_rate,
         is_active: formData.is_active,
         observation_start_date: formData.observation_start_date
@@ -525,31 +518,7 @@ export default function LGDSetupPage() {
                   control={<Switch checked={!!formData.is_active} onChange={(e) => updateFormField('is_active', e.target.checked)} />}
                   label="Active"
                 />
-                <FormControlLabel
-                  control={<Switch checked={!!formData.fl_flag} onChange={(e) => updateFormField('fl_flag', e.target.checked)} data-testid="lgd-fl-flag-switch" />}
-                  label="FL Flag"
-                />
               </Box>
-
-              {formData.fl_flag && (
-                <FormControl fullWidth error={!!formErrors.fl_scalar_id}>
-                  <InputLabel>FL Scalar</InputLabel>
-                  <Select
-                    value={formData.fl_scalar_id || ''}
-                    label="FL Scalar"
-                    onChange={(e) => updateFormField('fl_scalar_id', Number(e.target.value))}
-                    data-testid="lgd-fl-scalar-select"
-                  >
-                    {flScalars.map(s => (
-                      <MenuItem key={s.pkid} value={s.pkid}>{s.scalar_name}</MenuItem>
-                    ))}
-                  </Select>
-                  <FormHelperText error={!!formErrors.fl_scalar_id}>
-                    {formErrors.fl_scalar_id || 'Source: FL Scalar table'}
-                  </FormHelperText>
-                </FormControl>
-              )}
-
             </Box>
           </LocalizationProvider>
         </DialogContent>

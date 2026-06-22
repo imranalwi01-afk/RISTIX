@@ -14,7 +14,7 @@ import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import { alpha, useTheme } from '@mui/material/styles';
 import { Calculate as CalculateIcon, Close as CloseIcon } from '@mui/icons-material';
-import { PDStructureVisualization, FLScalarVisualization } from '@/components/banking/pd-setup/PDStructureVisualization';
+import { PDStructureVisualization } from '@/components/banking/pd-setup/PDStructureVisualization';
 import { PDConfigUI } from '../types';
 
 interface PDResultsDialogProps {
@@ -22,7 +22,6 @@ interface PDResultsDialogProps {
   loading: boolean;
   selectedConfig: PDConfigUI | null;
   pdStructure: any[];
-  scalarDetails: any[];
   onClose: () => void;
 }
 
@@ -31,7 +30,6 @@ export const PDResultsDialog = memo(function PDResultsDialog({
   loading,
   selectedConfig,
   pdStructure,
-  scalarDetails,
   onClose,
 }: PDResultsDialogProps) {
   const theme = useTheme();
@@ -72,13 +70,6 @@ export const PDResultsDialog = memo(function PDResultsDialog({
               </Paper>
             </Grid>
 
-            {selectedConfig?.fl_flag && (
-              <Grid size={{ xs: 12 }}>
-                <Paper sx={{ p: 3, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-                  <FLScalarVisualization details={scalarDetails} />
-                </Paper>
-              </Grid>
-            )}
           </Grid>
         )}
       </DialogContent>

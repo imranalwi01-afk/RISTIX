@@ -36,7 +36,6 @@ interface PDConfigFormDialogProps {
   popTypeOptions: { value: string | number; label: string }[];
   bucketGroups: any[];
   populationSegments: PopulationSegment[];
-  flScalars: any[];
   onClose: () => void;
   onSave: () => void;
   onChange: (next: Partial<PDConfiguration>) => void;
@@ -54,7 +53,6 @@ export const PDConfigFormDialog = memo(function PDConfigFormDialog({
   popTypeOptions,
   bucketGroups,
   populationSegments,
-  flScalars,
   onClose,
   onSave,
   onChange,
@@ -237,37 +235,11 @@ export const PDConfigFormDialog = memo(function PDConfigFormDialog({
                 label="Active"
               />
               <FormControlLabel
-                control={<Switch checked={!!formData.fl_flag} onChange={(e) => onChange({ ...formData, fl_flag: e.target.checked })} data-testid="fl-flag-switch" />}
-                label="FL Flag"
-              />
-              <FormControlLabel
                 control={<Switch checked={!!formData.ia_flag} onChange={(e) => onChange({ ...formData, ia_flag: e.target.checked })} data-testid="ia-flag-switch" />}
                 label="IA Flag"
               />
             </Box>
 
-            {formData.fl_flag && (
-              <Box>
-                <FormControl fullWidth error={!!formErrors.fl_scalar_id}>
-                  <InputLabel>FL Scalar</InputLabel>
-                  <Select
-                    value={formData.fl_scalar_id || ''}
-                    label="FL Scalar"
-                    onChange={(e) => onChange({ ...formData, fl_scalar_id: Number(e.target.value) as any })}
-                    data-testid="fl-scalar-select"
-                  >
-                    {flScalars.map((fs) => (
-                      <MenuItem key={fs.pkid} value={fs.pkid}>
-                        {fs.scalar_name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  <FormHelperText error={!!formErrors.fl_scalar_id}>
-                    {formErrors.fl_scalar_id || 'Source: FL Scalar Parameters'}
-                  </FormHelperText>
-                </FormControl>
-              </Box>
-            )}
           </Box>
         </LocalizationProvider>
       </DialogContent>
