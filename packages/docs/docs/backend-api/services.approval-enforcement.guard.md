@@ -25,7 +25,7 @@ Defined in: [src/services/approval-enforcement.guard.ts:14](https://github.com/i
 
 ###### db
 
-`PostgresJsDatabase`\<[`db/schema`](db.schema.md)\>
+`PostgresJsDatabase`&lt;[`db/schema`](db.schema.md)&gt;
 
 ###### Returns
 
@@ -35,7 +35,7 @@ Defined in: [src/services/approval-enforcement.guard.ts:14](https://github.com/i
 
 ##### enforceApproval()
 
-> **enforceApproval**(`tenantId`, `permissionId`, `userId`, `userMaxHierarchyLevel`): `Effect`\<\{ `allowed`: `boolean`; `canSelfApprove?`: `undefined`; `message`: `string`; `requirement?`: `undefined`; `requiresApproval`: `boolean`; \} \| \{ `allowed`: `boolean`; `canSelfApprove`: `boolean`; `message`: `string`; `requirement?`: `undefined`; `requiresApproval`: `boolean`; \} \| \{ `allowed`: `boolean`; `canSelfApprove`: `boolean`; `message`: `string`; `requirement`: [`ApprovalRequirement`](services.permission-approval.service.md#approvalrequirement); `requiresApproval`: `boolean`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+> **enforceApproval**(`tenantId`, `permissionId`, `userId`, `userMaxHierarchyLevel`): `Effect`&lt;&#123; `allowed`: `boolean`; `canSelfApprove?`: `undefined`; `message`: `string`; `requirement?`: `undefined`; `requiresApproval`: `boolean`; &#125; &#124; &#123; `allowed`: `boolean`; `canSelfApprove`: `boolean`; `message`: `string`; `requirement?`: `undefined`; `requiresApproval`: `boolean`; &#125; &#124; &#123; `allowed`: `boolean`; `canSelfApprove`: `boolean`; `message`: `string`; `requirement`: [`ApprovalRequirement`](services.permission-approval.service.md#approvalrequirement); `requiresApproval`: `boolean`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Defined in: [src/services/approval-enforcement.guard.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval-enforcement.guard.ts#L26)
 
@@ -69,13 +69,13 @@ User's highest hierarchy level
 
 ###### Returns
 
-`Effect`\<\{ `allowed`: `boolean`; `canSelfApprove?`: `undefined`; `message`: `string`; `requirement?`: `undefined`; `requiresApproval`: `boolean`; \} \| \{ `allowed`: `boolean`; `canSelfApprove`: `boolean`; `message`: `string`; `requirement?`: `undefined`; `requiresApproval`: `boolean`; \} \| \{ `allowed`: `boolean`; `canSelfApprove`: `boolean`; `message`: `string`; `requirement`: [`ApprovalRequirement`](services.permission-approval.service.md#approvalrequirement); `requiresApproval`: `boolean`; \}, [`DatabaseError`](lib.errors.md#databaseerror), `never`\>
+`Effect`&lt;&#123; `allowed`: `boolean`; `canSelfApprove?`: `undefined`; `message`: `string`; `requirement?`: `undefined`; `requiresApproval`: `boolean`; &#125; &#124; &#123; `allowed`: `boolean`; `canSelfApprove`: `boolean`; `message`: `string`; `requirement?`: `undefined`; `requiresApproval`: `boolean`; &#125; &#124; &#123; `allowed`: `boolean`; `canSelfApprove`: `boolean`; `message`: `string`; `requirement`: [`ApprovalRequirement`](services.permission-approval.service.md#approvalrequirement); `requiresApproval`: `boolean`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
 Effect that succeeds if allowed or fails with approval required
 
 ##### enforceOrFail()
 
-> **enforceOrFail**(`tenantId`, `permissionId`, `userId`, `userMaxHierarchyLevel`): `Effect`\<\{ `allowed`: `boolean`; `canSelfApprove?`: `undefined`; `message`: `string`; `requirement?`: `undefined`; `requiresApproval`: `boolean`; \} \| \{ `allowed`: `boolean`; `canSelfApprove`: `boolean`; `message`: `string`; `requirement?`: `undefined`; `requiresApproval`: `boolean`; \} \| \{ `allowed`: `boolean`; `canSelfApprove`: `boolean`; `message`: `string`; `requirement`: [`ApprovalRequirement`](services.permission-approval.service.md#approvalrequirement); `requiresApproval`: `boolean`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`AuthorizationError`](lib.errors.md#authorizationerror), `never`\>
+> **enforceOrFail**(`tenantId`, `permissionId`, `userId`, `userMaxHierarchyLevel`): `Effect`&lt;&#123; `allowed`: `boolean`; `canSelfApprove?`: `undefined`; `message`: `string`; `requirement?`: `undefined`; `requiresApproval`: `boolean`; &#125; &#124; &#123; `allowed`: `boolean`; `canSelfApprove`: `boolean`; `message`: `string`; `requirement?`: `undefined`; `requiresApproval`: `boolean`; &#125; &#124; &#123; `allowed`: `boolean`; `canSelfApprove`: `boolean`; `message`: `string`; `requirement`: [`ApprovalRequirement`](services.permission-approval.service.md#approvalrequirement); `requiresApproval`: `boolean`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`AuthorizationError`](lib.errors.md#authorizationerror), `never`&gt;
 
 Defined in: [src/services/approval-enforcement.guard.ts:78](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval-enforcement.guard.ts#L78)
 
@@ -102,4 +102,4 @@ Use this in action handlers that should block if approval is needed
 
 ###### Returns
 
-`Effect`\<\{ `allowed`: `boolean`; `canSelfApprove?`: `undefined`; `message`: `string`; `requirement?`: `undefined`; `requiresApproval`: `boolean`; \} \| \{ `allowed`: `boolean`; `canSelfApprove`: `boolean`; `message`: `string`; `requirement?`: `undefined`; `requiresApproval`: `boolean`; \} \| \{ `allowed`: `boolean`; `canSelfApprove`: `boolean`; `message`: `string`; `requirement`: [`ApprovalRequirement`](services.permission-approval.service.md#approvalrequirement); `requiresApproval`: `boolean`; \}, [`DatabaseError`](lib.errors.md#databaseerror) \| [`AuthorizationError`](lib.errors.md#authorizationerror), `never`\>
+`Effect`&lt;&#123; `allowed`: `boolean`; `canSelfApprove?`: `undefined`; `message`: `string`; `requirement?`: `undefined`; `requiresApproval`: `boolean`; &#125; &#124; &#123; `allowed`: `boolean`; `canSelfApprove`: `boolean`; `message`: `string`; `requirement?`: `undefined`; `requiresApproval`: `boolean`; &#125; &#124; &#123; `allowed`: `boolean`; `canSelfApprove`: `boolean`; `message`: `string`; `requirement`: [`ApprovalRequirement`](services.permission-approval.service.md#approvalrequirement); `requiresApproval`: `boolean`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`AuthorizationError`](lib.errors.md#authorizationerror), `never`&gt;

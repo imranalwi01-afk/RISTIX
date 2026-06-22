@@ -72,7 +72,7 @@ Defined in: [src/repositories/notification-preferences.repository.ts:19](https:/
 
 ##### getByUser()
 
-> **getByUser**(`tenantId`, `userId`): `Promise`\<\{ `createdAt`: `Date`; `id`: `string`; `muteAll`: `boolean`; `mutedCategories`: `string`[]; `quietHoursEnabled`: `boolean`; `quietHoursEnd`: `string`; `quietHoursStart`: `string`; `tenantId`: `string`; `timezone`: `string`; `updatedAt`: `Date`; `userId`: `string`; \} \| `null`\>
+> **getByUser**(`tenantId`, `userId`): `Promise`&lt;&#123; `createdAt`: `Date`; `id`: `string`; `muteAll`: `boolean`; `mutedCategories`: `string`[]; `quietHoursEnabled`: `boolean`; `quietHoursEnd`: `string`; `quietHoursStart`: `string`; `tenantId`: `string`; `timezone`: `string`; `updatedAt`: `Date`; `userId`: `string`; &#125; &#124; `null`&gt;
 
 ###### Parameters
 
@@ -86,11 +86,11 @@ Defined in: [src/repositories/notification-preferences.repository.ts:19](https:/
 
 ###### Returns
 
-`Promise`\<\{ `createdAt`: `Date`; `id`: `string`; `muteAll`: `boolean`; `mutedCategories`: `string`[]; `quietHoursEnabled`: `boolean`; `quietHoursEnd`: `string`; `quietHoursStart`: `string`; `tenantId`: `string`; `timezone`: `string`; `updatedAt`: `Date`; `userId`: `string`; \} \| `null`\>
+`Promise`&lt;&#123; `createdAt`: `Date`; `id`: `string`; `muteAll`: `boolean`; `mutedCategories`: `string`[]; `quietHoursEnabled`: `boolean`; `quietHoursEnd`: `string`; `quietHoursStart`: `string`; `tenantId`: `string`; `timezone`: `string`; `updatedAt`: `Date`; `userId`: `string`; &#125; &#124; `null`&gt;
 
 ##### listByUsers()
 
-> **listByUsers**(`tenantId`, `userIds`): `Promise`\<`object`[]\>
+> **listByUsers**(`tenantId`, `userIds`): `Promise`&lt;`object`[]&gt;
 
 ###### Parameters
 
@@ -104,11 +104,11 @@ Defined in: [src/repositories/notification-preferences.repository.ts:19](https:/
 
 ###### Returns
 
-`Promise`\<`object`[]\>
+`Promise`&lt;`object`[]&gt;
 
 ##### upsert()
 
-> **upsert**(`input`): `Promise`\<\{ `createdAt`: `Date`; `id`: `string`; `muteAll`: `boolean`; `mutedCategories`: `string`[]; `quietHoursEnabled`: `boolean`; `quietHoursEnd`: `string`; `quietHoursStart`: `string`; `tenantId`: `string`; `timezone`: `string`; `updatedAt`: `Date`; `userId`: `string`; \}\>
+> **upsert**(`input`): `Promise`&lt;&#123; `createdAt`: `Date`; `id`: `string`; `muteAll`: `boolean`; `mutedCategories`: `string`[]; `quietHoursEnabled`: `boolean`; `quietHoursEnd`: `string`; `quietHoursStart`: `string`; `tenantId`: `string`; `timezone`: `string`; `updatedAt`: `Date`; `userId`: `string`; &#125;&gt;
 
 ###### Parameters
 
@@ -118,4 +118,4 @@ Defined in: [src/repositories/notification-preferences.repository.ts:19](https:/
 
 ###### Returns
 
-`Promise`\<\{ `createdAt`: `Date`; `id`: `string`; `muteAll`: `boolean`; `mutedCategories`: `string`[]; `quietHoursEnabled`: `boolean`; `quietHoursEnd`: `string`; `quietHoursStart`: `string`; `tenantId`: `string`; `timezone`: `string`; `updatedAt`: `Date`; `userId`: `string`; \}\>
+`Promise`&lt;&#123; `createdAt`: `Date`; `id`: `string`; `muteAll`: `boolean`; `mutedCategories`: `string`[]; `quietHoursEnabled`: `boolean`; `quietHoursEnd`: `string`; `quietHoursStart`: `string`; `tenantId`: `string`; `timezone`: `string`; `updatedAt`: `Date`; `userId`: `string`; &#125;&gt;

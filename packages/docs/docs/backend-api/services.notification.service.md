@@ -8,7 +8,7 @@
 
 ### createInAppNotification
 
-> `const` **createInAppNotification**: `Effect`\<(`job`, `title`, `message`, `userId`, `actionUrl?`) => `Promise`\<`void`\>, `never`, `never`\>
+> `const` **createInAppNotification**: `Effect`&lt;(`job`, `title`, `message`, `userId`, `actionUrl?`) => `Promise`&lt;`void`&gt;, `never`, `never`&gt;
 
 Defined in: [src/services/notification.service.ts:226](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notification.service.ts#L226)
 
@@ -18,7 +18,7 @@ Create in-app notification record (stored in DB)
 
 ### sendEmailNotification
 
-> `const` **sendEmailNotification**: `Effect`\<(`job`, `toEmail`, `templateContext`) => `Promise`\<`string`\>, `never`, `never`\>
+> `const` **sendEmailNotification**: `Effect`&lt;(`job`, `toEmail`, `templateContext`) => `Promise`&lt;`string`&gt;, `never`, `never`&gt;
 
 Defined in: [src/services/notification.service.ts:164](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notification.service.ts#L164)
 
@@ -28,7 +28,7 @@ Send email notification (called from Bull job handler)
 
 ### sendWebhookNotification
 
-> `const` **sendWebhookNotification**: `Effect`\<(`job`, `webhookUrl`, `payload`) => `Promise`\<`Response`\>, `never`, `never`\>
+> `const` **sendWebhookNotification**: `Effect`&lt;(`job`, `webhookUrl`, `payload`) => `Promise`&lt;`Response`&gt;, `never`, `never`&gt;
 
 Defined in: [src/services/notification.service.ts:192](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notification.service.ts#L192)
 
@@ -38,7 +38,7 @@ Send webhook notification (for external integrations)
 
 ### notifyApprovalApproved()
 
-> **notifyApprovalApproved**(`workflowId`, `tenantId`, `approvalRequestId`, `requesterUserId`, `requesterEmail`, `approverName`, `workflowName`): `Promise`\<`void`\>
+> **notifyApprovalApproved**(`workflowId`, `tenantId`, `approvalRequestId`, `requesterUserId`, `requesterEmail`, `approverName`, `workflowName`): `Promise`&lt;`void`&gt;
 
 Defined in: [src/services/notification.service.ts:270](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notification.service.ts#L270)
 
@@ -74,13 +74,13 @@ Defined in: [src/services/notification.service.ts:270](https://github.com/ifrspr
 
 #### Returns
 
-`Promise`\<`void`\>
+`Promise`&lt;`void`&gt;
 
 ***
 
 ### notifyApprovalRejected()
 
-> **notifyApprovalRejected**(`workflowId`, `tenantId`, `approvalRequestId`, `requesterUserId`, `requesterEmail`, `approverName`, `workflowName`, `rejectionReason?`): `Promise`\<`void`\>
+> **notifyApprovalRejected**(`workflowId`, `tenantId`, `approvalRequestId`, `requesterUserId`, `requesterEmail`, `approverName`, `workflowName`, `rejectionReason?`): `Promise`&lt;`void`&gt;
 
 Defined in: [src/services/notification.service.ts:295](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notification.service.ts#L295)
 
@@ -120,13 +120,13 @@ Defined in: [src/services/notification.service.ts:295](https://github.com/ifrspr
 
 #### Returns
 
-`Promise`\<`void`\>
+`Promise`&lt;`void`&gt;
 
 ***
 
 ### notifyApprovalRequested()
 
-> **notifyApprovalRequested**(`workflowId`, `tenantId`, `approvalRequestId`, `approverUserId`, `approverEmail`, `requesterName`, `workflowName`, `approvalUrl`): `Promise`\<`void`\>
+> **notifyApprovalRequested**(`workflowId`, `tenantId`, `approvalRequestId`, `approverUserId`, `approverEmail`, `requesterName`, `workflowName`, `approvalUrl`): `Promise`&lt;`void`&gt;
 
 Defined in: [src/services/notification.service.ts:244](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notification.service.ts#L244)
 
@@ -169,4 +169,4 @@ This adds the job to Bull queue; actual sending happens in job handler
 
 #### Returns
 
-`Promise`\<`void`\>
+`Promise`&lt;`void`&gt;

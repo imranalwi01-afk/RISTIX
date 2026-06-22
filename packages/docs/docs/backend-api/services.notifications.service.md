@@ -52,7 +52,7 @@ Defined in: [src/services/notifications.service.ts:16](https://github.com/ifrspr
 
 ### NotificationCategory
 
-> **NotificationCategory** = `"approval"` \| `"workflow"` \| `"analytics"` \| `"system"`
+> **NotificationCategory** = `"approval"` &#124; `"workflow"` &#124; `"analytics"` &#124; `"system"`
 
 Defined in: [src/services/notifications.service.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L7)
 
@@ -60,7 +60,7 @@ Defined in: [src/services/notifications.service.ts:7](https://github.com/ifrspro
 
 ### NotificationReadStatus
 
-> **NotificationReadStatus** = `"all"` \| `"read"` \| `"unread"`
+> **NotificationReadStatus** = `"all"` &#124; `"read"` &#124; `"unread"`
 
 Defined in: [src/services/notifications.service.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L8)
 
@@ -94,7 +94,7 @@ Defined in: [src/services/notifications.service.ts:52](https://github.com/ifrspr
 
 ### filterNotificationRecipientsByPreferences()
 
-> **filterNotificationRecipientsByPreferences**(`input`): `Promise`\<`string`[]\>
+> **filterNotificationRecipientsByPreferences**(`input`): `Promise`&lt;`string`[]&gt;
 
 Defined in: [src/services/notifications.service.ts:210](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L210)
 
@@ -120,13 +120,13 @@ Defined in: [src/services/notifications.service.ts:210](https://github.com/ifrsp
 
 #### Returns
 
-`Promise`\<`string`[]\>
+`Promise`&lt;`string`[]&gt;
 
 ***
 
 ### getMyNotificationPreferences()
 
-> **getMyNotificationPreferences**(`tenantId`, `userId`): `Effect`\<[`NotificationPreferencesShape`](#notificationpreferencesshape), [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **getMyNotificationPreferences**(`tenantId`, `userId`): `Effect`&lt;[`NotificationPreferencesShape`](#notificationpreferencesshape), [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/services/notifications.service.ts:161](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L161)
 
@@ -142,13 +142,13 @@ Defined in: [src/services/notifications.service.ts:161](https://github.com/ifrsp
 
 #### Returns
 
-`Effect`\<[`NotificationPreferencesShape`](#notificationpreferencesshape), [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`&lt;[`NotificationPreferencesShape`](#notificationpreferencesshape), [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 ***
 
 ### getMyNotifications()
 
-> **getMyNotifications**(`input`): `Effect`\<\{ `rows`: `any`[]; `total`: `number`; \}, [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **getMyNotifications**(`input`): `Effect`&lt;&#123; `rows`: `any`[]; `total`: `number`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/services/notifications.service.ts:107](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L107)
 
@@ -198,13 +198,13 @@ Defined in: [src/services/notifications.service.ts:107](https://github.com/ifrsp
 
 #### Returns
 
-`Effect`\<\{ `rows`: `any`[]; `total`: `number`; \}, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`&lt;&#123; `rows`: `any`[]; `total`: `number`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 ***
 
 ### getMyUnreadNotificationCount()
 
-> **getMyUnreadNotificationCount**(`tenantId`, `userId`): `Effect`\<`number`, [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **getMyUnreadNotificationCount**(`tenantId`, `userId`): `Effect`&lt;`number`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/services/notifications.service.ts:123](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L123)
 
@@ -220,13 +220,13 @@ Defined in: [src/services/notifications.service.ts:123](https://github.com/ifrsp
 
 #### Returns
 
-`Effect`\<`number`, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`&lt;`number`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 ***
 
 ### markAllNotificationsAsRead()
 
-> **markAllNotificationsAsRead**(`input`): `Effect`\<\{ `updatedCount`: `number`; \}, [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **markAllNotificationsAsRead**(`input`): `Effect`&lt;&#123; `updatedCount`: `number`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/services/notifications.service.ts:141](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L141)
 
@@ -244,13 +244,13 @@ Defined in: [src/services/notifications.service.ts:141](https://github.com/ifrsp
 
 #### Returns
 
-`Effect`\<\{ `updatedCount`: `number`; \}, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`&lt;&#123; `updatedCount`: `number`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 ***
 
 ### markManyNotificationsReadStatus()
 
-> **markManyNotificationsReadStatus**(`input`): `Effect`\<\{ `updatedCount`: `number`; \}, [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **markManyNotificationsReadStatus**(`input`): `Effect`&lt;&#123; `updatedCount`: `number`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/services/notifications.service.ts:150](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L150)
 
@@ -276,13 +276,13 @@ Defined in: [src/services/notifications.service.ts:150](https://github.com/ifrsp
 
 #### Returns
 
-`Effect`\<\{ `updatedCount`: `number`; \}, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`&lt;&#123; `updatedCount`: `number`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 ***
 
 ### markNotificationAsRead()
 
-> **markNotificationAsRead**(`input`): `Effect`\<\{ `updated`: `boolean`; \}, [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **markNotificationAsRead**(`input`): `Effect`&lt;&#123; `updated`: `boolean`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/services/notifications.service.ts:131](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L131)
 
@@ -304,13 +304,13 @@ Defined in: [src/services/notifications.service.ts:131](https://github.com/ifrsp
 
 #### Returns
 
-`Effect`\<\{ `updated`: `boolean`; \}, [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`&lt;&#123; `updated`: `boolean`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 ***
 
 ### updateMyNotificationPreferences()
 
-> **updateMyNotificationPreferences**(`input`): `Effect`\<[`NotificationPreferencesShape`](#notificationpreferencesshape), [`DatabaseError`](lib.errors.md#databaseerror)\>
+> **updateMyNotificationPreferences**(`input`): `Effect`&lt;[`NotificationPreferencesShape`](#notificationpreferencesshape), [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
 Defined in: [src/services/notifications.service.ts:177](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L177)
 
@@ -320,7 +320,7 @@ Defined in: [src/services/notifications.service.ts:177](https://github.com/ifrsp
 
 ###### preferences
 
-`Partial`\<[`NotificationPreferencesShape`](#notificationpreferencesshape)\>
+`Partial`&lt;[`NotificationPreferencesShape`](#notificationpreferencesshape)&gt;
 
 ###### tenantId
 
@@ -332,4 +332,4 @@ Defined in: [src/services/notifications.service.ts:177](https://github.com/ifrsp
 
 #### Returns
 
-`Effect`\<[`NotificationPreferencesShape`](#notificationpreferencesshape), [`DatabaseError`](lib.errors.md#databaseerror)\>
+`Effect`&lt;[`NotificationPreferencesShape`](#notificationpreferencesshape), [`DatabaseError`](lib.errors.md#databaseerror)&gt;
