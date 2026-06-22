@@ -27,6 +27,7 @@ import {
   Typography,
   Chip,
 } from '@mui/material';
+import { FieldSource } from '@/components/shared/FieldSource';
 import {
   Add as AddIcon,
   Calculate as EclIcon,
@@ -251,25 +252,27 @@ function ECLConfigDialogComponent({
                   </Box>
 
                   <Box>
-                    <FormControl fullWidth required error={!!formErrors.pd_model_id}>
-                      <InputLabel>PD Model</InputLabel>
-                      <Select
-                        value={detailFormData.pd_model_id || ''}
-                        label="PD Model"
-                        disabled={isViewOnly}
-                        onChange={(e) => onDetailFieldChange('pd_model_id', Number(e.target.value))}
-                        data-testid="ecl-pd-model-select"
-                      >
-                        {getModelOptionsForSegment(pdModelOptions, detailFormData.pf_segment_id).map((model, idx) => (
-                          <MenuItem key={`${model.value}-${idx}`} value={model.value}>
-                            {model.label}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                      <FormHelperText error={!!formErrors.pd_model_id}>
-                        {formErrors.pd_model_id || 'Source: PD Active Model (frs9_r_pd_afl)'}
-                      </FormHelperText>
-                    </FormControl>
+                    <FieldSource table="frs9_r_pd_afl" filter="model_status = 'active'" description="SELECT model_id, model_name FROM frs9_r_pd_afl WHERE model_status = 'active' ORDER BY model_name">
+                      <FormControl fullWidth required error={!!formErrors.pd_model_id}>
+                        <InputLabel>PD Model</InputLabel>
+                        <Select
+                          value={detailFormData.pd_model_id || ''}
+                          label="PD Model"
+                          disabled={isViewOnly}
+                          onChange={(e) => onDetailFieldChange('pd_model_id', Number(e.target.value))}
+                          data-testid="ecl-pd-model-select"
+                        >
+                          {getModelOptionsForSegment(pdModelOptions, detailFormData.pf_segment_id).map((model, idx) => (
+                            <MenuItem key={`${model.value}-${idx}`} value={model.value}>
+                              {model.label}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        <FormHelperText error={!!formErrors.pd_model_id}>
+                          {formErrors.pd_model_id || 'PD Active Model'}
+                        </FormHelperText>
+                      </FormControl>
+                    </FieldSource>
                   </Box>
 
                   <Box>
