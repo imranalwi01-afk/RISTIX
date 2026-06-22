@@ -755,8 +755,6 @@ export default function PageContent() {
     setDetailFormData(prev => ({
       ...prev,
       operator,
-      value1: '',
-      value2: ''
     }));
   }, []);
 
