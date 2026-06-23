@@ -8,7 +8,6 @@ import {
   Alert,
   Box,
   Button,
-  Checkbox,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -21,6 +20,7 @@ import {
   InputLabel,
   MenuItem,
   Select,
+  Switch,
   Tab,
   Tabs,
   TextField,
@@ -182,11 +182,11 @@ function ECLConfigDialogComponent({
               <Box sx={{ gridColumn: 'span 2' }}>
                 <FormControlLabel
                   control={
-                    <Checkbox
+                    <Switch
                       checked={headerFormData.active_flag || false}
                       disabled={isViewOnly}
                       onChange={(e) => onHeaderFieldChange('active_flag', e.target.checked)}
-                      data-testid="ecl-active-flag-checkbox"
+                      data-testid="ecl-active-flag-switch"
                     />
                   }
                   label="Active Configuration"

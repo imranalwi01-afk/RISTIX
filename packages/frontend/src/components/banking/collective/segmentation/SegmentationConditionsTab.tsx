@@ -377,7 +377,7 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
   };
 
   const generatedTableName = (
-    rules.find((rule) => String(rule.table_name || '').trim().length > 0)?.table_name || 'FRS9_MASTER_ACCOUNT'
+    rules.find((rule) => String(rule.table_name || '').trim().length > 0)?.table_name || 'frs9_master_account'
   ).toLowerCase();
   const editorValidationMessage = getRuleValidationMessage(editForm);
   const isEditorValid = !editorValidationMessage;

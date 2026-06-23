@@ -49,20 +49,18 @@ import Timeline from '@mui/icons-material/Timeline'
 import Calculate from '@mui/icons-material/Calculate'
 import Refresh from '@mui/icons-material/Refresh'
 import Settings from '@mui/icons-material/Settings'
+import Warning from '@mui/icons-material/Warning'
 import Info from '@mui/icons-material/Info'
 import CheckCircle from '@mui/icons-material/CheckCircle'
 import Schedule from '@mui/icons-material/Schedule'
 import TrendingUp from '@mui/icons-material/TrendingUp'
-import Warning from '@mui/icons-material/Warning'
 import Business from '@mui/icons-material/Business'
 import Security from '@mui/icons-material/Security'
 import Analytics from '@mui/icons-material/Analytics'
-import ShowChart from '@mui/icons-material/ShowChart'
 import PieChart from '@mui/icons-material/PieChart'
 import BarChart from '@mui/icons-material/BarChart'
 import Notifications from '@mui/icons-material/Notifications'
 import Download from '@mui/icons-material/Download'
-import Upload from '@mui/icons-material/Upload'
 import Save from '@mui/icons-material/Save'
 import ContentCopy from '@mui/icons-material/ContentCopy'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
@@ -116,6 +114,30 @@ const COLORS = {
 }
 
 // 📊 COMPONENTS
+
+const getActivityIcon = (type: string, result: string) => {
+    if (result === 'FAILURE') return <Warning />;
+    if (type.toLowerCase().includes('create') || type.toLowerCase().includes('approve')) return <CheckCircle />;
+    if (type.toLowerCase().includes('update') || type.toLowerCase().includes('edit')) return <Save />;
+    if (type.toLowerCase().includes('delete') || type.toLowerCase().includes('remove')) return <Warning />;
+    if (type.toLowerCase().includes('login')) return <Security />;
+    if (type.toLowerCase().includes('export') || type.toLowerCase().includes('download')) return <Download />;
+    return <Schedule />;
+};
+
+const formatActivityTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    return date.toLocaleDateString();
+};
 
 const ECLDistributionChart = ({ data, formatAmount }: { data: any; formatAmount: (value: number) => string }) => {
     const chartData = [
@@ -252,6 +274,16 @@ interface DashboardActivity {
     text: string;
     time: string;
     type: 'success' | 'warning' | 'info' | 'error';
+}
+
+interface UserActivityItem {
+    id: string;
+    activityDescription: string;
+    actionPerformed: string;
+    activityType: string;
+    createdAt: string;
+    moduleAccessed?: string;
+    actionResult: string;
 }
 
 function DashboardClient() {
@@ -464,6 +496,26 @@ function DashboardClient() {
             setPortfolioTrend(trend || [])
             setSummaryDebug(summaryMetaDebug ? { ...summaryMetaDebug, requestUrl: summaryRequestUrl } : null)
             setTrendDebug(trendMetaDebug ? { ...trendMetaDebug, requestUrl: trendRequestUrl } : null)
+
+            // Load user activities
+            if (user?.id) {
+                try {
+                    const activityRes = await fetch(`/user-activity/activities?userId=${user.id}&limit=5`);
+                    if (activityRes.ok) {
+                        const activityData = await activityRes.json();
+                        const items: UserActivityItem[] = activityData?.data || activityData || [];
+                        setActivities(items.map((a: UserActivityItem) => ({
+                            id: a.id,
+                            icon: getActivityIcon(a.activityType, a.actionResult),
+                            text: a.activityDescription || a.actionPerformed,
+                            time: formatActivityTime(a.createdAt),
+                            type: a.actionResult === 'FAILURE' ? 'error' : a.actionResult === 'PARTIAL' ? 'warning' : 'info',
+                        })));
+                    }
+                } catch {
+                    // silently fail, activities are non-critical
+                }
+            }
         } catch (error: any) {
             console.error('❌ Error loading dashboard data:', error);
             setError(handleAPIError(error))
@@ -1142,115 +1194,8 @@ function DashboardClient() {
 
             {/* Main Content Area */}
             <Grid container spacing={3} sx={{ mb: 4 }}>
-                {/* Quick Actions */}
-                <Grid size={{ xs: 12, md: 6 }}>
-                    <Card sx={{ height: '100%', borderRadius: 4, boxShadow: `0 4px 12px ${alpha(bankingContext.primary, 0.08)}`, border: `1px solid ${alpha(bankingContext.primary, 0.1)}` }}>
-                        <CardContent sx={{ p: isMobile ? 2 : 3 }}>
-                            <Box sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
-                                <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha(bankingContext.primary, 0.1), color: bankingContext.primary, mr: 2 }}>
-                                    <Assessment />
-                                </Box>
-                                <Typography variant="h6" fontWeight="bold">
-                                    Quick Actions
-                                </Typography>
-                            </Box>
-                            <Stack spacing={2}>
-                                <Button
-                                    variant="contained"
-                                    fullWidth
-                                    size="large"
-                                    sx={{
-                                        py: 1.5,
-                                        borderRadius: 2,
-                                        backgroundColor: bankingContext.primary,
-                                        boxShadow: `0 4px 12px ${alpha(bankingContext.primary, 0.3)}`,
-                                        '&:hover': {
-                                            backgroundColor: bankingContext.primary,
-                                            filter: 'brightness(0.9)',
-                                            transform: 'translateY(-2px)',
-                                            boxShadow: `0 6px 16px ${alpha(bankingContext.primary, 0.4)}`,
-                                        },
-                                        transition: 'all 0.2s ease-in-out',
-                                        fontWeight: 'bold'
-                                    }}
-                                    startIcon={<Calculate />}
-                                    onClick={() => router.push(`/banking/ifrs9/calculations?mode=${encodeURIComponent(bankingContext.type)}`)}
-                                >
-                                    Run ECL Calculation
-                                </Button>
-                                <Button
-                                    variant="outlined"
-                                    fullWidth
-                                    size="large"
-                                    color="primary"
-                                    sx={{
-                                        py: 1.5,
-                                        borderRadius: 2,
-                                        borderWidth: 1.5,
-                                        '&:hover': {
-                                            borderWidth: 1.5,
-                                            transform: 'translateY(-2px)',
-                                            boxShadow: `0 4px 12px ${alpha(bankingContext.primary, 0.1)}`,
-                                        },
-                                        transition: 'all 0.2s ease-in-out',
-                                        fontWeight: 'bold'
-                                    }}
-                                    startIcon={<ShowChart />}
-                                    onClick={() => router.push('/banking/portfolio/analysis')}
-                                >
-                                    View Portfolio Analysis
-                                </Button>
-                                <Button
-                                    variant="outlined"
-                                    fullWidth
-                                    size="large"
-                                    color="primary"
-                                    sx={{
-                                        py: 1.5,
-                                        borderRadius: 2,
-                                        borderWidth: 1.5,
-                                        '&:hover': {
-                                            borderWidth: 1.5,
-                                            transform: 'translateY(-2px)',
-                                            boxShadow: `0 4px 12px ${alpha(bankingContext.primary, 0.1)}`,
-                                        },
-                                        transition: 'all 0.2s ease-in-out',
-                                        fontWeight: 'bold'
-                                    }}
-                                    startIcon={<Download />}
-                                    onClick={() => router.push('/banking/reports/ifrs9')}
-                                >
-                                    Generate IFRS 9 Report
-                                </Button>
-                                <Button
-                                    variant="outlined"
-                                    fullWidth
-                                    size="large"
-                                    color="primary"
-                                    sx={{
-                                        py: 1.5,
-                                        borderRadius: 2,
-                                        borderWidth: 1.5,
-                                        '&:hover': {
-                                            borderWidth: 1.5,
-                                            transform: 'translateY(-2px)',
-                                            boxShadow: `0 4px 12px ${alpha(bankingContext.primary, 0.1)}`,
-                                        },
-                                        transition: 'all 0.2s ease-in-out',
-                                        fontWeight: 'bold'
-                                    }}
-                                    startIcon={<Settings />}
-                                    onClick={() => router.push('/banking/setup/application')}
-                                >
-                                    System Configuration
-                                </Button>
-                            </Stack>
-                        </CardContent>
-                    </Card>
-                </Grid>
-
-                {/* Recent Activities - Real Data */}
-                <Grid size={{ xs: 12, md: 6 }}>
+                {/* User Activity */}
+                <Grid size={{ xs: 12 }}>
                     <Card sx={{ height: '100%', borderRadius: 4, boxShadow: `0 4px 12px ${alpha(bankingContext.primary, 0.08)}`, border: `1px solid ${alpha(bankingContext.primary, 0.1)}` }}>
                         <CardContent sx={{ p: isMobile ? 2 : 3 }}>
                             <Box sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
@@ -1258,7 +1203,7 @@ function DashboardClient() {
                                     <Timeline />
                                 </Box>
                                 <Typography variant="h6" fontWeight="bold">
-                                    Recent Activities
+                                    User Activity
                                 </Typography>
                             </Box>
                             <List sx={{ p: 0 }}>

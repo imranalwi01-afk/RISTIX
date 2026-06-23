@@ -444,7 +444,7 @@ function IndividualAssessmentWizardPage() {
               sx={{ fontWeight: 600 }}
             />
             <Chip
-              label="Source: FRS9_MASTER_ACCOUNT"
+              label="Source: frs9_master_account"
               variant="outlined"
               size="small"
             />
@@ -492,7 +492,7 @@ function IndividualAssessmentWizardPage() {
                   <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                     Watchlist Debug Query
                   </Typography>
-                  <Chip label={watchlistDebug.selectedSource || 'FRS9_MASTER_ACCOUNT'} size="small" variant="outlined" />
+                  <Chip label={watchlistDebug.selectedSource || 'frs9_master_account'} size="small" variant="outlined" />
                   <Chip label={watchlistDebug.endpoint || '/watchlist'} size="small" variant="outlined" />
                 </Stack>
               </AccordionSummary>

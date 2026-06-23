@@ -179,13 +179,13 @@ export class IndividualImpairmentController {
                 {
                     debug: {
                         endpoint: `GET ${getIndividualImpairmentApiBase(c)}/watchlist`,
-                        selectedSource: 'FRS9_MASTER_ACCOUNT',
+                        selectedSource: 'frs9_master_account',
                         sourceTables: ['public.frs9_master_account', 'public.frs9_imp_ia_header'],
                         filtersApplied: {
                             search: query.search,
                             ...filters,
                         },
-                        sqlPreview: `SELECT A.PRC_DATE AS DOWNLOAD_DATE, A.CIF_NUMBER AS CUSTOMER_NUMBER, A.CIF_NAME AS CUSTOMER_NAME, A.ACCOUNT_NUMBER, A.CURRENCY, A.OUTSTANDING, A.DPD AS DAY_PAST_DUE, A.COLLECTABILITY, A.EXT_RATING_CODE AS RATING FROM FRS9_MASTER_ACCOUNT A WHERE A.DPD > 30 AND A.OUTSTANDING >= 1000000 AND NOT EXISTS (SELECT 1 FROM FRS9_IMP_IA_HEADER B WHERE A.ACCOUNT_ID = B.ACCOUNT_ID AND B.IMPAIRED_FLAG = 'I')`,
+                        sqlPreview: `SELECT A.PRC_DATE AS DOWNLOAD_DATE, A.CIF_NUMBER AS CUSTOMER_NUMBER, A.CIF_NAME AS CUSTOMER_NAME, A.ACCOUNT_NUMBER, A.CURRENCY, A.OUTSTANDING, A.DPD AS DAY_PAST_DUE, A.COLLECTABILITY, A.EXT_RATING_CODE AS RATING FROM frs9_master_account A WHERE A.DPD > 30 AND A.OUTSTANDING >= 1000000 AND NOT EXISTS (SELECT 1 FROM frs9_imp_ia_header B WHERE A.ACCOUNT_ID = B.ACCOUNT_ID AND B.IMPAIRED_FLAG = 'I')`,
                         notes: ['Matches techspec Individual Watchlist. Existing T impaired flag rows are also excluded for compatibility with the current override flow.'],
                     },
                 },
