@@ -23,7 +23,7 @@ const PREFETCH_ROUTES = [
   '/banking/collective/lgd-setup',
   '/banking/collective/ead-setup',
   '/banking/collective/ecl-config',
-  '/banking/ifrs9/impairment',
+  '/banking/ifrs9/impairment-module',
   '/banking/ifrs9/calculations',
 ];
 

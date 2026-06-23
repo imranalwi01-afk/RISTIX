@@ -18,9 +18,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   '/banking/collective': 'banking.collective.view',
   '/banking/individual': 'banking.individual.view',
 
-  // Processing & Reports
-  '/banking/processing': 'banking.processing.view',
-  '/banking/reports': 'banking.reports.ifrs9.view',
+  // Analytics
   '/banking/analytics': 'banking.analytics.r.view',
 
   // System Setup (Strictly Protected)
@@ -28,9 +26,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   '/banking/setup/business': 'banking.setup.business',
   '/banking/setup': 'banking.setup',
   '/banking/parameters': 'banking.parameter',
-  '/banking/administration': 'admin.users.manage',
   '/banking/maintenance/approval': 'approval.requests.approve',
-  '/banking/maintenance/audit': 'admin.maintenance.access',
   '/banking/maintenance/user-activity': 'admin.maintenance.access',
   '/banking/maintenance/access-management': ['admin.users.manage', 'admin.roles.manage', 'admin.maintenance.access'],
   '/banking/maintenance/job-monitoring': 'jobs',
