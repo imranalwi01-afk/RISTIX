@@ -26,6 +26,8 @@ export interface IndividualCustomerListFilters {
   search?: string;
   dateFrom?: string;
   dateTo?: string;
+  cursor?: string;
+  paginationMode?: 'cursor' | 'offset';
 }
 
 export interface StandaloneWatchlistFilters {
@@ -111,6 +113,8 @@ export async function fetchIndividualCustomerList(params: IndividualCustomerList
     search: params.search,
     dateFrom: params.dateFrom,
     dateTo: params.dateTo,
+    cursor: params.cursor,
+    paginationMode: params.paginationMode,
   });
 }
 
