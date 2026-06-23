@@ -33,4 +33,5 @@ export {
 export * from './audit.schema'
 export * from './auth.schema'
 export * from './approval.schema'
+export * from './jobs.schema'
 export * from './workflows.schema'

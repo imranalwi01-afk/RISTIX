@@ -169,9 +169,10 @@ Consolidate `docker-publish.yml` and `docker-publish-dev.yml` into a single work
 
 ### Rules
 
-- **`jobDefinitions` and `jobExecutions`** live ONLY in the **Platform DB** (`core` schema). The `tenant.schema.ts` does NOT export jobs — use `platformDb` directly to query them.
+- **`jobDefinitions` and `jobExecutions`** live in **Both DBs** (`core` schema in Platform DB + Tenant DB). The `tenant.schema.ts` exports jobs for the tenant DB. The `ensureJobsTablesCompatibility()` creates them in the platform DB.
 - **`approvalRequests`** lives in the **Tenant DB** (`approval` schema). Use `tenantDb` or `getDatabase(tenantId)`.
 - **`getDatabase(tenantId)`** returns `tenantDb` when `tenantId` is provided, `platformDb` when omitted.
-- **DO NOT** query `jobDefinitions` / `jobExecutions` through `getDatabase(tenantId)` — it routes to tenant DB where these tables don't exist.
+- **Query jobs through `getDatabase(tenantId)`** for tenant-scoped operations, or through `platformDb` for platform operations.
+- **Always Add `impact_level`** to any new `CREATE TABLE core.job_definitions` — the Drizzle schema expects it but migrations often miss it.
 - **`ensureJobsTablesCompatibility()`** in `database.ts` keeps the platform DB job tables in sync with the schema. Run this at startup.
 ```

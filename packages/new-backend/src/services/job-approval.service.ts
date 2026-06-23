@@ -1,4 +1,4 @@
-import { getDatabase, platformDb } from '../config/database'
+import { getDatabase } from '../config/database'
 import { approvalRequests, jobDefinitions, jobExecutions } from '../db/schema'
 import { eq } from 'drizzle-orm'
 import { Effect } from 'effect'
@@ -21,7 +21,7 @@ export type JobApprovalPolicy = {
  * @returns A Promise resolving to true if approval is required
  */
 export const requiresApproval = async (jobDefinitionId: string, tenantId: string): Promise<boolean> => {
-    const [definition] = await platformDb
+    const [definition] = await getDatabase(tenantId)
         .select({ requiresApproval: jobDefinitions.requiresApproval })
         .from(jobDefinitions)
         .where(eq(jobDefinitions.id, jobDefinitionId))
@@ -53,8 +53,8 @@ export const createJobApprovalRequest = async (params: {
     const { jobDefinitionId, executionId, triggeredBy, tenantId, parameters, approvalPolicy } = params
     const tenantDb = getDatabase(tenantId)
 
-    // Get job definition (platform DB)
-    const [definition] = await platformDb
+    // Get job definition
+    const [definition] = await tenantDb
         .select()
         .from(jobDefinitions)
         .where(eq(jobDefinitions.id, jobDefinitionId))
@@ -178,7 +178,7 @@ export const handleJobApprovalComplete = async (
             })
             .where(eq(approvalRequests.id, approvalRequestId))
 
-        await platformDb.update(jobExecutions)
+        await tenantDb.update(jobExecutions)
             .set({
                 status: 'failed',
                 approvalStatus: 'rejected',
@@ -207,8 +207,8 @@ export const handleJobApprovalComplete = async (
 
     const latestRequest = await ApprovalRepository.findRequestById(approvalRequestId)
 
-    // Find job execution linked to this approval (platform DB)
-    const [execution] = await platformDb
+    // Find job execution linked to this approval
+    const [execution] = await tenantDb
         .select()
         .from(jobExecutions)
         .where(eq(jobExecutions.approvalRequestId, approvalRequestId))
@@ -239,8 +239,8 @@ export const handleJobApprovalComplete = async (
             priority: 1, // High priority for approved jobs
         })
 
-        // Update execution status (platform DB)
-        await platformDb.update(jobExecutions)
+        // Update execution status
+        await tenantDb.update(jobExecutions)
             .set({
                 status: 'pending',
                 approvalStatus: 'approved',
@@ -260,7 +260,7 @@ export const handleJobApprovalComplete = async (
             remainingApprovals: 0,
         }
     } else if (status === 'approved' && !actionResult.completed) {
-        await platformDb.update(jobExecutions)
+        await tenantDb.update(jobExecutions)
             .set({
                 status: 'pending_approval',
                 approvalStatus: 'pending',
@@ -278,8 +278,8 @@ export const handleJobApprovalComplete = async (
     } else {
         console.log(`[JobApproval] Job ${execution.id} rejected`)
 
-        // Mark as rejected (platform DB)
-        await platformDb.update(jobExecutions)
+        // Mark as rejected
+        await tenantDb.update(jobExecutions)
             .set({
                 status: 'rejected',
                 approvalStatus: 'rejected',
@@ -328,7 +328,7 @@ export const checkAutoApprovalConditions = async (
     triggeredBy: string,
     parameters?: any
 ): Promise<boolean> => {
-    const [definition] = await platformDb
+    const [definition] = await getDatabase(tenantId)
         .select()
         .from(jobDefinitions)
         .where(eq(jobDefinitions.id, jobDefinitionId))
