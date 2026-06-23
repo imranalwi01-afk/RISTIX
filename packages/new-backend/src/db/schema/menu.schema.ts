@@ -67,10 +67,53 @@ export const menuItems = menuSchema.table('menu_items', {
     foreignKey({ columns: [table.parentId], foreignColumns: [table.id] }),
 ])
 
-// Menu permissions live in tenant DB as core.menu_permissions, not in platform DB
-// Menu configurations and analytics are not yet implemented
+// =============================================================================
+// MENU CONFIGURATIONS — per-tenant override of shared menu structure
+// Allows each tenant to customize their navigation without affecting others
+// =============================================================================
+export const menuConfigurations = menuSchema.table('menu_configurations', {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id').notNull(),
+    name: varchar('name', { length: 100 }).notNull(),
+    type: varchar('type', { length: 50 }).notNull(), // 'override', 'extension', 'theme'
+    configuration: jsonb('configuration').notNull(),
+    isActive: boolean('is_active').default(true),
+    environment: varchar('environment', { length: 20 }).default('production'),
+    version: varchar('version', { length: 20 }).default('1.0.0'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+    createdBy: uuid('created_by').notNull(),
+    updatedBy: uuid('updated_by'),
+}, (table) => [
+    uniqueIndex('menu_config_tenant_name_env').on(table.tenantId, table.name, table.environment),
+])
+
+// =============================================================================
+// MENU ANALYTICS — per-tenant usage tracking for menu items
+// Records which menu items users interact with
+// =============================================================================
+export const menuAnalytics = menuSchema.table('menu_analytics', {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id').notNull(),
+    userId: uuid('user_id').notNull(),
+    menuItemId: uuid('menu_item_id').notNull().references(() => menuItems.id),
+    sessionId: uuid('session_id'),
+    actionType: varchar('action_type', { length: 50 }).notNull(), // 'click', 'hover', 'search'
+    timestamp: timestamp('timestamp', { withTimezone: true }).defaultNow(),
+    durationMs: integer('duration_ms'),
+    metadata: jsonb('metadata'),
+    ipAddress: text('ip_address'),
+    userAgent: text('user_agent'),
+}, (table) => [
+    index('menu_analytics_tenant_idx').on(table.tenantId),
+    index('menu_analytics_item_idx').on(table.menuItemId),
+])
 
 export type MenuCategory = typeof menuCategories.$inferSelect
 export type NewMenuCategory = typeof menuCategories.$inferInsert
 export type MenuItem = typeof menuItems.$inferSelect
 export type NewMenuItem = typeof menuItems.$inferInsert
+export type MenuConfiguration = typeof menuConfigurations.$inferSelect
+export type NewMenuConfiguration = typeof menuConfigurations.$inferInsert
+export type MenuAnalytic = typeof menuAnalytics.$inferSelect
+export type NewMenuAnalytic = typeof menuAnalytics.$inferInsert
