@@ -1126,7 +1126,7 @@ const LifetimePDReport: React.FC = () => {
           hideFilters
           requiredParams={['prc_date']}
           optionalParams={[]}
-          supportsPagination={true}
+          supportsPagination={true} paginationMode="cursor"
           externalFilters={{
             prc_date: effectivePrcDate ? new Date(effectivePrcDate) : currentFilters.prcDate ? new Date(currentFilters.prcDate) : null,
             pd_config_id: currentFilters.pdConfigId ? Number(currentFilters.pdConfigId) : undefined,

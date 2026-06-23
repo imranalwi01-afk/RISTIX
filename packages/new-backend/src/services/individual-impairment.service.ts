@@ -730,9 +730,11 @@ export class IndividualImpairmentService {
         cifName?: string;
         limit?: number;
         offset?: number;
+        cursor?: string;
+        paginationMode?: 'cursor' | 'offset';
         sort?: Array<{ field: string; direction: 'asc' | 'desc' }>;
     }) {
-        const { reportPeriod, search, status, impaired_flag, dateFrom, dateTo, accountNumber, cifName, limit = 50, offset = 0 } = filters;
+        const { reportPeriod, search, status, impaired_flag, dateFrom, dateTo, accountNumber, cifName, limit = 50, offset = 0, cursor, paginationMode } = filters;
         const conditions = [
             sql`(${frs9ImpIaHeader.status} IN (0, 1, 2) OR ${frs9ImpIaHeader.status} IS NULL)`,
         ];
@@ -805,17 +807,31 @@ export class IndividualImpairmentService {
             })
             .filter(Boolean);
 
-        const rows = await legacyDb.select()
+        const isCursor = paginationMode === 'cursor' || Boolean(cursor);
+        const rowLimit = isCursor ? limit + 1 : limit;
+        const rowOffset = isCursor ? 0 : offset;
+
+        const cursorRows = await legacyDb.select()
             .from(frs9ImpIaHeader)
             .where(whereClause)
             .orderBy(...(sortExpressions.length > 0
                 ? [...sortExpressions, desc(frs9ImpIaHeader.pkid)]
                 : [desc(frs9ImpIaHeader.prcDate), desc(frs9ImpIaHeader.createddate), desc(frs9ImpIaHeader.pkid)]))
-            .limit(limit)
-            .offset(offset);
+            .limit(rowLimit)
+            .offset(rowOffset);
+
+        const hasMore = isCursor && cursorRows.length > limit;
+        const displayRows = hasMore ? cursorRows.slice(0, limit) : cursorRows;
+
+        const nextCursor = hasMore && displayRows.length > 0
+            ? encodeCursor({
+                pkid: Number(displayRows[displayRows.length - 1].pkid),
+                prcDate: displayRows[displayRows.length - 1].prcDate,
+            })
+            : null;
 
         return {
-            data: rows.map((row) => ({
+            data: displayRows.map((row) => ({
                 pkid: Number(row.pkid),
                 ia_id: row.iaId ? Number(row.iaId) : null,
                 download_date: row.prcDate,
@@ -846,6 +862,8 @@ export class IndividualImpairmentService {
                 updateddate: row.updateddate,
             })),
             total,
+            hasMore,
+            nextCursor,
         };
     }
 

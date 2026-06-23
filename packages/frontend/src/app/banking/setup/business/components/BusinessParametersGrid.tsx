@@ -91,32 +91,28 @@ const BusinessParametersGrid = memo(function BusinessParametersGrid({
       { field: 'param_desc', headerName: 'Description', flex: 1, minWidth: 250 },
       { field: 'param_value', headerName: 'Value', width: 150 },
       {
-        field: 'active_flag',
-        headerName: 'Active',
-        width: 100,
-        align: 'center',
-        headerAlign: 'center',
-        renderCell: (p) => (
-          <Chip label={p.value ? 'Yes' : 'No'} color={p.value ? 'success' : 'default'} size="small" sx={{ minWidth: 50 }} />
-        ),
-      },
-      {
         field: 'status',
         headerName: 'Status',
         width: 140,
-        renderCell: (p) => (
-          <Box
-            onClick={(e) => {
-              if ((p.row as any).approvalStatus === 'pending') {
-                e.stopPropagation();
-                onOpenPendingChanges(p.row as BusinessParameter);
-              }
-            }}
-            sx={{ cursor: (p.row as any).approvalStatus === 'pending' ? 'pointer' : 'default' }}
-          >
-            <ApprovalStatusBadge status={(p.row as any).approvalStatus || 'active'} size="small" />
-          </Box>
-        ),
+        renderCell: (p) => {
+          const row = p.row as BusinessParameter & { approvalStatus?: string };
+          if (!row.active_flag) {
+            return <Chip label="Inactive" color="default" size="small" />;
+          }
+          return (
+            <Box
+              onClick={(e) => {
+                if (row.approvalStatus === 'pending') {
+                  e.stopPropagation();
+                  onOpenPendingChanges(p.row as BusinessParameter);
+                }
+              }}
+              sx={{ cursor: row.approvalStatus === 'pending' ? 'pointer' : 'default' }}
+            >
+              <ApprovalStatusBadge status={(row.approvalStatus || 'active') as 'active' | 'pending' | 'approved' | 'rejected' | 'completed'} size="small" />
+            </Box>
+          );
+        },
       },
       {
         field: 'actions',

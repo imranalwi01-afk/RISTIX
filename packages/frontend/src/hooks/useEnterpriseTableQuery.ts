@@ -78,7 +78,7 @@ function readInitialState(options: UseEnterpriseTableQueryOptions): EnterpriseTa
   const sort = params.get('sort');
 
   return {
-    paginationMode: (params.get('paginationMode') as EnterprisePaginationMode) ?? options.paginationMode ?? 'offset',
+    paginationMode: options.paginationMode ?? (params.get('paginationMode') as EnterprisePaginationMode) ?? 'offset',
     paginationModel: { page, pageSize },
     cursor,
     columnFilters: parseJsonParam(filters, options.initialFilters ?? {}),

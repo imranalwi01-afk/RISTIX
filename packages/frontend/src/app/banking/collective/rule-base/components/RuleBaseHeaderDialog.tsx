@@ -11,11 +11,12 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
+  FormControlLabel,
   InputLabel,
   MenuItem,
   Select,
+  Switch,
   TextField,
-  Typography,
 } from '@mui/material';
 import type { RuleBaseHeader } from '../types';
 
@@ -166,18 +167,16 @@ function RuleBaseHeaderDialogComponent({
           />
         </Box>
         <Box sx={{ mt: 2 }}>
-          <FormControl component="fieldset">
-            <Typography component="legend">Status</Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <input
-                type="checkbox"
+          <FormControlLabel
+            control={
+              <Switch
                 checked={headerFormData.active_flag !== false}
                 onChange={(e) => onHeaderFormChange({ ...headerFormData, active_flag: e.target.checked })}
-                data-testid="rule-active-checkbox"
+                data-testid="rule-active-switch"
               />
-              <Typography sx={{ ml: 1 }}>Active</Typography>
-            </Box>
-          </FormControl>
+            }
+            label="Active"
+          />
         </Box>
       </DialogContent>
       <DialogActions>

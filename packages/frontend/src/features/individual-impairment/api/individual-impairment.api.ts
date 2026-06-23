@@ -18,6 +18,8 @@ export interface AssessmentWatchlistFilters {
   mode: string;
   page: number;
   limit: number;
+  cursor?: string;
+  paginationMode?: 'cursor' | 'offset';
 }
 
 export interface IndividualCustomerListFilters {
@@ -26,6 +28,8 @@ export interface IndividualCustomerListFilters {
   search?: string;
   dateFrom?: string;
   dateTo?: string;
+  cursor?: string;
+  paginationMode?: 'cursor' | 'offset';
 }
 
 export interface StandaloneWatchlistFilters {
@@ -55,6 +59,8 @@ export async function fetchAssessmentWatchlist(params: AssessmentWatchlistFilter
     page: params.page,
     limit: params.limit,
     search: params.search,
+    cursor: params.cursor,
+    paginationMode: params.paginationMode,
     filter: {
       stage,
       impaired_flag: impairedFlag,
@@ -111,6 +117,8 @@ export async function fetchIndividualCustomerList(params: IndividualCustomerList
     search: params.search,
     dateFrom: params.dateFrom,
     dateTo: params.dateTo,
+    cursor: params.cursor,
+    paginationMode: params.paginationMode,
   });
 }
 
@@ -143,6 +151,8 @@ export async function fetchIndividualReportAssessmentList(params: {
   mode: string;
   downloadDate?: string;
   status?: string;
+  cursor?: string;
+  paginationMode?: 'cursor' | 'offset';
 }) {
   return individualImpairmentFlatAPI.getReports({
     page: params.page,
@@ -151,6 +161,7 @@ export async function fetchIndividualReportAssessmentList(params: {
     dateFrom: params.downloadDate,
     dateTo: params.downloadDate,
     status: params.status,
-    paginationMode: 'offset',
+    cursor: params.cursor,
+    paginationMode: params.paginationMode ?? 'offset',
   });
 }

@@ -215,17 +215,8 @@ export const renderLifetimeLgdDetailPanel = (params: { row: any }): React.ReactN
           rows={detailRows}
           columns={detailColumns}
           getRowId={(detailRow) => detailRow.id || detailRow.account_id || detailRow.account_number || Math.random()}
-          pagination
-          paginationMode="client"
-          initialState={{
-            pagination: {
-              paginationModel: {
-                page: 0,
-                pageSize: 10,
-              },
-            },
-          }}
-          pageSizeOptions={[10, 25, 50, 75, 100]}
+          hideFooterPagination
+          hideFooter
           responsiveMode="scroll"
           showEnterpriseControls
           sx={{ width: '100%', maxWidth: '100%', minWidth: 0 }}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -30,6 +30,7 @@ export default function IndividualCustomerListPage() {
   const [dateTo, setDateTo] = useState('');
 
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 25 });
+  const cursorMapRef = useRef<Record<number, string | null>>({});
 
   const customerListQuery = useCustomerListQuery({
     page: paginationModel.page + 1,
@@ -37,13 +38,23 @@ export default function IndividualCustomerListPage() {
     search: search || undefined,
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
+    cursor: cursorMapRef.current[paginationModel.page] ?? undefined,
+    paginationMode: 'cursor',
   });
 
   const rows = customerListQuery.data?.rows ?? [];
   const total = customerListQuery.data?.total ?? 0;
   const loading = customerListQuery.isLoading || customerListQuery.isFetching;
 
+  useEffect(() => {
+    const nextCursor = customerListQuery.data?.nextCursor;
+    if (nextCursor) {
+      cursorMapRef.current[paginationModel.page + 1] = nextCursor;
+    }
+  }, [customerListQuery.data?.nextCursor, paginationModel.page]);
+
   const handleApply = () => {
+    cursorMapRef.current = {};
     setSearch(searchDraft.trim());
     setDateFrom(dateFromDraft);
     setDateTo(dateToDraft);
@@ -51,6 +62,7 @@ export default function IndividualCustomerListPage() {
   };
 
   const handleClear = () => {
+    cursorMapRef.current = {};
     setSearchDraft('');
     setDateFromDraft('');
     setDateToDraft('');

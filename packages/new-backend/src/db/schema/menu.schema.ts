@@ -68,30 +68,14 @@ export const menuItems = menuSchema.table('menu_items', {
 ])
 
 // =============================================================================
-// MENU PERMISSIONS
-// =============================================================================
-export const menuPermissions = menuSchema.table('menu_permissions', {
-    id: uuid('id').primaryKey().defaultRandom(),
-    tenantId: uuid('tenant_id').notNull(),
-    menuItemId: uuid('menu_item_id').notNull().references(() => menuItems.id, { onDelete: 'cascade' }),
-    roleId: uuid('role_id').notNull(),
-    permissionType: varchar('permission_type', { length: 20 }).default('view'),
-    isAllowed: boolean('is_allowed').default(true),
-    conditions: jsonb('conditions'),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-    createdBy: uuid('created_by').notNull(),
-}, (table) => [
-    uniqueIndex('menu_perm_tenant_item_role').on(table.tenantId, table.menuItemId, table.roleId, table.permissionType),
-])
-
-// =============================================================================
-// MENU CONFIGURATIONS
+// MENU CONFIGURATIONS — per-tenant override of shared menu structure
+// Allows each tenant to customize their navigation without affecting others
 // =============================================================================
 export const menuConfigurations = menuSchema.table('menu_configurations', {
     id: uuid('id').primaryKey().defaultRandom(),
     tenantId: uuid('tenant_id').notNull(),
     name: varchar('name', { length: 100 }).notNull(),
-    type: varchar('type', { length: 50 }).notNull(),
+    type: varchar('type', { length: 50 }).notNull(), // 'override', 'extension', 'theme'
     configuration: jsonb('configuration').notNull(),
     isActive: boolean('is_active').default(true),
     environment: varchar('environment', { length: 20 }).default('production'),
@@ -105,7 +89,8 @@ export const menuConfigurations = menuSchema.table('menu_configurations', {
 ])
 
 // =============================================================================
-// MENU ANALYTICS
+// MENU ANALYTICS — per-tenant usage tracking for menu items
+// Records which menu items users interact with
 // =============================================================================
 export const menuAnalytics = menuSchema.table('menu_analytics', {
     id: uuid('id').primaryKey().defaultRandom(),
@@ -113,7 +98,7 @@ export const menuAnalytics = menuSchema.table('menu_analytics', {
     userId: uuid('user_id').notNull(),
     menuItemId: uuid('menu_item_id').notNull().references(() => menuItems.id),
     sessionId: uuid('session_id'),
-    actionType: varchar('action_type', { length: 50 }).notNull(),
+    actionType: varchar('action_type', { length: 50 }).notNull(), // 'click', 'hover', 'search'
     timestamp: timestamp('timestamp', { withTimezone: true }).defaultNow(),
     durationMs: integer('duration_ms'),
     metadata: jsonb('metadata'),
@@ -128,5 +113,7 @@ export type MenuCategory = typeof menuCategories.$inferSelect
 export type NewMenuCategory = typeof menuCategories.$inferInsert
 export type MenuItem = typeof menuItems.$inferSelect
 export type NewMenuItem = typeof menuItems.$inferInsert
-export type MenuPermission = typeof menuPermissions.$inferSelect
-export type NewMenuPermission = typeof menuPermissions.$inferInsert
+export type MenuConfiguration = typeof menuConfigurations.$inferSelect
+export type NewMenuConfiguration = typeof menuConfigurations.$inferInsert
+export type MenuAnalytic = typeof menuAnalytics.$inferSelect
+export type NewMenuAnalytic = typeof menuAnalytics.$inferInsert

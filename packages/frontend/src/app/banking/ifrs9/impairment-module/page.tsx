@@ -45,7 +45,7 @@ export default function ImpairmentModulePage() {
   const detailSupported = resultsQuery.data?.detailSupported ?? false;
   const compatibilityMessage = resultsQuery.data?.compatibilityMessage ?? null;
   const loading = resultsQuery.isLoading || resultsQuery.isFetching;
-  const error = !resultsQuery.data?.success ? resultsQuery.data?.message || 'Failed to load impairment results' : null;
+  const error = resultsQuery.data && !resultsQuery.data.success ? (resultsQuery.data.message || 'Failed to load impairment results') : null;
 
   useEffect(() => {
     if (results.length === 0) {

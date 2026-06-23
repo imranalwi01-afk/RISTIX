@@ -2,7 +2,7 @@ import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import { Effect, pipe } from 'effect'
 import { eq, and, asc } from 'drizzle-orm'
 import { platformDb, tenantDb } from '@/config/database'
-import { menuCategories, menuItems, menuPermissions as platformMenuPermissions } from '@/db/schema/menu.schema'
+import { menuCategories, menuItems } from '@/db/schema/menu.schema'
 import { tenantMenuPermissions } from '@/db/schema/rbac.schema'
 import { TenantRepository } from '@/repositories/tenant.repository'
 import { authMiddleware } from '@/middleware/auth'
@@ -764,35 +764,6 @@ menuRoutes.openapi(
 // Helper: get menu permissions from tenant DB (with migration fallback)
 // =============================================================================
 async function getMenuPermissions(tenantId: string) {
-    const perms = await tenantDb.select().from(tenantMenuPermissions)
-        .where(eq(tenantMenuPermissions.tenantId, tenantId))
-
-    if (perms.length > 0) return perms
-
-    // Fallback: try to migrate from platform DB (legacy)
-    const legacyPerms = await platformDb.select().from(platformMenuPermissions)
-        .where(eq(platformMenuPermissions.tenantId, tenantId))
-
-    if (legacyPerms.length === 0) return []
-
-    // Migrate legacy permissions to tenant DB
-    const migrated = legacyPerms.map((p: typeof platformMenuPermissions.$inferSelect) => ({
-        id: p.id,
-        tenantId: p.tenantId,
-        menuItemId: p.menuItemId,
-        roleId: p.roleId,
-        permissionType: p.permissionType,
-        isAllowed: p.isAllowed,
-        conditions: p.conditions,
-        createdAt: p.createdAt,
-        createdBy: p.createdBy,
-    }))
-
-    // Batch insert with conflict ignore (in case of partial migration)
-    for (const perm of migrated) {
-        await tenantDb.insert(tenantMenuPermissions).values(perm).onConflictDoNothing()
-    }
-
     return tenantDb.select().from(tenantMenuPermissions)
         .where(eq(tenantMenuPermissions.tenantId, tenantId))
 }

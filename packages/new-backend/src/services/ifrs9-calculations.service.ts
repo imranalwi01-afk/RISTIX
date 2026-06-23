@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { db, getDatabase, legacyDb } from '../config/database';
+import { getDatabase, legacyDb, tenantDb } from '../config/database';
 import { sql, eq, desc, and, inArray } from 'drizzle-orm';
 import { frs9ImpCaResultH, jobExecutions, frs9MasterAccount, frs9PrcDate, frs9ImpCaEclConfigh, frs9ParamSegmenth, frs9EclSummary } from '../db/schema';
 import { JobsRepository } from '../repositories/jobs.repository';
@@ -498,9 +498,8 @@ export class Ifrs9CalculationsService {
             }
 
             const resolvedTenantId = await JobsRepository.resolveTenantId(tenantId)
-            await JobsRepository.ensureCoreTenantRow(resolvedTenantId)
 
-            const [activeExecution] = await db
+            const [activeExecution] = await tenantDb
                 .select({
                     id: jobExecutions.id,
                     startTime: jobExecutions.startTime,
@@ -595,6 +594,13 @@ export class Ifrs9CalculationsService {
             };
         } catch (error: any) {
             console.error('Error triggering calculation:', error);
+            console.error('Error details - message:', error.message);
+            console.error('Error stack:', error.stack);
+            if (error.message?.includes('column') && error.message?.includes('does not exist')) {
+                const failedQuery = error?.query?.sql || error?.sql || error?.sourceQuery || error?.detail || '(unknown)';
+                console.error('FAILED QUERY:', failedQuery);
+                console.error('ERROR DETAIL:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            }
             return {
                 success: false,
                 message: 'Failed to trigger calculation: ' + error.message
@@ -637,9 +643,8 @@ export class Ifrs9CalculationsService {
             }
 
             const resolvedTenantId = await JobsRepository.resolveTenantId(tenantId)
-            await JobsRepository.ensureCoreTenantRow(resolvedTenantId)
 
-            const [activeExecution] = await db
+            const [activeExecution] = await tenantDb
                 .select({
                     id: jobExecutions.id,
                     startTime: jobExecutions.startTime,

@@ -1,9 +1,8 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
-import { zValidator } from '@hono/zod-validator'
 import type { AppContext } from '../app'
 import { authMiddleware, tenantMiddleware } from '../middleware'
 import { db, getDatabase } from '../config/database'
-import { auditLogs, userActivityLogs, dataAccessLogs } from '../db/schema'
+import { auditLogs, dataAccessLogs } from '../db/schema'
 import { eq, and, asc, desc, gte, lte, like, sql, or } from 'drizzle-orm'
 import { buildErrorResponse } from '../lib/http/error-response'
 import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
@@ -95,26 +94,6 @@ const AuditLogSchema = z.object({
     createdAt: z.string(), // ISO String
 }).openapi('AuditLog')
 
-const UserActivityLogSchema = z.object({
-    id: z.string().openapi({ example: '123e4567-e89b-12d3-a456-426614174000' }),
-    userId: z.string(),
-    tenantId: z.string().nullable().optional(),
-    activityType: z.string(),
-    activityDescription: z.string().nullable().optional(),
-    pageUrl: z.string().nullable().optional(),
-    pageTitle: z.string().nullable().optional(),
-    previousPage: z.string().nullable().optional(),
-    endpoint: z.string().nullable().optional(),
-    method: z.string().nullable().optional(),
-    statusCode: z.number().nullable().optional(),
-    responseTimeMs: z.number().nullable().optional(),
-    sessionId: z.string().nullable().optional(),
-    deviceInfo: z.record(z.unknown()).nullable().optional(),
-    ipAddress: z.string().nullable().optional(),
-    userAgent: z.string().nullable().optional(),
-    createdAt: z.string(),
-}).openapi('UserActivityLog')
-
 const DataAccessLogSchema = z.object({
     id: z.string().openapi({ example: '123e4567-e89b-12d3-a456-426614174000' }),
     userId: z.string(),
@@ -139,11 +118,6 @@ const AuditLogListResponse = z.object({
     data: z.array(AuditLogSchema),
     pagination: PaginationSchema,
 }).openapi('AuditLogListResponse')
-
-const UserActivityLogListResponse = z.object({
-    data: z.array(UserActivityLogSchema),
-    pagination: PaginationSchema,
-}).openapi('UserActivityLogListResponse')
 
 const DataAccessLogListResponse = z.object({
     data: z.array(DataAccessLogSchema),
@@ -525,92 +499,6 @@ auditRoutes.openapi(
                 'Content-Disposition': `attachment; filename="audit-logs-${new Date().toISOString()}.csv"`
             } as any)
         }
-    }
-)
-
-/**
- * GET /activity - Get user activity logs
- */
-auditRoutes.openapi(
-    createRoute({
-        method: 'get',
-        path: '/activity',
-        tags: ['Audit'],
-        summary: 'User Activity Logs',
-        security: [{ BearerAuth: [] }],
-        request: {
-            query: z.object({
-                page: z.string().optional().default('1'),
-                limit: z.string().optional().default('50'),
-                userId: z.string().optional(),
-                activityType: z.string().optional()
-            } as any),
-        },
-        responses: {
-            200: {
-                content: {
-                    'application/json': {
-                        schema: UserActivityLogListResponse,
-                    },
-                },
-                description: 'List of activity logs',
-            },
-        },
-    }),
-    async (c) => {
-        const tenantId = c.get('tenantId')!
-        const query = c.req.valid('query')
-
-        const page = parseInt(query.page)
-        const limit = parseInt(query.limit)
-        const offset = (page - 1) * limit
-
-        const conditions: any[] = [] // Removed tenantId condition: [eq(userActivityLogs.tenantId, tenantId)]
-
-        if (query.userId) { conditions.push(eq(userActivityLogs.userId, query.userId)) }
-        if (query.activityType) { conditions.push(eq(userActivityLogs.activityType, query.activityType)) }
-
-        const currentDb = getDatabase(tenantId)
-        const whereClause = and(...conditions)
-
-        const [{ count }] = await currentDb
-            .select({ count: sql<number>`count(*)` })
-            .from(userActivityLogs)
-            .where(whereClause)
-
-        const activities = await currentDb
-            .select()
-            .from(userActivityLogs)
-            .where(whereClause)
-            .orderBy(desc(userActivityLogs.createdAt))
-            .limit(limit)
-            .offset(offset)
-
-        return c.json({
-            data: activities.map(a => ({
-                ...a,
-                createdAt: a.createdAt.toISOString(),
-                activityDescription: a.activityDescription ?? null,
-                pageUrl: a.pageUrl ?? null,
-                pageTitle: a.pageTitle ?? null,
-                previousPage: a.previousPage ?? null,
-                endpoint: a.endpoint ?? null,
-                method: a.method ?? null,
-                statusCode: a.statusCode ?? null,
-                responseTimeMs: a.responseTimeMs ?? null,
-                sessionId: a.sessionId ?? null,
-                deviceInfo: a.deviceInfo as Record<string, unknown> ?? null,
-                ipAddress: a.ipAddress ?? null,
-                userAgent: a.userAgent ?? null,
-                // tenantId: a.tenantId ?? null, // Removed because tenantId is not in schema
-            } as any)),
-            pagination: {
-                page,
-                limit,
-                total: Number(count),
-                totalPages: Math.ceil(Number(count) / limit)
-            }
-        } as any)
     }
 )
 

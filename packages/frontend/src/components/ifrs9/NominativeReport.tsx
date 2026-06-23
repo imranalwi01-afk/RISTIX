@@ -139,6 +139,9 @@ const NominativeReport: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<NominativeReportRow[]>([]);
   const [totalRows, setTotalRows] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const cursorMapRef = useRef<Record<number, string | null>>({});
+
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     pageSize: 20,
     page: 0,
@@ -240,19 +243,16 @@ const NominativeReport: React.FC = () => {
     const fetchId = ++latestFetchRef.current
     setLoading(true);
     try {
-      // 1. Fetch Nominative Report Data (Paginated)
+      const cursor = cursorMapRef.current[nextPaginationModel.page] ?? undefined;
       const tableParams: Record<string, string | number | string[] | undefined> = {
         prc_date: nextFilters.asOfDate,
-        page: nextPaginationModel.page + 1,
         limit: nextPaginationModel.pageSize,
+        paginationMode: 'cursor',
+        cursor,
         segment: nextFilters.profitCenters.length > 0 ? nextFilters.profitCenters : undefined,
         branch_code: nextFilters.branches.length > 0 ? nextFilters.branches : undefined
       };
       
-      // Add stage filter if specific stages are selected (API supports single stage value usually, or we filter client side if multiple?)
-      // The backend controller supports `stage` param.
-      // If multiple stages are selected in UI, and backend only supports one, we might need to adjust.
-      // For now, let's send the first one if only one is selected, or don't send if all are selected.
       if (nextFilters.stages.length > 0 && nextFilters.stages.length < 3) {
         tableParams.stage = nextFilters.stages.map((stage) => String(stage));
       }
@@ -267,11 +267,17 @@ const NominativeReport: React.FC = () => {
         setTotalRows(total);
         setEffectivePrcDate(tableResponse.effectivePrcDate ?? null);
 
-        // Update Summary Stats from API Response (Dynamic based on filters)
+        const nextCursor = tableResponse.pagination?.nextCursor ?? null;
+        const hasNext = tableResponse.pagination?.hasNextPage ?? false;
+        setHasMore(hasNext);
+        if (nextCursor) {
+          cursorMapRef.current[nextPaginationModel.page + 1] = nextCursor;
+        }
+
         if (tableResponse.summary) {
             setSummaryStats({
                 totalAccounts: total,
-                stage1Count: 0, // Not available in summary yet
+                stage1Count: 0,
                 stage2Count: 0,
                 stage3Count: 0,
                 totalECL: tableResponse.summary.totalECL,
@@ -301,7 +307,6 @@ const NominativeReport: React.FC = () => {
       }
     } catch (error) {
       console.error('Error fetching data:', error);
-      // Optional: Show notification to user
       if (fetchId !== latestFetchRef.current) return
       setData([]);
       setTotalRows(0);
@@ -402,6 +407,7 @@ const NominativeReport: React.FC = () => {
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
+      cursorMapRef.current = {};
       setPaginationModel((prev) => (prev.page === 0 ? prev : { ...prev, page: 0 }))
       setAppliedFilters(filters)
     }, 600)

@@ -168,7 +168,11 @@ export function useReportData({
     setFilterDefinitions(response.filterDefinitions || {});
 
     if (onDataLoaded) {
-      onDataLoaded(nextData, response.summary ?? null);
+      const enhancedSummary = {
+        ...(response.summary || {}),
+        _paginationTotal: response.pagination?.total
+      };
+      onDataLoaded(nextData, enhancedSummary);
     }
   }, [filters.prc_date, missingParams, onDataLoaded, reportQuery.data, reportType, tenant]);
 

@@ -169,7 +169,7 @@ describe('individual impairment route response contracts', () => {
       },
       meta: {
         debug: {
-          selectedSource: 'FRS9_MASTER_ACCOUNT',
+          selectedSource: 'frs9_master_account',
           sourceTables: ['public.frs9_master_account', 'public.frs9_imp_ia_header'],
         },
       },
@@ -297,7 +297,7 @@ describe('individual impairment route response contracts', () => {
       meta: {
         debug: {
           endpoint: 'GET /api/v1/banking/individual/impairment/watchlist',
-          selectedSource: 'FRS9_MASTER_ACCOUNT',
+          selectedSource: 'frs9_master_account',
         },
       },
     })

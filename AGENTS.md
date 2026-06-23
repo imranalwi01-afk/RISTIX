@@ -87,6 +87,16 @@ Backend `uuid` columns will reject string values like `'system'`. When providing
 ### ❌ Dynamic Variable Name Conflict
 Do NOT use `export const dynamic = 'force-dynamic'` in a file that also has `import dynamic from 'next/dynamic'`. The variable name `dynamic` conflicts. Rename the import to `nextDynamic`.
 
+### ❌ `user_activity_logs` Removed (Consolidated into `audit_logs`)
+`audit.user_activity_logs` was removed in v2.4.8. All activity tracking now uses `audit.audit_logs`.
+
+- **Schema file**: `audit.schema.ts` — only `auditLogs`, `dataAccessLogs`, `calculationAuditLogs` remain
+- **Route**: `GET /api/v1/user-activity/activities` queries `audit_logs` via `user-activity.routes.ts`
+- **Frontend page**: `/banking/maintenance/user-activity` (redirects from old `/banking/maintenance/audit`)
+- **DO NOT** re-create a `user_activity_logs` table, schema, or route
+- **DO NOT** import `userActivityLogs` from `'../db/schema'` — it no longer exists
+- **DO NOT** create a separate audit page — use `/banking/maintenance/user-activity` for all user activity/audit needs
+
 ## Project Structure
 
 ```
@@ -146,4 +156,62 @@ Compose file uses `image: ghcr.io/.../frontend:develop`. When `docker-publish-de
 
 ### Future improvement:
 Consolidate `docker-publish.yml` and `docker-publish-dev.yml` into a single workflow that builds + pushes to GHCR from `badak` (Windows), then the dev server pulls from GHCR instead of building locally. This eliminates duplicate builds and ensures consistency between GHCR and dev server images.
+
+## System Architecture
+
+### Three Database Layers
+
+| DB | Connection | Purpose |
+|---|---|---|
+| **Platform** (`ifrspro_platform_admin`) | `platformDb` / `db` (default) | SaaS control plane — tenants, subscriptions, billing, platform users |
+| **Tenant** (`ifrspro_tenant_*`) | `tenantDb` / `getDatabase(tenantId)` | **Source of truth** — all business data, jobs, audit, approval, RBAC |
+| **Legacy** (`FRS9PRO`) | `legacyDb` | IFRS9 engine tables, business settings, result data |
+
+### Core Principle
+
+**Platform DB is NOT the source of truth. Tenant DB IS the source of truth.**
+
+Always assume that a tenant can be exported and deployed as a dedicated standalone environment. Any business-critical data must remain fully functional even if the Platform DB does not exist.
+
+### Platform DB Responsibilities (Control Plane)
+
+Only SaaS platform management:
+- tenants, subscriptions, plans, deployments
+- feature_flags, tenant_connections, billing
+- platform_users, tenant_memberships
+
+**Never** store business data, tenant operational data, or tenant audit data in Platform DB.
+
+### Tenant DB Responsibilities (Business Plane)
+
+**All business-critical information** — must be sufficient to operate the tenant independently:
+- customers, loans, accounts, products, transactions
+- calculations, reports, audit_logs
+- job_definitions, job_executions, job_steps, job_logs
+- workflow_definitions, approval workflows, RBAC
+
+### Decision Rule
+
+For every new entity, ask:
+> "If the tenant leaves the SaaS platform and becomes a dedicated deployment, does this data need to move with them?"
+
+- **YES** → Store in **Tenant DB**
+- **NO** → Store in **Platform DB**
+
+### Jobs and Workflows
+
+- Job definitions → **Tenant DB**
+- Job runs → **Tenant DB**
+- Job steps/logs → **Tenant DB**
+- Execution infrastructure (Redis, BullMQ, workers) → Runtime infra, NOT source of truth
+- Workers must persist execution state back to **Tenant DB**
+
+### Architectural Bias
+
+When uncertain: **prefer Tenant DB over Platform DB.**
+
+- Business data → Tenant DB
+- Operational metadata → Platform DB
+
+The tenant database should always be considered the primary source of truth.
 ```

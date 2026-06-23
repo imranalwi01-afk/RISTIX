@@ -2,13 +2,13 @@
 
 import React, { memo } from 'react';
 import Button from '@mui/material/Button';
-import Checkbox from '@mui/material/Checkbox';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Grid from '@mui/material/Grid';
+import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import type { ModelRecord } from './types';
 
@@ -138,7 +138,7 @@ const ModelFormDialog = memo(function ModelFormDialog({
             {renderTabFields(activeTab, model)}
             <Grid size={{ xs: 12 }}>
               <FormControlLabel
-                control={<Checkbox defaultChecked={Boolean(model?.is_active || model?.isActive || mode === 'create')} name="is_active" />}
+                control={<Switch defaultChecked={Boolean(model?.is_active || model?.isActive || mode === 'create')} name="is_active" />}
                 label="Active"
               />
             </Grid>

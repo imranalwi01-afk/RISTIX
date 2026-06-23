@@ -377,7 +377,7 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
   };
 
   const generatedTableName = (
-    rules.find((rule) => String(rule.table_name || '').trim().length > 0)?.table_name || 'FRS9_MASTER_ACCOUNT'
+    rules.find((rule) => String(rule.table_name || '').trim().length > 0)?.table_name || 'frs9_master_account'
   ).toLowerCase();
   const editorValidationMessage = getRuleValidationMessage(editForm);
   const isEditorValid = !editorValidationMessage;
@@ -504,7 +504,11 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                 <InputLabel id="table-select-label">Table</InputLabel>
                 <Select
                   labelId="table-select-label"
-                  value={editForm.table_name || ''}
+                  value={(() => {
+                    if (!editForm.table_name) return '';
+                    const match = tables.find(t => t.toLowerCase() === editForm.table_name.toLowerCase());
+                    return match || editForm.table_name;
+                  })()}
                   label="Table"
                   onChange={(e) => handleFieldChange('table_name', e.target.value)}
                   sx={{ borderRadius: 1.5, bgcolor: 'white' }}
@@ -515,6 +519,9 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                       No options - configure B0012 in Business Settings
                     </MenuItem>
                   ) : null}
+                  {editForm.table_name && !tables.some(t => t.toLowerCase() === editForm.table_name.toLowerCase()) && (
+                    <MenuItem value={editForm.table_name}>{editForm.table_name}</MenuItem>
+                  )}
                   {tables.map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}
                 </Select>
                 <FormHelperText>Required. Source: Business Setting B0012</FormHelperText>
@@ -525,7 +532,11 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                 <InputLabel id="column-select-label">Column</InputLabel>
                 <Select
                   labelId="column-select-label"
-                  value={editForm.column_name || ''}
+                  value={(() => {
+                    if (!editForm.column_name) return '';
+                    const match = columns.find(c => c.toLowerCase() === editForm.column_name.toLowerCase());
+                    return match || editForm.column_name;
+                  })()}
                   label="Column"
                   onChange={(e) => handleFieldChange('column_name', e.target.value)}
                   sx={{ borderRadius: 1.5, bgcolor: 'white' }}
@@ -536,6 +547,9 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                       No options - configure B0013 in Business Settings
                     </MenuItem>
                   ) : null}
+                  {editForm.column_name && !columns.some(c => c.toLowerCase() === editForm.column_name.toLowerCase()) && (
+                    <MenuItem value={editForm.column_name}>{editForm.column_name}</MenuItem>
+                  )}
                   {columns.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
                 </Select>
                 <FormHelperText>Required. Source: Business Setting B0013</FormHelperText>
@@ -546,7 +560,11 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                 <InputLabel id="operator-select-label">Operator</InputLabel>
                 <Select
                   labelId="operator-select-label"
-                  value={editForm.operator || ''}
+                  value={(() => {
+                    if (!editForm.operator) return '';
+                    const match = operators.find(o => o.toLowerCase() === editForm.operator.toLowerCase());
+                    return match || editForm.operator;
+                  })()}
                   label="Operator"
                   onChange={(e) => handleFieldChange('operator', e.target.value)}
                   sx={{ borderRadius: 1.5, bgcolor: 'white' }}
@@ -557,6 +575,9 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                       No options - configure B0014 in Business Settings
                     </MenuItem>
                   ) : null}
+                  {editForm.operator && !operators.some(o => o.toLowerCase() === editForm.operator.toLowerCase()) && (
+                    <MenuItem value={editForm.operator}>{editForm.operator}</MenuItem>
+                  )}
                   {operators.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
                 </Select>
                 <FormHelperText>Required. Source: Business Setting B0014</FormHelperText>

@@ -96,8 +96,8 @@ export async function fetchIfrs9Report(input: Ifrs9ReportQueryInput): Promise<Re
       return api.banking.ifrs9Reports.lifetimePD.getMonthly(params);
     case 'lifetime-pd-account-details':
       return api.banking.ifrs9Reports.lifetimePD.getAccountDetails(params);
-    case 'lifetime-lgd':
-      {
+    case 'lifetime-lgd': {
+      try {
         const [summaryResult, detailData] = await Promise.all([
           api.banking.ifrs9Reports.lifetimeLGD.getSummary(params)
             .then((response) => ({ response, missing: false }))
@@ -113,7 +113,7 @@ export async function fetchIfrs9Report(input: Ifrs9ReportQueryInput): Promise<Re
 
         const summaryData = summaryResult.response;
         const detailRows = Array.isArray(detailData?.data) ? detailData.data : [];
-        const effectivePrcDate = summaryData?.effectivePrcDate ?? detailData?.effectivePrcDate ?? params.prc_date ?? null;
+
         const fallbackSummaryRow = detailRows.length > 0
           ? (() => {
               const totals = detailRows.reduce(
@@ -135,7 +135,7 @@ export async function fetchIfrs9Report(input: Ifrs9ReportQueryInput): Promise<Re
 
               return {
                 id: 1,
-                period: effectivePrcDate,
+                period: detailData?.effectivePrcDate ?? params.prc_date,
                 lgd_model: 'Selected LGD Model',
                 total_ead: totals.totalEad,
                 total_pv_recovery: totals.totalPvRecovery,
@@ -148,7 +148,7 @@ export async function fetchIfrs9Report(input: Ifrs9ReportQueryInput): Promise<Re
         const summaryRows = Array.isArray(summaryData?.data) && summaryData.data.length > 0
           ? summaryData.data
           : (fallbackSummaryRow ? [fallbackSummaryRow] : []);
-        
+          
         const rowsWithDetails = summaryRows.map((row: Record<string, unknown>, index: number) => ({
           ...row,
           id: row.id ?? index + 1,
@@ -170,12 +170,17 @@ export async function fetchIfrs9Report(input: Ifrs9ReportQueryInput): Promise<Re
             ...(summaryData?.summary ?? {}),
             detailRows: summaryRows,
             summarySource: summaryResult.missing ? 'detail-fallback' : 'summary-endpoint',
+            _detailTotalAccounts: detailData?.pagination?.total ?? detailRows.length,
           },
-          effectivePrcDate,
-          meta: summaryData?.meta ?? detailData?.meta,
+          effectivePrcDate: detailData?.effectivePrcDate ?? params.prc_date,
+          meta: detailData?.meta || summaryData?.meta,
+          pagination: detailData?.pagination || detailData?.meta?.pagination || summaryData?.pagination || summaryData?.meta?.pagination,
           message: summaryData?.message ?? detailData?.message,
         };
+      } catch (error) {
+        throw error;
       }
+    }
     case 'ead-model': {
       const eadData = await api.banking.ifrs9Reports.eadModel.get(params);
       const eadSummary = await api.banking.ifrs9Reports.eadModel.getSummary(params);

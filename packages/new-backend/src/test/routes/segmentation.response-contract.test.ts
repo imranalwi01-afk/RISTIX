@@ -207,7 +207,7 @@ describe('segmentation routes duplicate sequence protection', () => {
       body: JSON.stringify({
         query_group: 1,
         seq: 2,
-        table_name: 'FRS9_MASTER_ACCOUNT',
+        table_name: 'frs9_master_account',
         column_name: 'DPD',
         data_type: 'NUMBER',
         operator: '>',

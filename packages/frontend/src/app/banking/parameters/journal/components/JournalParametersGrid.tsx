@@ -100,7 +100,7 @@ const JournalParametersGrid = memo(function JournalParametersGrid({
       },
       {
         field: 'status',
-        headerName: 'Status',
+        headerName: 'Approval',
         width: 150,
         renderCell: (params) => {
           const row = params.row as JournalParameter;
