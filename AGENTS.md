@@ -156,4 +156,22 @@ Compose file uses `image: ghcr.io/.../frontend:develop`. When `docker-publish-de
 
 ### Future improvement:
 Consolidate `docker-publish.yml` and `docker-publish-dev.yml` into a single workflow that builds + pushes to GHCR from `badak` (Windows), then the dev server pulls from GHCR instead of building locally. This eliminates duplicate builds and ensures consistency between GHCR and dev server images.
+
+## Job System Architecture
+
+### Three Database Layers
+
+| DB | Connection | Purpose |
+|---|---|---|
+| **Platform** (`ifrspro_platform_admin`) | `platformDb` / `db` (default) | Job definitions, job executions, core tenants mirror |
+| **Tenant** (`ifrspro_tenant_*`) | `tenantDb` / `getDatabase(tenantId)` | Roles, users, permissions, approval workflows, audit logs |
+| **Legacy** (`FRS9PRO`) | `legacyDb` | IFRS9 engine tables, business settings, result data |
+
+### Rules
+
+- **`jobDefinitions` and `jobExecutions`** live ONLY in the **Platform DB** (`core` schema). The `tenant.schema.ts` does NOT export jobs — use `platformDb` directly to query them.
+- **`approvalRequests`** lives in the **Tenant DB** (`approval` schema). Use `tenantDb` or `getDatabase(tenantId)`.
+- **`getDatabase(tenantId)`** returns `tenantDb` when `tenantId` is provided, `platformDb` when omitted.
+- **DO NOT** query `jobDefinitions` / `jobExecutions` through `getDatabase(tenantId)` — it routes to tenant DB where these tables don't exist.
+- **`ensureJobsTablesCompatibility()`** in `database.ts` keeps the platform DB job tables in sync with the schema. Run this at startup.
 ```

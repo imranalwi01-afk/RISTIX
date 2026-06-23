@@ -245,6 +245,7 @@ export async function ensureJobsTablesCompatibility(): Promise<void> {
             default_parameters jsonb DEFAULT '{}'::jsonb,
             is_enabled boolean DEFAULT true,
             priority varchar(20) DEFAULT 'NORMAL',
+            impact_level varchar(20) DEFAULT 'medium',
             timeout integer DEFAULT 3600,
             max_retries integer DEFAULT 0,
             created_by uuid,
@@ -259,6 +260,9 @@ export async function ensureJobsTablesCompatibility(): Promise<void> {
             auto_approve_conditions jsonb
         );
     `)
+
+    // Add impact_level column if missing (migration gap for existing tables)
+    await platformConnection.unsafe(`ALTER TABLE core.job_definitions ADD COLUMN IF NOT EXISTS impact_level varchar(20) DEFAULT 'medium';`)
 
     await platformConnection.unsafe(`
         CREATE TABLE IF NOT EXISTS core.job_executions (
