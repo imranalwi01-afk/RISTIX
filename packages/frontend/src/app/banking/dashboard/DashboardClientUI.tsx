@@ -1106,7 +1106,7 @@ function DashboardClient() {
                                                 Portfolio Exposure Trend
                                             </Typography>
                                         </Tooltip>
-                                        <DataSourceInfo debug={trendDebug} title="Portfolio Exposure Trend" />
+                                        <DataSourceInfo debug={trendDebug as unknown as Record<string, unknown>} title="Portfolio Exposure Trend" />
                                         <Chip label={shortSourceName(trendDebug?.selectedSource)} size="small" variant="outlined" sx={{ fontWeight: 700, borderRadius: 2 }} />
                                     </Box>
                                     <Chip label="Historical" size="small" variant="outlined" sx={{ fontWeight: 600, borderRadius: 2 }} />
@@ -1136,7 +1136,7 @@ function DashboardClient() {
                                             ECL Distribution
                                         </Typography>
                                     </Tooltip>
-                                    <DataSourceInfo debug={summaryDebug} title="ECL Distribution" />
+                                    <DataSourceInfo debug={summaryDebug as unknown as Record<string, unknown>} title="ECL Distribution" />
                                     <Chip label={shortSourceName(summaryDebug?.selectedSource)} size="small" variant="outlined" sx={{ fontWeight: 700, borderRadius: 2 }} />
                                 </Box>
                                 {/* RENDER PIE CHART */}

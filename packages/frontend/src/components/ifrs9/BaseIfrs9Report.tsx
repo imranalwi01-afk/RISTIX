@@ -15,6 +15,7 @@ import { usePermission } from '@/hooks/usePermission';
 import { useEnterpriseTableQuery } from '@/hooks/useEnterpriseTableQuery';
 import { useSavedTableView } from '@/hooks/useSavedTableView';
 import { useIfrs9ReportQuery } from '@/features/ifrs9-reports/hooks/useIfrs9ReportQuery';
+import { DataSourceInfo } from '@/components/shared/DataSourceInfo';
 
 // Sub-components
 import Ifrs9ReportHeader from './BaseIfrs9Report/Ifrs9ReportHeader';
@@ -395,6 +396,12 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         />
 
         {headerAtTop ? headerNode : null}
+
+        {debugMeta && (
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+            <DataSourceInfo debug={debugMeta as unknown as Record<string, unknown>} title={title} />
+          </Box>
+        )}
 
         {!hideHeader && (
           <Ifrs9ReportToolbar

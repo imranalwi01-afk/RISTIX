@@ -11,18 +11,8 @@ import { alpha } from '@mui/material/styles';
 import InfoOutlined from '@mui/icons-material/InfoOutlined';
 import Close from '@mui/icons-material/Close';
 
-interface DataSourceDebug {
-  endpoint?: string;
-  requestUrl?: string;
-  selectedSource?: string;
-  sourceTables?: string[];
-  filtersApplied?: Record<string, unknown>;
-  sqlPreview?: string;
-  notes?: string[];
-}
-
 interface DataSourceInfoProps {
-  debug?: DataSourceDebug | null;
+  debug?: Record<string, unknown> | null;
   title: string;
 }
 
@@ -30,6 +20,14 @@ export function DataSourceInfo({ debug, title }: DataSourceInfoProps) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
   if (!debug) return null;
+
+  const endpoint = String(debug?.endpoint ?? debug?.reportKey ?? '');
+  const requestUrl = String(debug?.requestUrl ?? '');
+  const selectedSource = String(debug?.selectedSource ?? debug?.sourceTables?.[0] ?? '');
+  const sourceTables = (Array.isArray(debug?.sourceTables) ? debug.sourceTables : selectedSource ? [selectedSource] : []) as string[];
+  const filtersApplied = debug?.filtersApplied as Record<string, unknown> | undefined;
+  const sqlPreview = debug?.sqlPreview ? String(debug.sqlPreview) : undefined;
+  const notes = Array.isArray(debug?.notes) ? debug.notes as string[] : undefined;
 
   const handleOpen = (e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget);
   const handleClose = () => setAnchorEl(null);
@@ -56,29 +54,31 @@ export function DataSourceInfo({ debug, title }: DataSourceInfoProps) {
             <IconButton size="small" onClick={handleClose}><Close fontSize="small" /></IconButton>
           </Box>
 
-          <Box>
-            <Typography variant="caption" color="text.secondary">Endpoint</Typography>
-            <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem', wordBreak: 'break-all' }}>
-              {debug.endpoint || debug.requestUrl || '-'}
-            </Typography>
-          </Box>
+          {endpoint && (
+            <Box>
+              <Typography variant="caption" color="text.secondary">Endpoint</Typography>
+              <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem', wordBreak: 'break-all' }}>
+                {endpoint || requestUrl || '-'}
+              </Typography>
+            </Box>
+          )}
 
           <Box>
             <Typography variant="caption" color="text.secondary">Source Table</Typography>
             <Box sx={{ mt: 0.5 }}>
-              {debug.sourceTables?.length ? debug.sourceTables.map(t => (
+              {sourceTables.length ? sourceTables.map(t => (
                 <Chip key={t} label={t} size="small" variant="outlined" sx={{ mr: 0.5, mb: 0.5, fontFamily: 'monospace', fontSize: '0.75rem' }} />
               )) : (
-                <Chip label={debug.selectedSource || '-'} size="small" variant="outlined" sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }} />
+                <Chip label={selectedSource || '-'} size="small" variant="outlined" sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }} />
               )}
             </Box>
           </Box>
 
-          {debug.filtersApplied && Object.keys(debug.filtersApplied).length > 0 && (
+          {filtersApplied && Object.keys(filtersApplied).length > 0 && (
             <Box>
               <Typography variant="caption" color="text.secondary">Filters</Typography>
               <Stack spacing={0.5} sx={{ mt: 0.5 }}>
-                {Object.entries(debug.filtersApplied).map(([key, value]) => (
+                {Object.entries(filtersApplied).map(([key, value]) => (
                   <Box key={key} sx={{ display: 'flex', gap: 1, px: 1, py: 0.5, borderRadius: 1, bgcolor: alpha('#000', 0.03), fontSize: '0.8rem' }}>
                     <Typography variant="caption" fontWeight={600} sx={{ minWidth: 80 }}>{key}</Typography>
                     <Typography variant="caption" color="text.secondary">{Array.isArray(value) ? value.join(', ') : String(value)}</Typography>
@@ -88,15 +88,15 @@ export function DataSourceInfo({ debug, title }: DataSourceInfoProps) {
             </Box>
           )}
 
-          {debug.notes?.length ? (
+          {notes?.length ? (
             <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha('#1976d2', 0.06) }}>
               <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                {debug.notes.join(' ')}
+                {notes.join(' ')}
               </Typography>
             </Box>
           ) : null}
 
-          {debug.sqlPreview && (
+          {sqlPreview && (
             <Box>
               <Typography variant="caption" color="text.secondary">Query Preview</Typography>
               <Box
@@ -116,7 +116,7 @@ export function DataSourceInfo({ debug, title }: DataSourceInfoProps) {
                   lineHeight: 1.5,
                 }}
               >
-                {debug.sqlPreview}
+                {sqlPreview}
               </Box>
             </Box>
           )}
