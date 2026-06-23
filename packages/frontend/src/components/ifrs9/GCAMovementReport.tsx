@@ -772,7 +772,7 @@ const GCAMovementReport: React.FC = () => {
       reportType="gca-movement"
       requiredParams={requiredParams}
       optionalParams={optionalParams}
-      supportsPagination={false}
+      supportsPagination={true} paginationMode="cursor"
       supportsCharts={true}
       onDataLoaded={handleDataLoaded}
     >

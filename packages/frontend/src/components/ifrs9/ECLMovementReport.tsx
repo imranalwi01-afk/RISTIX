@@ -432,7 +432,7 @@ const ECLMovementReport: React.FC = () => {
       reportType="ecl-movement"
       requiredParams={requiredParams}
       optionalParams={optionalParams}
-      supportsPagination={false}
+      supportsPagination={true} paginationMode="cursor"
       supportsCharts={true}
       onDataLoaded={handleDataLoaded}
     >
