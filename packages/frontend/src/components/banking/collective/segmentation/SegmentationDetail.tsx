@@ -1,7 +1,7 @@
 'use client';
 
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Tabs,
@@ -91,6 +91,21 @@ export const SegmentationDetail: React.FC<SegmentationDetailProps> = ({
     ...initialData
   });
   const [rules, setRules] = useState<Rule[]>(initialData?.rules || []);
+
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      group_segment: '',
+      segment: '',
+      sub_segment: '',
+      segment_type: 'PD',
+      seq: 1,
+      active_flag: true,
+      description: '',
+      ...initialData
+    }));
+    setRules(initialData?.rules || []);
+  }, [initialData]);
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);

@@ -87,6 +87,16 @@ Backend `uuid` columns will reject string values like `'system'`. When providing
 ### ❌ Dynamic Variable Name Conflict
 Do NOT use `export const dynamic = 'force-dynamic'` in a file that also has `import dynamic from 'next/dynamic'`. The variable name `dynamic` conflicts. Rename the import to `nextDynamic`.
 
+### ❌ `user_activity_logs` Removed (Consolidated into `audit_logs`)
+`audit.user_activity_logs` was removed in v2.4.8. All activity tracking now uses `audit.audit_logs`.
+
+- **Schema file**: `audit.schema.ts` — only `auditLogs`, `dataAccessLogs`, `calculationAuditLogs` remain
+- **Route**: `GET /api/v1/user-activity/activities` queries `audit_logs` via `user-activity.routes.ts`
+- **Frontend page**: `/banking/maintenance/user-activity` (redirects from old `/banking/maintenance/audit`)
+- **DO NOT** re-create a `user_activity_logs` table, schema, or route
+- **DO NOT** import `userActivityLogs` from `'../db/schema'` — it no longer exists
+- **DO NOT** create a separate audit page — use `/banking/maintenance/user-activity` for all user activity/audit needs
+
 ## Project Structure
 
 ```

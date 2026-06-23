@@ -162,7 +162,8 @@ export default function SegmentationRuleDialog({
     setLoading(prev => ({ ...prev, values: true }));
     try {
       const res = await api.banking.segmentation.getBusinessSettingsValues(table, column);
-      setColumnValues(Array.isArray(res) ? res : []);
+      const values = res?.data ?? res;
+      setColumnValues(Array.isArray(values) ? values : []);
     } catch (err) {
       console.error(err);
     } finally {

@@ -160,6 +160,7 @@ function IndividualAssessmentWizardPage() {
     limit: 10,
     total: 0
   });
+  const cursorMapRef = useRef<Record<number, string | null>>({});
   const [filters, setFilters] = useState(FILTER_DEFAULTS);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
 
@@ -352,11 +353,14 @@ function IndividualAssessmentWizardPage() {
           ? filters.impairedFlag
           : undefined;
 
+      const cursor = cursorMapRef.current[pagination.page];
       const [watchlistRes, summaryRes] = await Promise.all([
         individualImpairmentAPI.watchlist.getAll({
           page: pagination.page + 1,
           limit: pagination.limit,
           search: filters.search,
+          cursor: cursor ?? undefined,
+          paginationMode: 'cursor',
           filter: {
             stage,
             impaired_flag: impairedFlag,
@@ -372,6 +376,10 @@ function IndividualAssessmentWizardPage() {
 
       if (watchlistRes.success && Array.isArray(watchlistRes.data)) {
         setWatchlist(watchlistRes.data);
+        const nextCursor = watchlistRes.pagination?.nextCursor;
+        if (nextCursor) {
+          cursorMapRef.current[pagination.page + 1] = nextCursor;
+        }
         setPagination(prev => ({
           ...prev,
           total: watchlistRes.pagination?.total || watchlistRes.data.length || 0
@@ -761,15 +769,18 @@ function IndividualAssessmentWizardPage() {
   };
 
   const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    cursorMapRef.current = {};
     setPagination(prev => ({ ...prev, limit: parseInt(event.target.value, 10), page: 0 }));
   };
 
   const handleFilterChange = (field: string, value: string) => {
+    cursorMapRef.current = {};
     setFilters(prev => ({ ...prev, [field]: value }));
     setPagination(prev => ({ ...prev, page: 0 }));
   };
 
   const handleResetFilters = () => {
+    cursorMapRef.current = {};
     skipNextWatchlistUrlSyncRef.current = true;
     router.replace(buildWatchlistUrl({ ...FILTER_DEFAULTS, page: 0, limit: pagination.limit }));
     setFilters(FILTER_DEFAULTS);

@@ -396,7 +396,8 @@ export default function PageContent() {
     }
     setLoadingColumnValues(true);
     try {
-      const values = await bankingAPI.ruleBaseSetting.getBusinessSettingsValues(tableName, columnName);
+      const response = await bankingAPI.businessSettings.getColumnValues(columnName, tableName);
+      const values = response?.data ?? response;
       setColumnValueOptions(Array.isArray(values) ? values : []);
     } catch (err) {
       console.error('Error loading column values:', err);
@@ -463,8 +464,12 @@ export default function PageContent() {
   useEffect(() => {
     if (detailDialogOpen && detailFormData.table_name && detailFormData.column_name) {
       loadDetailDataTypeAndOperators(detailFormData.table_name, detailFormData.column_name);
+      const op = String(detailFormData.operator || '').toUpperCase();
+      if (op === 'IN' || op === 'NOT IN') {
+        loadColumnValues(detailFormData.table_name, detailFormData.column_name);
+      }
     }
-  }, [detailDialogOpen, detailFormData.table_name, detailFormData.column_name, loadDetailDataTypeAndOperators]);
+  }, [detailDialogOpen, detailFormData.table_name, detailFormData.column_name, detailFormData.operator, loadDetailDataTypeAndOperators, loadColumnValues]);
 
   // Header CRUD operations
   const handleCreateHeader = useCallback(() => {

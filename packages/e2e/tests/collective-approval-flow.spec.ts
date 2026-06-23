@@ -52,8 +52,8 @@ const ruleHeader = {
     id: 901,
     rule_name: 'Rule E2E',
     rule_type: 'STAGE',
-    updated_table: 'FRS9_MASTER_ACCOUNT',
-    updated_column: 'STAGE',
+    updated_table: 'frs9_master_account',
+    updated_column: 'stage',
     value: 'STAGE-2',
     seq: 1,
     active_flag: true,
@@ -66,8 +66,8 @@ const ruleDetails = [
         rule_id: 901,
         query_group: 1,
         seq: 1,
-        table_name: 'FRS9_MASTER_ACCOUNT',
-        column_name: 'DPD',
+        table_name: 'frs9_master_account',
+        column_name: 'dpd',
         data_type: 'NUMBER',
         operator: '>=',
         value1: '0',
@@ -282,7 +282,7 @@ async function stubRuleBaseApis(page: Page, capture?: {
         await route.fulfill({
             status: 200,
             contentType: 'application/json',
-            body: JSON.stringify({ success: true, data: ['FRS9_MASTER_ACCOUNT'] }),
+            body: JSON.stringify({ success: true, data: ['frs9_master_account'] }),
         });
     });
     await page.route('**/api/v1/banking/business-settings/columns*', async route => {
@@ -556,9 +556,9 @@ test.describe('Collective Approval Flow', () => {
         await page.getByTestId('rule-type-field').click();
         await page.getByRole('option', { name: 'Stage' }).click();
         await page.getByTestId('updated-table-field').click();
-        await page.getByRole('option', { name: 'FRS9_MASTER_ACCOUNT' }).click();
+        await page.getByRole('option', { name: 'frs9_master_account' }).click();
         await page.getByTestId('updated-column-field').click();
-        await page.getByRole('option', { name: 'STAGE' }).click();
+        await page.getByRole('option', { name: 'stage' }).click();
         await page.getByTestId('rule-value-field').locator('input').fill('STAGE-3');
         await page.getByTestId('save-rule-header-btn').click();
 
@@ -605,7 +605,7 @@ test.describe('Collective Approval Flow', () => {
         await page.getByTestId('group-field').locator('input').fill('1');
         await page.getByTestId('detail-seq-field').locator('input').fill('2');
         await page.getByTestId('table-field').click();
-        await page.getByRole('option', { name: 'FRS9_MASTER_ACCOUNT' }).click();
+        await page.getByRole('option', { name: 'frs9_master_account' }).click();
         await page.getByTestId('column-field').click();
         await page.getByRole('option', { name: 'DPD' }).click();
         await page.getByTestId('operator-select').click();

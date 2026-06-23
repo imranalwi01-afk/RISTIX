@@ -40,6 +40,8 @@ export const individualImpairmentAPI = {
     dateTo?: string;
     page?: number;
     limit?: number;
+    cursor?: string;
+    paginationMode?: string;
   }) => {
     const response = await apiClient.get('/banking/individual/impairment/watchlist/customers', { params });
     return response.data;
@@ -101,6 +103,7 @@ export const individualImpairmentAPI = {
     page?: number;
     limit?: number;
     offset?: number;
+    cursor?: string;
     paginationMode?: 'offset' | 'cursor';
   }) => {
     const response = await apiClient.get('/banking/individual/impairment/reports', { params });

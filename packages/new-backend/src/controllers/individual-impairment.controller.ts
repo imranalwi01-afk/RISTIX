@@ -66,6 +66,7 @@ const CUSTOMER_LIST_QUERY_CONFIG: ListQueryConfig = {
 const INDIVIDUAL_REPORT_LIST_QUERY_CONFIG: ListQueryConfig = {
     defaultLimit: 25,
     maxLimit: 200,
+    paginationMode: 'cursor',
     defaultSort: [{ field: 'downloadDate', direction: 'desc' }],
     searchableColumns: ['accountNumber', 'cifName', 'cifNumber'],
     filterableColumns: ['reportPeriod', 'dateFrom', 'dateTo', 'status', 'impaired_flag', 'account_number', 'cif_name'],
@@ -179,13 +180,13 @@ export class IndividualImpairmentController {
                 {
                     debug: {
                         endpoint: `GET ${getIndividualImpairmentApiBase(c)}/watchlist`,
-                        selectedSource: 'FRS9_MASTER_ACCOUNT',
+                        selectedSource: 'frs9_master_account',
                         sourceTables: ['public.frs9_master_account', 'public.frs9_imp_ia_header'],
                         filtersApplied: {
                             search: query.search,
                             ...filters,
                         },
-                        sqlPreview: `SELECT A.PRC_DATE AS DOWNLOAD_DATE, A.CIF_NUMBER AS CUSTOMER_NUMBER, A.CIF_NAME AS CUSTOMER_NAME, A.ACCOUNT_NUMBER, A.CURRENCY, A.OUTSTANDING, A.DPD AS DAY_PAST_DUE, A.COLLECTABILITY, A.EXT_RATING_CODE AS RATING FROM FRS9_MASTER_ACCOUNT A WHERE A.DPD > 30 AND A.OUTSTANDING >= 1000000 AND NOT EXISTS (SELECT 1 FROM FRS9_IMP_IA_HEADER B WHERE A.ACCOUNT_ID = B.ACCOUNT_ID AND B.IMPAIRED_FLAG = 'I')`,
+                        sqlPreview: `SELECT A.PRC_DATE AS DOWNLOAD_DATE, A.CIF_NUMBER AS CUSTOMER_NUMBER, A.CIF_NAME AS CUSTOMER_NAME, A.ACCOUNT_NUMBER, A.CURRENCY, A.OUTSTANDING, A.DPD AS DAY_PAST_DUE, A.COLLECTABILITY, A.EXT_RATING_CODE AS RATING FROM frs9_master_account A WHERE A.DPD > 30 AND A.OUTSTANDING >= 1000000 AND NOT EXISTS (SELECT 1 FROM frs9_imp_ia_header B WHERE A.ACCOUNT_ID = B.ACCOUNT_ID AND B.IMPAIRED_FLAG = 'I')`,
                         notes: ['Matches techspec Individual Watchlist. Existing T impaired flag rows are also excluded for compatibility with the current override flow.'],
                     },
                 },
@@ -735,7 +736,7 @@ export class IndividualImpairmentController {
     }
 
     // ================= REPORTS =================
-    async getReports(c: Context) {
+        async getReports(c: Context) {
         try {
             const user = c.get('user');
             if (!user?.tenantId) return this.unauthorized(c);
@@ -754,13 +755,23 @@ export class IndividualImpairmentController {
                 cifName: stringFilter(filters.cif_name),
                 limit: query.limit,
                 offset: query.offset,
+                cursor: query.cursor,
+                paginationMode: query.paginationMode,
                 sort: query.sort,
             });
+
+            const pagination = query.paginationMode === 'cursor'
+                ? buildCursorPagination(query, {
+                    nextCursor: result.nextCursor ?? null,
+                    hasNextPage: Boolean(result.hasMore),
+                    total: result.total ?? 0,
+                })
+                : buildOffsetPagination(query, result.total ?? 0);
 
             return c.json(buildListResponse(
                 result.data,
                 query,
-                buildOffsetPagination(query, result.total ?? 0),
+                pagination,
                 {
                     debug: {
                         endpoint: `GET ${getIndividualImpairmentApiBase(c)}/reports`,

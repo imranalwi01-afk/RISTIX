@@ -126,12 +126,15 @@ Maps roles to menu items. Stored in tenant DB with FK to `core.roles`.
 | `impact_level` | low / medium / high / critical |
 
 ### `audit.audit_logs`
+Single audit table — `user_activity_logs` was consolidated into this table.
 | Column | Description |
 |--------|-------------|
 | `event_type` | e.g. 'data', 'action' |
 | `action` | e.g. 'create', 'update', 'delete' |
 | `entity_type` | e.g. 'product_parameter' |
 | `old_values` / `new_values` | JSONB (before/after snapshots) |
+
+> ⚠️ `audit.user_activity_logs` was removed in v2.4.8. All user activity tracking now uses `audit.audit_logs` via `GET /api/v1/user-activity/activities`.
 
 ---
 

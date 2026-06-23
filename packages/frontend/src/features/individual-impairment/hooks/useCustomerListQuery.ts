@@ -14,6 +14,8 @@ export function useCustomerListQuery(params: IndividualCustomerListFilters, enab
       return {
         rows,
         total: Number(response?.pagination?.total ?? rows.length),
+        nextCursor: response?.pagination?.nextCursor ?? null,
+        hasNextPage: response?.pagination?.hasNextPage ?? false,
       };
     },
     enabled,

@@ -595,6 +595,13 @@ export class Ifrs9CalculationsService {
             };
         } catch (error: any) {
             console.error('Error triggering calculation:', error);
+            console.error('Error details - message:', error.message);
+            console.error('Error stack:', error.stack);
+            if (error.message?.includes('column') && error.message?.includes('does not exist')) {
+                const failedQuery = error?.query?.sql || error?.sql || error?.sourceQuery || error?.detail || '(unknown)';
+                console.error('FAILED QUERY:', failedQuery);
+                console.error('ERROR DETAIL:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            }
             return {
                 success: false,
                 message: 'Failed to trigger calculation: ' + error.message

@@ -30,8 +30,8 @@ test.describe('Collective Impairment - Rule Base Setting', () => {
         await page.getByTestId('rule-type-field').click();
         await page.getByRole('option', { name: /STAGE/i }).first().click();
 
-        await page.getByTestId('updated-table-field').locator('input').fill('FRS9_MASTER_ACCOUNT');
-        await page.getByTestId('updated-column-field').locator('input').fill('STAGE');
+        await page.getByTestId('updated-table-field').locator('input').fill('frs9_master_account');
+        await page.getByTestId('updated-column-field').locator('input').fill('stage');
         await page.getByTestId('rule-value-field').locator('input').fill(headerValue);
         await page.getByTestId('rule-seq-field').locator('input').fill('99');
 
@@ -53,8 +53,8 @@ test.describe('Collective Impairment - Rule Base Setting', () => {
 
         await page.getByTestId('group-field').locator('input').fill('1');
         await page.getByTestId('detail-seq-field').locator('input').fill('1');
-        await page.getByTestId('table-field').locator('input').fill('FRS9_MASTER_ACCOUNT');
-        await page.getByTestId('column-field').locator('input').fill('DPD');
+        await page.getByTestId('table-field').locator('input').fill('frs9_master_account');
+        await page.getByTestId('column-field').locator('input').fill('dpd');
         await page.getByTestId('datatype-field').locator('input').fill('NUMBER');
 
         await page.getByTestId('operator-select').click();
