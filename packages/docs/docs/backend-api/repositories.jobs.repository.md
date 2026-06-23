@@ -10,13 +10,13 @@
 
 > `const` **JobsRepository**: `object`
 
-Defined in: [src/repositories/jobs.repository.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/jobs.repository.ts#L14)
+Defined in: [src/repositories/jobs.repository.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/jobs.repository.ts#L14)
 
 #### Type Declaration
 
 ##### createDefinition()
 
-> **createDefinition**(`data`): `Promise`&lt;&#123; `approvalMatrixId`: `string` &#124; `null`; `autoApproveConditions`: `unknown`; `createdAt`: `Date` &#124; `null`; `createdBy`: `string` &#124; `null`; `cronExpression`: `string` &#124; `null`; `defaultParameters`: `unknown`; `description`: `string` &#124; `null`; `id`: `string`; `isEnabled`: `boolean` &#124; `null`; `jobType`: `string`; `lastRunStatus`: `string` &#124; `null`; `lastRunTime`: `Date` &#124; `null`; `maxRetries`: `number` &#124; `null`; `name`: `string`; `nextRunTime`: `Date` &#124; `null`; `priority`: `string` &#124; `null`; `requiresApproval`: `boolean` &#124; `null`; `tenantId`: `string`; `timeout`: `number` &#124; `null`; `updatedAt`: `Date` &#124; `null`; `updatedBy`: `string` &#124; `null`; &#125;&gt;
+> **createDefinition**(`data`): `Promise`&lt;&#123; `approvalMatrixId`: `string` &#124; `null`; `autoApproveConditions`: `unknown`; `createdAt`: `Date` &#124; `null`; `createdBy`: `string` &#124; `null`; `cronExpression`: `string` &#124; `null`; `defaultParameters`: `unknown`; `description`: `string` &#124; `null`; `id`: `string`; `impactLevel`: `string` &#124; `null`; `isEnabled`: `boolean` &#124; `null`; `jobType`: `string`; `lastRunStatus`: `string` &#124; `null`; `lastRunTime`: `Date` &#124; `null`; `maxRetries`: `number` &#124; `null`; `name`: `string`; `nextRunTime`: `Date` &#124; `null`; `priority`: `string` &#124; `null`; `requiresApproval`: `boolean` &#124; `null`; `tenantId`: `string`; `timeout`: `number` &#124; `null`; `updatedAt`: `Date` &#124; `null`; `updatedBy`: `string` &#124; `null`; &#125;&gt;
 
 ###### Parameters
 
@@ -26,7 +26,7 @@ Defined in: [src/repositories/jobs.repository.ts:14](https://github.com/ifrspro/
 
 ###### Returns
 
-`Promise`&lt;&#123; `approvalMatrixId`: `string` &#124; `null`; `autoApproveConditions`: `unknown`; `createdAt`: `Date` &#124; `null`; `createdBy`: `string` &#124; `null`; `cronExpression`: `string` &#124; `null`; `defaultParameters`: `unknown`; `description`: `string` &#124; `null`; `id`: `string`; `isEnabled`: `boolean` &#124; `null`; `jobType`: `string`; `lastRunStatus`: `string` &#124; `null`; `lastRunTime`: `Date` &#124; `null`; `maxRetries`: `number` &#124; `null`; `name`: `string`; `nextRunTime`: `Date` &#124; `null`; `priority`: `string` &#124; `null`; `requiresApproval`: `boolean` &#124; `null`; `tenantId`: `string`; `timeout`: `number` &#124; `null`; `updatedAt`: `Date` &#124; `null`; `updatedBy`: `string` &#124; `null`; &#125;&gt;
+`Promise`&lt;&#123; `approvalMatrixId`: `string` &#124; `null`; `autoApproveConditions`: `unknown`; `createdAt`: `Date` &#124; `null`; `createdBy`: `string` &#124; `null`; `cronExpression`: `string` &#124; `null`; `defaultParameters`: `unknown`; `description`: `string` &#124; `null`; `id`: `string`; `impactLevel`: `string` &#124; `null`; `isEnabled`: `boolean` &#124; `null`; `jobType`: `string`; `lastRunStatus`: `string` &#124; `null`; `lastRunTime`: `Date` &#124; `null`; `maxRetries`: `number` &#124; `null`; `name`: `string`; `nextRunTime`: `Date` &#124; `null`; `priority`: `string` &#124; `null`; `requiresApproval`: `boolean` &#124; `null`; `tenantId`: `string`; `timeout`: `number` &#124; `null`; `updatedAt`: `Date` &#124; `null`; `updatedBy`: `string` &#124; `null`; &#125;&gt;
 
 ##### createExecution()
 
@@ -41,6 +41,20 @@ Defined in: [src/repositories/jobs.repository.ts:14](https://github.com/ifrspro/
 ###### Returns
 
 `Promise`&lt;&#123; `approvalRequestId`: `string` &#124; `null`; `approvalStatus`: `string` &#124; `null`; `approvedAt`: `Date` &#124; `null`; `approvedBy`: `string` &#124; `null`; `duration`: `number` &#124; `null`; `endTime`: `Date` &#124; `null`; `error`: `string` &#124; `null`; `id`: `string`; `jobDefinitionId`: `string` &#124; `null`; `jobName`: `string`; `jobType`: `string`; `parameters`: `unknown`; `progress`: `number` &#124; `null`; `result`: `unknown`; `startTime`: `Date` &#124; `null`; `status`: `string`; `tags`: `unknown`; `tenantId`: `string`; `triggeredBy`: `string` &#124; `null`; `workerId`: `string` &#124; `null`; &#125;&gt;
+
+##### ensureCoreTenantRow()
+
+> **ensureCoreTenantRow**(`tenantUuid`): `Promise`&lt;`void`&gt;
+
+###### Parameters
+
+###### tenantUuid
+
+`string`
+
+###### Returns
+
+`Promise`&lt;`void`&gt;
 
 ##### findAllDefinitions()
 
@@ -58,7 +72,7 @@ Defined in: [src/repositories/jobs.repository.ts:14](https://github.com/ifrspro/
 
 ##### findDefinitionById()
 
-> **findDefinitionById**(`id`, `tenantId?`): `Promise`&lt;&#123; `approvalMatrixId`: `string` &#124; `null`; `autoApproveConditions`: `unknown`; `createdAt`: `Date` &#124; `null`; `createdBy`: `string` &#124; `null`; `cronExpression`: `string` &#124; `null`; `defaultParameters`: `unknown`; `description`: `string` &#124; `null`; `id`: `string`; `isEnabled`: `boolean` &#124; `null`; `jobType`: `string`; `lastRunStatus`: `string` &#124; `null`; `lastRunTime`: `Date` &#124; `null`; `maxRetries`: `number` &#124; `null`; `name`: `string`; `nextRunTime`: `Date` &#124; `null`; `priority`: `string` &#124; `null`; `requiresApproval`: `boolean` &#124; `null`; `tenantId`: `string`; `timeout`: `number` &#124; `null`; `updatedAt`: `Date` &#124; `null`; `updatedBy`: `string` &#124; `null`; &#125;&gt;
+> **findDefinitionById**(`id`, `tenantId?`): `Promise`&lt;&#123; `approvalMatrixId`: `string` &#124; `null`; `autoApproveConditions`: `unknown`; `createdAt`: `Date` &#124; `null`; `createdBy`: `string` &#124; `null`; `cronExpression`: `string` &#124; `null`; `defaultParameters`: `unknown`; `description`: `string` &#124; `null`; `id`: `string`; `impactLevel`: `string` &#124; `null`; `isEnabled`: `boolean` &#124; `null`; `jobType`: `string`; `lastRunStatus`: `string` &#124; `null`; `lastRunTime`: `Date` &#124; `null`; `maxRetries`: `number` &#124; `null`; `name`: `string`; `nextRunTime`: `Date` &#124; `null`; `priority`: `string` &#124; `null`; `requiresApproval`: `boolean` &#124; `null`; `tenantId`: `string`; `timeout`: `number` &#124; `null`; `updatedAt`: `Date` &#124; `null`; `updatedBy`: `string` &#124; `null`; &#125;&gt;
 
 ###### Parameters
 
@@ -72,7 +86,7 @@ Defined in: [src/repositories/jobs.repository.ts:14](https://github.com/ifrspro/
 
 ###### Returns
 
-`Promise`&lt;&#123; `approvalMatrixId`: `string` &#124; `null`; `autoApproveConditions`: `unknown`; `createdAt`: `Date` &#124; `null`; `createdBy`: `string` &#124; `null`; `cronExpression`: `string` &#124; `null`; `defaultParameters`: `unknown`; `description`: `string` &#124; `null`; `id`: `string`; `isEnabled`: `boolean` &#124; `null`; `jobType`: `string`; `lastRunStatus`: `string` &#124; `null`; `lastRunTime`: `Date` &#124; `null`; `maxRetries`: `number` &#124; `null`; `name`: `string`; `nextRunTime`: `Date` &#124; `null`; `priority`: `string` &#124; `null`; `requiresApproval`: `boolean` &#124; `null`; `tenantId`: `string`; `timeout`: `number` &#124; `null`; `updatedAt`: `Date` &#124; `null`; `updatedBy`: `string` &#124; `null`; &#125;&gt;
+`Promise`&lt;&#123; `approvalMatrixId`: `string` &#124; `null`; `autoApproveConditions`: `unknown`; `createdAt`: `Date` &#124; `null`; `createdBy`: `string` &#124; `null`; `cronExpression`: `string` &#124; `null`; `defaultParameters`: `unknown`; `description`: `string` &#124; `null`; `id`: `string`; `impactLevel`: `string` &#124; `null`; `isEnabled`: `boolean` &#124; `null`; `jobType`: `string`; `lastRunStatus`: `string` &#124; `null`; `lastRunTime`: `Date` &#124; `null`; `maxRetries`: `number` &#124; `null`; `name`: `string`; `nextRunTime`: `Date` &#124; `null`; `priority`: `string` &#124; `null`; `requiresApproval`: `boolean` &#124; `null`; `tenantId`: `string`; `timeout`: `number` &#124; `null`; `updatedAt`: `Date` &#124; `null`; `updatedBy`: `string` &#124; `null`; &#125;&gt;
 
 ##### findExecutionById()
 
@@ -94,7 +108,7 @@ Defined in: [src/repositories/jobs.repository.ts:14](https://github.com/ifrspro/
 
 ##### findExecutions()
 
-> **findExecutions**(`tenantId`, `limit`): `Promise`&lt;`RowList`&lt;`Row`[]&gt;&gt;
+> **findExecutions**(`tenantId`, `limit?`): `Promise`&lt;`RowList`&lt;`Row`[]&gt;&gt;
 
 ###### Parameters
 
@@ -102,7 +116,7 @@ Defined in: [src/repositories/jobs.repository.ts:14](https://github.com/ifrspro/
 
 `string`
 
-###### limit
+###### limit?
 
 `number` = `10`
 
@@ -124,9 +138,23 @@ Defined in: [src/repositories/jobs.repository.ts:14](https://github.com/ifrspro/
 
 `Promise`&lt;&#123; `activeJobs`: `number`; `failedToday`: `number`; &#125;&gt;
 
+##### resolveTenantId()
+
+> **resolveTenantId**(`tenantId`): `Promise`&lt;`string`&gt;
+
+###### Parameters
+
+###### tenantId
+
+`string`
+
+###### Returns
+
+`Promise`&lt;`string`&gt;
+
 ##### updateDefinition()
 
-> **updateDefinition**(`id`, `data`, `tenantId?`): `Promise`&lt;&#123; `approvalMatrixId`: `string` &#124; `null`; `autoApproveConditions`: `unknown`; `createdAt`: `Date` &#124; `null`; `createdBy`: `string` &#124; `null`; `cronExpression`: `string` &#124; `null`; `defaultParameters`: `unknown`; `description`: `string` &#124; `null`; `id`: `string`; `isEnabled`: `boolean` &#124; `null`; `jobType`: `string`; `lastRunStatus`: `string` &#124; `null`; `lastRunTime`: `Date` &#124; `null`; `maxRetries`: `number` &#124; `null`; `name`: `string`; `nextRunTime`: `Date` &#124; `null`; `priority`: `string` &#124; `null`; `requiresApproval`: `boolean` &#124; `null`; `tenantId`: `string`; `timeout`: `number` &#124; `null`; `updatedAt`: `Date` &#124; `null`; `updatedBy`: `string` &#124; `null`; &#125;&gt;
+> **updateDefinition**(`id`, `data`, `tenantId?`): `Promise`&lt;&#123; `approvalMatrixId`: `string` &#124; `null`; `autoApproveConditions`: `unknown`; `createdAt`: `Date` &#124; `null`; `createdBy`: `string` &#124; `null`; `cronExpression`: `string` &#124; `null`; `defaultParameters`: `unknown`; `description`: `string` &#124; `null`; `id`: `string`; `impactLevel`: `string` &#124; `null`; `isEnabled`: `boolean` &#124; `null`; `jobType`: `string`; `lastRunStatus`: `string` &#124; `null`; `lastRunTime`: `Date` &#124; `null`; `maxRetries`: `number` &#124; `null`; `name`: `string`; `nextRunTime`: `Date` &#124; `null`; `priority`: `string` &#124; `null`; `requiresApproval`: `boolean` &#124; `null`; `tenantId`: `string`; `timeout`: `number` &#124; `null`; `updatedAt`: `Date` &#124; `null`; `updatedBy`: `string` &#124; `null`; &#125;&gt;
 
 ###### Parameters
 
@@ -144,7 +172,7 @@ Defined in: [src/repositories/jobs.repository.ts:14](https://github.com/ifrspro/
 
 ###### Returns
 
-`Promise`&lt;&#123; `approvalMatrixId`: `string` &#124; `null`; `autoApproveConditions`: `unknown`; `createdAt`: `Date` &#124; `null`; `createdBy`: `string` &#124; `null`; `cronExpression`: `string` &#124; `null`; `defaultParameters`: `unknown`; `description`: `string` &#124; `null`; `id`: `string`; `isEnabled`: `boolean` &#124; `null`; `jobType`: `string`; `lastRunStatus`: `string` &#124; `null`; `lastRunTime`: `Date` &#124; `null`; `maxRetries`: `number` &#124; `null`; `name`: `string`; `nextRunTime`: `Date` &#124; `null`; `priority`: `string` &#124; `null`; `requiresApproval`: `boolean` &#124; `null`; `tenantId`: `string`; `timeout`: `number` &#124; `null`; `updatedAt`: `Date` &#124; `null`; `updatedBy`: `string` &#124; `null`; &#125;&gt;
+`Promise`&lt;&#123; `approvalMatrixId`: `string` &#124; `null`; `autoApproveConditions`: `unknown`; `createdAt`: `Date` &#124; `null`; `createdBy`: `string` &#124; `null`; `cronExpression`: `string` &#124; `null`; `defaultParameters`: `unknown`; `description`: `string` &#124; `null`; `id`: `string`; `impactLevel`: `string` &#124; `null`; `isEnabled`: `boolean` &#124; `null`; `jobType`: `string`; `lastRunStatus`: `string` &#124; `null`; `lastRunTime`: `Date` &#124; `null`; `maxRetries`: `number` &#124; `null`; `name`: `string`; `nextRunTime`: `Date` &#124; `null`; `priority`: `string` &#124; `null`; `requiresApproval`: `boolean` &#124; `null`; `tenantId`: `string`; `timeout`: `number` &#124; `null`; `updatedAt`: `Date` &#124; `null`; `updatedBy`: `string` &#124; `null`; &#125;&gt;
 
 ##### updateExecution()
 

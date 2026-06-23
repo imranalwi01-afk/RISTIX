@@ -10,7 +10,7 @@
 
 > **ApprovalRepositoryType** = *typeof* [`ApprovalRepository`](#approvalrepository)
 
-Defined in: [src/repositories/approval.repository.ts:394](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/approval.repository.ts#L394)
+Defined in: [src/repositories/approval.repository.ts:523](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/approval.repository.ts#L523)
 
 ## Variables
 
@@ -18,11 +18,11 @@ Defined in: [src/repositories/approval.repository.ts:394](https://github.com/ifr
 
 > `const` **ApprovalRepository**: `object`
 
-Defined in: [src/repositories/approval.repository.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/approval.repository.ts#L24)
+Defined in: [src/repositories/approval.repository.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/approval.repository.ts#L24)
 
 #### Type Declaration
 
-##### countPendingByTenant()
+##### countPendingByTenant
 
 > **countPendingByTenant**: (`tenantId`) => `Promise`&lt;`number`&gt;
 
@@ -36,7 +36,7 @@ Defined in: [src/repositories/approval.repository.ts:24](https://github.com/ifrs
 
 `Promise`&lt;`number`&gt;
 
-##### createAction()
+##### createAction
 
 > **createAction**: (`data`) => `Promise`&lt;&#123; `action`: `string`; `approverId`: `string`; `approverRole`: `string` &#124; `null`; `comment`: `string` &#124; `null`; `conditions`: `string` &#124; `null`; `createdAt`: `Date`; `delegatedTo`: `string` &#124; `null`; `delegationReason`: `string` &#124; `null`; `id`: `string`; `level`: `number`; `requestId`: `string`; `riskAssessment`: `unknown`; `riskScore`: `number` &#124; `null`; &#125;&gt;
 
@@ -106,7 +106,7 @@ The action data
 
 The created action
 
-##### createMatrix()
+##### createMatrix
 
 > **createMatrix**: (`data`, `levels`) => `Promise`&lt;&#123; `amountThresholds`: &#123; `critical?`: `number`; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `autoApprovalRules`: `unknown`; `bankingMode`: `string` &#124; `null`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `entityType`: `string`; `escalationRules`: `unknown`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `operationType`: `string` &#124; `null`; `riskThresholds`: &#123; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `syariahBoardRequired`: `boolean` &#124; `null`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date`; &#125;&gt;
 
@@ -190,9 +190,9 @@ The levels data
 
 The created matrix
 
-##### createRequest()
+##### createRequest
 
-> **createRequest**: (`data`) => `Promise`&lt;&#123; `approvalsReceived`: `number`; `approvalsRequired`: `number`; `completedAt`: `Date` &#124; `null`; `completedBy`: `string` &#124; `null`; `createdAt`: `Date`; `currentLevel`: `number`; `description`: `string` &#124; `null`; `entityId`: `string` &#124; `null`; `entityType`: `string`; `expiresAt`: `Date` &#124; `null`; `id`: `string`; `impactLevel`: `string` &#124; `null`; `matrixId`: `string` &#124; `null`; `requestData`: `Record`&lt;`string`, `unknown`&gt; &#124; `null`; `requestedBy`: `string`; `status`: `string`; `tenantId`: `string`; `title`: `string`; &#125;&gt;
+> **createRequest**: (`data`, `tx?`) => `Promise`&lt;`any`&gt;
 
 Create a new approval request.
 
@@ -274,13 +274,17 @@ The request data
 
 `string`
 
+###### tx?
+
+`any`
+
 ###### Returns
 
-`Promise`&lt;&#123; `approvalsReceived`: `number`; `approvalsRequired`: `number`; `completedAt`: `Date` &#124; `null`; `completedBy`: `string` &#124; `null`; `createdAt`: `Date`; `currentLevel`: `number`; `description`: `string` &#124; `null`; `entityId`: `string` &#124; `null`; `entityType`: `string`; `expiresAt`: `Date` &#124; `null`; `id`: `string`; `impactLevel`: `string` &#124; `null`; `matrixId`: `string` &#124; `null`; `requestData`: `Record`&lt;`string`, `unknown`&gt; &#124; `null`; `requestedBy`: `string`; `status`: `string`; `tenantId`: `string`; `title`: `string`; &#125;&gt;
+`Promise`&lt;`any`&gt;
 
 The created request
 
-##### findActionsByRequest()
+##### findActionsByRequest
 
 > **findActionsByRequest**: (`requestId`) => `Promise`&lt;`object`[]&gt;
 
@@ -300,9 +304,9 @@ The request ID
 
 An array of approval actions
 
-##### findDuplicatePendingRequest()
+##### findDuplicatePendingRequest
 
-> **findDuplicatePendingRequest**: (`input`) => `Promise`&lt;&#123; `approvalsReceived`: `number`; `approvalsRequired`: `number`; `completedAt`: `Date` &#124; `null`; `completedBy`: `string` &#124; `null`; `createdAt`: `Date`; `currentLevel`: `number`; `description`: `string` &#124; `null`; `entityId`: `string` &#124; `null`; `entityType`: `string`; `expiresAt`: `Date` &#124; `null`; `id`: `string`; `impactLevel`: `string` &#124; `null`; `matrixId`: `string` &#124; `null`; `requestData`: `Record`&lt;`string`, `unknown`&gt; &#124; `null`; `requestedBy`: `string`; `status`: `string`; `tenantId`: `string`; `title`: `string`; &#125; &#124; `null`&gt;
+> **findDuplicatePendingRequest**: (`input`, `tx?`) => `Promise`&lt;`any`&gt;
 
 Find an existing pending request that matches the same business operation.
 This prevents accidental duplicate submissions from retries/double-clicks.
@@ -335,11 +339,15 @@ This prevents accidental duplicate submissions from retries/double-clicks.
 
 `string`
 
+###### tx?
+
+`any`
+
 ###### Returns
 
-`Promise`&lt;&#123; `approvalsReceived`: `number`; `approvalsRequired`: `number`; `completedAt`: `Date` &#124; `null`; `completedBy`: `string` &#124; `null`; `createdAt`: `Date`; `currentLevel`: `number`; `description`: `string` &#124; `null`; `entityId`: `string` &#124; `null`; `entityType`: `string`; `expiresAt`: `Date` &#124; `null`; `id`: `string`; `impactLevel`: `string` &#124; `null`; `matrixId`: `string` &#124; `null`; `requestData`: `Record`&lt;`string`, `unknown`&gt; &#124; `null`; `requestedBy`: `string`; `status`: `string`; `tenantId`: `string`; `title`: `string`; &#125; &#124; `null`&gt;
+`Promise`&lt;`any`&gt;
 
-##### findMatricesByTenant()
+##### findMatricesByTenant
 
 > **findMatricesByTenant**: (`tenantId`) => `Promise`&lt;`object`[]&gt;
 
@@ -359,9 +367,9 @@ The tenant ID
 
 An array of approval matrices
 
-##### findMatrixByEntityType()
+##### findMatrixByEntityType
 
-> **findMatrixByEntityType**: (`tenantId`, `entityType`, `bankingMode?`) => `PgRelationalQuery`&lt;&#123; `amountThresholds`: &#123; `critical?`: `number`; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `autoApprovalRules`: `unknown`; `bankingMode`: `string` &#124; `null`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `entityType`: `string`; `escalationRules`: `unknown`; `id`: `string`; `isActive`: `boolean`; `levels`: `object`[]; `name`: `string`; `operationType`: `string` &#124; `null`; `riskThresholds`: &#123; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `syariahBoardRequired`: `boolean` &#124; `null`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date`; &#125; &#124; `undefined`&gt;
+> **findMatrixByEntityType**: (`tenantId`, `entityType`, `bankingMode?`) => `Promise`&lt;&#123; `amountThresholds`: &#123; `critical?`: `number`; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `autoApprovalRules`: `unknown`; `bankingMode`: `string` &#124; `null`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `entityType`: `string`; `escalationRules`: `unknown`; `id`: `string`; `isActive`: `boolean`; `levels`: `object`[]; `name`: `string`; `operationType`: `string` &#124; `null`; `riskThresholds`: &#123; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `syariahBoardRequired`: `boolean` &#124; `null`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date`; &#125;&gt;
 
 Find an approval matrix by entity type.
 
@@ -387,11 +395,11 @@ Optional banking mode filter
 
 ###### Returns
 
-`PgRelationalQuery`&lt;&#123; `amountThresholds`: &#123; `critical?`: `number`; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `autoApprovalRules`: `unknown`; `bankingMode`: `string` &#124; `null`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `entityType`: `string`; `escalationRules`: `unknown`; `id`: `string`; `isActive`: `boolean`; `levels`: `object`[]; `name`: `string`; `operationType`: `string` &#124; `null`; `riskThresholds`: &#123; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `syariahBoardRequired`: `boolean` &#124; `null`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date`; &#125; &#124; `undefined`&gt;
+`Promise`&lt;&#123; `amountThresholds`: &#123; `critical?`: `number`; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `autoApprovalRules`: `unknown`; `bankingMode`: `string` &#124; `null`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `entityType`: `string`; `escalationRules`: `unknown`; `id`: `string`; `isActive`: `boolean`; `levels`: `object`[]; `name`: `string`; `operationType`: `string` &#124; `null`; `riskThresholds`: &#123; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `syariahBoardRequired`: `boolean` &#124; `null`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date`; &#125;&gt;
 
 The approval matrix with levels
 
-##### findMatrixById()
+##### findMatrixById
 
 > **findMatrixById**: (`id`) => `PgRelationalQuery`&lt;&#123; `amountThresholds`: &#123; `critical?`: `number`; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `autoApprovalRules`: `unknown`; `bankingMode`: `string` &#124; `null`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `entityType`: `string`; `escalationRules`: `unknown`; `id`: `string`; `isActive`: `boolean`; `levels`: `object`[]; `name`: `string`; `operationType`: `string` &#124; `null`; `riskThresholds`: &#123; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `syariahBoardRequired`: `boolean` &#124; `null`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date`; &#125; &#124; `undefined`&gt;
 
@@ -411,7 +419,7 @@ The ID of the approval matrix
 
 The approval matrix with levels
 
-##### findPendingRequests()
+##### findPendingRequests
 
 > **findPendingRequests**: (`tenantId`) => `PgRelationalQuery`&lt;`object`[]&gt;
 
@@ -431,7 +439,7 @@ The tenant ID
 
 An array of pending approval requests
 
-##### findRequestById()
+##### findRequestById
 
 > **findRequestById**: (`id`) => `Promise`&lt;&#123; `actions`: `object`[]; `approvalsReceived`: `number`; `approvalsRequired`: `number`; `completedAt`: `Date` &#124; `null`; `completedBy`: `string` &#124; `null`; `createdAt`: `Date`; `currentLevel`: `number`; `description`: `string` &#124; `null`; `entityId`: `string` &#124; `null`; `entityType`: `string`; `expiresAt`: `Date` &#124; `null`; `id`: `string`; `impactLevel`: `string` &#124; `null`; `matrix`: &#123; `amountThresholds`: &#123; `critical?`: `number`; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `autoApprovalRules`: `unknown`; `bankingMode`: `string` &#124; `null`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `entityType`: `string`; `escalationRules`: `unknown`; `id`: `string`; `isActive`: `boolean`; `levels`: `object`[]; `name`: `string`; `operationType`: `string` &#124; `null`; `riskThresholds`: &#123; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `syariahBoardRequired`: `boolean` &#124; `null`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date`; &#125; &#124; `null`; `matrixId`: `string` &#124; `null`; `requestData`: `Record`&lt;`string`, `unknown`&gt; &#124; `null`; `requestedBy`: `string`; `requester`: &#123; `createdAt`: `Date` &#124; `null`; `email`: `string`; `employeeId`: `string` &#124; `null`; `failedLoginAttempts`: `number` &#124; `null`; `fullName`: `string`; `id`: `string`; `isActive`: `boolean` &#124; `null`; `lastLoginAt`: `Date` &#124; `null`; `passwordHash`: `string`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date` &#124; `null`; `username`: `string`; &#125;; `status`: `string`; `tenantId`: `string`; `title`: `string`; &#125; &#124; `undefined`&gt;
 
@@ -451,7 +459,7 @@ The request ID
 
 The approval request with details
 
-##### findRequestsByEntity()
+##### findRequestsByEntity
 
 > **findRequestsByEntity**: (`tenantId`, `entityType`, `entityId?`) => `PgRelationalQuery`&lt;`object`[]&gt;
 
@@ -483,7 +491,7 @@ Optional entity ID filter
 
 An array of approval requests
 
-##### findRequestsByTenant()
+##### findRequestsByTenant
 
 > **findRequestsByTenant**: (`tenantId`) => `PgRelationalQuery`&lt;`object`[]&gt;
 
@@ -503,7 +511,99 @@ The tenant ID
 
 An array of approval requests
 
-##### getExpiredRequests()
+##### findRequestsList
+
+> **findRequestsList**: (`input`) => `Promise`&lt;&#123; `data`: `object`[]; `total`: `number`; &#125;&gt;
+
+###### Parameters
+
+###### input
+
+###### bankingType?
+
+`string`
+
+###### createdAtFrom?
+
+`Date`
+
+###### createdAtTo?
+
+`Date`
+
+###### currentLevel?
+
+`number`
+
+###### currentLevelMax?
+
+`number`
+
+###### currentLevelMin?
+
+`number`
+
+###### entityId?
+
+`string`
+
+###### entityType?
+
+`string`
+
+###### impactLevel?
+
+`string`
+
+###### limit
+
+`number`
+
+###### offset
+
+`number`
+
+###### operation?
+
+`string`
+
+###### requestedBy?
+
+`string`
+
+###### riskLevel?
+
+`string`
+
+###### search?
+
+`string`
+
+###### sort?
+
+&#123; `direction`: `"asc"` &#124; `"desc"`; `field`: `string`; &#125;
+
+###### sort.direction
+
+`"asc"` &#124; `"desc"`
+
+###### sort.field
+
+`string`
+
+###### status?
+
+`string`
+
+###### tenantId
+
+`string`
+
+###### Returns
+
+`Promise`&lt;&#123; `data`: `object`[]; `total`: `number`; &#125;&gt;
+
+##### getExpiredRequests
 
 > **getExpiredRequests**: () => `PgRelationalQuery`&lt;`object`[]&gt;
 
@@ -511,7 +611,7 @@ An array of approval requests
 
 `PgRelationalQuery`&lt;`object`[]&gt;
 
-##### updateMatrix()
+##### updateMatrix
 
 > **updateMatrix**: (`id`, `data`) => `Promise`&lt;&#123; `amountThresholds`: &#123; `critical?`: `number`; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `autoApprovalRules`: `unknown`; `bankingMode`: `string` &#124; `null`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `entityType`: `string`; `escalationRules`: `unknown`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `operationType`: `string` &#124; `null`; `riskThresholds`: &#123; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `syariahBoardRequired`: `boolean` &#124; `null`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date`; &#125;&gt;
 
@@ -537,7 +637,7 @@ The updated data
 
 The updated matrix
 
-##### updateMatrixWithLevels()
+##### updateMatrixWithLevels
 
 > **updateMatrixWithLevels**: (`input`) => `Promise`&lt;&#123; `amountThresholds`: &#123; `critical?`: `number`; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `autoApprovalRules`: `unknown`; `bankingMode`: `string` &#124; `null`; `createdAt`: `Date`; `description`: `string` &#124; `null`; `entityType`: `string`; `escalationRules`: `unknown`; `id`: `string`; `isActive`: `boolean`; `levels`: `object`[]; `name`: `string`; `operationType`: `string` &#124; `null`; `riskThresholds`: &#123; `high?`: `number`; `low?`: `number`; `medium?`: `number`; &#125; &#124; `null`; `syariahBoardRequired`: `boolean` &#124; `null`; `tenantId`: `string` &#124; `null`; `updatedAt`: `Date`; &#125; &#124; `null` &#124; `undefined`&gt;
 
@@ -571,7 +671,7 @@ Matrix update payload
 
 Updated matrix with levels, or null when matrix is not found
 
-##### updateRequest()
+##### updateRequest
 
 > **updateRequest**: (`id`, `data`) => `Promise`&lt;&#123; `approvalsReceived`: `number`; `approvalsRequired`: `number`; `completedAt`: `Date` &#124; `null`; `completedBy`: `string` &#124; `null`; `createdAt`: `Date`; `currentLevel`: `number`; `description`: `string` &#124; `null`; `entityId`: `string` &#124; `null`; `entityType`: `string`; `expiresAt`: `Date` &#124; `null`; `id`: `string`; `impactLevel`: `string` &#124; `null`; `matrixId`: `string` &#124; `null`; `requestData`: `Record`&lt;`string`, `unknown`&gt; &#124; `null`; `requestedBy`: `string`; `status`: `string`; `tenantId`: `string`; `title`: `string`; &#125;&gt;
 

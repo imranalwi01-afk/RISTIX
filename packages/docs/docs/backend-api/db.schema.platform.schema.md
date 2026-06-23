@@ -6,11 +6,19 @@
 
 ## Type Aliases
 
+### NewPlatformEmailTemplate
+
+> **NewPlatformEmailTemplate** = *typeof* `platformEmailTemplates.$inferInsert`
+
+Defined in: [src/db/schema/platform.schema.ts:88](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/db/schema/platform.schema.ts#L88)
+
+***
+
 ### NewPlatformSetting
 
 > **NewPlatformSetting** = *typeof* `platformSettings.$inferInsert`
 
-Defined in: [src/db/schema/platform.schema.ts:85](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/db/schema/platform.schema.ts#L85)
+Defined in: [src/db/schema/platform.schema.ts:113](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/db/schema/platform.schema.ts#L113)
 
 ***
 
@@ -18,7 +26,7 @@ Defined in: [src/db/schema/platform.schema.ts:85](https://github.com/ifrspro/ifr
 
 > **NewPlatformTenant** = *typeof* `platformTenants.$inferInsert`
 
-Defined in: [src/db/schema/platform.schema.ts:60](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/db/schema/platform.schema.ts#L60)
+Defined in: [src/db/schema/platform.schema.ts:60](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/db/schema/platform.schema.ts#L60)
 
 ***
 
@@ -26,7 +34,15 @@ Defined in: [src/db/schema/platform.schema.ts:60](https://github.com/ifrspro/ifr
 
 > **NewPlatformUser** = *typeof* `platformUsers.$inferInsert`
 
-Defined in: [src/db/schema/platform.schema.ts:134](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/db/schema/platform.schema.ts#L134)
+Defined in: [src/db/schema/platform.schema.ts:162](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/db/schema/platform.schema.ts#L162)
+
+***
+
+### PlatformEmailTemplate
+
+> **PlatformEmailTemplate** = *typeof* `platformEmailTemplates.$inferSelect`
+
+Defined in: [src/db/schema/platform.schema.ts:87](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/db/schema/platform.schema.ts#L87)
 
 ***
 
@@ -34,7 +50,7 @@ Defined in: [src/db/schema/platform.schema.ts:134](https://github.com/ifrspro/if
 
 > **PlatformSetting** = *typeof* `platformSettings.$inferSelect`
 
-Defined in: [src/db/schema/platform.schema.ts:84](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/db/schema/platform.schema.ts#L84)
+Defined in: [src/db/schema/platform.schema.ts:112](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/db/schema/platform.schema.ts#L112)
 
 ***
 
@@ -42,7 +58,7 @@ Defined in: [src/db/schema/platform.schema.ts:84](https://github.com/ifrspro/ifr
 
 > **PlatformTenant** = *typeof* `platformTenants.$inferSelect`
 
-Defined in: [src/db/schema/platform.schema.ts:59](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/db/schema/platform.schema.ts#L59)
+Defined in: [src/db/schema/platform.schema.ts:59](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/db/schema/platform.schema.ts#L59)
 
 ***
 
@@ -50,15 +66,26 @@ Defined in: [src/db/schema/platform.schema.ts:59](https://github.com/ifrspro/ifr
 
 > **PlatformUser** = *typeof* `platformUsers.$inferSelect`
 
-Defined in: [src/db/schema/platform.schema.ts:133](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/db/schema/platform.schema.ts#L133)
+Defined in: [src/db/schema/platform.schema.ts:161](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/db/schema/platform.schema.ts#L161)
 
 ## Variables
+
+### platformEmailTemplates
+
+> `const` **platformEmailTemplates**: `PgTableWithColumns`&lt;&#123; `columns`: &#123; `availableVariables`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgJsonb"`; `data`: `unknown`; `dataType`: `"json"`; `driverParam`: `unknown`; `enumValues`: `undefined`; `generated`: `undefined`; `hasDefault`: `true`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"available_variables"`; `notNull`: `true`; `tableName`: `"email_templates"`; &#125;, &#123; &#125;, &#123; &#125;&gt;; `bodyHtml`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgText"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: \[`string`, `...string[]`\]; `generated`: `undefined`; `hasDefault`: `false`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"body_html"`; `notNull`: `true`; `tableName`: `"email_templates"`; &#125;, &#123; &#125;, &#123; &#125;&gt;; `bodyText`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgText"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: \[`string`, `...string[]`\]; `generated`: `undefined`; `hasDefault`: `false`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"body_text"`; `notNull`: `true`; `tableName`: `"email_templates"`; &#125;, &#123; &#125;, &#123; &#125;&gt;; `code`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgVarchar"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: \[`string`, `...string[]`\]; `generated`: `undefined`; `hasDefault`: `false`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"code"`; `notNull`: `true`; `tableName`: `"email_templates"`; &#125;, &#123; &#125;, &#123; `length`: `100`; &#125;&gt;; `createdAt`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgTimestamp"`; `data`: `Date`; `dataType`: `"date"`; `driverParam`: `string`; `enumValues`: `undefined`; `generated`: `undefined`; `hasDefault`: `true`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"created_at"`; `notNull`: `true`; `tableName`: `"email_templates"`; &#125;, &#123; &#125;, &#123; &#125;&gt;; `id`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgUUID"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: `undefined`; `generated`: `undefined`; `hasDefault`: `true`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `true`; `name`: `"id"`; `notNull`: `true`; `tableName`: `"email_templates"`; &#125;, &#123; &#125;, &#123; &#125;&gt;; `subject`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgVarchar"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: \[`string`, `...string[]`\]; `generated`: `undefined`; `hasDefault`: `false`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"subject"`; `notNull`: `true`; `tableName`: `"email_templates"`; &#125;, &#123; &#125;, &#123; `length`: `255`; &#125;&gt;; `updatedAt`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgTimestamp"`; `data`: `Date`; `dataType`: `"date"`; `driverParam`: `string`; `enumValues`: `undefined`; `generated`: `undefined`; `hasDefault`: `true`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"updated_at"`; `notNull`: `true`; `tableName`: `"email_templates"`; &#125;, &#123; &#125;, &#123; &#125;&gt;; &#125;; `dialect`: `"pg"`; `name`: `"email_templates"`; `schema`: `"platform_admin"`; &#125;&gt;
+
+Defined in: [src/db/schema/platform.schema.ts:70](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/db/schema/platform.schema.ts#L70)
+
+Platform Email Templates table definition.
+Stores dynamic email templates (HTML and Text) for various system notifications.
+
+***
 
 ### platformSchema
 
 > `const` **platformSchema**: `PgSchema`&lt;`"platform_admin"`&gt;
 
-Defined in: [src/db/schema/platform.schema.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/db/schema/platform.schema.ts#L23)
+Defined in: [src/db/schema/platform.schema.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/db/schema/platform.schema.ts#L23)
 
 Platform schema namespace
 Maps to the 'platform_admin' schema in the database (not 'core').
@@ -69,7 +96,7 @@ Maps to the 'platform_admin' schema in the database (not 'core').
 
 > `const` **platformSettings**: `PgTableWithColumns`&lt;&#123; `columns`: &#123; `description`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgText"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: \[`string`, `...string[]`\]; `generated`: `undefined`; `hasDefault`: `false`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"description"`; `notNull`: `false`; `tableName`: `"settings"`; &#125;, &#123; &#125;, &#123; &#125;&gt;; `id`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgUUID"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: `undefined`; `generated`: `undefined`; `hasDefault`: `true`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `true`; `name`: `"id"`; `notNull`: `true`; `tableName`: `"settings"`; &#125;, &#123; &#125;, &#123; &#125;&gt;; `key`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgVarchar"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: \[`string`, `...string[]`\]; `generated`: `undefined`; `hasDefault`: `false`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"key"`; `notNull`: `true`; `tableName`: `"settings"`; &#125;, &#123; &#125;, &#123; `length`: `100`; &#125;&gt;; `updatedAt`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgTimestamp"`; `data`: `Date`; `dataType`: `"date"`; `driverParam`: `string`; `enumValues`: `undefined`; `generated`: `undefined`; `hasDefault`: `true`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"updated_at"`; `notNull`: `true`; `tableName`: `"settings"`; &#125;, &#123; &#125;, &#123; &#125;&gt;; `value`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgJsonb"`; `data`: `unknown`; `dataType`: `"json"`; `driverParam`: `unknown`; `enumValues`: `undefined`; `generated`: `undefined`; `hasDefault`: `true`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"value"`; `notNull`: `true`; `tableName`: `"settings"`; &#125;, &#123; &#125;, &#123; &#125;&gt;; &#125;; `dialect`: `"pg"`; `name`: `"settings"`; `schema`: `"platform_admin"`; &#125;&gt;
 
-Defined in: [src/db/schema/platform.schema.ts:70](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/db/schema/platform.schema.ts#L70)
+Defined in: [src/db/schema/platform.schema.ts:98](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/db/schema/platform.schema.ts#L98)
 
 Platform Settings table definition.
 Global Key-Value store for platform-wide configurations (e.g., branding, maintenance mode).
@@ -80,7 +107,7 @@ Global Key-Value store for platform-wide configurations (e.g., branding, mainten
 
 > `const` **platformTenants**: `PgTableWithColumns`&lt;&#123; `columns`: &#123; `bankingMode`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgVarchar"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: \[`string`, `...string[]`\]; `generated`: `undefined`; `hasDefault`: `true`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"banking_mode"`; `notNull`: `false`; `tableName`: `"tenants"`; &#125;, &#123; &#125;, &#123; `length`: `20`; &#125;&gt;; `code`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgVarchar"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: \[`string`, `...string[]`\]; `generated`: `undefined`; `hasDefault`: `false`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"code"`; `notNull`: `true`; `tableName`: `"tenants"`; &#125;, &#123; &#125;, &#123; `length`: `50`; &#125;&gt;; `createdAt`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgTimestamp"`; `data`: `Date`; `dataType`: `"date"`; `driverParam`: `string`; `enumValues`: `undefined`; `generated`: `undefined`; `hasDefault`: `true`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"created_at"`; `notNull`: `true`; `tableName`: `"tenants"`; &#125;, &#123; &#125;, &#123; &#125;&gt;; `description`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgText"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: \[`string`, `...string[]`\]; `generated`: `undefined`; `hasDefault`: `false`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"description"`; `notNull`: `false`; `tableName`: `"tenants"`; &#125;, &#123; &#125;, &#123; &#125;&gt;; `id`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgUUID"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: `undefined`; `generated`: `undefined`; `hasDefault`: `true`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `true`; `name`: `"id"`; `notNull`: `true`; `tableName`: `"tenants"`; &#125;, &#123; &#125;, &#123; &#125;&gt;; `isActive`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgBoolean"`; `data`: `boolean`; `dataType`: `"boolean"`; `driverParam`: `boolean`; `enumValues`: `undefined`; `generated`: `undefined`; `hasDefault`: `true`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"is_active"`; `notNull`: `true`; `tableName`: `"tenants"`; &#125;, &#123; &#125;, &#123; &#125;&gt;; `name`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgVarchar"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: \[`string`, `...string[]`\]; `generated`: `undefined`; `hasDefault`: `false`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"name"`; `notNull`: `true`; `tableName`: `"tenants"`; &#125;, &#123; &#125;, &#123; `length`: `255`; &#125;&gt;; `settings`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgText"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: \[`string`, `...string[]`\]; `generated`: `undefined`; `hasDefault`: `true`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"settings"`; `notNull`: `false`; `tableName`: `"tenants"`; &#125;, &#123; &#125;, &#123; &#125;&gt;; `slug`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgVarchar"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: \[`string`, `...string[]`\]; `generated`: `undefined`; `hasDefault`: `false`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"slug"`; `notNull`: `false`; `tableName`: `"tenants"`; &#125;, &#123; &#125;, &#123; `length`: `100`; &#125;&gt;; `type`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgVarchar"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: \[`string`, `...string[]`\]; `generated`: `undefined`; `hasDefault`: `true`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"type"`; `notNull`: `false`; `tableName`: `"tenants"`; &#125;, &#123; &#125;, &#123; `length`: `50`; &#125;&gt;; `updatedAt`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgTimestamp"`; `data`: `Date`; `dataType`: `"date"`; `driverParam`: `string`; `enumValues`: `undefined`; `generated`: `undefined`; `hasDefault`: `true`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"updated_at"`; `notNull`: `true`; `tableName`: `"tenants"`; &#125;, &#123; &#125;, &#123; &#125;&gt;; &#125;; `dialect`: `"pg"`; `name`: `"tenants"`; `schema`: `"platform_admin"`; &#125;&gt;
 
-Defined in: [src/db/schema/platform.schema.ts:33](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/db/schema/platform.schema.ts#L33)
+Defined in: [src/db/schema/platform.schema.ts:33](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/db/schema/platform.schema.ts#L33)
 
 Platform Tenants table definition.
 Maps tenant registry records in platform_admin.tenants.
@@ -91,7 +118,7 @@ Maps tenant registry records in platform_admin.tenants.
 
 > `const` **platformTenantsRelations**: `Relations`&lt;`"tenants"`, &#123; &#125;&gt;
 
-Defined in: [src/db/schema/platform.schema.ts:55](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/db/schema/platform.schema.ts#L55)
+Defined in: [src/db/schema/platform.schema.ts:55](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/db/schema/platform.schema.ts#L55)
 
 ***
 
@@ -99,7 +126,7 @@ Defined in: [src/db/schema/platform.schema.ts:55](https://github.com/ifrspro/ifr
 
 > `const` **platformUsers**: `PgTableWithColumns`&lt;&#123; `columns`: &#123; `createdAt`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgTimestamp"`; `data`: `Date`; `dataType`: `"date"`; `driverParam`: `string`; `enumValues`: `undefined`; `generated`: `undefined`; `hasDefault`: `true`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"created_at"`; `notNull`: `false`; `tableName`: `"users"`; &#125;, &#123; &#125;, &#123; &#125;&gt;; `email`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgVarchar"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: \[`string`, `...string[]`\]; `generated`: `undefined`; `hasDefault`: `false`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"email"`; `notNull`: `true`; `tableName`: `"users"`; &#125;, &#123; &#125;, &#123; `length`: `255`; &#125;&gt;; `employeeId`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgVarchar"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: \[`string`, `...string[]`\]; `generated`: `undefined`; `hasDefault`: `false`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"employee_id"`; `notNull`: `false`; `tableName`: `"users"`; &#125;, &#123; &#125;, &#123; `length`: `50`; &#125;&gt;; `failedLoginAttempts`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgInteger"`; `data`: `number`; `dataType`: `"number"`; `driverParam`: `string` &#124; `number`; `enumValues`: `undefined`; `generated`: `undefined`; `hasDefault`: `true`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"failed_login_attempts"`; `notNull`: `false`; `tableName`: `"users"`; &#125;, &#123; &#125;, &#123; &#125;&gt;; `fullName`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgVarchar"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: \[`string`, `...string[]`\]; `generated`: `undefined`; `hasDefault`: `false`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"full_name"`; `notNull`: `true`; `tableName`: `"users"`; &#125;, &#123; &#125;, &#123; `length`: `200`; &#125;&gt;; `id`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgUUID"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: `undefined`; `generated`: `undefined`; `hasDefault`: `true`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `true`; `name`: `"id"`; `notNull`: `true`; `tableName`: `"users"`; &#125;, &#123; &#125;, &#123; &#125;&gt;; `isActive`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgBoolean"`; `data`: `boolean`; `dataType`: `"boolean"`; `driverParam`: `boolean`; `enumValues`: `undefined`; `generated`: `undefined`; `hasDefault`: `true`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"is_active"`; `notNull`: `false`; `tableName`: `"users"`; &#125;, &#123; &#125;, &#123; &#125;&gt;; `lastLoginAt`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgTimestamp"`; `data`: `Date`; `dataType`: `"date"`; `driverParam`: `string`; `enumValues`: `undefined`; `generated`: `undefined`; `hasDefault`: `false`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"last_login_at"`; `notNull`: `false`; `tableName`: `"users"`; &#125;, &#123; &#125;, &#123; &#125;&gt;; `passwordHash`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgVarchar"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: \[`string`, `...string[]`\]; `generated`: `undefined`; `hasDefault`: `false`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"password_hash"`; `notNull`: `true`; `tableName`: `"users"`; &#125;, &#123; &#125;, &#123; `length`: `255`; &#125;&gt;; `role`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgVarchar"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: \[`string`, `...string[]`\]; `generated`: `undefined`; `hasDefault`: `false`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"role"`; `notNull`: `true`; `tableName`: `"users"`; &#125;, &#123; &#125;, &#123; `length`: `100`; &#125;&gt;; `tenantId`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgUUID"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: `undefined`; `generated`: `undefined`; `hasDefault`: `false`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"tenant_id"`; `notNull`: `false`; `tableName`: `"users"`; &#125;, &#123; &#125;, &#123; &#125;&gt;; `tenantName`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgVarchar"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: \[`string`, `...string[]`\]; `generated`: `undefined`; `hasDefault`: `false`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"tenant_name"`; `notNull`: `false`; `tableName`: `"users"`; &#125;, &#123; &#125;, &#123; `length`: `255`; &#125;&gt;; `updatedAt`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgTimestamp"`; `data`: `Date`; `dataType`: `"date"`; `driverParam`: `string`; `enumValues`: `undefined`; `generated`: `undefined`; `hasDefault`: `true`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"updated_at"`; `notNull`: `false`; `tableName`: `"users"`; &#125;, &#123; &#125;, &#123; &#125;&gt;; `username`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgVarchar"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: \[`string`, `...string[]`\]; `generated`: `undefined`; `hasDefault`: `false`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"username"`; `notNull`: `true`; `tableName`: `"users"`; &#125;, &#123; &#125;, &#123; `length`: `100`; &#125;&gt;; `userRole`: `PgColumn`&lt;&#123; `baseColumn`: `never`; `columnType`: `"PgVarchar"`; `data`: `string`; `dataType`: `"string"`; `driverParam`: `string`; `enumValues`: \[`string`, `...string[]`\]; `generated`: `undefined`; `hasDefault`: `false`; `hasRuntimeDefault`: `false`; `identity`: `undefined`; `isAutoincrement`: `false`; `isPrimaryKey`: `false`; `name`: `"user_role"`; `notNull`: `false`; `tableName`: `"users"`; &#125;, &#123; &#125;, &#123; `length`: `100`; &#125;&gt;; &#125;; `dialect`: `"pg"`; `name`: `"users"`; `schema`: `"platform_admin"`; &#125;&gt;
 
-Defined in: [src/db/schema/platform.schema.ts:96](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/db/schema/platform.schema.ts#L96)
+Defined in: [src/db/schema/platform.schema.ts:124](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/db/schema/platform.schema.ts#L124)
 
 Platform Users table definition.
 Stores platform administrators and system operators.
@@ -425,6 +452,12 @@ Re-exports [NewUserRole](db.schema.rbac.schema.md#newuserrole)
 
 ***
 
+### NewUserTableView
+
+Re-exports [NewUserTableView](db.schema.core.md#newusertableview)
+
+***
+
 ### NewWorkflow
 
 Re-exports [NewWorkflow](db.schema.workflows.schema.md#newworkflow)
@@ -668,6 +701,18 @@ Re-exports [userRolesRelations](db.schema.rbac.schema.md#userrolesrelations)
 ### users
 
 Re-exports [users](db.schema.core.md#users)
+
+***
+
+### UserTableView
+
+Re-exports [UserTableView](db.schema.core.md#usertableview)
+
+***
+
+### userTableViews
+
+Re-exports [userTableViews](db.schema.core.md#usertableviews)
 
 ***
 

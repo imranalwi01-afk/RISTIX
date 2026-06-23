@@ -8,7 +8,7 @@
 
 ### ForecastService
 
-Defined in: [src/services/forecast.service.ts:3](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/forecast.service.ts#L3)
+Defined in: [src/services/forecast.service.ts:3](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/forecast.service.ts#L3)
 
 #### Constructors
 
@@ -26,7 +26,7 @@ Defined in: [src/services/forecast.service.ts:3](https://github.com/ifrspro/ifrs
 
 > **getForecasts**(`tenantId`, `filters`): `Promise`&lt;`never`[]&gt;
 
-Defined in: [src/services/forecast.service.ts:5](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/forecast.service.ts#L5)
+Defined in: [src/services/forecast.service.ts:5](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/forecast.service.ts#L5)
 
 ###### Parameters
 
@@ -52,7 +52,7 @@ Defined in: [src/services/forecast.service.ts:5](https://github.com/ifrspro/ifrs
 
 > **triggerForecast**(`tenantId`, `params`): `Promise`&lt;&#123; `jobId`: `string`; `status`: `string`; `timestamp`: `string`; &#125;&gt;
 
-Defined in: [src/services/forecast.service.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/forecast.service.ts#L13)
+Defined in: [src/services/forecast.service.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/forecast.service.ts#L13)
 
 ###### Parameters
 
@@ -74,4 +74,4 @@ Defined in: [src/services/forecast.service.ts:13](https://github.com/ifrspro/ifr
 
 > `const` **forecastService**: [`ForecastService`](#forecastservice)
 
-Defined in: [src/services/forecast.service.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/forecast.service.ts#L25)
+Defined in: [src/services/forecast.service.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/forecast.service.ts#L25)

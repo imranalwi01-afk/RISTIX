@@ -8,7 +8,7 @@
 
 ### AuthDebugInfo
 
-Defined in: [utils/auth-debug.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/auth-debug.ts#L11)
+Defined in: [utils/auth-debug.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/auth-debug.ts#L11)
 
 #### Properties
 
@@ -16,49 +16,49 @@ Defined in: [utils/auth-debug.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/4
 
 > **backendUrl**: `string`
 
-Defined in: [utils/auth-debug.ts:28](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/auth-debug.ts#L28)
+Defined in: [utils/auth-debug.ts:28](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/auth-debug.ts#L28)
 
 ##### hasRefreshToken
 
 > **hasRefreshToken**: `boolean`
 
-Defined in: [utils/auth-debug.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/auth-debug.ts#L14)
+Defined in: [utils/auth-debug.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/auth-debug.ts#L14)
 
 ##### hasToken
 
 > **hasToken**: `boolean`
 
-Defined in: [utils/auth-debug.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/auth-debug.ts#L12)
+Defined in: [utils/auth-debug.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/auth-debug.ts#L12)
 
 ##### hasUserData
 
 > **hasUserData**: `boolean`
 
-Defined in: [utils/auth-debug.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/auth-debug.ts#L13)
+Defined in: [utils/auth-debug.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/auth-debug.ts#L13)
 
 ##### lastActivity?
 
 > `optional` **lastActivity**: `string`
 
-Defined in: [utils/auth-debug.ts:29](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/auth-debug.ts#L29)
+Defined in: [utils/auth-debug.ts:29](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/auth-debug.ts#L29)
 
 ##### refreshToken?
 
 > `optional` **refreshToken**: `string`
 
-Defined in: [utils/auth-debug.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/auth-debug.ts#L16)
+Defined in: [utils/auth-debug.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/auth-debug.ts#L16)
 
 ##### token?
 
 > `optional` **token**: `string`
 
-Defined in: [utils/auth-debug.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/auth-debug.ts#L15)
+Defined in: [utils/auth-debug.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/auth-debug.ts#L15)
 
 ##### tokenInfo?
 
 > `optional` **tokenInfo**: `object`
 
-Defined in: [utils/auth-debug.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/auth-debug.ts#L17)
+Defined in: [utils/auth-debug.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/auth-debug.ts#L17)
 
 ###### isValidFormat
 
@@ -76,7 +76,7 @@ Defined in: [utils/auth-debug.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/4
 
 > `optional` **userInfo**: `object`
 
-Defined in: [utils/auth-debug.ts:22](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/auth-debug.ts#L22)
+Defined in: [utils/auth-debug.ts:22](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/auth-debug.ts#L22)
 
 ###### email
 
@@ -100,7 +100,7 @@ Defined in: [utils/auth-debug.ts:22](https://github.com/ifrspro/ifrs9-iaf/blob/4
 
 > `const` **authDebugger**: `object`
 
-Defined in: [utils/auth-debug.ts:32](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/auth-debug.ts#L32)
+Defined in: [utils/auth-debug.ts:32](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/auth-debug.ts#L32)
 
 #### Type Declaration
 
@@ -114,11 +114,11 @@ Defined in: [utils/auth-debug.ts:32](https://github.com/ifrspro/ifrs9-iaf/blob/4
 
 ##### fixAuthIssues()
 
-> **fixAuthIssues**(): `Promise`\<\{ `actions`: `string`[]; `fixed`: `boolean`; \}\>
+> **fixAuthIssues**(): `Promise`&lt;&#123; `actions`: `string`[]; `fixed`: `boolean`; &#125;&gt;
 
 ###### Returns
 
-`Promise`\<\{ `actions`: `string`[]; `fixed`: `boolean`; \}\>
+`Promise`&lt;&#123; `actions`: `string`[]; `fixed`: `boolean`; &#125;&gt;
 
 ##### getAuthInfo()
 
@@ -130,11 +130,11 @@ Defined in: [utils/auth-debug.ts:32](https://github.com/ifrspro/ifrs9-iaf/blob/4
 
 ##### healthCheck()
 
-> **healthCheck**(): `Promise`\<\{ `authInfo`: [`AuthDebugInfo`](#authdebuginfo); `healthy`: `boolean`; `issues`: `string`[]; `recommendations`: `string`[]; \}\>
+> **healthCheck**(): `Promise`&lt;&#123; `authInfo`: [`AuthDebugInfo`](#authdebuginfo); `healthy`: `boolean`; `issues`: `string`[]; `recommendations`: `string`[]; &#125;&gt;
 
 ###### Returns
 
-`Promise`\<\{ `authInfo`: [`AuthDebugInfo`](#authdebuginfo); `healthy`: `boolean`; `issues`: `string`[]; `recommendations`: `string`[]; \}\>
+`Promise`&lt;&#123; `authInfo`: [`AuthDebugInfo`](#authdebuginfo); `healthy`: `boolean`; `issues`: `string`[]; `recommendations`: `string`[]; &#125;&gt;
 
 ##### logAuthInfo()
 
@@ -146,11 +146,11 @@ Defined in: [utils/auth-debug.ts:32](https://github.com/ifrspro/ifrs9-iaf/blob/4
 
 ##### testTokenValidity()
 
-> **testTokenValidity**(): `Promise`\<\{ `details?`: `any`; `error?`: `string`; `valid`: `boolean`; \}\>
+> **testTokenValidity**(): `Promise`&lt;&#123; `details?`: `any`; `error?`: `string`; `valid`: `boolean`; &#125;&gt;
 
 ###### Returns
 
-`Promise`\<\{ `details?`: `any`; `error?`: `string`; `valid`: `boolean`; \}\>
+`Promise`&lt;&#123; `details?`: `any`; `error?`: `string`; `valid`: `boolean`; &#125;&gt;
 
 ## References
 

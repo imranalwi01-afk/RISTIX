@@ -8,7 +8,7 @@
 
 ### IRepository
 
-Defined in: [src/repositories/base.repository.ts:52](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L52)
+Defined in: [src/repositories/base.repository.ts:52](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L52)
 
 Core interface for standard CRUD repository operations.
 
@@ -36,7 +36,7 @@ Core interface for standard CRUD repository operations.
 
 > **create**(`data`): `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/repositories/base.repository.ts:58](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L58)
+Defined in: [src/repositories/base.repository.ts:58](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L58)
 
 Create a new record
 
@@ -54,7 +54,7 @@ Create a new record
 
 > **delete**(`id`): `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
-Defined in: [src/repositories/base.repository.ts:62](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L62)
+Defined in: [src/repositories/base.repository.ts:62](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L62)
 
 Categorically delete/soft-delete a record
 
@@ -72,7 +72,7 @@ Categorically delete/soft-delete a record
 
 > **findAll**(`options?`): `Effect`&lt;[`PaginatedResult`](#paginatedresult)&lt;`T`&gt;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/repositories/base.repository.ts:56](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L56)
+Defined in: [src/repositories/base.repository.ts:56](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L56)
 
 Find all items matching optional criteria with pagination
 
@@ -90,7 +90,7 @@ Find all items matching optional criteria with pagination
 
 > **findById**(`id`): `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
-Defined in: [src/repositories/base.repository.ts:54](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L54)
+Defined in: [src/repositories/base.repository.ts:54](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L54)
 
 Find an item by its primary key
 
@@ -108,7 +108,7 @@ Find an item by its primary key
 
 > **update**(`id`, `data`): `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
-Defined in: [src/repositories/base.repository.ts:60](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L60)
+Defined in: [src/repositories/base.repository.ts:60](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L60)
 
 Update an existing record partially
 
@@ -130,7 +130,7 @@ Update an existing record partially
 
 ### ITenantRepository
 
-Defined in: [src/repositories/base.repository.ts:126](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L126)
+Defined in: [src/repositories/base.repository.ts:126](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L126)
 
 Extension of IRepository that specifically handles tenant isolation.
 
@@ -158,7 +158,7 @@ Extension of IRepository that specifically handles tenant isolation.
 
 > **create**(`data`): `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/repositories/base.repository.ts:58](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L58)
+Defined in: [src/repositories/base.repository.ts:58](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L58)
 
 Create a new record
 
@@ -180,7 +180,7 @@ Create a new record
 
 > **delete**(`id`): `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
-Defined in: [src/repositories/base.repository.ts:62](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L62)
+Defined in: [src/repositories/base.repository.ts:62](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L62)
 
 Categorically delete/soft-delete a record
 
@@ -202,7 +202,7 @@ Categorically delete/soft-delete a record
 
 > **findAll**(`options?`): `Effect`&lt;[`PaginatedResult`](#paginatedresult)&lt;`T`&gt;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/repositories/base.repository.ts:56](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L56)
+Defined in: [src/repositories/base.repository.ts:56](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L56)
 
 Find all items matching optional criteria with pagination
 
@@ -224,7 +224,7 @@ Find all items matching optional criteria with pagination
 
 > **findById**(`id`): `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
-Defined in: [src/repositories/base.repository.ts:54](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L54)
+Defined in: [src/repositories/base.repository.ts:54](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L54)
 
 Find an item by its primary key
 
@@ -246,7 +246,7 @@ Find an item by its primary key
 
 > **findByTenant**(`tenantId`, `options?`): `Effect`&lt;[`PaginatedResult`](#paginatedresult)&lt;`T`&gt;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/repositories/base.repository.ts:128](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L128)
+Defined in: [src/repositories/base.repository.ts:128](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L128)
 
 Find all items belonging to a specific tenant
 
@@ -268,7 +268,7 @@ Find all items belonging to a specific tenant
 
 > **update**(`id`, `data`): `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
-Defined in: [src/repositories/base.repository.ts:60](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L60)
+Defined in: [src/repositories/base.repository.ts:60](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L60)
 
 Update an existing record partially
 
@@ -294,7 +294,7 @@ Update an existing record partially
 
 ### PaginatedResult
 
-Defined in: [src/repositories/base.repository.ts:34](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L34)
+Defined in: [src/repositories/base.repository.ts:34](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L34)
 
 Structure of a paginated list of results.
 
@@ -310,7 +310,7 @@ Structure of a paginated list of results.
 
 > **data**: `T`[]
 
-Defined in: [src/repositories/base.repository.ts:36](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L36)
+Defined in: [src/repositories/base.repository.ts:36](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L36)
 
 The array of data for the current page
 
@@ -318,7 +318,7 @@ The array of data for the current page
 
 > **limit**: `number`
 
-Defined in: [src/repositories/base.repository.ts:42](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L42)
+Defined in: [src/repositories/base.repository.ts:42](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L42)
 
 Number of items per page
 
@@ -326,7 +326,7 @@ Number of items per page
 
 > **page**: `number`
 
-Defined in: [src/repositories/base.repository.ts:40](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L40)
+Defined in: [src/repositories/base.repository.ts:40](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L40)
 
 Current page index
 
@@ -334,7 +334,7 @@ Current page index
 
 > **total**: `number`
 
-Defined in: [src/repositories/base.repository.ts:38](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L38)
+Defined in: [src/repositories/base.repository.ts:38](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L38)
 
 Total number of records matching the query
 
@@ -342,7 +342,7 @@ Total number of records matching the query
 
 ### QueryOptions
 
-Defined in: [src/repositories/base.repository.ts:22](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L22)
+Defined in: [src/repositories/base.repository.ts:22](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L22)
 
 Common query options for repository methods.
 
@@ -358,25 +358,25 @@ Common query options for repository methods.
 
 ##### filters?
 
-> `optional` **filters**: [`FilterParams`](lib.react-admin.md#filterparams)
+> `optional` **filters?**: [`FilterParams`](lib.react-admin.md#filterparams)
 
-Defined in: [src/repositories/base.repository.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L26)
+Defined in: [src/repositories/base.repository.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L26)
 
 Filter parameters for searching and narrowing results
 
 ##### includeInactive?
 
-> `optional` **includeInactive**: `boolean`
+> `optional` **includeInactive?**: `boolean`
 
-Defined in: [src/repositories/base.repository.ts:28](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L28)
+Defined in: [src/repositories/base.repository.ts:28](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L28)
 
 Whether to include inactive/deleted records in the results
 
 ##### pagination?
 
-> `optional` **pagination**: [`PaginationParams`](lib.react-admin.md#paginationparams)
+> `optional` **pagination?**: [`PaginationParams`](lib.react-admin.md#paginationparams)
 
-Defined in: [src/repositories/base.repository.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L24)
+Defined in: [src/repositories/base.repository.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L24)
 
 Pagination parameters (page and limit)
 
@@ -386,7 +386,7 @@ Pagination parameters (page and limit)
 
 > **buildOrderBy**&lt;`TTable`&gt;(`table`, `sort?`, `order?`): `SQL`&lt;`unknown`&gt; &#124; `undefined`
 
-Defined in: [src/repositories/base.repository.ts:77](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L77)
+Defined in: [src/repositories/base.repository.ts:77](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L77)
 
 Build a Drizzle-ORM orderBy clause from sorting parameters.
 
@@ -412,9 +412,9 @@ Column name to sort by
 
 ##### order?
 
-Sort direction ('asc' or 'desc')
+`"asc"` &#124; `"desc"`
 
-`"asc"` | `"desc"`
+Sort direction ('asc' or 'desc')
 
 #### Returns
 
@@ -428,7 +428,7 @@ A Drizzle SQL ordering expression or undefined if sort is missing/invalid
 
 > **calculateOffset**(`page`, `limit`): `number`
 
-Defined in: [src/repositories/base.repository.ts:97](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L97)
+Defined in: [src/repositories/base.repository.ts:97](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L97)
 
 Calculate the database query 'offset' from page and limit.
 
@@ -458,7 +458,7 @@ The calculate offset index
 
 > **insertEffect**&lt;`T`&gt;(`operation`): `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/repositories/base.repository.ts:153](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L153)
+Defined in: [src/repositories/base.repository.ts:153](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L153)
 
 Wrap a promise-based database insert operation in an Effect.
 Maps the result array to the first (newly created) element.
@@ -489,7 +489,7 @@ An Effect that succeeds with the first inserted record
 
 > **paginatedQuery**&lt;`T`&gt;(`queryFn`, `countFn`, `pagination`): `Promise`&lt;[`PaginatedResult`](#paginatedresult)&lt;`T`&gt;&gt;
 
-Defined in: [src/repositories/base.repository.ts:104](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L104)
+Defined in: [src/repositories/base.repository.ts:104](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L104)
 
 Create a paginated query wrapper
 
@@ -523,7 +523,7 @@ Create a paginated query wrapper
 
 > **queryEffect**&lt;`T`&gt;(`operation`): `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/repositories/base.repository.ts:141](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L141)
+Defined in: [src/repositories/base.repository.ts:141](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L141)
 
 Wrap a promise-based database query operation in an Effect.
 
@@ -553,7 +553,7 @@ An Effect that handles database error mapping
 
 > **updateEffect**&lt;`T`&gt;(`operation`): `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/repositories/base.repository.ts:164](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L164)
+Defined in: [src/repositories/base.repository.ts:164](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L164)
 
 Wrap an update operation in Effect
 
@@ -579,7 +579,7 @@ Wrap an update operation in Effect
 
 > **withNotFound**&lt;`T`&gt;(`resource`, `id`): (`effect`) => `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
 
-Defined in: [src/repositories/base.repository.ts:179](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/base.repository.ts#L179)
+Defined in: [src/repositories/base.repository.ts:179](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/base.repository.ts#L179)
 
 Utility to map an Effect's `undefined` result to a NotFoundError.
 
@@ -607,14 +607,4 @@ ID of the resource being queried
 
 A transform function for Effects
 
-> (`effect`): `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
-
-##### Parameters
-
-###### effect
-
-`Effect`&lt;`T` &#124; `undefined`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
-
-##### Returns
-
-`Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;
+(`effect`) => `Effect`&lt;`T`, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`NotFoundError`](lib.errors.md#notfounderror)&gt;

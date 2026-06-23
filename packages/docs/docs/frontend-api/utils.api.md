@@ -10,4 +10,4 @@
 
 > `const` **API\_UTILS\_PLACEHOLDER**: `"api"` = `'api'`
 
-Defined in: [utils/api/index.ts:2](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/api/index.ts#L2)
+Defined in: [utils/api/index.ts:2](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/api/index.ts#L2)

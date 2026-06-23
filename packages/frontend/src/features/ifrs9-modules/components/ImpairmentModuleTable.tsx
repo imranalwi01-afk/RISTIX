@@ -91,10 +91,10 @@ export function ImpairmentModuleTable({
     { field: 'effInterestRate', headerName: 'EIR', width: 110, align: 'right', renderCell: (params) => {
         const value = params.value;
         if (value == null) return '-';
-        return `${(Number(value) * 100).toFixed(2)}%`;
+        return `${Number(value).toFixed(2)}%`;
       }, valueFormatter: (value) => {
         if (value == null) return '-';
-        return `${(Number(value) * 100).toFixed(2)}%`;
+        return `${Number(value).toFixed(2)}%`;
       } },
     {
       field: 'outstanding',
@@ -115,8 +115,8 @@ export function ImpairmentModuleTable({
       headerName: 'ECL Coverage',
       width: 160,
       align: 'right',
-      renderCell: (params) => `${(Number(params.value || 0) * 100).toFixed(4)}%`,
-      valueFormatter: (value) => `${(Number(value || 0) * 100).toFixed(4)}%`,
+      renderCell: (params) => `${Number(params.value || 0).toFixed(4)}%`,
+      valueFormatter: (value) => `${Number(value || 0).toFixed(4)}%`,
     },
   ], []);
 

@@ -8,7 +8,7 @@
 
 ### ApprovalEnforcementGuard
 
-Defined in: [src/services/approval-enforcement.guard.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval-enforcement.guard.ts#L11)
+Defined in: [src/services/approval-enforcement.guard.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval-enforcement.guard.ts#L11)
 
 Approval enforcement guard for permission execution
 Checks if permission requires approval and validates user eligibility
@@ -19,7 +19,7 @@ Checks if permission requires approval and validates user eligibility
 
 > **new ApprovalEnforcementGuard**(`db`): [`ApprovalEnforcementGuard`](#approvalenforcementguard)
 
-Defined in: [src/services/approval-enforcement.guard.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval-enforcement.guard.ts#L14)
+Defined in: [src/services/approval-enforcement.guard.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval-enforcement.guard.ts#L14)
 
 ###### Parameters
 
@@ -37,7 +37,7 @@ Defined in: [src/services/approval-enforcement.guard.ts:14](https://github.com/i
 
 > **enforceApproval**(`tenantId`, `permissionId`, `userId`, `userMaxHierarchyLevel`): `Effect`&lt;&#123; `allowed`: `boolean`; `canSelfApprove?`: `undefined`; `message`: `string`; `requirement?`: `undefined`; `requiresApproval`: `boolean`; &#125; &#124; &#123; `allowed`: `boolean`; `canSelfApprove`: `boolean`; `message`: `string`; `requirement?`: `undefined`; `requiresApproval`: `boolean`; &#125; &#124; &#123; `allowed`: `boolean`; `canSelfApprove`: `boolean`; `message`: `string`; `requirement`: [`ApprovalRequirement`](services.permission-approval.service.md#approvalrequirement); `requiresApproval`: `boolean`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
-Defined in: [src/services/approval-enforcement.guard.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval-enforcement.guard.ts#L26)
+Defined in: [src/services/approval-enforcement.guard.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval-enforcement.guard.ts#L26)
 
 Check if action can proceed or needs approval
 
@@ -77,7 +77,7 @@ Effect that succeeds if allowed or fails with approval required
 
 > **enforceOrFail**(`tenantId`, `permissionId`, `userId`, `userMaxHierarchyLevel`): `Effect`&lt;&#123; `allowed`: `boolean`; `canSelfApprove?`: `undefined`; `message`: `string`; `requirement?`: `undefined`; `requiresApproval`: `boolean`; &#125; &#124; &#123; `allowed`: `boolean`; `canSelfApprove`: `boolean`; `message`: `string`; `requirement?`: `undefined`; `requiresApproval`: `boolean`; &#125; &#124; &#123; `allowed`: `boolean`; `canSelfApprove`: `boolean`; `message`: `string`; `requirement`: [`ApprovalRequirement`](services.permission-approval.service.md#approvalrequirement); `requiresApproval`: `boolean`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror) &#124; [`AuthorizationError`](lib.errors.md#authorizationerror), `never`&gt;
 
-Defined in: [src/services/approval-enforcement.guard.ts:78](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/approval-enforcement.guard.ts#L78)
+Defined in: [src/services/approval-enforcement.guard.ts:78](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/approval-enforcement.guard.ts#L78)
 
 Enforce approval or throw authorization error
 Use this in action handlers that should block if approval is needed

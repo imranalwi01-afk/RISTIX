@@ -12,24 +12,9 @@ import {
   alpha
 } from '@mui/material';
 import {
-  TrendingDown as TrendingDownIcon,
   Assessment as AssessmentIcon,
-  AccountBalance as BankIcon,
-  PieChart as PieIcon
+  AccountBalance as BankIcon
 } from '@mui/icons-material';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell
-} from 'recharts';
 import BaseIfrs9Report from './BaseIfrs9Report';
 
 interface LGDDistributionItem {
@@ -59,32 +44,12 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
       mainColor: '#1976D2'
     },
     {
-      title: 'Average LGD Rate',
-      value: stats.averageLGD,
-      format: 'percentage',
-      icon: <TrendingDownIcon sx={{ fontSize: 32 }} />,
-      gradient: 'linear-gradient(135deg, #f9d423 0%, #ff4e50 100%)',
-      mainColor: '#ff4e50'
-    },
-    {
       title: 'Total Recovery',
       value: stats.totalRecoveryAmount,
       format: 'currency',
       icon: <AssessmentIcon sx={{ fontSize: 32 }} />,
       gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
       mainColor: '#4facfe'
-    },
-    {
-      title: 'LGD Risk Level',
-      value: stats.averageLGD < 0.3 ? 'Low' : stats.averageLGD < 0.6 ? 'Medium' : 'High',
-      format: 'raw',
-      icon: <PieIcon sx={{ fontSize: 32 }} />,
-      gradient: stats.averageLGD < 0.3
-        ? 'linear-gradient(135deg, #42E695 0%, #3BB2B8 100%)'
-        : stats.averageLGD < 0.6
-          ? 'linear-gradient(135deg, #FAD961 0%, #F76B1C 100%)'
-          : 'linear-gradient(135deg, #F44336 0%, #E57373 100%)',
-      mainColor: stats.averageLGD < 0.3 ? '#42E695' : stats.averageLGD < 0.6 ? '#F76B1C' : '#F44336'
     }
   ];
 
@@ -191,64 +156,6 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
   );
 };
 
-const LGDCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
-  <Grid container spacing={3} sx={{ mb: 5 }}>
-    <Grid size={{ xs: 12, md: 6 }}>
-      <Card sx={{ borderRadius: 4, boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)', height: '100%' }}>
-        <CardContent sx={{ p: 4 }}>
-          <Typography variant="h6" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
-            LGD Rate Distribution
-          </Typography>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={stats.lgdDistribution}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={alpha('#000', 0.05)} />
-              <XAxis dataKey="range" axisLine={false} tickLine={false} />
-              <YAxis axisLine={false} tickLine={false} />
-              <Tooltip
-                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}
-                formatter={(value: number) => [value, 'Accounts']}
-              />
-              <Bar dataKey="count" fill="#1976D2" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-    </Grid>
-
-    <Grid size={{ xs: 12, md: 6 }}>
-      <Card sx={{ borderRadius: 4, boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)', height: '100%' }}>
-        <CardContent sx={{ p: 4 }}>
-          <Typography variant="h6" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
-            LGD Rate Categories
-          </Typography>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={stats.lgdDistribution}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={100}
-                paddingAngle={5}
-                dataKey="count"
-                label={({ range, percent }) => `${range} (${(percent * 100).toFixed(0)}%)`}
-              >
-                {stats.lgdDistribution.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend iconType="circle" />
-            </PieChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-    </Grid>
-  </Grid>
-);
-
-
-
 const LifetimeLGDReport: React.FC = () => {
   const [summaryStats, setSummaryStats] = useState<SummaryStats>({
     totalAccounts: 0,
@@ -344,7 +251,6 @@ const LifetimeLGDReport: React.FC = () => {
       onDataLoaded={handleDataLoaded}
     >
       <SummaryCards stats={summaryStats} />
-      <LGDCharts stats={summaryStats} />
     </BaseIfrs9Report>
   );
 };

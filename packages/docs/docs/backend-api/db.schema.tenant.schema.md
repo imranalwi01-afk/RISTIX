@@ -300,6 +300,12 @@ Re-exports [NewSession](db.schema.auth.schema.md#newsession)
 
 ***
 
+### NewTenantMenuPermission
+
+Re-exports [NewTenantMenuPermission](db.schema.rbac.schema.md#newtenantmenupermission)
+
+***
+
 ### NewUser
 
 Re-exports [NewUser](db.schema.core.md#newuser)
@@ -495,6 +501,24 @@ Re-exports [sessions](db.schema.auth.schema.md#sessions)
 ### sessionsRelations
 
 Re-exports [sessionsRelations](db.schema.auth.schema.md#sessionsrelations)
+
+***
+
+### TenantMenuPermission
+
+Re-exports [TenantMenuPermission](db.schema.rbac.schema.md#tenantmenupermission)
+
+***
+
+### tenantMenuPermissions
+
+Re-exports [tenantMenuPermissions](db.schema.rbac.schema.md#tenantmenupermissions)
+
+***
+
+### tenantMenuPermissionsRelations
+
+Re-exports [tenantMenuPermissionsRelations](db.schema.rbac.schema.md#tenantmenupermissionsrelations)
 
 ***
 

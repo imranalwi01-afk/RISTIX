@@ -8,7 +8,7 @@
 
 ### JobExecutorService
 
-Defined in: [src/services/job-executor.service.ts:33](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-executor.service.ts#L33)
+Defined in: [src/services/job-executor.service.ts:33](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/job-executor.service.ts#L33)
 
 #### Type Parameters
 
@@ -20,9 +20,9 @@ Defined in: [src/services/job-executor.service.ts:33](https://github.com/ifrspro
 
 ##### Constructor
 
-> **new JobExecutorService**&lt;`TSchema`&gt;(`db`, `options`): [`JobExecutorService`](#jobexecutorservice)&lt;`TSchema`&gt;
+> **new JobExecutorService**&lt;`TSchema`&gt;(`db`, `options?`): [`JobExecutorService`](#jobexecutorservice)&lt;`TSchema`&gt;
 
-Defined in: [src/services/job-executor.service.ts:34](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-executor.service.ts#L34)
+Defined in: [src/services/job-executor.service.ts:34](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/job-executor.service.ts#L34)
 
 ###### Parameters
 
@@ -30,7 +30,7 @@ Defined in: [src/services/job-executor.service.ts:34](https://github.com/ifrspro
 
 `PostgresJsDatabase`&lt;`TSchema`&gt;
 
-###### options
+###### options?
 
 [`ExecutorOptions`](#executoroptions) = `{}`
 
@@ -44,7 +44,7 @@ Defined in: [src/services/job-executor.service.ts:34](https://github.com/ifrspro
 
 > **execute**(`jobType`, `parameters`): `Promise`&lt;[`JobResult`](#jobresult)&gt;
 
-Defined in: [src/services/job-executor.service.ts:99](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-executor.service.ts#L99)
+Defined in: [src/services/job-executor.service.ts:99](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/job-executor.service.ts#L99)
 
 Main entry point to execute a job based on its type
 
@@ -68,15 +68,15 @@ Main entry point to execute a job based on its type
 
 > **ExecutorOptions** = `object`
 
-Defined in: [src/services/job-executor.service.ts:29](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-executor.service.ts#L29)
+Defined in: [src/services/job-executor.service.ts:29](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/job-executor.service.ts#L29)
 
 #### Properties
 
-##### onSqlRuntime()?
+##### onSqlRuntime?
 
-> `optional` **onSqlRuntime**: (`metadata`) => `Promise`&lt;`void`&gt; &#124; `void`
+> `optional` **onSqlRuntime?**: (`metadata`) => `Promise`&lt;`void`&gt; &#124; `void`
 
-Defined in: [src/services/job-executor.service.ts:30](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-executor.service.ts#L30)
+Defined in: [src/services/job-executor.service.ts:30](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/job-executor.service.ts#L30)
 
 ###### Parameters
 
@@ -94,33 +94,33 @@ Defined in: [src/services/job-executor.service.ts:30](https://github.com/ifrspro
 
 > **JobResult** = `object`
 
-Defined in: [src/services/job-executor.service.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-executor.service.ts#L16)
+Defined in: [src/services/job-executor.service.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/job-executor.service.ts#L16)
 
 #### Properties
 
 ##### error?
 
-> `optional` **error**: `string`
+> `optional` **error?**: `string`
 
-Defined in: [src/services/job-executor.service.ts:19](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-executor.service.ts#L19)
+Defined in: [src/services/job-executor.service.ts:19](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/job-executor.service.ts#L19)
 
 ##### executionTimeMs
 
 > **executionTimeMs**: `number`
 
-Defined in: [src/services/job-executor.service.ts:20](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-executor.service.ts#L20)
+Defined in: [src/services/job-executor.service.ts:20](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/job-executor.service.ts#L20)
 
 ##### result?
 
-> `optional` **result**: `any`
+> `optional` **result?**: `any`
 
-Defined in: [src/services/job-executor.service.ts:18](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-executor.service.ts#L18)
+Defined in: [src/services/job-executor.service.ts:18](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/job-executor.service.ts#L18)
 
 ##### success
 
 > **success**: `boolean`
 
-Defined in: [src/services/job-executor.service.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-executor.service.ts#L17)
+Defined in: [src/services/job-executor.service.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/job-executor.service.ts#L17)
 
 ***
 
@@ -128,7 +128,7 @@ Defined in: [src/services/job-executor.service.ts:17](https://github.com/ifrspro
 
 > **SqlRuntimeMetadata** = `object`
 
-Defined in: [src/services/job-executor.service.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-executor.service.ts#L23)
+Defined in: [src/services/job-executor.service.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/job-executor.service.ts#L23)
 
 #### Properties
 
@@ -136,16 +136,16 @@ Defined in: [src/services/job-executor.service.ts:23](https://github.com/ifrspro
 
 > **dbBackendPid**: `number`
 
-Defined in: [src/services/job-executor.service.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-executor.service.ts#L24)
+Defined in: [src/services/job-executor.service.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/job-executor.service.ts#L24)
 
 ##### dbName
 
 > **dbName**: `string`
 
-Defined in: [src/services/job-executor.service.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-executor.service.ts#L25)
+Defined in: [src/services/job-executor.service.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/job-executor.service.ts#L25)
 
 ##### dbSessionStart?
 
-> `optional` **dbSessionStart**: `string`
+> `optional` **dbSessionStart?**: `string`
 
-Defined in: [src/services/job-executor.service.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/job-executor.service.ts#L26)
+Defined in: [src/services/job-executor.service.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/job-executor.service.ts#L26)

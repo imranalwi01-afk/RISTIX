@@ -8,9 +8,9 @@
 
 ### StakeholderType
 
-> **StakeholderType** = `"platform-admin"` \| `"banking"` \| `"consultant"` \| `"regulator"`
+> **StakeholderType** = `"platform-admin"` &#124; `"banking"` &#124; `"consultant"` &#124; `"regulator"`
 
-Defined in: [utils/loginRedirect.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/loginRedirect.ts#L8)
+Defined in: [utils/loginRedirect.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/loginRedirect.ts#L8)
 
 ## Variables
 
@@ -18,7 +18,7 @@ Defined in: [utils/loginRedirect.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob
 
 > `const` **BANKING\_ROUTE\_MAPPING**: `object`
 
-Defined in: [utils/loginRedirect.ts:169](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/loginRedirect.ts#L169)
+Defined in: [utils/loginRedirect.ts:127](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/loginRedirect.ts#L127)
 
 #### Type Declaration
 
@@ -84,7 +84,7 @@ Defined in: [utils/loginRedirect.ts:169](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > `const` **debugRedirect**: (`userRole`, `requestedPath`) => `void` = `debugRouting`
 
-Defined in: [utils/loginRedirect.ts:223](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/loginRedirect.ts#L223)
+Defined in: [utils/loginRedirect.ts:155](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/loginRedirect.ts#L155)
 
 #### Parameters
 
@@ -106,7 +106,7 @@ Defined in: [utils/loginRedirect.ts:223](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **default**: `object`
 
-Defined in: [utils/loginRedirect.ts:225](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/loginRedirect.ts#L225)
+Defined in: [utils/loginRedirect.ts:157](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/loginRedirect.ts#L157)
 
 #### Type Declaration
 
@@ -226,7 +226,7 @@ Defined in: [utils/loginRedirect.ts:225](https://github.com/ifrspro/ifrs9-iaf/bl
 
 ##### getStakeholderType()
 
-> **getStakeholderType**: (`userRole`) => [`StakeholderType`](#stakeholdertype) \| `null`
+> **getStakeholderType**: (`userRole`) => [`StakeholderType`](#stakeholdertype) &#124; `null`
 
 ###### Parameters
 
@@ -236,7 +236,7 @@ Defined in: [utils/loginRedirect.ts:225](https://github.com/ifrspro/ifrs9-iaf/bl
 
 ###### Returns
 
-[`StakeholderType`](#stakeholdertype) \| `null`
+[`StakeholderType`](#stakeholdertype) &#124; `null`
 
 ##### hasAccessToPath()
 
@@ -258,11 +258,11 @@ Defined in: [utils/loginRedirect.ts:225](https://github.com/ifrspro/ifrs9-iaf/bl
 
 ##### ROLE\_TO\_STAKEHOLDER\_MAP
 
-> **ROLE\_TO\_STAKEHOLDER\_MAP**: `Record`\<`string`, [`StakeholderType`](#stakeholdertype)\>
+> **ROLE\_TO\_STAKEHOLDER\_MAP**: `Record`&lt;`string`, [`StakeholderType`](#stakeholdertype)&gt;
 
 ##### STAKEHOLDER\_DASHBOARDS
 
-> **STAKEHOLDER\_DASHBOARDS**: `Record`\<[`StakeholderType`](#stakeholdertype), `string`\>
+> **STAKEHOLDER\_DASHBOARDS**: `Record`&lt;[`StakeholderType`](#stakeholdertype), `string`&gt;
 
 ##### validateBankingRedirect()
 
@@ -288,7 +288,7 @@ Defined in: [utils/loginRedirect.ts:225](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > `const` **getLoginRedirectUrl**: (`userRole`, `requestedPath?`, `fallbackPath?`) => `string` = `getSmartRedirect`
 
-Defined in: [utils/loginRedirect.ts:145](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/loginRedirect.ts#L145)
+Defined in: [utils/loginRedirect.ts:103](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/loginRedirect.ts#L103)
 
 #### Parameters
 
@@ -314,7 +314,7 @@ Defined in: [utils/loginRedirect.ts:145](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > `const` **hasRoleAccess**: (`userRole`, `path`) => `boolean` = `hasAccessToPath`
 
-Defined in: [utils/loginRedirect.ts:222](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/loginRedirect.ts#L222)
+Defined in: [utils/loginRedirect.ts:154](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/loginRedirect.ts#L154)
 
 #### Parameters
 
@@ -334,17 +334,17 @@ Defined in: [utils/loginRedirect.ts:222](https://github.com/ifrspro/ifrs9-iaf/bl
 
 ### ROLE\_TO\_STAKEHOLDER\_MAP
 
-> `const` **ROLE\_TO\_STAKEHOLDER\_MAP**: `Record`\<`string`, [`StakeholderType`](#stakeholdertype)\>
+> `const` **ROLE\_TO\_STAKEHOLDER\_MAP**: `Record`&lt;`string`, [`StakeholderType`](#stakeholdertype)&gt;
 
-Defined in: [utils/loginRedirect.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/loginRedirect.ts#L11)
+Defined in: [utils/loginRedirect.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/loginRedirect.ts#L11)
 
 ***
 
 ### STAKEHOLDER\_DASHBOARDS
 
-> `const` **STAKEHOLDER\_DASHBOARDS**: `Record`\<[`StakeholderType`](#stakeholdertype), `string`\>
+> `const` **STAKEHOLDER\_DASHBOARDS**: `Record`&lt;[`StakeholderType`](#stakeholdertype), `string`&gt;
 
-Defined in: [utils/loginRedirect.ts:54](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/loginRedirect.ts#L54)
+Defined in: [utils/loginRedirect.ts:48](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/loginRedirect.ts#L48)
 
 ## Functions
 
@@ -352,7 +352,7 @@ Defined in: [utils/loginRedirect.ts:54](https://github.com/ifrspro/ifrs9-iaf/blo
 
 > **debugRouting**(`userRole`, `requestedPath`): `void`
 
-Defined in: [utils/loginRedirect.ts:193](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/loginRedirect.ts#L193)
+Defined in: [utils/loginRedirect.ts:150](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/loginRedirect.ts#L150)
 
 #### Parameters
 
@@ -374,7 +374,7 @@ Defined in: [utils/loginRedirect.ts:193](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **getDefaultDashboard**(`userRole`): `string`
 
-Defined in: [utils/loginRedirect.ts:97](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/loginRedirect.ts#L97)
+Defined in: [utils/loginRedirect.ts:76](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/loginRedirect.ts#L76)
 
 #### Parameters
 
@@ -392,7 +392,7 @@ Defined in: [utils/loginRedirect.ts:97](https://github.com/ifrspro/ifrs9-iaf/blo
 
 > **getSmartRedirect**(`userRole`, `requestedPath?`, `fallbackPath?`): `string`
 
-Defined in: [utils/loginRedirect.ts:103](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/loginRedirect.ts#L103)
+Defined in: [utils/loginRedirect.ts:82](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/loginRedirect.ts#L82)
 
 #### Parameters
 
@@ -416,9 +416,9 @@ Defined in: [utils/loginRedirect.ts:103](https://github.com/ifrspro/ifrs9-iaf/bl
 
 ### getStakeholderType()
 
-> **getStakeholderType**(`userRole`): [`StakeholderType`](#stakeholdertype) \| `null`
+> **getStakeholderType**(`userRole`): [`StakeholderType`](#stakeholdertype) &#124; `null`
 
-Defined in: [utils/loginRedirect.ts:92](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/loginRedirect.ts#L92)
+Defined in: [utils/loginRedirect.ts:71](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/loginRedirect.ts#L71)
 
 #### Parameters
 
@@ -428,7 +428,7 @@ Defined in: [utils/loginRedirect.ts:92](https://github.com/ifrspro/ifrs9-iaf/blo
 
 #### Returns
 
-[`StakeholderType`](#stakeholdertype) \| `null`
+[`StakeholderType`](#stakeholdertype) &#124; `null`
 
 ***
 
@@ -436,7 +436,7 @@ Defined in: [utils/loginRedirect.ts:92](https://github.com/ifrspro/ifrs9-iaf/blo
 
 > **hasAccessToPath**(`userRole`, `path`): `boolean`
 
-Defined in: [utils/loginRedirect.ts:148](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/loginRedirect.ts#L148)
+Defined in: [utils/loginRedirect.ts:106](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/loginRedirect.ts#L106)
 
 #### Parameters
 
@@ -458,7 +458,7 @@ Defined in: [utils/loginRedirect.ts:148](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **validateBankingRedirect**(`path`, `userRole`): `string`
 
-Defined in: [utils/loginRedirect.ts:62](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/loginRedirect.ts#L62)
+Defined in: [utils/loginRedirect.ts:56](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/loginRedirect.ts#L56)
 
 #### Parameters
 

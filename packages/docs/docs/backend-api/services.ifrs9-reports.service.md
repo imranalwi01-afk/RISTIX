@@ -8,7 +8,7 @@
 
 ### Ifrs9ReportsService
 
-Defined in: [src/services/ifrs9-reports.service.ts:52](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L52)
+Defined in: [src/services/ifrs9-reports.service.ts:73](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L73)
 
 #### Constructors
 
@@ -24,18 +24,9 @@ Defined in: [src/services/ifrs9-reports.service.ts:52](https://github.com/ifrspr
 
 ##### getEADModel()
 
-> **getEADModel**(`tenantId`, `page`, `limit`, `params?`): `Promise`&lt;&#123; `data`: `any`[]; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125;&gt;
+> **getEADModel**(`tenantId`, `page`, `limit`, `params?`): `Promise`&lt;&#123; `data`: `never`[]; `effectivePrcDate`: `null`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125; &#124; &#123; `data`: `any`[]; `effectivePrcDate`: `string`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125;&gt;
 
-Defined in: [src/services/ifrs9-reports.service.ts:1239](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L1239)
-
-Get EAD Model Report (Payment Average by Tenor)
-SQL: 
-```sql
-SELECT TENOR AS [LT/MONTH], COUNTER AS SEQ, PAYM_AVG
-FROM FRS9_IMP_CA_EAD_PAYM_AVG A 
-WHERE A.PRC_DATE = :PRC_DATE AND A.SEGMENT_ID = :EAD_CONFIG_ID
-PIVOT (SUM(PAYM_AVG) FOR SEQ IN (...))
-```
+Defined in: [src/services/ifrs9-reports.service.ts:1895](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L1895)
 
 ###### Parameters
 
@@ -57,13 +48,13 @@ PIVOT (SUM(PAYM_AVG) FOR SEQ IN (...))
 
 ###### Returns
 
-`Promise`&lt;&#123; `data`: `any`[]; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125;&gt;
+`Promise`&lt;&#123; `data`: `never`[]; `effectivePrcDate`: `null`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125; &#124; &#123; `data`: `any`[]; `effectivePrcDate`: `string`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125;&gt;
 
 ##### getEADModelSummary()
 
-> **getEADModelSummary**(`tenantId`, `params?`): `Promise`&lt;&#123; `data`: `object`[]; &#125;&gt;
+> **getEADModelSummary**(`tenantId`, `params?`): `Promise`&lt;&#123; `data`: `object`[]; `effectivePrcDate`: `null`; &#125; &#124; &#123; `data`: `object`[]; `effectivePrcDate`: `string`; &#125; &#124; &#123; `data`: `object`[]; `effectivePrcDate`: `string`; &#125;&gt;
 
-Defined in: [src/services/ifrs9-reports.service.ts:1330](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L1330)
+Defined in: [src/services/ifrs9-reports.service.ts:2013](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L2013)
 
 Get EAD Model Summary Report
 Calculates metrics: Total Accounts, Avg EAD, Avg CCF, Avg Utilization
@@ -90,13 +81,13 @@ Calculates metrics: Total Accounts, Avg EAD, Avg CCF, Avg Utilization
 
 ###### Returns
 
-`Promise`&lt;&#123; `data`: `object`[]; &#125;&gt;
+`Promise`&lt;&#123; `data`: `object`[]; `effectivePrcDate`: `null`; &#125; &#124; &#123; `data`: `object`[]; `effectivePrcDate`: `string`; &#125; &#124; &#123; `data`: `object`[]; `effectivePrcDate`: `string`; &#125;&gt;
 
 ##### getEADPaymentAverage()
 
-> **getEADPaymentAverage**(`tenantId`, `page`, `limit`, `params?`): `Promise`&lt;&#123; `data`: `any`[]; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125;&gt;
+> **getEADPaymentAverage**(`tenantId`, `page`, `limit`, `params?`): `Promise`&lt;&#123; `data`: `never`[]; `effectivePrcDate`: `string` &#124; `null`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125; &#124; &#123; `data`: `any`[]; `effectivePrcDate`: `string`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125;&gt;
 
-Defined in: [src/services/ifrs9-reports.service.ts:1443](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L1443)
+Defined in: [src/services/ifrs9-reports.service.ts:2168](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L2168)
 
 Get EAD Payment Average by Tenor
 Queries: frs9_imp_ca_ead_paym_avg with pivot on counter
@@ -121,13 +112,13 @@ Queries: frs9_imp_ca_ead_paym_avg with pivot on counter
 
 ###### Returns
 
-`Promise`&lt;&#123; `data`: `any`[]; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125;&gt;
+`Promise`&lt;&#123; `data`: `never`[]; `effectivePrcDate`: `string` &#124; `null`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125; &#124; &#123; `data`: `any`[]; `effectivePrcDate`: `string`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125;&gt;
 
 ##### getECLMovement()
 
-> **getECLMovement**(`tenantId`, `params?`): `Promise`&lt;&#123; `data`: `object`[]; &#125;&gt;
+> **getECLMovement**(`tenantId`, `page`, `limit`, `params?`): `Promise`&lt;&#123; `data`: `never`[]; `effectivePrcDate`: `string` &#124; `null`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125; &#124; &#123; `data`: `any`[]; `effectivePrcDate`: `string`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125;&gt;
 
-Defined in: [src/services/ifrs9-reports.service.ts:1511](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L1511)
+Defined in: [src/services/ifrs9-reports.service.ts:2253](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L2253)
 
 Get ECL Movement Report
 Source: frs9_imp_movement_data (generated by SP: sp_frs9_imp_movement_data)
@@ -138,41 +129,31 @@ Source: frs9_imp_movement_data (generated by SP: sp_frs9_imp_movement_data)
 
 `string`
 
-###### params?
-
-###### group_segment?
-
-`string`
-
-###### prc_date
-
-`string`
-
-###### segment_id?
+###### page
 
 `number`
 
-###### stage?
+###### limit
 
-`string` &#124; `string`[]
+`number`
+
+###### params?
+
+[`MovementParams`](#movementparams)
 
 ###### Returns
 
-`Promise`&lt;&#123; `data`: `object`[]; &#125;&gt;
+`Promise`&lt;&#123; `data`: `never`[]; `effectivePrcDate`: `string` &#124; `null`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125; &#124; &#123; `data`: `any`[]; `effectivePrcDate`: `string`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125;&gt;
 
 ##### getECLResult()
 
-> **getECLResult**(`tenantId`, `page`, `limit`, `params?`): `Promise`&lt;&#123; `data`: `never`[]; `effectivePrcDate`: `null`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125; &#124; &#123; `data`: `any`[]; `effectivePrcDate`: `string`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125;&gt;
+> **getECLResult**(`tenantId`, `page`, `limit`, `params?`): `Promise`&lt;&#123; `data`: `never`[]; `debug`: &#123; `emptyReason`: `string`; `fallbackUsed`: `boolean`; `queryMode`: `string`; `queryName`: `string`; `sourceTables`: `string`[]; &#125;; `effectivePrcDate`: `null`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125; &#124; &#123; `data`: `any`[]; `debug`: &#123; `emptyReason`: `string` &#124; `null`; `fallbackUsed`: `boolean`; `queryMode`: `string`; `queryName`: `string`; `sourceTables`: `string`[]; &#125;; `effectivePrcDate`: `string`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125; &#124; &#123; `data`: `never`[]; `debug?`: `undefined`; `effectivePrcDate`: `null`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125;&gt;
 
-Defined in: [src/services/ifrs9-reports.service.ts:750](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L750)
+Defined in: [src/services/ifrs9-reports.service.ts:1156](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L1156)
 
 Get ECL Result Report
-SQL Script:
-```sql
-SELECT SUM(OUTSTANDING), SUM(ECL_CA_ONBS_AMT), SUM(ECL_FINAL_AMT), etc.
-FROM FRS9_MASTER_ACCOUNT WHERE PRC_DATE = :PRC_DATE AND SEGMENT_ID = :SEGMENT_ID AND STAGE = :STAGE
-GROUP BY PRC_DATE, BRANCH_CODE, SEGMENT_ID, GROUP_SEGMENT, SEGMENT, SUB_SEGMENT, CURRENCY, etc.
-```
+SQL Script aligned with tech spec workbook row 487:
+aggregates directly from FRS9_MASTER_ACCOUNT.
 
 ###### Parameters
 
@@ -194,13 +175,13 @@ GROUP BY PRC_DATE, BRANCH_CODE, SEGMENT_ID, GROUP_SEGMENT, SEGMENT, SUB_SEGMENT,
 
 ###### Returns
 
-`Promise`&lt;&#123; `data`: `never`[]; `effectivePrcDate`: `null`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125; &#124; &#123; `data`: `any`[]; `effectivePrcDate`: `string`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125;&gt;
+`Promise`&lt;&#123; `data`: `never`[]; `debug`: &#123; `emptyReason`: `string`; `fallbackUsed`: `boolean`; `queryMode`: `string`; `queryName`: `string`; `sourceTables`: `string`[]; &#125;; `effectivePrcDate`: `null`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125; &#124; &#123; `data`: `any`[]; `debug`: &#123; `emptyReason`: `string` &#124; `null`; `fallbackUsed`: `boolean`; `queryMode`: `string`; `queryName`: `string`; `sourceTables`: `string`[]; &#125;; `effectivePrcDate`: `string`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125; &#124; &#123; `data`: `never`[]; `debug?`: `undefined`; `effectivePrcDate`: `null`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125;&gt;
 
 ##### getGCAMovement()
 
-> **getGCAMovement**(`tenantId`, `params?`): `Promise`&lt;&#123; `data`: `object`[]; &#125;&gt;
+> **getGCAMovement**(`tenantId`, `page`, `limit`, `params?`): `Promise`&lt;&#123; `data`: `never`[]; `effectivePrcDate`: `string` &#124; `null`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125; &#124; &#123; `data`: `any`[]; `effectivePrcDate`: `string`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125;&gt;
 
-Defined in: [src/services/ifrs9-reports.service.ts:1535](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L1535)
+Defined in: [src/services/ifrs9-reports.service.ts:2287](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L2287)
 
 Get GCA Movement Report
 Source: frs9_imp_movement_data (generated by SP: sp_frs9_imp_movement_data)
@@ -211,33 +192,27 @@ Source: frs9_imp_movement_data (generated by SP: sp_frs9_imp_movement_data)
 
 `string`
 
-###### params?
-
-###### group_segment?
-
-`string`
-
-###### prc_date
-
-`string`
-
-###### segment_id?
+###### page
 
 `number`
 
-###### stage?
+###### limit
 
-`string` &#124; `string`[]
+`number`
+
+###### params?
+
+[`MovementParams`](#movementparams)
 
 ###### Returns
 
-`Promise`&lt;&#123; `data`: `object`[]; &#125;&gt;
+`Promise`&lt;&#123; `data`: `never`[]; `effectivePrcDate`: `string` &#124; `null`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125; &#124; &#123; `data`: `any`[]; `effectivePrcDate`: `string`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125;&gt;
 
 ##### getLifetimeLGDDetail()
 
 > **getLifetimeLGDDetail**(`tenantId`, `page`, `limit`, `params?`): `Promise`&lt;&#123; `data`: `never`[]; `effectivePrcDate`: `null`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125; &#124; &#123; `data`: `any`[]; `effectivePrcDate`: `string`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125;&gt;
 
-Defined in: [src/services/ifrs9-reports.service.ts:1033](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L1033)
+Defined in: [src/services/ifrs9-reports.service.ts:1579](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L1579)
 
 Get Lifetime LGD Detail Report (Account Level with Recovery Pivot)
 Queries: frs9_account_id + frs9_imp_ca_lgd_data + frs9_imp_ca_lgd_rec_d
@@ -269,7 +244,7 @@ Implements pivot on SEQ for recovery sequences
 
 > **getLifetimeLGDSummary**(`tenantId`, `page`, `limit`, `params?`): `Promise`&lt;&#123; `data`: `never`[]; `effectivePrcDate`: `null`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125; &#124; &#123; `data`: `any`[]; `effectivePrcDate`: `string`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125;&gt;
 
-Defined in: [src/services/ifrs9-reports.service.ts:1173](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L1173)
+Defined in: [src/services/ifrs9-reports.service.ts:1791](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L1791)
 
 Get Lifetime LGD Summary Report
 Queries: frs9_imp_ca_lgd_h + frs9_imp_ca_lgd_config
@@ -300,7 +275,7 @@ Queries: frs9_imp_ca_lgd_h + frs9_imp_ca_lgd_config
 
 > **getLifetimePDAccountDetails**(`tenantId`, `page`, `limit`, `params?`): `Promise`&lt;&#123; `data`: `never`[]; `effectivePrcDate`: `null`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125; &#124; &#123; `data`: `object`[]; `effectivePrcDate`: `string`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125;&gt;
 
-Defined in: [src/services/ifrs9-reports.service.ts:677](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L677)
+Defined in: [src/services/ifrs9-reports.service.ts:1088](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L1088)
 
 Get Lifetime PD Account Details
 Queries: frs9_imp_ca_result_d joined with frs9_account_id
@@ -331,7 +306,7 @@ Queries: frs9_imp_ca_result_d joined with frs9_account_id
 
 > **getLifetimePDMonthly**(`tenantId`, `page`, `limit`, `params?`): `Promise`&lt;&#123; `data`: `never`[]; `effectivePrcDate`: `null`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125; &#124; &#123; `data`: `any`[]; `effectivePrcDate`: `string`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125;&gt;
 
-Defined in: [src/services/ifrs9-reports.service.ts:609](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L609)
+Defined in: [src/services/ifrs9-reports.service.ts:1020](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L1020)
 
 Get Lifetime PD Report (Monthly)
 Queries: frs9_imp_ca_pd_structure with monthly pivot transformation
@@ -362,7 +337,7 @@ Queries: frs9_imp_ca_pd_structure with monthly pivot transformation
 
 > **getLifetimePDYearly**(`tenantId`, `page`, `limit`, `params?`): `Promise`&lt;&#123; `data`: `never`[]; `effectivePrcDate`: `null`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125; &#124; &#123; `data`: `any`[]; `effectivePrcDate`: `string`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125;&gt;
 
-Defined in: [src/services/ifrs9-reports.service.ts:541](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L541)
+Defined in: [src/services/ifrs9-reports.service.ts:952](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L952)
 
 Get Lifetime PD Report (Yearly)
 Queries: frs9_imp_ca_pd_structure with pivot transformation
@@ -389,11 +364,41 @@ Queries: frs9_imp_ca_pd_structure with pivot transformation
 
 `Promise`&lt;&#123; `data`: `never`[]; `effectivePrcDate`: `null`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125; &#124; &#123; `data`: `any`[]; `effectivePrcDate`: `string`; `page`: `number`; `total`: `number`; `totalPages`: `number`; &#125;&gt;
 
+##### getNominativeAvailableDates()
+
+> **getNominativeAvailableDates**(`tenantId`, `params?`): `Promise`&lt;&#123; `data`: `any`[]; &#125;&gt;
+
+Defined in: [src/services/ifrs9-reports.service.ts:1524](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L1524)
+
+###### Parameters
+
+###### tenantId
+
+`string`
+
+###### params?
+
+###### download_end_date?
+
+`string`
+
+###### download_start_date?
+
+`string`
+
+###### limit?
+
+`number`
+
+###### Returns
+
+`Promise`&lt;&#123; `data`: `any`[]; &#125;&gt;
+
 ##### getNominativeReport()
 
-> **getNominativeReport**(`tenantId`, `page`, `limit`, `params?`): `Promise`&lt;&#123; `data`: `never`[]; `effectivePrcDate`: `null`; `page`: `number`; `summary`: &#123; `totalECL`: `number`; `totalOutstanding`: `number`; &#125;; `total`: `number`; `totalPages`: `number`; &#125; &#124; &#123; `data`: `any`[]; `effectivePrcDate`: `string`; `page`: `number`; `summary`: &#123; `totalECL`: `number`; `totalOutstanding`: `number`; &#125;; `total`: `number`; `totalPages`: `number`; &#125;&gt;
+> **getNominativeReport**(`tenantId`, `page`, `limit`, `params?`): `Promise`&lt;&#123; `data`: `never`[]; `effectivePrcDate`: `null`; `hasNextPage?`: `undefined`; `hasPreviousPage?`: `undefined`; `nextCursor?`: `undefined`; `page`: `number`; `previousCursor?`: `undefined`; `summary`: &#123; `totalECL`: `number`; `totalOutstanding`: `number`; &#125;; `total`: `number`; `totalPages`: `number`; &#125; &#124; &#123; `data`: `any`[]; `effectivePrcDate`: `string`; `hasNextPage`: `boolean` &#124; `""` &#124; `undefined`; `hasPreviousPage`: `boolean`; `nextCursor`: `string` &#124; `null`; `page`: `number`; `previousCursor`: `string` &#124; `null`; `summary`: &#123; `totalECL`: `number`; `totalOutstanding`: `number`; &#125;; `total`: `number`; `totalPages`: `number`; &#125;&gt;
 
-Defined in: [src/services/ifrs9-reports.service.ts:854](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L854)
+Defined in: [src/services/ifrs9-reports.service.ts:1289](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L1289)
 
 Get Nominative Report (Detailed Account Level)
 Queries: frs9_imp_nominative joined with frs9_master_account (branch enrichment)
@@ -418,6 +423,10 @@ Queries: frs9_imp_nominative joined with frs9_master_account (branch enrichment)
 
 `string` &#124; `string`[]
 
+###### cursor?
+
+`string`
+
 ###### download_end_date?
 
 `string`
@@ -430,6 +439,10 @@ Queries: frs9_imp_nominative joined with frs9_master_account (branch enrichment)
 
 `string` &#124; `string`[]
 
+###### paginationMode?
+
+`"offset"` &#124; `"cursor"`
+
 ###### prc_date?
 
 `string`
@@ -438,153 +451,299 @@ Queries: frs9_imp_nominative joined with frs9_master_account (branch enrichment)
 
 `string` &#124; `string`[]
 
+###### sort?
+
+`object`[]
+
 ###### stage?
 
 `string` &#124; `string`[]
 
 ###### Returns
 
-`Promise`&lt;&#123; `data`: `never`[]; `effectivePrcDate`: `null`; `page`: `number`; `summary`: &#123; `totalECL`: `number`; `totalOutstanding`: `number`; &#125;; `total`: `number`; `totalPages`: `number`; &#125; &#124; &#123; `data`: `any`[]; `effectivePrcDate`: `string`; `page`: `number`; `summary`: &#123; `totalECL`: `number`; `totalOutstanding`: `number`; &#125;; `total`: `number`; `totalPages`: `number`; &#125;&gt;
+`Promise`&lt;&#123; `data`: `never`[]; `effectivePrcDate`: `null`; `hasNextPage?`: `undefined`; `hasPreviousPage?`: `undefined`; `nextCursor?`: `undefined`; `page`: `number`; `previousCursor?`: `undefined`; `summary`: &#123; `totalECL`: `number`; `totalOutstanding`: `number`; &#125;; `total`: `number`; `totalPages`: `number`; &#125; &#124; &#123; `data`: `any`[]; `effectivePrcDate`: `string`; `hasNextPage`: `boolean` &#124; `""` &#124; `undefined`; `hasPreviousPage`: `boolean`; `nextCursor`: `string` &#124; `null`; `page`: `number`; `previousCursor`: `string` &#124; `null`; `summary`: &#123; `totalECL`: `number`; `totalOutstanding`: `number`; &#125;; `total`: `number`; `totalPages`: `number`; &#125;&gt;
 
 ## Interfaces
 
 ### EADModelParams
 
-Defined in: [src/services/ifrs9-reports.service.ts:40](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L40)
+Defined in: [src/services/ifrs9-reports.service.ts:44](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L44)
 
 #### Properties
 
+##### detailFilters?
+
+> `optional` **detailFilters?**: `Record`&lt;`string`, `unknown`&gt;
+
+Defined in: [src/services/ifrs9-reports.service.ts:50](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L50)
+
 ##### ead\_config\_id?
 
-> `optional` **ead\_config\_id**: `number`
+> `optional` **ead\_config\_id?**: `number`
 
-Defined in: [src/services/ifrs9-reports.service.ts:42](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L42)
+Defined in: [src/services/ifrs9-reports.service.ts:46](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L46)
 
 ##### prc\_date
 
 > **prc\_date**: `string`
 
-Defined in: [src/services/ifrs9-reports.service.ts:41](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L41)
+Defined in: [src/services/ifrs9-reports.service.ts:45](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L45)
+
+##### search?
+
+> `optional` **search?**: `string`
+
+Defined in: [src/services/ifrs9-reports.service.ts:48](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L48)
 
 ##### segment\_id?
 
-> `optional` **segment\_id**: `number`
+> `optional` **segment\_id?**: `number`
 
-Defined in: [src/services/ifrs9-reports.service.ts:43](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L43)
+Defined in: [src/services/ifrs9-reports.service.ts:47](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L47)
+
+##### sort?
+
+> `optional` **sort?**: `object`[]
+
+Defined in: [src/services/ifrs9-reports.service.ts:49](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L49)
+
+###### direction
+
+> **direction**: `"asc"` &#124; `"desc"`
+
+###### field
+
+> **field**: `string`
 
 ***
 
 ### ECLResultParams
 
-Defined in: [src/services/ifrs9-reports.service.ts:46](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L46)
+Defined in: [src/services/ifrs9-reports.service.ts:53](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L53)
 
 #### Properties
+
+##### account\_status?
+
+> `optional` **account\_status?**: `string` &#124; `string`[]
+
+Defined in: [src/services/ifrs9-reports.service.ts:57](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L57)
+
+##### detailFilters?
+
+> `optional` **detailFilters?**: `Record`&lt;`string`, `unknown`&gt;
+
+Defined in: [src/services/ifrs9-reports.service.ts:60](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L60)
 
 ##### prc\_date
 
 > **prc\_date**: `string`
 
-Defined in: [src/services/ifrs9-reports.service.ts:47](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L47)
+Defined in: [src/services/ifrs9-reports.service.ts:54](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L54)
+
+##### search?
+
+> `optional` **search?**: `string`
+
+Defined in: [src/services/ifrs9-reports.service.ts:58](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L58)
 
 ##### segment\_id?
 
-> `optional` **segment\_id**: `number`
+> `optional` **segment\_id?**: `number`
 
-Defined in: [src/services/ifrs9-reports.service.ts:48](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L48)
+Defined in: [src/services/ifrs9-reports.service.ts:55](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L55)
+
+##### sort?
+
+> `optional` **sort?**: `object`[]
+
+Defined in: [src/services/ifrs9-reports.service.ts:59](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L59)
+
+###### direction
+
+> **direction**: `"asc"` &#124; `"desc"`
+
+###### field
+
+> **field**: `string`
 
 ##### stage?
 
-> `optional` **stage**: `string` &#124; `string`[]
+> `optional` **stage?**: `string` &#124; `string`[]
 
-Defined in: [src/services/ifrs9-reports.service.ts:49](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L49)
+Defined in: [src/services/ifrs9-reports.service.ts:56](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L56)
 
 ***
 
 ### LifetimeLGDParams
 
-Defined in: [src/services/ifrs9-reports.service.ts:31](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L31)
+Defined in: [src/services/ifrs9-reports.service.ts:32](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L32)
 
 #### Properties
 
+##### detailFilters?
+
+> `optional` **detailFilters?**: `Record`&lt;`string`, `unknown`&gt;
+
+Defined in: [src/services/ifrs9-reports.service.ts:41](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L41)
+
 ##### fl\_flag?
 
-> `optional` **fl\_flag**: `boolean`
+> `optional` **fl\_flag?**: `boolean`
 
-Defined in: [src/services/ifrs9-reports.service.ts:37](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L37)
+Defined in: [src/services/ifrs9-reports.service.ts:38](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L38)
 
 ##### lgd\_config\_id?
 
-> `optional` **lgd\_config\_id**: `number`
+> `optional` **lgd\_config\_id?**: `number`
 
-Defined in: [src/services/ifrs9-reports.service.ts:33](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L33)
+Defined in: [src/services/ifrs9-reports.service.ts:34](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L34)
 
 ##### lgd\_method?
 
-> `optional` **lgd\_method**: `number`
+> `optional` **lgd\_method?**: `number`
 
-Defined in: [src/services/ifrs9-reports.service.ts:34](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L34)
+Defined in: [src/services/ifrs9-reports.service.ts:35](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L35)
 
 ##### model\_id?
 
-> `optional` **model\_id**: `number`
+> `optional` **model\_id?**: `number`
 
-Defined in: [src/services/ifrs9-reports.service.ts:35](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L35)
+Defined in: [src/services/ifrs9-reports.service.ts:36](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L36)
 
 ##### prc\_date
 
 > **prc\_date**: `string`
 
-Defined in: [src/services/ifrs9-reports.service.ts:32](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L32)
+Defined in: [src/services/ifrs9-reports.service.ts:33](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L33)
+
+##### search?
+
+> `optional` **search?**: `string`
+
+Defined in: [src/services/ifrs9-reports.service.ts:39](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L39)
 
 ##### segment\_id?
 
-> `optional` **segment\_id**: `number`
+> `optional` **segment\_id?**: `number`
 
-Defined in: [src/services/ifrs9-reports.service.ts:36](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L36)
+Defined in: [src/services/ifrs9-reports.service.ts:37](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L37)
+
+##### sort?
+
+> `optional` **sort?**: `object`[]
+
+Defined in: [src/services/ifrs9-reports.service.ts:40](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L40)
+
+###### direction
+
+> **direction**: `"asc"` &#124; `"desc"`
+
+###### field
+
+> **field**: `string`
 
 ***
 
 ### LifetimePDParams
 
-Defined in: [src/services/ifrs9-reports.service.ts:22](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L22)
+Defined in: [src/services/ifrs9-reports.service.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L23)
 
 #### Properties
 
 ##### fl\_flag?
 
-> `optional` **fl\_flag**: `boolean`
+> `optional` **fl\_flag?**: `boolean`
 
-Defined in: [src/services/ifrs9-reports.service.ts:28](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L28)
+Defined in: [src/services/ifrs9-reports.service.ts:29](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L29)
 
 ##### pd\_config\_id?
 
-> `optional` **pd\_config\_id**: `number`
+> `optional` **pd\_config\_id?**: `number`
 
-Defined in: [src/services/ifrs9-reports.service.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L24)
+Defined in: [src/services/ifrs9-reports.service.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L25)
 
 ##### pd\_method?
 
-> `optional` **pd\_method**: `number`
+> `optional` **pd\_method?**: `number`
 
-Defined in: [src/services/ifrs9-reports.service.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L25)
+Defined in: [src/services/ifrs9-reports.service.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L26)
 
 ##### prc\_date
 
 > **prc\_date**: `string`
 
-Defined in: [src/services/ifrs9-reports.service.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L23)
+Defined in: [src/services/ifrs9-reports.service.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L24)
 
 ##### scalar\_id?
 
-> `optional` **scalar\_id**: `number`
+> `optional` **scalar\_id?**: `number`
 
-Defined in: [src/services/ifrs9-reports.service.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L26)
+Defined in: [src/services/ifrs9-reports.service.ts:27](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L27)
 
 ##### segment\_id?
 
-> `optional` **segment\_id**: `number`
+> `optional` **segment\_id?**: `number`
 
-Defined in: [src/services/ifrs9-reports.service.ts:27](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L27)
+Defined in: [src/services/ifrs9-reports.service.ts:28](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L28)
+
+***
+
+### MovementParams
+
+Defined in: [src/services/ifrs9-reports.service.ts:63](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L63)
+
+#### Properties
+
+##### detailFilters?
+
+> `optional` **detailFilters?**: `Record`&lt;`string`, `unknown`&gt;
+
+Defined in: [src/services/ifrs9-reports.service.ts:70](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L70)
+
+##### group\_segment?
+
+> `optional` **group\_segment?**: `string`
+
+Defined in: [src/services/ifrs9-reports.service.ts:67](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L67)
+
+##### prc\_date
+
+> **prc\_date**: `string`
+
+Defined in: [src/services/ifrs9-reports.service.ts:64](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L64)
+
+##### search?
+
+> `optional` **search?**: `string`
+
+Defined in: [src/services/ifrs9-reports.service.ts:68](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L68)
+
+##### segment\_id?
+
+> `optional` **segment\_id?**: `number`
+
+Defined in: [src/services/ifrs9-reports.service.ts:65](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L65)
+
+##### sort?
+
+> `optional` **sort?**: `object`[]
+
+Defined in: [src/services/ifrs9-reports.service.ts:69](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L69)
+
+###### direction
+
+> **direction**: `"asc"` &#124; `"desc"`
+
+###### field
+
+> **field**: `string`
+
+##### stage?
+
+> `optional` **stage?**: `string` &#124; `string`[]
+
+Defined in: [src/services/ifrs9-reports.service.ts:66](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L66)
 
 ## Variables
 
@@ -592,4 +751,4 @@ Defined in: [src/services/ifrs9-reports.service.ts:27](https://github.com/ifrspr
 
 > `const` **ifrs9ReportsService**: [`Ifrs9ReportsService`](#ifrs9reportsservice)
 
-Defined in: [src/services/ifrs9-reports.service.ts:1556](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/ifrs9-reports.service.ts#L1556)
+Defined in: [src/services/ifrs9-reports.service.ts:2318](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/ifrs9-reports.service.ts#L2318)

@@ -10,11 +10,11 @@
 
 > `const` **PdConfigurationsRepository**: `object`
 
-Defined in: [src/repositories/pd-configurations.repository.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/repositories/pd-configurations.repository.ts#L7)
+Defined in: [src/repositories/pd-configurations.repository.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/repositories/pd-configurations.repository.ts#L7)
 
 #### Type Declaration
 
-##### create()
+##### create
 
 > **create**: (`data`) => `Effect`&lt;&#123; `activeFlag`: `boolean`; `bucketGroup`: `string` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean` &#124; `null`; `flScalarId`: `number` &#124; `null`; `iaFlag`: `boolean`; `interval`: `number` &#124; `null`; `multiplication`: `number` &#124; `null`; `observationPeriod`: `number` &#124; `null`; `observationStartDate`: `string` &#124; `null`; `pdMethod`: `string` &#124; `null`; `pdModelName`: `string` &#124; `null`; `pkid`: `number`; `populationType`: `string` &#124; `null`; `segmentId`: `number` &#124; `null`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -112,7 +112,7 @@ The configuration data
 
 An Effect resolving to the created configuration
 
-##### delete()
+##### delete
 
 > **delete**: (`id`) => `Effect`&lt;`boolean`, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -132,7 +132,7 @@ The configuration ID
 
 An Effect resolving to true on success
 
-##### findAll()
+##### findAll
 
 > **findAll**: (`search?`, `selectedMethod?`, `bucket?`, `activeFlag?`) => `Effect`&lt;`object`[], [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -170,7 +170,7 @@ Active status flag
 
 An Effect resolving to an array of PD configurations
 
-##### findById()
+##### findById
 
 > **findById**: (`id`) => `Effect`&lt;&#123; `activeFlag`: `boolean`; `bucketGroup`: `string` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean` &#124; `null`; `flScalarId`: `number` &#124; `null`; `iaFlag`: `boolean`; `interval`: `number` &#124; `null`; `multiplication`: `number` &#124; `null`; `observationPeriod`: `number` &#124; `null`; `observationStartDate`: `string` &#124; `null`; `pdMethod`: `string` &#124; `null`; `pdModelName`: `string` &#124; `null`; `pkid`: `number`; `populationType`: `string` &#124; `null`; `segmentId`: `number` &#124; `null`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 
@@ -190,7 +190,7 @@ The configuration ID
 
 An Effect resolving to the configuration or null
 
-##### update()
+##### update
 
 > **update**: (`id`, `data`) => `Effect`&lt;&#123; `activeFlag`: `boolean`; `bucketGroup`: `string` &#124; `null`; `createdby`: `string`; `createddate`: `string`; `createdhost`: `string`; `flFlag`: `boolean` &#124; `null`; `flScalarId`: `number` &#124; `null`; `iaFlag`: `boolean`; `interval`: `number` &#124; `null`; `multiplication`: `number` &#124; `null`; `observationPeriod`: `number` &#124; `null`; `observationStartDate`: `string` &#124; `null`; `pdMethod`: `string` &#124; `null`; `pdModelName`: `string` &#124; `null`; `pkid`: `number`; `populationType`: `string` &#124; `null`; `segmentId`: `number` &#124; `null`; `updatedby`: `string` &#124; `null`; `updateddate`: `string` &#124; `null`; `updatedhost`: `string` &#124; `null`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror), `never`&gt;
 

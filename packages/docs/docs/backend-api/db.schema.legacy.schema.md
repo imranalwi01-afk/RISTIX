@@ -30,6 +30,12 @@ Re-exports [frs9EclModelMapping](db.schema.md#frs9eclmodelmapping)
 
 ***
 
+### frs9EclSummary
+
+Re-exports [frs9EclSummary](db.schema.md#frs9eclsummary)
+
+***
+
 ### frs9EirEcf
 
 Re-exports [frs9EirEcf](db.schema.md#frs9eirecf)
@@ -360,6 +366,12 @@ Re-exports [frs9MasterTransactionCost](db.schema.md#frs9mastertransactioncost)
 
 ***
 
+### frs9NominativeOutput
+
+Re-exports [frs9NominativeOutput](db.schema.md#frs9nominativeoutput)
+
+***
+
 ### frs9ParamBucketd
 
 Re-exports [frs9ParamBucketd](db.schema.md#frs9parambucketd)
@@ -441,6 +453,12 @@ Re-exports [frs9PrcDate](db.schema.md#frs9prcdate)
 ### frs9RModelSummary
 
 Re-exports [frs9RModelSummary](db.schema.md#frs9rmodelsummary)
+
+***
+
+### frs9RPdAfl
+
+Re-exports [frs9RPdAfl](db.schema.md#frs9rpdafl)
 
 ***
 

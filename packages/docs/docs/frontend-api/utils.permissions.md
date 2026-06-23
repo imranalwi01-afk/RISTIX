@@ -10,7 +10,7 @@
 
 > `const` **PERMISSIONS**: `object`
 
-Defined in: [utils/permissions.ts:3](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/permissions.ts#L3)
+Defined in: [utils/permissions.ts:3](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/permissions.ts#L3)
 
 #### Type Declaration
 
@@ -96,7 +96,7 @@ Defined in: [utils/permissions.ts:3](https://github.com/ifrspro/ifrs9-iaf/blob/4
 
 > `const` **STAKEHOLDER\_PERMISSIONS**: `object`
 
-Defined in: [utils/permissions.ts:34](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/permissions.ts#L34)
+Defined in: [utils/permissions.ts:34](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/permissions.ts#L34)
 
 #### Type Declaration
 
@@ -126,7 +126,7 @@ Defined in: [utils/permissions.ts:34](https://github.com/ifrspro/ifrs9-iaf/blob/
 
 > **hasAllPermissions**(`userStakeholderType`, `requiredPermissions`): `boolean`
 
-Defined in: [utils/permissions.ts:80](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/permissions.ts#L80)
+Defined in: [utils/permissions.ts:80](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/permissions.ts#L80)
 
 #### Parameters
 
@@ -148,7 +148,7 @@ Defined in: [utils/permissions.ts:80](https://github.com/ifrspro/ifrs9-iaf/blob/
 
 > **hasAnyPermission**(`userStakeholderType`, `requiredPermissions`): `boolean`
 
-Defined in: [utils/permissions.ts:76](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/permissions.ts#L76)
+Defined in: [utils/permissions.ts:76](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/permissions.ts#L76)
 
 #### Parameters
 
@@ -170,7 +170,7 @@ Defined in: [utils/permissions.ts:76](https://github.com/ifrspro/ifrs9-iaf/blob/
 
 > **hasPermission**(`userStakeholderType`, `requiredPermission`): `boolean`
 
-Defined in: [utils/permissions.ts:71](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/frontend/src/utils/permissions.ts#L71)
+Defined in: [utils/permissions.ts:71](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/permissions.ts#L71)
 
 #### Parameters
 

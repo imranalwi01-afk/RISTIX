@@ -8,7 +8,7 @@
 
 ### NotificationPreferencesShape
 
-Defined in: [src/services/notifications.service.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L10)
+Defined in: [src/services/notifications.service.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/notifications.service.ts#L10)
 
 #### Properties
 
@@ -16,37 +16,37 @@ Defined in: [src/services/notifications.service.ts:10](https://github.com/ifrspr
 
 > **muteAll**: `boolean`
 
-Defined in: [src/services/notifications.service.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L11)
+Defined in: [src/services/notifications.service.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/notifications.service.ts#L11)
 
 ##### mutedCategories
 
 > **mutedCategories**: [`NotificationCategory`](#notificationcategory)[]
 
-Defined in: [src/services/notifications.service.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L12)
+Defined in: [src/services/notifications.service.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/notifications.service.ts#L12)
 
 ##### quietHoursEnabled
 
 > **quietHoursEnabled**: `boolean`
 
-Defined in: [src/services/notifications.service.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L13)
+Defined in: [src/services/notifications.service.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/notifications.service.ts#L13)
 
 ##### quietHoursEnd
 
 > **quietHoursEnd**: `string`
 
-Defined in: [src/services/notifications.service.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L15)
+Defined in: [src/services/notifications.service.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/notifications.service.ts#L15)
 
 ##### quietHoursStart
 
 > **quietHoursStart**: `string`
 
-Defined in: [src/services/notifications.service.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L14)
+Defined in: [src/services/notifications.service.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/notifications.service.ts#L14)
 
 ##### timezone
 
 > **timezone**: `string`
 
-Defined in: [src/services/notifications.service.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L16)
+Defined in: [src/services/notifications.service.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/notifications.service.ts#L16)
 
 ## Type Aliases
 
@@ -54,7 +54,7 @@ Defined in: [src/services/notifications.service.ts:16](https://github.com/ifrspr
 
 > **NotificationCategory** = `"approval"` &#124; `"workflow"` &#124; `"analytics"` &#124; `"system"`
 
-Defined in: [src/services/notifications.service.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L7)
+Defined in: [src/services/notifications.service.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/notifications.service.ts#L7)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [src/services/notifications.service.ts:7](https://github.com/ifrspro
 
 > **NotificationReadStatus** = `"all"` &#124; `"read"` &#124; `"unread"`
 
-Defined in: [src/services/notifications.service.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L8)
+Defined in: [src/services/notifications.service.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/notifications.service.ts#L8)
 
 ## Variables
 
@@ -70,15 +70,33 @@ Defined in: [src/services/notifications.service.ts:8](https://github.com/ifrspro
 
 > `const` **DEFAULT\_NOTIFICATION\_PREFERENCES**: [`NotificationPreferencesShape`](#notificationpreferencesshape)
 
-Defined in: [src/services/notifications.service.ts:19](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L19)
+Defined in: [src/services/notifications.service.ts:19](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/notifications.service.ts#L19)
 
 ## Functions
+
+### createNotification()
+
+> **createNotification**(`input`): `Effect`&lt;&#123; `deliveries`: `object`[]; `notification`: &#123; `actionUrl`: `string` &#124; `null`; `approvalRequestId`: `string` &#124; `null`; `createdAt`: `Date`; `entityId`: `string` &#124; `null`; `entityType`: `string` &#124; `null`; `id`: `string`; `message`: `string`; `metadata`: `unknown`; `severity`: `string`; `source`: `string`; `tenantId`: `string`; `title`: `string`; `triggeredBy`: `string` &#124; `null`; `type`: `string`; `workflowId`: `string` &#124; `null`; &#125;; &#125;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
+
+Defined in: [src/services/notifications.service.ts:30](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/notifications.service.ts#L30)
+
+#### Parameters
+
+##### input
+
+[`CreateNotificationInput`](repositories.notification.repository.md#createnotificationinput)
+
+#### Returns
+
+`Effect`&lt;&#123; `deliveries`: `object`[]; `notification`: &#123; `actionUrl`: `string` &#124; `null`; `approvalRequestId`: `string` &#124; `null`; `createdAt`: `Date`; `entityId`: `string` &#124; `null`; `entityType`: `string` &#124; `null`; `id`: `string`; `message`: `string`; `metadata`: `unknown`; `severity`: `string`; `source`: `string`; `tenantId`: `string`; `title`: `string`; `triggeredBy`: `string` &#124; `null`; `type`: `string`; `workflowId`: `string` &#124; `null`; &#125;; &#125;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
+
+***
 
 ### deriveNotificationCategory()
 
 > **deriveNotificationCategory**(`type`): [`NotificationCategory`](#notificationcategory)
 
-Defined in: [src/services/notifications.service.ts:52](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L52)
+Defined in: [src/services/notifications.service.ts:57](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/notifications.service.ts#L57)
 
 #### Parameters
 
@@ -96,7 +114,7 @@ Defined in: [src/services/notifications.service.ts:52](https://github.com/ifrspr
 
 > **filterNotificationRecipientsByPreferences**(`input`): `Promise`&lt;`string`[]&gt;
 
-Defined in: [src/services/notifications.service.ts:210](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L210)
+Defined in: [src/services/notifications.service.ts:215](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/notifications.service.ts#L215)
 
 #### Parameters
 
@@ -128,7 +146,7 @@ Defined in: [src/services/notifications.service.ts:210](https://github.com/ifrsp
 
 > **getMyNotificationPreferences**(`tenantId`, `userId`): `Effect`&lt;[`NotificationPreferencesShape`](#notificationpreferencesshape), [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/services/notifications.service.ts:161](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L161)
+Defined in: [src/services/notifications.service.ts:166](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/notifications.service.ts#L166)
 
 #### Parameters
 
@@ -150,7 +168,7 @@ Defined in: [src/services/notifications.service.ts:161](https://github.com/ifrsp
 
 > **getMyNotifications**(`input`): `Effect`&lt;&#123; `rows`: `any`[]; `total`: `number`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/services/notifications.service.ts:107](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L107)
+Defined in: [src/services/notifications.service.ts:112](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/notifications.service.ts#L112)
 
 #### Parameters
 
@@ -206,7 +224,7 @@ Defined in: [src/services/notifications.service.ts:107](https://github.com/ifrsp
 
 > **getMyUnreadNotificationCount**(`tenantId`, `userId`): `Effect`&lt;`number`, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/services/notifications.service.ts:123](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L123)
+Defined in: [src/services/notifications.service.ts:128](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/notifications.service.ts#L128)
 
 #### Parameters
 
@@ -228,7 +246,7 @@ Defined in: [src/services/notifications.service.ts:123](https://github.com/ifrsp
 
 > **markAllNotificationsAsRead**(`input`): `Effect`&lt;&#123; `updatedCount`: `number`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/services/notifications.service.ts:141](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L141)
+Defined in: [src/services/notifications.service.ts:146](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/notifications.service.ts#L146)
 
 #### Parameters
 
@@ -252,7 +270,7 @@ Defined in: [src/services/notifications.service.ts:141](https://github.com/ifrsp
 
 > **markManyNotificationsReadStatus**(`input`): `Effect`&lt;&#123; `updatedCount`: `number`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/services/notifications.service.ts:150](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L150)
+Defined in: [src/services/notifications.service.ts:155](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/notifications.service.ts#L155)
 
 #### Parameters
 
@@ -284,7 +302,7 @@ Defined in: [src/services/notifications.service.ts:150](https://github.com/ifrsp
 
 > **markNotificationAsRead**(`input`): `Effect`&lt;&#123; `updated`: `boolean`; &#125;, [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/services/notifications.service.ts:131](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L131)
+Defined in: [src/services/notifications.service.ts:136](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/notifications.service.ts#L136)
 
 #### Parameters
 
@@ -312,7 +330,7 @@ Defined in: [src/services/notifications.service.ts:131](https://github.com/ifrsp
 
 > **updateMyNotificationPreferences**(`input`): `Effect`&lt;[`NotificationPreferencesShape`](#notificationpreferencesshape), [`DatabaseError`](lib.errors.md#databaseerror)&gt;
 
-Defined in: [src/services/notifications.service.ts:177](https://github.com/ifrspro/ifrs9-iaf/blob/4458eb912394f1ae1de02c71ac49eb0c2b8c73a8/packages/new-backend/src/services/notifications.service.ts#L177)
+Defined in: [src/services/notifications.service.ts:182](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/new-backend/src/services/notifications.service.ts#L182)
 
 #### Parameters
 
