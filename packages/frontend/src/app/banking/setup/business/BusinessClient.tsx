@@ -42,7 +42,7 @@ const BUSINESS_EXPORT_COLUMNS = [
     { field: 'param_code', headerName: 'Code' },
     { field: 'param_desc', headerName: 'Description' },
     { field: 'param_value', headerName: 'Value' },
-    { field: 'active_flag', headerName: 'Active' },
+    { field: 'status', headerName: 'Status' },
     { field: 'created_by', headerName: 'Created By' },
     { field: 'created_date', headerName: 'Created Date' },
 ] as const;
