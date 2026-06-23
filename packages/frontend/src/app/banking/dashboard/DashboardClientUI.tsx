@@ -81,6 +81,7 @@ import WidgetManager from '../../../components/dashboard/WidgetManager'
 import PersonalizedWidget from '../../../components/dashboard/widgets/PersonalizedWidget'
 import EmptyState from '../../../components/common/EmptyState'
 import ErrorState from '../../../components/common/ErrorState'
+import { DataSourceInfo } from '@/components/shared/DataSourceInfo'
 import { clearAuthTokens } from '../../../utils/auth-token'
 import ReportSummaryGrid, { KPIItem } from '@/components/ifrs9/ReportSummaryGrid'
 import { usePermission } from '@/hooks/usePermission'
@@ -1105,6 +1106,7 @@ function DashboardClient() {
                                                 Portfolio Exposure Trend
                                             </Typography>
                                         </Tooltip>
+                                        <DataSourceInfo debug={trendDebug} title="Portfolio Exposure Trend" />
                                         <Chip label={shortSourceName(trendDebug?.selectedSource)} size="small" variant="outlined" sx={{ fontWeight: 700, borderRadius: 2 }} />
                                     </Box>
                                     <Chip label="Historical" size="small" variant="outlined" sx={{ fontWeight: 600, borderRadius: 2 }} />
@@ -1134,6 +1136,7 @@ function DashboardClient() {
                                             ECL Distribution
                                         </Typography>
                                     </Tooltip>
+                                    <DataSourceInfo debug={summaryDebug} title="ECL Distribution" />
                                     <Chip label={shortSourceName(summaryDebug?.selectedSource)} size="small" variant="outlined" sx={{ fontWeight: 700, borderRadius: 2 }} />
                                 </Box>
                                 {/* RENDER PIE CHART */}
