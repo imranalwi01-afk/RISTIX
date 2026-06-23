@@ -707,7 +707,7 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
           No segmentation rules defined yet. Click Add New Rule to begin.
         </Alert>
       ) : (
-        <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
+        <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, overflowX: 'auto', overflowY: 'hidden' }}>
           <Table size="small">
             <TableHead>
               <TableRow sx={{ bgcolor: '#f1f5f9' }}>
