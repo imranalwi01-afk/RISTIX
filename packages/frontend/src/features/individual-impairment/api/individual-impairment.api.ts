@@ -18,6 +18,8 @@ export interface AssessmentWatchlistFilters {
   mode: string;
   page: number;
   limit: number;
+  cursor?: string;
+  paginationMode?: 'cursor' | 'offset';
 }
 
 export interface IndividualCustomerListFilters {
@@ -57,6 +59,8 @@ export async function fetchAssessmentWatchlist(params: AssessmentWatchlistFilter
     page: params.page,
     limit: params.limit,
     search: params.search,
+    cursor: params.cursor,
+    paginationMode: params.paginationMode,
     filter: {
       stage,
       impaired_flag: impairedFlag,

@@ -374,6 +374,8 @@ export const individualImpairmentAPI = {
       page?: number;
       limit?: number;
       search?: string;
+      cursor?: string;
+      paginationMode?: string;
       filter?: {
         stage?: number;
         impaired_flag?: 'I' | 'N';

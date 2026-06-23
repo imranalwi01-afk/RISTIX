@@ -192,6 +192,7 @@ function IndividualAssessmentWizardPage() {
     limit: 10,
     total: 0
   });
+  const cursorMapRef = useRef<Record<number, string | null>>({});
   const [filters, setFilters] = useState(FILTER_DEFAULTS);
 
   const buildWatchlistUrl = useCallback((next?: {
@@ -240,6 +241,8 @@ function IndividualAssessmentWizardPage() {
     priorityLevel: filters.priorityLevel,
     downloadDate: filters.downloadDate,
     mode,
+    cursor: cursorMapRef.current[pagination.page] ?? undefined,
+    paginationMode: 'cursor',
   }, watchlistEnabled);
   const summaryQuery = useAssessmentSummaryQuery(filters.downloadDate || undefined, mode, watchlistEnabled);
   const accountLookupQuery = useAssessmentAccountLookupQuery(
@@ -268,6 +271,13 @@ function IndividualAssessmentWizardPage() {
       setPagination((prev) => ({ ...prev, total: watchlistQuery.data?.total ?? 0 }));
     }
   }, [watchlistQuery.data?.total]);
+
+  useEffect(() => {
+    const nextCursor = watchlistQuery.data?.nextCursor;
+    if (nextCursor) {
+      cursorMapRef.current[pagination.page + 1] = nextCursor;
+    }
+  }, [watchlistQuery.data?.nextCursor, pagination.page]);
 
   useEffect(() => {
     if (watchlistUrlInitializedRef.current) return;
@@ -354,15 +364,18 @@ function IndividualAssessmentWizardPage() {
   };
 
   const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    cursorMapRef.current = {};
     setPagination(prev => ({ ...prev, limit: parseInt(event.target.value, 10), page: 0 }));
   };
 
   const handleFilterChange = (field: string, value: string) => {
+    cursorMapRef.current = {};
     setFilters(prev => ({ ...prev, [field]: value }));
     setPagination(prev => ({ ...prev, page: 0 }));
   };
 
   const handleResetFilters = () => {
+    cursorMapRef.current = {};
     skipNextWatchlistUrlSyncRef.current = true;
     router.replace(buildWatchlistUrl({ ...FILTER_DEFAULTS, page: 0, limit: pagination.limit }));
     setFilters(FILTER_DEFAULTS);
