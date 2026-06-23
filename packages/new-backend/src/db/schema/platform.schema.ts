@@ -1,6 +1,7 @@
-export * from './core'
-
-export * from './consultants.schema'
+// Platform DB only needs platform-level tables
+// DO NOT export tenant schemas here (core, audit, auth, approval, jobs, workflows)
+export { tenants, tenantsRelations, type Tenant, type NewTenant } from './core'
+export { consultants, type Consultant, type NewConsultant } from './consultants.schema'
 
 import {
     pgSchema,
@@ -165,32 +166,5 @@ export type NewPlatformUser = typeof platformUsers.$inferInsert
 // TYPE EXPORTS
 // =============================================================================
 
-// Re-export specific RBAC items as in index.ts to avoid "coreSchema" conflict
-export {
-    roles,
-    userRoles,
-    permissions,
-    rolePermissions,
-    permissionApprovalPolicies,
-    rolesRelations,
-    userRolesRelations,
-    permissionsRelations,
-    rolePermissionsRelations,
-    permissionApprovalPoliciesRelations,
-    type Role,
-    type NewRole,
-    type UserRole,
-    type NewUserRole,
-    type Permission,
-    type NewPermission,
-    type RolePermission,
-    type NewRolePermission,
-    type PermissionApprovalPolicy,
-    type NewPermissionApprovalPolicy,
-} from './rbac.schema'
-
-export * from './audit.schema'
-export * from './auth.schema'
-export * from './approval.schema'
-export * from './jobs.schema'
-export * from './workflows.schema'
+// Tenant-only schemas — removed from platform DB
+// RBAC (roles, permissions), audit, auth, approval, jobs, workflows all belong in tenant DB only
