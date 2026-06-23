@@ -498,7 +498,6 @@ export class Ifrs9CalculationsService {
             }
 
             const resolvedTenantId = await JobsRepository.resolveTenantId(tenantId)
-            await JobsRepository.ensureCoreTenantRow(resolvedTenantId)
 
             const [activeExecution] = await tenantDb
                 .select({
@@ -644,7 +643,6 @@ export class Ifrs9CalculationsService {
             }
 
             const resolvedTenantId = await JobsRepository.resolveTenantId(tenantId)
-            await JobsRepository.ensureCoreTenantRow(resolvedTenantId)
 
             const [activeExecution] = await tenantDb
                 .select({

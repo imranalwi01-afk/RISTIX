@@ -29,26 +29,6 @@ export const JobsRepository = {
         return resolved
     },
 
-    async ensureCoreTenantRow(tenantUuid: string): Promise<void> {
-        await platformConnection`
-            insert into core.tenants (id, code, name, slug, description, type, banking_mode, settings, is_active, created_at, updated_at)
-            select
-                t.id,
-                t.code,
-                t.name,
-                t.slug,
-                t.description,
-                t.type,
-                t.banking_mode,
-                coalesce(nullif(t.settings, ''), '{}')::jsonb,
-                t.is_active,
-                coalesce(t.created_at, now()),
-                coalesce(t.updated_at, now())
-            from platform_admin.tenants t
-            where t.id = ${tenantUuid}
-            on conflict (id) do nothing
-        `
-    },
     // =============================================================================
     // JOB DEFINITIONS
     // =============================================================================
@@ -76,7 +56,6 @@ export const JobsRepository = {
     async createDefinition(data: NewJobDefinition) {
         const tenantId = (data as any).tenantId
         const resolvedTenantId = await this.resolveTenantId(String(tenantId))
-        await this.ensureCoreTenantRow(resolvedTenantId)
         console.log(`[JobsRepository] createDefinition for tenant: ${resolvedTenantId}`);
         const [definition] = await db
             .insert(jobDefinitions)
@@ -159,7 +138,6 @@ export const JobsRepository = {
     async createExecution(data: NewJobExecution) {
         const tenantId = (data as any).tenantId
         const resolvedTenantId = await this.resolveTenantId(String(tenantId))
-        await this.ensureCoreTenantRow(resolvedTenantId)
         debugLog(`[JobsRepository] createExecution for tenant: ${resolvedTenantId}, data:`, data);
         try {
             const [execution] = await db

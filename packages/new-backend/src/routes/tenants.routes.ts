@@ -513,7 +513,7 @@ tenantsRoutes.openapi(
                     ...t,
                     createdAt: t.createdAt.toISOString(),
                     updatedAt: t.updatedAt.toISOString(),
-                    settings: t.settings as Record<string, unknown>
+                    settings: t.settings as unknown as Record<string, unknown>
                 })
             })
         )

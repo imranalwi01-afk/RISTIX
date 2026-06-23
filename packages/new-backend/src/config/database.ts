@@ -197,41 +197,4 @@ export async function ensureJobsTablesCompatibility(): Promise<void> {
         }
         console.warn('[ensureJobsTablesCompatibility] Could not create pgcrypto extension (insufficient privilege). Continuing...');
     }
-    await platformConnection.unsafe(`CREATE SCHEMA IF NOT EXISTS core;`)
-
-    await platformConnection.unsafe(`
-        CREATE TABLE IF NOT EXISTS core.tenants (
-            id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-            code varchar(50) NOT NULL,
-            name varchar(255) NOT NULL,
-            slug varchar(100),
-            description text,
-            type varchar(50) DEFAULT 'banking',
-            banking_mode varchar(20) DEFAULT 'conventional',
-            settings jsonb DEFAULT '{}'::jsonb,
-            is_active boolean NOT NULL DEFAULT true,
-            created_at timestamp NOT NULL DEFAULT now(),
-            updated_at timestamp NOT NULL DEFAULT now()
-        );
-    `)
-    await platformConnection.unsafe(`CREATE UNIQUE INDEX IF NOT EXISTS tenants_code_idx ON core.tenants(code);`)
-
-    await platformConnection.unsafe(`
-        INSERT INTO core.tenants (id, code, name, slug, description, type, banking_mode, settings, is_active, created_at, updated_at)
-        SELECT
-            t.id,
-            t.code,
-            t.name,
-            t.slug,
-            t.description,
-            t.type,
-            t.banking_mode,
-            COALESCE(NULLIF(t.settings, ''), '{}')::jsonb,
-            t.is_active,
-            COALESCE(t.created_at, now()),
-            COALESCE(t.updated_at, now())
-        FROM platform_admin.tenants t
-        ON CONFLICT (id) DO NOTHING;
-    `)
-
 }
