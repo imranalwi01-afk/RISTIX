@@ -1,5 +1,5 @@
 // types.ts – Shared interfaces for BaseIfrs9Report and sub-components
-import type { EnterpriseFilterDefinition } from '@/types/enterprise-table';
+import type { EnterpriseFilterDefinition, EnterprisePaginationMode } from '@/types/enterprise-table';
 
 export interface BaseIfrs9ReportProps {
   title: string;
@@ -9,6 +9,7 @@ export interface BaseIfrs9ReportProps {
   requiredParams: string[];
   optionalParams?: string[];
   supportsPagination?: boolean;
+  paginationMode?: EnterprisePaginationMode;
   supportsCharts?: boolean;
   headerIcon?: React.ReactNode;
   statusLabel?: string;

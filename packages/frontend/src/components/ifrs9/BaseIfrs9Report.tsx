@@ -62,6 +62,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   requiredParams,
   optionalParams = [],
   supportsPagination = false,
+  paginationMode,
   supportsCharts = false,
   headerIcon,
   statusLabel = 'Live Production Data',
@@ -131,7 +132,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
     resetView,
   } = useEnterpriseTableQuery({
     pageKey: `ifrs9-report:${reportType}`,
-    paginationMode: supportsPagination ? 'offset' : 'client',
+    paginationMode: paginationMode ?? (supportsPagination ? 'offset' : 'client'),
     initialPageSize: getDefaultFilters(reportType).limit ?? 20,
     syncUrl: supportsPagination,
   });
