@@ -67,66 +67,10 @@ export const menuItems = menuSchema.table('menu_items', {
     foreignKey({ columns: [table.parentId], foreignColumns: [table.id] }),
 ])
 
-// =============================================================================
-// MENU PERMISSIONS
-// =============================================================================
-export const menuPermissions = menuSchema.table('menu_permissions', {
-    id: uuid('id').primaryKey().defaultRandom(),
-    tenantId: uuid('tenant_id').notNull(),
-    menuItemId: uuid('menu_item_id').notNull().references(() => menuItems.id, { onDelete: 'cascade' }),
-    roleId: uuid('role_id').notNull(),
-    permissionType: varchar('permission_type', { length: 20 }).default('view'),
-    isAllowed: boolean('is_allowed').default(true),
-    conditions: jsonb('conditions'),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-    createdBy: uuid('created_by').notNull(),
-}, (table) => [
-    uniqueIndex('menu_perm_tenant_item_role').on(table.tenantId, table.menuItemId, table.roleId, table.permissionType),
-])
-
-// =============================================================================
-// MENU CONFIGURATIONS
-// =============================================================================
-export const menuConfigurations = menuSchema.table('menu_configurations', {
-    id: uuid('id').primaryKey().defaultRandom(),
-    tenantId: uuid('tenant_id').notNull(),
-    name: varchar('name', { length: 100 }).notNull(),
-    type: varchar('type', { length: 50 }).notNull(),
-    configuration: jsonb('configuration').notNull(),
-    isActive: boolean('is_active').default(true),
-    environment: varchar('environment', { length: 20 }).default('production'),
-    version: varchar('version', { length: 20 }).default('1.0.0'),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
-    createdBy: uuid('created_by').notNull(),
-    updatedBy: uuid('updated_by'),
-}, (table) => [
-    uniqueIndex('menu_config_tenant_name_env').on(table.tenantId, table.name, table.environment),
-])
-
-// =============================================================================
-// MENU ANALYTICS
-// =============================================================================
-export const menuAnalytics = menuSchema.table('menu_analytics', {
-    id: uuid('id').primaryKey().defaultRandom(),
-    tenantId: uuid('tenant_id').notNull(),
-    userId: uuid('user_id').notNull(),
-    menuItemId: uuid('menu_item_id').notNull().references(() => menuItems.id),
-    sessionId: uuid('session_id'),
-    actionType: varchar('action_type', { length: 50 }).notNull(),
-    timestamp: timestamp('timestamp', { withTimezone: true }).defaultNow(),
-    durationMs: integer('duration_ms'),
-    metadata: jsonb('metadata'),
-    ipAddress: text('ip_address'),
-    userAgent: text('user_agent'),
-}, (table) => [
-    index('menu_analytics_tenant_idx').on(table.tenantId),
-    index('menu_analytics_item_idx').on(table.menuItemId),
-])
+// Menu permissions live in tenant DB as core.menu_permissions, not in platform DB
+// Menu configurations and analytics are not yet implemented
 
 export type MenuCategory = typeof menuCategories.$inferSelect
 export type NewMenuCategory = typeof menuCategories.$inferInsert
 export type MenuItem = typeof menuItems.$inferSelect
 export type NewMenuItem = typeof menuItems.$inferInsert
-export type MenuPermission = typeof menuPermissions.$inferSelect
-export type NewMenuPermission = typeof menuPermissions.$inferInsert
