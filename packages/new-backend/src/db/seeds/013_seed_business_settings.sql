@@ -45,20 +45,20 @@ INSERT INTO ifrs9.frs9_param_commond (param_code, param_seq, value1, value2, val
 -- value1: Column Name, value2: Data Type, value3: Table Name
 INSERT INTO ifrs9.frs9_param_commond (param_code, param_seq, value1, value2, value3, paramdesc, createdby, createddate, createdhost) VALUES
 -- Product Table Columns
-('B0013', 1, 'CONTRACT_ID', 'string', 'frs9_param_product', 'Contract Identifier', 'SYSTEM', NOW(), 'localhost'),
-('B0013', 2, 'PRODUCT_TYPE', 'string', 'frs9_param_product', 'Product Type', 'SYSTEM', NOW(), 'localhost'),
-('B0013', 3, 'CURRENCY', 'string', 'frs9_param_product', 'Currency Code', 'SYSTEM', NOW(), 'localhost'),
-('B0013', 4, 'AMOUNT', 'number', 'frs9_param_product', 'Principal Amount', 'SYSTEM', NOW(), 'localhost'),
-('B0013', 5, 'INTEREST_RATE', 'number', 'frs9_param_product', 'Interest Rate', 'SYSTEM', NOW(), 'localhost'),
-('B0013', 6, 'START_DATE', 'date', 'frs9_param_product', 'Start Date', 'SYSTEM', NOW(), 'localhost'),
-('B0013', 8, 'IS_IMPAIRED', 'boolean', 'frs9_param_product', 'Impairment Status', 'SYSTEM', NOW(), 'localhost'),
+('B0013', 1, 'contract_id', 'string', 'frs9_param_product', 'Contract Identifier', 'SYSTEM', NOW(), 'localhost'),
+('B0013', 2, 'product_type', 'string', 'frs9_param_product', 'Product Type', 'SYSTEM', NOW(), 'localhost'),
+('B0013', 3, 'currency', 'string', 'frs9_param_product', 'Currency Code', 'SYSTEM', NOW(), 'localhost'),
+('B0013', 4, 'amount', 'number', 'frs9_param_product', 'Principal Amount', 'SYSTEM', NOW(), 'localhost'),
+('B0013', 5, 'interest_rate', 'number', 'frs9_param_product', 'Interest Rate', 'SYSTEM', NOW(), 'localhost'),
+('B0013', 6, 'start_date', 'date', 'frs9_param_product', 'Start Date', 'SYSTEM', NOW(), 'localhost'),
+('B0013', 8, 'is_impaired', 'boolean', 'frs9_param_product', 'Impairment Status', 'SYSTEM', NOW(), 'localhost'),
 
 -- Journal Table Columns
-('B0013', 10, 'JOURNAL_ID', 'string', 'frs9_param_journal', 'Journal Identifier', 'SYSTEM', NOW(), 'localhost'),
-('B0013', 11, 'ACCOUNT_CODE', 'string', 'frs9_param_journal', 'Account Code', 'SYSTEM', NOW(), 'localhost'),
-('B0013', 12, 'DEBIT_AMOUNT', 'number', 'frs9_param_journal', 'Debit Amount', 'SYSTEM', NOW(), 'localhost'),
-('B0013', 13, 'CREDIT_AMOUNT', 'number', 'frs9_param_journal', 'Credit Amount', 'SYSTEM', NOW(), 'localhost'),
-('B0013', 14, 'POSTING_DATE', 'date', 'frs9_param_journal', 'Posting Date', 'SYSTEM', NOW(), 'localhost');
+('B0013', 10, 'journal_id', 'string', 'frs9_param_journal', 'Journal Identifier', 'SYSTEM', NOW(), 'localhost'),
+('B0013', 11, 'account_code', 'string', 'frs9_param_journal', 'Account Code', 'SYSTEM', NOW(), 'localhost'),
+('B0013', 12, 'debit_amount', 'number', 'frs9_param_journal', 'Debit Amount', 'SYSTEM', NOW(), 'localhost'),
+('B0013', 13, 'credit_amount', 'number', 'frs9_param_journal', 'Credit Amount', 'SYSTEM', NOW(), 'localhost'),
+('B0013', 14, 'posting_date', 'date', 'frs9_param_journal', 'Posting Date', 'SYSTEM', NOW(), 'localhost');
 
 -- 3. B0014: Operators
 -- value1: Operator, value2: Data Type it applies to
@@ -96,8 +96,14 @@ INSERT INTO ifrs9.frs9_param_commond (param_code, param_seq, value1, value2, val
 -- value1: Value, value2: Column Name, value3: Table Name
 INSERT INTO ifrs9.frs9_param_commond (param_code, param_seq, value1, value2, value3, paramdesc, createdby, createddate, createdhost) VALUES
 -- Currencies
-('B0016', 4, 'IDR', 'CURRENCY', 'frs9_param_product', 'Indonesian Rupiah', 'SYSTEM', NOW(), 'localhost'),
-('B0016', 5, 'USD', 'CURRENCY', 'frs9_param_product', 'US Dollar', 'SYSTEM', NOW(), 'localhost');
+('B0016', 4, 'IDR', 'currency', 'frs9_param_product', 'Indonesian Rupiah', 'SYSTEM', NOW(), 'localhost'),
+('B0016', 5, 'USD', 'currency', 'frs9_param_product', 'US Dollar', 'SYSTEM', NOW(), 'localhost'),
+-- Account Status for frs9_master_account
+('B0016', 6, 'A', 'account_status', 'frs9_master_account', 'Active', 'SYSTEM', NOW(), 'localhost'),
+('B0016', 7, 'R', 'account_status', 'frs9_master_account', 'Restructure', 'SYSTEM', NOW(), 'localhost'),
+('B0016', 8, 'W', 'account_status', 'frs9_master_account', 'Write-off', 'SYSTEM', NOW(), 'localhost'),
+('B0016', 9, 'C', 'account_status', 'frs9_master_account', 'Close', 'SYSTEM', NOW(), 'localhost'),
+('B0016', 10, 'D', 'account_status', 'frs9_master_account', 'Default', 'SYSTEM', NOW(), 'localhost');
 
 -- 6. B0028: Data Source
 INSERT INTO ifrs9.frs9_param_commond (param_code, param_seq, value1, value2, value3, paramdesc, createdby, createddate, createdhost) VALUES

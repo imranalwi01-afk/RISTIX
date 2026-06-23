@@ -44,7 +44,7 @@ export default function AmortizationModulePage() {
   const detailSupported = resultsQuery.data?.detailSupported ?? false;
   const compatibilityMessage = resultsQuery.data?.compatibilityMessage ?? null;
   const loading = resultsQuery.isLoading || resultsQuery.isFetching;
-  const error = !resultsQuery.data?.success ? resultsQuery.data?.message || 'Failed to load amortization results' : null;
+  const error = resultsQuery.data && !resultsQuery.data.success ? (resultsQuery.data.message || 'Failed to load amortization results') : null;
 
   useEffect(() => {
     if (results.length === 0) {
@@ -73,7 +73,7 @@ export default function AmortizationModulePage() {
   const detailData = useMemo(() => detailQuery.data?.data ?? null, [detailQuery.data]);
   const detailLoading = detailSupported && (detailQuery.isLoading || detailQuery.isFetching);
   const detailError = useMemo(
-    () => (!detailQuery.data?.success ? detailQuery.data?.message || 'Failed to load amortization details' : null),
+    () => (detailQuery.data && !detailQuery.data.success ? (detailQuery.data.message || 'Failed to load amortization details') : null),
     [detailQuery.data],
   );
 

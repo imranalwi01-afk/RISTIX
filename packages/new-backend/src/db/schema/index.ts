@@ -34,16 +34,12 @@ export {
 // Audit logging
 export {
     auditLogs,
-    userActivityLogs,
     dataAccessLogs,
     calculationAuditLogs,
     auditLogsRelations,
-    userActivityLogsRelations,
     auditSchema,
     type AuditLog,
     type NewAuditLog,
-    type UserActivityLog,
-    type NewUserActivityLog,
     type DataAccessLog,
     type NewDataAccessLog,
     type CalculationAuditLog,

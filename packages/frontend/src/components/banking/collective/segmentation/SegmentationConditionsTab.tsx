@@ -308,11 +308,21 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
     setIsAdding(true);
   };
 
-  const handleEditStart = (index: number) => {
+  const handleEditStart = async (index: number) => {
     setEditingIndex(index);
     const ruleToEdit = rules[index];
     setEditForm({ ...ruleToEdit });
     setIsAdding(false);
+
+    // Ensure tables are loaded for the select dropdown
+    if (tables.length === 0) {
+      try {
+        const tablesRes = await api.banking.businessSettings.getTables();
+        setTables(normalizeListPayload(tablesRes));
+      } catch (err) {
+        console.error('Error loading tables on edit:', err);
+      }
+    }
 
     // Kick off metadata loads
     loadColumnsForTable(ruleToEdit.table_name);
@@ -367,7 +377,7 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
   };
 
   const generatedTableName = (
-    rules.find((rule) => String(rule.table_name || '').trim().length > 0)?.table_name || 'FRS9_MASTER_ACCOUNT'
+    rules.find((rule) => String(rule.table_name || '').trim().length > 0)?.table_name || 'frs9_master_account'
   ).toLowerCase();
   const editorValidationMessage = getRuleValidationMessage(editForm);
   const isEditorValid = !editorValidationMessage;
@@ -728,7 +738,7 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
           No segmentation rules defined yet. Click Add New Rule to begin.
         </Alert>
       ) : (
-        <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
+        <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, overflowX: 'auto', overflowY: 'hidden' }}>
           <Table size="small">
             <TableHead>
               <TableRow sx={{ bgcolor: '#f1f5f9' }}>

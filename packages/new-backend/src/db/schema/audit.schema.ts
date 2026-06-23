@@ -3,7 +3,6 @@ import {
     uuid,
     varchar,
     text,
-    boolean,
     integer,
     timestamp,
     jsonb,
@@ -82,50 +81,7 @@ export const auditLogs = auditSchema.table(
     ]
 )
 
-// =============================================================================
-// USER ACTIVITY LOGS TABLE
-// =============================================================================
-
-/**
- * User activity logs table definition.
- * Tracks granular user interactions, page views, and API calls for analytics.
- */
-export const userActivityLogs = auditSchema.table(
-    'user_activity_logs',
-    {
-        id: uuid('id').primaryKey().defaultRandom(),
-        userId: uuid('user_id').notNull(),
-        // tenantId: varchar('tenant_id', { length: 100 }), // Removed to prevent error
-        activityType: varchar('activity_type', { length: 100 }).notNull(),
-        activityDescription: text('activity_description'),
-
-        // Page navigation
-        pageUrl: varchar('page_url', { length: 1000 }),
-        pageTitle: varchar('page_title', { length: 500 }),
-        previousPage: varchar('previous_page', { length: 1000 }),
-
-        // API details
-        endpoint: varchar('endpoint', { length: 500 }),
-        method: varchar('method', { length: 10 }),
-        statusCode: integer('status_code'),
-        responseTimeMs: integer('response_time_ms'),
-
-        // Session and device
-        sessionId: varchar('session_id', { length: 255 }),
-        deviceInfo: jsonb('device_info'),
-        ipAddress: varchar('ip_address', { length: 45 }),
-        userAgent: text('user_agent'),
-
-        // Timestamps
-        createdAt: timestamp('created_at').notNull().defaultNow(),
-    },
-    (table) => [
-        index('user_activity_user_idx').on(table.userId),
-        // index('user_activity_tenant_idx').on(table.tenantId),
-        index('user_activity_type_idx').on(table.activityType),
-        index('user_activity_created_at_idx').on(table.createdAt),
-    ]
-)
+// user_activity_logs removed — consolidated into audit_logs
 
 // =============================================================================
 // DATA ACCESS LOGS TABLE
@@ -207,18 +163,7 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
     }),
 }))
 
-export const userActivityLogsRelations = relations(userActivityLogs, ({ one }) => ({
-    user: one(users, {
-        fields: [userActivityLogs.userId],
-        references: [users.id],
-    }),
-    /*
-    tenant: one(tenants, {
-        fields: [userActivityLogs.tenantId],
-        references: [tenants.id],
-    }),
-    */
-}))
+// userActivityLogsRelations removed
 
 // =============================================================================
 // TYPE EXPORTS
@@ -226,9 +171,6 @@ export const userActivityLogsRelations = relations(userActivityLogs, ({ one }) =
 
 export type AuditLog = typeof auditLogs.$inferSelect
 export type NewAuditLog = typeof auditLogs.$inferInsert
-
-export type UserActivityLog = typeof userActivityLogs.$inferSelect
-export type NewUserActivityLog = typeof userActivityLogs.$inferInsert
 
 export type DataAccessLog = typeof dataAccessLogs.$inferSelect
 export type NewDataAccessLog = typeof dataAccessLogs.$inferInsert

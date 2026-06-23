@@ -3,13 +3,10 @@ import { eq, and, or, asc, desc, count, ilike, gte, lte, sql } from 'drizzle-orm
 import { tenantDb as db } from '@/config'
 import {
     auditLogs,
-    userActivityLogs,
     dataAccessLogs,
     calculationAuditLogs,
     type AuditLog,
     type NewAuditLog,
-    type UserActivityLog,
-    type NewUserActivityLog,
     type DataAccessLog,
     type NewDataAccessLog,
     type CalculationAuditLog,
@@ -19,7 +16,7 @@ import {
 // =============================================================================
 // AUDIT REPOSITORY - Domain: Audit & Compliance Logging
 // =============================================================================
-// Handles: audit_logs, user_activity_logs, data_access_logs, calculation_audit_logs
+// Handles: audit_logs, data_access_logs, calculation_audit_logs
 // =============================================================================
 
 export const AuditRepository = {
@@ -86,52 +83,6 @@ export const AuditRepository = {
      */
     createAuditLog: async (data: NewAuditLog) => {
         const [log] = await db.insert(auditLogs).values(data).returning()
-        return log
-    },
-
-    // ---------------------------------------------------------------------------
-    // USER ACTIVITY LOG OPERATIONS
-    // ---------------------------------------------------------------------------
-
-    /**
-     * Find user activity logs with filtering.
-     * 
-     * @param options - Filter options (tenantId, userId, activityType, pagination)
-     * @returns An array of user activity logs
-     */
-    findUserActivityLogs: async (options: {
-        tenantId?: string
-        userId?: string
-        activityType?: string
-        limit?: number
-        offset?: number
-    }) => {
-        const conditions = []
-
-        if (options.tenantId) {
-            // conditions.push(eq(userActivityLogs.tenantId, options.tenantId)) // tenantId removed to prevent pg error
-        }
-        if (options.userId) conditions.push(eq(userActivityLogs.userId, options.userId))
-        if (options.activityType) conditions.push(eq(userActivityLogs.activityType, options.activityType))
-
-        const whereClause = conditions.length > 0 ? and(...conditions) : undefined
-
-        return db.query.userActivityLogs.findMany({
-            where: whereClause,
-            limit: options.limit ?? 100,
-            offset: options.offset ?? 0,
-            orderBy: [desc(userActivityLogs.createdAt)],
-        })
-    },
-
-    /**
-     * Create a new user activity log.
-     * 
-     * @param data - The activity log data
-     * @returns The created activity log
-     */
-    createUserActivityLog: async (data: NewUserActivityLog) => {
-        const [log] = await db.insert(userActivityLogs).values({ ...data, createdAt: new Date() }).returning()
         return log
     },
 

@@ -114,6 +114,7 @@ function IndividualReportsPage() {
   const [activeTab, setActiveTab] = useState(0);
   const [assessmentPage, setAssessmentPage] = useState(0);
   const [assessmentPageSize, setAssessmentPageSize] = useState(25);
+  const cursorMapRef = useRef<Record<number, string | null>>({});
   const [search, setSearch] = useState('');
   const [downloadDate, setDownloadDate] = useState('');
   const [status, setStatus] = useState('');
@@ -147,7 +148,7 @@ function IndividualReportsPage() {
     if (pathname.includes('/banking/individual/assessment')) {
       params.set('tab', 'individual-reports');
     }
-    params.set('paginationMode', 'offset');
+    params.set('paginationMode', 'cursor');
     params.set('reportPage', String(assessmentPage + 1));
     params.set('reportLimit', String(assessmentPageSize));
 
@@ -177,7 +178,16 @@ function IndividualReportsPage() {
     downloadDate: downloadDate || undefined,
     status: status || undefined,
     mode,
+    cursor: cursorMapRef.current[assessmentPage] ?? undefined,
+    paginationMode: 'cursor',
   });
+
+  useEffect(() => {
+    const nextCursor = assessmentListQuery.data?.nextCursor;
+    if (nextCursor) {
+      cursorMapRef.current[assessmentPage + 1] = nextCursor;
+    }
+  }, [assessmentListQuery.data?.nextCursor, assessmentPage]);
 
   const reportRows = reportHistoryQuery.data ?? [];
   const reportLoading = reportHistoryQuery.isLoading || reportHistoryQuery.isFetching;
@@ -387,6 +397,7 @@ function IndividualReportsPage() {
                 size="small"
                 value={search}
                 onChange={(e) => {
+                  cursorMapRef.current = {};
                   setSearch(e.target.value);
                   setAssessmentPage(0);
                 }}
@@ -397,6 +408,7 @@ function IndividualReportsPage() {
                 size="small"
                 value={downloadDate}
                 onChange={(e) => {
+                  cursorMapRef.current = {};
                   setDownloadDate(e.target.value);
                   setAssessmentPage(0);
                 }}
@@ -408,6 +420,7 @@ function IndividualReportsPage() {
                 size="small"
                 value={status}
                 onChange={(e) => {
+                  cursorMapRef.current = {};
                   setStatus(e.target.value);
                   setAssessmentPage(0);
                 }}

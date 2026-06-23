@@ -25,6 +25,8 @@ export function useIndividualReportAssessmentListQuery(
     downloadDate?: string;
     status?: string;
     mode: string;
+    cursor?: string;
+    paginationMode?: 'cursor' | 'offset';
   },
   enabled = true,
 ) {
@@ -37,6 +39,8 @@ export function useIndividualReportAssessmentListQuery(
         rows,
         total: Number(response?.meta?.total ?? response?.pagination?.total ?? rows.length),
         debug: response?.meta?.debug,
+        nextCursor: response?.pagination?.nextCursor ?? null,
+        hasNextPage: response?.pagination?.hasNextPage ?? false,
       };
     },
     enabled,

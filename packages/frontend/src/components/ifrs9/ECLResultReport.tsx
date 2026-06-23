@@ -763,7 +763,7 @@ const ECLResultReport: React.FC = () => {
       reportType="ecl-result"
       requiredParams={requiredParams}
       optionalParams={optionalParams}
-      supportsPagination={false}
+      supportsPagination={true} paginationMode="cursor"
       supportsCharts={true}
       onDataLoaded={handleDataLoaded}
     >

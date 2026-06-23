@@ -321,7 +321,7 @@ const LifetimeLGDReport: React.FC = () => {
       reportType="lifetime-lgd"
       requiredParams={requiredParams}
       optionalParams={optionalParams}
-      supportsPagination={true}
+      supportsPagination={true} paginationMode="cursor"
       supportsCharts={true}
       onDataLoaded={handleDataLoaded}
     >

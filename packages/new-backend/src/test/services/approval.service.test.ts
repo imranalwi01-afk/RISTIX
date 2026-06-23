@@ -2458,7 +2458,7 @@ describe('approval.service behavior', () => {
           ruleId: 44,
           query_group: 1,
           seq: 1,
-          table_name: 'FRS9_MASTER_ACCOUNT',
+          table_name: 'frs9_master_account',
           column_name: 'DPD',
           operator: '>=',
           value1: '90',

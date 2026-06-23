@@ -591,6 +591,7 @@ export default function SegmentationClient() {
           topOffset={BANKING_TOP_OFFSET}
         >
           <SegmentationDetail
+            key={selectedHeader.id}
             mode={detailMode}
             initialData={selectedHeader}
             onSubmit={(data, isDraft) => handleSave(data, isDraft)}

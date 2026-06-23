@@ -381,7 +381,7 @@ const EADModelReport: React.FC = () => {
       reportType="ead-model"
       requiredParams={requiredParams}
       optionalParams={optionalParams}
-      supportsPagination={false}
+      supportsPagination={true} paginationMode="cursor"
       supportsCharts={true}
       hideDataGrid={true}
       onDataLoaded={handleDataLoaded}

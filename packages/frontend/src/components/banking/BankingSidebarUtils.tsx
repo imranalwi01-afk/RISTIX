@@ -684,7 +684,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
             {
                 id: 'audit-logs',
                 label: 'User Activity',
-                href: '/banking/maintenance/audit',
+                href: '/banking/maintenance/user-activity',
                 icon: <History />,
                 description: 'System audit logs'
             },

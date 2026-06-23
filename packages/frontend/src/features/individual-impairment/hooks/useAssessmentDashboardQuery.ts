@@ -19,6 +19,8 @@ export function useAssessmentWatchlistQuery(params: AssessmentWatchlistFilters, 
         rows: toAssessmentWatchlist(response.data),
         total: Number(response.pagination?.total ?? response.meta?.total ?? response.total ?? 0),
         debug: response.meta?.debug,
+        nextCursor: response.pagination?.nextCursor ?? null,
+        hasNextPage: response.pagination?.hasNextPage ?? false,
       };
     },
     enabled,

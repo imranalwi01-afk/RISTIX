@@ -1,6 +1,6 @@
 import { tenantDb } from '../config/database'
-import { auditLogs, userActivityLogs, dataAccessLogs, calculationAuditLogs } from '../db/schema'
-import type { NewAuditLog, NewUserActivityLog, NewDataAccessLog, NewCalculationAuditLog } from '../db/schema'
+import { auditLogs, dataAccessLogs, calculationAuditLogs } from '../db/schema'
+import type { NewAuditLog, NewDataAccessLog, NewCalculationAuditLog } from '../db/schema'
 
 export const runAuditSafely = (operation: Promise<void>, context: string): void => {
     void operation.catch((error) => {
@@ -43,24 +43,6 @@ export const logAuditEvent = async (params: Partial<NewAuditLog>): Promise<void>
     } catch (error) {
         // Don't throw - audit logging should never break the main flow
         console.error('[Audit] Failed to log event:', error)
-    }
-}
-
-/**
- * Log user activity.
- * 
- * @param params - Partial user activity log data
- * @returns A Promise that resolves when the log is written
- */
-export const logUserActivity = async (params: Partial<NewUserActivityLog>): Promise<void> => {
-    try {
-        await tenantDb.insert(userActivityLogs).values({
-            userId: params.userId!,
-            activityType: params.activityType!,
-            ...params
-        })
-    } catch (error) {
-        console.error('[Audit] Failed to log user activity:', error)
     }
 }
 
