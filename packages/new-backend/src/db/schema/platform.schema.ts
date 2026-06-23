@@ -1,6 +1,5 @@
 // Platform DB only needs platform-level tables
 // DO NOT export tenant schemas here (core, audit, auth, approval, jobs, workflows)
-export { tenants, tenantsRelations, type Tenant, type NewTenant } from './core'
 export { consultants, type Consultant, type NewConsultant } from './consultants.schema'
 
 import {
@@ -59,6 +58,13 @@ export const platformTenantsRelations = relations(platformTenants, ({ many }) =>
 
 export type PlatformTenant = typeof platformTenants.$inferSelect
 export type NewPlatformTenant = typeof platformTenants.$inferInsert
+
+// tenants is an alias for platformTenants — maps to platform_admin.tenants (NOT core.tenants)
+// Imported by other schema files for relation references
+export const tenants = platformTenants;
+export const tenantsRelations = platformTenantsRelations;
+export type Tenant = PlatformTenant;
+export type NewTenant = NewPlatformTenant;
 
 // =============================================================================
 // PLATFORM EMAIL TEMPLATES TABLE
