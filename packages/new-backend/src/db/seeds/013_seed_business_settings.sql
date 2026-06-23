@@ -97,7 +97,13 @@ INSERT INTO ifrs9.frs9_param_commond (param_code, param_seq, value1, value2, val
 INSERT INTO ifrs9.frs9_param_commond (param_code, param_seq, value1, value2, value3, paramdesc, createdby, createddate, createdhost) VALUES
 -- Currencies
 ('B0016', 4, 'IDR', 'CURRENCY', 'frs9_param_product', 'Indonesian Rupiah', 'SYSTEM', NOW(), 'localhost'),
-('B0016', 5, 'USD', 'CURRENCY', 'frs9_param_product', 'US Dollar', 'SYSTEM', NOW(), 'localhost');
+('B0016', 5, 'USD', 'CURRENCY', 'frs9_param_product', 'US Dollar', 'SYSTEM', NOW(), 'localhost'),
+-- Account Status for FRS9_MASTER_ACCOUNT
+('B0016', 6, 'A', 'ACCOUNT_STATUS', 'FRS9_MASTER_ACCOUNT', 'Active', 'SYSTEM', NOW(), 'localhost'),
+('B0016', 7, 'R', 'ACCOUNT_STATUS', 'FRS9_MASTER_ACCOUNT', 'Restructure', 'SYSTEM', NOW(), 'localhost'),
+('B0016', 8, 'W', 'ACCOUNT_STATUS', 'FRS9_MASTER_ACCOUNT', 'Write-off', 'SYSTEM', NOW(), 'localhost'),
+('B0016', 9, 'C', 'ACCOUNT_STATUS', 'FRS9_MASTER_ACCOUNT', 'Close', 'SYSTEM', NOW(), 'localhost'),
+('B0016', 10, 'D', 'ACCOUNT_STATUS', 'FRS9_MASTER_ACCOUNT', 'Default', 'SYSTEM', NOW(), 'localhost');
 
 -- 6. B0028: Data Source
 INSERT INTO ifrs9.frs9_param_commond (param_code, param_seq, value1, value2, value3, paramdesc, createdby, createddate, createdhost) VALUES
