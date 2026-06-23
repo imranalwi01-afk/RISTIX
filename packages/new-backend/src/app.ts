@@ -107,7 +107,9 @@ export function createApp() {
                     'http://127.0.0.1:4231',
                     'http://localhost:4231',
                     'http://[::1]:4231',
-                    'http://host.docker.internal:4231'
+                    'http://host.docker.internal:4231',
+                    'https://iaf-ifrs.danafin.com',
+                    'https://iaf-ifrs-be.danafin.com'
                 )
                 const normalizedOrigins = Array.from(new Set(allowedOrigins))
                 const normalizedOrigin = origin ? origin.trim().replace(/\/+$/, '') : origin

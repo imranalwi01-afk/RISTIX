@@ -16,7 +16,7 @@ const envSchema = z.object({
     HOST: z.string().default('0.0.0.0'),
 
     // CORS Configuration
-    CORS_ORIGINS: z.string().default('http://localhost:4231,http://127.0.0.1:4231,http://[::1]:4231,http://host.docker.internal:4231,http://local.danafin.com:4231,https://iaf-ifrs.ifrspro.id,https://iaf-ifrs-be.ifrspro.id'),
+    CORS_ORIGINS: z.string().default('http://localhost:4231,http://127.0.0.1:4231,http://[::1]:4231,http://host.docker.internal:4231,http://local.danafin.com:4231,https://iaf-ifrs.ifrspro.id,https://iaf-ifrs-be.ifrspro.id,https://iaf-ifrs.danafin.com,https://iaf-ifrs-be.danafin.com'),
 
     // Database Configuration (Generic)
     DB_HOST: z.string().default('localhost'),

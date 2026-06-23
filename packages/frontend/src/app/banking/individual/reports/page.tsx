@@ -114,7 +114,7 @@ function IndividualReportsPage() {
   const [activeTab, setActiveTab] = useState(0);
   const [assessmentPage, setAssessmentPage] = useState(0);
   const [assessmentPageSize, setAssessmentPageSize] = useState(25);
-  const cursorMapRef = useRef<Record<number, string | null>>({});
+  const [cursorMap, setCursorMap] = useState<Record<number, string>>({});
   const [search, setSearch] = useState('');
   const [downloadDate, setDownloadDate] = useState('');
   const [status, setStatus] = useState('');
@@ -178,14 +178,14 @@ function IndividualReportsPage() {
     downloadDate: downloadDate || undefined,
     status: status || undefined,
     mode,
-    cursor: cursorMapRef.current[assessmentPage] ?? undefined,
+    cursor: assessmentPage > 0 ? cursorMap[assessmentPage - 1] : undefined,
     paginationMode: 'cursor',
   });
 
   useEffect(() => {
     const nextCursor = assessmentListQuery.data?.nextCursor;
     if (nextCursor) {
-      cursorMapRef.current[assessmentPage + 1] = nextCursor;
+      setCursorMap(prev => ({ ...prev, [assessmentPage]: nextCursor }));
     }
   }, [assessmentListQuery.data?.nextCursor, assessmentPage]);
 
@@ -397,7 +397,7 @@ function IndividualReportsPage() {
                 size="small"
                 value={search}
                 onChange={(e) => {
-                  cursorMapRef.current = {};
+                  setCursorMap({});
                   setSearch(e.target.value);
                   setAssessmentPage(0);
                 }}
@@ -408,7 +408,7 @@ function IndividualReportsPage() {
                 size="small"
                 value={downloadDate}
                 onChange={(e) => {
-                  cursorMapRef.current = {};
+                  setCursorMap({});
                   setDownloadDate(e.target.value);
                   setAssessmentPage(0);
                 }}
@@ -420,7 +420,7 @@ function IndividualReportsPage() {
                 size="small"
                 value={status}
                 onChange={(e) => {
-                  cursorMapRef.current = {};
+                  setCursorMap({});
                   setStatus(e.target.value);
                   setAssessmentPage(0);
                 }}

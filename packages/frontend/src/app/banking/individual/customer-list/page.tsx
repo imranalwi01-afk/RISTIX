@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
   Box,
   Button,
@@ -30,7 +30,9 @@ export default function IndividualCustomerListPage() {
   const [dateTo, setDateTo] = useState('');
 
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 25 });
-  const cursorMapRef = useRef<Record<number, string | null>>({});
+  const [cursorMap, setCursorMap] = useState<Record<number, string>>({});
+
+  const currentCursor = cursorMap[paginationModel.page - 1];
 
   const customerListQuery = useCustomerListQuery({
     page: paginationModel.page + 1,
@@ -38,7 +40,7 @@ export default function IndividualCustomerListPage() {
     search: search || undefined,
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
-    cursor: cursorMapRef.current[paginationModel.page] ?? undefined,
+    cursor: paginationModel.page > 0 ? currentCursor : undefined,
     paginationMode: 'cursor',
   });
 
@@ -49,12 +51,12 @@ export default function IndividualCustomerListPage() {
   useEffect(() => {
     const nextCursor = customerListQuery.data?.nextCursor;
     if (nextCursor) {
-      cursorMapRef.current[paginationModel.page + 1] = nextCursor;
+      setCursorMap(prev => ({ ...prev, [paginationModel.page]: nextCursor }));
     }
   }, [customerListQuery.data?.nextCursor, paginationModel.page]);
 
   const handleApply = () => {
-    cursorMapRef.current = {};
+    setCursorMap({});
     setSearch(searchDraft.trim());
     setDateFrom(dateFromDraft);
     setDateTo(dateToDraft);
@@ -62,7 +64,7 @@ export default function IndividualCustomerListPage() {
   };
 
   const handleClear = () => {
-    cursorMapRef.current = {};
+    setCursorMap({});
     setSearchDraft('');
     setDateFromDraft('');
     setDateToDraft('');
