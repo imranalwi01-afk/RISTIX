@@ -293,7 +293,7 @@ export default function PageContent() {
         ?? boolFromValue3
         ?? parseBooleanSetting(selectedDetail?.value1 ?? selectedDetail?.value2 ?? selectedDetail?.paramdesc ?? '', true);
       setCurrencySymbolEnabled(resolvedValue);
-      setCurrencySymbolDetailId(selectedDetail?.pkid ?? null);
+      setCurrencySymbolDetailId(selectedDetail?.id ?? null);
       setCurrencySettingDirty(false);
       if (typeof window !== 'undefined') {
         window.localStorage.setItem(LOCAL_CURRENCY_SYMBOL_KEY, resolvedValue ? 'true' : 'false');
@@ -374,8 +374,8 @@ export default function PageContent() {
       }
       const prioritized = sortDetailLatestFirst(details);
 
-      if (selectedDetail?.pkid) {
-        await appSettingsApi.updateDetail(selectedDetail.pkid, {
+      if (selectedDetail?.id) {
+        await appSettingsApi.updateDetail(selectedDetail.id, {
           value1: nextValue,
           value2: selectedDetail?.value2 || '',
           value3: selectedDetail?.value3 || '',
@@ -394,7 +394,7 @@ export default function PageContent() {
       invalidateAppSettingsCache(CURRENCY_SYMBOL_PARAM_CODE);
       // Verify persisted state from server to prevent UI drift/local-only illusion.
       const verifiedSetting = await appSettingsApi.getByCode(targetCode);
-      const verifiedDetail = resolveCurrencySettingDetail(Array.isArray(verifiedSetting?.details) ? verifiedSetting.details : [], selectedDetail?.pkid ?? null);
+      const verifiedDetail = resolveCurrencySettingDetail(Array.isArray(verifiedSetting?.details) ? verifiedSetting.details : [], selectedDetail?.id ?? null);
       const verifiedBool = parseBooleanToken(verifiedDetail?.value1)
         ?? parseBooleanToken(verifiedDetail?.value2)
         ?? parseBooleanToken(verifiedDetail?.value3)
@@ -411,7 +411,7 @@ export default function PageContent() {
         detail: { showCurrencySymbol: currencySymbolEnabled },
       }));
       setCurrencySymbolEnabled(currencySymbolEnabled);
-      setCurrencySymbolDetailId(verifiedDetail?.pkid ?? selectedDetail?.pkid ?? null);
+      setCurrencySymbolDetailId(verifiedDetail?.id ?? selectedDetail?.id ?? null);
       setCurrencySettingDirty(false);
       setSuccess('Display setting saved. Currency symbol updated globally.');
     } catch (err) {
