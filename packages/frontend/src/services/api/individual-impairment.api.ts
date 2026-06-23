@@ -103,6 +103,7 @@ export const individualImpairmentAPI = {
     page?: number;
     limit?: number;
     offset?: number;
+    cursor?: string;
     paginationMode?: 'offset' | 'cursor';
   }) => {
     const response = await apiClient.get('/banking/individual/impairment/reports', { params });

@@ -66,6 +66,7 @@ const CUSTOMER_LIST_QUERY_CONFIG: ListQueryConfig = {
 const INDIVIDUAL_REPORT_LIST_QUERY_CONFIG: ListQueryConfig = {
     defaultLimit: 25,
     maxLimit: 200,
+    paginationMode: 'cursor',
     defaultSort: [{ field: 'downloadDate', direction: 'desc' }],
     searchableColumns: ['accountNumber', 'cifName', 'cifNumber'],
     filterableColumns: ['reportPeriod', 'dateFrom', 'dateTo', 'status', 'impaired_flag', 'account_number', 'cif_name'],
@@ -735,7 +736,7 @@ export class IndividualImpairmentController {
     }
 
     // ================= REPORTS =================
-    async getReports(c: Context) {
+        async getReports(c: Context) {
         try {
             const user = c.get('user');
             if (!user?.tenantId) return this.unauthorized(c);
@@ -754,13 +755,23 @@ export class IndividualImpairmentController {
                 cifName: stringFilter(filters.cif_name),
                 limit: query.limit,
                 offset: query.offset,
+                cursor: query.cursor,
+                paginationMode: query.paginationMode,
                 sort: query.sort,
             });
+
+            const pagination = query.paginationMode === 'cursor'
+                ? buildCursorPagination(query, {
+                    nextCursor: result.nextCursor ?? null,
+                    hasNextPage: Boolean(result.hasMore),
+                    total: result.total ?? 0,
+                })
+                : buildOffsetPagination(query, result.total ?? 0);
 
             return c.json(buildListResponse(
                 result.data,
                 query,
-                buildOffsetPagination(query, result.total ?? 0),
+                pagination,
                 {
                     debug: {
                         endpoint: `GET ${getIndividualImpairmentApiBase(c)}/reports`,

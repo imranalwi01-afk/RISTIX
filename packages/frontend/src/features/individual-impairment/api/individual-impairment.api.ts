@@ -151,6 +151,8 @@ export async function fetchIndividualReportAssessmentList(params: {
   mode: string;
   downloadDate?: string;
   status?: string;
+  cursor?: string;
+  paginationMode?: 'cursor' | 'offset';
 }) {
   return individualImpairmentFlatAPI.getReports({
     page: params.page,
@@ -159,6 +161,7 @@ export async function fetchIndividualReportAssessmentList(params: {
     dateFrom: params.downloadDate,
     dateTo: params.downloadDate,
     status: params.status,
-    paginationMode: 'offset',
+    cursor: params.cursor,
+    paginationMode: params.paginationMode ?? 'offset',
   });
 }

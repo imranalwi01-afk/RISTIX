@@ -92,6 +92,7 @@ export function IndividualReportsSection() {
   const mode = searchParams.get('mode') || 'conventional';
   const initializedFromUrlRef = useRef(false);
   const skipNextUrlSyncRef = useRef(false);
+  const cursorMapRef = useRef<Record<number, string | null>>({});
 
   const [activeTab, setActiveTab] = useState(0);
   const [assessmentPage, setAssessmentPage] = useState(0);
@@ -159,7 +160,16 @@ export function IndividualReportsSection() {
     downloadDate: downloadDate || undefined,
     status: status || undefined,
     mode,
+    cursor: cursorMapRef.current[assessmentPage] ?? undefined,
+    paginationMode: 'cursor',
   });
+
+  useEffect(() => {
+    const nextCursor = assessmentListQuery.data?.nextCursor;
+    if (nextCursor) {
+      cursorMapRef.current[assessmentPage + 1] = nextCursor;
+    }
+  }, [assessmentListQuery.data?.nextCursor, assessmentPage]);
 
   const reportRows = reportHistoryQuery.data ?? [];
   const reportLoading = reportHistoryQuery.isLoading || reportHistoryQuery.isFetching;
@@ -373,6 +383,7 @@ export function IndividualReportsSection() {
                 size="small"
                 value={search}
                 onChange={(e) => {
+                  cursorMapRef.current = {};
                   setSearch(e.target.value);
                   setAssessmentPage(0);
                 }}
@@ -383,6 +394,7 @@ export function IndividualReportsSection() {
                 size="small"
                 value={downloadDate}
                 onChange={(e) => {
+                  cursorMapRef.current = {};
                   setDownloadDate(e.target.value);
                   setAssessmentPage(0);
                 }}
@@ -394,6 +406,7 @@ export function IndividualReportsSection() {
                 size="small"
                 value={status}
                 onChange={(e) => {
+                  cursorMapRef.current = {};
                   setStatus(e.target.value);
                   setAssessmentPage(0);
                 }}
