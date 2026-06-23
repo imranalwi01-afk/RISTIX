@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { eq, and, desc, sql } from 'drizzle-orm'
-import { db, platformConnection } from '@/config/database'
+import { tenantDb as db, platformConnection } from '@/config/database'
 import { debugLog } from '@/lib/debug-logger'
 import {
     jobDefinitions,

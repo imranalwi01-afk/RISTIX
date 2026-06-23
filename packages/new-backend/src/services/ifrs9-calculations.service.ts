@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { db, getDatabase, legacyDb } from '../config/database';
+import { getDatabase, legacyDb, tenantDb } from '../config/database';
 import { sql, eq, desc, and, inArray } from 'drizzle-orm';
 import { frs9ImpCaResultH, jobExecutions, frs9MasterAccount, frs9PrcDate, frs9ImpCaEclConfigh, frs9ParamSegmenth, frs9EclSummary } from '../db/schema';
 import { JobsRepository } from '../repositories/jobs.repository';
@@ -500,7 +500,7 @@ export class Ifrs9CalculationsService {
             const resolvedTenantId = await JobsRepository.resolveTenantId(tenantId)
             await JobsRepository.ensureCoreTenantRow(resolvedTenantId)
 
-            const [activeExecution] = await db
+            const [activeExecution] = await tenantDb
                 .select({
                     id: jobExecutions.id,
                     startTime: jobExecutions.startTime,
@@ -646,7 +646,7 @@ export class Ifrs9CalculationsService {
             const resolvedTenantId = await JobsRepository.resolveTenantId(tenantId)
             await JobsRepository.ensureCoreTenantRow(resolvedTenantId)
 
-            const [activeExecution] = await db
+            const [activeExecution] = await tenantDb
                 .select({
                     id: jobExecutions.id,
                     startTime: jobExecutions.startTime,
