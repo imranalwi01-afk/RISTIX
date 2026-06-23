@@ -500,10 +500,11 @@ function DashboardClient() {
             // Load user activities
             if (user?.id) {
                 try {
-                    const activityRes = await fetch(`/user-activity/activities?userId=${user.id}&limit=5`);
+                    const activityRes = await fetch(`/api/v1/user-activity/activities?userId=${user.id}&limit=5`);
                     if (activityRes.ok) {
                         const activityData = await activityRes.json();
-                        const items: UserActivityItem[] = activityData?.data || activityData || [];
+                        const unwrapped = activityData.success ? activityData.data : activityData;
+                        const items: UserActivityItem[] = unwrapped?.activities || unwrapped || [];
                         setActivities(items.map((a: UserActivityItem) => ({
                             id: a.id,
                             icon: getActivityIcon(a.activityType, a.actionResult),
