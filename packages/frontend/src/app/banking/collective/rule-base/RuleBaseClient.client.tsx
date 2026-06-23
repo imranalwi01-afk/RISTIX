@@ -389,7 +389,8 @@ export default function PageContent() {
     }
     setLoadingColumnValues(true);
     try {
-      const values = await bankingAPI.ruleBaseSetting.getBusinessSettingsValues(tableName, columnName);
+      const response = await bankingAPI.businessSettings.getColumnValues(columnName, tableName);
+      const values = response?.data ?? response;
       setColumnValueOptions(Array.isArray(values) ? values : []);
     } catch (err) {
       console.error('Error loading column values:', err);
