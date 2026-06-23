@@ -308,11 +308,21 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
     setIsAdding(true);
   };
 
-  const handleEditStart = (index: number) => {
+  const handleEditStart = async (index: number) => {
     setEditingIndex(index);
     const ruleToEdit = rules[index];
     setEditForm({ ...ruleToEdit });
     setIsAdding(false);
+
+    // Ensure tables are loaded for the select dropdown
+    if (tables.length === 0) {
+      try {
+        const tablesRes = await api.banking.businessSettings.getTables();
+        setTables(normalizeListPayload(tablesRes));
+      } catch (err) {
+        console.error('Error loading tables on edit:', err);
+      }
+    }
 
     // Kick off metadata loads
     loadColumnsForTable(ruleToEdit.table_name);
