@@ -222,12 +222,14 @@ export default function PageContent() {
   const [headerColumnOptions, setHeaderColumnOptions] = useState<string[]>([]);
   const [detailColumnOptions, setDetailColumnOptions] = useState<string[]>([]);
   const [detailOperatorOptions, setDetailOperatorOptions] = useState<string[]>([]);
+  const [detailColumnValues, setDetailColumnValues] = useState<string[]>([]);
   const [metadataLoading, setMetadataLoading] = useState({
     tables: false,
     headerColumns: false,
     detailColumns: false,
     detailDataType: false,
-    detailOperators: false
+    detailOperators: false,
+    detailValues: false
   });
   const headerValidationMessage = getRuleBaseHeaderValidationMessage(headerFormData);
   const detailValidationMessage = getRuleBaseDetailValidationMessage(detailFormData);
@@ -354,16 +356,19 @@ export default function PageContent() {
   const loadDetailDataTypeAndOperators = useCallback(async (tableName: string, columnName: string) => {
     if (!tableName || !columnName) {
       setDetailOperatorOptions([]);
+      setDetailColumnValues([]);
       setDetailFormData(prev => ({ ...prev, data_type: '', operator: '', value1: '', value2: '' }));
       return;
     }
 
-    setMetadataLoading(prev => ({ ...prev, detailDataType: true, detailOperators: true }));
+    setMetadataLoading(prev => ({ ...prev, detailDataType: true, detailOperators: true, detailValues: true }));
     try {
       const dataTypeResponse = await bankingAPI.businessSettings.getDataType(columnName, tableName);
       const dataType = normalizeDataTypePayload(dataTypeResponse);
       const operatorResponse = await bankingAPI.businessSettings.getOperators(dataType || 'VARCHAR');
       const operators = normalizeListPayload(operatorResponse);
+      const valuesResponse = await bankingAPI.businessSettings.getColumnValues(columnName, tableName);
+      const values = normalizeListPayload(valuesResponse);
 
       setDetailFormData(prev => ({
         ...prev,
@@ -371,12 +376,14 @@ export default function PageContent() {
         operator: operators.includes(String(prev.operator || '')) ? String(prev.operator || '') : prev.operator ? '' : String(prev.operator || '')
       }));
       setDetailOperatorOptions(operators);
+      setDetailColumnValues(values);
     } catch (err) {
-      console.error('❌ Error loading detail data type/operators:', err);
+      console.error('❌ Error loading detail data type/operators/values:', err);
       setDetailOperatorOptions([]);
+      setDetailColumnValues([]);
       setDetailFormData(prev => ({ ...prev, data_type: '', operator: '' }));
     } finally {
-      setMetadataLoading(prev => ({ ...prev, detailDataType: false, detailOperators: false }));
+      setMetadataLoading(prev => ({ ...prev, detailDataType: false, detailOperators: false, detailValues: false }));
     }
   }, []);
 
@@ -1212,11 +1219,13 @@ export default function PageContent() {
         tableOptions={tableOptions}
         detailColumnOptions={detailColumnOptions}
         detailOperatorOptions={detailOperatorOptions}
+        detailColumnValues={detailColumnValues}
         metadataLoading={{
           tables: metadataLoading.tables,
           detailColumns: metadataLoading.detailColumns,
           detailDataType: metadataLoading.detailDataType,
           detailOperators: metadataLoading.detailOperators,
+          detailValues: metadataLoading.detailValues,
         }}
         onClose={() => setDetailDialogOpen(false)}
         onSave={handleSaveDetail}

@@ -15,6 +15,7 @@ import {
   MenuItem,
   Select,
   TextField,
+  Autocomplete
 } from '@mui/material';
 import type { RuleBaseDetail } from '../types';
 
@@ -35,11 +36,13 @@ interface RuleBaseDetailDialogProps {
   tableOptions: string[];
   detailColumnOptions: string[];
   detailOperatorOptions: string[];
+  detailColumnValues?: string[];
   metadataLoading: {
     tables: boolean;
     detailColumns: boolean;
     detailDataType: boolean;
     detailOperators: boolean;
+    detailValues?: boolean;
   };
   onClose: () => void;
   onSave: () => void;
@@ -61,6 +64,7 @@ function RuleBaseDetailDialogComponent({
   tableOptions,
   detailColumnOptions,
   detailOperatorOptions,
+  detailColumnValues = [],
   metadataLoading,
   onClose,
   onSave,
@@ -69,6 +73,20 @@ function RuleBaseDetailDialogComponent({
   onDetailColumnChange,
   onDetailOperatorChange,
 }: RuleBaseDetailDialogProps) {
+
+  const isSetOperator = (operator: string) => ['IN', 'NOT IN'].includes(String(operator || '').toUpperCase());
+  const isBetweenOperator = (operator: string) => String(operator || '').toUpperCase() === 'BETWEEN';
+
+  const getDataKind = (dataType: string) => {
+    const normalized = String(dataType || '').trim().toUpperCase();
+    if (['DATE', 'DATETIME', 'TIMESTAMP'].includes(normalized)) return 'date';
+    if (['NUMBER', 'NUMERIC', 'INTEGER', 'INT', 'DECIMAL', 'FLOAT', 'DOUBLE'].includes(normalized)) return 'number';
+    if (['BOOLEAN', 'BOOL', 'BIT'].includes(normalized)) return 'boolean';
+    if (['VARCHAR', 'CHAR', 'STRING', 'TEXT'].includes(normalized)) return 'varchar';
+    return 'unknown';
+  };
+
+  const currentDataKind = getDataKind(detailFormData.data_type || '');
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
@@ -175,24 +193,128 @@ function RuleBaseDetailDialogComponent({
               ))}
             </Select>
           </FormControl>
-          <TextField
-            label="Value 1"
-            value={detailFormData.value1 || ''}
-            onChange={(e) => onDetailFormChange({ ...detailFormData, value1: e.target.value })}
-            fullWidth
-            disabled={['IS NULL', 'IS NOT NULL'].includes(String(detailFormData.operator || '').toUpperCase())}
-            placeholder="Primary comparison value"
-            data-testid="val1-field"
-          />
-          <TextField
-            label="Value 2"
-            value={detailFormData.value2 || ''}
-            onChange={(e) => onDetailFormChange({ ...detailFormData, value2: e.target.value })}
-            fullWidth
-            disabled={String(detailFormData.operator || '').toUpperCase() !== 'BETWEEN'}
-            placeholder="Secondary value (for BETWEEN, etc.)"
-            data-testid="val2-field"
-          />
+          {isSetOperator(detailFormData.operator || '') && currentDataKind === 'varchar' ? (
+            <Autocomplete
+              multiple
+              freeSolo
+              options={detailColumnValues}
+              value={String(detailFormData.value1 || '')
+                .split(',')
+                .map((value) => value.trim())
+                .filter(Boolean)}
+              onChange={(_, newValues) =>
+                onDetailFormChange({
+                  ...detailFormData,
+                  value1: newValues
+                    .map((value) => String(value).trim())
+                    .filter(Boolean)
+                    .join(',')
+                })
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Value 1"
+                  placeholder="Select one or more values..."
+                  fullWidth
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {metadataLoading.detailValues ? <CircularProgress color="inherit" size={20} /> : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                  data-testid="val1-field"
+                />
+              )}
+              sx={{ gridColumn: isBetweenOperator(detailFormData.operator || '') ? 'span 1' : 'span 2' }}
+            />
+          ) : currentDataKind === 'date' ? (
+            <TextField
+              label={isBetweenOperator(detailFormData.operator || '') ? 'Start Date (Value 1)' : 'Date (Value 1)'}
+              type="date"
+              value={detailFormData.value1 || ''}
+              onChange={(e) => onDetailFormChange({ ...detailFormData, value1: e.target.value })}
+              fullWidth
+              slotProps={{ inputLabel: { shrink: true } }}
+              disabled={['IS NULL', 'IS NOT NULL'].includes(String(detailFormData.operator || '').toUpperCase())}
+              data-testid="val1-field"
+              sx={{ gridColumn: isBetweenOperator(detailFormData.operator || '') ? 'span 1' : 'span 2' }}
+            />
+          ) : currentDataKind === 'number' ? (
+            <TextField
+              label={isSetOperator(detailFormData.operator || '') ? 'Value List 1' : 'Value 1'}
+              type={isSetOperator(detailFormData.operator || '') ? 'text' : 'number'}
+              value={detailFormData.value1 || ''}
+              onChange={(e) => onDetailFormChange({ ...detailFormData, value1: e.target.value })}
+              fullWidth
+              placeholder={isSetOperator(detailFormData.operator || '') ? 'e.g. 10,20,30' : 'Primary comparison value'}
+              slotProps={{ htmlInput: isSetOperator(detailFormData.operator || '') ? { inputMode: 'text' } : { inputMode: 'decimal', step: 'any' } }}
+              disabled={['IS NULL', 'IS NOT NULL'].includes(String(detailFormData.operator || '').toUpperCase())}
+              data-testid="val1-field"
+              sx={{ gridColumn: isBetweenOperator(detailFormData.operator || '') ? 'span 1' : 'span 2' }}
+            />
+          ) : currentDataKind === 'boolean' ? (
+            <FormControl fullWidth sx={{ gridColumn: isBetweenOperator(detailFormData.operator || '') ? 'span 1' : 'span 2' }}>
+              <InputLabel>Value 1</InputLabel>
+              <Select
+                value={String(detailFormData.value1 || '')}
+                onChange={(e) => onDetailFormChange({ ...detailFormData, value1: e.target.value })}
+                label="Value 1"
+                disabled={['IS NULL', 'IS NOT NULL'].includes(String(detailFormData.operator || '').toUpperCase())}
+                data-testid="val1-field"
+              >
+                <MenuItem value="1">True</MenuItem>
+                <MenuItem value="0">False</MenuItem>
+              </Select>
+            </FormControl>
+          ) : (
+            <TextField
+              label="Value 1"
+              value={detailFormData.value1 || ''}
+              onChange={(e) => onDetailFormChange({ ...detailFormData, value1: e.target.value })}
+              fullWidth
+              disabled={['IS NULL', 'IS NOT NULL'].includes(String(detailFormData.operator || '').toUpperCase())}
+              placeholder="Primary comparison value"
+              data-testid="val1-field"
+              sx={{ gridColumn: isBetweenOperator(detailFormData.operator || '') ? 'span 1' : 'span 2' }}
+            />
+          )}
+
+          {isBetweenOperator(detailFormData.operator || '') && (
+            currentDataKind === 'date' ? (
+              <TextField
+                label="End Date (Value 2)"
+                type="date"
+                value={detailFormData.value2 || ''}
+                onChange={(e) => onDetailFormChange({ ...detailFormData, value2: e.target.value })}
+                fullWidth
+                slotProps={{ inputLabel: { shrink: true } }}
+                data-testid="val2-field"
+              />
+            ) : currentDataKind === 'number' ? (
+              <TextField
+                label="End Value (Value 2)"
+                type="number"
+                value={detailFormData.value2 || ''}
+                onChange={(e) => onDetailFormChange({ ...detailFormData, value2: e.target.value })}
+                fullWidth
+                slotProps={{ htmlInput: { inputMode: 'decimal', step: 'any' } }}
+                data-testid="val2-field"
+              />
+            ) : (
+              <TextField
+                label="Value 2"
+                value={detailFormData.value2 || ''}
+                onChange={(e) => onDetailFormChange({ ...detailFormData, value2: e.target.value })}
+                fullWidth
+                placeholder="Secondary value (for BETWEEN)"
+                data-testid="val2-field"
+              />
+            )
+          )}
           <FormControl fullWidth required>
             <InputLabel>Condition</InputLabel>
             <Select
