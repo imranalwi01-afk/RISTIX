@@ -1,7 +1,7 @@
 'use client';
 
 // packages/frontend/src/components/ifrs9/LifetimeLGDReport.tsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -12,9 +12,12 @@ import {
   alpha
 } from '@mui/material';
 import {
+  TrendingDown as TrendingDownIcon,
   Assessment as AssessmentIcon,
-  AccountBalance as BankIcon
+  AccountBalance as BankIcon,
+  PieChart as PieIcon
 } from '@mui/icons-material';
+import { api } from '@/services/api';
 import BaseIfrs9Report from './BaseIfrs9Report';
 
 interface LGDDistributionItem {
@@ -33,7 +36,43 @@ interface SummaryStats {
   lgdDistribution: LGDDistributionItem[];
 }
 
-const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
+const SummaryCards: React.FC<{ stats: SummaryStats; riskLevels?: any[] }> = ({ stats, riskLevels }) => {
+  let riskLevelTitle = stats.averageLGD < 0.3 ? 'Low' : stats.averageLGD < 0.6 ? 'Medium' : 'High';
+  let riskGradient = stats.averageLGD < 0.3
+    ? 'linear-gradient(135deg, #42E695 0%, #3BB2B8 100%)'
+    : stats.averageLGD < 0.6
+      ? 'linear-gradient(135deg, #FAD961 0%, #F76B1C 100%)'
+      : 'linear-gradient(135deg, #F44336 0%, #E57373 100%)';
+  let riskColor = stats.averageLGD < 0.3 ? '#42E695' : stats.averageLGD < 0.6 ? '#F76B1C' : '#F44336';
+
+  if (riskLevels && riskLevels.length > 0) {
+    const matchedLevel = riskLevels.find(level => {
+      const min = Number(level.value_1);
+      const max = Number(level.value_2);
+      // Determine if value matches range. Assuming min <= val < max, except for the last range where it might be <= max
+      // The user's screenshot has: 0 to 0.3, 0.3 to 0.6, 0.6 to 1
+      return stats.averageLGD >= min && stats.averageLGD <= max;
+    });
+
+    if (matchedLevel) {
+      riskLevelTitle = String(matchedLevel.value_3);
+      const titleUpper = riskLevelTitle.toUpperCase();
+      if (titleUpper.includes('LOW')) {
+        riskGradient = 'linear-gradient(135deg, #42E695 0%, #3BB2B8 100%)';
+        riskColor = '#42E695';
+      } else if (titleUpper.includes('MEDIUM')) {
+        riskGradient = 'linear-gradient(135deg, #FAD961 0%, #F76B1C 100%)';
+        riskColor = '#F76B1C';
+      } else if (titleUpper.includes('HIGH')) {
+        riskGradient = 'linear-gradient(135deg, #F44336 0%, #E57373 100%)';
+        riskColor = '#F44336';
+      } else {
+        riskGradient = 'linear-gradient(135deg, #1976D2 0%, #0D47A1 100%)';
+        riskColor = '#1976D2';
+      }
+    }
+  }
+
   const items = [
     {
       title: 'Total Accounts',
@@ -44,12 +83,28 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
       mainColor: '#1976D2'
     },
     {
+      title: 'Average LGD Rate',
+      value: stats.averageLGD,
+      format: 'percentage',
+      icon: <TrendingDownIcon sx={{ fontSize: 32 }} />,
+      gradient: 'linear-gradient(135deg, #f9d423 0%, #ff4e50 100%)',
+      mainColor: '#ff4e50'
+    },
+    {
       title: 'Total Recovery',
       value: stats.totalRecoveryAmount,
       format: 'currency',
       icon: <AssessmentIcon sx={{ fontSize: 32 }} />,
       gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
       mainColor: '#4facfe'
+    },
+    {
+      title: 'LGD Risk Level',
+      value: riskLevelTitle,
+      format: 'raw',
+      icon: <PieIcon sx={{ fontSize: 32 }} />,
+      gradient: riskGradient,
+      mainColor: riskColor
     }
   ];
 
@@ -164,6 +219,19 @@ const LifetimeLGDReport: React.FC = () => {
     avgRecoveryRate: 0,
     lgdDistribution: []
   });
+  const [riskLevels, setRiskLevels] = useState<any[]>([]);
+
+  useEffect(() => {
+    api.banking.businessSetup.getHeaderDetails('BLGD01')
+      .then(res => {
+        if (res?.data) {
+          setRiskLevels(res.data);
+        } else if (Array.isArray(res)) {
+          setRiskLevels(res);
+        }
+      })
+      .catch(err => console.error('Failed to load BLGD01 risk levels:', err));
+  }, []);
 
   const handleDataLoaded = React.useCallback((data: any[], summary?: Record<string, unknown> | null) => {
     const detailRows: any[] = Array.isArray((summary as any)?.detailRows) ? (summary as any).detailRows : data;
@@ -216,8 +284,15 @@ const LifetimeLGDReport: React.FC = () => {
         });
       });
 
+      const finalTotalAccounts = typeof summary?._detailTotalAccounts === 'number'
+        ? summary._detailTotalAccounts
+        : (typeof summary?._paginationTotal === 'number'
+            ? summary._paginationTotal
+            : stats.totalAccounts);
+
       setSummaryStats({
         ...stats,
+        totalAccounts: finalTotalAccounts,
         averageLGD,
         totalRecoveryAmount: totalRecoveryPv,
         lgdDistribution: lgdRanges.filter(range => range.count > 0)
@@ -250,7 +325,7 @@ const LifetimeLGDReport: React.FC = () => {
       supportsCharts={true}
       onDataLoaded={handleDataLoaded}
     >
-      <SummaryCards stats={summaryStats} />
+      <SummaryCards stats={summaryStats} riskLevels={riskLevels} />
     </BaseIfrs9Report>
   );
 };
