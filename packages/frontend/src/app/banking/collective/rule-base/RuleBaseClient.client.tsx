@@ -1097,15 +1097,7 @@ export default function PageContent() {
                 >
                   Clear Filters
                 </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<RefreshIcon />}
-                  onClick={() => ruleRefetch()}
-                  disabled={loading}
-                  size="small"
-                >
-                  Refresh
-                </Button>
+
               </Box>
             </Box>
           </Box>

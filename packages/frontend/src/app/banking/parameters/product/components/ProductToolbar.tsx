@@ -6,49 +6,31 @@ import {
   TextField,
   Button,
   InputAdornment,
-  IconButton,
-  Tooltip,
   Stack
 } from '@mui/material';
-import {
-  Search as SearchIcon,
-  FilterList as FilterIcon,
-  Add as AddIcon,
-  FileDownload as DownloadIcon,
-  Refresh as RefreshIcon
-} from '@mui/icons-material';
+import SearchIcon from '@mui/icons-material/Search';
+import FilterListIcon from '@mui/icons-material/FilterList';
 
 interface ProductToolbarProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
   onFilterClick: () => void;
-  onExportClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
-  onAddClick: () => void;
-  onRefreshClick: () => void;
   loading: boolean;
   activeFilterCount: number;
-  canManage: boolean;
-  canExport: boolean;
 }
 
 export default function ProductToolbar({
   searchTerm,
   onSearchChange,
   onFilterClick,
-  onExportClick,
-  onAddClick,
-  onRefreshClick,
   loading,
   activeFilterCount,
-  canManage,
-  canExport
 }: ProductToolbarProps) {
   return (
     <Box sx={{ 
       p: 2, 
       display: 'flex', 
       alignItems: 'center', 
-      justifyContent: 'space-between',
       flexWrap: 'wrap',
       gap: 2,
       bgcolor: 'background.paper',
@@ -75,7 +57,7 @@ export default function ProductToolbar({
         />
         <Button
           variant="outlined"
-          startIcon={<FilterIcon />}
+          startIcon={<FilterListIcon />}
           onClick={onFilterClick}
           data-testid="btn-filter-product"
           sx={{ whiteSpace: 'nowrap' }}
@@ -83,36 +65,6 @@ export default function ProductToolbar({
         >
           Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
         </Button>
-      </Stack>
-
-      <Stack direction="row" spacing={1}>
-        <Tooltip title="Refresh Data">
-          <IconButton onClick={onRefreshClick} disabled={loading} data-testid="btn-refresh-product">
-            <RefreshIcon />
-          </IconButton>
-        </Tooltip>
-        {canExport && (
-          <Button
-            variant="outlined"
-            startIcon={<DownloadIcon />}
-            onClick={onExportClick}
-            disabled={loading}
-            data-testid="btn-export-product"
-          >
-            Export
-          </Button>
-        )}
-        {canManage && (
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={onAddClick}
-            disabled={loading}
-            data-testid="btn-add-product"
-          >
-            Add Product
-          </Button>
-        )}
       </Stack>
     </Box>
   );

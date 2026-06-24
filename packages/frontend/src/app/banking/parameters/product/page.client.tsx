@@ -3,6 +3,7 @@
 import React, { Suspense, useState, useEffect, useCallback } from 'react';
 import {
   Box,
+  Button,
   Container,
   Snackbar,
   Alert,
@@ -17,6 +18,7 @@ import {
   ListItemText,
   Divider
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 import { Download as DownloadIcon, ExpandMore as ExpandMoreIcon, ContentCopy as ContentCopyIcon } from '@mui/icons-material';
 import { useSearchParams } from 'next/navigation';
 import { api, handleAPIError, bankingAPI } from '@/services/api';
@@ -587,6 +589,21 @@ function ProductParametersPage() {
         title="Product Parameters"
         subtitle="Manage financial products and calculation parameters"
         onRefresh={loadData}
+        loading={loading}
+        extraActions={
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            {canExportProduct && (
+              <Button variant="outlined" startIcon={<DownloadIcon />} onClick={(e) => setExportMenuAnchor(e.currentTarget)} disabled={loading}>
+                Export
+              </Button>
+            )}
+            {canManageProduct && (
+              <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setSelectedProduct(null); setFormOpen(true); }} disabled={loading}>
+                Add Product
+              </Button>
+            )}
+          </Box>
+        }
       />
 
       <ProductToolbar
@@ -596,13 +613,8 @@ function ProductParametersPage() {
           setPaginationModel({ page: 0, pageSize: currentPageSize });
         }}
         onFilterClick={() => setFilterDrawerOpen(true)}
-        onExportClick={(e) => setExportMenuAnchor(e.currentTarget)}
-        onAddClick={() => { setSelectedProduct(null); setFormOpen(true); }}
-        onRefreshClick={loadData}
         loading={loading}
         activeFilterCount={activeFilterCount}
-        canManage={canManageProduct}
-        canExport={canExportProduct}
       />
 
       <Box sx={{ flexGrow: 1, minHeight: 0 }}>
