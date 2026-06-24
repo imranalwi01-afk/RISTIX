@@ -20,6 +20,7 @@ import {
 } from '@mui/material'
 import PageHeader from '@/components/banking/shared/PageHeader'
 import { SearchBar } from '@/components/shared/SearchBar'
+import { ExportButton } from '@/components/shared/ExportButton'
 import type { GridColDef } from '@mui/x-data-grid'
 import { formatDistanceToNow } from 'date-fns'
 import { useRouter } from 'next/navigation'
@@ -277,7 +278,15 @@ export default function NotificationsPage() {
           onRefresh={() => void loadNotifications()}
           loading={loading}
           extraActions={
-            <Button variant="contained" onClick={markAllRead} disabled={bulkRunning}>Mark All Read</Button>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <ExportButton
+                data={rows as unknown as Record<string, unknown>[]}
+                columns={notificationColumns.map(col => ({ field: col.field as string, headerName: col.headerName as string }))}
+                filename="notifications"
+                disabled={rows.length === 0}
+              />
+              <Button variant="contained" onClick={markAllRead} disabled={bulkRunning}>Mark All Read</Button>
+            </Box>
           }
         />
 

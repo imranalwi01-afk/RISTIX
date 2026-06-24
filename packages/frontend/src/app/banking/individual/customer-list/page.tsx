@@ -15,6 +15,7 @@ import { GridColDef } from '@mui/x-data-grid';
 import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import { StatCard } from '@/components/common/StatCard';
+import { ExportButton } from '@/components/shared/ExportButton';
 import { Person, Search as SearchIcon, Clear as ClearIcon, ListAlt as ListAltIcon } from '@mui/icons-material';
 import PageHeader from '@/components/banking/shared/PageHeader';
 import { useCustomerListQuery } from '@/features/individual-impairment/hooks/useCustomerListQuery';
@@ -112,6 +113,14 @@ export default function IndividualCustomerListPage() {
       <PageHeader
         title="Individual Customer List"
         subtitle="Distinct customer/account list with latest record per account."
+        extraActions={
+          <ExportButton
+            data={rows as unknown as Record<string, unknown>[]}
+            columns={columns.map(col => ({ field: col.field as string, headerName: col.headerName as string }))}
+            filename="customer-list"
+            disabled={rows.length === 0}
+          />
+        }
       />
 
       <Paper sx={{ p: 2, mb: 2 }}>
