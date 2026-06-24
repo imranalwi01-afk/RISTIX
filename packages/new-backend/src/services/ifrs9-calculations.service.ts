@@ -150,6 +150,10 @@ export class Ifrs9CalculationsService {
     }
 
     private async resolveEclModelId(config: any): Promise<number> {
+        // Prefer explicit pkid from frontend
+        const explicitId = Number(config?.eclModelId);
+        if (Number.isFinite(explicitId) && explicitId > 0) return explicitId;
+
         const configHeader = String(
             config?.configHeader || config?.eclModelName || config?.modelName || ''
         ).trim();

@@ -283,7 +283,6 @@ export default function PageContent({ params }: { params: Promise<{}> }) {
     userId: filters.userId,
     activityType: filters.activityType,
     actionResult: filters.actionResult,
-    riskLevel: filters.riskLevel,
     bankingType: filters.bankingType,
     complianceRelevant: filters.complianceRelevant,
     moduleAccessed: filters.moduleAccessed,
@@ -365,7 +364,6 @@ export default function PageContent({ params }: { params: Promise<{}> }) {
       if (filters.searchTerm) exportFilters.Search = filters.searchTerm;
       if (filters.activityType) exportFilters['Activity Type'] = filters.activityType;
       if (filters.actionResult) exportFilters.Result = filters.actionResult;
-      if (filters.riskLevel) exportFilters['Risk Level'] = filters.riskLevel;
       if (filters.bankingType) exportFilters['Banking Type'] = filters.bankingType;
       if (filters.ipAddress) exportFilters['IP Address'] = filters.ipAddress;
       if (filters.dateFrom) exportFilters['From Date'] = filters.dateFrom.toISOString();
@@ -406,7 +404,6 @@ export default function PageContent({ params }: { params: Promise<{}> }) {
     if (filters.userId) savedFilterState.userId = filters.userId;
     if (filters.activityType) savedFilterState.activityType = filters.activityType;
     if (filters.actionResult) savedFilterState.actionResult = filters.actionResult;
-    if (filters.riskLevel) savedFilterState.riskLevel = filters.riskLevel;
     if (filters.bankingType) savedFilterState.bankingType = filters.bankingType;
     if (typeof filters.complianceRelevant === 'boolean') savedFilterState.complianceRelevant = filters.complianceRelevant;
     if (filters.dateFrom) savedFilterState.dateFrom = filters.dateFrom.toISOString();
@@ -430,16 +427,6 @@ export default function PageContent({ params }: { params: Promise<{}> }) {
       case 'SUCCESS': return 'success';
       case 'FAILURE': return 'error';
       case 'PARTIAL': return 'warning';
-      default: return 'default';
-    }
-  };
-
-  const getRiskLevelColor = (risk: string) => {
-    switch (risk) {
-      case 'LOW': return 'success';
-      case 'MEDIUM': return 'warning';
-      case 'HIGH': return 'error';
-      case 'CRITICAL': return 'error';
       default: return 'default';
     }
   };
@@ -543,19 +530,6 @@ export default function PageContent({ params }: { params: Promise<{}> }) {
           color={getActionResultColor(params.row.actionResult) as any}
           icon={params.row.actionResult === 'SUCCESS' ? <CheckCircleIcon /> :
             params.row.actionResult === 'FAILURE' ? <ErrorIcon /> : <WarningIcon />}
-        />
-      ),
-    },
-    {
-      field: 'riskLevel',
-      headerName: 'Risk',
-      width: 100,
-      renderCell: (params: GridRenderCellParams) => (
-        <Chip
-          label={params.row.riskLevel}
-          size="small"
-          color={getRiskLevelColor(params.row.riskLevel) as any}
-          variant="filled"
         />
       ),
     },
@@ -804,22 +778,7 @@ export default function PageContent({ params }: { params: Promise<{}> }) {
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid size={{ xs: 12, md: 2 }}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Risk Level</InputLabel>
-                    <Select
-                      value={filters.riskLevel || ''}
-                      onChange={(e) => handleFilterChange('riskLevel', e.target.value)}
-                      label="Risk Level"
-                    >
-                      <MenuItem value="">All</MenuItem>
-                      <MenuItem value="LOW">Low</MenuItem>
-                      <MenuItem value="MEDIUM">Medium</MenuItem>
-                      <MenuItem value="HIGH">High</MenuItem>
-                      <MenuItem value="CRITICAL">Critical</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
+
                 <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
                     fullWidth
@@ -1136,7 +1095,6 @@ export default function PageContent({ params }: { params: Promise<{}> }) {
                     Risk & Compliance
                   </Typography>
                   <Box sx={{ mb: 2 }}>
-                    <Typography variant="body2"><strong>Risk Level:</strong> {detailsDialog.activity.riskLevel}</Typography>
                     <Typography variant="body2"><strong>Banking Type:</strong> {detailsDialog.activity.bankingType || 'N/A'}</Typography>
                     <Typography variant="body2"><strong>Compliance Relevant:</strong> {detailsDialog.activity.complianceRelevant ? 'Yes' : 'No'}</Typography>
                     <Typography variant="body2"><strong>Response Time:</strong> {detailsDialog.activity.responseTimeMs}ms</Typography>
