@@ -3444,6 +3444,8 @@ server <- function(input, output, session) {
   
   
   dataydanfileexcelDB <- reactive({
+  req(input$choose_model)
+
     result0 <- dbGetQuery(con, '
   SELECT "dependent_variable", "data_file"
   FROM frs9_r_model_summary
@@ -5124,6 +5126,7 @@ server <- function(input, output, session) {
                          request_id = paste0("REQ_", format(Sys.time(), "%Y%m%d%H%M%S")),
                          prc_date = as.Date(prc_date),
                          model_id = model_id,
+                         pd_config_id=pd_config_id,
                          model_name = model_info$model_name[[1]],
                          model_status = model_info$model_status[[1]],
                          dependent_variable = model_info$dependent_variable[[1]],
