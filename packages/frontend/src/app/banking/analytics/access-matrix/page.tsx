@@ -4,9 +4,10 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Box, Typography, Container, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Chip, CircularProgress, Alert,
-  Breadcrumbs, Link, FormControl, InputLabel, Select, MenuItem,
+  FormControl, InputLabel, Select, MenuItem,
   Tooltip, IconButton,
 } from '@mui/material';
+import PageHeader from '@/components/banking/shared/PageHeader';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import { api } from '@/services/api';
@@ -157,17 +158,7 @@ export default function AccessMatrixPage() {
 
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
-      <Box mb={3}>
-        <Breadcrumbs sx={{ mb: 1 }}>
-          <Link color="inherit" href="/banking">Banking</Link>
-          <Link color="inherit" href="/banking/analytics">Analytics</Link>
-          <Typography color="text.primary">Access Matrix</Typography>
-        </Breadcrumbs>
-        <Typography variant="h4" sx={{ fontWeight: 700 }}>Access Matrix</Typography>
-        <Typography variant="body2" color="text.secondary">
-          Click any cell to toggle role access to a menu item.
-        </Typography>
-      </Box>
+      <PageHeader title="Access Matrix" subtitle="Click any cell to toggle role access to a menu item." />
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 

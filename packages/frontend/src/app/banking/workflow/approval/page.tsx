@@ -6,18 +6,17 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import PageHeader from '@/components/banking/shared/PageHeader';
 import {
   Box, Typography, Container, Paper, Grid, Card, CardContent,
   Button, CircularProgress, Alert, Chip, Divider, Stack, Badge,
   TextField, Dialog, DialogTitle, DialogContent, DialogActions,
-  IconButton, Tooltip, Tab, Tabs, Avatar, Skeleton, Fade,
+  Tab, Tabs, Avatar, Skeleton, Fade,
   alpha, useTheme,
 } from '@mui/material';
 import {
-  Approval as ApprovalIcon,
   CheckCircle as ApproveIcon,
   Cancel as RejectIcon,
-  Refresh as RefreshIcon,
   AccountBalance as BankIcon,
   MonetizationOn as MoneyIcon,
   Person as PersonIcon,
@@ -414,31 +413,22 @@ export default function ApprovalInboxPage() {
 
   return (
     <Container maxWidth="xl" sx={{ py: 2 }}>
-      {/* Page Header */}
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3}>
-        <Stack direction="row" alignItems="center" spacing={2}>
-          <Avatar sx={{ bgcolor: 'primary.main', width: 44, height: 44 }}>
-            <ApprovalIcon />
-          </Avatar>
-          <Box>
-            <Typography variant="h5" fontWeight={800} sx={{ lineHeight: 1 }}>Approval Inbox</Typography>
-            <Typography variant="body2" color="text.secondary">Checker — Four-Eyes Workflow Review</Typography>
-          </Box>
-          {pendingCount > 0 && (
+      <PageHeader
+        title="Approval Inbox"
+        subtitle="Checker — Four-Eyes Workflow Review"
+        onRefresh={fetchPending}
+        loading={loading}
+        extraActions={
+          pendingCount > 0 && (
             <Chip
               label={`${pendingCount} Pending`}
               color="error"
               icon={<WaitIcon sx={{ fontSize: '0.9rem !important' }} />}
               sx={{ fontWeight: 700, animation: 'pulse 2s infinite' }}
             />
-          )}
-        </Stack>
-        <Tooltip title="Refresh">
-          <IconButton onClick={fetchPending} disabled={loading}>
-            <RefreshIcon sx={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
-          </IconButton>
-        </Tooltip>
-      </Stack>
+          )
+        }
+      />
 
       {error && (
         <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError(null)}>
@@ -581,7 +571,6 @@ export default function ApprovalInboxPage() {
 
       <style>{`
         @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:0.7 } }
-        @keyframes spin { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }
       `}</style>
     </Container>
   );
