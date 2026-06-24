@@ -41,6 +41,8 @@ import {
 import * as XLSX from 'xlsx';
 import { individualImpairmentAPI } from '../../../../services/api/individual-impairment.api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
+import PageHeader from '@/components/banking/shared/PageHeader';
+import { ExportButton } from '@/components/shared/ExportButton';
 import { useAssessmentWorkspaceEmbedded } from '../assessment/embedded-context';
 
 export default function DcfUploadPage() {
@@ -182,20 +184,18 @@ export default function DcfUploadPage() {
       {!embedded && <FullstackIndicator />}
 
       {!embedded && (
-        <Breadcrumbs sx={{ mb: 2 }}>
-          <Link href="/banking/dashboard" underline="hover" color="inherit" sx={{ display: 'flex', alignItems: 'center' }}>
-            <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" /> Dashboard
-          </Link>
-          <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
-            <ListIcon sx={{ mr: 0.5 }} fontSize="inherit" /> DCF Uploads
-          </Typography>
-        </Breadcrumbs>
+        <PageHeader
+          title="DCF Uploads"
+          extraActions={
+            <ExportButton
+              data={data as unknown as Record<string, unknown>[]}
+              columns={columns.map(col => ({ field: col.field as string, headerName: col.headerName as string }))}
+              filename="dcf-uploads"
+            />
+          }
+        />
       )}
-
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant={embedded ? 'h6' : 'h4'} component="h1" gutterBottom>
-          DCF Uploads
-        </Typography>
+      <Box display="flex" justifyContent="flex-end" mb={2}>
         <Button
           variant="contained"
           startIcon={<CloudUploadIcon />}

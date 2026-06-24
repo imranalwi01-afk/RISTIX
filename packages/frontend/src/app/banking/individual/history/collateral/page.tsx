@@ -22,6 +22,8 @@ import {
 } from '@mui/icons-material';
 import { individualImpairmentAPI, AuditTrail } from '../../../../../services/api/individual-impairment.api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
+import PageHeader from '@/components/banking/shared/PageHeader';
+import { ExportButton } from '@/components/shared/ExportButton';
 
 export default function CollateralHistoryPage() {
   const [loading, setLoading] = useState(false);
@@ -102,24 +104,16 @@ export default function CollateralHistoryPage() {
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
       <FullstackIndicator />
       
-      {/* Breadcrumbs */}
-      <Breadcrumbs sx={{ mb: 2 }}>
-        <Link href="/banking/dashboard" underline="hover" color="inherit" sx={{ display: 'flex', alignItems: 'center' }}>
-          <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" /> Dashboard
-        </Link>
-        <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
-          <HistoryIcon sx={{ mr: 0.5 }} fontSize="inherit" /> History
-        </Typography>
-        <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
-          <CollateralIcon sx={{ mr: 0.5 }} fontSize="inherit" /> Collateral
-        </Typography>
-      </Breadcrumbs>
-
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Collateral Audit Trail
-        </Typography>
-      </Box>
+      <PageHeader
+        title="Collateral Audit Trail"
+        extraActions={
+          <ExportButton
+            data={data as unknown as Record<string, unknown>[]}
+            columns={columns.map(col => ({ field: col.field as string, headerName: col.headerName as string }))}
+            filename="collateral-audit-trail"
+          />
+        }
+      />
 
       {error && (
         <Typography color="error" sx={{ mb: 2 }}>

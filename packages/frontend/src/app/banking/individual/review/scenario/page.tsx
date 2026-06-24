@@ -49,6 +49,7 @@ import { GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import PageHeader from '@/components/banking/shared/PageHeader';
+import { ExportButton } from '@/components/shared/ExportButton';
 import { api } from '@/services/api';
 import { useAssessmentWorkspaceEmbedded } from '../../assessment/embedded-context';
 
@@ -281,6 +282,13 @@ export default function ReviewScenarioPage() {
         <PageHeader
           title="Scenario Details"
           subtitle="Configure impairment scenarios, weights, and repayment plans."
+          extraActions={
+            <ExportButton
+              data={scenarios as unknown as Record<string, unknown>[]}
+              columns={columns.map(col => ({ field: col.field as string, headerName: col.headerName as string }))}
+              filename="scenario-details"
+            />
+          }
         />
       )}
 

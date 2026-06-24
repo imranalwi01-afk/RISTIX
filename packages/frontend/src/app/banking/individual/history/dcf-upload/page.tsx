@@ -9,6 +9,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import PageHeader from '@/components/banking/shared/PageHeader';
+import { ExportButton } from '@/components/shared/ExportButton';
 import { GridColDef } from '@mui/x-data-grid';
 import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
@@ -53,6 +54,14 @@ export default function HistoryDCFUploadPage() {
         <PageHeader
           title="History - DCF Upload"
           subtitle="Audit trail of DCF file uploads and processing"
+          extraActions={
+            <ExportButton
+              data={rows as Record<string, unknown>[]}
+              columns={columns.map(col => ({ field: col.field as string, headerName: col.headerName as string }))}
+              filename="history-dcf-upload"
+              disabled={loading}
+            />
+          }
         />
       )}
       <Card>

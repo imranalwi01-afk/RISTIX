@@ -38,6 +38,8 @@ import {
 } from '@mui/icons-material';
 import { individualImpairmentAPI } from '../../../../services/api/individual-impairment.api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
+import PageHeader from '@/components/banking/shared/PageHeader';
+import { ExportButton } from '@/components/shared/ExportButton';
 import { Can } from '@/components/rbac/Can';
 import { usePermission } from '@/hooks/usePermission';
 
@@ -184,20 +186,17 @@ export default function ScenariosPage() {
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
       <FullstackIndicator />
 
-      {/* Breadcrumbs */}
-      <Breadcrumbs sx={{ mb: 2 }}>
-        <Link href="/banking/dashboard" underline="hover" color="inherit" sx={{ display: 'flex', alignItems: 'center' }}>
-          <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" /> Dashboard
-        </Link>
-        <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
-          <ListIcon sx={{ mr: 0.5 }} fontSize="inherit" /> Scenario Details
-        </Typography>
-      </Breadcrumbs>
-
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Scenario Details
-        </Typography>
+      <PageHeader
+        title="Scenario Details"
+        extraActions={
+          <ExportButton
+            data={data as unknown as Record<string, unknown>[]}
+            columns={columns.map(col => ({ field: col.field as string, headerName: col.headerName as string }))}
+            filename="scenario-details"
+          />
+        }
+      />
+      <Box display="flex" justifyContent="flex-end" mb={2}>
         <Can permission={['banking.individual.create', 'banking.individual.manage']}>
           <Button
             variant="contained"
