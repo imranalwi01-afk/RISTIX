@@ -956,38 +956,6 @@ export default function PageContent() {
         loading={ruleLoading}
         extraActions={
           <>
-            <Button
-              variant="outlined"
-              startIcon={<ViewColumnIcon />}
-              onClick={(event) => setColumnsMenuAnchor(event.currentTarget)}
-              disabled={loading}
-            >
-              Columns ({visibleColumnCount})
-            </Button>
-            <Menu
-              anchorEl={columnsMenuAnchor}
-              open={Boolean(columnsMenuAnchor)}
-              onClose={() => setColumnsMenuAnchor(null)}
-            >
-              {RULE_BASE_COLUMNS.map((column) => {
-                const visibleCount = RULE_BASE_COLUMNS.filter((item) => columnVisibility[item.key]).length;
-                return (
-                  <MenuItem key={column.key} dense>
-                    <FormControlLabel
-                      control={(
-                        <Switch
-                          size="small"
-                          checked={columnVisibility[column.key]}
-                          disabled={columnVisibility[column.key] && visibleCount <= 1}
-                          onChange={() => handleToggleColumn(column.key)}
-                        />
-                      )}
-                      label={column.label}
-                    />
-                  </MenuItem>
-                );
-              })}
-            </Menu>
             {canManageRuleBase && (
               <Button
                 variant="contained"

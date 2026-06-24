@@ -172,14 +172,6 @@ export default function ProductTable({
           key="edit"
         />,
         <SafeGridActionsCellItem
-          icon={<CloneIcon color="secondary" />}
-          label="Clone"
-          onClick={() => onClone(params.row)}
-          showInMenu={false}
-          data-testid="btn-clone-product"
-          key="clone"
-        />,
-        <SafeGridActionsCellItem
           icon={<DeleteIcon color="error" />}
           label="Delete"
           onClick={() => onDelete(params.row)}
