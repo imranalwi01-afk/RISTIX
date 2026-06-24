@@ -1,20 +1,19 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   Alert,
   Box,
-  Breadcrumbs,
   Button,
   Card,
   CardContent,
   Container,
-  Link,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
-import RefreshIcon from '@mui/icons-material/Refresh';
+import PageHeader from '@/components/banking/shared/PageHeader';
+import { SearchBar } from '@/components/shared/SearchBar';
 import { AmortizationModuleDetailsPanel } from '@/features/ifrs9-modules/components/AmortizationModuleDetailsPanel';
 import { AmortizationModuleTable } from '@/features/ifrs9-modules/components/AmortizationModuleTable';
 import { useAmortizationModuleDetailQuery, useAmortizationModuleResultsQuery } from '@/features/ifrs9-modules/hooks/useIfrs9ModuleQueries';
@@ -77,47 +76,24 @@ export default function AmortizationModulePage() {
     [detailQuery.data],
   );
 
+  const handleRefresh = useCallback(() => {
+    void resultsQuery.refetch();
+    if (selectedPkid) void detailQuery.refetch();
+  }, [resultsQuery, detailQuery, selectedPkid]);
+
   return (
     <Container maxWidth="xl" sx={{ py: 3, minWidth: 0, overflowX: 'hidden' }}>
-      <Box mb={3}>
-        <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-          <Link color="inherit" href="/banking">Banking Dashboard</Link>
-          <Link color="inherit" href="/banking/ifrs9">IFRS 9</Link>
-          <Typography color="text.primary">Amortization Module</Typography>
-        </Breadcrumbs>
-
-        <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          justifyContent="space-between"
-          alignItems={{ xs: 'stretch', md: 'center' }}
-          spacing={2}
-          useFlexGap
-          sx={{ flexWrap: 'wrap' }}
-        >
-          <Box sx={{ minWidth: 0, flex: '1 1 560px' }}>
-            <Typography variant="h4" component="h1" gutterBottom>
-              Amortization Module
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Tech-spec aligned contract list with detail tabs for contract, fee/cost, amortization/event, and journal views.
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Effective PRC date: {effectivePrcDate || '-'}
-            </Typography>
-          </Box>
-          <Button
-            variant="contained"
-            startIcon={<RefreshIcon />}
-            onClick={() => {
-              void resultsQuery.refetch();
-              if (selectedPkid) void detailQuery.refetch();
-            }}
-            sx={{ alignSelf: { xs: 'stretch', md: 'center' }, flexShrink: 0 }}
-          >
-            Refresh Data
-          </Button>
-        </Stack>
-      </Box>
+      <PageHeader
+        title="Amortization Module"
+        subtitle="Tech-spec aligned contract list with detail tabs for contract, fee/cost, amortization/event, and journal views."
+        onRefresh={handleRefresh}
+        loading={loading}
+        extraActions={
+          <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center' }}>
+            Effective PRC date: {effectivePrcDate || '-'}
+          </Typography>
+        }
+      />
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -158,22 +134,18 @@ export default function AmortizationModulePage() {
                   setCursor(undefined);
                   setCursorStack([]);
                 }}
-                slotProps={{
-                  inputLabel: { shrink: true },
-                }}
+                slotProps={{ inputLabel: { shrink: true } }}
                 sx={{ width: { xs: '100%', sm: 220 }, minWidth: 0, flexShrink: 0 }}
               />
-              <TextField
-                size="small"
-                label="Search contract"
-                placeholder="Account / Facility / CIF / Name"
+              <SearchBar
                 value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
+                onChange={(value) => {
+                  setSearch(value);
                   setCursor(undefined);
                   setCursorStack([]);
                 }}
-                sx={{ width: { xs: '100%', lg: 360 }, minWidth: 0, flexShrink: 0 }}
+                placeholder="Account / Facility / CIF / Name"
+                label="Search contract"
               />
             </Stack>
 

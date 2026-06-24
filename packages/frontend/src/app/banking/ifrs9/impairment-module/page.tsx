@@ -1,20 +1,19 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   Alert,
   Box,
-  Breadcrumbs,
   Button,
   Card,
   CardContent,
   Container,
-  Link,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
-import { Refresh as RefreshIcon } from '@mui/icons-material';
+import PageHeader from '@/components/banking/shared/PageHeader';
+import { SearchBar } from '@/components/shared/SearchBar';
 import { ImpairmentModuleDetailsPanel } from '@/features/ifrs9-modules/components/ImpairmentModuleDetailsPanel';
 import { ImpairmentModuleTable } from '@/features/ifrs9-modules/components/ImpairmentModuleTable';
 import {
@@ -77,46 +76,24 @@ export default function ImpairmentModulePage() {
     ? detailResponse.message || 'Failed to load impairment details'
     : null;
 
+  const handleRefresh = useCallback(() => {
+    void resultsQuery.refetch();
+    if (selectedPkid) void detailQuery.refetch();
+  }, [resultsQuery, detailQuery, selectedPkid]);
+
   return (
     <Container maxWidth="xl" sx={{ py: 3, minWidth: 0, overflowX: 'hidden' }}>
-      <Box mb={3}>
-        <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-          <Link color="inherit" href="/banking">Banking Dashboard</Link>
-          <Link color="inherit" href="/banking/ifrs9">IFRS 9</Link>
-          <Typography color="text.primary">Impairment Module</Typography>
-        </Breadcrumbs>
-
-        <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          justifyContent="space-between"
-          alignItems={{ xs: 'stretch', md: 'center' }}
-          spacing={2}
-          useFlexGap
-          sx={{ flexWrap: 'wrap' }}
-        >
-          <Box sx={{ minWidth: 0, flex: '1 1 560px' }}>
-            <Typography variant="h4" component="h1" gutterBottom>
-              Impairment Module
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Tech-spec aligned list sourced from `frs9_master_account`, with detail tabs for contract, collective, individual, and journal views.
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Effective PRC date: {effectivePrcDate || '-'}
-            </Typography>
-          </Box>
-          <Button
-            variant="contained"
-            startIcon={<RefreshIcon />}
-            onClick={() => {
-              void resultsQuery.refetch();
-              if (selectedPkid) void detailQuery.refetch();
-            }}
-          >
-            Refresh Data
-          </Button>
-        </Stack>
-      </Box>
+      <PageHeader
+        title="Impairment Module"
+        subtitle="Tech-spec aligned list sourced from `frs9_master_account`, with detail tabs for contract, collective, individual, and journal views."
+        onRefresh={handleRefresh}
+        loading={loading}
+        extraActions={
+          <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center' }}>
+            Effective PRC date: {effectivePrcDate || '-'}
+          </Typography>
+        }
+      />
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -157,22 +134,14 @@ export default function ImpairmentModulePage() {
                   setCursor(undefined);
                   setCursorStack([]);
                 }}
-                slotProps={{
-                  inputLabel: { shrink: true },
-                }}
+                slotProps={{ inputLabel: { shrink: true } }}
                 sx={{ width: { xs: '100%', sm: 220 }, minWidth: 0, flexShrink: 0 }}
               />
-              <TextField
-                size="small"
-                label="Search contract"
-                placeholder="Account / Facility / CIF / Name"
+              <SearchBar
                 value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                  setCursor(undefined);
-                  setCursorStack([]);
-                }}
-                sx={{ width: { xs: '100%', lg: 360 }, minWidth: 0, flexShrink: 0 }}
+                onChange={setSearch}
+                placeholder="Account / Facility / CIF / Name"
+                label="Search contract"
               />
             </Stack>
 
