@@ -9,6 +9,7 @@ import {
   Card,
   CardContent,
   Paper,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -97,76 +98,72 @@ const MonitoringPanel: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
         <AssessmentIcon color="primary" />
         ECL Monitoring Overview
       </Typography>
-      <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 5 }}>
-          <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <TableContainer component={Paper} variant="outlined" sx={{ width: '100%', maxWidth: '100%', borderRadius: 3, overflowX: 'unset' }}>
-              <Table size="small" sx={{ minWidth: 480 }}>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 800 }}>Stage</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 800 }}>Outstanding</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 800 }}>ECL</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 800 }}>Coverage</TableCell>
+      <Stack spacing={3} sx={{ width: '100%' }}>
+        <Box sx={{ width: '100%', minWidth: 0, overflowX: 'auto' }}>
+          <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3 }}>
+            <Table size="small" sx={{ minWidth: 480 }}>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 800 }}>Stage</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 800 }}>Outstanding</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 800 }}>ECL</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 800 }}>Coverage</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {stageRows.map((stage) => (
+                <TableRow key={stage.name}>
+                  <TableCell>{stage.name}</TableCell>
+                  <TableCell align="right">{compactCurrency(stage.outstanding)}</TableCell>
+                  <TableCell align="right">{compactCurrency(stage.ecl)}</TableCell>
+                  <TableCell align="right">
+                    {stage.outstanding > 0 ? ((stage.ecl / stage.outstanding) * 100).toFixed(2) : '0.00'}%
+                  </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {stageRows.map((stage) => (
-                  <TableRow key={stage.name}>
-                    <TableCell>{stage.name}</TableCell>
-                    <TableCell align="right">{compactCurrency(stage.outstanding)}</TableCell>
-                    <TableCell align="right">{compactCurrency(stage.ecl)}</TableCell>
-                    <TableCell align="right">
-                      {stage.outstanding > 0 ? ((stage.ecl / stage.outstanding) * 100).toFixed(2) : '0.00'}%
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-              </Table>
-            </TableContainer>
-          </Box>
-        </Grid>
-        <Grid size={{ xs: 12, md: 7 }}>
-          <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <TableContainer component={Paper} variant="outlined" sx={{ width: '100%', maxWidth: '100%', borderRadius: 3, overflowX: 'unset' }}>
-              <Table size="small" sx={{ minWidth: 560 }}>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 800 }}>Segment</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 800 }}>Outstanding</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 800 }}>ECL</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 800 }}>Coverage</TableCell>
+              ))}
+            </TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
+        <Box sx={{ width: '100%', minWidth: 0, overflowX: 'auto' }}>
+          <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3 }}>
+            <Table size="small" sx={{ minWidth: 560 }}>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 800 }}>Segment</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 800 }}>Outstanding</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 800 }}>ECL</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 800 }}>Coverage</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {stats.segmentBreakdown.slice(0, 6).map((segment) => (
+                <TableRow key={segment.segment}>
+                  <TableCell>{segment.segment}</TableCell>
+                  <TableCell align="right">
+                    {new Intl.NumberFormat('id-ID', {
+                      style: 'currency',
+                      currency: 'IDR',
+                      notation: 'compact',
+                      maximumFractionDigits: 1
+                    }).format(segment.outstanding)}
+                  </TableCell>
+                  <TableCell align="right">
+                    {new Intl.NumberFormat('id-ID', {
+                      style: 'currency',
+                      currency: 'IDR',
+                      notation: 'compact',
+                      maximumFractionDigits: 1
+                    }).format(segment.ecl)}
+                  </TableCell>
+                  <TableCell align="right">{segment.eclRatio.toFixed(2)}%</TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {stats.segmentBreakdown.slice(0, 6).map((segment) => (
-                  <TableRow key={segment.segment}>
-                    <TableCell>{segment.segment}</TableCell>
-                    <TableCell align="right">
-                      {new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        notation: 'compact',
-                        maximumFractionDigits: 1
-                      }).format(segment.outstanding)}
-                    </TableCell>
-                    <TableCell align="right">
-                      {new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        notation: 'compact',
-                        maximumFractionDigits: 1
-                      }).format(segment.ecl)}
-                    </TableCell>
-                    <TableCell align="right">{segment.eclRatio.toFixed(2)}%</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-              </Table>
-            </TableContainer>
-          </Box>
-        </Grid>
-      </Grid>
+              ))}
+            </TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
+      </Stack>
     </CardContent>
   </Card>
   );
