@@ -86,7 +86,6 @@ interface UserActivityLog {
   location?: string;
   deviceType: string;
   browserName: string;
-  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   bankingType?: 'conventional';
   complianceRelevant: boolean;
   businessProcess?: string;
@@ -99,7 +98,6 @@ interface UserActivityFilters {
   userId?: string;
   activityType?: string;
   actionResult?: 'SUCCESS' | 'FAILURE' | 'PARTIAL';
-  riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   bankingType?: 'conventional';
   complianceRelevant?: boolean;
   dateFrom?: Date | null;
@@ -134,7 +132,6 @@ const USER_ACTIVITY_EXPORT_COLUMNS = [
   { field: 'actionPerformed', headerName: 'Action' },
   { field: 'moduleAccessed', headerName: 'Module' },
   { field: 'actionResult', headerName: 'Result' },
-  { field: 'riskLevel', headerName: 'Risk Level' },
   { field: 'bankingType', headerName: 'Banking Type' },
   { field: 'ipAddress', headerName: 'IP Address' },
   { field: 'responseTimeMs', headerName: 'Response Time (ms)' },
@@ -258,9 +255,6 @@ export default function PageContent({ params }: { params: Promise<{}> }) {
         activityType: typeof savedFilters.activityType === 'string' ? savedFilters.activityType : undefined,
         actionResult: savedFilters.actionResult === 'SUCCESS' || savedFilters.actionResult === 'FAILURE' || savedFilters.actionResult === 'PARTIAL'
           ? savedFilters.actionResult
-          : undefined,
-        riskLevel: savedFilters.riskLevel === 'LOW' || savedFilters.riskLevel === 'MEDIUM' || savedFilters.riskLevel === 'HIGH' || savedFilters.riskLevel === 'CRITICAL'
-          ? savedFilters.riskLevel
           : undefined,
         bankingType: savedFilters.bankingType === 'conventional' || false
           ? savedFilters.bankingType
