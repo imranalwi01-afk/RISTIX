@@ -5,25 +5,17 @@ import React from 'react';
 import {
   Box,
   Typography,
-  Breadcrumbs,
-  Link,
   Button,
   Stack,
   Chip,
-  Tooltip,
-  IconButton,
   Menu,
   MenuItem
 } from '@mui/material';
 import {
-  Home as HomeIcon,
-  Category as SegmentIcon,
-  Refresh as RefreshIcon,
   FileDownload as ExportIcon,
   Help as HelpIcon,
-  MoreVert as MoreIcon
 } from '@mui/icons-material';
-import { useRouter } from 'next/navigation';
+import PageHeader from '@/components/banking/shared/PageHeader';
 
 interface SegmentationHeaderProps {
   onRefresh: () => void;
@@ -42,7 +34,6 @@ export const SegmentationHeader: React.FC<SegmentationHeaderProps> = ({
   dbStatus,
   canExport = true
 }) => {
-  const router = useRouter();
   const [exportAnchorEl, setExportAnchorEl] = React.useState<null | HTMLElement>(null);
 
   const handleExportClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -54,66 +45,15 @@ export const SegmentationHeader: React.FC<SegmentationHeaderProps> = ({
   };
 
   return (
-    <Box sx={{ mb: 2.5 }}>
-      {/* Breadcrumbs */}
-      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-        <Link 
-            underline="hover" 
-            color="inherit" 
-            onClick={() => router.push('/banking/dashboard')} 
-            sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '0.875rem' }}
-        >
-          <HomeIcon sx={{ mr: 0.5, fontSize: 16 }} /> Dashboard
-        </Link>
-        <Link 
-            underline="hover" 
-            color="inherit" 
-            href="#" 
-            sx={{ fontSize: '0.875rem' }}
-        >
-            Collective
-        </Link>
-        <Typography 
-            color="text.primary" 
-            sx={{ display: 'flex', alignItems: 'center', fontSize: '0.875rem', fontWeight: 500 }}
-        >
-          <SegmentIcon sx={{ mr: 0.5, fontSize: 16 }} /> Segmentation
-        </Typography>
-      </Breadcrumbs>
-
-      {/* Main Header Content */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          gap: 2,
-          flexWrap: 'wrap',
-        }}
-      >
-        <Box>
-          <Typography variant="h4" component="h1" fontWeight="800" sx={{ color: 'primary.main', mb: 0.5 }}>
-            Segmentation Configuration
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Master-detail configuration for portfolio segmentation rules and criteria
-          </Typography>
-        </Box>
-
-        <Stack direction="column" spacing={1} alignItems="flex-end">
-          <Stack direction="row" spacing={1}>
-            <Tooltip title="Refresh Data (R)">
-              <Button 
-                variant="outlined" 
-                startIcon={<RefreshIcon />} 
-                onClick={onRefresh}
-                size="small"
-                sx={{ borderRadius: 1.5, textTransform: 'none' }}
-              >
-                Refresh
-              </Button>
-            </Tooltip>
-            
+    <>
+      <PageHeader
+        title="Segmentation Configuration"
+        subtitle="Master-detail configuration for portfolio segmentation rules and criteria"
+        chip={`DB ${dbStatus === 'active' ? 'Active' : 'Disconnected'}`}
+        chipColor={dbStatus === 'active' ? 'success' : 'error'}
+        onRefresh={onRefresh}
+        extraActions={
+          <>
             {canExport && (
               <>
                 <Button
@@ -137,11 +77,10 @@ export const SegmentationHeader: React.FC<SegmentationHeaderProps> = ({
                 </Menu>
               </>
             )}
-
             {onHelp && (
-              <Button 
-                variant="outlined" 
-                startIcon={<HelpIcon />} 
+              <Button
+                variant="outlined"
+                startIcon={<HelpIcon />}
                 onClick={onHelp}
                 size="small"
                 sx={{ borderRadius: 1.5, textTransform: 'none' }}
@@ -149,28 +88,14 @@ export const SegmentationHeader: React.FC<SegmentationHeaderProps> = ({
                 Help
               </Button>
             )}
-          </Stack>
-
-          <Stack direction="row" spacing={2} alignItems="center">
-            <Typography variant="caption" color="text.secondary">
-                Last updated: <Box component="span" sx={{ fontWeight: 'bold' }}>{lastUpdated}</Box>
-            </Typography>
-            <Chip 
-              label={`Database ${dbStatus === 'active' ? 'Active' : 'Disconnected'}`}
-              size="small" 
-              color={dbStatus === 'active' ? 'success' : 'error'} 
-              variant="outlined"
-              sx={{ 
-                  height: 20, 
-                  fontSize: '0.65rem', 
-                  fontWeight: 'bold',
-                  borderColor: dbStatus === 'active' ? 'success.light' : 'error.light',
-                  bgcolor: dbStatus === 'active' ? 'success.50' : 'error.50'
-              }} 
-            />
-          </Stack>
-        </Stack>
-      </Box>
-    </Box>
+          </>
+        }
+      />
+      <Stack direction="row" spacing={2} alignItems="center" sx={{ px: 2, mb: 2 }}>
+        <Typography variant="caption" color="text.secondary">
+          Last updated: <Box component="span" sx={{ fontWeight: 'bold' }}>{lastUpdated}</Box>
+        </Typography>
+      </Stack>
+    </>
   );
 };

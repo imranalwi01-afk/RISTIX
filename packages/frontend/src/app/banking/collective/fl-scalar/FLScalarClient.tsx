@@ -15,7 +15,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 import {
   Box,
-  Typography,
   Alert,
   AlertTitle,
   Snackbar,
@@ -29,9 +28,7 @@ import {
   type ApprovalNotificationState,
 } from '@/components/approval';
 import { bankingAPI } from '@/services/api';
-import {
-  TrendingUp as TrendingUpIcon,
-} from '@mui/icons-material';
+import PageHeader from '@/components/banking/shared/PageHeader';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import { GridRowId } from '@mui/x-data-grid';
 import { FLScalarDialog } from './components/FLScalarDialog';
@@ -397,16 +394,12 @@ export default function FLScalarManagementPage() {
           You do not have permission to view FL scalar setup.
         </Alert>
       )}
-      {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
-          FL Scalar Management
-        </Typography>
-        <Typography variant="body1" color="text.secondary" paragraph>
-          Manage Forward Looking adjustment scalars used by PD models for IFRS 9 calculations.
-          Configure period-based scalar adjustments for economic scenarios.
-        </Typography>
-      </Box>
+      <PageHeader
+        title="FL Scalar Management"
+        subtitle="Manage Forward Looking adjustment scalars used by PD models for IFRS 9 calculations. Configure period-based scalar adjustments for economic scenarios."
+        onRefresh={() => flRefetch()}
+        loading={flLoading}
+      />
 
       {snackbar.open && (
         <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })}>

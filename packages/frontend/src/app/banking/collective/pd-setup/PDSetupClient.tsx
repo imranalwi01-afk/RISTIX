@@ -4,18 +4,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
-import Breadcrumbs from '@mui/material/Breadcrumbs';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import CircularProgress from '@mui/material/CircularProgress';
 import Container from '@mui/material/Container';
 import Grid from '@mui/material/Grid';
-import Link from '@mui/material/Link';
 import Snackbar from '@mui/material/Snackbar';
 import Typography from '@mui/material/Typography';
-import {
-  Home as HomeIcon,
-} from '@mui/icons-material';
+import PageHeader from '@/components/banking/shared/PageHeader';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import { useRouter } from 'next/navigation';
 import { api } from '@/services/api';
@@ -273,14 +269,7 @@ const PdSetupPage = () => {
           You do not have permission to view PD setup.
         </Alert>
       )}
-      <Breadcrumbs sx={{ mb: 2 }}>
-        <Link href="/banking/dashboard" underline="hover" color="inherit">Dashboard</Link>
-        <Typography color="text.primary" data-testid="pd-setup-title">PD Setup</Typography>
-      </Breadcrumbs>
-
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h4" component="h1">PD Setup Management</Typography>
-      </Box>
+      <PageHeader title="PD Setup Management" />
 
       {snackbar.open && (
         <Snackbar sx={{ mb: 2 }} open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })}>

@@ -11,8 +11,6 @@ import {
   CardContent,
   Button,
   Alert,
-  Breadcrumbs,
-  Link,
   TextField,
   MenuItem,
   Dialog,
@@ -42,9 +40,9 @@ import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Refresh as RefreshIcon,
   Search as SearchIcon,
 } from '@mui/icons-material';
+import PageHeader from '@/components/banking/shared/PageHeader';
 import { GridColDef } from '@mui/x-data-grid';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -337,26 +335,20 @@ export default function LGDSetupPage() {
           You do not have permission to view LGD setup.
         </Alert>
       )}
-      <Breadcrumbs sx={{ mb: 2 }}>
-        <Link href="/banking/dashboard" underline="hover" color="inherit">Dashboard</Link>
-        <Typography color="text.primary">LGD Setup</Typography>
-      </Breadcrumbs>
-
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h4" component="h1">LGD Setup Management</Typography>
-        <Box>
-          <Button startIcon={<RefreshIcon />} onClick={() => lgdRefetch()} disabled={lgdLoading} sx={{ mr: 1 }} data-testid="refresh-lgd-btn">Refresh</Button>
-          {canManageLgdSetup && (
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
-              setSelectedConfig(null);
-              setFormData(createEmptyFormData());
-              setFormErrors({});
-              setIsEditing(false);
-              setIsDialogOpen(true);
-            }} data-testid="add-lgd-config-btn">Add Configuration</Button>
-          )}
-        </Box>
-      </Box>
+      <PageHeader
+        title="LGD Setup Management"
+        onRefresh={() => lgdRefetch()}
+        loading={lgdLoading}
+        extraActions={canManageLgdSetup && (
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
+            setSelectedConfig(null);
+            setFormData(createEmptyFormData());
+            setFormErrors({});
+            setIsEditing(false);
+            setIsDialogOpen(true);
+          }} data-testid="add-lgd-config-btn">Add Configuration</Button>
+        )}
+      />
 
       {snackbar.open && (
         <Snackbar sx={{ mb: 2 }} open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })}>

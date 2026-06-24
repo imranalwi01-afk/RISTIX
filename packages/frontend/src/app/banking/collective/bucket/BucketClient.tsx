@@ -55,6 +55,8 @@ import { bankingAPI } from '@/services/api';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/utils/error-message';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
+import PageHeader from '@/components/banking/shared/PageHeader';
+import { SearchBar } from '@/components/shared/SearchBar';
 import { BucketHeaderDialog } from './components/BucketHeaderDialog';
 import { BucketDetailDialog } from './components/BucketDetailDialog';
 
@@ -698,79 +700,28 @@ export default function BucketParameterPage() {
           You do not have permission to view bucket parameters.
         </Alert>
       )}
-      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-        <Link
-          underline="hover"
-          color="inherit"
-          href="/banking/dashboard"
-          onClick={(e) => {
-            e.preventDefault();
-            router.push('/banking/dashboard');
-          }}
-          sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
-        >
-          <HomeIcon sx={{ mr: 0.5, fontSize: 16 }} />
-          Dashboard
-        </Link>
-        <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
-          <BucketIcon sx={{ mr: 0.5, fontSize: 16 }} />
-          Bucket Parameter
-        </Typography>
-      </Breadcrumbs>
-
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <BucketIcon sx={{ mr: 2, fontSize: 32, color: 'primary.main' }} />
-              <Box>
-                <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 0.5 }} data-testid="bucket-page-title">
-                  Bucket Parameter
-                </Typography>
-                <Typography variant="body1" color="text.secondary">
-                  Configure IFRS9 bucket parameters for DPD aging and credit rating
-                </Typography>
-              </Box>
-            </Box>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              {canManageBucket && (
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={handleAddHeader}
-                  size="large"
-                  data-testid="add-bucket-btn"
-                >
-                  Add Bucket Group
-                </Button>
-              )}
-              <Button
-                variant="outlined"
-                startIcon={<RefreshIcon />}
-                onClick={handleRefresh}
-                size="large"
-                data-testid="refresh-buckets-btn"
-              >
-                Refresh
-              </Button>
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
+      <PageHeader
+        title="Bucket Parameter"
+        subtitle="Configure IFRS9 bucket parameters for DPD aging and credit rating"
+        onRefresh={handleRefresh}
+        loading={loading}
+        extraActions={
+          canManageBucket ? (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddHeader} data-testid="add-bucket-btn">
+              Add Bucket Group
+            </Button>
+          ) : undefined
+        }
+      />
 
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-            <TextField
-              label="Search bucket groups..."
+            <SearchBar
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              sx={{ minWidth: 300, flexGrow: 1 }}
-              InputProps={{
-                startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
-              }}
-              data-testid="bucket-search-input"
+              onChange={setSearchTerm}
+              placeholder="Search bucket groups..."
+              label="Search bucket groups"
             />
             <FormControl sx={{ minWidth: 200 }}>
               <InputLabel>Filter by Basis</InputLabel>

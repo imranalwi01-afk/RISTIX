@@ -19,6 +19,7 @@ import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Alert from '@mui/material/Alert'
 import Typography from '@mui/material/Typography'
+import PageHeader from '@/components/banking/shared/PageHeader'
 
 import AddIcon from '@mui/icons-material/Add'
 import EditIcon from '@mui/icons-material/Edit'
@@ -901,15 +902,7 @@ export default function PageContent() {
           You do not have permission to view application settings.
         </Alert>
       )}
-      <Box sx={{ mb: 3, py: 1, bgcolor: 'grey.50', borderRadius: 1, px: 2 }}>
-        <Typography variant="body2" color="text.secondary">
-          General Setup / Application Setting
-        </Typography>
-      </Box>
-
-      <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold', color: 'primary.main' }}>
-        Application Setting
-      </Typography>
+      <PageHeader title="Application Setting" />
 
       <DisplaySettingsCard
         currencySymbolEnabled={currencySymbolEnabled}

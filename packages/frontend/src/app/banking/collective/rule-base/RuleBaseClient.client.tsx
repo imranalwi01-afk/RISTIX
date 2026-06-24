@@ -19,8 +19,6 @@ import CardContent from '@mui/material/CardContent'
 import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
-import Breadcrumbs from '@mui/material/Breadcrumbs'
-import Link from '@mui/material/Link'
 import TextField from '@mui/material/TextField'
 import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
@@ -33,8 +31,7 @@ import Menu from '@mui/material/Menu'
 import Select from '@mui/material/Select'
 import MenuItem from '@mui/material/MenuItem'
 import Switch from '@mui/material/Switch'
-import PageIcon from '@mui/icons-material/Rule'
-import HomeIcon from '@mui/icons-material/Home'
+import PageHeader from '@/components/banking/shared/PageHeader'
 import AddIcon from '@mui/icons-material/Add'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
@@ -44,7 +41,7 @@ import FilterIcon from '@mui/icons-material/FilterAlt'
 import ClearIcon from '@mui/icons-material/Clear'
 import ViewColumnIcon from '@mui/icons-material/ViewColumn'
 import type { GridColDef } from '@mui/x-data-grid';
-import { useRouter } from 'next/navigation';
+
 import { bankingAPI } from '../../../../services/api';
 import { useRuleBaseHeadersQuery } from '@/features/rule-base/hooks/useRuleBaseQueries';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
@@ -156,8 +153,6 @@ export default function PageContent() {
   const canViewRuleBase = hasAnyPermission(['banking.collective.rule_base.view', 'banking.collective.rule_base.manage', 'banking.collective.manage', 'banking.collective']);
   const canManageRuleBase = hasAnyPermission(['banking.collective.rule_base.manage', 'banking.collective.rule_base.create', 'banking.collective.rule_base.update', 'banking.collective.rule_base.delete', 'banking.collective.manage']);
   const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all']);
-
-  const router = useRouter();
 
   // State Management - Live Database Integration
   const [loading, setLoading] = useState(false);
@@ -924,38 +919,6 @@ export default function PageContent() {
           You do not have permission to view rule base settings.
         </Alert>
       )}
-      {/* Breadcrumb Navigation */}
-      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-        <Link
-          underline="hover"
-          color="inherit"
-          href="/banking/dashboard"
-          onClick={(e) => {
-            e.preventDefault();
-            router.push('/banking/dashboard');
-          }}
-          sx={{ display: 'flex', alignItems: 'center' }}
-        >
-          <HomeIcon sx={{ mr: 0.5, fontSize: 16 }} />
-          Banking Dashboard
-        </Link>
-        <Link
-          underline="hover"
-          color="inherit"
-          href="/banking/collective"
-          onClick={(e) => {
-            e.preventDefault();
-            router.push('/banking/collective');
-          }}
-        >
-          Collective Impairment
-        </Link>
-        <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
-          <PageIcon sx={{ mr: 0.5, fontSize: 16 }} />
-          Rule Base Setting
-        </Typography>
-      </Breadcrumbs>
-
       {/* Error Display */}
       <Snackbar
         open={!!error}
@@ -986,71 +949,59 @@ export default function PageContent() {
         </Alert>
       </Snackbar>
 
-      {/* Page Header */}
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-            <PageIcon sx={{ mr: 2, fontSize: 32, color: 'primary.main' }} />
-            <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
-              Rule Base Setting
-            </Typography>
-          </Box>
-          <Typography variant="subtitle1" color="text.secondary">
-            IFRS 9 Rule-based collective impairment configuration.
-          </Typography>
-        </Box>
-
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button
-            variant="outlined"
-            startIcon={<ViewColumnIcon />}
-            onClick={(event) => setColumnsMenuAnchor(event.currentTarget)}
-            disabled={loading}
-          >
-            Columns ({visibleColumnCount})
-          </Button>
-          <Menu
-            anchorEl={columnsMenuAnchor}
-            open={Boolean(columnsMenuAnchor)}
-            onClose={() => setColumnsMenuAnchor(null)}
-          >
-            {RULE_BASE_COLUMNS.map((column) => {
-              const visibleCount = RULE_BASE_COLUMNS.filter((item) => columnVisibility[item.key]).length;
-              return (
-                <MenuItem key={column.key} dense>
-                  <FormControlLabel
-                    control={(
-                      <Switch
-                        size="small"
-                        checked={columnVisibility[column.key]}
-                        disabled={columnVisibility[column.key] && visibleCount <= 1}
-                        onChange={() => handleToggleColumn(column.key)}
-                      />
-                    )}
-                    label={column.label}
-                  />
-                </MenuItem>
-              );
-            })}
-          </Menu>
-          <Tooltip title="Refresh Data">
-            <IconButton onClick={() => ruleRefetch()} color="primary" disabled={loading}>
-              <RefreshIcon />
-            </IconButton>
-          </Tooltip>
-          {canManageRuleBase && (
+      <PageHeader
+        title="Rule Base Setting"
+        subtitle="IFRS 9 Rule-based collective impairment configuration."
+        onRefresh={() => ruleRefetch()}
+        loading={ruleLoading}
+        extraActions={
+          <>
             <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleCreateHeader}
+              variant="outlined"
+              startIcon={<ViewColumnIcon />}
+              onClick={(event) => setColumnsMenuAnchor(event.currentTarget)}
               disabled={loading}
-              data-testid="add-rule-btn"
             >
-              Add Rule
+              Columns ({visibleColumnCount})
             </Button>
-          )}
-        </Box>
-      </Box>
+            <Menu
+              anchorEl={columnsMenuAnchor}
+              open={Boolean(columnsMenuAnchor)}
+              onClose={() => setColumnsMenuAnchor(null)}
+            >
+              {RULE_BASE_COLUMNS.map((column) => {
+                const visibleCount = RULE_BASE_COLUMNS.filter((item) => columnVisibility[item.key]).length;
+                return (
+                  <MenuItem key={column.key} dense>
+                    <FormControlLabel
+                      control={(
+                        <Switch
+                          size="small"
+                          checked={columnVisibility[column.key]}
+                          disabled={columnVisibility[column.key] && visibleCount <= 1}
+                          onChange={() => handleToggleColumn(column.key)}
+                        />
+                      )}
+                      label={column.label}
+                    />
+                  </MenuItem>
+                );
+              })}
+            </Menu>
+            {canManageRuleBase && (
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleCreateHeader}
+                disabled={loading}
+                data-testid="add-rule-btn"
+              >
+                Add Rule
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {/* Search and Filter Controls */}
       <Card sx={{ mb: 2 }}>

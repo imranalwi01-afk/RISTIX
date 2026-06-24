@@ -11,8 +11,6 @@ import {
   CardContent,
   Button,
   Alert,
-  Breadcrumbs,
-  Link,
   TextField,
   MenuItem,
   Dialog,
@@ -42,9 +40,9 @@ import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Refresh as RefreshIcon,
   Search as SearchIcon,
 } from '@mui/icons-material';
+import PageHeader from '@/components/banking/shared/PageHeader';
 import { GridColDef } from '@mui/x-data-grid';
 import { useRouter } from 'next/navigation';
 import { api } from '../../../../services/api';
@@ -301,26 +299,20 @@ export default function EADSetupPage() {
           You do not have permission to view EAD setup.
         </Alert>
       )}
-      <Breadcrumbs sx={{ mb: 2 }}>
-        <Link href="/banking/dashboard" underline="hover" color="inherit">Dashboard</Link>
-        <Typography color="text.primary">EAD Setup</Typography>
-      </Breadcrumbs>
-
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h4" component="h1">EAD Setup Management</Typography>
-        <Box>
-          <Button startIcon={<RefreshIcon />} onClick={() => eadRefetch()} disabled={loading} sx={{ mr: 1 }} data-testid="refresh-ead-btn">Refresh</Button>
-          {canManageEadSetup && (
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
-              setSelectedConfig(null);
-              setFormData(createEmptyFormData());
-              setFormErrors({});
-              setIsEditing(false);
-              setIsDialogOpen(true);
-            }} data-testid="add-ead-config-btn">Add Configuration</Button>
-          )}
-        </Box>
-      </Box>
+      <PageHeader
+        title="EAD Setup Management"
+        onRefresh={() => eadRefetch()}
+        loading={loading}
+        extraActions={canManageEadSetup && (
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
+            setSelectedConfig(null);
+            setFormData(createEmptyFormData());
+            setFormErrors({});
+            setIsEditing(false);
+            setIsDialogOpen(true);
+          }} data-testid="add-ead-config-btn">Add Configuration</Button>
+        )}
+      />
 
       {snackbar.open && (
         <Snackbar sx={{ mb: 2 }} open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
