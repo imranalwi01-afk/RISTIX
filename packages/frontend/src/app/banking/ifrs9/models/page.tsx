@@ -14,18 +14,11 @@ import {
   Button,
   CircularProgress,
   Alert,
-  Breadcrumbs,
-  Link,
   Tabs,
   Tab,
-  Typography as MuiTypography,
 } from '@mui/material';
-import {
-  ModelTraining as PageIcon,
-  Home as HomeIcon,
-  Refresh as RefreshIcon,
-  Add as AddIcon,
-} from '@mui/icons-material';
+import PageHeader from '@/components/banking/shared/PageHeader';
+import AddIcon from '@mui/icons-material/Add';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import {
@@ -278,58 +271,22 @@ export default function IFRS9ModelsPage() {
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Container maxWidth="xl">
         {/* Breadcrumb Navigation */}
-        <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-          <Link
-            underline="hover"
-            color="inherit"
-            href="/banking/dashboard"
-            onClick={(e) => {
-              e.preventDefault();
-              window.location.href = '/banking/dashboard';
-            }}
-            sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
-          >
-            <HomeIcon sx={{ mr: 0.5, fontSize: 16 }} />
-            Dashboard
-          </Link>
-          <MuiTypography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
-            <PageIcon sx={{ mr: 0.5, fontSize: 16 }} />
-            IFRS 9 Models
-          </MuiTypography>
-        </Breadcrumbs>
-
-        {/* Page Header */}
-        <Box sx={{ mb: 4 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <PageIcon sx={{ mr: 2, fontSize: 32, color: 'primary.main' }} />
-              <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
-                IFRS 9 Model Management
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button
-                variant="outlined"
-                startIcon={<RefreshIcon />}
-                onClick={loadModelsData}
-                disabled={loading}
-              >
-                Refresh
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                disabled={loading}
-                onClick={handleCreate}
-              >
-                New {modelType} Model
-              </Button>
-            </Box>
-          </Box>
-          <Typography variant="subtitle1" color="text.secondary">
-            IFRS 9 model management and configuration
-          </Typography>
-        </Box>
+        <PageHeader
+          title="IFRS 9 Model Management"
+          subtitle="IFRS 9 model management and configuration"
+          onRefresh={loadModelsData}
+          loading={loading}
+          extraActions={
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              disabled={loading}
+              onClick={handleCreate}
+            >
+              New {modelType} Model
+            </Button>
+          }
+        />
 
         {/* Model Type Tabs */}
         <Paper sx={{ mb: 3 }}>

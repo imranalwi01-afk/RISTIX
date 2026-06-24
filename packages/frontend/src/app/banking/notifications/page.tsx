@@ -18,6 +18,8 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
+import PageHeader from '@/components/banking/shared/PageHeader'
+import { SearchBar } from '@/components/shared/SearchBar'
 import type { GridColDef } from '@mui/x-data-grid'
 import { formatDistanceToNow } from 'date-fns'
 import { useRouter } from 'next/navigation'
@@ -269,31 +271,23 @@ export default function NotificationsPage() {
   return (
     <Box sx={{ p: 1 }}>
       <Stack spacing={2}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-          <Box>
-            <Typography variant="h5" fontWeight={700}>Notifications</Typography>
-            <Typography variant="body2" color="text.secondary">
-              Full history, filters, and bulk actions
-            </Typography>
-          </Box>
-          <Stack direction="row" spacing={1}>
-            <Button variant="outlined" onClick={() => void loadNotifications()} disabled={loading}>Refresh</Button>
+        <PageHeader
+          title="Notifications"
+          subtitle="Full history, filters, and bulk actions"
+          onRefresh={() => void loadNotifications()}
+          loading={loading}
+          extraActions={
             <Button variant="contained" onClick={markAllRead} disabled={bulkRunning}>Mark All Read</Button>
-          </Stack>
-        </Box>
+          }
+        />
 
         <Card>
           <CardContent>
             <Stack spacing={2}>
               <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-                <TextField
-                  label="Search"
+                <SearchBar
                   value={search}
-                  onChange={(event) => {
-                    setPage(0)
-                    setSearch(event.target.value)
-                  }}
-                  fullWidth
+                  onChange={(value) => { setPage(0); setSearch(value) }}
                 />
                 <FormControl sx={{ minWidth: 180 }}>
                   <InputLabel>Status</InputLabel>
