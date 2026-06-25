@@ -36,19 +36,19 @@ const ROLES_TO_CREATE = [
         hierarchyLevel: 1,
     },
     {
-        roleCode: 'MAKER',
+        roleCode: 'ACCOUNTING_MAKER',
         roleName: 'Maker',
         description: 'Can initiate changes but requires approval',
         hierarchyLevel: 10,
     },
     {
-        roleCode: 'CHECKER',
+        roleCode: 'USERCHECKER',
         roleName: 'Checker',
         description: 'Can review and verify maker changes',
         hierarchyLevel: 50,
     },
     {
-        roleCode: 'APPROVER',
+        roleCode: 'ACCOUNTING_APPROVER',
         roleName: 'Approver',
         description: 'Can perform final approval after checker stage',
         hierarchyLevel: 70,
@@ -64,9 +64,9 @@ interface UserSpec {
 
 const USERS_TO_CREATE: UserSpec[] = [
     { roleCode: 'SUPERADMIN', emailPrefix: 'superadmin', username: 'superadmin', fullName: 'Super Admin' },
-    { roleCode: 'MAKER', emailPrefix: 'maker', username: 'maker', fullName: 'Maker User' },
-    { roleCode: 'CHECKER', emailPrefix: 'checker', username: 'checker', fullName: 'Checker User' },
-    { roleCode: 'APPROVER', emailPrefix: 'approver', username: 'approver', fullName: 'Approver User' },
+    { roleCode: 'ACCOUNTING_MAKER', emailPrefix: 'maker', username: 'maker', fullName: 'Maker User' },
+    { roleCode: 'USERCHECKER', emailPrefix: 'checker', username: 'checker', fullName: 'Checker User' },
+    { roleCode: 'ACCOUNTING_APPROVER', emailPrefix: 'approver', username: 'approver', fullName: 'Approver User' },
 ]
 
 export async function run(args: string[] = []) {
@@ -211,7 +211,7 @@ async function setupTenantUsers(tenant: any, password: string) {
     }
 
     // Assign approval-related permissions to CHECKER and APPROVER
-    for (const targetRole of ['CHECKER', 'APPROVER']) {
+    for (const targetRole of ['USERCHECKER', 'ACCOUNTING_APPROVER']) {
         const roleId = roleMap.get(targetRole)
         if (!roleId) continue
 

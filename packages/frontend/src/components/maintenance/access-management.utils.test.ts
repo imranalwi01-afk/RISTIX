@@ -146,7 +146,7 @@ describe('access-management utils', () => {
   test('normalizeRoleFromApi flattens grouped permissions and resolves aliases', () => {
     const normalized = normalizeRoleFromApi({
       id: 'role-1',
-      roleCode: 'APPROVER',
+      roleCode: 'ACCOUNTING_APPROVER',
       roleName: 'Approver',
       isSystemRole: true,
       assigned_users: '2',
@@ -173,7 +173,7 @@ describe('access-management utils', () => {
     });
 
     expect(normalized.displayName).toBe('Approver');
-    expect(normalized.name).toBe('APPROVER');
+    expect(normalized.name).toBe('ACCOUNTING_APPROVER');
     expect(normalized.type).toBe('SYSTEM');
     expect(normalized.level).toBe('TENANT');
     expect(normalized.assignedUsers).toBe(2);

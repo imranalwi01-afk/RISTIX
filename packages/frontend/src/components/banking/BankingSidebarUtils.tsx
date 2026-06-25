@@ -381,7 +381,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         icon: <TrendingUp />,
         description: 'Portfolio Assessment',
         banking_modes: ['conventional', 'dual'],
-        // roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_PORTFOLIO_MANAGER'],
+        // roles: ['IAF_TENANT_SUPERADMIN', 'ACCESS_MANAGEMENT_OPERATOR', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'MODELER_APPROVER', 'MODELER_MAKER', 'IAF_PORTFOLIO_MANAGER'],
         children: [
             {
                 id: 'segmentation-configuration',
@@ -450,7 +450,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         icon: <Person />,
         description: 'Account Assessment',
         banking_modes: ['conventional', 'dual'],
-        roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_PORTFOLIO_MANAGER'],
+        roles: ['IAF_TENANT_SUPERADMIN', 'ACCESS_MANAGEMENT_OPERATOR', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'MODELER_APPROVER', 'MODELER_MAKER', 'IAF_PORTFOLIO_MANAGER'],
         children: [
             {
                 id: 'assessment-workspace-v1',
@@ -478,7 +478,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         icon: <Calculate />,
         description: 'Processing Modules',
         banking_modes: ['conventional', 'dual'],
-        roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST'],
+        roles: ['IAF_TENANT_SUPERADMIN', 'ACCESS_MANAGEMENT_OPERATOR', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'MODELER_APPROVER', 'MODELER_MAKER'],
         children: [
             {
                 id: 'impairment-module',
@@ -536,7 +536,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         icon: <TableChart />,
         description: 'Comprehensive IFRS 9 Reporting Suite',
         banking_modes: ['conventional', 'dual'],
-        roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_REPORT_ANALYST'],
+        roles: ['IAF_TENANT_SUPERADMIN', 'ACCESS_MANAGEMENT_OPERATOR', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'MODELER_APPROVER', 'MODELER_MAKER', 'IAF_REPORT_ANALYST'],
 
         children: [
             {
@@ -598,7 +598,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         icon: <Analytics />,
         description: 'R Analytics & BI',
         banking_modes: ['conventional', 'dual'],
-        roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_REPORT_ANALYST'],
+        roles: ['IAF_TENANT_SUPERADMIN', 'ACCESS_MANAGEMENT_OPERATOR', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'MODELER_APPROVER', 'MODELER_MAKER', 'IAF_REPORT_ANALYST'],
         children: [
             {
                 id: 'r-analytics',

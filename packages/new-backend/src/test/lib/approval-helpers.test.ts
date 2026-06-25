@@ -135,7 +135,7 @@ describe('approval-helpers', () => {
       password: 'secret',
       passwordHash: 'hash',
       mfaSecret: 'mfa',
-      role: 'MAKER',
+      role: 'ACCOUNTING_MAKER',
       active: true,
       department: 'Risk',
       position: 'Officer',
@@ -195,8 +195,8 @@ describe('approval-helpers', () => {
   test('default strict routing contains expected checker and approver levels', () => {
     const routing = buildDefaultFourEyesRouting('role')
     expect(routing.length).toBe(2)
-    expect(routing[0].requiredRoleCodes).toContain('CHECKER')
-    expect(routing[1].requiredRoleCodes).toContain('APPROVER')
+    expect(routing[0].requiredRoleCodes).toContain('USERCHECKER')
+    expect(routing[1].requiredRoleCodes).toContain('ACCOUNTING_APPROVER')
   })
 
   test('shouldAutoApprove respects strict mode, matrix rules, bypass and approval permissions', () => {

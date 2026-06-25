@@ -1852,7 +1852,7 @@ async function notifyApprovalCompletion(request: any, outcome: 'approved' | 'rej
 
     await safeEmitNotification(request.tenantId, notification, {
         userIds: [request.requestedBy],
-        roleRooms: ['CHECKER', 'APPROVER', 'SUPER_ADMIN'],
+        roleRooms: ['USERCHECKER', 'ACCOUNTING_APPROVER', 'SUPER_ADMIN'],
         excludeUserId: actorUserId,
     })
 }
@@ -2396,7 +2396,7 @@ function buildRoleRoomsFromRequiredRoleCodes(requiredRoleCodes: unknown): string
         return Array.from(new Set(normalized))
     }
 
-    return ['CHECKER', 'APPROVER', 'SUPER_ADMIN']
+    return ['USERCHECKER', 'ACCOUNTING_APPROVER', 'SUPER_ADMIN']
 }
 
 const resolveNotificationSeverity = (severity: string): 'info' | 'warning' | 'success' | 'error' => {

@@ -83,7 +83,7 @@ UserAuthModule <- R6Class("UserAuthModule",
         "data_upload", "data_delete", "model_create", "model_delete", "forecast_run",
         "export_data", "admin_settings"
       ),
-      "IAF_TENANT_ADMIN" = c(
+      "ACCESS_MANAGEMENT_OPERATOR" = c(
         "home_access", "data_access", "model_access", "forecast_access", "pd_afl_access",
         "data_upload", "data_delete", "model_create", "model_delete", "forecast_run",
         "export_data"
@@ -92,11 +92,11 @@ UserAuthModule <- R6Class("UserAuthModule",
         "home_access", "data_access", "model_access", "forecast_access", "pd_afl_access",
         "data_upload", "forecast_run", "export_data"
       ),
-      "IAF_IFRS_MANAGER" = c(
+      "MODELER_APPROVER" = c(
         "home_access", "data_access", "model_access", "forecast_access", "pd_afl_access",
         "model_create", "model_delete", "forecast_run", "export_data"
       ),
-      "IAF_RISK_ANALYST" = c(
+      "MODELER_MAKER" = c(
         "home_access", "data_access", "model_access", "forecast_access", "pd_afl_access",
         "forecast_run", "export_data"
       ),

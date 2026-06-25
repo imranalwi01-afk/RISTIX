@@ -38,7 +38,7 @@ ON CONFLICT (user_id, role_id) DO NOTHING;
 INSERT INTO core.user_roles (user_id, role_id, assigned_by, assigned_at, tenant_id)
 SELECT u.id, r.id, u.id, CURRENT_TIMESTAMP, u.tenant_id
 FROM core.users u, core.roles r
-WHERE u.email = 'ifrs.manager@iaf.co.id' AND r.role_code = 'IAF_IFRS_MANAGER'
+WHERE u.email = 'ifrs.manager@iaf.co.id' AND r.role_code = 'MODELER_APPROVER'
 ON CONFLICT (user_id, role_id) DO NOTHING;
 
 -- Assign CRO role to cro@iaf.co.id
@@ -52,7 +52,7 @@ ON CONFLICT (user_id, role_id) DO NOTHING;
 INSERT INTO core.user_roles (user_id, role_id, assigned_by, assigned_at, tenant_id)
 SELECT u.id, r.id, u.id, CURRENT_TIMESTAMP, u.tenant_id
 FROM core.users u, core.roles r
-WHERE u.email = 'risk.analyst@iaf.co.id' AND r.role_code = 'IAF_RISK_ANALYST'
+WHERE u.email = 'risk.analyst@iaf.co.id' AND r.role_code = 'MODELER_MAKER'
 ON CONFLICT (user_id, role_id) DO NOTHING;
 
 COMMIT;

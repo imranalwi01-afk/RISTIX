@@ -65,7 +65,7 @@ const processApprovalActionMock = mock((input: any) => {
           message: 'You are not eligible to approve level 1',
           requiredPermission: 'approval.requests.approve',
           details: {
-            requiredRoleCodes: ['CHECKER', 'IAF_IFRS_MANAGER'],
+            requiredRoleCodes: ['USERCHECKER', 'MODELER_APPROVER'],
             currentLevel: 1,
           },
         })
@@ -431,7 +431,7 @@ describe('approval routes response contracts', () => {
       error: 'You are not eligible to approve level 1',
       message: 'You are not eligible to approve level 1',
       details: {
-        requiredRoleCodes: ['CHECKER', 'IAF_IFRS_MANAGER'],
+        requiredRoleCodes: ['USERCHECKER', 'MODELER_APPROVER'],
         currentLevel: 1,
       },
     })

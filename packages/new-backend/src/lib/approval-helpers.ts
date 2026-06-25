@@ -382,7 +382,7 @@ export const buildDefaultFourEyesRouting = (_entityType: string): ApprovalRoutin
     {
         level: 1,
         name: 'Checker Review',
-        requiredRoleCodes: ['CHECKER'],
+        requiredRoleCodes: ['USERCHECKER'],
         requiredPermissionCodes: ['approval.requests.approve'],
         roleMatchMode: 'ANY',
         permissionMatchMode: 'ANY',
@@ -392,7 +392,7 @@ export const buildDefaultFourEyesRouting = (_entityType: string): ApprovalRoutin
     {
         level: 2,
         name: 'Final Approval',
-        requiredRoleCodes: ['APPROVER', 'SUPER_ADMIN', 'IAF_TENANT_SUPERADMIN'],
+        requiredRoleCodes: ['ACCOUNTING_APPROVER', 'SUPER_ADMIN', 'IAF_TENANT_SUPERADMIN'],
         requiredPermissionCodes: ['approval.requests.approve', 'approval.all', 'admin.super_admin'],
         roleMatchMode: 'ANY',
         permissionMatchMode: 'ANY',

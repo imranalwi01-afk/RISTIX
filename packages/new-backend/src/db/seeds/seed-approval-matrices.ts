@@ -116,14 +116,14 @@ const defaultMatrices = [
             {
                 level: 1,
                 name: 'Checker Review',
-                requiredRoles: ['CHECKER'],
+                requiredRoles: ['USERCHECKER'],
                 requiredCount: 1,
                 timeoutHours: 24,
             },
             {
                 level: 2,
                 name: 'Final Approval',
-                requiredRoles: ['APPROVER'],
+                requiredRoles: ['ACCOUNTING_APPROVER'],
                 requiredCount: 1,
                 timeoutHours: 24,
             },
@@ -143,14 +143,14 @@ const defaultMatrices = [
             {
                 level: 1,
                 name: 'Checker Review',
-                requiredRoles: ['CHECKER'],
+                requiredRoles: ['USERCHECKER'],
                 requiredCount: 1,
                 timeoutHours: 24,
             },
             {
                 level: 2,
                 name: 'Final Approval',
-                requiredRoles: ['APPROVER'],
+                requiredRoles: ['ACCOUNTING_APPROVER'],
                 requiredCount: 1,
                 timeoutHours: 24,
             },
@@ -170,14 +170,14 @@ const defaultMatrices = [
             {
                 level: 1,
                 name: 'Checker Review',
-                requiredRoles: ['CHECKER'],
+                requiredRoles: ['USERCHECKER'],
                 requiredCount: 1,
                 timeoutHours: 24,
             },
             {
                 level: 2,
                 name: 'Final Approval',
-                requiredRoles: ['APPROVER'],
+                requiredRoles: ['ACCOUNTING_APPROVER'],
                 requiredCount: 1,
                 timeoutHours: 24,
             },
@@ -197,14 +197,14 @@ const defaultMatrices = [
             {
                 level: 1,
                 name: 'Checker Review',
-                requiredRoles: ['CHECKER'],
+                requiredRoles: ['USERCHECKER'],
                 requiredCount: 1,
                 timeoutHours: 24,
             },
             {
                 level: 2,
                 name: 'Final Approval',
-                requiredRoles: ['APPROVER'],
+                requiredRoles: ['ACCOUNTING_APPROVER'],
                 requiredCount: 1,
                 timeoutHours: 24,
             },
@@ -244,7 +244,7 @@ const defaultMatrices = [
             {
                 level: 1,
                 name: 'Parameter Approver',
-                requiredRoles: ['CHECKER', 'IAF_IFRS_MANAGER', 'IAF_TENANT_SUPERADMIN'],
+                requiredRoles: ['USERCHECKER', 'MODELER_APPROVER', 'IAF_TENANT_SUPERADMIN'],
                 requiredPermissionCodes: ['approval.requests.approve', 'approval.all', 'admin.super_admin'],
                 permissionMatchMode: 'ANY',
                 requiredCount: 1,
@@ -253,7 +253,7 @@ const defaultMatrices = [
             {
                 level: 2,
                 name: 'Final Approval',
-                requiredRoles: ['APPROVER', 'IAF_BANK_CRO', 'IAF_TENANT_SUPERADMIN'],
+                requiredRoles: ['ACCOUNTING_APPROVER', 'IAF_BANK_CRO', 'IAF_TENANT_SUPERADMIN'],
                 requiredPermissionCodes: ['approval.requests.approve', 'approval.all', 'admin.super_admin'],
                 permissionMatchMode: 'ANY',
                 requiredCount: 1,
@@ -529,14 +529,14 @@ const defaultMatrices = [
             {
                 level: 1,
                 name: 'IFRS Checker Review',
-                requiredRoles: ['CHECKER', 'IAF_IFRS_MANAGER'],
+                requiredRoles: ['USERCHECKER', 'MODELER_APPROVER'],
                 requiredCount: 1,
                 timeoutHours: 24,
             },
             {
                 level: 2,
                 name: 'Risk Final Approval',
-                requiredRoles: ['APPROVER', 'IAF_BANK_CRO'],
+                requiredRoles: ['ACCOUNTING_APPROVER', 'IAF_BANK_CRO'],
                 requiredCount: 1,
                 timeoutHours: 24,
             },
@@ -614,9 +614,9 @@ const BUSINESS_APPROVAL_PERMISSION_CODES = [
     'approval.individual_assessment_consolidated.delete',
 ]
 
-const BUSINESS_CHECKER_ROLES = ['CHECKER', 'IAF_IFRS_MANAGER']
-const BUSINESS_APPROVER_ROLES = ['APPROVER', 'IAF_BANK_CRO']
-const ADMIN_CHECKER_ROLES = ['IAF_TENANT_ADMIN']
+const BUSINESS_CHECKER_ROLES = ['USERCHECKER', 'MODELER_APPROVER']
+const BUSINESS_APPROVER_ROLES = ['ACCOUNTING_APPROVER', 'IAF_BANK_CRO']
+const ADMIN_CHECKER_ROLES = ['ACCESS_MANAGEMENT_OPERATOR']
 const ADMIN_APPROVER_ROLES = ['IAF_TENANT_SUPERADMIN']
 
 const getStrictFourEyesRoleSet = (entityType?: string | null) =>
@@ -869,7 +869,7 @@ export async function assignApprovalPermissionsToRoles() {
 
     // IAF role codes
     await assignByRoleCode('IAF_TENANT_SUPERADMIN', ['approval.all', 'approval.requests.self_approve_override'])
-    await assignByRoleCode('IAF_TENANT_ADMIN', [
+    await assignByRoleCode('ACCESS_MANAGEMENT_OPERATOR', [
         ...adminApprovalCodes,
         'approval.parameter.create',
         'approval.parameter.update',
@@ -878,10 +878,10 @@ export async function assignApprovalPermissionsToRoles() {
         'approval.configuration.update',
         'approval.configuration.delete',
     ])
-    await assignByRoleCode('IAF_IFRS_MANAGER', businessApprovalCodes)
+    await assignByRoleCode('MODELER_APPROVER', businessApprovalCodes)
     await assignByRoleCode('IAF_BANK_CRO', businessApprovalCodes)
-    await assignByRoleCode('CHECKER', businessApprovalCodes)
-    await assignByRoleCode('APPROVER', businessApprovalCodes)
+    await assignByRoleCode('USERCHECKER', businessApprovalCodes)
+    await assignByRoleCode('ACCOUNTING_APPROVER', businessApprovalCodes)
 
     console.log('✅ Permission assignment complete!')
 }

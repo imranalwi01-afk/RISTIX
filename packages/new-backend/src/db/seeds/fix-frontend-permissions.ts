@@ -39,9 +39,9 @@ async function fixPermissions() {
         }
 
         // Get Role IDs
-        const dbRoles = await db.select().from(roles).where(inArray(roles.roleCode, ['MAKER', 'CHECKER']))
-        const makerRoleId = dbRoles.find(r => r.roleCode === 'MAKER')?.id
-        const checkerRoleId = dbRoles.find(r => r.roleCode === 'CHECKER')?.id
+        const dbRoles = await db.select().from(roles).where(inArray(roles.roleCode, ['ACCOUNTING_MAKER', 'USERCHECKER']))
+        const makerRoleId = dbRoles.find(r => r.roleCode === 'ACCOUNTING_MAKER')?.id
+        const checkerRoleId = dbRoles.find(r => r.roleCode === 'USERCHECKER')?.id
 
         if (!makerRoleId || !checkerRoleId) {
             throw new Error('MAKER or CHECKER role not found. Run setup-maker-checker.ts first.')
@@ -62,7 +62,7 @@ async function fixPermissions() {
                     })
                     .onConflictDoNothing()
             }
-            const roleCode = roleId === makerRoleId ? 'MAKER' : 'CHECKER'
+            const roleCode = roleId === makerRoleId ? 'ACCOUNTING_MAKER' : 'USERCHECKER'
             console.log(`  ✓ Assigned ${syncPerms.length} frontend permissions to ${roleCode}`)
         }
 

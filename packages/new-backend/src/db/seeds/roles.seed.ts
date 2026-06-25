@@ -16,7 +16,7 @@ const SYSTEM_ROLES = [
     },
     {
         id: '550e8400-1111-2222-3333-444455555002',
-        roleCode: 'IAF_TENANT_ADMIN',
+        roleCode: 'ACCESS_MANAGEMENT_OPERATOR',
         roleName: 'IAF Tenant Administrator',
         description: 'Administrative access to IAF system',
         hierarchyLevel: 90,
@@ -32,7 +32,7 @@ const SYSTEM_ROLES = [
     },
     {
         id: '550e8400-1111-2222-3333-444455555004',
-        roleCode: 'IAF_IFRS_MANAGER',
+        roleCode: 'MODELER_APPROVER',
         roleName: 'IAF IFRS 9 Manager',
         description: 'IFRS 9 calculations and compliance',
         hierarchyLevel: 70,
@@ -40,7 +40,7 @@ const SYSTEM_ROLES = [
     },
     {
         id: '550e8400-1111-2222-3333-444455555005',
-        roleCode: 'IAF_RISK_ANALYST',
+        roleCode: 'MODELER_MAKER',
         roleName: 'IAF Risk Analyst',
         description: 'Risk analysis and assessment',
         hierarchyLevel: 50,

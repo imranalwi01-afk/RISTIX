@@ -104,7 +104,7 @@ get_dev_user_context <- function() {
     user_id = "dev-user-12345",
     user_email = "dev-user@ifrs9.local",
     user_name = "Development User",
-    user_role = "IAF_TENANT_ADMIN",
+    user_role = "ACCESS_MANAGEMENT_OPERATOR",
     tenant_id = "iaf",
     tenant_slug = "iaf",
     banking_type = "conventional",

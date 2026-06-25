@@ -99,10 +99,8 @@ function IndividualAssessmentWizardPage() {
 
   const isChecker = useMemo(() => {
     if (!user) return false;
-    const roles = Array.isArray(user.roles) ? user.roles : (user.role ? [user.role] : []);
-    const roleCodes = Array.isArray(user.roleCodes) ? user.roleCodes : [];
-    const allRoles = [...roles, ...roleCodes].map(r => String(r).toUpperCase());
-    return allRoles.includes('CHECKER') || allRoles.includes('APPROVER') || allRoles.includes('SUPER_ADMIN');
+    const perms = Array.isArray(user.permissions) ? user.permissions : [];
+    return perms.includes('approval.requests.approve') || perms.includes('admin.super_admin');
   }, [user]);
 
   useEffect(() => {

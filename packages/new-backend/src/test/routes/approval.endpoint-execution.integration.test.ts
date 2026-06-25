@@ -35,7 +35,7 @@ const counters = {
 let currentRequest: any
 let currentUserId = 'approver-1'
 let currentIsSystemUser = false
-let currentRoleCode = 'APPROVER'
+let currentRoleCode = 'ACCOUNTING_APPROVER'
 let currentPermissions = ['approval.requests.approve']
 const actionRows: any[] = []
 const updateRequestCalls: Array<Record<string, any>> = []
@@ -73,7 +73,7 @@ function resetState() {
   auditCancelledCalls.length = 0
   currentUserId = 'approver-1'
   currentIsSystemUser = false
-  currentRoleCode = 'APPROVER'
+  currentRoleCode = 'ACCOUNTING_APPROVER'
   currentPermissions = ['approval.requests.approve']
   currentRequest = null
 }
@@ -694,7 +694,7 @@ describe('approval approve endpoint executes live side effects', () => {
       levels: [
         {
           level: 1,
-          requiredRoleCodes: ['APPROVER'],
+          requiredRoleCodes: ['ACCOUNTING_APPROVER'],
           requiredPermissionCodes: ['approval.requests.approve'],
           roleMatchMode: 'ANY',
           permissionMatchMode: 'ANY',

@@ -62,7 +62,7 @@ async function setupMakerChecker() {
         // 1. Ensure Roles Exist
         const rolesToCreate = [
             {
-                roleCode: 'MAKER',
+                roleCode: 'ACCOUNTING_MAKER',
                 roleName: 'Maker',
                 description: 'Can initiate changes but requires approval',
                 hierarchyLevel: 10,
@@ -71,7 +71,7 @@ async function setupMakerChecker() {
                 isSystemRole: false,
             },
             {
-                roleCode: 'CHECKER',
+                roleCode: 'USERCHECKER',
                 roleName: 'Checker',
                 description: 'Can review maker changes at checker stage',
                 hierarchyLevel: 50,
@@ -80,7 +80,7 @@ async function setupMakerChecker() {
                 isSystemRole: false,
             },
             {
-                roleCode: 'APPROVER',
+                roleCode: 'ACCOUNTING_APPROVER',
                 roleName: 'Approver',
                 description: 'Can perform final approval after checker stage',
                 hierarchyLevel: 70,
@@ -109,13 +109,13 @@ async function setupMakerChecker() {
         // Get the role IDs
         const dbRoles = await db.select().from(roles).where(
             and(
-                inArray(roles.roleCode, ['MAKER', 'CHECKER', 'APPROVER']),
+                inArray(roles.roleCode, ['ACCOUNTING_MAKER', 'USERCHECKER', 'ACCOUNTING_APPROVER']),
                 eq(roles.tenantId, tenantId)
             )
         )
-        const makerRoleId = dbRoles.find(r => r.roleCode === 'MAKER')?.id
-        const checkerRoleId = dbRoles.find(r => r.roleCode === 'CHECKER')?.id
-        const approverRoleId = dbRoles.find(r => r.roleCode === 'APPROVER')?.id
+        const makerRoleId = dbRoles.find(r => r.roleCode === 'ACCOUNTING_MAKER')?.id
+        const checkerRoleId = dbRoles.find(r => r.roleCode === 'USERCHECKER')?.id
+        const approverRoleId = dbRoles.find(r => r.roleCode === 'ACCOUNTING_APPROVER')?.id
 
         if (!makerRoleId || !checkerRoleId || !approverRoleId) {
             throw new Error('Failed to retrieve role IDs')
@@ -129,8 +129,8 @@ async function setupMakerChecker() {
             console.warn('  ⚠ No approval permissions found in database. Please run seed-approval-matrices first.')
         } else {
             for (const target of [
-                { roleId: checkerRoleId, roleCode: 'CHECKER' },
-                { roleId: approverRoleId, roleCode: 'APPROVER' },
+                { roleId: checkerRoleId, roleCode: 'USERCHECKER' },
+                { roleId: approverRoleId, roleCode: 'ACCOUNTING_APPROVER' },
             ]) {
                 for (const perm of approvalPerms) {
                     await db.insert(rolePermissions)

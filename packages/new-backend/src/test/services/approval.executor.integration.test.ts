@@ -591,10 +591,10 @@ describe('approval executor integration with mocked live stores', () => {
 
   test('replayApprovedRequestSideEffect applies role, role assignment, and role permission changes', async () => {
     await approvalService.replayApprovedRequestSideEffect(
-      makeRequest('role', 'create', { id: 'role-1', roleCode: 'CHECKER', roleName: 'Checker' }, 'role-1'),
+      makeRequest('role', 'create', { id: 'role-1', roleCode: 'USERCHECKER', roleName: 'Checker' }, 'role-1'),
       'approver-1'
     )
-    expect(stores.roles.get('role-1')?.roleCode).toBe('CHECKER')
+    expect(stores.roles.get('role-1')?.roleCode).toBe('USERCHECKER')
 
     await approvalService.replayApprovedRequestSideEffect(
       makeRequest('role_assignment', 'create', { userId: 'user-1', roleId: 'role-1' }),
