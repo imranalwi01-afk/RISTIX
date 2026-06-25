@@ -1952,14 +1952,10 @@ export const getPendingApprovalsForUser = (
     tenantId: string
 ): Effect.Effect<ApprovalRequest[], DatabaseError> =>
     dbOperation('query', async () => {
-        // We typically need to know user roles to filter.
-        // The Service logic used to fetch userRoles manually.
-        const db = getDatabase(tenantId)
-
-        // Get user's roles using the new repository
-        // We run the Effect to get the promise result since we are inside an async dbOperation block
+        // Get user's roles via service (includes reconciliation of approved role assignments)
+        const { getUserRoles } = await import('./rbac.service')
         const userRolesData = await Effect.runPromise(
-            userRolesRepository.findByUser(db, userId, tenantId)
+            getUserRoles(userId, tenantId)
         )
 
         const approverContext = buildApproverContext(userRolesData as any[])
