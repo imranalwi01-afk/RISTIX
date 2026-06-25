@@ -98,9 +98,11 @@ menuRoutes.openapi(
 
         const hasAccess = (itemId: string) => {
             if (userPermissions.includes('admin.super_admin')) return true
-            const itemPerms = perms.filter((p) => p.menuItemId === itemId && p.isAllowed)
-            if (itemPerms.length === 0) return true
-            return itemPerms.some((p) => userPermissions.includes(p.roleId))
+            const allItemPerms = perms.filter((p) => p.menuItemId === itemId)
+            if (allItemPerms.length === 0) return true
+            const allowedRoles = allItemPerms.filter((p) => p.isAllowed).map((p) => p.roleId)
+            if (allowedRoles.length === 0) return false
+            return allowedRoles.some((roleId) => userPermissions.includes(roleId))
         }
 
         const tree = categories.map((cat) => ({
