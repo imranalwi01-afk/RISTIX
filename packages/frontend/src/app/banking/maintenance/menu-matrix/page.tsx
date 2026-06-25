@@ -21,6 +21,8 @@ import { extractRolesArray } from '@/features/roles/hooks/useRoleQueries';
 const ACTIONS = ['view', 'insert', 'update', 'delete', 'export', 'upload', 'approve'] as const;
 type ActionType = typeof ACTIONS[number];
 
+const ACTION_LETTER: Record<string, string> = { view: 'V', insert: 'I', update: 'U', delete: 'D', export: 'E', upload: 'L', approve: 'A' };
+
 const ACTION_META: Record<ActionType, { label: string; icon: React.ReactNode; color: string }> = {
   view:    { label: 'View',   icon: <VisibilityIcon fontSize="inherit" />,       color: '#0288d1' },
   insert:  { label: 'Insert', icon: <AddCircleOutlineIcon fontSize="inherit" />,  color: '#2e7d32' },
@@ -257,36 +259,36 @@ export default function AccessMatrixPage() {
                       onClick={(e) => openPopover(menu, role, e.currentTarget)}
                     >
                       <Stack direction="row" spacing={0.3} justifyContent="center" flexWrap="wrap">
-                        {ACTIONS.map((action) => {
-                          const key = `${menu.id}:${role.id}:${action}`;
-                          const isSaving = saving.has(key);
-                          const isAllowed = actions.has(action);
-                          return (
-                            <Tooltip key={action} title={`${ACTION_META[action].label}: ${isAllowed ? 'Allowed' : 'Denied'}`}>
-                              <Box
-                                sx={{
-                                  width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  borderRadius: '3px', fontSize: '11px', fontWeight: 700,
-                                  bgcolor: isSaving ? 'action.hover' : (isAllowed ? ACTION_META[action].color : 'transparent'),
-                                  color: isAllowed ? '#fff' : 'text.disabled',
-                                  border: isAllowed ? 'none' : '1px solid',
-                                  borderColor: 'divider',
-                                  transition: 'all 0.15s',
-                                  '&:hover': { opacity: 0.8 },
-                                }}
-                              >
-                                {isSaving ? (
-                                  <CircularProgress size={10} sx={{ color: 'text.disabled' }} />
-                                ) : (
-                                  <Box sx={{ fontSize: 11, lineHeight: 1, display: 'flex', color: isAllowed ? '#fff' : ACTION_META[action].color }}>
-                                    {ACTION_META[action].icon}
-                                  </Box>
-                                )}
-                              </Box>
-                            </Tooltip>
-                          );
-                        })}
-                      </Stack>
+                          {ACTIONS.map((action) => {
+                            const key = `${menu.id}:${role.id}:${action}`;
+                            const isSavingAction = saving.has(key);
+                            const isAllowed = actions.has(action);
+                            return (
+                              <Tooltip key={action} title={`${ACTION_META[action].label}: ${isAllowed ? 'Allowed' : 'Denied'}`}>
+                                <Box
+                                  onClick={(e) => { e.stopPropagation(); toggleAction(menu.id, role.id, action, isAllowed); }}
+                                  sx={{
+                                    px: 0.4, py: 0.1, display: 'flex', alignItems: 'center', gap: 0.3,
+                                    borderRadius: '3px', fontSize: '10px', cursor: 'pointer',
+                                    color: isAllowed ? 'success.main' : 'text.disabled',
+                                    fontWeight: isAllowed ? 700 : 400,
+                                    userSelect: 'none',
+                                    '&:hover': { bgcolor: isAllowed ? 'success.50' : 'action.hover' },
+                                  }}
+                                >
+                                  {isSavingAction ? (
+                                    <CircularProgress size={8} sx={{ color: 'text.disabled' }} />
+                                  ) : (
+                                    <Box component="span" sx={{ fontSize: 12, lineHeight: 1 }}>
+                                      {isAllowed ? '☑' : '☐'}
+                                    </Box>
+                                  )}
+                                  {ACTION_LETTER[action]}
+                                </Box>
+                              </Tooltip>
+                            );
+                          })}
+                        </Stack>
                     </TableCell>
                   );
                 })}
