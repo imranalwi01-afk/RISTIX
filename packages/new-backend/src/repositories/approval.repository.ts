@@ -335,7 +335,7 @@ export const ApprovalRepository = {
                 ilike(approvalRequests.entityId, pattern),
                 ilike(approvalRequests.status, pattern),
                 ilike(approvalRequests.impactLevel, pattern),
-                ilike(approvalRequests.id, pattern),
+                sql`cast(${approvalRequests.id} as text) ilike ${pattern}`,
                 sql`cast(${approvalRequests.currentLevel} as text) ilike ${pattern}`,
                 sql`coalesce(${approvalRequests.requestData}->>'operation', '') ilike ${pattern}`,
                 sql`coalesce(${approvalRequests.requestData}->>'riskLevel', '') ilike ${pattern}`,
