@@ -5,7 +5,7 @@ import {
   Box, Typography, Container, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Chip, CircularProgress, Alert,
   FormControl, InputLabel, Select, MenuItem,
-  Tooltip, IconButton, Popover, Switch, FormControlLabel, Stack,
+  Tooltip, Popover, Switch, FormControlLabel, Stack,
 } from '@mui/material';
 import PageHeader from '@/components/banking/shared/PageHeader';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -20,8 +20,6 @@ import { extractRolesArray } from '@/features/roles/hooks/useRoleQueries';
 
 const ACTIONS = ['view', 'insert', 'update', 'delete', 'export', 'upload', 'approve'] as const;
 type ActionType = typeof ACTIONS[number];
-
-const ACTION_SHORT: Record<string, string> = { view: 'V', insert: 'I', update: 'U', delete: 'D', export: 'E', upload: 'UL', approve: 'AP' };
 
 const ACTION_META: Record<ActionType, { label: string; icon: React.ReactNode; color: string }> = {
   view:    { label: 'View',   icon: <VisibilityIcon fontSize="inherit" />,       color: '#0288d1' },
@@ -280,7 +278,9 @@ export default function AccessMatrixPage() {
                                 {isSaving ? (
                                   <CircularProgress size={10} sx={{ color: 'text.disabled' }} />
                                 ) : (
-                                  ACTION_SHORT[action]
+                                  <Box sx={{ fontSize: 11, lineHeight: 1, display: 'flex', color: isAllowed ? '#fff' : ACTION_META[action].color }}>
+                                    {ACTION_META[action].icon}
+                                  </Box>
                                 )}
                               </Box>
                             </Tooltip>
