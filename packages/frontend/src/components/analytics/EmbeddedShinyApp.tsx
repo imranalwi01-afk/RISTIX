@@ -306,12 +306,17 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       if (user?.tenantId) {
         url.searchParams.set('tenant_id', user.tenantId);
       }
+      if (token) {
+        url.searchParams.set('access_token', token);
+      }
       return url.toString();
     } catch {
       const separator = baseUrl.includes('?') ? '&' : '?';
-      return `${baseUrl}${separator}iframe=${iframe ? 'true' : 'false'}&tenant_slug=${encodeURIComponent(tenantSlug || user?.tenantSlug || 'iaf')}&banking_mode=${encodeURIComponent(bankingType)}&model_type=${encodeURIComponent(modelType)}`;
+      let fallback = `${baseUrl}${separator}iframe=${iframe ? 'true' : 'false'}&tenant_slug=${encodeURIComponent(tenantSlug || user?.tenantSlug || 'iaf')}&banking_mode=${encodeURIComponent(bankingType)}&model_type=${encodeURIComponent(modelType)}`;
+      if (token) fallback += `&access_token=${encodeURIComponent(token)}`;
+      return fallback;
     }
-  }, [bankingType, modelType, tenantSlug, user?.tenantId, user?.tenantSlug]);
+  }, [bankingType, modelType, tenantSlug, token, user?.tenantId, user?.tenantSlug]);
 
   // Component state
   const [session, setSession] = useState<RSessionData | null>(null);

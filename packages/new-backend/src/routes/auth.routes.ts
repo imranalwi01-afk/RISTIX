@@ -474,6 +474,57 @@ authRoutes.openapi(
 // PROTECTED ROUTES
 // =============================================================================
 
+/**
+ * GET /auth/verify-token - Validate token from query param (for nginx auth_request)
+ * Unprotected endpoint that validates an access token passed as query parameter.
+ */
+authRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/verify-token',
+        tags: ['Auth'],
+        summary: 'Verify Token from Query Param',
+        responses: {
+            200: {
+                content: {
+                    'application/json': {
+                        schema: z.object({ success: z.boolean() }),
+                    },
+                },
+                description: 'Token Valid',
+            },
+            401: {
+                content: {
+                    'application/json': {
+                        schema: z.object({ success: z.boolean(), message: z.string() }),
+                    },
+                },
+                description: 'Invalid Token',
+            },
+        },
+    }),
+    async (c) => {
+        const accessToken = c.req.query('access_token')
+        if (!accessToken) {
+            return c.json({ success: false, message: 'Missing access_token' } as any, 401)
+        }
+        try {
+            await authService.verifyToken(accessToken, 'access')
+            return c.json({ success: true } as any, 200)
+        } catch {
+            // Fallback: try refresh token
+            try {
+                await authService.verifyToken(accessToken, 'refresh')
+                return c.json({ success: true } as any, 200)
+            } catch {
+                return c.json({ success: false, message: 'Invalid or expired token' } as any, 401)
+            }
+        }
+    }
+)
+
+// =============================================================================
+
 // Apply auth middleware via .use() for specific paths or wrapper
 // Since we are using OpenAPIHono, .use() works but doesn't auto-document security schemes implicitly without config.
 // For now, we apply middleware manually or via hook.
