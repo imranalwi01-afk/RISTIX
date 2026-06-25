@@ -56,6 +56,7 @@ import {
     GetApp,
     Transform,
     Storage,
+    PersonSearch,
 
     // Admin & Maintenance
     AdminPanelSettings,
@@ -133,6 +134,7 @@ export const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'job-monitoring': ['jobs.view', 'jobs.manage', 'admin.system.manage'],
     'smtp-settings': 'admin.maintenance.access',
     'menu-matrix': 'admin.maintenance.access',
+    'impersonate-user': 'admin.super_admin',
     'assessment-workspace': 'banking.individual.view',
     'assessment-workspace-v1': 'banking.individual.view',
     'assessment-workspace-v2': 'banking.individual.view',
@@ -769,6 +771,13 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 href: '/banking/maintenance/menu-matrix',
                 icon: <TableChart />,
                 description: 'Configure role-based menu access',
+            },
+            {
+                id: 'impersonate-user',
+                label: 'Impersonate',
+                href: '/banking/maintenance/impersonate',
+                icon: <PersonSearch />,
+                description: 'Log in as another user for troubleshooting',
             },
             {
                 id: 'menu-management',
