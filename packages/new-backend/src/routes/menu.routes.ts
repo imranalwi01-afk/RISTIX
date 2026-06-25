@@ -47,20 +47,29 @@ menuRoutes.openapi(
     async (c) => {
         const queryTenantId = c.req.query('tenantId')
         const tenantId = queryTenantId || c.get('tenantId')
+        const userPermissions = c.get('permissions') || []
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
 
-        const [categories, items] = await Promise.all([
+        const [categories, items, perms] = await Promise.all([
             platformDb.select().from(menuCategories).where(eq(menuCategories.tenantId, tenantId)).orderBy(asc(menuCategories.sortOrder)),
             platformDb.select().from(menuItems).where(eq(menuItems.tenantId, tenantId)).orderBy(asc(menuItems.sortOrder)),
+            getMenuPermissions(tenantId),
         ])
+
+        const hasAccess = (itemId: string) => {
+            if (userPermissions.includes('admin.super_admin')) return true
+            const itemPerms = perms.filter((p) => p.menuItemId === itemId && p.isAllowed)
+            if (itemPerms.length === 0) return true
+            return itemPerms.some((p) => userPermissions.includes(p.roleId))
+        }
 
         const tree = categories.map((cat) => ({
             ...cat,
-            items: items.filter((i) => i.categoryId === cat.id && !i.parentId).map((item) => ({
+            items: items.filter((i) => i.categoryId === cat.id && !i.parentId && hasAccess(i.id)).map((item) => ({
                 ...item,
-                children: buildItemTree(items, item.id),
+                children: buildItemTree(items.filter((i) => hasAccess(i.id)), item.id),
             })),
-        }))
+        })).filter((cat) => cat.items.length > 0)
 
         return c.json({ success: true, data: tree })
     }
