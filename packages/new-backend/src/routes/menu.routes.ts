@@ -3,7 +3,7 @@ import { Effect, pipe } from 'effect'
 import { eq, and, asc } from 'drizzle-orm'
 import { platformDb, tenantDb } from '@/config/database'
 import { menuCategories, menuItems } from '@/db/schema/menu.schema'
-import { tenantMenuPermissions } from '@/db/schema/rbac.schema'
+import { roles, tenantMenuPermissions } from '@/db/schema/rbac.schema'
 import { TenantRepository } from '@/repositories/tenant.repository'
 import { authMiddleware, tenantMiddleware } from '@/middleware/auth'
 import type { AppContext } from '@/app'
@@ -64,9 +64,9 @@ menuRoutes.openapi(
             if (userPermissions.includes('admin.super_admin')) return true
             const itemPerms = perms.filter((p) => p.menuItemId === itemId)
             if (itemPerms.length === 0) return true
-            const allowedRoles = itemPerms.filter((p) => p.isAllowed).map((p) => p.roleId)
+            const allowedRoles = itemPerms.filter((p) => p.isAllowed).map((p) => p.roleCode)
             if (allowedRoles.length === 0) return false
-            return allowedRoles.some((roleId) => userRoles.includes(roleId))
+            return allowedRoles.some((roleCode) => userRoles.includes(roleCode))
         }
 
         const tree = categories.map((cat) => ({
@@ -107,9 +107,9 @@ menuRoutes.openapi(
             if (userPermissions.includes('admin.super_admin')) return true
             const itemPerms = perms.filter((p) => p.menuItemId === itemId)
             if (itemPerms.length === 0) return true
-            const allowedRoles = itemPerms.filter((p) => p.isAllowed).map((p) => p.roleId)
+            const allowedRoles = itemPerms.filter((p) => p.isAllowed).map((p) => p.roleCode)
             if (allowedRoles.length === 0) return false
-            return allowedRoles.some((roleId) => userRoles.includes(roleId))
+            return allowedRoles.some((roleCode) => userRoles.includes(roleCode))
         }
 
         const tree = categories.map((cat) => ({
@@ -290,7 +290,7 @@ const menuCategorySchema = z.object({
 const permissionSchema = z.object({
     menuItemId: z.string().uuid(),
     roleId: z.string().min(1),
-    permissionType: z.enum(['view', 'edit', 'delete', 'manage']).default('view'),
+    permissionType: z.enum(['view', 'insert', 'update', 'delete', 'export', 'upload', 'approve']).default('view'),
     isAllowed: z.boolean().default(true),
 })
 
@@ -602,7 +602,7 @@ menuRoutes.openapi(
                             permissions: z.array(z.object({
                                 menuItemId: z.string().uuid(),
                                 roleId: z.string().min(1),
-                                permissionType: z.enum(['view', 'edit', 'delete', 'manage']).default('view'),
+                                permissionType: z.enum(['view', 'insert', 'update', 'delete', 'export', 'upload', 'approve']).default('view'),
                                 isAllowed: z.boolean().default(true),
                             })),
                         }),
@@ -716,9 +716,9 @@ menuRoutes.openapi(
             if (userPermissions.includes('admin.super_admin')) return true
             const itemPerms = perms.filter((p) => p.menuItemId === itemId)
             if (itemPerms.length === 0) return true
-            const allowedRoles = itemPerms.filter((p) => p.isAllowed).map((p) => p.roleId)
+            const allowedRoles = itemPerms.filter((p) => p.isAllowed).map((p) => p.roleCode)
             if (allowedRoles.length === 0) return false
-            return allowedRoles.some((roleId) => userRoles.includes(roleId))
+            return allowedRoles.some((roleCode) => userRoles.includes(roleCode))
         }
 
         const visibleItems = items.filter((item) =>
@@ -797,7 +797,17 @@ menuRoutes.openapi(
 // =============================================================================
 async function getMenuPermissions(tenantId: string) {
     try {
-        return await tenantDb.select().from(tenantMenuPermissions)
+        return await tenantDb.select({
+            id: tenantMenuPermissions.id,
+            menuItemId: tenantMenuPermissions.menuItemId,
+            roleId: tenantMenuPermissions.roleId,
+            roleCode: roles.roleCode,
+            permissionType: tenantMenuPermissions.permissionType,
+            isAllowed: tenantMenuPermissions.isAllowed,
+            conditions: tenantMenuPermissions.conditions,
+        })
+            .from(tenantMenuPermissions)
+            .innerJoin(roles, eq(tenantMenuPermissions.roleId, roles.id))
             .where(eq(tenantMenuPermissions.tenantId, tenantId))
     } catch (e) {
         console.error('[MENU ROUTES] Failed to fetch menu permissions:', e)
