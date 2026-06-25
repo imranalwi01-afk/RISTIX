@@ -263,17 +263,24 @@ export default function LGDSetupPage() {
   const columns: GridColDef[] = [
     { field: 'id', headerName: 'ID', width: 90 },
     { field: 'model_name', headerName: 'Model Name', width: 200 },
-    { field: 'segment_id', headerName: 'Segment ID', width: 120 },
     { field: 'segment_name', headerName: 'Segment', width: 150 },
-    { field: 'lgd_method', headerName: 'Method ID', width: 120 },
     { field: 'method_name', headerName: 'Method', width: 150 },
-    { field: 'population_type', headerName: 'Pop Type ID', width: 120 },
     { field: 'population_type_name', headerName: 'Pop Type', width: 160 },
     { field: 'observation_period', headerName: 'Observation Period', width: 170 },
-    { field: 'observation_start_date', headerName: 'Observation Start', width: 170 },
+    { 
+      field: 'observation_start_date', 
+      headerName: 'Observation Start', 
+      width: 170,
+      renderCell: (params) => params.value ? dayjs(params.value).format('DD MMM YYYY') : '-'
+    },
     { field: 'workout_period', headerName: 'Workout Period', width: 150 },
     { field: 'max_recovery_period', headerName: 'Max Recovery', width: 130 },
-    { field: 'lgd_rate', headerName: 'LGD Rate', width: 120 },
+    { 
+      field: 'lgd_rate', 
+      headerName: 'LGD Rate (%)', 
+      width: 120,
+      renderCell: (params) => params.value != null ? `${params.value}%` : '-'
+    },
     {
       field: 'is_active',
       headerName: 'Status',
