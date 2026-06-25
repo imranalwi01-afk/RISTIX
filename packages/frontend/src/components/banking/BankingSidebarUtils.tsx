@@ -131,6 +131,8 @@ const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'user-management': 'admin.users.manage',
     'role-management': 'admin.roles.manage',
     'job-monitoring': ['jobs.view', 'jobs.manage', 'admin.system.manage'],
+    'smtp-settings': 'admin.maintenance.access',
+    'menu-matrix': 'admin.maintenance.access',
     'assessment-workspace': 'banking.individual.view',
     'assessment-workspace-v1': 'banking.individual.view',
     'assessment-workspace-v2': 'banking.individual.view',
