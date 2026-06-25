@@ -9,28 +9,35 @@ import Warning from '@mui/icons-material/Warning';
 
 export default function ImpersonationBanner() {
   const [impersonating, setImpersonating] = useState(false);
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
 
   useEffect(() => {
     const original = localStorage.getItem('auth_token_original');
+    const name = localStorage.getItem('impersonated_user_name') || '';
+    const email = localStorage.getItem('impersonated_user_email') || '';
     setImpersonating(!!original);
+    setUserName(name);
+    setUserEmail(email);
   }, []);
 
   if (!impersonating) return null;
 
   const stopImpersonating = () => {
     const original = localStorage.getItem('auth_token_original');
-    if (original) {
-      localStorage.setItem('auth_token', original);
-    }
+    if (original) localStorage.setItem('auth_token', original);
     localStorage.removeItem('auth_token_original');
-    window.location.href = '/platform/users';
+    localStorage.removeItem('impersonated_user_name');
+    localStorage.removeItem('impersonated_user_id');
+    localStorage.removeItem('impersonated_user_email');
+    window.location.href = '/banking/dashboard';
   };
 
   return (
     <Box
       sx={{
-        bgcolor: '#ff9800',
-        color: '#000',
+        bgcolor: '#e65100',
+        color: '#fff',
         px: 3,
         py: 1,
         display: 'flex',
@@ -38,23 +45,24 @@ export default function ImpersonationBanner() {
         justifyContent: 'center',
         gap: 2,
         flexWrap: 'wrap',
-        fontSize: '0.9rem',
+        fontSize: '0.85rem',
       }}
     >
-      <Warning fontSize="small" />
+      <Warning fontSize="small" sx={{ color: '#fff' }} />
       <Typography variant="body2" sx={{ fontWeight: 600 }}>
-        You are impersonating another user
+        Impersonating: {userName || userEmail || 'another user'}
       </Typography>
       <Chip
-        label="STOP IMPERSONATING"
+        label="RETURN TO ADMIN"
         size="small"
         onClick={stopImpersonating}
         sx={{
           fontWeight: 700,
           cursor: 'pointer',
-          bgcolor: '#000',
+          bgcolor: 'rgba(255,255,255,0.2)',
           color: '#fff',
-          '&:hover': { bgcolor: '#333' },
+          border: '1px solid rgba(255,255,255,0.5)',
+          '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' },
         }}
       />
     </Box>

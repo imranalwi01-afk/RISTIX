@@ -54,11 +54,14 @@ export default function ImpersonatePage() {
       const { accessToken, refreshToken } = res.data?.data?.tokens || res.data?.tokens || {};
       if (!accessToken) throw new Error('No token returned');
 
-      const original = localStorage.getItem('auth_token');
-      if (original) localStorage.setItem('auth_token_original', original);
+      const originalToken = localStorage.getItem('auth_token');
+      if (originalToken) localStorage.setItem('auth_token_original', originalToken);
 
       localStorage.setItem('auth_token', accessToken);
       if (refreshToken) localStorage.setItem('refresh_token', refreshToken);
+      localStorage.setItem('impersonated_user_name', user.fullName || user.email || 'Unknown');
+      localStorage.setItem('impersonated_user_id', user.id);
+      localStorage.setItem('impersonated_user_email', user.email || '');
 
       window.location.href = '/banking/dashboard';
     } catch (err: any) {

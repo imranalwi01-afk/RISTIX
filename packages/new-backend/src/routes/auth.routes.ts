@@ -767,7 +767,16 @@ authRoutes.post('/impersonate', async (c) => {
         return c.json(buildErrorResponse(c, { error: 'userId required', message: 'userId is required', code: 'BAD_REQUEST' }), 400)
     }
 
+    const currentUserId = c.get('userId')
+    if (userId === currentUserId) {
+        return c.json(buildErrorResponse(c, { error: 'Cannot impersonate yourself', message: 'Cannot impersonate yourself', code: 'BAD_REQUEST' }), 400)
+    }
+
     const { impersonateUser } = await import('../services/impersonate.service')
     const result = await impersonateUser(userId, c.get('tenantId')!)
+
+    const ip = c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || ''
+    auditService.logAuth.impersonate(currentUserId!, userId, result?.user?.email || '', c.get('tenantId')!)
+
     return c.json({ success: true, data: result })
 })

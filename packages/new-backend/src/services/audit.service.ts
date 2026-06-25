@@ -119,6 +119,18 @@ export const logAuth = {
         })
     },
 
+    impersonate: async (impersonatorId: string, targetUserId: string, targetEmail: string, tenantId: string) => {
+        await logAuditEvent({
+            tenantId,
+            userId: impersonatorId,
+            entityType: 'user',
+            entityName: targetEmail,
+            eventType: 'auth',
+            action: 'impersonate',
+            description: `Superadmin ${impersonatorId} impersonated user ${targetEmail} (${targetUserId})`,
+        })
+    },
+
     logout: async (userId: string, tenantId: string, ipAddress?: string) => {
         await logAuditEvent({
             tenantId,
