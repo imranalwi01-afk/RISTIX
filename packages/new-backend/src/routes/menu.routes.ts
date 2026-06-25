@@ -290,7 +290,7 @@ const menuCategorySchema = z.object({
 const permissionSchema = z.object({
     menuItemId: z.string().uuid(),
     roleId: z.string().min(1),
-    permissionType: z.enum(['view', 'edit', 'delete', 'manage']).default('view'),
+    permissionType: z.enum(['view', 'insert', 'update', 'delete', 'export', 'upload', 'approve']).default('view'),
     isAllowed: z.boolean().default(true),
 })
 
@@ -602,7 +602,7 @@ menuRoutes.openapi(
                             permissions: z.array(z.object({
                                 menuItemId: z.string().uuid(),
                                 roleId: z.string().min(1),
-                                permissionType: z.enum(['view', 'edit', 'delete', 'manage']).default('view'),
+                                permissionType: z.enum(['view', 'insert', 'update', 'delete', 'export', 'upload', 'approve']).default('view'),
                                 isAllowed: z.boolean().default(true),
                             })),
                         }),

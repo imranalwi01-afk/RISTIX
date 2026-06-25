@@ -5,13 +5,33 @@ import {
   Box, Typography, Container, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Chip, CircularProgress, Alert,
   FormControl, InputLabel, Select, MenuItem,
-  Tooltip, IconButton,
+  Tooltip, IconButton, Popover, Switch, FormControlLabel, Stack,
 } from '@mui/material';
 import PageHeader from '@/components/banking/shared/PageHeader';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import ThumbUpAltIcon from '@mui/icons-material/ThumbUpAlt';
 import { api } from '@/services/api';
 import { extractRolesArray } from '@/features/roles/hooks/useRoleQueries';
+
+const ACTIONS = ['view', 'insert', 'update', 'delete', 'export', 'upload', 'approve'] as const;
+type ActionType = typeof ACTIONS[number];
+
+const ACTION_SHORT: Record<string, string> = { view: 'V', insert: 'I', update: 'U', delete: 'D', export: 'E', upload: 'UL', approve: 'AP' };
+
+const ACTION_META: Record<ActionType, { label: string; icon: React.ReactNode; color: string }> = {
+  view:    { label: 'View',   icon: <VisibilityIcon fontSize="inherit" />,       color: '#0288d1' },
+  insert:  { label: 'Insert', icon: <AddCircleOutlineIcon fontSize="inherit" />,  color: '#2e7d32' },
+  update:  { label: 'Update', icon: <EditIcon fontSize="inherit" />,              color: '#ed6c02' },
+  delete:  { label: 'Delete', icon: <DeleteOutlineIcon fontSize="inherit" />,     color: '#d32f2f' },
+  export:  { label: 'Export', icon: <FileDownloadIcon fontSize="inherit" />,      color: '#9c27b0' },
+  upload:  { label: 'Upload', icon: <CloudUploadIcon fontSize="inherit" />,       color: '#00796b' },
+  approve: { label: 'Approve', icon: <ThumbUpAltIcon fontSize="inherit" />,       color: '#5c6bc0' },
+};
 
 interface MenuItem {
   id: string;
@@ -28,8 +48,10 @@ interface Role {
 }
 
 interface MenuPermission {
+  id: string;
   menuItemId: string;
   roleId: string;
+  permissionType: string;
   isAllowed: boolean;
 }
 
@@ -41,6 +63,10 @@ export default function AccessMatrixPage() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<MenuPermission[]>([]);
   const [filterText, setFilterText] = useState('');
+
+  const [popoverAnchor, setPopoverAnchor] = useState<HTMLElement | null>(null);
+  const [popoverMenu, setPopoverMenu] = useState<MenuItem | null>(null);
+  const [popoverRole, setPopoverRole] = useState<Role | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -87,15 +113,21 @@ export default function AccessMatrixPage() {
   }, []);
 
   const permMap = useMemo(() => {
-    const map = new Map<string, Set<string>>();
+    const map = new Map<string, Map<string, Set<string>>>();
     permissions.forEach((p) => {
       if (p.isAllowed !== false) {
-        if (!map.has(p.menuItemId)) map.set(p.menuItemId, new Set());
-        map.get(p.menuItemId)!.add(p.roleId);
+        if (!map.has(p.menuItemId)) map.set(p.menuItemId, new Map());
+        const roleMap = map.get(p.menuItemId)!;
+        if (!roleMap.has(p.roleId)) roleMap.set(p.roleId, new Set());
+        roleMap.get(p.roleId)!.add(p.permissionType);
       }
     });
     return map;
   }, [permissions]);
+
+  const allowedActionsFor = useCallback((menuId: string, roleId: string): Set<string> => {
+    return permMap.get(menuId)?.get(roleId) || new Set();
+  }, [permMap]);
 
   const filteredMenus = useMemo(() => {
     if (!filterText) return menus;
@@ -103,38 +135,40 @@ export default function AccessMatrixPage() {
     return menus.filter(m => m.name.toLowerCase().includes(f) || m.categoryName?.toLowerCase().includes(f));
   }, [menus, filterText]);
 
-  const togglePermission = useCallback(async (menuItemId: string, roleId: string, currentlyAllowed: boolean) => {
-    const key = `${menuItemId}:${roleId}`;
+  const toggleAction = useCallback(async (menuItemId: string, roleId: string, action: string, currentState: boolean) => {
+    const key = `${menuItemId}:${roleId}:${action}`;
     setSaving(prev => new Set(prev).add(key));
 
-    // Optimistic update
     setPermissions(prev => {
       const next = [...prev];
-      const existing = next.findIndex(p => p.menuItemId === menuItemId && p.roleId === roleId);
-      if (existing >= 0) {
-        if (currentlyAllowed) {
-          next.splice(existing, 1);
-        } else {
+      const existing = next.findIndex(
+        p => p.menuItemId === menuItemId && p.roleId === roleId && p.permissionType === action
+      );
+      if (currentState) {
+        if (existing >= 0) next.splice(existing, 1);
+      } else {
+        if (existing >= 0) {
           next[existing] = { ...next[existing], isAllowed: true };
+        } else {
+          next.push({ menuItemId, roleId, permissionType: action, isAllowed: true } as any);
         }
-      } else if (!currentlyAllowed) {
-        next.push({ menuItemId, roleId, isAllowed: true });
       }
       return next;
     });
 
     try {
       await api.client.post('/menu/permissions/batch', {
-        permissions: [{ menuItemId, roleId, permissionType: 'view', isAllowed: !currentlyAllowed }],
+        permissions: [{ menuItemId, roleId, permissionType: action, isAllowed: !currentState }],
       });
     } catch (err: any) {
       setError(err.message || 'Failed to update permission');
-      // Revert optimistic update
       setPermissions(prev => {
         const next = [...prev];
-        const existing = next.findIndex(p => p.menuItemId === menuItemId && p.roleId === roleId);
-        if (currentlyAllowed) {
-          if (existing < 0) next.push({ menuItemId, roleId, isAllowed: true });
+        const existing = next.findIndex(
+          p => p.menuItemId === menuItemId && p.roleId === roleId && p.permissionType === action
+        );
+        if (currentState) {
+          if (existing < 0) next.push({ menuItemId, roleId, permissionType: action, isAllowed: true } as any);
         } else {
           if (existing >= 0) next.splice(existing, 1);
         }
@@ -149,6 +183,18 @@ export default function AccessMatrixPage() {
     }
   }, []);
 
+  const openPopover = (menu: MenuItem, role: Role, el: HTMLElement) => {
+    setPopoverMenu(menu);
+    setPopoverRole(role);
+    setPopoverAnchor(el);
+  };
+
+  const closePopover = () => {
+    setPopoverAnchor(null);
+    setPopoverMenu(null);
+    setPopoverRole(null);
+  };
+
   if (loading) {
     return (
       <Container maxWidth="xl" sx={{ py: 3 }}>
@@ -159,7 +205,7 @@ export default function AccessMatrixPage() {
 
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
-      <PageHeader title="Access Matrix" subtitle="Click any cell to toggle role access to a menu item." />
+      <PageHeader title="Menu Matrix" subtitle="Click any cell to configure granular permissions per role." />
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
@@ -175,6 +221,15 @@ export default function AccessMatrixPage() {
         </FormControl>
       </Paper>
 
+      <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+        {ACTIONS.map(a => (
+          <Box key={a} component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, mr: 2 }}>
+            <Box sx={{ width: 14, height: 14, borderRadius: '2px', bgcolor: ACTION_META[a].color, display: 'inline-block' }} />
+            {ACTION_META[a].label}
+          </Box>
+        ))}
+      </Typography>
+
       <TableContainer component={Paper} sx={{ maxHeight: '70vh' }}>
         <Table stickyHeader size="small">
           <TableHead>
@@ -182,7 +237,7 @@ export default function AccessMatrixPage() {
               <TableCell sx={{ fontWeight: 700, minWidth: 200, bgcolor: 'grey.50' }}>Menu</TableCell>
               <TableCell sx={{ fontWeight: 700, minWidth: 160, bgcolor: 'grey.50' }}>Category</TableCell>
               {roles.map((role) => (
-                <TableCell key={role.id} sx={{ fontWeight: 700, minWidth: 120, bgcolor: 'grey.50', textAlign: 'center', fontSize: '0.7rem', whiteSpace: 'nowrap' }}>
+                <TableCell key={role.id} sx={{ fontWeight: 700, minWidth: 140, bgcolor: 'grey.50', textAlign: 'center', fontSize: '0.7rem', whiteSpace: 'nowrap' }}>
                   {role.displayName}
                   <br />
                   <Chip size="small" label={`${role.userCount} users`} variant="outlined" sx={{ height: 16, fontSize: 10 }} />
@@ -191,40 +246,52 @@ export default function AccessMatrixPage() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredMenus.map((menu) => {
-              const allowedRoles = permMap.get(menu.id) || new Set();
-              return (
-                <TableRow key={menu.id} hover>
-                  <TableCell sx={{ fontWeight: 500, fontSize: '0.8rem' }}>{menu.name}</TableCell>
-                  <TableCell sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>{menu.categoryName || '-'}</TableCell>
-                  {roles.map((role) => {
-                    const key = `${menu.id}:${role.id}`;
-                    const isSaving = saving.has(key);
-                    const isAllowed = allowedRoles.has(role.id);
-                    return (
-                      <TableCell key={role.id} sx={{ textAlign: 'center', p: 0.5 }}>
-                        <Tooltip title={isAllowed ? 'Click to revoke access' : 'Click to grant access'}>
-                          <IconButton
-                            size="small"
-                            onClick={() => togglePermission(menu.id, role.id, isAllowed)}
-                            disabled={isSaving}
-                            sx={{ p: 0.5 }}
-                          >
-                            {isSaving ? (
-                              <CircularProgress size={18} />
-                            ) : isAllowed ? (
-                              <CheckCircleIcon color="success" fontSize="small" />
-                            ) : (
-                              <RadioButtonUncheckedIcon color="disabled" fontSize="small" />
-                            )}
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                    );
-                  })}
-                </TableRow>
-              );
-            })}
+            {filteredMenus.map((menu) => (
+              <TableRow key={menu.id} hover>
+                <TableCell sx={{ fontWeight: 500, fontSize: '0.8rem' }}>{menu.name}</TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>{menu.categoryName || '-'}</TableCell>
+                {roles.map((role) => {
+                  const actions = allowedActionsFor(menu.id, role.id);
+                  return (
+                    <TableCell
+                      key={role.id}
+                      sx={{ textAlign: 'center', p: 0.5, cursor: 'pointer' }}
+                      onClick={(e) => openPopover(menu, role, e.currentTarget)}
+                    >
+                      <Stack direction="row" spacing={0.3} justifyContent="center" flexWrap="wrap">
+                        {ACTIONS.map((action) => {
+                          const key = `${menu.id}:${role.id}:${action}`;
+                          const isSaving = saving.has(key);
+                          const isAllowed = actions.has(action);
+                          return (
+                            <Tooltip key={action} title={`${ACTION_META[action].label}: ${isAllowed ? 'Allowed' : 'Denied'}`}>
+                              <Box
+                                sx={{
+                                  width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  borderRadius: '3px', fontSize: '11px', fontWeight: 700,
+                                  bgcolor: isSaving ? 'action.hover' : (isAllowed ? ACTION_META[action].color : 'transparent'),
+                                  color: isAllowed ? '#fff' : 'text.disabled',
+                                  border: isAllowed ? 'none' : '1px solid',
+                                  borderColor: 'divider',
+                                  transition: 'all 0.15s',
+                                  '&:hover': { opacity: 0.8 },
+                                }}
+                              >
+                                {isSaving ? (
+                                  <CircularProgress size={10} sx={{ color: 'text.disabled' }} />
+                                ) : (
+                                  ACTION_SHORT[action]
+                                )}
+                              </Box>
+                            </Tooltip>
+                          );
+                        })}
+                      </Stack>
+                    </TableCell>
+                  );
+                })}
+              </TableRow>
+            ))}
             {filteredMenus.length === 0 && (
               <TableRow>
                 <TableCell colSpan={2 + roles.length} align="center">
@@ -235,6 +302,55 @@ export default function AccessMatrixPage() {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <Popover
+        open={!!popoverAnchor}
+        anchorEl={popoverAnchor}
+        onClose={closePopover}
+        anchorOrigin={{ vertical: 'center', horizontal: 'center' }}
+        transformOrigin={{ vertical: 'center', horizontal: 'center' }}
+        slotProps={{ paper: { sx: { p: 2, minWidth: 220 } } }}
+      >
+        {popoverMenu && popoverRole && (
+          <>
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>
+              {popoverMenu.name}
+              <Typography variant="caption" color="text.secondary" component="span" sx={{ ml: 1 }}>
+                — {popoverRole.displayName}
+              </Typography>
+            </Typography>
+            <Stack spacing={0.5}>
+              {ACTIONS.map((action) => {
+                const actions = allowedActionsFor(popoverMenu.id, popoverRole.id);
+                const isAllowed = actions.has(action);
+                const key = `${popoverMenu.id}:${popoverRole.id}:${action}`;
+                const isSaving = saving.has(key);
+                return (
+                  <FormControlLabel
+                    key={action}
+                    control={
+                      <Switch
+                        size="small"
+                        checked={isAllowed}
+                        disabled={isSaving}
+                        onClick={() => toggleAction(popoverMenu.id, popoverRole.id, action, isAllowed)}
+                        sx={{ '& .MuiSwitch-thumb': { bgcolor: isAllowed ? ACTION_META[action].color : undefined } }}
+                      />
+                    }
+                    label={
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Box sx={{ color: ACTION_META[action].color, display: 'flex', fontSize: 18 }}>{ACTION_META[action].icon}</Box>
+                        <Typography variant="body2">{ACTION_META[action].label}</Typography>
+                      </Stack>
+                    }
+                    sx={{ m: 0 }}
+                  />
+                );
+              })}
+            </Stack>
+          </>
+        )}
+      </Popover>
     </Container>
   );
 }
