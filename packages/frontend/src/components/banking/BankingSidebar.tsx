@@ -69,6 +69,9 @@ import {
 
 import {
   getIconFromDatabaseString,
+  derivePermissionCodes,
+  URL_TO_LEGACY_ID_MAP,
+  NAME_TO_LEGACY_ID_MAP
 } from './BankingSidebarUtils';
 
 import { MenuItem, DatabaseMenuItem } from './types';
@@ -501,7 +504,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
           active: dbItem.is_active !== false,
           visible: true,
           permissions: dbItem.user_types || dbItem.roles || [],
-          requiredPermissions: dbItem.requiredPermissions,
+          requiredPermissions: dbItem.requiredPermissions || derivePermissionCodes(URL_TO_LEGACY_ID_MAP[dbItem.url || dbItem.href || dbItem.path] || NAME_TO_LEGACY_ID_MAP[dbItem.title || dbItem.label] || dbItem.menu_key || dbItem.key || dbItem.id),
           banking_modes: dbItem.banking_types || dbItem.banking_modes || ['conventional', 'dual'],
           user_types: dbItem.user_types || dbItem.roles || [],
           tenant_types: [],

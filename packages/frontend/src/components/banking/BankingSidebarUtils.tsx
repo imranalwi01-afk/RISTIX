@@ -92,7 +92,7 @@ import { getMenuIcon } from '@/config/menu-config';
 
 // IAF-SPECIFIC SITEMAP STRUCTURE - Based on IAF Navigation Requirements
 // Default permission mapping for static menu (can be overridden per id/code)
-const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
+export const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     dashboard: 'banking.dashboard.view',
     'system-setup': 'banking.setup.application',
     'application-configuration': 'banking.setup.application.view',
@@ -149,7 +149,72 @@ const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'data-scheduler': 'banking.configuration.ifrs9.manage',
 };
 
-const derivePermissionCodes = (idOrCode: string | undefined): string[] => {
+export const URL_TO_LEGACY_ID_MAP: Record<string, string> = {
+    '/banking/dashboard': 'dashboard',
+    '/banking/setup/application': 'application-configuration',
+    '/banking/setup/business': 'business-configuration',
+    '/banking/parameters/product': 'product-parameters',
+    '/banking/parameters/journal': 'accounting-parameters',
+    '/banking/collective/segmentation': 'segmentation-configuration',
+    '/banking/collective/rule-base': 'rule-base-setting',
+    '/banking/collective/bucket': 'bucket-parameter',
+    '/banking/collective/pd-setup': 'pd-setup-management',
+    '/banking/collective/fl-scalar': 'fl-scalar',
+    '/banking/collective/lgd-setup': 'lgd-setup-management',
+    '/banking/collective/ead-setup': 'ead-setup-management',
+    '/banking/collective/ecl-config': 'ecl-configuration',
+    '/banking/individual/assessment': 'assessment-workspace-v1',
+    '/banking/individual/assessment-new': 'assessment-workspace-v2',
+    '/banking/ifrs9/impairment-module': 'impairment-module',
+    '/banking/ifrs9/amortization-module': 'amortization-module',
+    '/banking/ifrs9/calculations': 'ecl-calculations',
+    '/banking/ifrs9/staging': 'ifrs9-staging',
+    '/banking/ifrs9/models': 'model-management',
+    '/banking/ifrs9/scenarios': 'forecast',
+    '/banking/ifrs9-reports/nominative': 'nominative-report',
+    '/banking/ifrs9-reports/lifetime-pd': 'lifetime-pd',
+    '/banking/ifrs9-reports/lifetime-lgd': 'lifetime-lgd',
+    '/banking/ifrs9-reports/ead-model': 'ead-model',
+    '/banking/ifrs9-reports/ecl-result': 'ecl-result',
+    '/banking/ifrs9-reports/ecl-movement': 'ecl-movement',
+    '/banking/ifrs9-reports/gca-movement': 'gca-movement',
+    '/banking/analytics/r-analytics': 'r-analytics',
+    '/banking/analytics/reports': 'financial-reports',
+    '/banking/analytics/dashboard': 'executive-dashboard',
+    '/banking/analytics/export': 'advanced-export',
+    '/banking/workflow/approval': 'approval-system',
+    '/banking/notifications': 'workflow-notifications',
+    '/banking/workflow/configuration': 'workflow-configuration',
+    '/banking/workflow/monitoring': 'process-monitoring',
+    '/banking/workflow/staging': 'staging-management',
+    '/banking/workflow/business': 'business-process',
+    '/banking/tools/upload': 'manual-upload',
+    '/banking/tools/bulk-import': 'bulk-data-import',
+    '/banking/tools/export': 'data-export',
+    '/banking/tools/database': 'direct-db-connection',
+    '/banking/tools/scheduler': 'data-scheduler',
+    '/banking/maintenance/user-management': 'access-management',
+    '/banking/maintenance/approval': 'approval',
+    '/banking/maintenance/user-activity': 'audit-logs',
+    '/banking/maintenance/job-monitoring': 'job-monitoring',
+    '/banking/maintenance/menus': 'menu-management',
+    '/banking/maintenance/smtp': 'smtp-settings',
+};
+
+export const NAME_TO_LEGACY_ID_MAP: Record<string, string> = {
+    'Dashboard': 'dashboard',
+    'System Setup': 'system-setup',
+    'Parameter Management': 'parameter-management',
+    'Collective Impairment': 'collective-impairment',
+    'Individual Assessment': 'assessment-workspace',
+    'IFRS 9 Engine': 'ifrs9',
+    'Advanced Analytics': 'advanced-analytics',
+    'Workflow Management': 'workflow-management',
+    'Tools': 'tools',
+    'Admin & Maintenance': 'maintenance'
+};
+
+export const derivePermissionCodes = (idOrCode: string | undefined): string[] => {
     if (!idOrCode) return [];
     const key = idOrCode.toLowerCase();
     const override = PERMISSION_OVERRIDES[key];

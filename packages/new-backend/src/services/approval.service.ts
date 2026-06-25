@@ -995,7 +995,7 @@ async function executeRoleAction(
         case 'create': {
             const { permissions: permCodes, ...roleData } = data
             const permissionIds = await resolvePermissionIds(permCodes)
-            const [role] = await Effect.runPromise(createRole({ ...roleData, tenantId }) as any)
+            const role = await Effect.runPromise(createRole({ ...roleData, tenantId }) as any)
             if (role && permissionIds.length > 0) {
                 await Effect.runPromise(rolePermissionsRepository.set(db, role.id, permissionIds))
             }

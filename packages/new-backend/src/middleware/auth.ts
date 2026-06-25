@@ -299,6 +299,10 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
         const sessionPermissions = Array.isArray(session?.permissions)
             ? session.permissions.filter((p: unknown): p is string => typeof p === 'string')
             : []
+        const sessionRoles = Array.isArray(session?.roles)
+            ? session.roles.filter((r: unknown): r is string => typeof r === 'string')
+            : []
+            
         const payloadPermissions = Array.isArray((payload as any).permissions)
             ? ((payload as any).permissions as unknown[]).filter((permission): permission is string => typeof permission === 'string')
             : []
@@ -318,6 +322,7 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
         c.set('isSystemUser', isSystemUser)
         c.set('permissions', resolvedPermissions)
         c.set('userPermissions', resolvedPermissions)
+        c.set('roles', sessionRoles)
 
         const requiredPermissions = getRequiredPermissionCandidates(c.req.path, c.req.method)
         const hasRouteAccess =

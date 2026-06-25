@@ -118,6 +118,18 @@ export const AccessRoleDialog: React.FC<AccessRoleDialogProps> = ({
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [permissionSelectionGroups]);
 
+  // Stable calculation for initially expanded accordions (only runs on open)
+  const initialExpandedGroups = useMemo(() => {
+    if (!open) return new Set<string>();
+    const expanded = new Set<string>();
+    const initialPerms = role?.permissions?.map((p: any) => p.code ?? p) ?? [];
+    permissionSelectionGroups.forEach(g => {
+      const hasAny = g.permissions.some(p => p.code && initialPerms.includes(p.code));
+      if (hasAny) expanded.add(g.key);
+    });
+    return expanded;
+  }, [open, role, permissionSelectionGroups]);
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth={step === 0 ? 'md' : 'xl'} fullWidth>
       <DialogTitle>
@@ -230,7 +242,7 @@ disabled={isView}
               const selectedCount = groupPerms.filter(p => form.selectedPermissions.includes(p.code!)).length;
               const allSelected = selectedCount === groupPerms.length;
               return (
-                <Accordion key={group.key} defaultExpanded={selectedCount > 0} sx={{ mb: 1 }}>
+                <Accordion key={group.key} defaultExpanded={initialExpandedGroups.has(group.key)} sx={{ mb: 1 }}>
                   <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
                       <Checkbox

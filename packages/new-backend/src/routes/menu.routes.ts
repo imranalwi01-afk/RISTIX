@@ -51,6 +51,7 @@ menuRoutes.openapi(
         const queryTenantId = c.req.query('tenantId')
         const tenantId = queryTenantId || c.get('tenantId')
         const userPermissions = c.get('permissions') || []
+        const userRoles = c.get('roles') || []
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
 
         const [categories, items, perms] = await Promise.all([
@@ -61,9 +62,11 @@ menuRoutes.openapi(
 
         const hasAccess = (itemId: string) => {
             if (userPermissions.includes('admin.super_admin')) return true
-            const itemPerms = perms.filter((p) => p.menuItemId === itemId && p.isAllowed)
+            const itemPerms = perms.filter((p) => p.menuItemId === itemId)
             if (itemPerms.length === 0) return true
-            return itemPerms.some((p) => userPermissions.includes(p.roleId))
+            const allowedRoles = itemPerms.filter((p) => p.isAllowed).map((p) => p.roleId)
+            if (allowedRoles.length === 0) return false
+            return allowedRoles.some((roleId) => userRoles.includes(roleId))
         }
 
         const tree = categories.map((cat) => ({
@@ -91,6 +94,7 @@ menuRoutes.openapi(
         const queryTenantId = c.req.query('tenantId')
         const tenantId = queryTenantId || c.get('tenantId')
         const userPermissions = c.get('permissions') || []
+        const userRoles = c.get('roles') || []
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
 
         const [categories, items, perms] = await Promise.all([
@@ -101,11 +105,11 @@ menuRoutes.openapi(
 
         const hasAccess = (itemId: string) => {
             if (userPermissions.includes('admin.super_admin')) return true
-            const allItemPerms = perms.filter((p) => p.menuItemId === itemId)
-            if (allItemPerms.length === 0) return true
-            const allowedRoles = allItemPerms.filter((p) => p.isAllowed).map((p) => p.roleId)
+            const itemPerms = perms.filter((p) => p.menuItemId === itemId)
+            if (itemPerms.length === 0) return true
+            const allowedRoles = itemPerms.filter((p) => p.isAllowed).map((p) => p.roleId)
             if (allowedRoles.length === 0) return false
-            return allowedRoles.some((roleId) => userPermissions.includes(roleId))
+            return allowedRoles.some((roleId) => userRoles.includes(roleId))
         }
 
         const tree = categories.map((cat) => ({
@@ -694,19 +698,33 @@ menuRoutes.openapi(
         const bankingMode = c.req.query('bankingMode')
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
 
+        const userPermissions = c.get('permissions') || []
+        const userRoles = c.get('roles') || []
+
         const conditions = [eq(menuItems.tenantId, tenantId)]
         if (!includeInactive) conditions.push(eq(menuItems.isActive, true))
 
-        const [categories, items] = await Promise.all([
+        const [categories, items, perms] = await Promise.all([
             platformDb.select().from(menuCategories).where(
                 and(eq(menuCategories.tenantId, tenantId), eq(menuCategories.isActive, true))
             ).orderBy(asc(menuCategories.sortOrder)),
             platformDb.select().from(menuItems).where(and(...conditions)).orderBy(asc(menuItems.sortOrder)),
+            getMenuPermissions(tenantId),
         ])
+
+        const hasAccess = (itemId: string) => {
+            if (userPermissions.includes('admin.super_admin')) return true
+            const itemPerms = perms.filter((p) => p.menuItemId === itemId)
+            if (itemPerms.length === 0) return true
+            const allowedRoles = itemPerms.filter((p) => p.isAllowed).map((p) => p.roleId)
+            if (allowedRoles.length === 0) return false
+            return allowedRoles.some((roleId) => userRoles.includes(roleId))
+        }
 
         const visibleItems = items.filter((item) =>
             item.isVisible !== false &&
-            (!bankingMode || !item.bankingType || item.bankingType === 'both' || item.bankingType === bankingMode)
+            (!bankingMode || !item.bankingType || item.bankingType === 'both' || item.bankingType === bankingMode) &&
+            hasAccess(item.id)
         )
 
         const buildFlatItemTree = (parentId: string): any[] =>
@@ -778,8 +796,13 @@ menuRoutes.openapi(
 // Helper: get menu permissions from tenant DB (with migration fallback)
 // =============================================================================
 async function getMenuPermissions(tenantId: string) {
-    return tenantDb.select().from(tenantMenuPermissions)
-        .where(eq(tenantMenuPermissions.tenantId, tenantId))
+    try {
+        return await tenantDb.select().from(tenantMenuPermissions)
+            .where(eq(tenantMenuPermissions.tenantId, tenantId))
+    } catch (e) {
+        console.error('[MENU ROUTES] Failed to fetch menu permissions:', e)
+        return []
+    }
 }
 
 // =============================================================================
