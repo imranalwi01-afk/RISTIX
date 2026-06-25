@@ -697,6 +697,13 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 description: '/IFRS9N/JobMonitoring'
             },
             {
+                id: 'menu-matrix',
+                label: 'Menu Matrix',
+                href: '/banking/maintenance/menu-matrix',
+                icon: <TableChart />,
+                description: 'Configure role-based menu access',
+            },
+            {
                 id: 'menu-management',
                 label: 'Menu Management',
                 href: '/banking/maintenance/menus',
