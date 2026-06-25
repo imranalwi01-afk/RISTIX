@@ -847,6 +847,7 @@ function ECLConfigurationPage() {
       recalculate: false,
       scenarios: ['Base', 'Optimistic', 'Pessimistic'],
       segmentIds,
+      eclModelId: eclConfig?.pkid,
       ...(configHeader ? { configHeader, eclModelName: configHeader } : {})
     };
   }, []);

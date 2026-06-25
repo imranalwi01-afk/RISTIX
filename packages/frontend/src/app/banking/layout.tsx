@@ -21,10 +21,12 @@ import {
   Typography,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { usePathname, useRouter } from 'next/navigation';
 
 // Import our enhanced sidebar
 import BankingSidebar from '../../components/banking/BankingSidebar';
 import { useBankingTheme } from '../../providers/BankingThemeProvider';
+import { ROUTE_PERMISSION_MAP } from '../../proxy-config';
 
 // Import extracted layout components
 import { BankingAppBar } from '../../components/banking/layout/BankingAppBar';
@@ -136,11 +138,33 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
     }
   }, [authState?.token, authState?.user]);
 
-  const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
-  const handleSidebarToggle = () => setSidebarCollapsed(!sidebarCollapsed);
-
+  const pathname = usePathname();
+  const router = useRouter();
   const isAuthReady = authState?.isInitialized;
   const isActuallyAuthenticated = authState?.isAuthenticated && !!authState?.user;
+  const userPermissions = authState?.user?.permissions || [];
+
+  // Route permission guard: check if the current path requires a permission the user doesn't have
+  useEffect(() => {
+    if (!pathname || !isActuallyAuthenticated || !isAuthReady) return;
+
+    const matchedPrefix = Object.keys(ROUTE_PERMISSION_MAP)
+      .filter((prefix) => pathname.startsWith(prefix))
+      .sort((a, b) => b.length - a.length)[0];
+
+    if (!matchedPrefix) return;
+
+    const requiredPerms = ROUTE_PERMISSION_MAP[matchedPrefix];
+    const requiredList = Array.isArray(requiredPerms) ? requiredPerms : [requiredPerms];
+    const hasAccess = requiredList.some((code) => userPermissions.includes(code));
+
+    if (!hasAccess) {
+      router.replace('/banking/dashboard');
+    }
+  }, [pathname, isActuallyAuthenticated, isAuthReady, userPermissions, router]);
+
+  const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
+  const handleSidebarToggle = () => setSidebarCollapsed(!sidebarCollapsed);
 
   // Block if no session evidence exists OR if Redux explicitly initialized and determined unauthenticated
   if ((hasSessionEvidence === false && !authState?.user && !authState?.token) ||

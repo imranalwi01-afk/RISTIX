@@ -49,6 +49,7 @@ const APPROVAL_REQUEST_LIST_QUERY_CONFIG: ListQueryConfig = {
     defaultLimit: 50,
     maxLimit: 200,
     defaultSort: [{ field: 'createdAt', direction: 'desc' }],
+    searchableColumns: ['id', 'title', 'description', 'entityType', 'entityId', 'status'],
     filterDefinitions: {
         createdAt: { field: 'createdAt', label: 'Date', type: 'date', operators: ['from', 'to'] },
         status: {

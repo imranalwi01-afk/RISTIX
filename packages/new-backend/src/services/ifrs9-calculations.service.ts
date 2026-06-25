@@ -149,35 +149,32 @@ export class Ifrs9CalculationsService {
             .where(eq(frs9PrcDate.pkid, existingPrcDate.pkid));
     }
 
-    private async resolveConfigHeader(config: any): Promise<string> {
-        const explicitConfigHeader = String(
-            config?.configHeader
-            || config?.eclModelName
-            || config?.modelName
-            || ''
+    private async resolveEclModelId(config: any): Promise<number> {
+        // Prefer explicit pkid from frontend
+        const explicitId = Number(config?.eclModelId);
+        if (Number.isFinite(explicitId) && explicitId > 0) return explicitId;
+
+        const configHeader = String(
+            config?.configHeader || config?.eclModelName || config?.modelName || ''
         ).trim();
 
-        if (explicitConfigHeader) {
-            return explicitConfigHeader;
+        if (configHeader) {
+            const [found] = await legacyDb
+                .select({ pkid: frs9ImpCaEclConfigh.pkid })
+                .from(frs9ImpCaEclConfigh)
+                .where(eq(frs9ImpCaEclConfigh.eclModelName, configHeader))
+                .limit(1);
+            if (found) return Number(found.pkid);
         }
 
         const [activeConfig] = await legacyDb
-            .select({
-                eclModelName: frs9ImpCaEclConfigh.eclModelName,
-            })
+            .select({ pkid: frs9ImpCaEclConfigh.pkid })
             .from(frs9ImpCaEclConfigh)
             .where(eq(frs9ImpCaEclConfigh.activeFlag, true))
-            .orderBy(
-                desc(frs9ImpCaEclConfigh.effectiveDate),
-                desc(frs9ImpCaEclConfigh.updateddate),
-                desc(frs9ImpCaEclConfigh.pkid),
-            )
+            .orderBy(desc(frs9ImpCaEclConfigh.effectiveDate), desc(frs9ImpCaEclConfigh.updateddate), desc(frs9ImpCaEclConfigh.pkid))
             .limit(1);
 
-        const fallbackConfigHeader = String(activeConfig?.eclModelName || '').trim();
-        if (fallbackConfigHeader) {
-            return fallbackConfigHeader;
-        }
+        if (activeConfig) return Number(activeConfig.pkid);
 
         throw new Error(
             'No active ECL model found to run SP_FRS9_PREVIEW_SEQUENCE. Please activate ECL configuration first.'
@@ -447,8 +444,8 @@ export class Ifrs9CalculationsService {
             const processDate = config.processDate || new Date().toISOString().split('T')[0];
             console.log(`🚀 Queueing IFRS9 preview calculation (SP) for tenant ${tenantId} on ${processDate}`);
 
-            // 1. Resolve ECL model header for SP argument.
-            const configHeader = await this.resolveConfigHeader(config);
+            // 1. Resolve ECL model ID for SP argument.
+            const eclModelId = await this.resolveEclModelId(config);
 
             // 2. Resolve or create SQL_SP definition bound to SP_FRS9_PREVIEW_SEQUENCE.
             const allDefs = await JobsRepository.findAllDefinitions(tenantId);
@@ -532,9 +529,9 @@ export class Ifrs9CalculationsService {
 
             const executionParameters = {
                 ...(calculationJob.defaultParameters || this.buildIfrs9PreviewSqlSpDefaultParameters()),
-                parameters: [configHeader, previewData, processDate],
+                parameters: [processDate, eclModelId],
                 processDate,
-                configHeader,
+                configHeader: String(eclModelId),
                 source: 'ifrs9-calculations',
                 executionMode: 'preview',
             };
@@ -590,7 +587,7 @@ export class Ifrs9CalculationsService {
                 jobId: executionId,
                 executionId,
                 processDate,
-                configHeader,
+                eclModelId,
             };
         } catch (error: any) {
             console.error('Error triggering calculation:', error);

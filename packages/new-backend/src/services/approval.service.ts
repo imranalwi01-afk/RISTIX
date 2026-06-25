@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { Effect, pipe } from 'effect'
-import { and, eq, gte, isNull, lte, or, sql } from 'drizzle-orm'
+import { and, eq, gte, inArray, isNull, lte, or, sql } from 'drizzle-orm'
 import { ApprovalRepository } from '@/repositories/approval.repository'
 import {
     type NewApprovalMatrix,
@@ -969,10 +969,11 @@ async function executeRoleAction(
 
         if (requestedPermissions.length === 0) return []
 
+        const permArray = sql.join(requestedPermissions.map((p) => sql`${p}::varchar`), sql`, `);
         const matched = await db
             .select({ id: permissionsTable.id, code: permissionsTable.code })
             .from(permissionsTable)
-            .where(sql`(${permissionsTable.id}::text = ANY(${requestedPermissions}::varchar[]) OR ${permissionsTable.code} = ANY(${requestedPermissions}::varchar[]))`)
+            .where(sql`(${permissionsTable.id}::text = ANY(ARRAY[${permArray}]) OR ${permissionsTable.code} = ANY(ARRAY[${permArray}]))`)
 
         const permissionLookup = new Map<string, string>()
         for (const permission of matched as any[]) {
