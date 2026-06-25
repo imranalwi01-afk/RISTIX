@@ -514,9 +514,10 @@ export const ApprovalRepository = {
         return result[0]?.count ?? 0
     },
 
-    getExpiredRequests: () =>
+    getExpiredRequests: (tenantId?: string) =>
         getDatabase('tenant').query.approvalRequests.findMany({
             where: and(
+                ...(tenantId ? [eq(approvalRequests.tenantId, tenantId)] : []),
                 eq(approvalRequests.status, 'pending'),
                 lte(approvalRequests.expiresAt, new Date())
             ),
