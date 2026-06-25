@@ -11,6 +11,7 @@ import PageHeader from '@/components/banking/shared/PageHeader';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import { api } from '@/services/api';
+import { extractRolesArray } from '@/features/roles/hooks/useRoleQueries';
 
 interface MenuItem {
   id: string;
@@ -66,7 +67,7 @@ export default function AccessMatrixPage() {
         walk(menuData);
         setMenus(flatMenus);
 
-        const rolesData = Array.isArray(rolesRes) ? rolesRes : Array.isArray(rolesRes?.data) ? rolesRes.data : [];
+        const rolesData = extractRolesArray(rolesRes);
         setRoles(rolesData.map((r: any) => ({
           id: r.id,
           name: r.displayName || r.name || r.roleName || 'Unnamed',
