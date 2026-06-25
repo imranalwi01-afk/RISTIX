@@ -3253,7 +3253,7 @@ server <- function(input, output, session) {
   
   
   output$model_summary_table_DB <- DT::renderDT({
-    DT::datatable(model_summary_data_DB(), options = list(pageLength = 5, autoWidth = TRUE), rownames = FALSE)
+    DT::datatable(model_summary_data_DB(), options = list(pageLength = 5, autoWidth = F), rownames = FALSE)
   })
   
   
@@ -3263,14 +3263,14 @@ server <- function(input, output, session) {
      SELECT model_id, model_name, model_status, dependent_variable, r_squared, mape, created_date
      FROM frs9_r_model_summary
      WHERE id_deleted = FALSE
-     ORDER BY created_date DESC
+     ORDER BY model_id DESC
    ")
                                           },
                                           ignoreNULL = FALSE
   )
   
   output$model_summary_table_DB2 <- DT::renderDT({
-    DT::datatable(model_summary_data_DB2(), options = list(pageLength = 5, autoWidth = TRUE, scrollX = TRUE), rownames = FALSE)
+    DT::datatable(model_summary_data_DB2(), options = list(pageLength = 5, autoWidth = F, scrollX = TRUE), rownames = FALSE)
   })
   
   
@@ -3429,7 +3429,7 @@ server <- function(input, output, session) {
   observeEvent(input$refresh,
                {
                  modelupload <- tryCatch(
-                   dbGetQuery(con, 'SELECT "model_id","model_name" FROM "frs9_r_model_summary" ORDER BY created_date DESC'),
+                   dbGetQuery(con, 'SELECT "model_id","model_name" FROM "frs9_r_model_summary" ORDER BY model_id DESC'),
                    error = function(e) {
                      NULL
                    }

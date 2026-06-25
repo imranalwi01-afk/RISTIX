@@ -31,7 +31,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   '/banking/maintenance/access-management': ['admin.users.manage', 'admin.roles.manage', 'admin.maintenance.access'],
   '/banking/maintenance/menu-matrix': 'admin.maintenance.access',
   '/banking/maintenance/smtp': 'admin.maintenance.access',
-  '/banking/maintenance/job-monitoring': 'jobs',
+  '/banking/maintenance/job-monitoring': ['jobs.view', 'jobs.manage', 'admin.system.manage'],
   '/banking/maintenance': 'admin.users.manage', // Often includes role management
 
   // Tools
