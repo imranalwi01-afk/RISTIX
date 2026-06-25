@@ -505,11 +505,6 @@ authRoutes.openapi(
     }),
     async (c) => {
         const accessToken = c.req.query('access_token')
-        const fullUrl = c.req.url
-        const queryString = c.req.queries()
-        console.log('[VERIFY-TOKEN] fullUrl:', fullUrl)
-        console.log('[VERIFY-TOKEN] query params:', JSON.stringify(queryString))
-        console.log('[VERIFY-TOKEN] access_token exists:', !!accessToken)
         if (!accessToken) {
             return c.json({ success: false, message: 'Missing access_token' } as any, 401)
         }
