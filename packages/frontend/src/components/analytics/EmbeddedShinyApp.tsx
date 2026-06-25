@@ -463,11 +463,11 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       // Construct URL based on environment
       if (API_CONFIG.IS_PRODUCTION) {
         const domainBase = API_CONFIG.R_DASHBOARD_URL;
-        sessionData.iframeUrl = `${domainBase}/?session=${sessionData.sessionId}&iframe=true`;
+        sessionData.iframeUrl = `${domainBase}/?session=${sessionData.sessionId}&iframe=true&access_token=${encodeURIComponent(token)}`;
         sessionData.domainUrl = domainBase;
       } else {
         // Local development
-        sessionData.iframeUrl = `http://localhost:${actualPort}/?session=${sessionData.sessionId}&iframe=true`;
+        sessionData.iframeUrl = `http://localhost:${actualPort}/?session=${sessionData.sessionId}&iframe=true&access_token=${encodeURIComponent(token)}`;
         sessionData.domainUrl = `http://localhost:${actualPort}`;
       }
 
