@@ -199,11 +199,14 @@ export const ApprovalRepository = {
      * Find an approval request by ID.
      * 
      * @param id - The request ID
+     * @param tenantId - Optional tenant ID for tenant isolation
      * @returns The approval request with details
      */
-    findRequestById: async (id: string) => {
+    findRequestById: async (id: string, tenantId?: string) => {
         return getDatabase('tenant').query.approvalRequests.findFirst({
-            where: eq(approvalRequests.id, id),
+            where: tenantId
+                ? and(eq(approvalRequests.id, id), eq(approvalRequests.tenantId, tenantId))
+                : eq(approvalRequests.id, id),
             with: {
                 actions: { orderBy: [asc(approvalActions.createdAt)] },
                 requester: true,

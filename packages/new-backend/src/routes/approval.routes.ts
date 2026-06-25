@@ -368,7 +368,7 @@ approvalRoutes.openapi(
         const isSystemUser = c.get('isSystemUser') === true
 
         const effect = pipe(
-            approvalService.getApprovalRequest(id),
+            approvalService.getApprovalRequest(id, c.get('tenantId')!),
             Effect.flatMap((existingRequest) =>
                 pipe(
                     approvalService.cancelApprovalRequest({
@@ -723,7 +723,7 @@ approvalRoutes.openapi(
         const { id } = c.req.valid('param')
 
         const effect = pipe(
-            approvalService.getApprovalRequest(id),
+            approvalService.getApprovalRequest(id, c.get('tenantId')!),
             Effect.map(request => {
                 const requestedByMeta = buildRequestedByMeta(request)
                 return ({
@@ -780,7 +780,7 @@ approvalRoutes.openapi(
         const body = c.req.valid('json')
 
         const effect = pipe(
-            approvalService.getApprovalRequest(id),
+            approvalService.getApprovalRequest(id, c.get('tenantId')!),
             Effect.flatMap((existingRequest) =>
                 pipe(
                     approvalService.processApprovalAction({
@@ -862,7 +862,7 @@ approvalRoutes.openapi(
         const body = c.req.valid('json')
 
         const effect = pipe(
-            approvalService.getApprovalRequest(id),
+            approvalService.getApprovalRequest(id, c.get('tenantId')!),
             Effect.flatMap((existingRequest) =>
                 pipe(
                     approvalService.processApprovalAction({
@@ -940,7 +940,7 @@ approvalRoutes.openapi(
         const body = c.req.valid('json')
 
         const effect = pipe(
-            approvalService.getApprovalRequest(id),
+            approvalService.getApprovalRequest(id, c.get('tenantId')!),
             Effect.flatMap((existingRequest) =>
                 pipe(
                     approvalService.processApprovalAction({
@@ -1021,7 +1021,7 @@ approvalRoutes.openapi(
         const body = c.req.valid('json')
 
         const effect = pipe(
-            approvalService.getApprovalRequest(id),
+            approvalService.getApprovalRequest(id, c.get('tenantId')!),
             Effect.flatMap((existingRequest) =>
                 pipe(
                     approvalService.processApprovalAction({

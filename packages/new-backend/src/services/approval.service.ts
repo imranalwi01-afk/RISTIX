@@ -48,6 +48,7 @@ export interface ProcessApprovalInput {
     conditions?: string
     delegatedTo?: string
     riskScore?: number
+    tenantId?: string
 }
 
 const SUPER_ADMIN_PERMISSION_CODE = 'admin.super_admin'
@@ -107,6 +108,7 @@ export interface CancelApprovalRequestInput {
     cancelledBy: string
     isSystemUser?: boolean
     reason?: string
+    tenantId?: string
 }
 
 export interface ApprovalRoutingCandidate {
@@ -381,7 +383,7 @@ export const processApprovalAction = (
     Effect.tryPromise({
         try: async () => {
             // Get the request
-            const request = await ApprovalRepository.findRequestById(input.requestId)
+            const request = await ApprovalRepository.findRequestById(input.requestId, input.tenantId)
 
             if (!request) {
                 throw new NotFoundError({ resource: 'ApprovalRequest', id: input.requestId })
@@ -1996,11 +1998,12 @@ export const getPendingApprovalsForUser = (
  * @returns An Effect resolving to the request with actions or NotFoundError
  */
 export const getApprovalRequest = (
-    requestId: string
+    requestId: string,
+    tenantId?: string
 ): Effect.Effect<ApprovalRequest & { actions: ApprovalAction[] }, DatabaseError | NotFoundError> =>
     pipe(
         dbOperation('query', () =>
-            ApprovalRepository.findRequestById(requestId)
+            ApprovalRepository.findRequestById(requestId, tenantId)
         ),
         Effect.flatMap((request) =>
             request
