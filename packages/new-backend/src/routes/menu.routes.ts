@@ -5,7 +5,7 @@ import { platformDb, tenantDb } from '@/config/database'
 import { menuCategories, menuItems } from '@/db/schema/menu.schema'
 import { tenantMenuPermissions } from '@/db/schema/rbac.schema'
 import { TenantRepository } from '@/repositories/tenant.repository'
-import { authMiddleware } from '@/middleware/auth'
+import { authMiddleware, tenantMiddleware } from '@/middleware/auth'
 import type { AppContext } from '@/app'
 import { runEffect } from '@/lib/effect'
 import { buildErrorResponse } from '@/lib/http/error-response'
@@ -34,6 +34,9 @@ async function resolveTenantId(c: any): Promise<string | null> {
 }
 
 export const menuRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
+
+menuRoutes.use('*', authMiddleware)
+menuRoutes.use('*', tenantMiddleware)
 
 // GET /menu/hierarchy - Get full menu tree for a tenant (from platform DB)
 menuRoutes.openapi(
