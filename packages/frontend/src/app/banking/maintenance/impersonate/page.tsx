@@ -36,7 +36,8 @@ export default function ImpersonatePage() {
       try {
         setLoading(true);
         const res = await api.client.get('/users', { params: { limit: 200 } });
-        const data = res.data?.data?.data || res.data?.data || [];
+        const body = res.data?.data || res.data || {};
+        const data = Array.isArray(body) ? body : body.users || body.data || [];
         setUsers(Array.isArray(data) ? data : []);
       } catch (err: any) {
         setError(err.message || 'Failed to load users');
