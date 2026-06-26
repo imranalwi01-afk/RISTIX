@@ -8,6 +8,7 @@ import { logger, withRequestIds } from '../lib/logger'
 
 import { getRedisConnectionOptions } from '../config/redis'
 import { env } from '../config/env'
+import { traceJobProcessor } from '../lib/job-tracing'
 
 const connectionOptions = getRedisConnectionOptions(parseInt(env.REDIS_QUEUE_DB))
 console.log('Worker Redis Options:', JSON.stringify(connectionOptions, null, 2)) // DEBUG
@@ -19,7 +20,7 @@ console.log('Worker Redis Options:', JSON.stringify(connectionOptions, null, 2))
 export function setupApprovalNotificationWorker(db: PostgresJsDatabase<typeof schema>) {
     const worker = new Worker<ApprovalNotificationJob>(
         'approval-notifications',
-        async (job) => {
+        traceJobProcessor<ApprovalNotificationJob>('approval-notifications', async (job) => {
             withRequestIds({ tenantId: job.data.tenantId }).info({ jobId: job.id }, 'Processing approval notification job')
 
             const { action, notifyUser, email, template, workflowId, workflowName } = job.data
@@ -84,7 +85,7 @@ export function setupApprovalNotificationWorker(db: PostgresJsDatabase<typeof sc
                 withRequestIds({ tenantId: job.data.tenantId }).error({ jobId: job.id, err }, 'Approval notification job failed')
                 throw err
             }
-        },
+        }),
         { connection: connectionOptions as any, concurrency: 5 }
     )
 
@@ -139,7 +140,7 @@ export function setupApprovalNotificationWorker(db: PostgresJsDatabase<typeof sc
 export function setupECLCalculationWorker(db: PostgresJsDatabase<typeof schema>) {
     const worker = new Worker<ECLCalculationJob>(
         'ecl-calculations',
-        async (job) => {
+        traceJobProcessor<ECLCalculationJob>('ecl-calculations', async (job) => {
             withRequestIds({ tenantId: job.data.tenantId }).info({ jobId: job.id }, 'Processing ECL calculation job')
 
             const { workflowId, tenantId, entityId, storedProcedure, parameters } = job.data
@@ -172,7 +173,7 @@ export function setupECLCalculationWorker(db: PostgresJsDatabase<typeof schema>)
                 withRequestIds({ tenantId }).error({ jobId: job.id, err }, 'ECL calculation job failed')
                 throw err
             }
-        },
+        }),
         { connection: connectionOptions as any, concurrency: 2 } // Lower concurrency for heavy calculations
     )
 

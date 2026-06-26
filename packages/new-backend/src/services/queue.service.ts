@@ -1,4 +1,8 @@
 import { Queue, Worker, Job } from 'bullmq'
+import { trace, SpanStatusCode } from '@opentelemetry/api'
+import { traceJobProcessor } from '../lib/job-tracing'
+
+const tracer = trace.getTracer('ifrs9-backend')
 import { env } from '../config/env'
 import { getRedisConnectionOptions } from '../config/redis' // ✅ Centralized config
 import { legacyDb, getDatabase } from '../config/database'
@@ -168,7 +172,7 @@ const updateDefinitionStatus = async (definitionId: string | null | undefined, t
 // =============================================================================
 // WORKER
 // =============================================================================
-export const jobsWorker = new Worker(QUEUE_NAME, processor, {
+export const jobsWorker = new Worker(QUEUE_NAME, traceJobProcessor(QUEUE_NAME, processor), {
     connection: redisOptions as any, // Worker needs its own connection (blocking)
     concurrency: 5
 })
@@ -241,7 +245,28 @@ console.log(`[QueueService] Worker created and listening on ${QUEUE_NAME}`)
  */
 export const addJob = async (name: string, data: any, opts?: any) => {
     console.log(`[QueueService] Adding job: ${name} (ID: ${opts?.jobId})`)
-    return await jobsQueue.add(name, data, opts)
+
+    const span = tracer.startSpan('job.enqueue', {
+        attributes: {
+            'messaging.system': 'bullmq',
+            'messaging.destination': QUEUE_NAME,
+            'messaging.operation': 'send',
+            'job.name': name,
+            'job.id': opts?.jobId ?? '',
+            'tenant_id': data?.tenantId ?? '',
+        },
+    })
+
+    try {
+        const job = await jobsQueue.add(name, data, opts)
+        span.setAttribute('messaging.message_id', job.id ?? '')
+        span.end()
+        return job
+    } catch (error) {
+        span.setStatus({ code: SpanStatusCode.ERROR, message: (error as Error)?.message || String(error) })
+        span.end()
+        throw error
+    }
 }
 
 /**
