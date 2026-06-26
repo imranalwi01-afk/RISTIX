@@ -64,10 +64,12 @@ import Download from '@mui/icons-material/Download'
 import Save from '@mui/icons-material/Save'
 import ContentCopy from '@mui/icons-material/ContentCopy'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import Assignment from '@mui/icons-material/Assignment'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSelector, useDispatch } from 'react-redux'
 import type { RootState } from '../../../store'
 import { api, handleAPIError } from '../../../services/api'
+import { usePendingApprovalCount } from '@/hooks/usePendingApprovalCount'
 import {
     fetchDashboardPersonalization,
     saveDashboardPersonalization,
@@ -319,6 +321,7 @@ function DashboardClient() {
     const [portfolioTrend, setPortfolioTrend] = useState<any[]>([])
     const [activities, setActivities] = useState<DashboardActivity[]>([])
     const [error, setError] = useState<any>(null)
+    const { count: pendingApprovalCount } = usePendingApprovalCount()
     const [availableDates, setAvailableDates] = useState<string[]>([])
     const [availableDateGroups, setAvailableDateGroups] = useState<Record<string, string[]> | null>(null)
     const [selectedDate, setSelectedDate] = useState<string>('')
@@ -501,19 +504,17 @@ function DashboardClient() {
             // Load user activities
             if (user?.id) {
                 try {
-                    const activityRes = await fetch(`/api/v1/user-activity/activities?userId=${user.id}&limit=5`);
-                    if (activityRes.ok) {
-                        const activityData = await activityRes.json();
-                        const unwrapped = activityData.success ? activityData.data : activityData;
-                        const items: UserActivityItem[] = unwrapped?.activities || unwrapped || [];
-                        setActivities(items.map((a: UserActivityItem) => ({
+                    const activityRes = await api.client.get(`/user-activity/activities`, { params: { userId: user.id, limit: 5 } });
+                    const activityData = activityRes.data;
+                    const unwrapped = activityData?.data || activityData || {};
+                    const items: UserActivityItem[] = Array.isArray(unwrapped) ? unwrapped : unwrapped?.activities || [];
+                    setActivities(items.slice(0, 5).map((a: UserActivityItem) => ({
                             id: a.id,
                             icon: getActivityIcon(a.activityType, a.actionResult),
                             text: a.activityDescription || a.actionPerformed,
                             time: formatActivityTime(a.createdAt),
                             type: a.actionResult === 'FAILURE' ? 'error' : a.actionResult === 'PARTIAL' ? 'warning' : 'info',
                         })));
-                    }
                 } catch {
                     // silently fail, activities are non-critical
                 }
@@ -1268,6 +1269,54 @@ function DashboardClient() {
                                     </ListItem>
                                 )}
                             </List>
+                        </CardContent>
+                    </Card>
+                </Grid>
+
+                {/* Pending Approvals */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                    <Card sx={{ height: '100%', borderRadius: 4, boxShadow: `0 4px 12px ${alpha(bankingContext.primary, 0.08)}`, border: `1px solid ${alpha(bankingContext.primary, 0.1)}` }}>
+                        <CardContent sx={{ p: isMobile ? 2 : 3 }}>
+                            <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha(bankingContext.primary, 0.1), color: bankingContext.primary, mr: 2 }}>
+                                        <Assignment />
+                                    </Box>
+                                    <Typography variant="h6" fontWeight="bold">
+                                        Pending Approvals
+                                    </Typography>
+                                </Box>
+                                {pendingApprovalCount > 0 && (
+                                    <Chip label={`${pendingApprovalCount} pending`} color="warning" size="small" />
+                                )}
+                            </Box>
+                            {pendingApprovalCount > 0 ? (
+                                <Box sx={{ textAlign: 'center', py: 2 }}>
+                                    <Typography variant="h3" fontWeight="bold" color="warning.main">
+                                        {pendingApprovalCount}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        requests awaiting your action
+                                    </Typography>
+                                    <Button
+                                        variant="outlined"
+                                        size="small"
+                                        sx={{ mt: 2 }}
+                                        onClick={() => window.location.href = '/banking/maintenance/approval'}
+                                    >
+                                        Review Approvals
+                                    </Button>
+                                </Box>
+                            ) : (
+                                <Box sx={{ textAlign: 'center', py: 2 }}>
+                                    <Typography variant="body1" color="success.main" fontWeight={600}>
+                                        ✅ All caught up
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        No pending approvals
+                                    </Typography>
+                                </Box>
+                            )}
                         </CardContent>
                     </Card>
                 </Grid>
