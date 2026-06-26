@@ -309,19 +309,11 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       if (token) {
         url.searchParams.set('access_token', token);
       }
-      if (user?.permissions?.length) {
-        url.searchParams.set('permissions', user.permissions.join(','));
-      }
-      if (user?.role) {
-        url.searchParams.set('user_role', typeof user.role === 'string' ? user.role : Array.isArray(user.roles) ? user.roles[0] : '');
-      }
       return url.toString();
     } catch {
       const separator = baseUrl.includes('?') ? '&' : '?';
       let fallback = `${baseUrl}${separator}iframe=${iframe ? 'true' : 'false'}&tenant_slug=${encodeURIComponent(tenantSlug || user?.tenantSlug || 'iaf')}&banking_mode=${encodeURIComponent(bankingType)}&model_type=${encodeURIComponent(modelType)}`;
       if (token) fallback += `&access_token=${encodeURIComponent(token)}`;
-      if (user?.permissions?.length) fallback += `&permissions=${encodeURIComponent(user.permissions.join(','))}`;
-      if (user?.role) fallback += `&user_role=${encodeURIComponent(typeof user.role === 'string' ? user.role : Array.isArray(user.roles) ? user.roles[0] : '')}`;
       return fallback;
     }
   }, [bankingType, modelType, tenantSlug, token, user?.tenantId, user?.tenantSlug]);
@@ -469,16 +461,13 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       const actualPort = sessionData.port;
 
       // Construct URL based on environment
-      const permsParam = user?.permissions?.length ? `&permissions=${encodeURIComponent(user.permissions.join(','))}` : '';
-      const roleParam = user?.role ? `&user_role=${encodeURIComponent(typeof user.role === 'string' ? user.role : Array.isArray(user.roles) ? user.roles[0] : '')}` : '';
-
       if (API_CONFIG.IS_PRODUCTION) {
         const domainBase = API_CONFIG.R_DASHBOARD_URL;
-        sessionData.iframeUrl = `${domainBase}/?session=${sessionData.sessionId}&iframe=true&access_token=${encodeURIComponent(token)}${permsParam}${roleParam}`;
+        sessionData.iframeUrl = `${domainBase}/?session=${sessionData.sessionId}&iframe=true&access_token=${encodeURIComponent(token)}`;
         sessionData.domainUrl = domainBase;
       } else {
         // Local development
-        sessionData.iframeUrl = `http://localhost:${actualPort}/?session=${sessionData.sessionId}&iframe=true&access_token=${encodeURIComponent(token)}${permsParam}${roleParam}`;
+        sessionData.iframeUrl = `http://localhost:${actualPort}/?session=${sessionData.sessionId}&iframe=true&access_token=${encodeURIComponent(token)}`;
         sessionData.domainUrl = `http://localhost:${actualPort}`;
       }
 

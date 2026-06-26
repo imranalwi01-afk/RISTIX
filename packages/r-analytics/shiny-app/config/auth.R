@@ -173,74 +173,56 @@ UserAuthModule <- R6Class("UserAuthModule",
       invisible(self)
     },
 
-    #' Load User Context from Frontend
+    #' Decode JWT token payload (base64 URL-safe decode, no signature verification)
+    decode_jwt = function(token) {
+      if (is.null(token) || token == "") return(NULL)
+      parts <- strsplit(token, "\\.")[[1]]
+      if (length(parts) < 2) return(NULL)
+      b64 <- parts[2]
+      b64 <- gsub("-", "+", b64)
+      b64 <- gsub("_", "/", b64)
+      jsonlite::fromJSON(rawToChar(jsonlite::base64_dec(b64)))
+    },
+
+    #' Load User Context by decoding JWT access_token from URL params
     load_user_context = function() {
       tryCatch({
-        # Get user context from URL parameters (passed from IAF frontend)
-        user_id <- private$session_ref$request$GET[["user_id"]]
-        user_email <- private$session_ref$request$GET[["user_email"]]
-        user_name <- private$session_ref$request$GET[["user_name"]]
-        user_role <- private$session_ref$request$GET[["user_role"]]
-        tenant_id <- private$session_ref$request$GET[["tenant_id"]]
-        permissions_raw <- private$session_ref$request$GET[["permissions"]]
-
-        # Fallback to session storage if URL parameters not available
-        if (is.null(user_id) || user_id == "") {
-          user_id <- private$session_ref$userData[["user_id"]]
-          user_email <- private$session_ref$userData[["user_email"]]
-          user_name <- private$session_ref$userData[["user_name"]]
-          user_role <- private$session_ref$userData[["user_role"]]
-          tenant_id <- private$session_ref$userData[["tenant_id"]]
-          permissions_raw <- private$session_ref$userData[["permissions"]]
+        access_token <- private$session_ref$request$GET[["access_token"]]
+        if (is.null(access_token) || access_token == "") {
+          private$log_auth("warning", "No access_token in URL params")
+          return()
         }
 
-        # Parse permissions from comma-separated string
-        user_permissions <- if (!is.null(permissions_raw) && nchar(permissions_raw) > 0) {
-          strsplit(permissions_raw, ",")[[1]]
-        } else if (!is.null(user_role) && user_role != "") {
-          self$get_role_permissions(user_role)
-        } else {
-          c("home_access")
+        payload <- self$decode_jwt(access_token)
+        if (is.null(payload) || is.null(payload$sub)) {
+          private$log_auth("error", "Failed to decode JWT token")
+          return()
         }
 
-        # Set current user if information is available
-        if (!is.null(user_id) && user_id != "") {
-          private$current_user <- list(
-            id = user_id,
-            email = user_email,
-            name = user_name,
-            role = user_role,
-            tenant_id = tenant_id,
-            permissions = user_permissions
-          )
+        user_permissions <- if (!is.null(payload$permissions)) payload$permissions else c()
+        user_role <- if (length(payload$roles) > 0) payload$roles[1] else (payload$role %||% "")
 
-          # Validate user context if validation is enabled
-          validate_user_context_func <- get("validate_user_context", envir = .GlobalEnv, inherits = FALSE)
-          if (is.function(validate_user_context_func)) {
-            if (!validate_user_context_func(private$current_user)) {
-              private$current_user <- NULL
-              return()
-            }
-          } else {
-            private$log_auth("warning", "validate_user_context function not found - skipping validation")
-          }
+        private$current_user <- list(
+          id = payload$sub,
+          email = payload$email %||% "",
+          name = payload$email %||% "",
+          role = user_role,
+          tenant_id = payload$tenantId %||% "",
+          permissions = user_permissions
+        )
 
-          # Store in session for persistence
-          private$session_ref$userData <- list(
-            user_id = user_id,
-            user_email = user_email,
-            user_name = user_name,
-            user_role = user_role,
-            tenant_id = tenant_id,
-            permissions = permissions_raw
-          )
+        private$session_ref$userData <- list(
+          user_id = private$current_user$id,
+          user_email = private$current_user$email,
+          user_role = private$current_user$role,
+          tenant_id = private$current_user$tenant_id
+        )
 
-          # Log user access
-          self$log_user_access()
-        }
+        self$log_user_access()
 
       }, error = function(error) {
         cat("Error loading user context:", error$message, "\n")
+        private$log_auth("error", paste("load_user_context failed:", error$message))
       })
     },
 
@@ -401,6 +383,9 @@ UserAuthModule <- R6Class("UserAuthModule",
     }
   )
 )
+
+# Null-coalescing operator
+`%||%` <- function(x, y) if (is.null(x) || length(x) == 0 || (is.character(x) && nchar(x) == 0)) y else x
 
 #' Initialize Global User Authentication
 #' @description Creates global user authentication instance
