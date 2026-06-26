@@ -680,7 +680,8 @@ menuRoutes.openapi(
                 item.isVisible !== false && hasAccess(item.id)
             )
             const tree = buildTree(categories, visibleItems, hasAccess)
-            return c.json({ success: true, data: tree })
+                    c.header("Cache-Control", "public, max-age=30")
+        return c.json({ success: true, data: tree })
         }
 
         // Default: flat + hierarchical structure used by BankingSidebar
@@ -738,6 +739,7 @@ menuRoutes.openapi(
             }
         }).filter((category) => category.children.length > 0)
 
+                c.header("Cache-Control", "public, max-age=30")
         return c.json({ success: true, data: menuTree })
     }
 )
