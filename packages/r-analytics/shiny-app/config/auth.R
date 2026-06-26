@@ -182,6 +182,7 @@ UserAuthModule <- R6Class("UserAuthModule",
         user_name <- private$session_ref$request$GET[["user_name"]]
         user_role <- private$session_ref$request$GET[["user_role"]]
         tenant_id <- private$session_ref$request$GET[["tenant_id"]]
+        permissions_raw <- private$session_ref$request$GET[["permissions"]]
 
         # Fallback to session storage if URL parameters not available
         if (is.null(user_id) || user_id == "") {
@@ -190,6 +191,16 @@ UserAuthModule <- R6Class("UserAuthModule",
           user_name <- private$session_ref$userData[["user_name"]]
           user_role <- private$session_ref$userData[["user_role"]]
           tenant_id <- private$session_ref$userData[["tenant_id"]]
+          permissions_raw <- private$session_ref$userData[["permissions"]]
+        }
+
+        # Parse permissions from comma-separated string
+        user_permissions <- if (!is.null(permissions_raw) && nchar(permissions_raw) > 0) {
+          strsplit(permissions_raw, ",")[[1]]
+        } else if (!is.null(user_role) && user_role != "") {
+          self$get_role_permissions(user_role)
+        } else {
+          c("home_access")
         }
 
         # Set current user if information is available
@@ -200,7 +211,7 @@ UserAuthModule <- R6Class("UserAuthModule",
             name = user_name,
             role = user_role,
             tenant_id = tenant_id,
-            permissions = self$get_role_permissions(user_role)
+            permissions = user_permissions
           )
 
           # Validate user context if validation is enabled
@@ -220,7 +231,8 @@ UserAuthModule <- R6Class("UserAuthModule",
             user_email = user_email,
             user_name = user_name,
             user_role = user_role,
-            tenant_id = tenant_id
+            tenant_id = tenant_id,
+            permissions = permissions_raw
           )
 
           # Log user access
