@@ -28,7 +28,7 @@ export default function ImpersonationBanner() {
     const original = localStorage.getItem('auth_token_original');
     if (original) {
       localStorage.setItem('auth_token', original);
-      Cookies.set('auth_token', original, { path: '/' });
+      Cookies.set('auth_token', original, { path: '/', secure: true, sameSite: 'lax' });
     }
     localStorage.removeItem('auth_token_original');
     localStorage.removeItem('impersonated_user_name');

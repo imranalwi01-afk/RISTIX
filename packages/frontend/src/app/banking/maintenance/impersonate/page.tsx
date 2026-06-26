@@ -66,7 +66,7 @@ export default function ImpersonatePage() {
       if (original) localStorage.setItem('auth_token_original', original);
 
       localStorage.setItem('auth_token', accessToken);
-      Cookies.set('auth_token', accessToken, { path: '/' });
+      Cookies.set('auth_token', accessToken, { path: '/', secure: true, sameSite: 'lax' });
       if (refreshToken) localStorage.setItem('refresh_token', refreshToken);
 
       setTimeout(() => {
