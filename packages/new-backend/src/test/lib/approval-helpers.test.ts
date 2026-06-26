@@ -186,7 +186,9 @@ describe('approval-helpers', () => {
     process.env.APPROVAL_STRICT_FOUR_EYES = undefined
     expect(requiresStrictFourEyes('role')).toBe(true)
     expect(requiresStrictFourEyes('segmentation')).toBe(true)
-    expect(requiresStrictFourEyes('parameter')).toBe(false)
+    expect(requiresStrictFourEyes('parameter')).toBe(true)
+    expect(requiresStrictFourEyes('pd_configuration')).toBe(true)
+    expect(requiresStrictFourEyes('ecl_configuration')).toBe(true)
 
     process.env.APPROVAL_STRICT_FOUR_EYES = 'false'
     expect(requiresStrictFourEyes('role')).toBe(false)
