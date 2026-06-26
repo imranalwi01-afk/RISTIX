@@ -3,7 +3,6 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http'
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http'
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg'
 import { diag, DiagConsoleLogger, DiagLogLevel, trace, SpanStatusCode } from '@opentelemetry/api'
-import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
 import type { Context as HonoContext } from 'hono'
 
 let sdk: NodeSDK | null = null
