@@ -5,8 +5,7 @@
 server:
   http_listen_port: 3100
 
-auth:
-  enabled: false
+# auth removed in Loki 3.x
 
 ingester:
   lifecycler:
