@@ -184,7 +184,6 @@ export const URL_TO_LEGACY_ID_MAP: Record<string, string> = {
     '/banking/analytics/reports': 'financial-reports',
     '/banking/analytics/dashboard': 'executive-dashboard',
     '/banking/analytics/export': 'advanced-export',
-    '/banking/workflow/approval': 'approval-system',
     '/banking/notifications': 'workflow-notifications',
     '/banking/workflow/configuration': 'workflow-configuration',
     '/banking/workflow/monitoring': 'process-monitoring',
@@ -640,13 +639,6 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         description: 'Business Process & Approval',
         children: [
             {
-                id: 'approval-system',
-                label: 'Approval System',
-                href: '/banking/workflow/approval',
-                icon: <Approval />,
-                description: 'Multi-level Approval Management'
-            },
-            {
                 id: 'workflow-notifications',
                 label: 'Notifications',
                 href: '/banking/notifications',
@@ -1101,7 +1093,6 @@ const MENU_ICON_MAP: Record<string, string> = {
     'executive-dashboard': 'dashboard',
     'advanced-export': 'get_app',
     'workflow-management': 'account_tree',
-    'approval-system': 'approval',
     'workflow-configuration': 'settings',
     'process-monitoring': 'monitor',
     'staging-management': 'table_view',
