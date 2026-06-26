@@ -63,7 +63,7 @@ menuRoutes.openapi(
         const hasAccess = (itemId: string) => {
             if (userPermissions.includes('admin.super_admin')) return true
             const itemPerms = perms.filter((p) => p.menuItemId === itemId)
-            if (itemPerms.length === 0) return true
+            if (itemPerms.length === 0) return false
             const allowedRoles = itemPerms.filter((p) => p.isAllowed).map((p) => p.roleCode)
             if (allowedRoles.length === 0) return false
             return allowedRoles.some((roleCode) => userRoles.includes(roleCode))
@@ -106,7 +106,7 @@ menuRoutes.openapi(
         const hasAccess = (itemId: string) => {
             if (userPermissions.includes('admin.super_admin')) return true
             const itemPerms = perms.filter((p) => p.menuItemId === itemId)
-            if (itemPerms.length === 0) return true
+            if (itemPerms.length === 0) return false
             const allowedRoles = itemPerms.filter((p) => p.isAllowed).map((p) => p.roleCode)
             if (allowedRoles.length === 0) return false
             return allowedRoles.some((roleCode) => userRoles.includes(roleCode))
@@ -715,7 +715,7 @@ menuRoutes.openapi(
         const hasAccess = (itemId: string) => {
             if (userPermissions.includes('admin.super_admin')) return true
             const itemPerms = perms.filter((p) => p.menuItemId === itemId)
-            if (itemPerms.length === 0) return true
+            if (itemPerms.length === 0) return false
             const allowedRoles = itemPerms.filter((p) => p.isAllowed).map((p) => p.roleCode)
             if (allowedRoles.length === 0) return false
             return allowedRoles.some((roleCode) => userRoles.includes(roleCode))
