@@ -20,7 +20,7 @@ export const resolveNotificationActionRoute = (actionUrl?: string): string | nul
 
   if (/^https?:\/\//i.test(normalized)) return normalized
   if (normalized.startsWith('/banking/')) return normalized
-  if (normalized.startsWith('/approvals/')) return '/banking/workflow/approval'
+  if (normalized.startsWith('/approvals/')) return '/banking/maintenance/approval'
   if (normalized.startsWith('/workflows/')) return '/banking/workflow/monitoring'
   if (normalized.startsWith('/')) return normalized
 

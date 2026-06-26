@@ -1961,7 +1961,7 @@ function IndividualAssessmentWizardPage() {
         <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
           <Button onClick={() => setSubmitSuccessModal(false)} variant="outlined" sx={{ borderRadius: 2 }}>Tutup</Button>
           <Button
-            onClick={() => { setSubmitSuccessModal(false); router.push('/banking/workflow/approval'); }}
+            onClick={() => { setSubmitSuccessModal(false); router.push('/banking/maintenance/approval'); }}
             variant="contained"
             sx={{ borderRadius: 2, fontWeight: 700 }}
           >

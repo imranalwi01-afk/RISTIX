@@ -532,7 +532,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
     if (pendingApprovalCount === 0) return hierarchicalMenu;
     const injectBadge = (items: HierarchicalMenuItem[]): HierarchicalMenuItem[] =>
       items.map(item => {
-        const isApprovalItem = item.url?.includes('/workflow/approval') || item.id?.includes('approval');
+        const isApprovalItem = item.url?.includes('/maintenance/approval') || item.id?.includes('approval');
         return {
           ...item,
           metadata: isApprovalItem
