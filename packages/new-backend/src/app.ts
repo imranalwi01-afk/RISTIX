@@ -27,6 +27,7 @@ import { impactConfigRoutes } from './routes/impact-config.routes'
 import { auditMiddleware } from './middleware'
 import { individualImpairmentV2Routes } from './routes/individual-impairment-v2.routes'
 import { initTelemetry } from './lib/telemetry'
+import { otelTracingMiddleware } from './middleware/tracing'
 
 // Initialize OpenTelemetry early
 initTelemetry()
@@ -160,6 +161,9 @@ export function createApp() {
         })
     )
     app.use('*', prettyJSON())
+
+    // OpenTelemetry tracing (runs after timing but before handlers)
+    app.use('*', otelTracingMiddleware)
 
     // Error handling
     app.onError(errorHandler)
