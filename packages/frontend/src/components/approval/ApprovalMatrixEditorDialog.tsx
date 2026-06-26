@@ -578,6 +578,25 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
                                             })}
                                         />
                                     </Grid>
+                                    <Grid size={{ xs: 12, md: 6 }}>
+                                        <Paper variant="outlined" sx={{ p: 1.25, borderStyle: 'dashed', minHeight: 80, maxHeight: 130, overflow: 'auto' }}>
+                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.75, fontWeight: 600 }}>
+                                                Common permissions
+                                            </Typography>
+                                            <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                                                {['approval.requests.approve', 'approval.requests.self_approve_override', 'approval.all', 'admin.super_admin'].map((perm) => {
+                                                    const sel = level.requiredPermissionCodes.includes(perm);
+                                                    return (
+                                                        <Chip key={perm} label={perm.replace(/^.*\./, '')} size="small"
+                                                            variant={sel ? 'filled' : 'outlined'} color={sel ? 'primary' : 'default'}
+                                                            title={perm}
+                                                            onClick={() => updateLevel(index, 'requiredPermissionCodes', sel ? level.requiredPermissionCodes.filter((c) => c !== perm) : [...level.requiredPermissionCodes, perm])}
+                                                        />
+                                                    );
+                                                })}
+                                            </Stack>
+                                        </Paper>
+                                    </Grid>
                                 </Grid>
                             </Paper>
                         ))}
