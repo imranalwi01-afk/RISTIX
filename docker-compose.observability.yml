@@ -14,7 +14,15 @@
 
 networks:
   ifrs9-observability:
+    name: ifrs9-observability
     driver: bridge
+    # NOTE: The `name:` prefix is required so that Docker Compose does not
+    # auto-prefix this network with the project directory name. The main
+    # compose file (docker-compose.yml in production) references this network
+    # as `external: true`, expecting the exact name `ifrs9-observability`.
+    #
+    # If the network already exists from a prior run, set `external: true`
+    # instead of `driver: bridge` to adopt it without recreating.
 
 services:
   # ===========================================================================
