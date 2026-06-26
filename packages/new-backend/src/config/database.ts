@@ -9,7 +9,6 @@ import * as schema from '../db/schema'
 import * as platformSchema from '../db/schema/platform.schema'
 import * as tenantSchema from '../db/schema/tenant.schema'
 import * as legacySchema from '../db/schema/legacy.schema'
-import { debugLog } from '../lib/debug-logger'
 import { wrapSql } from '../lib/db-tracing'
 
 /**
@@ -23,7 +22,7 @@ const connectionConfig = {
     keep_alive: 10,
 }
 
-const enableDbTracing = process.env.OTEL_DB_TRACING !== 'false'
+const enableDbTracing = process.env.OTEL_DB_TRACING === 'true'
 
 /**
  * Platform Admin Database Connection
@@ -93,12 +92,9 @@ export {
  *                   If undefined/null, returns the Platform DB connection.
  */
 export function getDatabase(tenantId?: string | null) {
-    debugLog(`[Database] getDatabase called with tenantId: ${tenantId}`);
     if (tenantId) {
-        debugLog(`[Database] Routing to Tenant DB`);
         return tenantDb
     }
-    debugLog('[Database] Routing to Platform DB');
     return platformDb
 }
 

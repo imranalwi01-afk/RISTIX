@@ -1,7 +1,6 @@
 // @ts-nocheck
 import { eq, and, desc, sql } from 'drizzle-orm'
 import { tenantDb as db, platformConnection } from '@/config/database'
-import { debugLog } from '@/lib/debug-logger'
 import {
     jobDefinitions,
     jobExecutions,
@@ -34,7 +33,6 @@ export const JobsRepository = {
     // =============================================================================
 
     async findAllDefinitions(tenantId: string) {
-        debugLog(`[JobsRepository] findAllDefinitions for tenant: ${tenantId}`);
         const resolvedTenantId = await this.resolveTenantId(tenantId)
         return db
             .select()
@@ -138,16 +136,13 @@ export const JobsRepository = {
     async createExecution(data: NewJobExecution) {
         const tenantId = (data as any).tenantId
         const resolvedTenantId = await this.resolveTenantId(String(tenantId))
-        debugLog(`[JobsRepository] createExecution for tenant: ${resolvedTenantId}, data:`, data);
         try {
             const [execution] = await db
                 .insert(jobExecutions)
                 .values({ ...(data as any), tenantId: resolvedTenantId })
                 .returning()
-            debugLog(`[JobsRepository] createExecution SUCCESS:`, execution.id);
             return execution
         } catch (err: any) {
-            debugLog(`[JobsRepository] createExecution ERROR:`, err.message);
             throw err;
         }
     },
