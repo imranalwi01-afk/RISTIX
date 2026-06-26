@@ -671,6 +671,8 @@ menuRoutes.openapi(
 
         const hasAccess = buildHasAccess(userPermissions, userRoles, perms)
 
+        console.log('[MENU FLAT] format:', format, 'userRoles:', JSON.stringify(userRoles), 'permsCount:', perms.length)
+
         // When format=tree, return the same structure as the old /menu/hierarchy
         if (format === 'tree') {
             const visibleItems = items.filter((item) =>
