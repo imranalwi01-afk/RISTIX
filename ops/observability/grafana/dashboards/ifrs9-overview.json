@@ -1,33 +1,148 @@
 {
   "title": "IFRS9 Platform Overview",
-  "tags": ["ifrs9"],
+  "tags": ["ifrs9", "iaf"],
   "schemaVersion": 39,
   "version": 1,
   "timezone": "browser",
+  "editable": true,
   "panels": [
     {
-      "title": "HTTP Requests",
+      "title": "System Health",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false
+    },
+    {
+      "title": "Backend API Status",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "targets": [{
+        "expr": "up{job~\"backend|frontend|r-analytics\"}",
+        "legendFormat": "{{job}}"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      }
+    },
+    {
+      "title": "HTTP Request Rate",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
-      "targets": [
-        {
-          "expr": "rate(http_server_duration_ms_count[5m])",
-          "legendFormat": "Requests/s"
+      "gridPos": { "h": 8, "w": 8, "x": 4, "y": 1 },
+      "targets": [{
+        "expr": "sum(rate(http_server_duration_ms_count[5m]))",
+        "legendFormat": "All Requests"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "rps",
+          "custom": { "showPoints": "never" }
         }
-      ]
+      }
+    },
+    {
+      "title": "Error Rate",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 12, "y": 1 },
+      "targets": [{
+        "expr": "sum(rate(http_server_duration_ms_count{http_status_code=~\"5..\"}[5m])) / sum(rate(http_server_duration_ms_count[5m])) * 100",
+        "legendFormat": "Error %"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": { "showPoints": "never" }
+        }
+      }
+    },
+    {
+      "title": "Response Time (p95)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 20, "y": 1 },
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum(rate(http_server_duration_ms_bucket[5m])) by (le))",
+        "legendFormat": "p95"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": { "showPoints": "never" }
+        }
+      }
+    },
+    {
+      "title": "Application Logs",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "collapsed": false
+    },
+    {
+      "title": "Error Logs (Last 1h)",
+      "type": "logs",
+      "datasource": { "type": "loki", "uid": "Loki" },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 10 },
+      "targets": [{
+        "expr": "{container_name=~\"ifrs9-(frontend|backend)-prod\"} |= \"error\" |= \"\"",
+        "refId": "A"
+      }]
+    },
+    {
+      "title": "User Activity Logs",
+      "type": "logs",
+      "datasource": { "type": "loki", "uid": "Loki" },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 10 },
+      "targets": [{
+        "expr": "{container_name=~\"ifrs9-(frontend|backend)-prod\"} |= \"impersonat\" or \"approval\" or \"login\"",
+        "refId": "A"
+      }]
+    },
+    {
+      "title": "Approval Activity",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 20 },
+      "collapsed": false
+    },
+    {
+      "title": "Approval Requests (Last 24h)",
+      "type": "logs",
+      "datasource": { "type": "loki", "uid": "Loki" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 21 },
+      "targets": [{
+        "expr": "{container_name=\"ifrs9-backend-prod\"} |= \"approval\" |= \"\"",
+        "refId": "A"
+      }]
+    },
+    {
+      "title": "R Analytics Activity",
+      "type": "logs",
+      "datasource": { "type": "loki", "uid": "Loki" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 21 },
+      "targets": [{
+        "expr": "{container_name=\"ifrs9-r-analytics-prod\"} |= \"\"",
+        "refId": "A"
+      }]
+    },
+    {
+      "title": "Distributed Tracing",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 29 },
+      "collapsed": false
     },
     {
       "title": "Recent Traces",
       "type": "tempo",
       "datasource": { "type": "tempo", "uid": "Tempo" },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
-      "targets": [
-        {
-          "query": "{ .deployment.environment = \"production\" }",
-          "queryType": "traceql"
-        }
-      ]
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 30 },
+      "targets": [{
+        "query": "{ .deployment.environment = \"production\" }",
+        "queryType": "traceql"
+      }]
     }
   ]
 }
