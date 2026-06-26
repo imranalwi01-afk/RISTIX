@@ -38,90 +38,46 @@ export const menuRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiVali
 menuRoutes.use('*', authMiddleware)
 menuRoutes.use('*', tenantMiddleware)
 
-// GET /menu/hierarchy - Get full menu tree for a tenant (from platform DB)
+// =============================================================================
+// Shared helpers
+// =============================================================================
+function buildHasAccess(userPermissions: string[], userRoles: string[], perms: any[]) {
+    return (itemId: string) => {
+        if (userPermissions.includes('admin.super_admin')) return true
+        const itemPerms = perms.filter((p: any) => p.menuItemId === itemId)
+        if (itemPerms.length === 0) return false
+        const allowedRoles = itemPerms.filter((p: any) => p.isAllowed).map((p: any) => p.roleCode)
+        if (allowedRoles.length === 0) return false
+        return allowedRoles.some((roleCode: string) => userRoles.includes(roleCode))
+    }
+}
+
+function buildTree(categories: any[], items: any[], hasAccessFn: (id: string) => boolean) {
+    return categories
+        .map((cat) => ({
+            ...cat,
+            items: items
+                .filter((i) => i.categoryId === cat.id && !i.parentId && hasAccessFn(i.id))
+                .map((item) => ({
+                    ...item,
+                    children: buildItemTree(items.filter((i) => hasAccessFn(i.id)), item.id),
+                })),
+        }))
+        .filter((cat) => cat.items.length > 0)
+}
+
+// =============================================================================
+// GET /menu/hierarchy - Legacy redirect
+// =============================================================================
 menuRoutes.openapi(
     createRoute({
         method: 'get',
         path: '/hierarchy',
         tags: ['Menu'],
-        summary: 'Get full menu hierarchy for the current tenant',
-        responses: { 200: { description: 'Menu hierarchy' } },
+        summary: 'Redirect to /menu/flat?format=tree',
+        responses: { 307: { description: 'Redirect' } },
     }),
-    async (c) => {
-        const queryTenantId = c.req.query('tenantId')
-        const tenantId = queryTenantId || c.get('tenantId')
-        const userPermissions = c.get('permissions') || []
-        const userRoles = c.get('roles') || []
-        if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
-
-        const [categories, items, perms] = await Promise.all([
-            platformDb.select().from(menuCategories).where(eq(menuCategories.tenantId, tenantId)).orderBy(asc(menuCategories.sortOrder)),
-            platformDb.select().from(menuItems).where(eq(menuItems.tenantId, tenantId)).orderBy(asc(menuItems.sortOrder)),
-            getMenuPermissions(tenantId),
-        ])
-
-        const hasAccess = (itemId: string) => {
-            if (userPermissions.includes('admin.super_admin')) return true
-            const itemPerms = perms.filter((p) => p.menuItemId === itemId)
-            if (itemPerms.length === 0) return false
-            const allowedRoles = itemPerms.filter((p) => p.isAllowed).map((p) => p.roleCode)
-            if (allowedRoles.length === 0) return false
-            return allowedRoles.some((roleCode) => userRoles.includes(roleCode))
-        }
-
-        const tree = categories.map((cat) => ({
-            ...cat,
-            items: items.filter((i) => i.categoryId === cat.id && !i.parentId && hasAccess(i.id)).map((item) => ({
-                ...item,
-                children: buildItemTree(items.filter((i) => hasAccess(i.id)), item.id),
-            })),
-        })).filter((cat) => cat.items.length > 0)
-
-        return c.json({ success: true, data: tree })
-    }
-)
-
-// GET /menu - Get user's menu (filtered by roles, from platform DB)
-menuRoutes.openapi(
-    createRoute({
-        method: 'get',
-        path: '/',
-        tags: ['Menu'],
-        summary: 'Get menu for current user filtered by roles',
-        responses: { 200: { description: 'User menu' } },
-    }),
-    async (c) => {
-        const queryTenantId = c.req.query('tenantId')
-        const tenantId = queryTenantId || c.get('tenantId')
-        const userPermissions = c.get('permissions') || []
-        const userRoles = c.get('roles') || []
-        if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
-
-        const [categories, items, perms] = await Promise.all([
-            platformDb.select().from(menuCategories).where(and(eq(menuCategories.tenantId, tenantId), eq(menuCategories.isActive, true))).orderBy(asc(menuCategories.sortOrder)),
-            platformDb.select().from(menuItems).where(and(eq(menuItems.tenantId, tenantId), eq(menuItems.isActive, true))).orderBy(asc(menuItems.sortOrder)),
-            getMenuPermissions(tenantId),
-        ])
-
-        const hasAccess = (itemId: string) => {
-            if (userPermissions.includes('admin.super_admin')) return true
-            const itemPerms = perms.filter((p) => p.menuItemId === itemId)
-            if (itemPerms.length === 0) return false
-            const allowedRoles = itemPerms.filter((p) => p.isAllowed).map((p) => p.roleCode)
-            if (allowedRoles.length === 0) return false
-            return allowedRoles.some((roleCode) => userRoles.includes(roleCode))
-        }
-
-        const tree = categories.map((cat) => ({
-            ...cat,
-            items: items.filter((i) => i.categoryId === cat.id && !i.parentId && hasAccess(i.id)).map((item) => ({
-                ...item,
-                children: buildItemTree(items.filter((i) => hasAccess(i.id)), item.id),
-            })),
-        })).filter((cat) => cat.items.length > 0)
-
-        return c.json({ success: true, data: tree })
-    }
+    (c) => c.redirect('/menu/flat?format=tree', 307)
 )
 
 // POST /menu/admin/initialize - Seed default menus (platform DB)
@@ -683,44 +639,48 @@ menuRoutes.openapi(
     }
 )
 
-// GET /menu/flat - Get flat menu items for sidebar
+// GET /menu/flat - Get flat menu items for sidebar (or tree when ?format=tree)
 menuRoutes.openapi(
     createRoute({
         method: 'get',
         path: '/flat',
         tags: ['Menu'],
-        summary: 'Get flat menu items for sidebar',
+        summary: 'Get flat menu items for sidebar, or tree with ?format=tree',
         responses: { 200: { description: 'Menu items' } },
     }),
     async (c) => {
         const tenantId = await resolveTenantId(c)
         const includeInactive = c.req.query('includeInactive') === 'true'
         const bankingMode = c.req.query('bankingMode')
+        const format = c.req.query('format')
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
 
         const userPermissions = c.get('permissions') || []
         const userRoles = c.get('roles') || []
 
-        const conditions = [eq(menuItems.tenantId, tenantId)]
-        if (!includeInactive) conditions.push(eq(menuItems.isActive, true))
+        const itemConditions = [eq(menuItems.tenantId, tenantId)]
+        if (!includeInactive) itemConditions.push(eq(menuItems.isActive, true))
 
         const [categories, items, perms] = await Promise.all([
             platformDb.select().from(menuCategories).where(
                 and(eq(menuCategories.tenantId, tenantId), eq(menuCategories.isActive, true))
             ).orderBy(asc(menuCategories.sortOrder)),
-            platformDb.select().from(menuItems).where(and(...conditions)).orderBy(asc(menuItems.sortOrder)),
+            platformDb.select().from(menuItems).where(and(...itemConditions)).orderBy(asc(menuItems.sortOrder)),
             getMenuPermissions(tenantId),
         ])
 
-        const hasAccess = (itemId: string) => {
-            if (userPermissions.includes('admin.super_admin')) return true
-            const itemPerms = perms.filter((p) => p.menuItemId === itemId)
-            if (itemPerms.length === 0) return false
-            const allowedRoles = itemPerms.filter((p) => p.isAllowed).map((p) => p.roleCode)
-            if (allowedRoles.length === 0) return false
-            return allowedRoles.some((roleCode) => userRoles.includes(roleCode))
+        const hasAccess = buildHasAccess(userPermissions, userRoles, perms)
+
+        // When format=tree, return the same structure as the old /menu/hierarchy
+        if (format === 'tree') {
+            const visibleItems = items.filter((item) =>
+                item.isVisible !== false && hasAccess(item.id)
+            )
+            const tree = buildTree(categories, visibleItems, hasAccess)
+            return c.json({ success: true, data: tree })
         }
 
+        // Default: flat + hierarchical structure used by BankingSidebar
         const visibleItems = items.filter((item) =>
             item.isVisible !== false &&
             (!bankingMode || !item.bankingType || item.bankingType === 'both' || item.bankingType === bankingMode) &&

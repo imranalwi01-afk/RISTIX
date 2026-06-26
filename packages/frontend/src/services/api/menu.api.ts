@@ -260,12 +260,12 @@ export class MenuApiService {
     }
 
     try {
-      const response = await menuApiClient.get('/menu/hierarchy', { params });
+      const response = await menuApiClient.get('/menu/flat', { params: { ...params, format: 'tree' } });
       return response.data;
     } catch (error: any) {
       const status = error?.response?.status;
       if (status === 404) {
-        console.warn('⚠️ [MENU API] /menu/hierarchy not available, using static fallback menu');
+        console.warn('⚠️ [MENU API] /menu/flat not available, using static fallback menu');
         return {
           success: true,
           data: buildStaticMenuTreeFallback(),

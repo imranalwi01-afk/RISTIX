@@ -73,7 +73,7 @@ export default function AccessMatrixPage() {
       try {
         setLoading(true);
         const [menuRes, rolesRes, permsRes] = await Promise.all([
-          api.client.get('/menu/hierarchy'),
+          api.client.get('/menu/flat', { params: { format: 'tree' } }),
           api.roles.getAll({ includeInactive: true }),
           api.client.get('/menu/permissions'),
         ]);

@@ -222,7 +222,7 @@ export class MenuService {
         if (params?.useCache !== undefined) queryParams.append('useCache', params.useCache.toString());
 
         try {
-          const response = await api.client.get<MenuTreeResponse>(`/menu/hierarchy?${queryParams.toString()}`);
+          const response = await api.client.get<MenuTreeResponse>(`/menu/flat?format=tree&${queryParams.toString()}`);
           const apiResponse = response.data;
           return {
             success: apiResponse.success,
@@ -234,7 +234,7 @@ export class MenuService {
           if (error?.response?.status !== 404) {
             throw error;
           }
-          console.warn('⚠️ Dynamic menu enabled but /menu/hierarchy is unavailable, falling back to static menu');
+          console.warn('⚠️ Dynamic menu enabled but /menu/flat is unavailable, falling back to static menu');
         }
       }
 
