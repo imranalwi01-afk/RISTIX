@@ -156,7 +156,9 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
 
     const requiredPerms = ROUTE_PERMISSION_MAP[matchedPrefix];
     const requiredList = Array.isArray(requiredPerms) ? requiredPerms : [requiredPerms];
-    const hasAccess = requiredList.some((code) => userPermissions.includes(code));
+    // Superadmin bypasses all route guards
+    const hasAccess = userPermissions.includes('admin.super_admin') ||
+      requiredList.some((code) => userPermissions.includes(code));
 
     if (!hasAccess) {
       router.replace('/banking/dashboard');
