@@ -670,6 +670,7 @@ menuRoutes.openapi(
         ])
 
         const hasAccess = buildHasAccess(userPermissions, userRoles, perms)
+        console.log("[MENU FLAT] userId:", c.get("userId"), "userRoles:", JSON.stringify(c.get("roles") || []))
 
         console.log('[MENU FLAT] userId:', c.get('userId'), 'format:', format, 'userRoles:', JSON.stringify(userRoles), 'perm0:', userPermissions[0], 'permsCount:', perms.length)
 
