@@ -9,6 +9,7 @@ import { transformApprovalRequest } from '../domain/approval.models';
 export function useApprovalRequestsQuery(params: ApprovalRequestQueryInput) {
   return useQuery({
     queryKey: businessQueryKeys.list('approval-requests', params),
+    refetchInterval: 15_000,
     queryFn: async () => {
       const response = await fetchApprovalRequestHistory(params);
       const requestRows = Array.isArray(response)
