@@ -55,22 +55,27 @@ export default function ImpersonatePage() {
       const { accessToken, refreshToken } = res.data?.data?.tokens || res.data?.tokens || {};
       if (!accessToken) throw new Error('No token returned');
 
-      const originalToken = localStorage.getItem('auth_token');
-      if (originalToken) localStorage.setItem('auth_token_original', originalToken);
+      // Verify the new token is for the target user, not superadmin
+      const payload = JSON.parse(atob(accessToken.split('.')[1]));
+      if (payload.sub === auth?.user?.id) {
+        throw new Error('Impersonation returned the same user token - not switching');
+      }
+
+      const original = localStorage.getItem('auth_token');
+      if (original) localStorage.setItem('auth_token_original', original);
 
       localStorage.setItem('auth_token', accessToken);
       if (refreshToken) localStorage.setItem('refresh_token', refreshToken);
-      localStorage.setItem('impersonated_user_name', user.fullName || user.email || 'Unknown');
-      localStorage.setItem('impersonated_user_id', user.id);
-      localStorage.setItem('impersonated_user_email', user.email || '');
 
-      window.location.replace(`/banking/dashboard?t=${Date.now()}&impersonated=1`);
+      setTimeout(() => {
+        window.location.replace(`/banking/dashboard?t=${Date.now()}&impersonated=1`);
+      }, 100);
     } catch (err: any) {
       setError(err?.response?.data?.message || err.message || 'Impersonation failed');
       setImpersonating(false);
       setConfirmUser(null);
     }
-  }, []);
+  }, [auth?.user?.id]);
 
   const filtered = search
     ? users.filter(u =>
