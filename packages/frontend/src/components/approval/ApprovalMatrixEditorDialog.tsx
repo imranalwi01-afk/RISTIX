@@ -178,7 +178,7 @@ const extractRoleRecords = (input: unknown): Record<string, unknown>[] => {
     }
     if (record.data && typeof record.data === 'object') {
         const nested = record.data as Record<string, unknown>;
-        for (const key of ['roles', 'items', 'results']) {
+        for (const key of ['roles', 'items', 'results', 'data']) {
             const val = nested[key];
             if (Array.isArray(val)) return val.filter((e): e is Record<string, unknown> => !!e && typeof e === 'object');
         }
