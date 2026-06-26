@@ -407,7 +407,8 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
           );
         }
 
-        throw new Error(errorData.error || `HTTP ${response.status}`);
+        const statusMsgs: Record<number, string> = { 401: "Unauthorized - session expired, please refresh", 403: "Forbidden - insufficient permissions", 404: "R Analytics service not found", 500: "Internal server error", 502: "Bad gateway", 503: "Service unavailable", 504: "Gateway timeout" };
+            throw new Error(errorData.error || (statusMsgs[response.status] || `HTTP ${response.status}`));
       }
 
       const data = await response.json();
