@@ -1,8 +1,11 @@
 import { Effect } from 'effect'
+import { eq, and } from 'drizzle-orm'
 import { getDatabase } from '../config/database'
 import { redis } from '../config/redis'
 import { AuthRepository } from '../repositories/auth.repository'
 import { getUserPermissionCodes } from './rbac.service'
+import { userRoles } from '@/db/schema'
+import { roles } from '@/db/schema/rbac.schema'
 
 const ACCESS_TOKEN_EXPIRY_MS = 60 * 60 * 1000 // 1h
 const REFRESH_TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000 // 7d
@@ -53,13 +56,25 @@ export async function impersonateUser(
 
     const permissions = await Effect.runPromise(getUserPermissionCodes(targetUserId, tenantId))
 
+    // Fetch the target user's actual role codes (not just permissions)
+    const userRolesData = await db.select({ roleCode: roles.roleCode })
+        .from(userRoles)
+        .innerJoin(roles, eq(userRoles.roleId, roles.id))
+        .where(and(
+            eq(userRoles.userId, targetUserId),
+            eq(userRoles.tenantId, tenantId),
+            eq(userRoles.isActive, true),
+        ))
+
+    const targetRoles = userRolesData.map((r) => r.roleCode)
+
     const accessTokenId = crypto.randomUUID()
     const refreshTokenId = crypto.randomUUID()
     const now = new Date()
 
     const sessionData = {
         userId: user.id, tenantId, accessTokenId, refreshTokenId,
-        roles: [], permissions, stakeholderType: 'banking',
+        roles: targetRoles, permissions, stakeholderType: 'banking',
         impersonatedBy: 'superadmin',
         createdAt: now.toISOString(),
         expiresAt: new Date(now.getTime() + ACCESS_TOKEN_EXPIRY_MS).toISOString(),
@@ -68,8 +83,8 @@ export async function impersonateUser(
     }
 
     const [accessToken, refreshToken] = await Promise.all([
-        generateAccessToken(user, accessTokenId, tenantId, [], permissions, 'banking'),
-        generateRefreshToken(user, refreshTokenId, tenantId, [], permissions, 'banking'),
+        generateAccessToken(user, accessTokenId, tenantId, targetRoles, permissions, 'banking'),
+        generateRefreshToken(user, refreshTokenId, tenantId, targetRoles, permissions, 'banking'),
     ])
 
     await Promise.all([
@@ -78,7 +93,7 @@ export async function impersonateUser(
     ])
 
     return {
-        user: { ...user, roles: [], permissions },
+        user: { ...user, roles: targetRoles, permissions },
         tokens: { accessToken, refreshToken, expiresIn: ACCESS_TOKEN_EXPIRY_MS / 1000, refreshExpiresIn: REFRESH_TOKEN_EXPIRY_MS / 1000 },
     }
 }
