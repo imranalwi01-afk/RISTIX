@@ -65,6 +65,7 @@ interface PermissionOption {
     code: string;
     label: string;
     description?: string;
+    category?: string;
 }
 
 interface MatrixPayloadLevel {
@@ -272,7 +273,7 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
                 setAvailableRoles(normalizeRoleOptions(rolesRes));
                 if (permsRes) {
                     const perms = Array.isArray(permsRes) ? permsRes : Array.isArray((permsRes as any).data) ? (permsRes as any).data : [];
-                    setAvailablePermissions(perms.map((p: any) => ({ code: p.code || p, label: p.name || p.code || p, description: p.description })));
+                    setAvailablePermissions(perms.map((p: any) => ({ code: p.code || p, label: p.name || p.code || p, description: p.description, category: p.category || p.module || p.code?.split('.')[0] || 'other' })));
                 }
             } catch (error) {
                 console.error('Error loading roles:', error);
@@ -560,6 +561,78 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
                                     </Grid>
 
                                     {/* Required Permission Codes */}
+                                    <Grid size={{ xs: 12, md: 6 }}>
+                                        <Autocomplete
+                                            multiple disableCloseOnSelect
+                                            options={availablePermissions}
+                                            groupBy={(o) => o.category || o.code.split('.').slice(0, -1).join('.') || 'Other'}
+                                            value={availablePermissions.filter((p) => level.requiredPermissionCodes.includes(p.code))}
+                                            getOptionLabel={(o) => o.label || o.code}
+                                            onChange={(_, selected) => updateLevel(index, 'requiredPermissionCodes', selected.map((p) => p.code))}
+                                            disabled={saving}
+                                            isOptionEqualToValue={(o, v) => o.code === v.code}
+                                            renderInput={(params) => (
+                                                <TextField {...params} label="Required Permission Codes" placeholder="Search permissions..." />
+                                            )}
+                                            renderGroup={(params) => (
+                                                <Box key={params.key}>
+                                                    <Typography variant="caption" color="primary" sx={{ px: 2, py: 0.5, display: 'block', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: 1 }}>
+                                                        {params.group}
+                                                    </Typography>
+                                                    {params.children}
+                                                </Box>
+                                            )}
+                                            renderOption={(props, option, { selected }) => (
+                                                <Box component="li" {...props}>
+                                                    <Checkbox sx={{ mr: 1 }} checked={selected} />
+                                                    <ListItemText primary={option.label || option.code} secondary={option.code} />
+                                                </Box>
+                                            )}
+                                            renderTags={(selected, getTagProps) => selected.map((opt, i) => (
+                                                <Chip {...getTagProps({ index: i })} key={opt.code} size="small" label={opt.label || opt.code} />
+                                            ))}
+                                        />
+                                    </Grid>
+                                    <Grid size={{ xs: 12, md: 6 }}>
+                                        <Paper variant="outlined" sx={{ p: 1.25, borderStyle: 'dashed', minHeight: 100, maxHeight: 160, overflow: 'auto' }}>
+                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.75, fontWeight: 600 }}>
+                                                Quick pick by category
+                                            </Typography>
+                                            {Array.from(new Set(availablePermissions.map((p) => p.category || p.code.split('.')[0] || 'other'))).sort().map((cat) => {
+                                                const catPerms = availablePermissions.filter((p) => (p.category || p.code.split('.')[0]) === cat);
+                                                const allSelected = catPerms.every((p) => level.requiredPermissionCodes.includes(p.code));
+                                                return (
+                                                    <Box key={cat} sx={{ mb: 1 }}>
+                                                        <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mb: 0.5, textTransform: 'capitalize' }}>
+                                                            {cat}
+                                                            <Chip size="small" label={allSelected ? 'deselect all' : 'select all'} variant="outlined"
+                                                                sx={{ ml: 1, height: 16, fontSize: 9, cursor: 'pointer' }}
+                                                                onClick={() => {
+                                                                    const codes = catPerms.map((p) => p.code);
+                                                                    const newCodes = allSelected
+                                                                        ? level.requiredPermissionCodes.filter((c) => !codes.includes(c))
+                                                                        : [...new Set([...level.requiredPermissionCodes, ...codes])];
+                                                                    updateLevel(index, 'requiredPermissionCodes', newCodes);
+                                                                }}
+                                                            />
+                                                        </Typography>
+                                                        <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                                                            {catPerms.map((perm) => {
+                                                                const sel = level.requiredPermissionCodes.includes(perm.code);
+                                                                return (
+                                                                    <Chip key={perm.code} label={(perm.label || perm.code).split('.').pop() || ''} size="small"
+                                                                        variant={sel ? 'filled' : 'outlined'} color={sel ? 'primary' : 'default'}
+                                                                        title={perm.code}
+                                                                        onClick={() => updateLevel(index, 'requiredPermissionCodes', sel ? level.requiredPermissionCodes.filter((c) => c !== perm.code) : [...level.requiredPermissionCodes, perm.code])}
+                                                                    />
+                                                                );
+                                                            })}
+                                                        </Stack>
+                                                    </Box>
+                                                );
+                                            })}
+                                        </Paper>
+                                    </Grid>
                                     <Grid size={12}>
                                         <Autocomplete
                                             multiple disableCloseOnSelect freeSolo
