@@ -1,7 +1,8 @@
 # =============================================================================
 # OpenTelemetry Collector Configuration
 # =============================================================================
-# Receives OTLP traces from frontend & backend, forwards to Tempo + Prometheus
+# Receives OTLP traces from frontend & backend, forwards to Tempo + Prometheus.
+# Tail sampling: keeps 100% of error traces, 10% of successful traces.
 # =============================================================================
 
 receivers:
@@ -16,6 +17,21 @@ processors:
   batch:
     timeout: 1s
     send_batch_size: 1024
+
+  tail_sampling:
+    decision_wait: 10s
+    num_traces: 100
+    expected_new_traces_per_sec: 10
+    policies:
+      - name: errors-policy
+        type: status_code
+        status_code:
+          status_codes:
+            - ERROR
+      - name: randomized-policy
+        type: probabilistic
+        probabilistic:
+          sampling_percentage: 10
 
 exporters:
   otlp:
@@ -32,7 +48,7 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [batch]
+      processors: [tail_sampling, batch]
       exporters: [otlp]
     metrics:
       receivers: [otlp]

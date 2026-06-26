@@ -1,5 +1,6 @@
 import { Server as Engine } from '@socket.io/bun-engine'
 import { Server as SocketIOServer, Socket } from 'socket.io'
+import { trace, SpanStatusCode } from '@opentelemetry/api'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import * as schema from '../db/schema'
 import { withRequestIds } from '../lib/logger'
@@ -11,6 +12,8 @@ import {
     filterNotificationRecipientsByPreferences,
     type NotificationCategory,
 } from '../services/notifications.service'
+
+const tracer = trace.getTracer('ifrs9-backend')
 
 /**
  * Socket.IO server for real-time notifications
@@ -275,6 +278,16 @@ export class NotificationSocket {
         notification: NotificationPayload,
         roles?: string[]
     ) {
+        const span = tracer.startSpan('socket.broadcast.approval', {
+            attributes: {
+                'messaging.system': 'socket.io',
+                'messaging.destination': '/admin/notifications',
+                'messaging.message_type': notification.type,
+                'tenant_id': tenantId,
+                'workflow_id': notification.workflowId,
+            },
+        })
+
         const normalizedRoles = Array.isArray(roles)
             ? Array.from(new Set(
                 roles
@@ -289,9 +302,13 @@ export class NotificationSocket {
 
         void this.deliverNotificationWithPreferences(tenantId, notification, { rooms })
             .then((targets) => {
+                span.setAttribute('messaging.recipient_count', targets.length)
+                span.end()
                 withRequestIds({ tenantId }).info({ rooms, userCount: targets.length }, 'Approval notification broadcast')
             })
             .catch((error) => {
+                span.setStatus({ code: SpanStatusCode.ERROR, message: (error as Error)?.message || String(error) })
+                span.end()
                 withRequestIds({ tenantId }).warn({ rooms, error }, 'Approval notification broadcast failed')
             })
     }
@@ -304,12 +321,25 @@ export class NotificationSocket {
         notification: NotificationPayload,
         userIds: string[]
     ) {
+        const span = tracer.startSpan('socket.broadcast.approval_users', {
+            attributes: {
+                'messaging.system': 'socket.io',
+                'messaging.message_type': notification.type,
+                'tenant_id': tenantId,
+                'messaging.recipient_count': userIds.length,
+            },
+        })
+
         const targets = Array.from(new Set(userIds.filter((userId) => typeof userId === 'string' && userId.trim().length > 0)))
         void this.deliverNotificationWithPreferences(tenantId, notification, { directUserIds: targets })
             .then((filteredTargets) => {
+                span.setAttribute('messaging.recipient_delivered', filteredTargets.length)
+                span.end()
                 withRequestIds({ tenantId }).info({ userCount: filteredTargets.length }, 'Approval notification broadcast to users')
             })
             .catch((error) => {
+                span.setStatus({ code: SpanStatusCode.ERROR, message: (error as Error)?.message || String(error) })
+                span.end()
                 withRequestIds({ tenantId }).warn({ userCount: targets.length, error }, 'Approval notification broadcast to users failed')
             })
     }
@@ -323,6 +353,15 @@ export class NotificationSocket {
         eventType: 'started' | 'progress' | 'completed' | 'failed',
         data: Record<string, unknown>
     ) {
+        const span = tracer.startSpan('socket.broadcast.ecl', {
+            attributes: {
+                'messaging.system': 'socket.io',
+                'messaging.message_type': `ECL_${eventType.toUpperCase()}`,
+                'tenant_id': tenantId,
+                'workflow_id': workflowId,
+            },
+        })
+
         const notification: NotificationPayload = {
             id: `ecl-${workflowId}-${Date.now()}`,
             type: eventType === 'completed' ? 'ECL_COMPLETED' : eventType === 'failed' ? 'ECL_FAILED' : 'ECL_STARTED',
@@ -346,9 +385,13 @@ export class NotificationSocket {
             rooms: [`ecl:${workflowId}`, `tenant:${tenantId}`],
         })
             .then((targets) => {
+                span.setAttribute('messaging.recipient_count', targets.length)
+                span.end()
                 withRequestIds({ tenantId }).info({ workflowId, eventType, userCount: targets.length }, 'ECL event broadcast')
             })
             .catch((error) => {
+                span.setStatus({ code: SpanStatusCode.ERROR, message: (error as Error)?.message || String(error) })
+                span.end()
                 withRequestIds({ tenantId }).warn({ workflowId, eventType, error }, 'ECL event broadcast failed')
             })
     }
@@ -363,6 +406,17 @@ export class NotificationSocket {
         toState: string,
         data?: Record<string, unknown>
     ) {
+        const span = tracer.startSpan('socket.broadcast.workflow', {
+            attributes: {
+                'messaging.system': 'socket.io',
+                'messaging.message_type': `WORKFLOW_${toState}`,
+                'tenant_id': tenantId,
+                'workflow_id': workflowId,
+                'workflow.from_state': fromState,
+                'workflow.to_state': toState,
+            },
+        })
+
         const notification: NotificationPayload = {
             id: `workflow-${workflowId}-${Date.now()}`,
             type: toState === 'COMPLETED' ? 'APPROVAL_APPROVED' : toState === 'REJECTED' ? 'APPROVAL_REJECTED' : 'APPROVAL_PENDING',
@@ -381,9 +435,13 @@ export class NotificationSocket {
             rooms: [`approval:${workflowId}`, `tenant:${tenantId}`],
         })
             .then((targets) => {
+                span.setAttribute('messaging.recipient_count', targets.length)
+                span.end()
                 withRequestIds({ tenantId }).info({ workflowId, fromState, toState, userCount: targets.length }, 'Workflow transition broadcast')
             })
             .catch((error) => {
+                span.setStatus({ code: SpanStatusCode.ERROR, message: (error as Error)?.message || String(error) })
+                span.end()
                 withRequestIds({ tenantId }).warn({ workflowId, fromState, toState, error }, 'Workflow transition broadcast failed')
             })
     }
@@ -397,6 +455,15 @@ export class NotificationSocket {
         message: string,
         data?: Record<string, unknown>
     ) {
+        const span = tracer.startSpan('socket.broadcast.compliance', {
+            attributes: {
+                'messaging.system': 'socket.io',
+                'messaging.message_type': 'COMPLIANCE_ALERT',
+                'tenant_id': tenantId,
+                'alert.severity': severity,
+            },
+        })
+
         const notification: NotificationPayload = {
             id: `compliance-${Date.now()}`,
             type: 'COMPLIANCE_ALERT',
@@ -414,9 +481,13 @@ export class NotificationSocket {
             rooms: [`role:ADMIN:${tenantId}`],
         })
             .then((targets) => {
+                span.setAttribute('messaging.recipient_count', targets.length)
+                span.end()
                 withRequestIds({ tenantId }).warn({ severity, message, data, userCount: targets.length }, 'Compliance alert broadcast')
             })
             .catch((error) => {
+                span.setStatus({ code: SpanStatusCode.ERROR, message: (error as Error)?.message || String(error) })
+                span.end()
                 withRequestIds({ tenantId }).warn({ severity, message, data, error }, 'Compliance alert broadcast failed')
             })
     }

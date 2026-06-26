@@ -23,6 +23,7 @@ import '@/services/logging.service';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import { SessionManager } from '@/components/common/SessionManager';
 import { SnackbarProvider } from 'notistack';
+import { TelemetryProvider } from '@/components/TelemetryProvider';
 
 export default function ClientProviders({ children }: { children: React.ReactNode }) {
   // WORKAROUND: Prevent MUI v7 SvgIcon from trying to access _theme_vars
@@ -48,9 +49,11 @@ export default function ClientProviders({ children }: { children: React.ReactNod
                         <CssBaseline />
                         <SessionManager />
                         <SnackbarProvider maxSnack={3} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-                          <ErrorBoundary>
+                        <ErrorBoundary>
+                          <TelemetryProvider>
                             {children as any}
-                          </ErrorBoundary>
+                          </TelemetryProvider>
+                        </ErrorBoundary>
                         </SnackbarProvider>
                       </LocalizationProvider>
                     </BankingThemeProvider>
