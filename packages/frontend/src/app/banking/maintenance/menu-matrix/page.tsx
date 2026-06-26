@@ -5,7 +5,7 @@ import {
   Box, Typography, Container, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Chip, CircularProgress, Alert,
   FormControl, InputLabel, Select, MenuItem,
-  Tooltip, Popover, Switch, FormControlLabel, Stack,
+  Tooltip, Popover, Switch, FormControlLabel, Stack, Checkbox,
 } from '@mui/material';
 import PageHeader from '@/components/banking/shared/PageHeader';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -258,7 +258,7 @@ export default function AccessMatrixPage() {
                       sx={{ textAlign: 'center', p: 0.5, cursor: 'pointer' }}
                       onClick={(e) => openPopover(menu, role, e.currentTarget)}
                     >
-                      <Stack direction="row" spacing={0.3} justifyContent="center" flexWrap="wrap">
+                      <Stack direction="row" spacing={0.5} justifyContent="center" flexWrap="wrap">
                           {ACTIONS.map((action) => {
                             const key = `${menu.id}:${role.id}:${action}`;
                             const isSavingAction = saving.has(key);
@@ -268,22 +268,28 @@ export default function AccessMatrixPage() {
                                 <Box
                                   onClick={(e) => { e.stopPropagation(); toggleAction(menu.id, role.id, action, isAllowed); }}
                                   sx={{
-                                    px: 0.4, py: 0.1, display: 'flex', alignItems: 'center', gap: 0.3,
-                                    borderRadius: '3px', fontSize: '10px', cursor: 'pointer',
-                                    color: isAllowed ? 'success.main' : 'text.disabled',
-                                    fontWeight: isAllowed ? 700 : 400,
-                                    userSelect: 'none',
-                                    '&:hover': { bgcolor: isAllowed ? 'success.50' : 'action.hover' },
+                                    display: 'flex', alignItems: 'center', cursor: 'pointer', px: 0.3,
+                                    color: isAllowed ? ACTION_META[action].color : 'text.disabled',
+                                    '&:hover': { bgcolor: 'action.hover', borderRadius: 1 },
                                   }}
                                 >
                                   {isSavingAction ? (
-                                    <CircularProgress size={8} sx={{ color: 'text.disabled' }} />
+                                    <CircularProgress size={14} sx={{ color: 'text.disabled' }} />
                                   ) : (
-                                    <Box component="span" sx={{ fontSize: 12, lineHeight: 1 }}>
-                                      {isAllowed ? '☑' : '☐'}
-                                    </Box>
+                                    <Checkbox
+                                      size="small"
+                                      checked={isAllowed}
+                                      sx={{
+                                        p: 0.3,
+                                        '& .MuiSvgIcon-root': { fontSize: 18 },
+                                        color: isAllowed ? ACTION_META[action].color : 'text.disabled',
+                                        '&.Mui-checked': { color: ACTION_META[action].color },
+                                      }}
+                                    />
                                   )}
-                                  {ACTION_LETTER[action]}
+                                  <Box component="span" sx={{ fontSize: 10, fontWeight: 600, ml: 0.1 }}>
+                                    {ACTION_LETTER[action]}
+                                  </Box>
                                 </Box>
                               </Tooltip>
                             );
