@@ -64,7 +64,7 @@ export default function ImpersonatePage() {
       localStorage.setItem('impersonated_user_id', user.id);
       localStorage.setItem('impersonated_user_email', user.email || '');
 
-      window.location.replace('/banking/dashboard');
+      window.location.replace(`/banking/dashboard?t=${Date.now()}&impersonated=1`);
     } catch (err: any) {
       setError(err?.response?.data?.message || err.message || 'Impersonation failed');
       setImpersonating(false);

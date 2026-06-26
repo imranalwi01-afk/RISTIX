@@ -30,7 +30,7 @@ export default function ImpersonationBanner() {
     localStorage.removeItem('impersonated_user_name');
     localStorage.removeItem('impersonated_user_id');
     localStorage.removeItem('impersonated_user_email');
-    window.location.replace('/banking/dashboard');
+    window.location.replace(`/banking/dashboard?t=${Date.now()}`);
   };
 
   return (
