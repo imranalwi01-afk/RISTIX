@@ -38,6 +38,7 @@ import {
 } from '@mui/icons-material';
 import { ApprovalRequest, RequestRoutingMatch } from '../types';
 import { ConsolidatedAssessmentApprovalContent } from './ConsolidatedAssessmentApprovalContent';
+import ApprovalFlowTracker from '@/components/approval/ApprovalFlowTracker';
 import { RAnalyticsComprehensiveDetail } from './RAnalyticsComprehensiveDetail';
 import { useCurrencyDisplay } from '@/providers/CurrencyDisplayProvider';
 
@@ -573,7 +574,24 @@ export const ApprovalRequestDetailDialog = memo(function ApprovalRequestDetailDi
                           wordBreak: 'break-word',
                         }}
                       >
-                        {JSON.stringify(sanitizedRequestData, null, 2)}
+                        <ApprovalFlowTracker
+                        currentLevel={request.currentLevel || 1}
+                        levels={[
+                          ...(routingMatch?.routing?.levels || []).sort((a, b) => a.level - b.level).map((lvl) => ({
+                            level: lvl.level,
+                            name: lvl.name,
+                            status: (lvl.level < (request.currentLevel || 1) ? 'approved' : lvl.level === (request.currentLevel || 1) ? 'active' : 'waiting') as 'approved' | 'active' | 'waiting',
+                            requiredRoles: lvl.requiredRoleCodes || [],
+                            action: (request as any).actions?.find((a: any) => a.level === lvl.level) ? {
+                              type: ((request as any).actions?.find((a: any) => a.level === lvl.level)?.action || 'approve') as 'approve' | 'reject',
+                              by: (request as any).actions?.find((a: any) => a.level === lvl.level)?.approverName || (request as any).actions?.find((a: any) => a.level === lvl.level)?.createdBy,
+                              at: (request as any).actions?.find((a: any) => a.level === lvl.level)?.createdAt,
+                              comment: (request as any).actions?.find((a: any) => a.level === lvl.level)?.comment,
+                            } : undefined,
+                          }))
+                        ]}
+                      />
+                      {JSON.stringify(sanitizedRequestData, null, 2)}
                       </Box>
                     </AccordionDetails>
                   </Accordion>
