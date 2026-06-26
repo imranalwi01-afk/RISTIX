@@ -75,9 +75,11 @@ export function useApprovalMatricesQuery() {
         ? response
         : Array.isArray(response?.data)
           ? response.data
-          : Array.isArray(response?.matrices)
-            ? response.matrices
-            : [];
+          : Array.isArray(response?.data?.data)
+            ? response.data.data
+            : Array.isArray(response?.matrices)
+              ? response.matrices
+              : [];
     },
   });
 }
