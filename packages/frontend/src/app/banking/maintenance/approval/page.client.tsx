@@ -33,6 +33,7 @@ import MatrixIcon from '@mui/icons-material/TableChart'
 import ExportIcon from '@mui/icons-material/CloudDownload'
 import { useRouter, useSearchParams } from 'next/navigation';
 import { bankingAPI } from '@/services/api';
+import { approvalAPI } from '@/services/api/approval.api';
 import { useAuth } from '@/providers/AuthProvider';
 import { getErrorMessage } from '@/utils/error-message';
 import { useEnterpriseTableQuery } from '@/hooks/useEnterpriseTableQuery';
@@ -340,7 +341,8 @@ function ApprovalManagementPage() {
 
   // State management
   const [activeTab, setActiveTab] = useState(0);
-  const [approvalRequests, setApprovalRequests] = useState<ApprovalRequest[]>([]);
+  const [approvalRequests, setApprovalRequests] = useState<ApprovalRequest[]>([])
+  const [batchSelection, setBatchSelection] = useState<string[]>([]);;
   const [approvalRowCount, setApprovalRowCount] = useState(0);
   const [approvalUniverse, setApprovalUniverse] = useState<ApprovalRequest[]>([]);
   const [approvalFilterDefinitions, setApprovalFilterDefinitions] = useState<Record<string, EnterpriseFilterDefinition>>({});
@@ -737,7 +739,29 @@ function ApprovalManagementPage() {
 
 
   // Action handlers
-  const handleApprovalAction = useCallback((request: ApprovalRequest, action: 'approve' | 'reject' | 'request_info' | 'delegate' | 'cancel') => {
+  
+const handleBatchAction = useCallback(async (selectedIds: string[], batchAction: 'approve' | 'reject') => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`${batchAction === 'approve' ? 'Approve' : 'Reject'} ${selectedIds.length} request(s)?`)) return;
+    let success = 0, failed = 0;
+    for (const id of selectedIds) {
+        try {
+            if (batchAction === 'approve') {
+                await approvalAPI.approveRequest(id);
+            } else {
+                await approvalAPI.rejectRequest(id);
+            }
+            success++;
+        } catch (err) {
+            failed++;
+            console.error(`Failed to ${batchAction} request ${id}:`, err);
+        }
+    }
+    showSnackbar(`${batchAction === 'approve' ? 'Approved' : 'Rejected'} ${success}, Failed ${failed}`, success > 0 ? 'success' : 'error');
+    setBatchSelection([]);
+    approvalRequestsQuery.refetch();
+}, [approvalRequestsQuery, showSnackbar, approvalAPI]);
+const handleApprovalAction = useCallback((request: ApprovalRequest, action: 'approve' | 'reject' | 'request_info' | 'delegate' | 'cancel') => {
     setActionDialog({
       open: true,
       request,
@@ -1133,6 +1157,9 @@ function ApprovalManagementPage() {
             onResetFilters={resetPendingFilters}
             onViewDetails={handleViewDetails}
             onApprovalAction={handleApprovalAction}
+            selectionModel={batchSelection}
+            onSelectionModelChange={setBatchSelection}
+            onBatchAction={(ids, action) => handleBatchAction(ids, action)}
             onOpenRolePermission={openRolePermissionInRBAC}
             isRolePermissionRequest={isRolePermissionRequest}
             getRowSx={getDeepLinkedRowSx}

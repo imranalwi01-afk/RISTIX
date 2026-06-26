@@ -34,6 +34,9 @@ import { ApprovalRequest } from '../types';
 import type { EnterpriseColumnFilterValue, EnterpriseDensity, EnterpriseFilterDefinition, EnterpriseSort } from '@/types/enterprise-table';
 
 interface ApprovalRequestListProps {
+  selectionModel?: string[];
+  onSelectionModelChange?: (ids: string[]) => void;
+  onBatchAction?: (ids: string[], action: 'approve' | 'reject') => void;
   rows: ApprovalRequest[];
   allRequests: ApprovalRequest[];
   rowCount: number;
@@ -108,6 +111,9 @@ export const ApprovalRequestList = memo(function ApprovalRequestList({
   getRowSx,
   formatDate,
   getStatusColor,
+  selectionModel,
+  onSelectionModelChange,
+  onBatchAction,
   getPriorityColor,
   isOverdue,
   filterDefinitions = {},
@@ -469,6 +475,9 @@ export const ApprovalRequestList = memo(function ApprovalRequestList({
           paginationMode="server"
           rowCount={rowCount}
           getRowSx={getRowSx}
+          checkboxSelection
+          onRowSelectionModelChange={(model: any) => onSelectionModelChange?.(model as string[])}
+          rowSelectionModel={selectionModel as any || []}
           disableRowSelectionOnClick
           filterDefinitions={gridFilterDefinitions}
           showEnterpriseControls
