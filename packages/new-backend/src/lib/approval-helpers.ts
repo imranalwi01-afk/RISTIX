@@ -343,6 +343,7 @@ export const shouldAutoApprove = (
 }
 
 const STRICT_FOUR_EYES_ENTITIES = new Set([
+    'parameter',
     'segmentation',
     'user',
     'role',
@@ -350,6 +351,17 @@ const STRICT_FOUR_EYES_ENTITIES = new Set([
     'role_permissions',
     'role_assignment',
     'user_status',
+    'pd_configuration',
+    'lgd_configuration',
+    'ead_configuration',
+    'ecl_configuration',
+    'bucket_parameter',
+    'rule_base_setting',
+    'product_parameter',
+    'journal_parameter',
+    'fl_scalar',
+    'app_setting',
+    'business_setting',
 ])
 
 export interface ApprovalRoutingLevel {
