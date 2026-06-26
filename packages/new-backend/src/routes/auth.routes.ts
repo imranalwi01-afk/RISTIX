@@ -534,6 +534,7 @@ authRoutes.use('/verify', authMiddleware)
 authRoutes.use('/me', authMiddleware)
 authRoutes.use('/me/permissions', authMiddleware)
 authRoutes.use('/logout', authMiddleware)
+authRoutes.use('/impersonate', authMiddleware)
 
 
 /**
