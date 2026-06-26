@@ -10,6 +10,7 @@ import * as platformSchema from '../db/schema/platform.schema'
 import * as tenantSchema from '../db/schema/tenant.schema'
 import * as legacySchema from '../db/schema/legacy.schema'
 import { debugLog } from '../lib/debug-logger'
+import { wrapSql } from '../lib/db-tracing'
 
 /**
  * PostgreSQL connection configuration
@@ -22,13 +23,23 @@ const connectionConfig = {
     keep_alive: 10,
 }
 
+const enableDbTracing = process.env.OTEL_DB_TRACING !== 'false'
+
 /**
  * Platform Admin Database Connection
  * For platform-wide administration, users, roles, etc.
  */
-const platformConnection = postgres(getPlatformDatabaseUrl(), connectionConfig)
-const tenantConnection = postgres(getTenantDatabaseUrl(), connectionConfig)
-const legacyConnection = postgres(getLegacyDatabaseUrl(), connectionConfig)
+const platformConnection = enableDbTracing
+    ? wrapSql(postgres(getPlatformDatabaseUrl(), connectionConfig), 'platform')
+    : postgres(getPlatformDatabaseUrl(), connectionConfig)
+
+const tenantConnection = enableDbTracing
+    ? wrapSql(postgres(getTenantDatabaseUrl(), connectionConfig), 'tenant')
+    : postgres(getTenantDatabaseUrl(), connectionConfig)
+
+const legacyConnection = enableDbTracing
+    ? wrapSql(postgres(getLegacyDatabaseUrl(), connectionConfig), 'legacy')
+    : postgres(getLegacyDatabaseUrl(), connectionConfig)
 
 /**
  * Drizzle ORM instance for Platform Admin DB
