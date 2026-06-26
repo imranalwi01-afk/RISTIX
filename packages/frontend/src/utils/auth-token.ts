@@ -93,13 +93,13 @@ export const getAuthToken = (): string | null => {
     if (typeof window === 'undefined') return null;
 
     try {
-        // 1. Try cookie first (synced by AuthProvider/SessionControl)
-        const cookieToken = Cookies.get('auth_token');
-        if (cookieToken) return cookieToken;
-
-        // 2. Fallback to localStorage
+        // 1. Try localStorage first (updated by impersonation, etc.)
         const localToken = localStorage.getItem('auth_token');
         if (localToken) return localToken;
+
+        // 2. Fallback to cookie (synced by AuthProvider/SessionControl)
+        const cookieToken = Cookies.get('auth_token');
+        if (cookieToken) return cookieToken;
 
         // 3. Fallback to sessionStorage if used
         const sessionToken = sessionStorage.getItem('auth_token');
