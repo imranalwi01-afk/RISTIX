@@ -4,6 +4,7 @@ import { db } from '../config/database'
 import { platformSettings } from '../db/schema'
 import { eq } from 'drizzle-orm'
 import { platformEmailTemplates } from '../db/schema/platform.schema'
+import { NotificationRepository, type CreateNotificationInput } from '@/repositories/notification.repository'
 
 // Simple SMTP client for Bun
 interface SMTPConfig {
@@ -316,9 +317,27 @@ export const createInAppNotification = Effect.gen(function* (_) {
         userId: string,
         actionUrl?: string
     ): Promise<void> => {
-        // TODO: Insert into notifications table
-        // For now, just log
-        console.log(`📱 In-app notification for user ${userId}: ${title}`)
+        const input: CreateNotificationInput = {
+            tenantId: job.tenantId,
+            approvalRequestId: job.approvalRequestId,
+            workflowId: job.workflowId,
+            type: `APPROVAL_${job.action}`,
+            severity: 'info',
+            title,
+            message,
+            actionUrl,
+            entityType: 'approval_request',
+            entityId: job.approvalRequestId,
+            source: 'approval_service',
+            triggeredBy: job.approverUserId,
+            userTargets: [userId],
+            channel: 'in_app',
+        }
+        try {
+            await NotificationRepository.createWithDeliveries(input)
+        } catch (err) {
+            console.error(`❌ Failed to persist notification for user ${userId}: ${err}`)
+        }
     }
 })
 
