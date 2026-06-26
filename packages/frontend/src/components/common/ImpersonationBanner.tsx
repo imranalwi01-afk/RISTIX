@@ -6,6 +6,7 @@ import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import Typography from '@mui/material/Typography';
 import Warning from '@mui/icons-material/Warning';
+import Cookies from 'js-cookie';
 
 export default function ImpersonationBanner() {
   const [impersonating, setImpersonating] = useState(false);
@@ -25,7 +26,10 @@ export default function ImpersonationBanner() {
 
   const stopImpersonating = () => {
     const original = localStorage.getItem('auth_token_original');
-    if (original) localStorage.setItem('auth_token', original);
+    if (original) {
+      localStorage.setItem('auth_token', original);
+      Cookies.set('auth_token', original, { path: '/' });
+    }
     localStorage.removeItem('auth_token_original');
     localStorage.removeItem('impersonated_user_name');
     localStorage.removeItem('impersonated_user_id');

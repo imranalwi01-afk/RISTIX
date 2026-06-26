@@ -13,6 +13,7 @@ import { api } from '@/services/api';
 import { apiClient } from '@/services/api-client';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/store';
+import Cookies from 'js-cookie';
 
 interface BankUser {
   id: string;
@@ -65,6 +66,7 @@ export default function ImpersonatePage() {
       if (original) localStorage.setItem('auth_token_original', original);
 
       localStorage.setItem('auth_token', accessToken);
+      Cookies.set('auth_token', accessToken, { path: '/' });
       if (refreshToken) localStorage.setItem('refresh_token', refreshToken);
 
       setTimeout(() => {
