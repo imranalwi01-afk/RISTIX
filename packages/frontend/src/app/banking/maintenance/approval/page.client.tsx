@@ -761,6 +761,20 @@ const handleBatchAction = useCallback(async (selectedIds: string[], batchAction:
     setBatchSelection([]);
     approvalRequestsQuery.refetch();
 }, [approvalRequestsQuery, showSnackbar, approvalAPI]);
+
+const exportToCSV = (data: ApprovalRequest[], filename: string) => {
+    const headers = ['ID', 'Title', 'Type', 'Status', 'Priority', 'Requested By', 'Created At'];
+    const rows = data.map((r) => [
+        r.id, r.title || r.requestTitle || '', r.entityType || r.requestType || '',
+        r.status, r.priority || '', r.requestedByName || '', r.requestedAt || ''
+    ]);
+    const csv = [headers.join(','), ...rows.map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+};
 const handleApprovalAction = useCallback((request: ApprovalRequest, action: 'approve' | 'reject' | 'request_info' | 'delegate' | 'cancel') => {
     setActionDialog({
       open: true,
@@ -1077,6 +1091,7 @@ const handleApprovalAction = useCallback((request: ApprovalRequest, action: 'app
             >
               Refresh
             </Button>
+          <Button size="small" variant="outlined" startIcon={<ExportIcon />} onClick={() => exportToCSV(approvalRequests, `approval-export-${new Date().toISOString().slice(0, 10)}.csv`)}>Export CSV</Button>
           </Box>
         </Box>
       </Box>
@@ -1156,6 +1171,8 @@ const handleApprovalAction = useCallback((request: ApprovalRequest, action: 'app
             onRefresh={handleRefresh}
             onResetFilters={resetPendingFilters}
             onViewDetails={handleViewDetails}
+            onExport={() => exportToCSV(approvalRequests, `approval-export-${new Date().toISOString().slice(0, 10)}.csv`)}
+
             onApprovalAction={handleApprovalAction}
             selectionModel={batchSelection}
             onSelectionModelChange={setBatchSelection}

@@ -34,6 +34,7 @@ import { ApprovalRequest } from '../types';
 import type { EnterpriseColumnFilterValue, EnterpriseDensity, EnterpriseFilterDefinition, EnterpriseSort } from '@/types/enterprise-table';
 
 interface ApprovalRequestListProps {
+  onExport?: () => void;
   selectionModel?: string[];
   onSelectionModelChange?: (ids: string[]) => void;
   onBatchAction?: (ids: string[], action: 'approve' | 'reject') => void;
@@ -114,6 +115,7 @@ export const ApprovalRequestList = memo(function ApprovalRequestList({
   selectionModel,
   onSelectionModelChange,
   onBatchAction,
+  onExport,
   getPriorityColor,
   isOverdue,
   filterDefinitions = {},
