@@ -471,6 +471,7 @@ export const frs9ImpCaLgdH = pgTable("frs9_imp_ca_lgd_h", {
 	npvEqvRec: numeric("npv_eqv_rec", { precision: 32, scale: 6 }),
 	recRate: doublePrecision("rec_rate"),
 	lgd: doublePrecision(),
+	noa: integer("noa"),
 	createdby: varchar({ length: 100 }),
 	createddate: timestamp({ mode: 'string' }),
 });

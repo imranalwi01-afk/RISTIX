@@ -1838,6 +1838,7 @@ export class Ifrs9ReportsService {
                 SELECT 
                     A.prc_date AS period,
                     B.lgd_model_name AS lgd_model,
+                    A.noa,
                     A.eqv_os AS total_ead,
                     A.npv_eqv_rec AS total_pv_recovery,
                     A.rec_rate,

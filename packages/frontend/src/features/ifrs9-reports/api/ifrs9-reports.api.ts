@@ -137,6 +137,7 @@ export async function fetchIfrs9Report(input: Ifrs9ReportQueryInput): Promise<Re
                 id: 1,
                 period: detailData?.effectivePrcDate ?? params.prc_date,
                 lgd_model: 'Selected LGD Model',
+                noa: detailRows.length,
                 total_ead: totals.totalEad,
                 total_pv_recovery: totals.totalPvRecovery,
                 rec_rate: recRate,
@@ -161,6 +162,7 @@ export async function fetchIfrs9Report(input: Ifrs9ReportQueryInput): Promise<Re
           columns: [
             { field: 'period', headerName: 'Period', width: 160, type: 'date' },
             { field: 'lgd_model', headerName: 'LGD Model', width: 220, type: 'string' },
+            { field: 'noa', headerName: 'NOA', width: 120, type: 'number' },
             { field: 'total_ead', headerName: 'Total EAD', width: 190, type: 'number' },
             { field: 'total_pv_recovery', headerName: 'Total PV Recovery', width: 220, type: 'number' },
             { field: 'rec_rate', headerName: 'Rec. Rate (%)', width: 160, type: 'number' },
