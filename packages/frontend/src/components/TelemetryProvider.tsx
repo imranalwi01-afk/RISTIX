@@ -6,6 +6,15 @@ export function TelemetryProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    // Only enable browser RUM when the OTel collector is accessible.
+    // In production (danafin.com/ifrspro.id) the collector isn't publicly
+    // exposed, so the CSP would block direct connections. Developers can
+    // override with NEXT_PUBLIC_OTEL_ENABLED=true.
+    const hostname = window.location.hostname;
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+    const isEnabled = process.env.NEXT_PUBLIC_OTEL_ENABLED === 'true' || isLocalhost;
+    if (!isEnabled) return;
+
     let cleanup: (() => void) | undefined;
 
     async function init() {
@@ -13,7 +22,7 @@ export function TelemetryProvider({ children }: { children: ReactNode }) {
         const { BatchSpanProcessor } = await import('@opentelemetry/sdk-trace-base');
         const { OTLPTraceExporter } = await import('@opentelemetry/exporter-trace-otlp-http');
 
-        const otelHost = process.env.NEXT_PUBLIC_OTEL_HOST || window.location.hostname;
+        const otelHost = isLocalhost ? 'localhost' : (process.env.NEXT_PUBLIC_OTEL_HOST || hostname);
         const exporterUrl = `http://${otelHost}:4318/v1/traces`;
 
         const { WebTracerProvider } = await import('@opentelemetry/sdk-trace-web');

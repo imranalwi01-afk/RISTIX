@@ -136,7 +136,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data:",
-              "connect-src 'self' wss: ws: http://localhost:* https://*.ifrspro.id https://*.danafin.com https://*.danafin.id",
+              "connect-src 'self' wss: ws: http://localhost:* http://127.0.0.1:* https://*.ifrspro.id https://*.danafin.com https://*.danafin.id",
               "frame-ancestors 'self'",
               "frame-src 'self' http://localhost:* https://*.ifrspro.id https://*.danafin.com https://*.danafin.id",
             ].join('; '),
