@@ -6,6 +6,8 @@ import {
     frs9ImpCaResultH,
     frs9NominativeOutput,
     frs9ImpCaPdStructure,
+    vwPdStructureYearly,
+    vwPdStructureMonthly,
     frs9AccountId,
     frs9ImpCaLgdData,
     frs9ImpCaLgdRecD,
@@ -558,7 +560,7 @@ export class Ifrs9ReportsService {
         }
 
         return this.resolveLatestPrcDate(
-            'public.frs9_imp_ca_pd_structure',
+            'public.vw_frs9_pd_structure_yearly',
             params?.prc_date,
             conditions,
         );
@@ -880,20 +882,23 @@ export class Ifrs9ReportsService {
 
     /**
      * Transform flat PD data into pivot format (bucket_id as rows, fl_year as columns)
+     * Includes cumulative_bfl and cumulative_afl per bucket from the view.
      */
     private transformToPivotYearly(data: any[], flFlag: boolean) {
         if (!data || data.length === 0) return [];
 
-        // Group by bucket_id
         const bucketMap = new Map<number, any>();
         const years = new Set<number>();
+        // Track cumulative per bucket (taken from the last year's cumulative value)
+        const cumBflMap = new Map<number, number | null>();
+        const cumAflMap = new Map<number, number | null>();
 
         data.forEach(row => {
-            const bucketId = row.bucketId;
+            const bucketId = row.bucketId ?? row.bucket_id;
             const flYear = row.flYear;
             const pdRate = flFlag
-                ? (row.pd ?? row.pdNonFl)
-                : (row.pdNonFl ?? row.pd);
+                ? (row.marginalAfl ?? row.marginalBfl)
+                : (row.marginalBfl ?? row.marginalAfl);
 
             years.add(flYear);
 
@@ -901,74 +906,98 @@ export class Ifrs9ReportsService {
                 bucketMap.set(bucketId, {
                     id: bucketId,
                     bucket_id: bucketId,
-                    bucket_group: row.bucketGroup || `Bucket ${bucketId}`
+                    bucket_group: `Bucket ${bucketId}`,
                 });
             }
 
             const bucket = bucketMap.get(bucketId);
             bucket[`year_${flYear}`] = pdRate;
+
+            // Track cumulative — last fl_year wins
+            if (row.cumulativeBfl !== undefined && row.cumulativeBfl !== null) {
+                cumBflMap.set(bucketId, Number(row.cumulativeBfl));
+            }
+            if (row.cumulativeAfl !== undefined && row.cumulativeAfl !== null) {
+                cumAflMap.set(bucketId, Number(row.cumulativeAfl));
+            }
         });
 
-        // Sort and return
+        // Attach cumulative values per bucket
+        cumBflMap.forEach((val, bucketId) => {
+            const bucket = bucketMap.get(bucketId);
+            if (bucket) bucket.cumulative_bfl = val;
+        });
+        cumAflMap.forEach((val, bucketId) => {
+            const bucket = bucketMap.get(bucketId);
+            if (bucket) bucket.cumulative_afl = val;
+        });
+
         return Array.from(bucketMap.values()).sort((a, b) => a.bucket_id - b.bucket_id);
     }
 
     /**
      * Transform flat PD data into pivot format (bucket_id as rows, fl_seq as columns)
+     * Includes cumulative_bfl and cumulative_monthly per bucket from the view.
      */
     private transformToPivotMonthly(data: any[], flFlag: boolean) {
         if (!data || data.length === 0) return [];
 
-        // Group by bucket_id
         const bucketMap = new Map<number, any>();
+        const cumBflMap = new Map<number, number | null>();
+        const cumMonthlyMap = new Map<number, number | null>();
 
         data.forEach(row => {
-            const bucketId = row.bucketId;
+            const bucketId = row.bucketId ?? row.bucket_id;
             const flSeq = row.flSeq;
             const pdRate = flFlag
-                ? (row.pd ?? row.pdNonFl)
-                : (row.pdNonFl ?? row.pd);
+                ? (row.marginalBfl ?? row.marginalMonthly)
+                : (row.marginalMonthly ?? row.marginalBfl);
 
             if (!bucketMap.has(bucketId)) {
                 bucketMap.set(bucketId, {
                     id: bucketId,
                     bucket_id: bucketId,
-                    bucket_group: row.bucketGroup || `Bucket ${bucketId}`
+                    bucket_group: `Bucket ${bucketId}`,
                 });
             }
 
             const bucket = bucketMap.get(bucketId);
             bucket[`month_${flSeq}`] = pdRate;
+
+            if (row.cumulativeBfl !== undefined && row.cumulativeBfl !== null) {
+                cumBflMap.set(bucketId, Number(row.cumulativeBfl));
+            }
+            if (row.cumulativeMonthly !== undefined && row.cumulativeMonthly !== null) {
+                cumMonthlyMap.set(bucketId, Number(row.cumulativeMonthly));
+            }
         });
 
-        // Sort and return
+        cumBflMap.forEach((val, bucketId) => {
+            const bucket = bucketMap.get(bucketId);
+            if (bucket) bucket.cumulative_bfl = val;
+        });
+        cumMonthlyMap.forEach((val, bucketId) => {
+            const bucket = bucketMap.get(bucketId);
+            if (bucket) bucket.cumulative_monthly = val;
+        });
+
         return Array.from(bucketMap.values()).sort((a, b) => a.bucket_id - b.bucket_id);
     }
 
     /**
      * Get Lifetime PD Report (Yearly)
-     * Queries: frs9_imp_ca_pd_structure with pivot transformation
+     * Queries: vw_frs9_pd_structure_yearly with pivot transformation
      */
     async getLifetimePDYearly(tenantId: string, page: number, limit: number, params?: LifetimePDParams) {
         try {
             const requestedPrcDate = params?.prc_date || '2023-12-31';
             const pdConfigId = params?.pd_config_id || 1;
-            const pdMethod = params?.pd_method || 1;
-            const scalarId = params?.scalar_id;
+            const modelId = params?.scalar_id;
+            const scenarioId = params?.scalar_id;
             const flFlag = params?.fl_flag ?? false;
             const effectivePrcDate = await this.resolveLifetimePdPrcDate({
                 ...params,
                 pd_config_id: pdConfigId,
-                pd_method: pdMethod,
-            });
-
-            console.log('📊 [Lifetime PD Yearly] Fetching with params:', {
-                requestedPrcDate,
-                effectivePrcDate,
-                pdConfigId,
-                pdMethod,
-                scalarId,
-                flFlag,
             });
 
             if (!effectivePrcDate) {
@@ -977,27 +1006,29 @@ export class Ifrs9ReportsService {
 
             // Build query conditions
             const conditions = [
-                eq(frs9ImpCaPdStructure.prcDate, effectivePrcDate),
-                eq(frs9ImpCaPdStructure.pdConfigId, pdConfigId),
-                eq(frs9ImpCaPdStructure.pdMethod, pdMethod)
+                eq(vwPdStructureYearly.prcDate, effectivePrcDate),
+                eq(vwPdStructureYearly.pdConfigId, pdConfigId),
             ];
 
-            // Add scalar_id filter if provided
-            if (scalarId !== undefined && scalarId !== null) {
-                conditions.push(eq(frs9ImpCaPdStructure.scalarId, scalarId));
+            if (modelId !== undefined && modelId !== null) {
+                conditions.push(eq(vwPdStructureYearly.modelId, modelId));
+            }
+            if (scenarioId !== undefined && scenarioId !== null) {
+                conditions.push(eq(vwPdStructureYearly.scenarioId, scenarioId));
             }
 
-            // Query frs9_imp_ca_pd_structure
+            // Query view
             const rawData = await legacyDb
                 .select()
-                .from(frs9ImpCaPdStructure)
+                .from(vwPdStructureYearly)
                 .where(and(...conditions))
-                .orderBy(frs9ImpCaPdStructure.bucketId, frs9ImpCaPdStructure.flYear);
+                .orderBy(vwPdStructureYearly.bucketId, vwPdStructureYearly.flYear);
 
             console.log(`📊 [Lifetime PD Yearly] Retrieved ${rawData.length} raw records`);
 
-            // Transform to pivot format
+            // Transform to pivot format with cumulative columns
             const pivotData = this.transformToPivotYearly(rawData, flFlag);
+
             console.log(`📊 [Lifetime PD Yearly] Transformed to ${pivotData.length} pivot rows`);
 
             return {
@@ -1015,27 +1046,26 @@ export class Ifrs9ReportsService {
 
     /**
      * Get Lifetime PD Report (Monthly)
-     * Queries: frs9_imp_ca_pd_structure with monthly pivot transformation
+     * Queries: vw_frs9_pd_structure_monthly with monthly pivot transformation
      */
     async getLifetimePDMonthly(tenantId: string, page: number, limit: number, params?: LifetimePDParams) {
         try {
             const requestedPrcDate = params?.prc_date || '2023-12-31';
             const pdConfigId = params?.pd_config_id || 1;
-            const pdMethod = params?.pd_method || 1;
-            const scalarId = params?.scalar_id;
+            const modelId = params?.scalar_id;
+            const scenarioId = params?.scalar_id;
             const flFlag = params?.fl_flag ?? false;
             const effectivePrcDate = await this.resolveLifetimePdPrcDate({
                 ...params,
                 pd_config_id: pdConfigId,
-                pd_method: pdMethod,
             });
 
             console.log('📊 [Lifetime PD Monthly] Fetching with params:', {
                 requestedPrcDate,
                 effectivePrcDate,
                 pdConfigId,
-                pdMethod,
-                scalarId,
+                modelId,
+                scenarioId,
                 flFlag,
             });
 
@@ -1045,27 +1075,29 @@ export class Ifrs9ReportsService {
 
             // Build query conditions
             const conditions = [
-                eq(frs9ImpCaPdStructure.prcDate, effectivePrcDate),
-                eq(frs9ImpCaPdStructure.pdConfigId, pdConfigId),
-                eq(frs9ImpCaPdStructure.pdMethod, pdMethod)
+                eq(vwPdStructureMonthly.prcDate, effectivePrcDate),
+                eq(vwPdStructureMonthly.pdConfigId, pdConfigId),
             ];
 
-            // Add scalar_id filter if provided
-            if (scalarId !== undefined && scalarId !== null) {
-                conditions.push(eq(frs9ImpCaPdStructure.scalarId, scalarId));
+            if (modelId !== undefined && modelId !== null) {
+                conditions.push(eq(vwPdStructureMonthly.pdModelId, modelId));
+            }
+            if (scenarioId !== undefined && scenarioId !== null) {
+                conditions.push(eq(vwPdStructureMonthly.scenarioId, scenarioId));
             }
 
-            // Query frs9_imp_ca_pd_structure
+            // Query view
             const rawData = await legacyDb
                 .select()
-                .from(frs9ImpCaPdStructure)
+                .from(vwPdStructureMonthly)
                 .where(and(...conditions))
-                .orderBy(frs9ImpCaPdStructure.bucketId, frs9ImpCaPdStructure.flSeq);
+                .orderBy(vwPdStructureMonthly.bucketId, vwPdStructureMonthly.flSeq);
 
             console.log(`📊 [Lifetime PD Monthly] Retrieved ${rawData.length} raw records`);
 
-            // Transform to pivot format
+            // Transform to pivot format with cumulative columns
             const pivotData = this.transformToPivotMonthly(rawData, flFlag);
+
             console.log(`📊 [Lifetime PD Monthly] Transformed to ${pivotData.length} pivot rows`);
 
             return {
@@ -1077,6 +1109,7 @@ export class Ifrs9ReportsService {
             };
         } catch (error) {
             console.error('❌ Error in getLifetimePDMonthly service:', error);
+
             return { data: [], total: 0, page, totalPages: 0, effectivePrcDate: null };
         }
     }

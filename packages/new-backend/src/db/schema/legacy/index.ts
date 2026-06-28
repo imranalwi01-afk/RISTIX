@@ -642,6 +642,40 @@ export const frs9ImpCaPdStructure = pgTable("frs9_imp_ca_pd_structure", {
 	weightedScalar: doublePrecision("weighted_scalar"),
 });
 
+/**
+ * Lifetime PD structure — yearly view (pre-calculated cumulative + marginal rates)
+ */
+export const vwPdStructureYearly = pgTable("vw_frs9_pd_structure_yearly", {
+	prcDate: date("prc_date"),
+	pdConfigId: bigint("pd_config_id", { mode: "number" }),
+	modelId: integer("model_id"),
+	scenarioId: integer("scenario_id"),
+	bucketId: integer("bucket_id"),
+	flYear: integer("fl_year"),
+	cumulativeBfl: doublePrecision("cumulative_bfl"),
+	marginalBfl: doublePrecision("marginal_bfl"),
+	cumulativeAfl: doublePrecision("cumulative_afl"),
+	marginalAfl: doublePrecision("marginal_afl"),
+});
+
+/**
+ * Lifetime PD structure — monthly view (pre-calculated monthly cumulative + marginal rates)
+ */
+export const vwPdStructureMonthly = pgTable("vw_frs9_pd_structure_monthly", {
+	prcDate: date("prc_date"),
+	pdConfigId: bigint("pd_config_id", { mode: "number" }),
+	pdModelId: integer("pd_model_id"),
+	scenarioId: integer("scenario_id"),
+	bucketId: integer("bucket_id"),
+	flSeq: integer("fl_seq"),
+	flYear: integer("fl_year"),
+	flMonth: integer("fl_month"),
+	cumulativeBfl: doublePrecision("cumulative_bfl"),
+	marginalBfl: doublePrecision("marginal_bfl"),
+	cumulativeMonthly: doublePrecision("cumulative_monthly"),
+	marginalMonthly: doublePrecision("marginal_monthly"),
+});
+
 export const frs9ImpCaPdTs = pgTable("frs9_imp_ca_pd_ts", {
 	pkid: smallint().generatedAlwaysAsIdentity({ name: "frs9_imp_ca_pd_ts_pkid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 32767, cache: 1 }),
 	prcDate: date("prc_date").notNull(),

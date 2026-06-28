@@ -276,15 +276,15 @@ const listQueryBadRequest = (c: Context, error: ListQueryValidationError) =>
 const REPORT_DEBUG_CATALOG: Record<ReportKey, ReportDebugCatalogEntry> = {
     'lifetime-pd-yearly': {
         title: 'Lifetime PD Yearly',
-        sourceTables: ['public.frs9_imp_ca_pd_structure'],
-        filterKeys: ['prc_date', 'pd_config_id', 'pd_method', 'scalar_id', 'fl_flag'],
-        sqlPreview: 'SELECT ... FROM public.frs9_imp_ca_pd_structure WHERE prc_date = :effectivePrcDate AND pd_config_id = :pdConfigId AND pd_method = :pdMethod',
+        sourceTables: ['public.vw_frs9_pd_structure_yearly'],
+        filterKeys: ['prc_date', 'pd_config_id', 'model_id', 'scenario_id'],
+        sqlPreview: 'SELECT * FROM public.vw_frs9_pd_structure_yearly WHERE prc_date = :effectivePrcDate AND pd_config_id = :pdConfigId',
     },
     'lifetime-pd-monthly': {
         title: 'Lifetime PD Monthly',
-        sourceTables: ['public.frs9_imp_ca_pd_structure'],
-        filterKeys: ['prc_date', 'pd_config_id', 'pd_method', 'scalar_id', 'fl_flag'],
-        sqlPreview: 'SELECT ... FROM public.frs9_imp_ca_pd_structure WHERE prc_date = :effectivePrcDate AND pd_config_id = :pdConfigId AND pd_method = :pdMethod',
+        sourceTables: ['public.vw_frs9_pd_structure_monthly'],
+        filterKeys: ['prc_date', 'pd_config_id', 'pd_model_id', 'scenario_id'],
+        sqlPreview: 'SELECT * FROM public.vw_frs9_pd_structure_monthly WHERE prc_date = :effectivePrcDate AND pd_config_id = :pdConfigId',
     },
     'lifetime-pd-account-details': {
         title: 'Lifetime PD Account Details',
