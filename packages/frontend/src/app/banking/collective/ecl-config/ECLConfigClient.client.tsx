@@ -818,7 +818,8 @@ function ECLConfigurationPage() {
   }, [eclRefetch, loadPendingApprovals, showApprovalConflict]);
 
   const buildEclRunPayload = useCallback(async (eclConfig?: ECLConfigHeader) => {
-    const processDate = new Date().toISOString().split('T')[0];
+    // Use the ECL config's effective date, not today's date
+    const processDate = eclConfig?.effective_date || new Date().toISOString().split('T')[0];
     let configHeader = eclConfig?.ecl_model_name?.trim() || '';
     let segmentIds: number[] = [];
 
