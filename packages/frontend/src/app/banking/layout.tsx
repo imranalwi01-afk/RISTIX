@@ -165,6 +165,13 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
       );
 
     if (!hasAccess) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn(`[RouteGuard] Redirecting to dashboard — missing permission for ${pathname}`, {
+          matchedPrefix,
+          requiredList,
+          userPermissions,
+        });
+      }
       router.replace('/banking/dashboard');
     }
   }, [pathname, isActuallyAuthenticated, isAuthReady, userPermissions, router]);
