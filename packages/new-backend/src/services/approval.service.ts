@@ -610,8 +610,23 @@ export const processApprovalAction = (
 
                     if (isComplete) {
                         // Execute the approved action (e.g., create user, update config)
-                        await executeApprovedAction(request, input.approverId)
-                        await notifyApprovalCompletion(request, 'approved', input.approverId)
+                        try {
+                            await executeApprovedAction(request, input.approverId)
+                            await notifyApprovalCompletion(request, 'approved', input.approverId)
+                        } catch (err: any) {
+                            // Revert request update since execution failed
+                            await ApprovalRepository.updateRequest(input.requestId, {
+                                approvalsReceived: request.approvalsReceived,
+                                status: request.status,
+                                currentLevel: request.currentLevel,
+                                completedAt: request.completedAt,
+                                completedBy: request.completedBy,
+                            })
+                            throw new BusinessError({
+                                message: `Failed to execute approved action: ${err.message}`,
+                                code: 'EXECUTION_FAILED',
+                            })
+                        }
                     } else if (currentLevelComplete) {
                         // Only notify next level when current level has collected enough approvers.
                         await notifyNextLevelApprovers({ ...request, currentLevel: nextLevel?.level ?? request.currentLevel })
@@ -635,8 +650,23 @@ export const processApprovalAction = (
                 })
 
                 if (isComplete) {
-                    await executeApprovedAction(request, input.approverId)
-                    await notifyApprovalCompletion(request, 'approved', input.approverId)
+                    try {
+                        await executeApprovedAction(request, input.approverId)
+                        await notifyApprovalCompletion(request, 'approved', input.approverId)
+                    } catch (err: any) {
+                        // Revert request update since execution failed
+                        await ApprovalRepository.updateRequest(input.requestId, {
+                            approvalsReceived: request.approvalsReceived,
+                            status: request.status,
+                            currentLevel: request.currentLevel,
+                            completedAt: request.completedAt,
+                            completedBy: request.completedBy,
+                        })
+                        throw new BusinessError({
+                            message: `Failed to execute approved action: ${err.message}`,
+                            code: 'EXECUTION_FAILED',
+                        })
+                    }
                 } else {
                     await notifyNextLevelApprovers(request)
                 }
@@ -2044,6 +2074,7 @@ export const getApprovalHistoryList = (
         riskLevel?: string
         requestedBy?: string
         operation?: string
+        title?: string
         search?: string
         createdAtFrom?: Date
         createdAtTo?: Date
@@ -2221,8 +2252,22 @@ async function autoApproveCreatedRequest(request: any, approverId: string): Prom
 
     const finalized = await ApprovalRepository.findRequestById(String(request.id))
     if (finalized) {
-        await executeApprovedAction(finalized, approverId)
-        await notifyApprovalCompletion(finalized, 'approved', approverId)
+        try {
+            await executeApprovedAction(finalized, approverId)
+            await notifyApprovalCompletion(finalized, 'approved', approverId)
+        } catch (err: any) {
+            // Revert request update since execution failed
+            await ApprovalRepository.updateRequest(String(request.id), {
+                approvalsReceived: request.approvalsReceived || 0,
+                status: request.status || 'pending',
+                completedAt: null,
+                completedBy: null,
+            })
+            throw new BusinessError({
+                message: `Failed to execute approved action during auto-approval: ${err.message}`,
+                code: 'EXECUTION_FAILED',
+            })
+        }
         return finalized
     }
 

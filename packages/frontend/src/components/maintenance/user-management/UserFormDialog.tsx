@@ -20,6 +20,8 @@ import {
   TextField,
 } from '@mui/material';
 import { Edit as EditIcon, PersonAdd as PersonAddIcon, Visibility as ViewIcon, VisibilityOff as HideIcon } from '@mui/icons-material';
+import { useQuery } from '@tanstack/react-query';
+import api from '@/services/api';
 import { DEFAULT_PASSWORD_POLICY, PasswordInput, type PasswordPolicy } from '@/components/users/PasswordInput';
 import type { UserFormData } from './types';
 
@@ -48,6 +50,21 @@ const UserFormDialog = memo(function UserFormDialog({
 }: UserFormDialogProps) {
   const isCreate = mode === 'create';
   const sendWelcomeEmail = formData.sendWelcomeEmail ?? true;
+
+  const { data: deptData, isLoading: deptLoading } = useQuery({
+    queryKey: ['business-parameters', 'USR_DEPT'],
+    queryFn: () => api.banking.businessSetup.getHeaderDetails('USR_DEPT'),
+    enabled: open,
+  });
+
+  const { data: posData, isLoading: posLoading } = useQuery({
+    queryKey: ['business-parameters', 'USR_POS'],
+    queryFn: () => api.banking.businessSetup.getHeaderDetails('USR_POS'),
+    enabled: open,
+  });
+
+  const departments = Array.isArray(deptData) ? deptData : deptData?.data || [];
+  const positions = Array.isArray(posData) ? posData : posData?.data || [];
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -84,10 +101,50 @@ const UserFormDialog = memo(function UserFormDialog({
             <TextField fullWidth label="Employee ID" value={formData.employeeId} onChange={(e) => onChange({ ...formData, employeeId: e.target.value })} />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField fullWidth label="Department" value={formData.department} onChange={(e) => onChange({ ...formData, department: e.target.value })} />
+            <FormControl fullWidth>
+              <InputLabel id="department-label">Department</InputLabel>
+              <Select
+                labelId="department-label"
+                label="Department"
+                value={formData.department || ''}
+                onChange={(e) => onChange({ ...formData, department: e.target.value })}
+                disabled={deptLoading}
+              >
+                {deptLoading ? (
+                  <MenuItem disabled>Loading...</MenuItem>
+                ) : (
+                  departments.map((dept: any) => (
+                    <MenuItem key={dept.value1} value={dept.value1}>{dept.value1}</MenuItem>
+                  ))
+                )}
+                {!deptLoading && departments.length === 0 && (
+                  <MenuItem disabled>No departments configured</MenuItem>
+                )}
+              </Select>
+            </FormControl>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField fullWidth label="Position" value={formData.position} onChange={(e) => onChange({ ...formData, position: e.target.value })} />
+            <FormControl fullWidth>
+              <InputLabel id="position-label">Position</InputLabel>
+              <Select
+                labelId="position-label"
+                label="Position"
+                value={formData.position || ''}
+                onChange={(e) => onChange({ ...formData, position: e.target.value })}
+                disabled={posLoading}
+              >
+                {posLoading ? (
+                  <MenuItem disabled>Loading...</MenuItem>
+                ) : (
+                  positions.map((pos: any) => (
+                    <MenuItem key={pos.value1} value={pos.value1}>{pos.value1}</MenuItem>
+                  ))
+                )}
+                {!posLoading && positions.length === 0 && (
+                  <MenuItem disabled>No positions configured</MenuItem>
+                )}
+              </Select>
+            </FormControl>
           </Grid>
           {isCreate && (
             <Grid size={{ xs: 12 }}>

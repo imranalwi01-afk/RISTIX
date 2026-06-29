@@ -292,6 +292,7 @@ export const ApprovalRepository = {
         riskLevel?: string
         requestedBy?: string
         operation?: string
+        title?: string
         search?: string
         createdAtFrom?: Date
         createdAtTo?: Date
@@ -312,7 +313,7 @@ export const ApprovalRepository = {
         if (input.bankingType) {
             conditions.push(
                 sql`lower(coalesce(
-                    (select ${approvalMatrices.bankingMode} from ${approvalMatrices} where ${approvalMatrices.id} = ${approvalRequests.matrixId}),
+                    (select banking_mode from approval.approval_matrices where id = ${approvalRequests.matrixId}),
                     ${approvalRequests.requestData}->>'bankingType',
                     ''
                 )) = lower(${input.bankingType})`
@@ -324,6 +325,7 @@ export const ApprovalRepository = {
             )
         }
         if (input.requestedBy) conditions.push(eq(approvalRequests.requestedBy, input.requestedBy))
+        if (input.title) conditions.push(ilike(approvalRequests.title, `%${input.title}%`))
         if (input.operation) {
             conditions.push(sql`coalesce(${approvalRequests.requestData}->>'operation', '') = ${input.operation}`)
         }
@@ -343,7 +345,7 @@ export const ApprovalRepository = {
                 sql`coalesce(${approvalRequests.requestData}->>'operation', '') ilike ${pattern}`,
                 sql`coalesce(${approvalRequests.requestData}->>'riskLevel', '') ilike ${pattern}`,
                 sql`coalesce(
-                    (select ${approvalMatrices.bankingMode} from ${approvalMatrices} where ${approvalMatrices.id} = ${approvalRequests.matrixId}),
+                    (select banking_mode from approval.approval_matrices where id = ${approvalRequests.matrixId}),
                     ${approvalRequests.requestData}->>'bankingType',
                     ''
                 ) ilike ${pattern}`

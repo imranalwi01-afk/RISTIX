@@ -265,7 +265,8 @@ export const interceptCreate = <T>(
     entityType: string,
     data: Record<string, any>,
     executeCreate: () => Effect.Effect<T, any>,
-    impactLevel?: 'low' | 'medium' | 'high' | 'critical'
+    impactLevel?: 'low' | 'medium' | 'high' | 'critical',
+    identifier?: string
 ): Effect.Effect<ApprovalResponse, any> => {
     return withApprovalCheck(
         {
@@ -276,6 +277,7 @@ export const interceptCreate = <T>(
             operation: 'create',
             data,
             impactLevel,
+            entityId: identifier, // Use identifier as entityId to generate a unique title
         },
         executeCreate
     )

@@ -408,7 +408,8 @@ usersRoutes.openapi(
                 'user',
                 { ...body, tenantId },
                 executeCreate,
-                'medium' // impact level
+                'medium', // impact level
+                body.email // identifier for unique title
             ),
             Effect.map((response: ApprovalResponse) => {
                 if (response.approvalRequired) {

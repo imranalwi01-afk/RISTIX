@@ -101,6 +101,12 @@ const APPROVAL_REQUEST_LIST_QUERY_CONFIG: ListQueryConfig = {
         entityId: { field: 'entityId', label: 'Entity ID', type: 'text', operators: ['equals'] },
         requestedBy: { field: 'requestedBy', label: 'Requested By', type: 'text', operators: ['equals'] },
         operation: { field: 'operation', label: 'Operation', type: 'text', operators: ['contains', 'equals'] },
+        title: { field: 'title', label: 'Title', type: 'text', operators: ['contains', 'equals'] },
+    },
+    filterAliases: {
+        requestTitle: 'title',
+        'requestTitle.contains': 'title.contains',
+        'requestTitle.equals': 'title.equals',
     },
     sortableColumns: ['createdAt', 'updatedAt', 'status', 'entityType', 'title', 'impactLevel', 'currentLevel'],
 }
@@ -576,6 +582,7 @@ approvalRoutes.openapi(
                 riskLevel: filters.riskLevel ? String(filters.riskLevel) : undefined,
                 requestedBy: filters.requestedBy ? String(filters.requestedBy) : undefined,
                 operation: filters.operation ? String(filters.operation) : undefined,
+                title: filters['title.contains'] ? String(filters['title.contains']) : filters.title ? String(filters.title) : undefined,
                 search: query.search,
                 createdAtFrom: filters['createdAt.from'] ? new Date(String(filters['createdAt.from'])) : undefined,
                 createdAtTo: filters['createdAt.to'] ? new Date(String(filters['createdAt.to'])) : undefined,

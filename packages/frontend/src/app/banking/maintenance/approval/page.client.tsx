@@ -140,6 +140,10 @@ const mapApprovalGridFiltersToBackend = (
       mapped.currentLevel = value;
       return;
     }
+    if (field === 'requestTitle' || field.startsWith('requestTitle.')) {
+      mapped[field.replace('requestTitle', 'title')] = value;
+      return;
+    }
 
     mapped[field] = value;
   });
