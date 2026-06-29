@@ -12,7 +12,9 @@ export function TelemetryProvider({ children }: { children: ReactNode }) {
     // override with NEXT_PUBLIC_OTEL_ENABLED=true.
     const hostname = window.location.hostname;
     const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-    const isEnabled = process.env.NEXT_PUBLIC_OTEL_ENABLED === 'true' || isLocalhost;
+    // Only enable if explicitly requested via environment variable. 
+    // Enabling by default on localhost causes network errors if the collector isn't running.
+    const isEnabled = process.env.NEXT_PUBLIC_OTEL_ENABLED === 'true';
     if (!isEnabled) return;
 
     let cleanup: (() => void) | undefined;
