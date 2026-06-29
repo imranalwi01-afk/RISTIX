@@ -9,6 +9,7 @@ import {
     index,
     jsonb,
     uniqueIndex,
+    foreignKey,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
@@ -141,6 +142,75 @@ export const userTableViews = coreSchema.table(
 )
 
 // =============================================================================
+// TENANT MENU ITEMS — synced from Platform DB's menu.menu_items at startup
+// Each tenant gets its own copy so it works even if Platform DB is down
+// =============================================================================
+
+export const tenantMenuCategories = coreSchema.table(
+    'menu_categories',
+    {
+        id: uuid('id').primaryKey().defaultRandom(),
+        tenantId: uuid('tenant_id').notNull(),
+        name: varchar('name', { length: 100 }).notNull(),
+        description: text('description'),
+        icon: varchar('icon', { length: 50 }),
+        color: varchar('color', { length: 20 }),
+        sortOrder: integer('sort_order').default(0),
+        isActive: boolean('is_active').default(true),
+        createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+        updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+        createdBy: uuid('created_by'),
+        updatedBy: uuid('updated_by'),
+    },
+    (table) => [
+        index('tenant_menu_categories_tenant_idx').on(table.tenantId),
+        uniqueIndex('tenant_menu_categories_tenant_name_idx').on(table.tenantId, table.name),
+    ]
+)
+
+export const tenantMenuItems = coreSchema.table(
+    'menu_items',
+    {
+        id: uuid('id').primaryKey().defaultRandom(),
+        tenantId: uuid('tenant_id').notNull(),
+        categoryId: uuid('category_id'),
+        parentId: uuid('parent_id'),
+        name: varchar('name', { length: 100 }).notNull(),
+        description: text('description'),
+        path: varchar('path', { length: 255 }),
+        icon: varchar('icon', { length: 50 }),
+        component: varchar('component', { length: 100 }),
+        externalUrl: varchar('external_url', { length: 500 }),
+        sortOrder: integer('sort_order').default(0),
+        level: integer('level').default(0),
+        isActive: boolean('is_active').default(true),
+        isVisible: boolean('is_visible').default(true),
+        isExternal: boolean('is_external').default(false),
+        requiresAuth: boolean('requires_auth').default(true),
+        bankingType: varchar('banking_type', { length: 20 }).default('both'),
+        createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+        updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+        createdBy: uuid('created_by'),
+        updatedBy: uuid('updated_by'),
+    },
+    (table) => [
+        index('tenant_menu_items_tenant_idx').on(table.tenantId),
+        index('tenant_menu_items_category_idx').on(table.categoryId),
+        index('tenant_menu_items_parent_idx').on(table.parentId),
+        foreignKey({ columns: [table.parentId], foreignColumns: [table.id] }),
+    ]
+)
+
+export const tenantMenuCategoriesRelations = relations(tenantMenuCategories, ({ many }) => ({
+    items: many(tenantMenuItems),
+}))
+
+export const tenantMenuItemsRelations = relations(tenantMenuItems, ({ one }) => ({
+    parent: one(tenantMenuItems, { fields: [tenantMenuItems.parentId], references: [tenantMenuItems.id] }),
+    category: one(tenantMenuCategories, { fields: [tenantMenuItems.categoryId], references: [tenantMenuCategories.id] }),
+}))
+
+// =============================================================================
 // TYPE EXPORTS
 // =============================================================================
 
@@ -152,3 +222,8 @@ export type NewTenant = typeof tenants.$inferInsert
 
 export type UserTableView = typeof userTableViews.$inferSelect
 export type NewUserTableView = typeof userTableViews.$inferInsert
+
+export type TenantMenuItem = typeof tenantMenuItems.$inferSelect
+export type NewTenantMenuItem = typeof tenantMenuItems.$inferInsert
+export type TenantMenuCategory = typeof tenantMenuCategories.$inferSelect
+export type NewTenantMenuCategory = typeof tenantMenuCategories.$inferInsert

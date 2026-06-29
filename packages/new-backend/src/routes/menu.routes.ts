@@ -3,6 +3,7 @@ import { Effect, pipe } from 'effect'
 import { eq, and, asc } from 'drizzle-orm'
 import { platformDb, tenantDb } from '@/config/database'
 import { menuCategories, menuItems } from '@/db/schema/menu.schema'
+import { tenantMenuCategories, tenantMenuItems } from '@/db/schema'
 import { roles, tenantMenuPermissions } from '@/db/schema/rbac.schema'
 import { TenantRepository } from '@/repositories/tenant.repository'
 import { authMiddleware, tenantMiddleware } from '@/middleware/auth'
@@ -661,13 +662,24 @@ menuRoutes.openapi(
         const itemConditions = [eq(menuItems.tenantId, tenantId)]
         if (!includeInactive) itemConditions.push(eq(menuItems.isActive, true))
 
-        const [categories, items, perms] = await Promise.all([
-            platformDb.select().from(menuCategories).where(
-                and(eq(menuCategories.tenantId, tenantId), eq(menuCategories.isActive, true))
-            ).orderBy(asc(menuCategories.sortOrder)),
-            platformDb.select().from(menuItems).where(and(...itemConditions)).orderBy(asc(menuItems.sortOrder)),
-            getMenuPermissions(tenantId),
-        ])
+        // Try Platform DB first, fall back to Tenant DB if unreachable
+        let categories: any[], items: any[]
+        try {
+            ;[categories, items] = await Promise.all([
+                platformDb.select().from(menuCategories).where(
+                    and(eq(menuCategories.tenantId, tenantId), eq(menuCategories.isActive, true))
+                ).orderBy(asc(menuCategories.sortOrder)),
+                platformDb.select().from(menuItems).where(and(...itemConditions)).orderBy(asc(menuItems.sortOrder)),
+            ])
+        } catch {
+            console.warn('[MENU FLAT] Platform DB unavailable, falling back to Tenant DB')
+            categories = await tenantDb.select().from(tenantMenuCategories).where(
+                and(eq(tenantMenuCategories.tenantId, tenantId), eq(tenantMenuCategories.isActive, true))
+            ).orderBy(asc(tenantMenuCategories.sortOrder))
+            items = await tenantDb.select().from(tenantMenuItems).where(and(...itemConditions)).orderBy(asc(tenantMenuItems.sortOrder))
+        }
+
+        const perms = await getMenuPermissions(tenantId)
 
         const hasAccess = buildHasAccess(userPermissions, userRoles, perms)
         console.log("[MENU FLAT] userId:", c.get("userId"), "userRoles:", JSON.stringify(c.get("roles") || []))

@@ -1,5 +1,18 @@
 // Core tenant-facing schemas (exclude core.tenants and all legacy tables)
-export { coreSchema, users, type User, type NewUser } from './core'
+export {
+    coreSchema,
+    users,
+    tenantMenuItems,
+    tenantMenuCategories,
+    tenantMenuItemsRelations,
+    tenantMenuCategoriesRelations,
+    type User,
+    type NewUser,
+    type TenantMenuItem,
+    type NewTenantMenuItem,
+    type TenantMenuCategory,
+    type NewTenantMenuCategory,
+} from './core'
 export * from './consultants.schema'
 
 // Exclude coreSchema from RBAC exports to avoid duplicate symbol conflicts.

@@ -106,6 +106,32 @@ export async function startServer() {
     // db is imported from config/database.ts
 
     // ============================================================================
+    // 1.5. SYNC MENU ITEMS FROM PLATFORM DB TO TENANT DBs
+    // ============================================================================
+    try {
+        const { tenantDb } = await import('./config/database')
+        const { syncMenuToTenants } = await import('./services/menu-sync.service')
+        // Check if tenant menu tables exist by trying a simple query
+        try {
+            const { tenantMenuItems: tmi } = await import('./db/schema')
+            await tenantDb.select().from(tmi).limit(1)
+            // Get active tenant IDs from Platform DB
+            const { TenantRepository } = await import('./repositories/tenant.repository')
+            const allTenants = await TenantRepository.findAll({ isActive: true })
+            const tenantIds = allTenants.data.map((t: any) => t.id).filter(Boolean) as string[]
+            if (tenantIds.length > 0) {
+                syncMenuToTenants(tenantIds).catch((err: Error) =>
+                    logger.warn({ err }, '[MenuSync] Background sync failed (non-fatal)')
+                )
+            }
+        } catch {
+            logger.info('[MenuSync] Tenant menu tables not yet created — skipping sync')
+        }
+    } catch (err) {
+        logger.warn({ err }, '[MenuSync] Could not initialize menu sync (non-fatal)')
+    }
+
+    // ============================================================================
     // 2. CREATE BUN ENGINE FOR SOCKET.IO
     // ============================================================================
     logger.info('Creating Bun engine...')
