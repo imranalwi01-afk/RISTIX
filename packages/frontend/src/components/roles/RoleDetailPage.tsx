@@ -178,7 +178,7 @@ const toPermissionLabel = (permission: Permission): string => {
   return `${resource}.${action}`;
 };
 
-const groupByMenu = (permissions: Permission[]): Array<{
+const groupByMenu = (permissions: Permission[], menuOrder: Map<string, number>): Array<{
   key: string;
   label: string;
   categoryLabel: string;
@@ -207,14 +207,30 @@ const groupByMenu = (permissions: Permission[]): Array<{
     map.get(key)!.permissions.push(permission);
   });
 
+  const actionOrder = ['view', 'create', 'insert', 'update', 'delete', 'export', 'upload', 'approve', 'manage', 'access'];
+
   return Array.from(map.entries())
     .map(([, group]) => ({
       ...group,
-      permissions: group.permissions.sort((a, b) =>
-        getPermissionCanonicalKey(a).localeCompare(getPermissionCanonicalKey(b))
-      ),
+      permissions: group.permissions.sort((a, b) => {
+        const aKey = getPermissionCanonicalKey(a);
+        const bKey = getPermissionCanonicalKey(b);
+        const aAction = aKey.split('.').pop() || '';
+        const bAction = bKey.split('.').pop() || '';
+        const aOrd = actionOrder.indexOf(aAction);
+        const bOrd = actionOrder.indexOf(bAction);
+        if (aOrd !== -1 && bOrd !== -1) return aOrd - bOrd;
+        if (aOrd !== -1) return -1;
+        if (bOrd !== -1) return 1;
+        return aKey.localeCompare(bKey);
+      }),
     }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+    .sort((a, b) => {
+      const aOrd = menuOrder.get(a.key) ?? 9999;
+      const bOrd = menuOrder.get(b.key) ?? 9999;
+      if (aOrd !== bOrd) return aOrd - bOrd;
+      return a.label.localeCompare(b.label);
+    });
 };
 
 const normalizeCode = (value: unknown): string =>
@@ -289,6 +305,7 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
   const [search, setSearch] = useState('');
   const [selectedPermissionIds, setSelectedPermissionIds] = useState<string[]>([]);
   const [initialPermissionIds, setInitialPermissionIds] = useState<string[]>([]);
+  const [menuOrder, setMenuOrder] = useState<Map<string, number>>(new Map());
 
   const mode = searchParams.get('mode');
 
@@ -328,6 +345,28 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
 
       const routingResponse = await api.banking.approval.getRoutingOverview().catch(() => null);
       setApprovalUsage(computeRoleApprovalUsage(normalizedRole, routingResponse));
+
+      // Fetch menu items for ordering permissions by sidebar/matrix order
+      try {
+        const menuRes = await api.client.get('/menu/flat', { params: { format: 'tree' } });
+        const menuData = menuRes.data?.data || [];
+        const order = new Map<string, number>();
+        let idx = 0;
+        const walk = (items: any[]) => {
+          for (const item of items) {
+            if (item.items) {
+              for (const child of item.items) {
+                order.set(child.id || child.menu_key || child.key || `menu_${idx}`, idx++);
+                if (child.children) walk(child.children);
+              }
+            }
+          }
+        };
+        walk(menuData);
+        setMenuOrder(order);
+      } catch {
+        // menu ordering not available — fall back to alphabetical
+      }
     } catch (err) {
       console.error('Failed loading role detail:', err);
       setError(err instanceof Error ? err.message : 'Failed to load role details');
@@ -354,20 +393,41 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
     });
   }, [permissions, search]);
 
-  const permissionGroups = useMemo(() => groupByMenu(filteredPermissions), [filteredPermissions]);
+  const permissionGroups = useMemo(() => groupByMenu(filteredPermissions, menuOrder), [filteredPermissions, menuOrder]);
 
-  // Hierarchical grouping: category → sub-groups
+  // Hierarchical grouping: category → sub-groups (sorted by menu order)
   const permissionSections = useMemo(() => {
     const catMap = new Map<string, { label: string; groups: typeof permissionGroups }>();
+    const catOrder = new Map<string, number>();
+    const catIdx: string[] = [];
+
     permissionGroups.forEach((g) => {
       const cat = g.categoryLabel || 'Other';
-      if (!catMap.has(cat)) catMap.set(cat, { label: cat, groups: [] });
+      if (!catMap.has(cat)) {
+        catMap.set(cat, { label: cat, groups: [] });
+        if (!catIdx.includes(cat)) catIdx.push(cat);
+        catOrder.set(cat, catIdx.length);
+      }
       catMap.get(cat)!.groups.push(g);
     });
-    return Array.from(catMap.values())
-      .map((s) => ({ ...s, groups: s.groups.sort((a, b) => a.label.localeCompare(b.label)) }))
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }, [permissionGroups]);
+
+    return Array.from(catMap.entries())
+      .map(([, section]) => ({
+        ...section,
+        groups: section.groups.sort((a, b) => {
+          const aOrd = menuOrder.get(a.key) ?? 9999;
+          const bOrd = menuOrder.get(b.key) ?? 9999;
+          if (aOrd !== bOrd) return aOrd - bOrd;
+          return a.label.localeCompare(b.label);
+        }),
+      }))
+      .sort((a, b) => {
+        const aOrd = catOrder.get(a.label) ?? 9999;
+        const bOrd = catOrder.get(b.label) ?? 9999;
+        if (aOrd !== bOrd) return aOrd - bOrd;
+        return a.label.localeCompare(b.label);
+      });
+  }, [permissionGroups, menuOrder]);
 
   const selectedPermissionSet = useMemo(() => new Set(selectedPermissionIds), [selectedPermissionIds]);
 
