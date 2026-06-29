@@ -112,40 +112,43 @@ const normalizeApprovalFilterValue = (value: EnterpriseColumnFilterValue): strin
   if (value === null || value === undefined) return '';
   if (typeof value === 'boolean') return value ? 'true' : 'false';
   if (Array.isArray(value)) return value.join(' ');
-  if (typeof value === 'object') return JSON.stringify(value);
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    // Range filter like { from, to } or { min, max } — handled by mapApprovalGridFiltersToBackend
+    return '';
+  }
   return String(value);
 };
 
 const mapApprovalGridFiltersToBackend = (
   filters: Record<string, EnterpriseColumnFilterValue>,
-): Record<string, EnterpriseColumnFilterValue> => {
-  const mapped: Record<string, EnterpriseColumnFilterValue> = {};
+): Record<string, string> => {
+  const mapped: Record<string, string> = {};
 
   Object.entries(filters).forEach(([field, value]) => {
-    if (normalizeApprovalFilterValue(value).trim().length === 0) return;
+    if (value === null || value === undefined) return;
 
-    if (field.startsWith('requestedAt.')) {
-      mapped[field.replace('requestedAt.', 'createdAt.')] = value;
-      return;
-    }
-    if (field === 'priority') {
-      mapped.impactLevel = value;
-      return;
-    }
-    if (field === 'requestType') {
-      mapped.entityType = value;
-      return;
-    }
-    if (field === 'level') {
-      mapped.currentLevel = value;
-      return;
-    }
-    if (field === 'requestTitle' || field.startsWith('requestTitle.')) {
-      mapped[field.replace('requestTitle', 'title')] = value;
+    // Resolve backend field name
+    let backendField = field;
+    if (field.startsWith('requestedAt.')) backendField = field.replace('requestedAt.', 'createdAt.');
+    else if (field === 'priority') backendField = 'impactLevel';
+    else if (field === 'requestType') backendField = 'entityType';
+    else if (field === 'level') backendField = 'currentLevel';
+    else if (field.startsWith('requestTitle')) backendField = field.replace('requestTitle', 'title');
+
+    // Expand range/object filters to backend's dotted-key format
+    if (typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+      const obj = value as Record<string, unknown>;
+      if ('from' in obj) mapped[`${backendField}.from`] = String(obj.from);
+      if ('to' in obj) mapped[`${backendField}.to`] = String(obj.to);
+      if ('min' in obj) mapped[`${backendField}.min`] = String(obj.min);
+      if ('max' in obj) mapped[`${backendField}.max`] = String(obj.max);
+      if ('value' in obj) mapped[backendField] = String(obj.value);
       return;
     }
 
-    mapped[field] = value;
+    const str = normalizeApprovalFilterValue(value);
+    if (str.trim().length === 0) return;
+    mapped[backendField] = str;
   });
 
   return mapped;
@@ -182,7 +185,7 @@ const buildApprovalRequestParams = (input: {
   columnFilters?: Record<string, EnterpriseColumnFilterValue>;
   sort?: EnterpriseSort[];
 }) => {
-  const filters: Record<string, EnterpriseColumnFilterValue> = {
+  const filters: Record<string, string> = {
     ...mapApprovalGridFiltersToBackend(input.columnFilters ?? {}),
   };
 
