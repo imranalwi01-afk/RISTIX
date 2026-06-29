@@ -1,0 +1,19 @@
+# =============================================================================
+# Grafana Alerting — Contact Points Provisioning
+# =============================================================================
+# Sends alerts to Discord via the backend webhook proxy.
+# The backend translates Grafana's JSON format to Discord's embed format.
+# To use: DISCORD_ALERT_WEBHOOK_URL must be set in the backend environment.
+# =============================================================================
+
+apiVersion: 1
+
+contactPoints:
+  - name: Discord Alerts
+    contactPoint:
+      receiver: discord-webhook
+      disableResolveMessage: false
+      settings:
+        url: http://backend:4232/api/v1/alerts/discord
+        httpMethod: POST
+      type: webhook

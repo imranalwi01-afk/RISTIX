@@ -110,6 +110,7 @@ services:
       - ./ops/observability/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
       - ./ops/observability/grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
       - ./ops/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./ops/observability/grafana/contactpoints.yml:/etc/grafana/provisioning/alerting/contactpoints.yml:ro
       - grafana-data:/var/lib/grafana
     ports:
       - "3000:3000"

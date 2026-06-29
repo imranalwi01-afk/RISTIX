@@ -45,6 +45,11 @@ import { platformSettingsRoutes } from './platform-settings.routes'
 const debugRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
 debugRoutes.get('/check', (c) => c.json({ success: true, message: 'Routes are loaded correctly', timestamp: new Date().toISOString() }))
 
+// Discord alert webhook handler (for Grafana alerting)
+import { createDiscordAlertHandler } from '@/lib/discord-alert'
+const alertRoutes = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
+alertRoutes.post('/discord', createDiscordAlertHandler())
+
 /**
  * Main API router
  * All routes are mounted under /api/v1
@@ -100,6 +105,9 @@ routes.route('/r-analytics', rAnalyticsRoutes)
 
 // Jobs
 routes.route('/jobs', jobsRoutes)
+
+// Alerting webhooks
+routes.route('/alerts', alertRoutes)
 
 // Aliases for frontend compatibility
 routes.route('/roles', rbacRoutes)
