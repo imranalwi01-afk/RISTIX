@@ -997,9 +997,28 @@ async function executeRoleAction(
         case 'create': {
             const { permissions: permCodes, ...roleData } = data
             const permissionIds = await resolvePermissionIds(permCodes)
-            const role = await Effect.runPromise(createRole({ ...roleData, tenantId }) as any)
-            if (role && permissionIds.length > 0) {
-                await Effect.runPromise(rolePermissionsRepository.set(db, role.id, permissionIds))
+
+            // Check if role already exists (including inactive) — if so, update and reactivate
+            const { roles: rolesTable } = await import('@/db/schema')
+            const { eq } = await import('drizzle-orm')
+            const existingRoles = await db
+                .select()
+                .from(rolesTable)
+                .where(eq(rolesTable.roleName, roleData.roleName))
+                .limit(1)
+
+            if (existingRoles.length > 0) {
+                const existing = existingRoles[0]
+                console.log(`[Approval] Role "${roleData.roleName}" already exists (active=${existing.isActive}), updating instead of creating`)
+                await Effect.runPromise(updateRole(existing.id, { ...roleData, isActive: true, tenantId }) as any)
+                if (Array.isArray(permCodes)) {
+                    await Effect.runPromise(rolePermissionsRepository.set(db, existing.id, permissionIds))
+                }
+            } else {
+                const role = await Effect.runPromise(createRole({ ...roleData, tenantId }) as any)
+                if (role && permissionIds.length > 0) {
+                    await Effect.runPromise(rolePermissionsRepository.set(db, role.id, permissionIds))
+                }
             }
             break
         }
