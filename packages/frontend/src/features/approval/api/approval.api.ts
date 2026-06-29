@@ -11,6 +11,7 @@ export interface ApprovalRequestQueryInput {
   requestTypeFilter: string;
   levelFilter: string;
   riskLevelFilter: string;
+  requestedByFilter: string;
   columnFilters?: Record<string, EnterpriseColumnFilterValue>;
   sort?: EnterpriseSort[];
 }

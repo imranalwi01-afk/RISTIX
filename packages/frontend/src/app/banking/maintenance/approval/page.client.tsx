@@ -182,6 +182,7 @@ const buildApprovalRequestParams = (input: {
   requestTypeFilter: string;
   levelFilter: string;
   riskLevelFilter: string;
+  requestedByFilter: string;
   columnFilters?: Record<string, EnterpriseColumnFilterValue>;
   sort?: EnterpriseSort[];
 }) => {
@@ -195,6 +196,7 @@ const buildApprovalRequestParams = (input: {
   if (input.requestTypeFilter !== 'all') filters.entityType = input.requestTypeFilter;
   if (input.levelFilter !== 'all') filters.currentLevel = input.levelFilter;
   if (input.riskLevelFilter !== 'all') filters.riskLevel = input.riskLevelFilter;
+  if (input.requestedByFilter?.trim()) filters.requestedBy = input.requestedByFilter.trim();
 
   return {
     page: input.page,
@@ -364,6 +366,7 @@ function ApprovalManagementPage() {
   const [requestTypeFilter, setRequestTypeFilter] = useState('all');
   const [levelFilter, setLevelFilter] = useState('all');
   const [riskLevelFilter, setRiskLevelFilter] = useState('all');
+  const [requestedByFilter, setRequestedByFilter] = useState('');
   const [routingEntityFilter, setRoutingEntityFilter] = useState('all');
   const [routingOperationFilter, setRoutingOperationFilter] = useState<'all' | 'create' | 'update' | 'delete'>('all');
   const [routingDepartmentFilter, setRoutingDepartmentFilter] = useState('');
@@ -442,12 +445,14 @@ function ApprovalManagementPage() {
     requestTypeFilter,
     levelFilter,
     riskLevelFilter,
+    requestedByFilter,
     columnFilters: queryState.columnFilters,
     sort: queryState.sort,
   }), [
     bankingTypeFilter,
     levelFilter,
     priorityFilter,
+    requestedByFilter,
     queryState.columnFilters,
     queryState.paginationModel.page,
     queryState.paginationModel.pageSize,
@@ -467,6 +472,7 @@ function ApprovalManagementPage() {
     requestTypeFilter,
     levelFilter,
     riskLevelFilter,
+    requestedByFilter,
   });
   const approvalMatricesQuery = useApprovalMatricesQuery();
   const approvalRoutingQuery = useApprovalRoutingQuery({
@@ -843,10 +849,11 @@ const handleApprovalAction = useCallback((request: ApprovalRequest, action: 'app
         bankingTypeFilter,
         requestTypeFilter,
         levelFilter,
-        riskLevelFilter,
-        columnFilters: queryState.columnFilters,
-        sort: queryState.sort,
-      }));
+            riskLevelFilter,
+            requestedByFilter,
+            columnFilters: queryState.columnFilters,
+            sort: queryState.sort,
+          }));
 
       const chunk = Array.isArray(response)
         ? response
@@ -971,6 +978,7 @@ const handleApprovalAction = useCallback((request: ApprovalRequest, action: 'app
     setRequestTypeFilter('all');
     setLevelFilter('all');
     setRiskLevelFilter('all');
+    setRequestedByFilter('');
     resetView();
     setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
   }, [queryState.paginationModel.pageSize, resetView, setPaginationModel]);
@@ -1173,6 +1181,11 @@ const handleApprovalAction = useCallback((request: ApprovalRequest, action: 'app
             }}
             onRiskLevelFilterChange={(value) => {
               setRiskLevelFilter(value);
+              setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
+            }}
+            requestedByFilter={requestedByFilter}
+            onRequestedByFilterChange={(value) => {
+              setRequestedByFilter(value);
               setPaginationModel({ page: 0, pageSize: queryState.paginationModel.pageSize });
             }}
             onRefresh={handleRefresh}

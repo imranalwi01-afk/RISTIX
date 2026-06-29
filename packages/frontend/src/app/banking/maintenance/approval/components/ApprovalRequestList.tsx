@@ -57,6 +57,8 @@ interface ApprovalRequestListProps {
   onRequestTypeFilterChange: (value: string) => void;
   onLevelFilterChange: (value: string) => void;
   onRiskLevelFilterChange: (value: string) => void;
+  requestedByFilter?: string;
+  onRequestedByFilterChange?: (value: string) => void;
   onRefresh: () => void;
   onResetFilters: () => void;
   onViewDetails: (request: ApprovalRequest) => void;
@@ -95,6 +97,8 @@ export const ApprovalRequestList = memo(function ApprovalRequestList({
   requestTypeFilter,
   levelFilter,
   riskLevelFilter,
+  requestedByFilter = '',
+  onRequestedByFilterChange,
   currentUserId,
   onSearchChange,
   onStatusFilterChange,
@@ -459,6 +463,15 @@ export const ApprovalRequestList = memo(function ApprovalRequestList({
             </Select>
           </FormControl>
 
+          {onRequestedByFilterChange && (
+            <TextField
+              placeholder="Requested by..."
+              value={requestedByFilter}
+              onChange={(e) => onRequestedByFilterChange(e.target.value)}
+              size="small"
+              sx={{ minWidth: 160 }}
+            />
+          )}
           <Button variant="outlined" startIcon={<RefreshIcon />} onClick={onRefresh}>
             Refresh
           </Button>
