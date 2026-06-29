@@ -233,15 +233,37 @@ export default function AccessMatrixPage() {
       <TableContainer component={Paper} sx={{ maxHeight: '70vh' }}>
         <Table stickyHeader size="small">
           <TableHead>
+            {/* Row 1: Role headers with colspan */}
             <TableRow>
-              <TableCell sx={{ fontWeight: 700, minWidth: 200, bgcolor: 'grey.50' }}>Menu</TableCell>
-              <TableCell sx={{ fontWeight: 700, minWidth: 160, bgcolor: 'grey.50' }}>Category</TableCell>
+              <TableCell rowSpan={2} sx={{ fontWeight: 700, minWidth: 200, bgcolor: 'grey.50' }}>Menu</TableCell>
+              <TableCell rowSpan={2} sx={{ fontWeight: 700, minWidth: 160, bgcolor: 'grey.50' }}>Category</TableCell>
               {roles.map((role) => (
-                <TableCell key={role.id} sx={{ fontWeight: 700, minWidth: 140, bgcolor: 'grey.50', textAlign: 'center', fontSize: '0.7rem', whiteSpace: 'nowrap' }}>
+                <TableCell
+                  key={role.id}
+                  colSpan={ACTIONS.length}
+                  sx={{ fontWeight: 700, bgcolor: 'grey.50', textAlign: 'center', fontSize: '0.7rem', whiteSpace: 'nowrap', borderBottom: 'none', p: 0.5 }}
+                >
                   {role.displayName}
                   <br />
                   <Chip size="small" label={`${role.userCount} users`} variant="outlined" sx={{ height: 16, fontSize: 10 }} />
                 </TableCell>
+              ))}
+            </TableRow>
+            {/* Row 2: Action sub-headers */}
+            <TableRow>
+              {roles.map((role) => (
+                ACTIONS.map((action) => (
+                  <TableCell
+                    key={`${role.id}-${action}`}
+                    sx={{
+                      fontWeight: 600, fontSize: '0.65rem', textAlign: 'center', p: 0.3,
+                      bgcolor: 'grey.50', color: ACTION_META[action].color,
+                      minWidth: 36, maxWidth: 36, whiteSpace: 'nowrap', lineHeight: 1,
+                    }}
+                  >
+                    {ACTION_LETTER[action]}
+                  </TableCell>
+                ))
               ))}
             </TableRow>
           </TableHead>
@@ -252,57 +274,48 @@ export default function AccessMatrixPage() {
                 <TableCell sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>{menu.categoryName || '-'}</TableCell>
                 {roles.map((role) => {
                   const actions = allowedActionsFor(menu.id, role.id);
-                  return (
-                    <TableCell
-                      key={role.id}
-                      sx={{ textAlign: 'center', p: 0.5, cursor: 'pointer' }}
-                      onClick={(e) => openPopover(menu, role, e.currentTarget)}
-                    >
-                      <Stack direction="row" spacing={0.5} justifyContent="center" flexWrap="wrap">
-                          {ACTIONS.map((action) => {
-                            const key = `${menu.id}:${role.id}:${action}`;
-                            const isSavingAction = saving.has(key);
-                            const isAllowed = actions.has(action);
-                            return (
-                              <Tooltip key={action} title={`${ACTION_META[action].label}: ${isAllowed ? 'Allowed' : 'Denied'}`}>
-                                <Box
-                                  onClick={(e) => { e.stopPropagation(); toggleAction(menu.id, role.id, action, isAllowed); }}
-                                  sx={{
-                                    display: 'flex', alignItems: 'center', cursor: 'pointer', px: 0.3,
-                                    color: isAllowed ? ACTION_META[action].color : 'text.disabled',
-                                    '&:hover': { bgcolor: 'action.hover', borderRadius: 1 },
-                                  }}
-                                >
-                                  {isSavingAction ? (
-                                    <CircularProgress size={14} sx={{ color: 'text.disabled' }} />
-                                  ) : (
-                                    <Checkbox
-                                      size="small"
-                                      checked={isAllowed}
-                                      sx={{
-                                        p: 0.3,
-                                        '& .MuiSvgIcon-root': { fontSize: 18 },
-                                        color: isAllowed ? ACTION_META[action].color : 'text.disabled',
-                                        '&.Mui-checked': { color: ACTION_META[action].color },
-                                      }}
-                                    />
-                                  )}
-                                  <Box component="span" sx={{ fontSize: 10, fontWeight: 600, ml: 0.1 }}>
-                                    {ACTION_LETTER[action]}
-                                  </Box>
-                                </Box>
-                              </Tooltip>
-                            );
-                          })}
-                        </Stack>
-                    </TableCell>
-                  );
+                  return ACTIONS.map((action) => {
+                    const key = `${menu.id}:${role.id}:${action}`;
+                    const isSavingAction = saving.has(key);
+                    const isAllowed = actions.has(action);
+                    return (
+                      <TableCell
+                        key={key}
+                        sx={{ textAlign: 'center', p: 0, cursor: 'pointer', minWidth: 36, maxWidth: 36 }}
+                        onClick={(e) => openPopover(menu, role, e.currentTarget)}
+                      >
+                        <Box
+                          onClick={(e) => { e.stopPropagation(); toggleAction(menu.id, role.id, action, isAllowed); }}
+                          sx={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                            color: isAllowed ? ACTION_META[action].color : 'text.disabled',
+                            '&:hover': { bgcolor: 'action.hover' },
+                          }}
+                        >
+                          {isSavingAction ? (
+                            <CircularProgress size={14} sx={{ color: 'text.disabled' }} />
+                          ) : (
+                            <Checkbox
+                              size="small"
+                              checked={isAllowed}
+                              sx={{
+                                p: 0.2,
+                                '& .MuiSvgIcon-root': { fontSize: 16 },
+                                color: isAllowed ? ACTION_META[action].color : 'text.disabled',
+                                '&.Mui-checked': { color: ACTION_META[action].color },
+                              }}
+                            />
+                          )}
+                        </Box>
+                      </TableCell>
+                    );
+                  });
                 })}
               </TableRow>
             ))}
             {filteredMenus.length === 0 && (
               <TableRow>
-                <TableCell colSpan={2 + roles.length} align="center">
+                <TableCell colSpan={2 + roles.length * ACTIONS.length} align="center">
                   <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>No menus found.</Typography>
                 </TableCell>
               </TableRow>
