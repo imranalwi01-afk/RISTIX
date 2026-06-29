@@ -577,18 +577,35 @@ export const ApprovalRequestDetailDialog = memo(function ApprovalRequestDetailDi
                         <ApprovalFlowTracker
                         currentLevel={request.currentLevel || 1}
                         levels={[
-                          ...(routingMatch?.routing?.levels || []).sort((a, b) => a.level - b.level).map((lvl) => ({
-                            level: lvl.level,
-                            name: lvl.name,
-                            status: (lvl.level < (request.currentLevel || 1) ? 'approved' : lvl.level === (request.currentLevel || 1) ? 'active' : 'waiting') as 'approved' | 'active' | 'waiting',
-                            requiredRoles: lvl.requiredRoleCodes || [],
-                            action: (request as any).actions?.find((a: any) => a.level === lvl.level) ? {
-                              type: ((request as any).actions?.find((a: any) => a.level === lvl.level)?.action || 'approve') as 'approve' | 'reject',
-                              by: (request as any).actions?.find((a: any) => a.level === lvl.level)?.approverName || (request as any).actions?.find((a: any) => a.level === lvl.level)?.createdBy,
-                              at: (request as any).actions?.find((a: any) => a.level === lvl.level)?.createdAt,
-                              comment: (request as any).actions?.find((a: any) => a.level === lvl.level)?.comment,
-                            } : undefined,
-                          }))
+                          ...(routingMatch?.routing?.levels || []).sort((a, b) => a.level - b.level).map((lvl) => {
+                            const requestStatus = String(request.status || '').toLowerCase();
+                            const isTerminal = requestStatus === 'approved' || requestStatus === 'rejected' || requestStatus === 'cancelled';
+                            const lvlAction = (request as any).actions?.find((a: any) => a.level === lvl.level);
+                            let levelStatus: 'approved' | 'rejected' | 'active' | 'waiting';
+                            if (lvlAction) {
+                              levelStatus = lvlAction.action === 'reject' ? 'rejected' : 'approved';
+                            } else if (isTerminal) {
+                              levelStatus = requestStatus as 'approved' | 'rejected';
+                            } else if (lvl.level < (request.currentLevel || 1)) {
+                              levelStatus = 'approved';
+                            } else if (lvl.level === (request.currentLevel || 1)) {
+                              levelStatus = 'active';
+                            } else {
+                              levelStatus = 'waiting';
+                            }
+                            return {
+                              level: lvl.level,
+                              name: lvl.name,
+                              status: levelStatus,
+                              requiredRoles: lvl.requiredRoleCodes || [],
+                              action: lvlAction ? {
+                                type: (lvlAction.action === 'reject' ? 'reject' : 'approve') as 'approve' | 'reject',
+                                by: lvlAction.approverName || lvlAction.createdBy,
+                                at: lvlAction.createdAt,
+                                comment: lvlAction.comment,
+                              } : undefined,
+                            };
+                          })
                         ]}
                       />
                       {JSON.stringify(sanitizedRequestData, null, 2)}
