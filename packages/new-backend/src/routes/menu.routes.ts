@@ -602,7 +602,6 @@ menuRoutes.openapi(
                     .set({ isAllowed: perm.isAllowed })
                     .where(eq(tenantMenuPermissions.id, existing[0].id))
             } else if (perm.isAllowed) {
-                // Only create if allowed (no need to store "not allowed" as a row)
                 await tenantDb.insert(tenantMenuPermissions).values({
                     id: randomUUID(),
                     tenantId,
@@ -615,6 +614,14 @@ menuRoutes.openapi(
                 })
             }
             upserted++
+
+            // Sync: auto-grant/revoke corresponding role permission
+            try {
+                const { syncMenuPermissionToRole } = await import('@/lib/menu-permission-sync')
+                await syncMenuPermissionToRole(tenantId, perm.menuItemId, perm.roleId, perm.permissionType || 'view', perm.isAllowed)
+            } catch (syncErr) {
+                console.warn('[MenuBatch] Role permission sync failed (non-fatal):', syncErr)
+            }
         }
 
         auditCreate('menu_permission_batch', tenantId, { count: upserted }, c, tenantId)
