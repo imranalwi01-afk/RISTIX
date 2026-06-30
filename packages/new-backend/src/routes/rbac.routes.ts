@@ -61,26 +61,7 @@ const normalizeRoleName = (value: string): string =>
 
 const ROLE_NAME_REGEX = /^[A-Z_][A-Z0-9_]*$/
 
-const toPermissionRiskLevel = (permission: any): 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' => {
-    const rawLevel = String(permission?.riskLevel ?? permission?.impactLevel ?? 'low').trim().toLowerCase()
-    if (rawLevel === 'critical') return 'CRITICAL'
-    if (rawLevel === 'high') return 'HIGH'
-    if (rawLevel === 'medium') return 'MEDIUM'
-    return 'LOW'
-}
-
-const permissionRequiresApproval = (permission: any): boolean => {
-    if (typeof permission?.requiresApproval === 'boolean') {
-        return permission.requiresApproval
-    }
-    const riskLevel = toPermissionRiskLevel(permission)
-    return riskLevel === 'HIGH' || riskLevel === 'CRITICAL'
-}
-
 const permissionToApiResponse = (permission: any, category?: string) => {
-    const riskLevel = toPermissionRiskLevel(permission)
-    const requiresApproval = permissionRequiresApproval(permission)
-
     return {
         id: permission.id,
         code: permission.code,
@@ -91,10 +72,6 @@ const permissionToApiResponse = (permission: any, category?: string) => {
         action: permission.action,
         module: permission.module,
         category: category || permission.category || 'CORE',
-        riskLevel,
-        requiresApproval,
-        requiredApprovalLevel: permission.requiredApprovalLevel ?? (requiresApproval ? 2 : null),
-        requiredApprovers: permission.requiredApprovers ?? 1,
         bankingSpecific: permission.module === 'banking',
         syariahRequired: false,
     }
@@ -504,10 +481,6 @@ rbacRoutes.openapi(
             Effect.map((permissions) => permissions.map(p => ({
                 ...p,
                 category: p.category ?? 'CORE',
-                riskLevel: toPermissionRiskLevel(p),
-                requiresApproval: permissionRequiresApproval(p),
-                requiredApprovalLevel: (p as any).requiredApprovalLevel ?? (permissionRequiresApproval(p) ? 2 : null),
-                requiredApprovers: (p as any).requiredApprovers ?? 1,
             }))),
         )
 

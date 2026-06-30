@@ -446,18 +446,8 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
     [role]
   );
 
-  const highRiskCount = useMemo(() => {
-    const byId = new Map(permissions.map((permission) => [permission.id, permission]));
-    return selectedPermissionIds.filter((id) => {
-      const risk = (byId.get(id)?.riskLevel || '').toUpperCase();
-      return risk === 'HIGH' || risk === 'CRITICAL';
-    }).length;
-  }, [permissions, selectedPermissionIds]);
-
-  const approvalRequiredCount = useMemo(() => {
-    const byId = new Map(permissions.map((permission) => [permission.id, permission]));
-    return selectedPermissionIds.filter((id) => Boolean(byId.get(id)?.requiresApproval)).length;
-  }, [permissions, selectedPermissionIds]);
+  const highRiskCount = 0;
+  const approvalRequiredCount = 0;
 
   const togglePermission = useCallback((permissionId: string, checked: boolean) => {
     setSelectedPermissionIds((prev) => {
@@ -587,8 +577,6 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
             <CardContent>
               <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>Permission Summary</Typography>
               <Typography variant="body2">Selected: <strong>{selectedPermissionIds.length}</strong></Typography>
-              <Typography variant="body2">High/Critical Risk: <strong>{highRiskCount}</strong></Typography>
-              <Typography variant="body2">Approval Required: <strong>{approvalRequiredCount}</strong></Typography>
             </CardContent>
           </Card>
 
@@ -755,8 +743,6 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
                                     )}
                                     <Stack direction="row" spacing={0.75} sx={{ mt: 0.25 }}>
                                       {permission.code && <Chip size="small" label={permission.code} variant="outlined" />}
-                                      {permission.riskLevel && <Chip size="small" label={permission.riskLevel} color={permission.riskLevel === 'CRITICAL' || permission.riskLevel === 'HIGH' ? 'error' : 'default'} variant="outlined" />}
-                                      {permission.requiresApproval && <Chip size="small" label="Requires Approval" color="warning" variant="outlined" />}
                                     </Stack>
                                   </Box>
                                 )}
