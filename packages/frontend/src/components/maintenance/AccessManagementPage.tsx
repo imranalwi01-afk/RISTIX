@@ -266,7 +266,7 @@ function AccessManagementPage() {
     return false;
   };
 
-  const handleSaveRole = async (roleForm: { name: string; displayName: string; description: string; type: string; level: string; isActive: boolean; selectedPermissions: string[] }) => {
+  const handleSaveRole = async (roleForm: { name: string; displayName: string; description: string; type: string; level: string; isActive: boolean }) => {
     if (!canManageRoles) return;
     try {
       const roleData = {
@@ -276,7 +276,6 @@ function AccessManagementPage() {
         type: roleForm.type,
         level: roleForm.level,
         isActive: roleForm.isActive,
-        permissions: roleForm.selectedPermissions,
       };
 
       if (roleDialog.mode === 'create') {
@@ -422,7 +421,6 @@ function AccessManagementPage() {
         open={roleDialog.open}
         mode={roleDialog.mode}
         role={roleDialog.role}
-        permissionSelectionGroups={permissionSelectionGroups}
         onClose={() => setRoleDialog(prev => ({ ...prev, open: false }))}
         onSave={handleSaveRole}
       />

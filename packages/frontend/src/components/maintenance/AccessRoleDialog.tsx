@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
@@ -18,16 +18,7 @@ import MenuItem from '@mui/material/MenuItem';
 import FormHelperText from '@mui/material/FormHelperText';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
-import Checkbox from '@mui/material/Checkbox';
-import Accordion from '@mui/material/Accordion';
-import AccordionSummary from '@mui/material/AccordionSummary';
-import AccordionDetails from '@mui/material/AccordionDetails';
-import Stepper from '@mui/material/Stepper';
-import Step from '@mui/material/Step';
-import StepLabel from '@mui/material/StepLabel';
-import Divider from '@mui/material/Divider';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import type { Role, PermissionSelectionGroup } from './access-management.types';
+import type { Role } from './access-management.types';
 
 export interface RoleFormData {
   name: string;
@@ -36,14 +27,12 @@ export interface RoleFormData {
   type: 'SYSTEM' | 'BANKING' | 'CUSTOM';
   level: 'PLATFORM' | 'TENANT' | 'DEPARTMENT';
   isActive: boolean;
-  selectedPermissions: string[];
 }
 
 interface AccessRoleDialogProps {
   open: boolean;
   mode: 'create' | 'edit' | 'view';
   role: Role | null;
-  permissionSelectionGroups: PermissionSelectionGroup[];
   onClose: () => void;
   onSave: (formData: RoleFormData) => void;
 }
@@ -55,19 +44,16 @@ const DEFAULT_FORM: RoleFormData = {
   type: 'CUSTOM',
   level: 'TENANT',
   isActive: true,
-  selectedPermissions: [],
 };
 
 export const AccessRoleDialog: React.FC<AccessRoleDialogProps> = ({
   open,
   mode,
   role,
-  permissionSelectionGroups,
   onClose,
   onSave,
 }) => {
   const [form, setForm] = useState<RoleFormData>(DEFAULT_FORM);
-  const [step, setStep] = useState(0);
 
   useEffect(() => {
     if (open) {
@@ -79,243 +65,108 @@ export const AccessRoleDialog: React.FC<AccessRoleDialogProps> = ({
           type: role.type,
           level: role.level,
           isActive: role.isActive,
-          selectedPermissions: role.permissions?.map((p: any) => p.code ?? p) ?? [],
         });
       } else {
         setForm(DEFAULT_FORM);
       }
-      setStep(0);
     }
   }, [open, role]);
 
-  const updateForm = useCallback((next: RoleFormData) => {
-    setForm(next);
-  }, []);
-
-  const handleSave = useCallback(() => {
-    onSave(form);
-  }, [form, onSave]);
+  const updateForm = (updated: RoleFormData) => setForm(updated);
 
   const isView = mode === 'view';
-  const isBuiltInRole = role?.isBuiltIn ?? false;
-  const notView = !isView;
+  const notView = mode !== 'view';
+  const isBuiltInRole = (role as any)?.isSystemRole ?? role?.isBuiltIn ?? false;
 
-  // Group permissions by category (hint) for hierarchical display
-  const groupedByCategory = useMemo(() => {
-    const categoryMap = new Map<string, { label: string; groups: PermissionSelectionGroup[] }>();
-    permissionSelectionGroups.forEach((group) => {
-      const catKey = group.hint || 'Other';
-      if (!categoryMap.has(catKey)) {
-        categoryMap.set(catKey, { label: catKey, groups: [] });
-      }
-      categoryMap.get(catKey)!.groups.push(group);
-    });
-    return Array.from(categoryMap.entries())
-      .map(([, section]) => ({
-        ...section,
-        groups: section.groups.sort((a, b) => a.label.localeCompare(b.label)),
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }, [permissionSelectionGroups]);
-
-  // Stable calculation for initially expanded accordions (only runs on open)
-  const initialExpandedGroups = useMemo(() => {
-    if (!open) return new Set<string>();
-    const expanded = new Set<string>();
-    const initialPerms = role?.permissions?.map((p: any) => p.code ?? p) ?? [];
-    permissionSelectionGroups.forEach(g => {
-      const hasAny = g.permissions.some(p => p.code && initialPerms.includes(p.code));
-      if (hasAny) expanded.add(g.key);
-    });
-    return expanded;
-  }, [open, role, permissionSelectionGroups]);
+  const handleSave = () => onSave(form);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth={step === 0 ? 'md' : 'xl'} fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           {mode === 'create' && 'Create New Role'}
           {mode === 'edit' && 'Edit Role'}
           {mode === 'view' && 'Role Details'}
-          <Chip label={step === 0 ? 'Basic Info' : 'Permissions'} size="small" color="primary" variant="outlined" sx={{ ml: 'auto' }} />
+          <Chip label="Basic Info" size="small" color="primary" variant="outlined" sx={{ ml: 'auto' }} />
         </Box>
       </DialogTitle>
-      <Stepper activeStep={step} sx={{ px: 3, pt: 1, pb: 2 }}>
-        <Step><StepLabel>Basic Information</StepLabel></Step>
-        <Step><StepLabel>Permissions</StepLabel></Step>
-      </Stepper>
       <DialogContent>
-        {step === 0 && (
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
-                fullWidth
-                label="Role Name (System)"
-                value={form.name}
-                onChange={(e) => updateForm({ ...form, name: e.target.value.toUpperCase() })}
-                disabled={isView || isBuiltInRole}
-                placeholder="ROLE_NAME"
-                inputProps={{ 'data-testid': 'access-management-role-name' }}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
-                fullWidth
-                label="Display Name"
-                value={form.displayName}
-                onChange={(e) => updateForm({ ...form, displayName: e.target.value })}
-disabled={isView}
-              placeholder="Human readable name"
-                inputProps={{ 'data-testid': 'access-management-role-display-name' }}
-              />
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                fullWidth
-                label="Description *"
-                value={form.description}
-                onChange={(e) => updateForm({ ...form, description: e.target.value })}
-                disabled={isView}
-                multiline
-                rows={3}
-                placeholder="Jelaskan cakupan pekerjaan role ini, divisi yang menggunakannya, dan batasan aksesnya."
-                error={form.description.length > 0 && form.description.length < 30}
-                helperText={
-                  form.description.length < 30
-                    ? `Minimal 30 karakter. (${form.description.length}/500)`
-                    : `${form.description.length}/500 karakter`
-                }
-                inputProps={{ maxLength: 500 }}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <FormControl fullWidth disabled={isView}>
-                <InputLabel>Type</InputLabel>
-                <Select
-                  value={form.type}
-                  onChange={(e) => updateForm({ ...form, type: e.target.value as any })}
-                  label="Type"
-                >
-                  <MenuItem value="SYSTEM">System</MenuItem>
-                  <MenuItem value="BANKING">Banking</MenuItem>
-                  <MenuItem value="CUSTOM">Custom</MenuItem>
-                </Select>
-                <FormHelperText>System = built-in, Banking = banking ops, Custom = user-defined</FormHelperText>
-              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={form.isActive}
-                    onChange={(e) => updateForm({ ...form, isActive: e.target.checked })}
-                    disabled={isView}
-                  />
-                }
-                label="Active Role"
-              />
-            </Grid>
+        <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              fullWidth
+              label="Role Name (System)"
+              value={form.name}
+              onChange={(e) => updateForm({ ...form, name: e.target.value.toUpperCase() })}
+              disabled={isView || isBuiltInRole}
+              placeholder="ROLE_NAME"
+              inputProps={{ 'data-testid': 'access-management-role-name' }}
+            />
           </Grid>
-        )}
-        {step === 1 && (
-          <Box sx={{ mt: 1 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="subtitle2">
-                {form.selectedPermissions.length} permissions selected
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button size="small" onClick={() => {
-                  const allPerms = permissionSelectionGroups.flatMap(g => g.permissions.map(p => p.code ?? ''));
-                  updateForm({ ...form, selectedPermissions: allPerms });
-                }}>Select All</Button>
-                <Button size="small" onClick={() => updateForm({ ...form, selectedPermissions: [] })}>Clear All</Button>
-              </Box>
-            </Box>
-            {groupedByCategory.map((section) => (
-              <Box key={section.label} sx={{ mb: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <Chip label={section.label} size="small" color="primary" variant="outlined" />
-                  <Divider sx={{ flex: 1 }} />
-                </Box>
-                {section.groups.map((group) => {
-              const groupPerms = group.permissions.filter(p => p.code);
-              const selectedCount = groupPerms.filter(p => form.selectedPermissions.includes(p.code!)).length;
-              const allSelected = selectedCount === groupPerms.length;
-              return (
-                <Accordion key={group.key} defaultExpanded={initialExpandedGroups.has(group.key)} sx={{ mb: 1 }}>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                      <Checkbox
-                        size="small"
-                        checked={allSelected}
-                        indeterminate={selectedCount > 0 && !allSelected}
-                        onChange={(e) => {
-                          const codes = groupPerms.map(p => p.code!);
-                          if (e.target.checked) {
-                            updateForm({ ...form, selectedPermissions: [...new Set([...form.selectedPermissions, ...codes])] });
-                          } else {
-                            updateForm({ ...form, selectedPermissions: form.selectedPermissions.filter(c => !codes.includes(c)) });
-                          }
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <Typography variant="subtitle2">{group.label}</Typography>
-                      <Chip label={`${selectedCount}/${groupPerms.length}`} size="small" variant="outlined" />
-                    </Box>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 1 }}>
-                      {groupPerms.map((perm) => (
-                        <FormControlLabel
-                          key={perm.code}
-                          control={
-                            <Checkbox
-                              size="small"
-                              checked={form.selectedPermissions.includes(perm.code!)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  updateForm({ ...form, selectedPermissions: [...form.selectedPermissions, perm.code!] });
-                                } else {
-                                  updateForm({ ...form, selectedPermissions: form.selectedPermissions.filter(c => c !== perm.code) });
-                                }
-                              }}
-                            />
-                          }
-                          label={
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              <Typography variant="caption">{perm.displayName || perm.code}</Typography>
-                              {perm.riskLevel === 'CRITICAL' && <Chip label="Critical" size="small" color="error" variant="outlined" sx={{ height: 18, fontSize: 10 }} />}
-                              {perm.requiresApproval && <Chip label="Approval" size="small" color="warning" variant="outlined" sx={{ height: 18, fontSize: 10 }} />}
-                            </Box>
-                          }
-                        />
-                      ))}
-                    </Box>
-                  </AccordionDetails>
-                </Accordion>
-              );
-            })}
-              </Box>
-            ))}
-          </Box>
-        )}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              fullWidth
+              label="Display Name"
+              value={form.displayName}
+              onChange={(e) => updateForm({ ...form, displayName: e.target.value })}
+              disabled={isView}
+              placeholder="Human readable name"
+              inputProps={{ 'data-testid': 'access-management-role-display-name' }}
+            />
+          </Grid>
+          <Grid size={{ xs: 12 }}>
+            <TextField
+              fullWidth
+              label="Description *"
+              value={form.description}
+              onChange={(e) => updateForm({ ...form, description: e.target.value })}
+              disabled={isView}
+              multiline
+              rows={3}
+              placeholder="Jelaskan cakupan pekerjaan role ini, divisi yang menggunakannya, dan batasan aksesnya."
+              error={form.description.length > 0 && form.description.length < 30}
+              helperText={
+                form.description.length < 30
+                  ? `Minimal 30 karakter. (${form.description.length}/500)`
+                  : `${form.description.length}/500 karakter`
+              }
+              inputProps={{ maxLength: 500 }}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <FormControl fullWidth disabled={isView}>
+              <InputLabel>Type</InputLabel>
+              <Select
+                value={form.type}
+                onChange={(e) => updateForm({ ...form, type: e.target.value as any })}
+                label="Type"
+              >
+                <MenuItem value="SYSTEM">System</MenuItem>
+                <MenuItem value="BANKING">Banking</MenuItem>
+                <MenuItem value="CUSTOM">Custom</MenuItem>
+              </Select>
+              <FormHelperText>System = built-in, Banking = banking ops, Custom = user-defined</FormHelperText>
+            </FormControl>
+          </Grid>
+          <Grid size={{ xs: 12 }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={form.isActive}
+                  onChange={(e) => updateForm({ ...form, isActive: e.target.checked })}
+                  disabled={isView}
+                />
+              }
+              label="Active Role"
+            />
+          </Grid>
+        </Grid>
       </DialogContent>
       <DialogActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
+        <Box />
         <Box>
-          {step > 0 && notView && (
-            <Button onClick={() => setStep(step - 1)}>Back</Button>
-          )}
-        </Box>
-        <Box>
-          <Button onClick={onClose}>
-            {isView ? 'Close' : 'Cancel'}
-          </Button>
-          {notView && step === 0 && (
-            <Button variant="contained" onClick={() => setStep(1)} sx={{ ml: 1 }} disabled={!form.name.trim() || form.description.trim().length < 30}>
-              Next: Permissions
-            </Button>
-          )}
-          {notView && step === 1 && (
+          <Button onClick={onClose}>{isView ? 'Close' : 'Cancel'}</Button>
+          {notView && (
             <Button variant="contained" onClick={handleSave} sx={{ ml: 1 }} data-testid="access-management-save-role" disabled={!form.name.trim() || form.description.trim().length < 30}>
               {mode === 'create' ? 'Create Role' : 'Update Role'}
             </Button>
