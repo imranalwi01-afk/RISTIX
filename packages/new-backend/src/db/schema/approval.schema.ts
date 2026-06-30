@@ -72,7 +72,7 @@ export const approvalLevels = approvalSchema.table(
         level: integer('level').notNull(), // 1, 2, 3...
         name: varchar('name', { length: 100 }).notNull(),
         description: text('description'),
-        requiredRoleCodes: jsonb('required_role_codes').$type<string[]>().notNull().default([]),
+        requiredRoleCodes: jsonb('required_role_codes').$type<string[]>().notNull().default(['approval.requests.approve']),
         requiredPermissionCodes: jsonb('required_permission_codes')
             .$type<string[]>()
             .notNull()
@@ -237,7 +237,7 @@ export const notificationPreferences = approvalSchema.table(
             .notNull()
             .references(() => users.id, { onDelete: 'cascade' }),
         muteAll: boolean('mute_all').notNull().default(false),
-        mutedCategories: jsonb('muted_categories').$type<string[]>().notNull().default([]),
+        mutedCategories: jsonb('muted_categories').$type<string[]>().notNull().default(['approval.requests.approve']),
         quietHoursEnabled: boolean('quiet_hours_enabled').notNull().default(false),
         quietHoursStart: varchar('quiet_hours_start', { length: 5 }).notNull().default('22:00'),
         quietHoursEnd: varchar('quiet_hours_end', { length: 5 }).notNull().default('07:00'),

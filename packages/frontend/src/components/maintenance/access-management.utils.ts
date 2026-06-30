@@ -191,6 +191,10 @@ const SIDEBAR_GROUP_LABELS: Record<string, { label: string; breadcrumb: string }
     label: 'Access Management',
     breadcrumb: 'Admin & Maintenance > Access Management',
   },
+  'admin.maintenance.view': {
+    label: 'Maintenance Pages',
+    breadcrumb: 'Admin & Maintenance',
+  },
   'admin.users': {
     label: 'User Management',
     breadcrumb: 'Admin & Maintenance > User Management',
