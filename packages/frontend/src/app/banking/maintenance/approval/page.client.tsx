@@ -121,53 +121,39 @@ const normalizeApprovalFilterValue = (value: EnterpriseColumnFilterValue): strin
 
 const mapApprovalGridFiltersToBackend = (
   filters: Record<string, EnterpriseColumnFilterValue>,
-): Record<string, EnterpriseColumnFilterValue> => {
-  const mapped: Record<string, EnterpriseColumnFilterValue> = {};
+): Record<string, string> => {
+  const mapped: Record<string, string> = {};
 
   Object.entries(filters).forEach(([field, value]) => {
-    if (normalizeApprovalFilterValue(value).trim().length === 0) return;
+    if (value === null || value === undefined) return;
 
-    if (field === 'requestedAt' || field.startsWith('requestedAt.')) {
-      mapped[field.replace('requestedAt', 'createdAt')] = value;
-      return;
-    }
-    if (field === 'requestedByName' || field.startsWith('requestedByName.')) {
-      mapped[field.replace('requestedByName', 'requestedBy')] = value;
-      return;
-    }
-    if (field === 'priority' || field.startsWith('priority.')) {
-      mapped[field.replace('priority', 'impactLevel')] = value;
-      return;
-    }
-    if (field === 'requestType' || field.startsWith('requestType.')) {
-      mapped[field.replace('requestType', 'entityType')] = value;
-      return;
-    }
-    if (field === 'requestTitle' || field.startsWith('requestTitle.')) {
-      mapped[field.replace('requestTitle', 'title')] = value;
-      return;
-    }
-    if (field === 'level' || field.startsWith('level.')) {
-      mapped[field.replace('level', 'currentLevel')] = value;
+    // Resolve backend field name
+    let backendField = field;
+    if (field === 'requestedAt' || field.startsWith('requestedAt.')) backendField = field.replace('requestedAt', 'createdAt');
+    else if (field === 'requestedByName' || field.startsWith('requestedByName.')) backendField = field.replace('requestedByName', 'requestedBy');
+    else if (field === 'priority' || field.startsWith('priority.')) backendField = field.replace('priority', 'impactLevel');
+    else if (field === 'requestType' || field.startsWith('requestType.')) backendField = field.replace('requestType', 'entityType');
+    else if (field === 'requestTitle' || field.startsWith('requestTitle.')) backendField = field.replace('requestTitle', 'title');
+    else if (field === 'level' || field.startsWith('level.')) backendField = field.replace('level', 'currentLevel');
+
+    // Expand range/object filters to backend's dotted-key format
+    if (typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+      const obj = value as Record<string, unknown>;
+      if ('from' in obj) mapped[`${backendField}.from`] = String(obj.from);
+      if ('to' in obj) mapped[`${backendField}.to`] = String(obj.to);
+      if ('min' in obj) mapped[`${backendField}.min`] = String(obj.min);
+      if ('max' in obj) mapped[`${backendField}.max`] = String(obj.max);
+      if ('value' in obj) mapped[backendField] = String(obj.value);
+      if ('equals' in obj) mapped[`${backendField}.equals`] = String(obj.equals);
       return;
     }
 
-    mapped[field] = value;
+    const str = normalizeApprovalFilterValue(value);
+    if (str.trim().length === 0) return;
+    mapped[backendField] = str;
   });
 
-  // Flatten nested objects (e.g. { impactLevel: { equals: "high" } } -> { "impactLevel.equals": "high" })
-  const flattened: Record<string, EnterpriseColumnFilterValue> = {};
-  Object.entries(mapped).forEach(([key, val]) => {
-    if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
-      Object.entries(val).forEach(([op, innerVal]) => {
-        flattened[`${key}.${op}`] = innerVal;
-      });
-    } else {
-      flattened[key] = val;
-    }
-  });
-
-  return flattened;
+  return mapped;
 };
 
 const transformApprovalRequest = (req: any): ApprovalRequest => ({
@@ -202,9 +188,7 @@ const buildApprovalRequestParams = (input: {
   columnFilters?: Record<string, EnterpriseColumnFilterValue>;
   sort?: EnterpriseSort[];
 }) => {
-  const filters: Record<string, string> = {
-    ...mapApprovalGridFiltersToBackend(input.columnFilters ?? {}),
-  };
+  const filters: Record<string, string> = { ...mapApprovalGridFiltersToBackend(input.columnFilters ?? {}) };
 
   if (input.statusFilter !== 'all') filters.status = input.statusFilter;
   if (input.priorityFilter !== 'all') filters.impactLevel = input.priorityFilter;

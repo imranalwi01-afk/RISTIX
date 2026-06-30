@@ -249,19 +249,23 @@ export default function AccessMatrixPage() {
                 </TableCell>
               ))}
             </TableRow>
-            {/* Row 2: Action sub-headers */}
+            {/* Row 2: Action sub-headers with full labels */}
             <TableRow>
               {roles.map((role) => (
                 ACTIONS.map((action) => (
                   <TableCell
                     key={`${role.id}-${action}`}
+                    title={`${ACTION_META[action].label} (${ACTION_LETTER[action]})`}
                     sx={{
-                      fontWeight: 600, fontSize: '0.65rem', textAlign: 'center', p: 0.3,
+                      fontWeight: 600, fontSize: '0.6rem', textAlign: 'center', p: 0.2,
                       bgcolor: 'grey.50', color: ACTION_META[action].color,
-                      minWidth: 36, maxWidth: 36, whiteSpace: 'nowrap', lineHeight: 1,
+                      minWidth: 48, maxWidth: 48, whiteSpace: 'nowrap', lineHeight: 1.1,
                     }}
                   >
-                    {ACTION_LETTER[action]}
+                    {ACTION_META[action].icon}
+                    <Box component="span" sx={{ display: 'block', mt: 0.2, fontSize: '0.55rem' }}>
+                      {ACTION_META[action].label}
+                    </Box>
                   </TableCell>
                 ))
               ))}
@@ -281,7 +285,8 @@ export default function AccessMatrixPage() {
                     return (
                       <TableCell
                         key={key}
-                        sx={{ textAlign: 'center', p: 0, cursor: 'pointer', minWidth: 36, maxWidth: 36 }}
+                        title={`${ACTION_META[action].label}: ${isAllowed ? 'Allowed' : 'Denied'} - Click to toggle`}
+                        sx={{ textAlign: 'center', p: 0, cursor: 'pointer', minWidth: 48, maxWidth: 48 }}
                         onClick={(e) => openPopover(menu, role, e.currentTarget)}
                       >
                         <Box
