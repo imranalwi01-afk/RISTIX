@@ -221,8 +221,7 @@ export const buildOperationPermission = (
         lgd_configuration: 'collective.lgd',
         ead_configuration: 'collective.ead',
         ecl_configuration: 'collective.ecl',
-        fl_scalar: 'collective.fl_scalar',
-    }
+        }
     const permissionPath = entityPathMap[entity] || entity.replace(/_/g, '.')
     return `banking.${permissionPath}.${operation}`
 }

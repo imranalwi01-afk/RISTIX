@@ -192,21 +192,18 @@ export function useReportData({
     }
   }, [externalFilters]);
 
-  // --- Effect: Load lookup data (segments, scalars, LGD/EAD configs) ---
+  // --- Effect: Load lookup data (segments, LGD/EAD configs) ---
   useEffect(() => {
     const loadLookups = async () => {
       try {
         const now = Date.now();
         const segmentsFresh = lookupCache.segments && now - lookupCache.segments.ts < LOOKUP_CACHE_TTL_MS;
-        const scalarsFresh = lookupCache.scalars && now - lookupCache.scalars.ts < LOOKUP_CACHE_TTL_MS;
 
         if (segmentsFresh) setSegments(lookupCache.segments!.value);
-        if (scalarsFresh) setScalars(lookupCache.scalars!.value);
 
-        if (!segmentsFresh || !scalarsFresh) {
-          const [segData, scalData] = await Promise.all([
+        if (!segmentsFresh) {
+          const [segData] = await Promise.all([
             segmentsFresh ? Promise.resolve(lookupCache.segments!.value) : api.banking.populationSegments.getAll({ active_flag: true }),
-            scalarsFresh ? Promise.resolve(lookupCache.scalars!.value) : api.banking.pdSetup.getFLScalars()
           ]);
 
           if (!segmentsFresh) {
@@ -216,12 +213,6 @@ export function useReportData({
             });
             lookupCache.segments = { ts: now, value: normalizedSegments };
             setSegments(normalizedSegments);
-          }
-
-          if (!scalarsFresh) {
-            const normalizedScalars = Array.isArray(scalData) ? scalData : [];
-            lookupCache.scalars = { ts: now, value: normalizedScalars };
-            setScalars(normalizedScalars);
           }
         }
 

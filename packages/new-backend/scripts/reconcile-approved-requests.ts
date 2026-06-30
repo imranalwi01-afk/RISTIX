@@ -9,7 +9,6 @@ import {
     users,
     frs9ImpCaEadConfig,
     frs9ImpCaEclConfigh,
-    frs9ImpCaFlScalarh,
     frs9ImpCaLgdConfig,
     frs9ImpCaPdConfig,
     frs9ParamBucketh,
@@ -29,7 +28,6 @@ import {
 } from '../src/lib/approval-reconciliation-report'
 import {
     assessBucketHeaderRequest,
-    assessFlScalarHeaderRequest,
     assessLegacyHeaderOperation,
     assessParameterDetailRequest,
     assessProductHeaderRequest,
@@ -669,16 +667,7 @@ async function assessSegmentationRequest(operation: Operation, request: Approved
     return assessSegmentationHeaderRequest(operation, data, { rowById, rowByKey })
 }
 
-async function assessFlScalarRequest(operation: Operation, request: ApprovedRequestRow, data: any): Promise<Assessment> {
-    const id = toNumericId(request.entityId ?? data?.id)
-    const rowById = id !== null
-        ? await legacyDb.select().from(frs9ImpCaFlScalarh).where(eq(frs9ImpCaFlScalarh.pkid, id)).limit(1)
-        : []
-    const rowByKey = data?.scalar_name
-        ? await legacyDb.select().from(frs9ImpCaFlScalarh).where(eq(frs9ImpCaFlScalarh.scalarName, String(data.scalar_name))).limit(1)
-        : []
-    return assessFlScalarHeaderRequest(operation, data, { rowById, rowByKey })
-}
+async 
 
 async function assessProductRequest(operation: Operation, request: ApprovedRequestRow, data: any): Promise<Assessment> {
     const id = toNumericId(request.entityId ?? data?.id)

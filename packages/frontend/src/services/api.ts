@@ -36,7 +36,6 @@ import { pdConfigurationsApi } from './api/pd-configurations.api';
 import { lgdConfigurationsApi } from './api/lgd-configurations.api';
 import { eadConfigurationsApi } from './api/ead-configurations.api';
 import { populationSegmentsApi } from './api/population-segments.api';
-import { flScalarAPI } from './api/fl-scalar.api';
 import { eclConfigurationsApi } from './api/ecl-configurations.api';
 import { impairmentApi } from './api/impairment.api';
 import { approvalAPI } from './api/approval.api';

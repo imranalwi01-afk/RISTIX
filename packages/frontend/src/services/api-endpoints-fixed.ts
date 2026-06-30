@@ -158,8 +158,7 @@ export const API_ENDPOINTS = {
     PD_SETUP: '/banking/pd-setup',
     BUSINESS_SETTINGS: '/banking/business-settings',
     COLLECTIVE: {
-      FL_SCALAR: '/banking/collective/fl-scalar',
-      LGD_SETUP: '/banking/collective/lgd-setup'
+          LGD_SETUP: '/banking/collective/lgd-setup'
     }
   },
 

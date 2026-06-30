@@ -27,7 +27,6 @@ const MENU_TO_PERMISSION_STEM: Record<string, string> = {
   'LGD Setup Management': 'banking.collective.lgd',
   'EAD Setup': 'banking.collective.ead',
   'EAD Model': 'banking.collective.ead',
-  'FL Scalar': 'banking.collective.fl_scalar',
   'ECL Configuration': 'banking.collective.ecl',
   'ECL Calculations': 'banking.collective.ecl',
   'ECL Movement': 'banking.reports.ifrs9.movement',

@@ -525,8 +525,7 @@ export const BANKING_PERMISSION_CATALOG: SeedPermissionDefinition[] = [
     ...createApprovalOperationPermissions('approval.lgd_configuration', 'LGD Configuration', 'lgd_configuration'),
     ...createApprovalOperationPermissions('approval.ead_configuration', 'EAD Configuration', 'ead_configuration'),
     ...createApprovalOperationPermissions('approval.ecl_configuration', 'ECL Configuration', 'ecl_configuration'),
-    ...createApprovalOperationPermissions('approval.fl_scalar', 'FL Scalar', 'fl_scalar'),
-]
+    ]
 
 export const BANKING_PERMISSION_CODES = BANKING_PERMISSION_CATALOG.map((permission) => permission.code)
 
@@ -551,7 +550,6 @@ export const MAKER_CHECKER_FRONTEND_PERMISSION_CODES = [
     'banking.collective.lgd.view',
     'banking.collective.ead.view',
     'banking.collective.ecl.view',
-    'banking.collective.fl_scalar.view',
     'banking.individual.view',
     'banking.processing',
     'banking.processing.view',
@@ -744,13 +742,6 @@ const ECL_MANAGE = [
 ]
 
 const FL_SCALAR_VIEW = ['banking.collective.fl_scalar', 'banking.collective.fl_scalar.view']
-const FL_SCALAR_MANAGE = [
-    ...FL_SCALAR_VIEW,
-    'banking.collective.fl_scalar.create',
-    'banking.collective.fl_scalar.update',
-    'banking.collective.fl_scalar.delete',
-    'banking.collective.fl_scalar.manage',
-]
 
 const INDIVIDUAL_VIEW = ['banking.individual', 'banking.individual.view']
 const INDIVIDUAL_MANAGE = [
@@ -871,9 +862,6 @@ const BUSINESS_APPROVAL_CODES = [
     'approval.ecl_configuration.create',
     'approval.ecl_configuration.update',
     'approval.ecl_configuration.delete',
-    'approval.fl_scalar.create',
-    'approval.fl_scalar.update',
-    'approval.fl_scalar.delete',
 ]
 
 const ADMIN_APPROVAL_CODES = [
@@ -921,7 +909,6 @@ export const DEFAULT_ROLE_PERMISSION_MAP: Record<string, string[]> = {
         LGD_MANAGE,
         EAD_MANAGE,
         ECL_MANAGE,
-        FL_SCALAR_MANAGE,
         INDIVIDUAL_MANAGE,
         IFRS9_REPORTS_MANAGE,
         IFRS9_REPORT_DETAIL_VIEWS,
@@ -942,7 +929,6 @@ export const DEFAULT_ROLE_PERMISSION_MAP: Record<string, string[]> = {
         LGD_VIEW,
         EAD_VIEW,
         ECL_VIEW,
-        FL_SCALAR_VIEW,
         INDIVIDUAL_VIEW,
         IFRS9_REPORTS_VIEW,
         IFRS9_REPORT_DETAIL_VIEWS,
@@ -966,7 +952,6 @@ export const DEFAULT_ROLE_PERMISSION_MAP: Record<string, string[]> = {
         LGD_VIEW,
         EAD_VIEW,
         ECL_VIEW,
-        FL_SCALAR_VIEW,
         INDIVIDUAL_VIEW,
         IFRS9_REPORTS_VIEW,
         IFRS9_REPORT_DETAIL_VIEWS,
@@ -988,7 +973,6 @@ export const DEFAULT_ROLE_PERMISSION_MAP: Record<string, string[]> = {
         LGD_MANAGE,
         EAD_MANAGE,
         ECL_MANAGE,
-        FL_SCALAR_MANAGE,
         INDIVIDUAL_VIEW,
         IFRS9_REPORTS_VIEW,
         IFRS9_REPORT_DETAIL_VIEWS,
@@ -1057,7 +1041,6 @@ export const DEFAULT_ROLE_PERMISSION_MAP: Record<string, string[]> = {
         LGD_MANAGE,
         EAD_MANAGE,
         ECL_MANAGE,
-        FL_SCALAR_MANAGE,
         INDIVIDUAL_MANAGE,
         JOB_MANAGE
     ),

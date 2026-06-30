@@ -7,13 +7,12 @@ export function usePDCombinedQuery() {
   return useQuery({
     queryKey: ['pd', 'combined'],
     queryFn: async () => {
-      const [configsRes, methodsRes, popTypesRes, bucketsRes, segmentsRes, flScalarsRes] = await Promise.all([
+      const [configsRes, methodsRes, popTypesRes, bucketsRes, segmentsRes] = await Promise.all([
         pdConfigurationsApi.getAll(),
         pdConfigurationsApi.getMethods(),
         pdConfigurationsApi.getPopulationTypes(),
         bankingAPI.bucketParameter.getHeaders(),
         bankingAPI.populationSegments.getAll({ active_flag: true, segment_type: 'PD' }),
-        bankingAPI.flScalar.getAll()
       ]);
 
       const toArray = (res: any): any[] => {
@@ -26,7 +25,6 @@ export function usePDCombinedQuery() {
       const popTypes = toArray(popTypesRes);
       const buckets = toArray(bucketsRes);
       const segments = toArray(segmentsRes);
-      const flScalars = toArray(flScalarsRes);
       const pdSegments = segments.filter((s: any) => String(s.segment_type || '').toUpperCase() === 'PD');
 
       const configs = toArray(configsRes).map((config: any) => {
@@ -39,7 +37,7 @@ export function usePDCombinedQuery() {
         };
       });
 
-      return { configs, methods, popTypes, buckets, pdSegments, flScalars };
+      return { configs, methods, popTypes, buckets, pdSegments };
     },
     staleTime: 15000,
   });

@@ -32,7 +32,6 @@ const approvalEntities = [
     'lgd_configuration',
     'ead_configuration',
     'ecl_configuration',
-    'fl_scalar',
     'individual_assessment_consolidated',
 ] as const
 

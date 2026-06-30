@@ -877,10 +877,6 @@ async function executeApprovedAction(request: any, approvedBy?: string): Promise
                 await executeSegmentationAction(operation, effectiveData, tenantId, request.entityId, request.requestedBy ?? approvedBy)
                 break
 
-            case 'fl_scalar':
-                await executeFlScalarAction(operation, effectiveData, tenantId, request.entityId, request.requestedBy ?? approvedBy)
-                break
-
             case 'product_parameter':
                 await executeProductParameterAction(operation, effectiveData, tenantId, request.entityId, request.requestedBy ?? approvedBy)
                 break
@@ -1599,103 +1595,6 @@ async function executeSegmentationAction(
     }
 }
 
-async function executeFlScalarAction(
-    operation: 'create' | 'update' | 'delete',
-    data: any,
-    _tenantId: string,
-    entityId?: string | null,
-    actorId?: string
-): Promise<void> {
-    const [{ legacyDb: db }, schema, { eq }] = await Promise.all([
-        import('../config'),
-        import('../db/schema'),
-        import('drizzle-orm'),
-    ])
-    const effectiveActorId = actorId || 'system'
-    const now = new Date().toISOString()
-    const numericEntityId = parseNumericEntityId(entityId, data?.id)
-    const { frs9ImpCaFlScalarh, frs9ImpCaFlScalard } = schema
-
-    switch (operation) {
-        case 'create':
-            await db.transaction(async (tx) => {
-                const [header] = await tx.insert(frs9ImpCaFlScalarh).values({
-                    scalarName: data.scalar_name,
-                    activeFlag: data.active_flag,
-                    createdby: effectiveActorId,
-                    createdhost: 'localhost',
-                    createddate: now,
-                    updatedby: effectiveActorId,
-                    updatedhost: 'localhost',
-                    updateddate: now,
-                } as any).returning()
-
-                if (Array.isArray(data.details) && data.details.length > 0) {
-                    await tx.insert(frs9ImpCaFlScalard).values(
-                        data.details.map((detail: any) => ({
-                            scalarId: header.pkid,
-                            period: detail.period,
-                            weightedScalar: detail.weighted_scalar,
-                            createdby: effectiveActorId,
-                            createdhost: 'localhost',
-                            createddate: now,
-                            updatedby: effectiveActorId,
-                            updatedhost: 'localhost',
-                            updateddate: now,
-                        }))
-                    )
-                }
-            })
-            return
-        case 'update':
-            if (!Number.isFinite(numericEntityId)) {
-                throw new Error('Missing FL scalar id in approval payload')
-            }
-            await db.transaction(async (tx) => {
-                const [header] = await tx.update(frs9ImpCaFlScalarh)
-                    .set({
-                        scalarName: data.scalar_name,
-                        activeFlag: data.active_flag,
-                        updatedby: effectiveActorId,
-                        updateddate: now,
-                        updatedhost: 'localhost',
-                    } as any)
-                    .where(eq(frs9ImpCaFlScalarh.pkid, numericEntityId))
-                    .returning()
-
-                if (!header) {
-                    throw new Error('FL Scalar not found')
-                }
-
-                await tx.delete(frs9ImpCaFlScalard).where(eq(frs9ImpCaFlScalard.scalarId, numericEntityId))
-                if (Array.isArray(data.details) && data.details.length > 0) {
-                    await tx.insert(frs9ImpCaFlScalard).values(
-                        data.details.map((detail: any) => ({
-                            scalarId: numericEntityId,
-                            period: detail.period,
-                            weightedScalar: detail.weighted_scalar,
-                            createdby: effectiveActorId,
-                            createdhost: 'localhost',
-                            createddate: now,
-                            updatedby: effectiveActorId,
-                            updatedhost: 'localhost',
-                            updateddate: now,
-                        }))
-                    )
-                }
-            })
-            return
-        case 'delete':
-            if (!Number.isFinite(numericEntityId)) {
-                throw new Error('Missing FL scalar id in approval payload')
-            }
-            await db.transaction(async (tx) => {
-                await tx.delete(frs9ImpCaFlScalard).where(eq(frs9ImpCaFlScalard.scalarId, numericEntityId))
-                await tx.delete(frs9ImpCaFlScalarh).where(eq(frs9ImpCaFlScalarh.pkid, numericEntityId))
-            })
-            return
-    }
-}
 
 async function executeProductParameterAction(
     operation: 'create' | 'update' | 'delete',

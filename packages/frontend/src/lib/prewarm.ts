@@ -31,7 +31,6 @@ const SECONDARY_ROUTES = [
     '/banking/collective/rule-base',
     '/banking/collective/bucket',
     '/banking/collective/pd-setup',
-    '/banking/collective/fl-scalar',
     '/banking/collective/lgd-setup',
     '/banking/collective/ead-setup',
     '/banking/collective/ecl-config',

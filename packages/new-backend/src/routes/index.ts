@@ -17,7 +17,6 @@ import { userActivityRoutes } from './user-activity.routes'
 import { productSegmentsRoutes } from './product-segments.routes'
 import { ruleBaseSettingsRoutes } from './rule-base-settings.routes'
 import { bucketParametersRoutes } from './bucket-parameters.routes'
-import { flScalarRoutes } from './fl-scalar.routes'
 import { pdConfigurationsRoutes } from './pd-configurations.routes'
 import { lgdConfigurationsRoutes } from './lgd-configurations.routes'
 import { eadConfigurationsRoutes } from './ead-configurations.routes'
@@ -78,7 +77,6 @@ routes.route('/platform-users', platformUsersRoutes)
 routes.route('/banking/parameters/product-segments', productSegmentsRoutes)
 routes.route('/banking/collective/rule-base', ruleBaseSettingsRoutes)
 routes.route('/banking/collective/bucket', bucketParametersRoutes)
-routes.route('/banking/collective/fl-scalar', flScalarRoutes)
 routes.route('/banking/collective/pd-configurations', pdConfigurationsRoutes)
 routes.route('/banking/collective/lgd-configurations', lgdConfigurationsRoutes)
 routes.route('/banking/collective/ead-configurations', eadConfigurationsRoutes)

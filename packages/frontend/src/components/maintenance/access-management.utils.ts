@@ -119,10 +119,6 @@ const SIDEBAR_GROUP_LABELS: Record<string, { label: string; breadcrumb: string }
     label: 'FL Scalar',
     breadcrumb: 'Collective Impairment > FL Scalar',
   },
-  'banking.collective.fl_scalar': {
-    label: 'FL Scalar',
-    breadcrumb: 'Collective Impairment > FL Scalar',
-  },
   'banking.collective.lgd': {
     label: 'LGD Setup Management',
     breadcrumb: 'Collective Impairment > LGD Setup Management',

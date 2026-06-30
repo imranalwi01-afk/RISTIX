@@ -164,22 +164,6 @@ export function assessSegmentationHeaderRequest(
     })
 }
 
-export function assessFlScalarHeaderRequest(
-    operation: Operation,
-    data: any,
-    rows: { rowById?: any[]; rowByKey?: any[] }
-): Assessment {
-    const row = rows.rowById?.[0] ?? rows.rowByKey?.[0]
-    return assessLegacyHeaderOperation(operation, row, {
-        createMissing: 'FL scalar header row not found by id/scalar_name',
-        deleteExisting: 'FL scalar header row still exists after approved delete',
-        updateMatch: row
-            ? same(row.scalarName, data?.scalar_name)
-            : false,
-        label: 'FL scalar',
-    })
-}
-
 export function assessBucketHeaderRequest(
     operation: Operation,
     data: any,

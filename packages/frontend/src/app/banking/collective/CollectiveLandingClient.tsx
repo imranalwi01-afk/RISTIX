@@ -21,7 +21,6 @@ import {
     Category as BucketIcon,
     People as SegmentIcon,
     TableChart as RuleBaseIcon,
-    Psychology as FlScalarIcon,
     Calculate as EclIcon,
     Home as HomeIcon,
     AccountBalanceWallet as ConventionalIcon,
@@ -79,14 +78,6 @@ const sections = [
         href: '/banking/collective/rule-base',
         icon: RuleBaseIcon,
         color: '#00838f',
-        badge: null,
-    },
-    {
-        title: 'FL Scalar',
-        description: 'Configure Forward-Looking scalar adjustments for macroeconomic overlay.',
-        href: '/banking/collective/fl-scalar',
-        icon: FlScalarIcon,
-        color: '#558b2f',
         badge: null,
     },
     {

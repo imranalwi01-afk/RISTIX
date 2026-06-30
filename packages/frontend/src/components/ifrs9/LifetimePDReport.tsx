@@ -54,7 +54,6 @@ import BaseIfrs9Report from './BaseIfrs9Report';
 import api from '@/services/api';
 import { format } from 'date-fns';
 import { pdConfigurationsApi } from '../../services/api/pd-configurations.api';
-import { flScalarAPI } from '../../services/api/fl-scalar.api';
 import { productSegmentsApi, type ProductSegment } from '../../services/api/product-segments.api';
 
 interface TabPanelProps {
@@ -276,10 +275,9 @@ const LifetimePDReport: React.FC = () => {
     const loadLookups = async () => {
       setLoadingLookups(true);
       try {
-        const [segmentData, pdData, scalarData] = await Promise.all([
+        const [segmentData, pdData] = await Promise.all([
           productSegmentsApi.getAll(),
           pdConfigurationsApi.getAll({ is_active: true }),
-          flScalarAPI.getAll(),
         ]);
         const configs = Array.isArray(pdData) ? pdData : [];
         const rawSegments = Array.isArray(segmentData) ? segmentData : [];
@@ -302,7 +300,7 @@ const LifetimePDReport: React.FC = () => {
         console.log('📋 PD Configurations loaded:', configs.length, 'configs');
         setSegments(normalizedSegments);
         setPdConfigs(configs);
-        setScalars(Array.isArray(scalarData) ? scalarData : []);
+
         
         // Auto-select first PD configuration if none is selected yet
         if (configs.length > 0) {

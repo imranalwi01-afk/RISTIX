@@ -31,7 +31,6 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { Info as InfoIcon, Close as CloseIcon, ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import { productSegmentsApi, type ProductSegment } from '../../services/api/product-segments.api';
 import { pdConfigurationsApi } from '../../services/api/pd-configurations.api';
-import { flScalarAPI } from '../../services/api/fl-scalar.api';
 
 interface LifetimePDConfigPanelProps {
   open: boolean;
@@ -69,16 +68,14 @@ export default function LifetimePDConfigPanel({ open, onClose, onRun }: Lifetime
     const fetchMetadata = async () => {
       setLoadingMetadata(true);
       try {
-        const [segData, pdData, scData] = await Promise.all([
+        const [segData, pdData] = await Promise.all([
           productSegmentsApi.getAll(),
           pdConfigurationsApi.getAll({ is_active: true }),
-          flScalarAPI.getAll()
-        ]);
+            ]);
         const normalizedSegments = Array.isArray(segData) ? segData : [];
         normalizedSegments.sort((a, b) => (Number(a.displayOrder || 0) - Number(b.displayOrder || 0)) || String(a.id).localeCompare(String(b.id)));
         setSegments(normalizedSegments);
         setPdConfigs(pdData);
-        setScalars(scData);
       } catch (err) {
         console.error('Failed to fetch config metadata:', err);
       } finally {

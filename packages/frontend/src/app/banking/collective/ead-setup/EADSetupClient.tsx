@@ -48,7 +48,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '../../../../services/api';
 import { bankingAPI } from '@/services/api';
 import { EADConfiguration } from '../../../../services/api/ead-configurations.api';
-import { FLScalarWithDetails } from '../../../../services/api/fl-scalar.api';
+
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import { useEADCombinedQuery } from '@/features/ead-config/hooks/useEADCombinedQuery';
 import { PopulationSegment, filterPopulationSegmentsByType } from '../../../../services/api/population-segments.api';

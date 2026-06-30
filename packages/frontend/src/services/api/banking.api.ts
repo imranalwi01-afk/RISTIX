@@ -4,7 +4,6 @@ import { pdConfigurationsApi } from './pd-configurations.api';
 import { lgdConfigurationsApi } from './lgd-configurations.api';
 import { eadConfigurationsApi } from './ead-configurations.api';
 import { populationSegmentsApi } from './population-segments.api';
-import { flScalarAPI } from './fl-scalar.api';
 import { eclConfigurationsApi } from './ecl-configurations.api';
 import { impairmentApi } from './impairment.api';
 import { approvalAPI } from './approval.api';
@@ -25,7 +24,6 @@ export const bankingAPI = {
   lgdConfigurations: lgdConfigurationsApi,
   eadConfigurations: eadConfigurationsApi,
   populationSegments: populationSegmentsApi,
-  flScalar: flScalarAPI,
   eclConfigurations: eclConfigurationsApi,
   impairment: impairmentApi,
   approval: approvalAPI,
@@ -430,12 +428,6 @@ export const bankingAPI = {
       const response = await apiClient.get('/banking/pd-setup/business-parameters', {
         params: paramCode ? { param_code: paramCode } : {}
       });
-      return response.data;
-    },
-
-    // Get FL scalar data for dropdown
-    getFLScalars: async () => {
-      const response = await apiClient.get('/banking/collective/fl-scalar');
       return response.data;
     },
 

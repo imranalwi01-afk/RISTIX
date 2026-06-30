@@ -161,7 +161,7 @@ export const URL_TO_LEGACY_ID_MAP: Record<string, string> = {
     '/banking/collective/rule-base': 'rule-base-setting',
     '/banking/collective/bucket': 'bucket-parameter',
     '/banking/collective/pd-setup': 'pd-setup-management',
-    '/banking/collective/fl-scalar': 'fl-scalar',
+
     '/banking/collective/lgd-setup': 'lgd-setup-management',
     '/banking/collective/ead-setup': 'ead-setup-management',
     '/banking/collective/ecl-config': 'ecl-configuration',
@@ -409,14 +409,6 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 href: '/banking/collective/pd-setup',
                 icon: <TrendingUp />,
                 description: '/IFRS9N/PDConfig'
-            },
-            // 🚫 DISABLED: FL Scalar menu item - Temporarily hidden
-            {
-                id: 'fl-scalar',
-                label: 'FL Scalar',
-                href: '/banking/collective/fl-scalar',
-                icon: <Functions />,
-                description: '/IFRS9N/FLScalar'
             },
             {
                 id: 'lgd-setup-management',
@@ -1057,7 +1049,6 @@ const MENU_ICON_MAP: Record<string, string> = {
     'rule-base-setting': 'assessment',
     'bucket-parameter': 'layers',
     'pd-setup-management': 'trending_up',
-    'fl-scalar': 'functions',
     'lgd-setup-management': 'monetization_on',
     'ead-setup-management': 'account_balance',
     'ecl-configuration': 'calculate',
