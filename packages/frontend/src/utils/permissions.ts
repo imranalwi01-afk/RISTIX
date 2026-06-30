@@ -14,16 +14,17 @@ export const PERMISSIONS = {
     TENANT_VIEW_REPORTS: 'tenant:view:reports',
     TENANT_MANAGE_CONSULTANTS: 'tenant:manage:consultants',
 
-    // Bank User permissions
-    TENANT_VIEW_PORTFOLIO: 'tenant:view:portfolio',
-    TENANT_CALCULATE_ECL: 'tenant:calculate:ecl',
-    TENANT_MANAGE_ACCOUNTS: 'tenant:manage:accounts',
+    // Bank User permissions    TENANT_MANAGE_ACCOUNTS: 'tenant:manage:accounts',
 
     // Consultant permissions
     CONSULTANT_ACCESS_PROJECTS: 'consultant:access:projects',
     CONSULTANT_PERFORM_VALIDATION: 'consultant:perform:validation',
     CONSULTANT_SUBMIT_DELIVERABLES: 'consultant:submit:deliverables',
     CONSULTANT_ACCESS_TENANT_DATA: 'consultant:access:tenant_data',
+
+    // Tenant permissions
+    TENANT_CALCULATE_ECL: 'tenant:calculate:ecl',
+    TENANT_MANAGE_ACCOUNTS: 'tenant:manage:accounts',
 
     // Regulator permissions
     REGULATOR_VIEW_ALL_BANKS: 'regulator:view:all_banks',
@@ -44,12 +45,10 @@ export const STAKEHOLDER_PERMISSIONS = {
         PERMISSIONS.TENANT_MANAGE_IFRS9,
         PERMISSIONS.TENANT_VIEW_REPORTS,
         PERMISSIONS.TENANT_MANAGE_CONSULTANTS,
-        PERMISSIONS.TENANT_VIEW_PORTFOLIO,
         PERMISSIONS.TENANT_CALCULATE_ECL,
         PERMISSIONS.TENANT_MANAGE_ACCOUNTS,
     ],
     [STAKEHOLDER_TYPES.BANK_USER]: [
-        PERMISSIONS.TENANT_VIEW_PORTFOLIO,
         PERMISSIONS.TENANT_CALCULATE_ECL,
         PERMISSIONS.TENANT_MANAGE_ACCOUNTS,
     ],
@@ -64,7 +63,6 @@ export const STAKEHOLDER_PERMISSIONS = {
         PERMISSIONS.REGULATOR_AUDIT_COMPLIANCE,
         PERMISSIONS.REGULATOR_VIEW_CONSULTANT_WORK,
         PERMISSIONS.TENANT_VIEW_REPORTS,
-        PERMISSIONS.TENANT_VIEW_PORTFOLIO,
     ],
 } as const;
 

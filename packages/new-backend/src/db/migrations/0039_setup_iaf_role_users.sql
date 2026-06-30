@@ -39,7 +39,6 @@ insert into tmp_iaf_role_users (
     ('risk.analyst@iaf.co.id', 'risk_analyst_iaf', 'IAF Risk Analyst', 'Risk Management', 'Risk Analyst', 'IAF-RISK-ANALYST', 'IAF_RISK_ANALYST'),
     ('ifrs.manager@iaf.co.id', 'ifrs_manager_iaf', 'IAF IFRS 9 Manager', 'Risk Management', 'IFRS 9 Manager', 'IAF-IFRS-MANAGER', 'IAF_IFRS_MANAGER'),
     ('cro@iaf.co.id', 'cro_iaf', 'IAF Chief Risk Officer', 'Risk Management', 'Chief Risk Officer', 'IAF-CRO', 'IAF_BANK_CRO'),
-    ('portfolio.manager@iaf.co.id', 'portfolio_manager_iaf', 'IAF Portfolio Manager', 'Business Banking', 'Portfolio Manager', 'IAF-PORTFOLIO-MANAGER', 'IAF_PORTFOLIO_MANAGER'),
     ('report.analyst@iaf.co.id', 'report_analyst_iaf', 'IAF Report Analyst', 'Finance Reporting', 'Report Analyst', 'IAF-REPORT-ANALYST', 'IAF_REPORT_ANALYST'),
     ('auditor@iaf.co.id', 'auditor_iaf', 'IAF Internal Auditor', 'Internal Audit', 'Internal Auditor', 'IAF-AUDITOR', 'IAF_AUDITOR'),
     ('viewer@iaf.co.id', 'viewer_iaf', 'IAF Viewer', 'Business Support', 'Viewer', 'IAF-VIEWER', 'IAF_VIEWER');

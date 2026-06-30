@@ -168,8 +168,7 @@ export class MenuConfigurationService {
             'impairment': 'warning',
 
             // Banking-specific icons
-            'portfolio': 'account_balance',
-            'risk': 'trending_up',
+                        'risk': 'trending_up',
             'compliance': 'security',
             'reporting': 'table_chart'
           }
@@ -181,13 +180,11 @@ export class MenuConfigurationService {
           modeSpecificIcons: {
             'conventional': {
               'banking': 'account_balance',
-              'portfolio': 'account_balance',
-              'compliance': 'security'
+                            'compliance': 'security'
             },
             'dual': {
               'banking': 'swap_horiz',
-              'portfolio': 'account_balance',
-              'compliance': 'security'
+                            'compliance': 'security'
             }
           }
         }

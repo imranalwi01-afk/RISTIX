@@ -63,8 +63,7 @@ const ROUTE_PERMISSION_RULES: RoutePermissionRule[] = [
     { prefix: '/api/v1/forms', base: 'admin.system' },
     { prefix: '/api/v1/security', base: 'admin.system' },
     { prefix: '/api/v1/security-config', base: 'admin.system' },
-    { prefix: '/api/v1/portfolio-management', base: 'banking.portfolio' },
-    { prefix: '/api/v1/banking-resource', base: 'banking.processing' },
+        { prefix: '/api/v1/banking-resource', base: 'banking.processing' },
     { prefix: '/api/v1/user-activity', base: 'admin.system' },
     { prefix: '/api/v1/user-registration', base: 'admin.users' },
 

@@ -28,7 +28,6 @@ import dashboardPersonalizationReducer from './slices/dashboardPersonalizationSl
 import menuReducer from './slices/menuSlice';
 // ✅ RTK Query Imports
 import { menuQueryApi } from './api/menuApi';
-import { portfolioQueryApi } from './api/portfolioApi';
 import { clearAuthTokens } from '../utils/auth-token';
 // ✅ CONDITIONAL: Import these if they exist in your project
 // Using noop reducers for now to avoid require() issues
@@ -165,7 +164,7 @@ const rootReducer = combineReducers({
   menu: menuReducer,
   // ✅ RTK Query Reducers
   [menuQueryApi.reducerPath]: menuQueryApi.reducer,
-  [portfolioQueryApi.reducerPath]: portfolioQueryApi.reducer,
+
 });
 
 // ✅ SURGICAL FIX: Enhanced persist configuration
@@ -244,7 +243,7 @@ export const store = configureStore({
       immutableCheck: {
         ignoredPaths: ['items.dates', '_persist'],
       },
-    }).concat(menuQueryApi.middleware as any, portfolioQueryApi.middleware as any, errorMiddleware),
+    }).concat(menuQueryApi.middleware as any, errorMiddleware),
   devTools: process.env.NODE_ENV !== 'production' && {
     name: 'IFRS9 Platform Store',
     trace: true,

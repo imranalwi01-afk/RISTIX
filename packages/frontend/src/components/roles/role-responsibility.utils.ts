@@ -69,12 +69,6 @@ const RESPONSIBILITY_BY_CODE: Record<string, RoleResponsibility> = {
     approvalLane: 'Level 2',
     color: 'error',
   },
-  IAF_PORTFOLIO_MANAGER: {
-    label: 'Portfolio Reviewer',
-    summary: 'Reviews portfolio and individual impairment outputs.',
-    scope: 'Portfolio oversight',
-    color: 'primary',
-  },
   IAF_REPORT_ANALYST: {
     label: 'Report Analyst',
     summary: 'Consumes and exports IFRS 9 reporting outputs.',

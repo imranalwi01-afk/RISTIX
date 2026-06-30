@@ -129,18 +129,7 @@ export default function ManualUploadPage() {
 
   // Mock upload templates
   const uploadTemplates: UploadTemplate[] = [
-    {
-      id: 'portfolio-accounts',
-      name: 'Portfolio Accounts',
-      description: 'Upload customer portfolio accounts with loan details',
-      category: 'PORTFOLIO',
-      icon: <AccountBalance />,
-      fileType: ['xlsx', 'csv'],
-      sampleFile: 'portfolio_accounts_template.xlsx',
-      maxSize: 50 * 1024 * 1024, // 50MB
-      validation: ['Account ID format', 'Outstanding amount validation', 'Date format'],
-      bankingType: 'BOTH'
-    },
+    
     {
       id: 'customer-data',
       name: 'Customer Data',

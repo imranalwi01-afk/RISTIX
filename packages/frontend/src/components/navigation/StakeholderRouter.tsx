@@ -70,8 +70,7 @@ const STAKEHOLDER_ROUTES = {
     '/banking/maintenance',
     '/banking/mode',
     '/banking/parameters',
-    '/banking/portfolio',
-    '/banking/reports',
+        '/banking/reports',
     '/banking/setup',
     '/banking/tools',
     '/banking/workflow'

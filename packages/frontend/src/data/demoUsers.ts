@@ -75,21 +75,6 @@ export const DEMO_USERS: DemoUser[] = [
     position: 'Risk Analyst'
   },
   {
-    id: 'iaf-portfolio-1',
-    email: 'portfolio.manager@iaf.co.id',
-    name: 'Dewi Lestari',
-    role: 'BANK_PORTFOLIO_MANAGER',
-    stakeholder: 'banking',
-    bankingType: 'conventional',
-    company: 'Indonesia Airawata Finance',
-    tenantId: 'iaf',
-    redirectUrl: '/banking/dashboard',
-    description: 'Portfolio Manager - Indonesia Airawata Finance',
-    avatar: '👩‍💻',
-    department: 'Portfolio Management',
-    position: 'Portfolio Manager'
-  },
-  {
     id: 'iaf-data-1',
     email: 'data.admin@iaf.co.id',
     name: 'Ahmad Wijaya',

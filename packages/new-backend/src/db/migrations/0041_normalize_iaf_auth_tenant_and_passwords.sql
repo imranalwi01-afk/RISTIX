@@ -15,7 +15,6 @@ insert into tmp_iaf_auth_users (email, role_code) values
     ('risk.analyst@iaf.co.id', 'IAF_RISK_ANALYST'),
     ('ifrs.manager@iaf.co.id', 'IAF_IFRS_MANAGER'),
     ('cro@iaf.co.id', 'IAF_BANK_CRO'),
-    ('portfolio.manager@iaf.co.id', 'IAF_PORTFOLIO_MANAGER'),
     ('report.analyst@iaf.co.id', 'IAF_REPORT_ANALYST'),
     ('auditor@iaf.co.id', 'IAF_AUDITOR'),
     ('viewer@iaf.co.id', 'IAF_VIEWER');

@@ -72,17 +72,6 @@ export const API_ENDPOINTS = {
 
   // Tenant-specific endpoints
   TENANT: (tenantId: string) => ({
-    // Portfolio endpoints
-    PORTFOLIO: {
-      ACCOUNTS: {
-        LIST: `/tenants/${tenantId}/portfolio/accounts`,
-        GET: (id: string) => `/tenants/${tenantId}/portfolio/accounts/${id}`,
-        CREATE: `/tenants/${tenantId}/portfolio/accounts`,
-        UPDATE: (id: string) => `/tenants/${tenantId}/portfolio/accounts/${id}`,
-        DELETE: (id: string) => `/tenants/${tenantId}/portfolio/accounts/${id}`,
-        BULK_IMPORT: `/tenants/${tenantId}/portfolio/accounts/bulk-import`
-      }
-    },
 
     // ECL calculation endpoints
     ECL: {
@@ -166,8 +155,7 @@ export const API_ENDPOINTS = {
   IFRS9: {
     CALCULATIONS: '/ifrs9/calculations',
     CALCULATION_BATCHES: '/ifrs9/calculation-batches',
-    PORTFOLIO_SUMMARY: '/ifrs9/portfolio/summary',
-    ACTIVITIES_RECENT: '/ifrs9/activities/recent',
+      ACTIVITIES_RECENT: '/ifrs9/activities/recent',
     STAGING_ANALYZE: '/ifrs9/staging/analyze',
     PD_CALCULATE: '/ifrs9/pd/calculate',
     LGD_CALCULATE: '/ifrs9/lgd/calculate',
