@@ -4,8 +4,10 @@
 
 server:
   http_listen_port: 3100
+  grpc_listen_port: 9095
 
-# auth removed in Loki 3.x
+memberlist:
+  bind_addr: ["0.0.0.0"]
 
 ingester:
   lifecycler:
@@ -15,6 +17,8 @@ ingester:
       replication_factor: 1
   chunk_idle_period: 5m
   chunk_retain_period: 30s
+  wal:
+    dir: /var/loki/wal
 
 schema_config:
   configs:
