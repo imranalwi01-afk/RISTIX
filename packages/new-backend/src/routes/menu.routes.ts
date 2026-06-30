@@ -169,9 +169,6 @@ menuRoutes.openapi(
 
             // Advanced Analytics
             { cat: 'Advanced Analytics', name: 'R Analytics', path: '/banking/analytics/r-analytics', icon: 'DataUsage', sortOrder: 1 },
-            { cat: 'Advanced Analytics', name: 'Financial Reports', path: '/banking/analytics/reports', icon: 'Assessment', sortOrder: 2 },
-            { cat: 'Advanced Analytics', name: 'Executive Dashboard', path: '/banking/analytics/dashboard', icon: 'Dashboard', sortOrder: 3 },
-            { cat: 'Advanced Analytics', name: 'Advanced Export', path: '/banking/analytics/export', icon: 'GetApp', sortOrder: 4 },
 
             // Workflow Management
             { cat: 'Workflow Management', name: 'Approval System', path: '/banking/workflow/approval', icon: 'Approval', sortOrder: 1 },
@@ -182,8 +179,6 @@ menuRoutes.openapi(
             { cat: 'Workflow Management', name: 'Business Process', path: '/banking/workflow/business', icon: 'Business', sortOrder: 6 },
 
             // Tools
-            { cat: 'Tools', name: 'Manual Upload', path: '/banking/tools/upload', icon: 'CloudUpload', sortOrder: 1 },
-            { cat: 'Tools', name: 'Data Export', path: '/banking/tools/export', icon: 'GetApp', sortOrder: 2 },
             
             // Admin & Maintenance
             { cat: 'Admin & Maintenance', name: 'Access Management', path: '/banking/maintenance/access-management', icon: 'ManageAccounts', sortOrder: 1 },

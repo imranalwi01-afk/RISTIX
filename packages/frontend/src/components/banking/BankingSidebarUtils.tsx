@@ -122,10 +122,7 @@ export const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'gca-movement': ['banking.reports.ifrs9.gca_movement.view', 'banking.reports.ifrs9.view'],
     'advanced-analytics': ['banking.analytics.view', 'banking.analytics.r.view'],
     'r-analytics': ['banking.analytics.r.view', 'banking.analytics.view'],
-    'financial-reports': 'banking.analytics.view',
-    'executive-dashboard': 'banking.analytics.view',
-    'advanced-export': 'banking.analytics.view',
-    'maintenance': 'admin.maintenance.view',
+                'maintenance': 'admin.maintenance.view',
     approval: 'approval.requests.approve',
     'audit-logs': 'admin.maintenance.view',
     'access-management': ['admin.users.manage', 'admin.roles.manage', 'admin.maintenance.view'],
@@ -143,13 +140,7 @@ export const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'workflow-notifications': ['notifications.view', 'notifications.manage', 'approval.requests.approve'],
     'workflow-configuration': 'approval.requests.approve',
     'process-monitoring': 'approval.requests.approve',
-    'tools': 'banking.configuration.ifrs9.manage',
-    'manual-upload': 'banking.configuration.ifrs9.manage',
-    'bulk-data-import': 'banking.configuration.ifrs9.manage',
-    'data-export': 'banking.configuration.ifrs9.manage',
-    'direct-db-connection': 'banking.configuration.ifrs9.manage',
-    'data-scheduler': 'banking.configuration.ifrs9.manage',
-};
+                    };
 
 export const URL_TO_LEGACY_ID_MAP: Record<string, string> = {
     '/banking/dashboard': 'dashboard',
@@ -181,19 +172,11 @@ export const URL_TO_LEGACY_ID_MAP: Record<string, string> = {
     '/banking/ifrs9-reports/ecl-movement': 'ecl-movement',
     '/banking/ifrs9-reports/gca-movement': 'gca-movement',
     '/banking/analytics/r-analytics': 'r-analytics',
-    '/banking/analytics/reports': 'financial-reports',
-    '/banking/analytics/dashboard': 'executive-dashboard',
-    '/banking/analytics/export': 'advanced-export',
     '/banking/notifications': 'workflow-notifications',
     '/banking/workflow/configuration': 'workflow-configuration',
     '/banking/workflow/monitoring': 'process-monitoring',
     '/banking/workflow/staging': 'staging-management',
     '/banking/workflow/business': 'business-process',
-    '/banking/tools/upload': 'manual-upload',
-    '/banking/tools/bulk-import': 'bulk-data-import',
-    '/banking/tools/export': 'data-export',
-    '/banking/tools/database': 'direct-db-connection',
-    '/banking/tools/scheduler': 'data-scheduler',
     '/banking/maintenance/user-management': 'access-management',
     '/banking/maintenance/approval': 'approval',
     '/banking/maintenance/user-activity': 'audit-logs',
@@ -211,7 +194,6 @@ export const NAME_TO_LEGACY_ID_MAP: Record<string, string> = {
     'IFRS 9 Engine': 'ifrs9',
     'Advanced Analytics': 'advanced-analytics',
     'Workflow Management': 'workflow-management',
-    'Tools': 'tools',
     'Admin & Maintenance': 'maintenance'
 };
 
@@ -597,29 +579,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 href: '/banking/analytics/r-analytics',
                 icon: <DataUsage />,
                 description: 'Statistical Analysis',
-
             },
-            {
-                id: 'financial-reports',
-                label: 'Financial Reports',
-                href: '/banking/analytics/reports',
-                icon: <Assessment />,
-                description: 'Enhanced Reporting'
-            },
-            {
-                id: 'executive-dashboard',
-                label: 'Executive Dashboard',
-                href: '/banking/analytics/dashboard',
-                icon: <Dashboard />,
-                description: 'Key Performance Indicators'
-            },
-            {
-                id: 'advanced-export',
-                label: 'Advanced Export',
-                href: '/banking/analytics/export',
-                icon: <GetApp />,
-                description: 'Business Intelligence'
-            }
         ]
     },
 
@@ -669,51 +629,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
     },
 
     // TOOLS
-    {
-        id: 'tools',
-        label: 'Tools',
-        icon: <CloudUpload />,
-        description: 'Utilities',
-        children: [
-            {
-                id: 'manual-upload',
-                label: 'Manual Upload',
-                href: '/banking/tools/upload',
-                icon: <CloudUpload />,
-                description: '/IFRS9N/ManualUpload'
-            },
-            {
-                id: 'bulk-data-import',
-                label: 'Bulk Data Import',
-                href: '/banking/tools/bulk-import',
-                icon: <CloudUpload />,
-                description: 'Enhanced Upload Features'
-            },
-            {
-                id: 'data-export',
-                label: 'Data Export',
-                href: '/banking/tools/export',
-                icon: <GetApp />,
-                description: 'Multi-format Export'
-            },
-            {
-                id: 'direct-db-connection',
-                label: 'Direct DB Connection',
-                href: '/banking/tools/database',
-                icon: <Storage />,
-                description: 'Database Integration'
-            },
-            {
-                id: 'data-scheduler',
-                label: 'Data Scheduler',
-                href: '/banking/tools/scheduler',
-                icon: <Schedule />,
-                description: 'Automated Processing'
-            }
-        ]
-    },
-
-    // MAINTENANCE
+        // MAINTENANCE
     {
         id: 'maintenance',
         label: 'Admin & Maintenance',
@@ -1011,21 +927,13 @@ export const getIconForMenuItem = (code: string, level: number): React.ReactElem
         'ecl-movement': <SwapHoriz />,
         'gca-movement': <Timeline />,
         'r-analytics': <DataUsage />,
-        'financial-reports': <Assessment />,
-        'executive-dashboard': <Dashboard />,
-        'advanced-export': <GetApp />,
-        'approval-system': <Approval />,
+                                'approval-system': <Approval />,
         'workflow-configuration': <Settings />,
         'process-monitoring': <Monitor />,
         'job-monitoring': <Monitor />,
         'staging-management': <TableView />,
         'business-process': <Business />,
-        'manual-upload': <CloudUpload />,
-        'bulk-data-import': <CloudUpload />,
-        'data-export': <GetApp />,
-        'direct-db-connection': <Storage />,
-        'data-scheduler': <Schedule />,
-        'access-management': <ManageAccounts />,
+                                                'access-management': <ManageAccounts />,
         'user-management': <ManageAccounts />,
         'role-management': <VpnKey />,
         'menu-management': <Menu />,
