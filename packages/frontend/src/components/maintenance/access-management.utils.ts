@@ -115,10 +115,6 @@ const SIDEBAR_GROUP_LABELS: Record<string, { label: string; breadcrumb: string }
     label: 'PD Setup Management',
     breadcrumb: 'Collective Impairment > PD Setup Management',
   },
-  'banking.collective.fl': {
-    label: 'FL Scalar',
-    breadcrumb: 'Collective Impairment > FL Scalar',
-  },
   'banking.collective.lgd': {
     label: 'LGD Setup Management',
     breadcrumb: 'Collective Impairment > LGD Setup Management',
@@ -206,6 +202,10 @@ const SIDEBAR_GROUP_LABELS: Record<string, { label: string; breadcrumb: string }
   'jobs': {
     label: 'Job Monitoring',
     breadcrumb: 'Admin & Maintenance > Job Monitoring',
+  },
+  'jobs.runtime': {
+    label: 'Runtime Monitoring',
+    breadcrumb: 'Admin & Maintenance > Job Monitoring > Runtime',
   },
 };
 
