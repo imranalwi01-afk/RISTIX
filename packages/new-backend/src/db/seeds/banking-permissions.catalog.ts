@@ -337,7 +337,7 @@ export const BANKING_PERMISSION_CATALOG: SeedPermissionDefinition[] = [
         label: 'ECL Result Report',
         resource: 'reports.ifrs9.ecl_result',
         category: 'BANKING_REPORTS',
-        actions: ['access', 'view'],
+        actions: ['access', 'view', 'export'],
     }),
     ...createResourcePermissions({
         stem: 'banking.reports.ifrs9.ecl_movement',
