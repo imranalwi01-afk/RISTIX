@@ -193,13 +193,33 @@ export class RolesRepository {
                         asc((roles as any).hierarchyLevel || roles.roleName),
                         asc(roles.roleName)
                     ],
-                    with: { rolePermissions: { with: { permission: true } } },
+                    with: {
+                        rolePermissions: { with: { permission: true } },
+                        userRoles: { columns: { userId: true }, limit: 1 },
+                    },
                 }),
                 db.select({ count: count() }).from(roles).where(whereClause),
             ])
 
+            // Count assigned users per role
+            const roleIds = data.map((r) => r.id)
+            let userCounts = new Map<string, number>()
+            if (roleIds.length > 0) {
+                const counts = await db
+                    .select({ roleId: userRoles.roleId, count: count() })
+                    .from(userRoles)
+                    .where(inArray(userRoles.roleId, roleIds))
+                    .groupBy(userRoles.roleId)
+                for (const row of counts) {
+                    userCounts.set(row.roleId, Number(row.count))
+                }
+            }
+
             return {
-                data,
+                data: data.map((r) => ({
+                    ...r,
+                    assignedUsers: userCounts.get(r.id) ?? 0,
+                })),
                 total: countResult[0]?.count ?? 0,
                 page: pagination.page,
                 limit: pagination.limit,
