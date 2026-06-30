@@ -22,6 +22,7 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { usePathname, useRouter } from 'next/navigation';
+import { useSnackbar } from 'notistack';
 
 // Import our enhanced sidebar
 import BankingSidebar from '../../components/banking/BankingSidebar';
@@ -53,6 +54,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hasSessionEvidence, setHasSessionEvidence] = useState<boolean | null>(null);
 
+  const { enqueueSnackbar } = useSnackbar();
   const [userRole, setUserRole] = useState<string>('');
   const [userName, setUserName] = useState<string>('');
 
@@ -165,16 +167,18 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
       );
 
     if (!hasAccess) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.warn(`[RouteGuard] Redirecting to dashboard — missing permission for ${pathname}`, {
-          matchedPrefix,
-          requiredList,
-          userPermissions,
-        });
-      }
+      const missing = requiredList.filter(
+        (code) => !userPermissions.includes(code) && !userPermissions.some((p: string) => p.startsWith(code + '.') || p === code)
+      );
+      console.warn(`[RouteGuard] Redirect — missing ${missing.join(', ')} for ${pathname}`);
+      enqueueSnackbar(`You don't have permission to access this page (${matchedPrefix}). Required: ${missing.join(', ')}`, {
+        variant: 'warning',
+        autoHideDuration: 6000,
+        preventDuplicate: true,
+      });
       router.replace('/banking/dashboard');
     }
-  }, [pathname, isActuallyAuthenticated, isAuthReady, userPermissions, router]);
+  }, [pathname, isActuallyAuthenticated, isAuthReady, userPermissions, router, enqueueSnackbar]);
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
   const handleSidebarToggle = () => setSidebarCollapsed(!sidebarCollapsed);
