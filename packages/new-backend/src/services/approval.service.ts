@@ -2094,6 +2094,8 @@ export const getApprovalHistoryList = (
         requestedBy?: string
         operation?: string
         title?: string
+        dueDate?: string
+        progress?: string
         search?: string
         createdAtFrom?: Date
         createdAtTo?: Date

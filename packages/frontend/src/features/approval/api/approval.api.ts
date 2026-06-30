@@ -32,27 +32,47 @@ function mapApprovalGridFiltersToBackend(
   Object.entries(filters).forEach(([field, value]) => {
     if (normalizeApprovalFilterValue(value).trim().length === 0) return;
 
-    if (field.startsWith('requestedAt.')) {
-      mapped[field.replace('requestedAt.', 'createdAt.')] = value;
+    if (field === 'requestedAt' || field.startsWith('requestedAt.')) {
+      mapped[field.replace('requestedAt', 'createdAt')] = value;
       return;
     }
-    if (field === 'priority') {
-      mapped.impactLevel = value;
+    if (field === 'requestedByName' || field.startsWith('requestedByName.')) {
+      mapped[field.replace('requestedByName', 'requestedBy')] = value;
       return;
     }
-    if (field === 'requestType') {
-      mapped.entityType = value;
+    if (field === 'priority' || field.startsWith('priority.')) {
+      mapped[field.replace('priority', 'impactLevel')] = value;
       return;
     }
-    if (field === 'level') {
-      mapped.currentLevel = value;
+    if (field === 'requestType' || field.startsWith('requestType.')) {
+      mapped[field.replace('requestType', 'entityType')] = value;
+      return;
+    }
+    if (field === 'requestTitle' || field.startsWith('requestTitle.')) {
+      mapped[field.replace('requestTitle', 'title')] = value;
+      return;
+    }
+    if (field === 'level' || field.startsWith('level.')) {
+      mapped[field.replace('level', 'currentLevel')] = value;
       return;
     }
 
     mapped[field] = value;
   });
 
-  return mapped;
+  // Flatten nested objects (e.g. { impactLevel: { equals: "high" } } -> { "impactLevel.equals": "high" })
+  const flattened: Record<string, EnterpriseColumnFilterValue> = {};
+  Object.entries(mapped).forEach(([key, val]) => {
+    if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+      Object.entries(val).forEach(([op, innerVal]) => {
+        flattened[`${key}.${op}`] = innerVal;
+      });
+    } else {
+      flattened[key] = val;
+    }
+  });
+
+  return flattened;
 }
 
 export function buildApprovalRequestParams(input: ApprovalRequestQueryInput) {

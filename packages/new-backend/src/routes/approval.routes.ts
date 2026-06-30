@@ -75,6 +75,8 @@ const APPROVAL_REQUEST_LIST_QUERY_CONFIG: ListQueryConfig = {
                 { label: 'Low', value: 'low' },
             ],
         },
+        dueDate: { field: 'dueDate', label: 'Due Date', type: 'text', operators: ['contains', 'equals'] },
+        progress: { field: 'progress', label: 'Progress', type: 'text', operators: ['contains', 'equals'] },
         bankingType: {
             field: 'bankingType',
             label: 'Banking Type',
@@ -583,6 +585,8 @@ approvalRoutes.openapi(
                 requestedBy: filters.requestedBy ? String(filters.requestedBy) : undefined,
                 operation: filters.operation ? String(filters.operation) : undefined,
                 title: filters['title.contains'] ? String(filters['title.contains']) : filters.title ? String(filters.title) : undefined,
+                dueDate: filters['dueDate.contains'] ? String(filters['dueDate.contains']) : filters.dueDate ? String(filters.dueDate) : undefined,
+                progress: filters['progress.contains'] ? String(filters['progress.contains']) : filters.progress ? String(filters.progress) : undefined,
                 search: query.search,
                 createdAtFrom: filters['createdAt.from'] ? new Date(String(filters['createdAt.from'])) : undefined,
                 createdAtTo: filters['createdAt.to'] ? new Date(String(filters['createdAt.to'])) : undefined,

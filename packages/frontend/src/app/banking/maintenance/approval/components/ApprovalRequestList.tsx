@@ -351,6 +351,7 @@ export const ApprovalRequestList = memo(function ApprovalRequestList({
   );
 
   const gridFilterDefinitions = useMemo<Record<string, EnterpriseFilterDefinition>>(() => ({
+    ...filterDefinitions,
     requestedAt: filterDefinitions.createdAt
       ? { ...filterDefinitions.createdAt, field: 'requestedAt', label: 'Requested At' }
       : { field: 'requestedAt', label: 'Requested At', type: 'date', operators: ['from', 'to'] },

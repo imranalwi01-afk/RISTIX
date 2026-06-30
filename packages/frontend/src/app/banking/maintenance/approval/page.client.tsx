@@ -121,37 +121,53 @@ const normalizeApprovalFilterValue = (value: EnterpriseColumnFilterValue): strin
 
 const mapApprovalGridFiltersToBackend = (
   filters: Record<string, EnterpriseColumnFilterValue>,
-): Record<string, string> => {
-  const mapped: Record<string, string> = {};
+): Record<string, EnterpriseColumnFilterValue> => {
+  const mapped: Record<string, EnterpriseColumnFilterValue> = {};
 
   Object.entries(filters).forEach(([field, value]) => {
-    if (value === null || value === undefined) return;
+    if (normalizeApprovalFilterValue(value).trim().length === 0) return;
 
-    // Resolve backend field name
-    let backendField = field;
-    if (field.startsWith('requestedAt.')) backendField = field.replace('requestedAt.', 'createdAt.');
-    else if (field === 'priority') backendField = 'impactLevel';
-    else if (field === 'requestType') backendField = 'entityType';
-    else if (field === 'level') backendField = 'currentLevel';
-    else if (field.startsWith('requestTitle')) backendField = field.replace('requestTitle', 'title');
-
-    // Expand range/object filters to backend's dotted-key format
-    if (typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
-      const obj = value as Record<string, unknown>;
-      if ('from' in obj) mapped[`${backendField}.from`] = String(obj.from);
-      if ('to' in obj) mapped[`${backendField}.to`] = String(obj.to);
-      if ('min' in obj) mapped[`${backendField}.min`] = String(obj.min);
-      if ('max' in obj) mapped[`${backendField}.max`] = String(obj.max);
-      if ('value' in obj) mapped[backendField] = String(obj.value);
+    if (field === 'requestedAt' || field.startsWith('requestedAt.')) {
+      mapped[field.replace('requestedAt', 'createdAt')] = value;
+      return;
+    }
+    if (field === 'requestedByName' || field.startsWith('requestedByName.')) {
+      mapped[field.replace('requestedByName', 'requestedBy')] = value;
+      return;
+    }
+    if (field === 'priority' || field.startsWith('priority.')) {
+      mapped[field.replace('priority', 'impactLevel')] = value;
+      return;
+    }
+    if (field === 'requestType' || field.startsWith('requestType.')) {
+      mapped[field.replace('requestType', 'entityType')] = value;
+      return;
+    }
+    if (field === 'requestTitle' || field.startsWith('requestTitle.')) {
+      mapped[field.replace('requestTitle', 'title')] = value;
+      return;
+    }
+    if (field === 'level' || field.startsWith('level.')) {
+      mapped[field.replace('level', 'currentLevel')] = value;
       return;
     }
 
-    const str = normalizeApprovalFilterValue(value);
-    if (str.trim().length === 0) return;
-    mapped[backendField] = str;
+    mapped[field] = value;
   });
 
-  return mapped;
+  // Flatten nested objects (e.g. { impactLevel: { equals: "high" } } -> { "impactLevel.equals": "high" })
+  const flattened: Record<string, EnterpriseColumnFilterValue> = {};
+  Object.entries(mapped).forEach(([key, val]) => {
+    if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+      Object.entries(val).forEach(([op, innerVal]) => {
+        flattened[`${key}.${op}`] = innerVal;
+      });
+    } else {
+      flattened[key] = val;
+    }
+  });
+
+  return flattened;
 };
 
 const transformApprovalRequest = (req: any): ApprovalRequest => ({
@@ -545,7 +561,31 @@ function ApprovalManagementPage() {
     if (approvalRequestsQuery.data) {
       setApprovalRequests(approvalRequestsQuery.data.rows as ApprovalRequest[]);
       setApprovalRowCount(approvalRequestsQuery.data.total);
-      setApprovalFilterDefinitions(approvalRequestsQuery.data.filterDefinitions);
+      
+      // Inject aliases for UI so that EnterpriseTable renders column filters correctly
+      const backendDefs = approvalRequestsQuery.data.filterDefinitions || {};
+      const defs = { ...backendDefs };
+      
+      if (defs.impactLevel && !defs.priority) {
+        defs.priority = { ...defs.impactLevel, field: 'priority' };
+      }
+      if (defs.entityType && !defs.requestType) {
+        defs.requestType = { ...defs.entityType, field: 'requestType' };
+      }
+      if (defs.currentLevel && !defs.level) {
+        defs.level = { ...defs.currentLevel, field: 'level' };
+      }
+      if (defs.title && !defs.requestTitle) {
+        defs.requestTitle = { ...defs.title, field: 'requestTitle' };
+      }
+      if (defs.requestedBy && !defs.requestedByName) {
+        defs.requestedByName = { ...defs.requestedBy, field: 'requestedByName' };
+      }
+      if (defs.createdAt && !defs.requestedAt) {
+        defs.requestedAt = { ...defs.createdAt, field: 'requestedAt' };
+      }
+
+      setApprovalFilterDefinitions(defs);
     }
   }, [approvalRequestsQuery.data]);
 

@@ -552,11 +552,11 @@ export class Ifrs9ReportsService {
         }
 
         if (params?.pd_method !== undefined) {
-            conditions.push(`pd_method = ${Number(params.pd_method)}`);
+            conditions.push(`model_id = ${Number(params.pd_method)}`);
         }
 
         if (params?.scalar_id !== undefined) {
-            conditions.push(`scalar_id = ${Number(params.scalar_id)}`);
+            conditions.push(`scenario_id = ${Number(params.scalar_id)}`);
         }
 
         return this.resolveLatestPrcDate(
@@ -992,7 +992,7 @@ export class Ifrs9ReportsService {
         try {
             const requestedPrcDate = params?.prc_date || '2023-12-31';
             const pdConfigId = params?.pd_config_id || 1;
-            const modelId = params?.scalar_id;
+            const modelId = params?.pd_method;
             const scenarioId = params?.scalar_id;
             const flFlag = params?.fl_flag ?? false;
             const effectivePrcDate = await this.resolveLifetimePdPrcDate({
@@ -1052,7 +1052,7 @@ export class Ifrs9ReportsService {
         try {
             const requestedPrcDate = params?.prc_date || '2023-12-31';
             const pdConfigId = params?.pd_config_id || 1;
-            const modelId = params?.scalar_id;
+            const modelId = params?.pd_method;
             const scenarioId = params?.scalar_id;
             const flFlag = params?.fl_flag ?? false;
             const effectivePrcDate = await this.resolveLifetimePdPrcDate({

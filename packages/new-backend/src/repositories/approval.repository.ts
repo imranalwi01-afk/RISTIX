@@ -293,6 +293,8 @@ export const ApprovalRepository = {
         requestedBy?: string
         operation?: string
         title?: string
+        dueDate?: string
+        progress?: string
         search?: string
         createdAtFrom?: Date
         createdAtTo?: Date
@@ -324,10 +326,31 @@ export const ApprovalRepository = {
                 sql`lower(coalesce(${approvalRequests.requestData}->>'riskLevel', '')) = lower(${input.riskLevel})`
             )
         }
-        if (input.requestedBy) conditions.push(eq(approvalRequests.requestedBy, input.requestedBy))
+        if (input.requestedBy) {
+            const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(input.requestedBy)
+            if (isUuid) {
+                conditions.push(eq(approvalRequests.requestedBy, input.requestedBy))
+            } else {
+                const pattern = `%${input.requestedBy}%`
+                conditions.push(
+                    sql`${approvalRequests.requestedBy} IN (
+                        SELECT id FROM core.users 
+                        WHERE full_name ILIKE ${pattern} 
+                           OR email ILIKE ${pattern} 
+                           OR username ILIKE ${pattern}
+                    )`
+                )
+            }
+        }
         if (input.title) conditions.push(ilike(approvalRequests.title, `%${input.title}%`))
         if (input.operation) {
             conditions.push(sql`coalesce(${approvalRequests.requestData}->>'operation', '') = ${input.operation}`)
+        }
+        if (input.dueDate) {
+            conditions.push(sql`cast(${approvalRequests.expiresAt} as text) ilike ${'%' + input.dueDate + '%'}`)
+        }
+        if (input.progress) {
+            conditions.push(sql`cast(${approvalRequests.approvalsReceived} as text) || '/' || cast(${approvalRequests.approvalsRequired} as text) ilike ${'%' + input.progress + '%'}`)
         }
         if (input.createdAtFrom) conditions.push(gte(approvalRequests.createdAt, input.createdAtFrom))
         if (input.createdAtTo) conditions.push(lte(approvalRequests.createdAt, input.createdAtTo))
