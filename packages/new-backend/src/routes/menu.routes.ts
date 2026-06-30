@@ -148,7 +148,7 @@ menuRoutes.openapi(
 
             // Individual Impairment
             { cat: 'Individual Impairment', name: 'Assessment Workspace', path: '/banking/individual/assessment', icon: 'Assessment', sortOrder: 1 },
-            { cat: 'Individual Impairment', name: 'Individual Provision', path: '/banking/individual/provision', icon: 'Savings', sortOrder: 2 },
+            
             { cat: 'Individual Impairment', name: 'DCF Upload Report', path: '/banking/individual/review/dcf-upload-report', icon: 'Description', sortOrder: 3 },
 
             // IFRS 9 Processing
@@ -156,8 +156,7 @@ menuRoutes.openapi(
             { cat: 'IFRS 9 Processing', name: 'IFRS 9 Staging', path: '/banking/ifrs9/staging', icon: 'Layers', sortOrder: 2 },
             { cat: 'IFRS 9 Processing', name: 'Model Management', path: '/banking/ifrs9/models', icon: 'ViewModule', sortOrder: 3 },
             { cat: 'IFRS 9 Processing', name: 'Forecast', path: '/banking/ifrs9/scenarios', icon: 'AutoGraph', sortOrder: 4 },
-            { cat: 'IFRS 9 Processing', name: 'Data Upload', path: '/banking/data/upload', icon: 'UploadFile', sortOrder: 5 },
-            { cat: 'IFRS 9 Processing', name: 'Data Validation', path: '/banking/data/validation', icon: 'VerifiedUser', sortOrder: 6 },
+                        { cat: 'IFRS 9 Processing', name: 'Data Validation', path: '/banking/data/validation', icon: 'VerifiedUser', sortOrder: 6 },
 
             // IFRS 9 Reports
             { cat: 'IFRS 9 Reports', name: 'ECL Movement', path: '/banking/ifrs9-reports/ecl-movement', icon: 'SwapHoriz', sortOrder: 1 },
@@ -185,8 +184,7 @@ menuRoutes.openapi(
             // Tools
             { cat: 'Tools', name: 'Manual Upload', path: '/banking/tools/upload', icon: 'CloudUpload', sortOrder: 1 },
             { cat: 'Tools', name: 'Data Export', path: '/banking/tools/export', icon: 'GetApp', sortOrder: 2 },
-            { cat: 'Tools', name: 'ETL Tools', path: '/banking/tools/etl', icon: 'Transform', sortOrder: 3 },
-
+            
             // Admin & Maintenance
             { cat: 'Admin & Maintenance', name: 'Access Management', path: '/banking/maintenance/access-management', icon: 'ManageAccounts', sortOrder: 1 },
             { cat: 'Admin & Maintenance', name: 'Approval', path: '/banking/maintenance/approval', icon: 'Approval', sortOrder: 2 },

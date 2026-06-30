@@ -49,7 +49,6 @@ INSERT INTO menu.menu_items (id, tenant_id, category_id, name, path, icon, sort_
 
     -- Individual Impairment
     ('b1000000-0005-4000-8000-000000000001', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000005', 'Assessment Workspace', '/banking/individual/assessment', 'Assessment', 1, 0, true, true, true, 'both', '550e8400-1111-2222-3333-444455555201'),
-    ('b1000000-0005-4000-8000-000000000002', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000005', 'Individual Provision', '/banking/individual/provision', 'Savings', 2, 0, true, true, true, 'both', '550e8400-1111-2222-3333-444455555201'),
     ('b1000000-0005-4000-8000-000000000003', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000005', 'DCF Upload Report', '/banking/individual/review/dcf-upload-report', 'Description', 3, 0, true, true, true, 'both', '550e8400-1111-2222-3333-444455555201'),
 
     -- IFRS 9 Processing
@@ -57,8 +56,6 @@ INSERT INTO menu.menu_items (id, tenant_id, category_id, name, path, icon, sort_
     ('b1000000-0006-4000-8000-000000000002', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000006', 'IFRS 9 Staging', '/banking/ifrs9/staging', 'Layers', 2, 0, true, true, true, 'both', '550e8400-1111-2222-3333-444455555201'),
     ('b1000000-0006-4000-8000-000000000003', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000006', 'Model Management', '/banking/ifrs9/models', 'ViewModule', 3, 0, true, true, true, 'both', '550e8400-1111-2222-3333-444455555201'),
     ('b1000000-0006-4000-8000-000000000004', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000006', 'Forecast', '/banking/ifrs9/scenarios', 'AutoGraph', 4, 0, true, true, true, 'both', '550e8400-1111-2222-3333-444455555201'),
-    ('b1000000-0006-4000-8000-000000000005', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000006', 'Data Upload', '/banking/data/upload', 'UploadFile', 5, 0, true, true, true, 'both', '550e8400-1111-2222-3333-444455555201'),
-    ('b1000000-0006-4000-8000-000000000006', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000006', 'Data Validation', '/banking/data/validation', 'VerifiedUser', 6, 0, true, true, true, 'both', '550e8400-1111-2222-3333-444455555201'),
 
     -- IFRS 9 Reports
     ('b1000000-0007-4000-8000-000000000001', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000007', 'ECL Movement', '/banking/ifrs9-reports/ecl-movement', 'SwapHoriz', 1, 0, true, true, true, 'both', '550e8400-1111-2222-3333-444455555201'),
@@ -86,7 +83,6 @@ INSERT INTO menu.menu_items (id, tenant_id, category_id, name, path, icon, sort_
     -- Tools
     ('b1000000-0010-4000-8000-000000000001', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000010', 'Manual Upload', '/banking/tools/upload', 'CloudUpload', 1, 0, true, true, true, 'both', '550e8400-1111-2222-3333-444455555201'),
     ('b1000000-0010-4000-8000-000000000002', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000010', 'Data Export', '/banking/tools/export', 'GetApp', 2, 0, true, true, true, 'both', '550e8400-1111-2222-3333-444455555201'),
-    ('b1000000-0010-4000-8000-000000000003', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000010', 'ETL Tools', '/banking/tools/etl', 'Transform', 3, 0, true, true, true, 'both', '550e8400-1111-2222-3333-444455555201'),
 
     -- Admin & Maintenance
     ('b1000000-0011-4000-8000-000000000001', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000011', 'Access Management', '/banking/maintenance/access-management', 'ManageAccounts', 1, 0, true, true, true, 'both', '550e8400-1111-2222-3333-444455555201'),
