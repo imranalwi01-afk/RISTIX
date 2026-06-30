@@ -51,12 +51,12 @@ import {
   TabPanelProps,
 } from './types';
 
-const JOB_VIEW_PERMISSIONS = ['jobs.view', 'jobs.manage', 'jobs.access', 'admin.system.view', 'admin.system.manage'];
-const JOB_CREATE_PERMISSIONS = ['jobs.create', 'jobs.manage', 'jobs.access', 'admin.system.manage'];
-const JOB_UPDATE_PERMISSIONS = ['jobs.update', 'jobs.manage', 'jobs.access', 'admin.system.manage'];
-const JOB_DELETE_PERMISSIONS = ['jobs.delete', 'jobs.manage', 'jobs.access', 'admin.system.manage'];
-const JOB_RUN_PERMISSIONS = ['jobs.run', 'jobs.manage', 'jobs.access', 'admin.system.manage'];
-const JOB_CONTROL_PERMISSIONS = ['jobs.control', 'jobs.manage', 'jobs.access', 'admin.system.manage'];
+const JOB_VIEW_PERMISSIONS = ['jobs.view', 'jobs.manage', 'admin.system.view', 'admin.system.manage'];
+const JOB_CREATE_PERMISSIONS = ['jobs.create', 'jobs.manage', 'admin.system.manage'];
+const JOB_UPDATE_PERMISSIONS = ['jobs.update', 'jobs.manage', 'admin.system.manage'];
+const JOB_DELETE_PERMISSIONS = ['jobs.delete', 'jobs.manage', 'admin.system.manage'];
+const JOB_RUN_PERMISSIONS = ['jobs.run', 'jobs.manage', 'admin.system.manage'];
+const JOB_CONTROL_PERMISSIONS = ['jobs.control', 'jobs.manage', 'admin.system.manage'];
 const JOB_RUNTIME_PERMISSIONS = ['jobs.runtime.view', 'jobs.manage', 'admin.system.view', 'admin.system.manage'];
 
 const DEFAULT_NEW_JOB_DATA: CreateJobForm = {
