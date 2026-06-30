@@ -317,8 +317,6 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         ]
     },
 
-    // PORTFOLIO MANAGEMENT
-    // {
     //     id: 'portfolio-management',
     //     label: 'Portfolio Management',
     //     icon: <Business />,
@@ -901,11 +899,9 @@ export const getIconForMenuItem = (code: string, level: number): React.ReactElem
         'business-setting': <Business />,
         'product-parameter': <AccountBalance />,
         'journal-parameter': <Assessment />,
-        'portfolio-accounts': <AccountCircle />,
-        'customer-management': <People />,
+            'customer-management': <People />,
         'banking-products': <AccountBalance />,
-        'portfolio-monitoring': <Visibility />,
-        'segmentation-configuration': <Category />,
+            'segmentation-configuration': <Category />,
         'rule-base-setting': <Assessment />,
         'bucket-parameter': <Layers />,
         'pd-setup-management': <TrendingUp />,

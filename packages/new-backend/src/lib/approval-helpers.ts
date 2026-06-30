@@ -358,7 +358,6 @@ const STRICT_FOUR_EYES_ENTITIES = new Set([
     'rule_base_setting',
     'product_parameter',
     'journal_parameter',
-    'fl_scalar',
     'app_setting',
     'business_setting',
 ])

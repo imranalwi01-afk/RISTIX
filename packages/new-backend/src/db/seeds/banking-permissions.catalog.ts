@@ -284,13 +284,6 @@ export const BANKING_PERMISSION_CATALOG: SeedPermissionDefinition[] = [
         actions: ['access', 'view', 'create', 'update', 'delete', 'manage'],
     }),
     ...createResourcePermissions({
-        stem: 'banking.collective.fl_scalar',
-        label: 'FL Scalar',
-        resource: 'collective.fl_scalar',
-        category: 'BANKING_COLLECTIVE',
-        actions: ['access', 'view', 'create', 'update', 'delete', 'manage'],
-    }),
-    ...createResourcePermissions({
         stem: 'banking.individual',
         label: 'Individual Impairment',
         resource: 'individual',
@@ -380,27 +373,6 @@ export const BANKING_PERMISSION_CATALOG: SeedPermissionDefinition[] = [
         'banking',
         'BANKING_TOOLS'
     ),
-    ...createResourcePermissions({
-        stem: 'banking.tools.upload',
-        label: 'Manual Upload',
-        resource: 'tools.upload',
-        category: 'BANKING_TOOLS',
-        actions: ['view', 'create', 'manage'],
-    }),
-    ...createResourcePermissions({
-        stem: 'banking.tools.export',
-        label: 'Data Export',
-        resource: 'tools.export',
-        category: 'BANKING_TOOLS',
-        actions: ['view', 'manage'],
-    }),
-    ...createResourcePermissions({
-        stem: 'banking.tools.etl',
-        label: 'ETL Tools',
-        resource: 'tools.etl',
-        category: 'BANKING_TOOLS',
-        actions: ['view', 'create', 'update', 'run', 'manage'],
-    }),
     createPermission(
         'admin.maintenance.access',
         'Maintenance Access',
@@ -568,9 +540,6 @@ export const MAKER_CHECKER_FRONTEND_PERMISSION_CODES = [
     'jobs.access',
     'jobs.view',
     'banking.configuration.ifrs9.manage',
-    'banking.tools.upload.view',
-    'banking.tools.export.view',
-    'banking.tools.etl.view',
 ]
 
 const dedupe = (...permissionSets: string[][]): string[] => [...new Set(permissionSets.flat())]
@@ -741,7 +710,6 @@ const ECL_MANAGE = [
     'banking.collective.ecl.manage',
 ]
 
-const FL_SCALAR_VIEW = ['banking.collective.fl_scalar', 'banking.collective.fl_scalar.view']
 
 const INDIVIDUAL_VIEW = ['banking.individual', 'banking.individual.view']
 const INDIVIDUAL_MANAGE = [
@@ -780,16 +748,6 @@ const IFRS9_TOOLS_MANAGE = [
     'banking.configuration.ifrs9',
     'banking.configuration.ifrs9.manage',
     'banking.tools.manage',
-    'banking.tools.upload.view',
-    'banking.tools.upload.create',
-    'banking.tools.upload.manage',
-    'banking.tools.export.view',
-    'banking.tools.export.manage',
-    'banking.tools.etl.view',
-    'banking.tools.etl.create',
-    'banking.tools.etl.update',
-    'banking.tools.etl.run',
-    'banking.tools.etl.manage',
 ]
 
 const MAINTENANCE_BASE_VIEW = ['admin.maintenance.access']
