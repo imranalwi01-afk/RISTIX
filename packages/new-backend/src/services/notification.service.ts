@@ -1,7 +1,7 @@
 import { Effect } from 'effect'
 import { ApprovalNotificationJob, queueApprovalNotification } from '../queue/bull-setup'
-import { db } from '../config/database'
-import { platformSettings } from '../db/schema'
+import { db, legacyDb } from '../config/database'
+import { platformSettings, frs9ParamCommonh } from '../db/schema'
 import { eq } from 'drizzle-orm'
 import { platformEmailTemplates } from '../db/schema/platform.schema'
 import { NotificationRepository, type CreateNotificationInput } from '@/repositories/notification.repository'
@@ -73,6 +73,7 @@ export async function testSmtpConnection(config: any): Promise<boolean> {
             user: config.user,
             pass: config.pass,
         } : undefined,
+        family: 4, // Force IPv4 resolution
     });
 
     try {
@@ -111,6 +112,7 @@ async function sendSMTPEmail(to: string, subject: string, text: string, html?: s
                 port: config.port,
                 secure: config.secure,
                 auth: config.auth,
+                family: 4, // Force IPv4 resolution
             });
         }
 
@@ -123,6 +125,32 @@ async function sendSMTPEmail(to: string, subject: string, text: string, html?: s
         });
 
         console.log('📧 Email sent successfully via SMTP')
+
+        // Attempt to send WhatsApp notification as well if the user has a phone number
+        try {
+            const { getDatabase } = await import('../config/database');
+            const { users } = await import('../db/schema');
+            const tenantId = process.env.TENANT_ID || 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be';
+            const activeDb = getDatabase(tenantId);
+            
+            const [userRecord] = await activeDb
+                .select()
+                .from(users)
+                .where(eq(users.email, to))
+                .limit(1);
+
+            if (userRecord && userRecord.phone) {
+                console.log(`📱 Found phone number for ${to}: ${userRecord.phone}. Triggering WhatsApp...`);
+                const whatsappText = `*${subject}*\n\n${convertHtmlToWhatsAppMarkdown(html || text)}`;
+                sendWhatsAppFonnte(userRecord.phone, whatsappText).catch(e => 
+                    console.error('Failed to send WhatsApp in background:', e)
+                );
+            } else {
+                console.log(`📱 No phone number found for ${to}, skipping WhatsApp.`);
+            }
+        } catch (dbErr) {
+            console.error('Failed to lookup user phone for WhatsApp:', dbErr);
+        }
         
         // If using Ethereal, print the preview URL directly to terminal
         const previewUrl = nodemailer.getTestMessageUrl(info);
@@ -438,5 +466,78 @@ export async function sendForgotPasswordEmail(toEmail: string, userName: string,
     } catch (err) {
         console.error(`❌ Forgot password email send failed: ${err}`)
         throw err
+    }
+}
+
+/**
+ * Convert HTML email templates into a WhatsApp-friendly Markdown format.
+ */
+export function convertHtmlToWhatsAppMarkdown(html: string): string {
+    if (!html) return '';
+    return html
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/p>/gi, '\n\n')
+        .replace(/<p>/gi, '')
+        .replace(/<strong>(.*?)<\/strong>/gi, '*$1*')
+        .replace(/<b>(.*?)<\/b>/gi, '*$1*')
+        .replace(/<em>(.*?)<\/em>/gi, '_$1_')
+        .replace(/<i>(.*?)<\/i>/gi, '_$1_')
+        .replace(/<a\s+(?:[^>]*?\s+)?href="([^"]*)"[^>]*>(.*?)<\/a>/gi, '$2:\n$1')
+        .replace(/<[^>]*>/g, '') // strip any other remaining HTML tags
+        .trim();
+}
+
+/**
+ * Send WhatsApp message using Fonnte API Gateway.
+ */
+export async function sendWhatsAppFonnte(toPhone: string, message: string): Promise<boolean> {
+    let token = process.env.FONNTE_API_TOKEN || 'QFGjetVGAXtVHoytNTGd';
+    
+    try {
+        const [param] = await legacyDb
+            .select()
+            .from(frs9ParamCommonh)
+            .where(eq(frs9ParamCommonh.paramCode, 'WA_TOKEN'))
+            .limit(1);
+        if (param && param.paramUsage) {
+            token = param.paramUsage;
+        }
+    } catch (e) {
+        console.warn('⚠️ Warning: Failed to fetch WA_TOKEN from business parameters, using fallback:', e);
+    }
+
+    // Clean phone number (keep only digits, convert leading 0 to 62)
+    let cleanPhone = toPhone.replace(/\D/g, '');
+    if (cleanPhone.startsWith('0')) {
+        cleanPhone = '62' + cleanPhone.slice(1);
+    }
+    if (!cleanPhone.startsWith('62') && !cleanPhone.startsWith('1') && cleanPhone.length > 5) {
+        cleanPhone = '62' + cleanPhone; // default to Indonesia
+    }
+
+    try {
+        const response = await fetch('https://api.fonnte.com/send', {
+            method: 'POST',
+            headers: {
+                'Authorization': token,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                target: cleanPhone,
+                message: message
+            })
+        });
+
+        const resData = await response.json() as any;
+        if (resData.status === true) {
+            console.log(`💬 WhatsApp sent successfully via Fonnte to ${cleanPhone}`);
+            return true;
+        } else {
+            console.error(`❌ Fonnte WhatsApp send failed:`, JSON.stringify(resData));
+            return false;
+        }
+    } catch (error) {
+        console.error(`❌ Error calling Fonnte API:`, error);
+        return false;
     }
 }

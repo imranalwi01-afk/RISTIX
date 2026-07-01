@@ -302,7 +302,9 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       employeeId: '',
       department: '',
       position: '',
-      sendWelcomeEmail: true
+      phone: '',
+      sendWelcomeEmail: true,
+      sendWelcomeWhatsApp: false
     });
   };
 
@@ -342,6 +344,7 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       employeeId: user.employeeId || '',
       department: user.department || '',
       position: user.position || '',
+      phone: user.phone || '',
     });
     await loadUserRoles(user.id);
     setOpenEditDialog(true);

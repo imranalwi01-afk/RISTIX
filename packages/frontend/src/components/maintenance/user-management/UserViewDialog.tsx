@@ -59,6 +59,10 @@ const UserViewDialog = memo(function UserViewDialog({
                 <Typography>{selectedUser.position || 'N/A'}</Typography>
               </Grid>
               <Grid size={{ xs: 6 }}>
+                <Typography variant="subtitle2" color="text.secondary">Phone Number</Typography>
+                <Typography>{selectedUser.phone || 'N/A'}</Typography>
+              </Grid>
+              <Grid size={{ xs: 6 }}>
                 <Typography variant="subtitle2" color="text.secondary">Status</Typography>
                 <Chip label={selectedUser.isActive ? 'Active' : 'Inactive'} color={selectedUser.isActive ? 'success' : 'default'} size="small" />
               </Grid>

@@ -6,6 +6,7 @@ export interface User {
   employeeId?: string;
   department?: string;
   position?: string;
+  phone?: string;
   isActive: boolean;
   lastLoginAt?: string;
   createdAt: string;
@@ -29,5 +30,7 @@ export interface UserFormData {
   employeeId: string;
   department: string;
   position: string;
+  phone?: string;
   sendWelcomeEmail?: boolean;
+  sendWelcomeWhatsApp?: boolean;
 }

@@ -302,6 +302,8 @@ services:
       - ../../packages/new-backend/package.json:/app/package.json
       - ../../packages/new-backend/bunfig.toml:/app/bunfig.toml
       - new-backend-node-modules:/app/node_modules
+    extra_hosts:
+      - "smtp.office365.com:40.99.63.82"
 
     healthcheck:
       test: [ "CMD", "bun", "-e", "fetch('http://localhost:4232/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" ]

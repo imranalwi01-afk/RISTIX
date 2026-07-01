@@ -350,6 +350,7 @@ authRoutes.openapi(
             if (res instanceof Response) return res;
             return c.json(res, 200);
         }).catch((err) => {
+            console.error('[ForgotPassword Route Error]:', err)
             return c.json({ success: false, message: 'Internal Server Error' }, 500)
         })
     }

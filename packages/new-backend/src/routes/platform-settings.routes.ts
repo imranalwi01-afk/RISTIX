@@ -194,6 +194,7 @@ platformSettingsRoutes.openapi(
                     port: body.port,
                     secure: body.secure,
                     auth: body.user ? { user: body.user, pass: body.pass } : undefined,
+                    family: 4,
                 })
                 await transporter.verify()
             } catch (err: any) {

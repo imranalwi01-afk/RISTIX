@@ -56,6 +56,7 @@ const CreateUserSchema = z.object({
     department: z.string().optional(),
     position: z.string().optional(),
     sendWelcomeEmail: z.boolean().optional(),
+    sendWelcomeWhatsApp: z.boolean().optional(),
 }).openapi('CreateUserInput')
 
 const UpdateUserSchema = z.object({
@@ -396,6 +397,15 @@ usersRoutes.openapi(
                         });
                     });
                 }
+                if (body.sendWelcomeWhatsApp && body.phone) {
+                    import('../services/notification.service').then(({ sendWhatsAppFonnte }) => {
+                        import('../config/env').then(({ env: config }) => {
+                            const loginUrl = `${(config as any).FRONTEND_URL || 'http://localhost:4231'}/login`;
+                            const message = `*Welcome to IFRS 9 Platform*\n\nHi *${body.fullName}*,\n\nYour account has been created. Here are your login credentials:\n\nUsername: *${body.username}*\nPassword: *${body.password}*\n\nLogin here: ${loginUrl}\n\nPlease change your password after logging in.`;
+                            sendWhatsAppFonnte(body.phone, message).catch(e => console.error('Failed to send welcome WhatsApp', e));
+                        });
+                    });
+                }
             }))
         )
 
@@ -510,6 +520,7 @@ usersRoutes.openapi(
                 fullName: user.fullName,
                 username: user.username,
                 phone: user.phone ?? null,
+                phoneNumber: user.phone ?? null,
                 department: user.department ?? null,
                 position: user.position ?? null,
                 tenantId: user.tenantId ?? null,
@@ -574,9 +585,11 @@ usersRoutes.openapi(
         const body = c.req.valid('json')
 
         // Maps to updateUser
+        const { phoneNumber, ...rest } = body
         const effect = pipe(
             usersService.updateUser(userId, {
-                ...body, // We pass what we can
+                ...rest,
+                phone: phoneNumber,
                 tenantId,
             } as any),
             Effect.map((user) => ({
@@ -587,6 +600,7 @@ usersRoutes.openapi(
                     fullName: user.fullName,
                     username: user.username,
                     phone: user.phone ?? null,
+                    phoneNumber: user.phone ?? null,
                     department: user.department ?? null,
                     position: user.position ?? null,
                     tenantId: user.tenantId ?? null,

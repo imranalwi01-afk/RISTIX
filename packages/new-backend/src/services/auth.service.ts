@@ -817,22 +817,18 @@ export const forgotPassword = (
 ): Effect.Effect<boolean, DatabaseError> =>
     Effect.tryPromise({
         try: async () => {
-            let db = getDatabase(null) // default to platformDb
+            const tenantDb = getDatabase(env.TENANT_ID)
+            let db = tenantDb
             
-            // Search in platform users first
-            let user = await AuthRepository.findPlatformUserByEmail(db, email) as User | undefined
+            // Search in tenantDb first (since this is the tenant application context)
+            let user = await AuthRepository.findUserByEmail(tenantDb, email) as User | undefined
             
-            // If not found, fallback to search in regular users (banking users) on platformDb
+            // If not found in tenantDb, fallback to platform users
             if (!user) {
-                user = await AuthRepository.findUserByEmail(db, email) as User | undefined
-            }
-
-            // If still not found, search in tenantDb
-            if (!user) {
-                const tenantDb = getDatabase(env.TENANT_ID)
-                user = await AuthRepository.findUserByEmail(tenantDb, email) as User | undefined
+                const platformDb = getDatabase(null)
+                user = await AuthRepository.findPlatformUserByEmail(platformDb, email) as User | undefined
                 if (user) {
-                    db = tenantDb // switch db context to tenantDb
+                    db = platformDb
                 }
             }
             
@@ -872,25 +868,20 @@ export const resetPasswordWithToken = (
 ): Effect.Effect<void, DatabaseError | AuthenticationError> =>
     Effect.tryPromise({
         try: async () => {
-            let db = getDatabase(null)
+            const tenantDb = getDatabase(env.TENANT_ID)
+            let db = tenantDb
+            let isPlatformUser = false
             
-            // Search in platform users first
-            let user = await AuthRepository.findPlatformUserByEmail(db, email) as User | undefined
-            let isPlatformUser = true
+            // Search in tenantDb first
+            let user = await AuthRepository.findUserByEmail(tenantDb, email) as User | undefined
             
-            // If not found, fallback to search in regular users (banking users) on platformDb
+            // If not found in tenantDb, fallback to platform users
             if (!user) {
-                user = await AuthRepository.findUserByEmail(db, email) as User | undefined
-                isPlatformUser = false
-            }
-
-            // If still not found, search in tenantDb
-            if (!user) {
-                const tenantDb = getDatabase(env.TENANT_ID)
-                user = await AuthRepository.findUserByEmail(tenantDb, email) as User | undefined
+                const platformDb = getDatabase(null)
+                user = await AuthRepository.findPlatformUserByEmail(platformDb, email) as User | undefined
                 if (user) {
-                    db = tenantDb // switch db context
-                    isPlatformUser = false
+                    db = platformDb
+                    isPlatformUser = true
                 }
             }
             
