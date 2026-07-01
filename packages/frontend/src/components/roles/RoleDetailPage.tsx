@@ -226,8 +226,11 @@ const groupByMenu = (permissions: Permission[], menuOrder: Map<string, number>):
       }),
     }))
     .sort((a, b) => {
-      const aOrd = menuOrder.get(a.key) ?? 9999;
-      const bOrd = menuOrder.get(b.key) ?? 9999;
+      // Try exact group key match first, then normalized title match
+      const aKey = a.key.split('.').pop()?.toLowerCase().replace(/[\s_]/g, '_') || '';
+      const bKey = b.key.split('.').pop()?.toLowerCase().replace(/[\s_]/g, '_') || '';
+      const aOrd = menuOrder.get(aKey) ?? 9999;
+      const bOrd = menuOrder.get(bKey) ?? 9999;
       if (aOrd !== bOrd) return aOrd - bOrd;
       return a.label.localeCompare(b.label);
     });
@@ -356,7 +359,10 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
           for (const item of items) {
             if (item.items) {
               for (const child of item.items) {
-                order.set(child.id || child.menu_key || child.key || `menu_${idx}`, idx++);
+                const title = child.title || child.label || child.name || '';
+                // Map menu item title to permission group key
+                const key = title.toLowerCase().replace(/[\s_]+/g, '_');
+                order.set(key, idx++);
                 if (child.children) walk(child.children);
               }
             }
