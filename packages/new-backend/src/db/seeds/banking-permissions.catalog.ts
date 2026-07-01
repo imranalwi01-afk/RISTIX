@@ -87,35 +87,17 @@ const createResourcePermissions = ({
         return createPermission(code, name, description, resource, action, module, category)
     })
 
-const createApprovalOperationPermissions = (
+const createApprovalPermission = (
     stem: string,
     label: string,
     resource: string
 ): SeedPermissionDefinition[] => [
     createPermission(
-        `${stem}.create`,
-        `Approve ${label} Creation`,
-        `Approve create operation for ${label.toLowerCase()}`,
+        `${stem}.approve`,
+        `Approve ${label}`,
+        `Approve ${label.toLowerCase()} (all operations)`,
         resource,
-        'approve_create',
-        'approval',
-        'APPROVAL_OPERATION'
-    ),
-    createPermission(
-        `${stem}.update`,
-        `Approve ${label} Updates`,
-        `Approve update operation for ${label.toLowerCase()}`,
-        resource,
-        'approve_update',
-        'approval',
-        'APPROVAL_OPERATION'
-    ),
-    createPermission(
-        `${stem}.delete`,
-        `Approve ${label} Deletion`,
-        `Approve delete operation for ${label.toLowerCase()}`,
-        resource,
-        'approve_delete',
+        'approve',
         'approval',
         'APPROVAL_OPERATION'
     ),
@@ -485,18 +467,18 @@ export const BANKING_PERMISSION_CATALOG: SeedPermissionDefinition[] = [
         'admin',
         'ADMINISTRATION'
     ),
-    ...createApprovalOperationPermissions('approval.user', 'User Changes', 'users'),
-    ...createApprovalOperationPermissions('approval.configuration', 'Configuration Changes', 'configurations'),
-    ...createApprovalOperationPermissions('approval.parameter', 'Parameter Changes', 'parameters'),
-    ...createApprovalOperationPermissions('approval.product_parameter', 'Product Parameters', 'product_parameter'),
-    ...createApprovalOperationPermissions('approval.journal_parameter', 'Journal Parameters', 'journal_parameter'),
-    ...createApprovalOperationPermissions('approval.segmentation', 'Segmentation', 'segmentation'),
-    ...createApprovalOperationPermissions('approval.rule_base_setting', 'Rule Base Setting', 'rule_base_setting'),
-    ...createApprovalOperationPermissions('approval.bucket_parameter', 'Bucket Parameter', 'bucket_parameter'),
-    ...createApprovalOperationPermissions('approval.pd_configuration', 'PD Configuration', 'pd_configuration'),
-    ...createApprovalOperationPermissions('approval.lgd_configuration', 'LGD Configuration', 'lgd_configuration'),
-    ...createApprovalOperationPermissions('approval.ead_configuration', 'EAD Configuration', 'ead_configuration'),
-    ...createApprovalOperationPermissions('approval.ecl_configuration', 'ECL Configuration', 'ecl_configuration'),
+    ...createApprovalPermission('approval.user', 'User Changes', 'users'),
+    ...createApprovalPermission('approval.configuration', 'Configuration Changes', 'configurations'),
+    ...createApprovalPermission('approval.parameter', 'Parameter Changes', 'parameters'),
+    ...createApprovalPermission('approval.product_parameter', 'Product Parameters', 'product_parameter'),
+    ...createApprovalPermission('approval.journal_parameter', 'Journal Parameters', 'journal_parameter'),
+    ...createApprovalPermission('approval.segmentation', 'Segmentation', 'segmentation'),
+    ...createApprovalPermission('approval.rule_base_setting', 'Rule Base Setting', 'rule_base_setting'),
+    ...createApprovalPermission('approval.bucket_parameter', 'Bucket Parameter', 'bucket_parameter'),
+    ...createApprovalPermission('approval.pd_configuration', 'PD Configuration', 'pd_configuration'),
+    ...createApprovalPermission('approval.lgd_configuration', 'LGD Configuration', 'lgd_configuration'),
+    ...createApprovalPermission('approval.ead_configuration', 'EAD Configuration', 'ead_configuration'),
+    ...createApprovalPermission('approval.ecl_configuration', 'ECL Configuration', 'ecl_configuration'),
     ]
 
 export const BANKING_PERMISSION_CODES = BANKING_PERMISSION_CATALOG.map((permission) => permission.code)
@@ -787,46 +769,22 @@ const JOB_MANAGE = [
 
 const BUSINESS_APPROVAL_CODES = [
     'approval.requests.approve',
-    'approval.parameter.create',
-    'approval.parameter.update',
-    'approval.parameter.delete',
-    'approval.configuration.create',
-    'approval.configuration.update',
-    'approval.configuration.delete',
-    'approval.product_parameter.create',
-    'approval.product_parameter.update',
-    'approval.product_parameter.delete',
-    'approval.journal_parameter.create',
-    'approval.journal_parameter.update',
-    'approval.journal_parameter.delete',
-    'approval.segmentation.create',
-    'approval.segmentation.update',
-    'approval.segmentation.delete',
-    'approval.rule_base_setting.create',
-    'approval.rule_base_setting.update',
-    'approval.rule_base_setting.delete',
-    'approval.bucket_parameter.create',
-    'approval.bucket_parameter.update',
-    'approval.bucket_parameter.delete',
-    'approval.pd_configuration.create',
-    'approval.pd_configuration.update',
-    'approval.pd_configuration.delete',
-    'approval.lgd_configuration.create',
-    'approval.lgd_configuration.update',
-    'approval.lgd_configuration.delete',
-    'approval.ead_configuration.create',
-    'approval.ead_configuration.update',
-    'approval.ead_configuration.delete',
-    'approval.ecl_configuration.create',
-    'approval.ecl_configuration.update',
-    'approval.ecl_configuration.delete',
+    'approval.parameter.approve',
+    'approval.configuration.approve',
+    'approval.product_parameter.approve',
+    'approval.journal_parameter.approve',
+    'approval.segmentation.approve',
+    'approval.rule_base_setting.approve',
+    'approval.bucket_parameter.approve',
+    'approval.pd_configuration.approve',
+    'approval.lgd_configuration.approve',
+    'approval.ead_configuration.approve',
+    'approval.ecl_configuration.approve',
 ]
 
 const ADMIN_APPROVAL_CODES = [
     'approval.requests.approve',
-    'approval.user.create',
-    'approval.user.update',
-    'approval.user.delete',
+    'approval.user.approve',
 ]
 
 const RBAC_APPROVAL_CODES = [

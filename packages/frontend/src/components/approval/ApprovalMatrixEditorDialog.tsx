@@ -207,7 +207,7 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
     const [entityType, setEntityType] = useState('configuration');
     const [description, setDescription] = useState('');
     const [isActive, setIsActive] = useState(true);
-    const [operationType, setOperationType] = useState('create,update,delete');
+    const [operationType] = useState('create,update,delete');
     const [bankingMode, setBankingMode] = useState('');
     const [levels, setLevels] = useState<MatrixLevelEditor[]>([]);
     const [saving, setSaving] = useState(false);
@@ -238,7 +238,7 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
             setDescription(matrix.description || '');
             setEntityType(matrix.entityType || 'configuration');
             setIsActive(Boolean(matrix.isActive ?? true));
-            setOperationType(matrix.operationType || 'create,update,delete');
+            // operationType consolidated to single approve permission
             setBankingMode(matrix.bankingMode || '');
             const initialLevels = [...(matrix.levels || [])].sort((a, b) => (a.level || 0) - (b.level || 0)).map((level) => ({
                 level: Number(level.level || 0),
@@ -254,7 +254,7 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
             setDescription('');
             setEntityType('configuration');
             setIsActive(true);
-            setOperationType('create,update,delete');
+            // operationType consolidated
             setBankingMode('');
             setLevels([{ level: 1, name: 'Level 1', requiredRoleCodes: [], requiredPermissionCodes: ['approval.requests.approve'], requiredCount: 1, timeoutHours: '' }]);
         }
@@ -411,21 +411,6 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
                                 <Select label="Status" value={isActive ? 'active' : 'inactive'} onChange={(e) => setIsActive(e.target.value === 'active')} disabled={saving}>
                                     <MenuItem value="active">Active</MenuItem>
                                     <MenuItem value="inactive">Inactive</MenuItem>
-                                </Select>
-                            </FormControl>
-                        </Grid>
-
-                        {/* Operation Type */}
-                        <Grid size={{ xs: 12, md: 3 }}>
-                            <FormControl fullWidth>
-                                <InputLabel>Operation Type</InputLabel>
-                                <Select label="Operation Type" value={operationType} onChange={(e) => setOperationType(e.target.value)} disabled={saving}>
-                                    <MenuItem value="create,update,delete">All Operations</MenuItem>
-                                    <MenuItem value="create">Create Only</MenuItem>
-                                    <MenuItem value="update">Update Only</MenuItem>
-                                    <MenuItem value="delete">Delete Only</MenuItem>
-                                    <MenuItem value="create,update">Create & Update</MenuItem>
-                                    <MenuItem value="update,delete">Update & Delete</MenuItem>
                                 </Select>
                             </FormControl>
                         </Grid>
