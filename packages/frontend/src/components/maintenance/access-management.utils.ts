@@ -235,6 +235,24 @@ const RESOURCE_GROUP_ALIASES: Record<string, string> = {
   'banking.accounting_params': 'banking.parameter.journal',
 };
 
+// Maps approval permissions to their business counterpart groups so they
+// appear alongside related permissions (e.g. approval.segmentation.approve
+// shows under "Segmentation Configuration" instead of a separate "Approval" group)
+const APPROVAL_GROUP_ALIASES: Record<string, string> = {
+  'approval.segmentation': 'banking.parameter.segmentation',
+  'approval.parameter': 'banking.parameter',
+  'approval.product_parameter': 'banking.parameter.product',
+  'approval.journal_parameter': 'banking.parameter.journal',
+  'approval.bucket_parameter': 'banking.collective.bucket',
+  'approval.rule_base_setting': 'banking.collective.rule_base',
+  'approval.pd_configuration': 'banking.collective.pd',
+  'approval.lgd_configuration': 'banking.collective.lgd',
+  'approval.ead_configuration': 'banking.collective.ead',
+  'approval.ecl_configuration': 'banking.collective.ecl',
+  'approval.configuration': 'banking.configuration.ifrs9',
+  'approval.user': 'admin.users',
+};
+
 export const toKeySegments = (value?: string): string[] =>
   (value || '')
     .toLowerCase()
@@ -306,13 +324,21 @@ export const buildPermissionMatrixItem = (
   if (codeSegments.length >= 3) {
     const hasAction = ACTION_KEYWORDS.has(codeSegments[codeSegments.length - 1]);
     const groupSegments = hasAction ? codeSegments.slice(0, -1) : codeSegments;
-    const categorySegments = groupSegments.length >= 2 ? groupSegments.slice(0, 2) : groupSegments;
+    const rawGroupKey = groupSegments.join('.');
+    const rawCategoryKey = groupSegments.length >= 2 ? groupSegments.slice(0, 2).join('.') : rawGroupKey;
     const finalAction = hasAction ? codeSegments[codeSegments.length - 1] : 'access';
+
+    // Remap approval permissions to their business counterpart groups
+    const aliasedGroupKey = APPROVAL_GROUP_ALIASES[rawGroupKey] || rawGroupKey;
+    const aliasedCategory = aliasedGroupKey !== rawGroupKey
+      ? aliasedGroupKey.split('.').slice(0, 2).join('.')
+      : rawCategoryKey;
+
     return {
       permission,
       fullKey: codeSegments.join('.'),
-      categoryKey: categorySegments.join('.'),
-      groupKey: groupSegments.join('.'),
+      categoryKey: aliasedCategory,
+      groupKey: aliasedGroupKey,
       actionKey: finalAction,
     };
   }
