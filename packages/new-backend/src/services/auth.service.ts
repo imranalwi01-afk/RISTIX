@@ -854,11 +854,14 @@ export const forgotPassword = (
             
             return true
         },
-        catch: (error: unknown) => new DatabaseError({
-            message: 'Failed to process forgot password',
-            operation: 'insert',
-            cause: error
-        })
+        catch: (error: unknown) => {
+            console.error('[ForgotPassword Error]', error)
+            return new DatabaseError({
+                message: 'Failed to process forgot password',
+                operation: 'insert',
+                cause: error
+            })
+        }
     })
 
 export const resetPasswordWithToken = (

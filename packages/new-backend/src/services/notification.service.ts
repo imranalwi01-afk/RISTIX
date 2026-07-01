@@ -465,7 +465,6 @@ export async function sendForgotPasswordEmail(toEmail: string, userName: string,
         console.log(`📧 Forgot password email sent: ${messageId}`)
     } catch (err) {
         console.error(`❌ Forgot password email send failed: ${err}`)
-        throw err
     }
 }
 
