@@ -15,7 +15,7 @@ const MENU_TO_PERMISSION_STEM: Record<string, string> = {
   'Product Parameters': 'banking.parameter.product',
   'Journal Parameter': 'banking.parameter.journal',
   'Accounting Parameters': 'banking.parameter.journal',
-  'Segmentation Configuration': 'banking.parameter.segmentation',
+  'Segmentation Configuration': 'banking.collective.segmentation',
   'Bucket Parameter': 'banking.collective.bucket',
   'Rule Base Setting': 'banking.collective.rule_base',
   'PD Setup': 'banking.collective.pd',

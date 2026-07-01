@@ -97,7 +97,7 @@ const SIDEBAR_GROUP_LABELS: Record<string, { label: string; breadcrumb: string }
     label: 'Accounting Parameters',
     breadcrumb: 'Parameter Management > Accounting Parameters',
   },
-  'banking.parameter.segmentation': {
+  'banking.collective.segmentation': {
     label: 'Segmentation Configuration',
     breadcrumb: 'Collective Impairment > Segmentation Configuration',
   },
@@ -241,7 +241,7 @@ const RESOURCE_GROUP_ALIASES: Record<string, string> = {
 // appear alongside related permissions (e.g. approval.segmentation.approve
 // shows under "Segmentation Configuration" instead of a separate "Approval" group)
 const APPROVAL_GROUP_ALIASES: Record<string, string> = {
-  'approval.segmentation': 'banking.parameter.segmentation',
+  'approval.segmentation': 'banking.collective.segmentation',
   'approval.parameter': 'banking.parameter',
   'approval.product_parameter': 'banking.parameter.product',
   'approval.journal_parameter': 'banking.parameter.journal',

@@ -189,10 +189,10 @@ export const BANKING_PERMISSION_CATALOG: SeedPermissionDefinition[] = [
         actions: ['access', 'view', 'create', 'update', 'delete', 'manage', 'export'],
     }),
     ...createResourcePermissions({
-        stem: 'banking.parameter.segmentation',
+        stem: 'banking.collective.segmentation',
         label: 'Segmentation Configuration',
-        resource: 'parameter.segmentation',
-        category: 'BANKING_PARAMETER',
+        resource: 'collective.segmentation',
+        category: 'BANKING_COLLECTIVE',
         actions: ['access', 'view', 'create', 'update', 'delete', 'manage', 'export'],
     }),
     ...createResourcePermissions({
