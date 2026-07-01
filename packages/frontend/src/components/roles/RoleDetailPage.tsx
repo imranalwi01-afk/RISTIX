@@ -306,6 +306,8 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
   const [assignedUsers, setAssignedUsers] = useState<AssignedUser[]>([]);
   const [approvalUsage, setApprovalUsage] = useState<RoleApprovalUsage[]>([]);
   const [search, setSearch] = useState('');
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [selectedPermissionIds, setSelectedPermissionIds] = useState<string[]>([]);
   const [initialPermissionIds, setInitialPermissionIds] = useState<string[]>([]);
   const [menuOrder, setMenuOrder] = useState<Map<string, number>>(new Map());
@@ -692,29 +694,49 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
               ) : (
                 <Box sx={{ maxHeight: '65vh', overflowY: 'auto' }}>
                 <Stack spacing={1.5}>
-                  {permissionSections.map((section) => (
+                  {permissionSections.map((section) => {
+                    const catCollapsed = collapsedCategories.has(section.label);
+                    return (
                     <Box key={section.label}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, mt: 1 }}>
+                      <Box
+                        onClick={() => {
+                          const next = new Set(collapsedCategories);
+                          catCollapsed ? next.delete(section.label) : next.add(section.label);
+                          setCollapsedCategories(next);
+                        }}
+                        sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: catCollapsed ? 0 : 1, mt: 1, cursor: 'pointer', userSelect: 'none' }}
+                      >
+                        <Typography variant="caption" color="text.disabled" sx={{ fontSize: 11 }}>
+                          {catCollapsed ? '▶' : '▼'}
+                        </Typography>
                         <Chip label={section.label} size="small" color="primary" variant="outlined" />
                         <Divider sx={{ flex: 1 }} />
                       </Box>
-                      {section.groups.map((group, gi) => {
+                      {!catCollapsed && section.groups.map((group, gi) => {
                     const ids = group.permissions.map((permission) => permission.id);
                     const selectedCount = ids.filter((id) => selectedPermissionSet.has(id)).length;
                     const allSelected = ids.length > 0 && selectedCount === ids.length;
                     const someSelected = selectedCount > 0 && selectedCount < ids.length;
+                    const grpCollapsed = collapsedGroups.has(group.key);
 
                     return (
-                      <Box key={group.key} sx={{ ml: 2, mb: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', px: 1.5, py: 0.75, bgcolor: 'grey.50', borderBottom: '1px solid', borderColor: 'divider' }}>
-                          <Box sx={{ width: 16, mr: 1, color: 'text.disabled', fontSize: 12 }}>{gi === section.groups.length - 1 ? '└─' : '├─'}</Box>
+                      <Box key={group.key} sx={{ ml: 2, mb: 0.5, border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
+                        <Box
+                          onClick={() => {
+                            const next = new Set(collapsedGroups);
+                            grpCollapsed ? next.delete(group.key) : next.add(group.key);
+                            setCollapsedGroups(next);
+                          }}
+                          sx={{ display: 'flex', alignItems: 'center', px: 1.5, py: 0.75, bgcolor: 'grey.50', borderBottom: grpCollapsed ? 'none' : '1px solid', borderColor: 'divider', cursor: 'pointer', userSelect: 'none' }}
+                        >
+                          <Box sx={{ width: 16, mr: 0.5, color: 'text.disabled', fontSize: 11 }}>{grpCollapsed ? (gi === section.groups.length - 1 ? '└▶' : '├▶') : (gi === section.groups.length - 1 ? '└▼' : '├▼')}</Box>
                           <FormControlLabel
                             control={(
                               <Checkbox
                                 size="small"
                                 checked={allSelected}
                                 indeterminate={someSelected}
-                                onChange={(event) => toggleCategory(group.permissions, event.target.checked)}
+                                onChange={(event) => { event.stopPropagation(); toggleCategory(group.permissions, event.target.checked); }}
                               />
                             )}
                             label={<Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.8rem' }}>{group.label}</Typography>}
@@ -722,6 +744,7 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
                           />
                           <Chip size="small" label={`${selectedCount}/${ids.length}`} variant="outlined" sx={{ height: 18, fontSize: 10 }} />
                         </Box>
+                        {!grpCollapsed && (
                         <Box sx={{ px: 1.5, py: 0.5 }}>
                           {group.permissions.map((permission, pi) => (
                             <FormControlLabel
@@ -750,12 +773,14 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
                             />
                           ))}
                         </Box>
+                        )}
                       </Box>
                     );
                   })}
                     </Box>
-                  ))}
-                </Stack>
+                    );
+                  })}
+                  </Stack>
                 </Box>
               )}
             </CardContent>
