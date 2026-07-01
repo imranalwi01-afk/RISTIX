@@ -691,72 +691,65 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
                 <Alert severity="info">No permissions match current filters.</Alert>
               ) : (
                 <Box sx={{ maxHeight: '65vh', overflowY: 'auto' }}>
-                <Stack spacing={2}>
+                <Stack spacing={1.5}>
                   {permissionSections.map((section) => (
                     <Box key={section.label}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, mt: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, mt: 1 }}>
                         <Chip label={section.label} size="small" color="primary" variant="outlined" />
                         <Divider sx={{ flex: 1 }} />
                       </Box>
-                      {section.groups.map((group) => {
+                      {section.groups.map((group, gi) => {
                     const ids = group.permissions.map((permission) => permission.id);
                     const selectedCount = ids.filter((id) => selectedPermissionSet.has(id)).length;
                     const allSelected = ids.length > 0 && selectedCount === ids.length;
                     const someSelected = selectedCount > 0 && selectedCount < ids.length;
 
                     return (
-                      <Box key={group.key} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1.5, mb: 1 }}>
-                        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                      <Box key={group.key} sx={{ ml: 2, mb: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', px: 1.5, py: 0.75, bgcolor: 'grey.50', borderBottom: '1px solid', borderColor: 'divider' }}>
+                          <Box sx={{ width: 16, mr: 1, color: 'text.disabled', fontSize: 12 }}>{gi === section.groups.length - 1 ? '└─' : '├─'}</Box>
                           <FormControlLabel
                             control={(
                               <Checkbox
+                                size="small"
                                 checked={allSelected}
                                 indeterminate={someSelected}
                                 onChange={(event) => toggleCategory(group.permissions, event.target.checked)}
                               />
                             )}
-                            label={(
-                              <Box>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                                  {group.label}
-                                </Typography>
-                              </Box>
-                            )}
+                            label={<Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.8rem' }}>{group.label}</Typography>}
+                            sx={{ m: 0, flex: 1 }}
                           />
-                          <Chip size="small" label={`${selectedCount}/${ids.length}`} variant="outlined" />
-                        </Stack>
-                        <Divider sx={{ mb: 1 }} />
-                        <Stack spacing={0.25}>
-                          {group.permissions.map((permission) => (
-                            <Box key={permission.id} sx={{ py: 0.5 }}>
-                              <FormControlLabel
-                                control={(
-                                  <Checkbox
-                                    checked={selectedPermissionSet.has(permission.id)}
-                                    onChange={(event) => togglePermission(permission.id, event.target.checked)}
-                                    disabled={role.isBuiltIn}
-                                  />
-                                )}
-                                label={(
-                                  <Box>
-                                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                      {toPermissionLabel(permission)}
-                                    </Typography>
-                                    {permission.description && (
-                                      <Typography variant="caption" color="text.secondary" display="block">
-                                        {permission.description}
-                                      </Typography>
-                                    )}
-                                    <Stack direction="row" spacing={0.75} sx={{ mt: 0.25 }}>
-                                      {permission.code && <Chip size="small" label={permission.code} variant="outlined" />}
-                                    </Stack>
-                                  </Box>
-                                )}
-                                sx={{ alignItems: 'flex-start', m: 0 }}
-                              />
-                            </Box>
+                          <Chip size="small" label={`${selectedCount}/${ids.length}`} variant="outlined" sx={{ height: 18, fontSize: 10 }} />
+                        </Box>
+                        <Box sx={{ px: 1.5, py: 0.5 }}>
+                          {group.permissions.map((permission, pi) => (
+                            <FormControlLabel
+                              key={permission.id}
+                              control={(
+                                <Checkbox
+                                  size="small"
+                                  checked={selectedPermissionSet.has(permission.id)}
+                                  onChange={(event) => togglePermission(permission.id, event.target.checked)}
+                                  disabled={role.isBuiltIn}
+                                  sx={{ p: 0.3 }}
+                                />
+                              )}
+                              label={(
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <Typography variant="caption" color="text.disabled" sx={{ fontFamily: 'monospace', fontSize: 10, minWidth: 20 }}>
+                                    {pi === group.permissions.length - 1 ? '└' : '├'}
+                                  </Typography>
+                                  <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.78rem' }}>
+                                    {toPermissionLabel(permission)}
+                                  </Typography>
+                                  {permission.code && <Chip size="small" label={permission.code.split('.').pop()} variant="outlined" sx={{ height: 16, fontSize: 9 }} />}
+                                </Box>
+                              )}
+                              sx={{ alignItems: 'center', m: 0, width: '100%', '& .MuiFormControlLabel-label': { flex: 1 } }}
+                            />
                           ))}
-                        </Stack>
+                        </Box>
                       </Box>
                     );
                   })}
