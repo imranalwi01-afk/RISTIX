@@ -195,7 +195,7 @@ platformSettingsRoutes.openapi(
                     secure: body.secure,
                     auth: body.user ? { user: body.user, pass: body.pass } : undefined,
                     family: 4,
-                })
+                } as any)
                 await transporter.verify()
             } catch (err: any) {
                 return c.json({ success: false, error: err.message || 'SMTP connection test failed' }, 400)

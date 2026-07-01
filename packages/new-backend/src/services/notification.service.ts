@@ -74,7 +74,7 @@ export async function testSmtpConnection(config: any): Promise<boolean> {
             pass: config.pass,
         } : undefined,
         family: 4, // Force IPv4 resolution
-    });
+    } as any);
 
     try {
         await transporter.verify();
@@ -113,7 +113,7 @@ async function sendSMTPEmail(to: string, subject: string, text: string, html?: s
                 secure: config.secure,
                 auth: config.auth,
                 family: 4, // Force IPv4 resolution
-            });
+            } as any);
         }
 
         const info = await transporter.sendMail({
@@ -153,7 +153,7 @@ async function sendSMTPEmail(to: string, subject: string, text: string, html?: s
         }
         
         // If using Ethereal, print the preview URL directly to terminal
-        const previewUrl = nodemailer.getTestMessageUrl(info);
+        const previewUrl = nodemailer.getTestMessageUrl(info as any);
         if (previewUrl) {
             console.log('\n=====================================================')
             console.log('💌 BUKA LINK INI UNTUK MELIHAT ISI EMAIL (SIMULASI):')
