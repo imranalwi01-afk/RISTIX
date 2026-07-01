@@ -7,6 +7,7 @@ export interface AccessManagementPermission {
   displayName: string;
   description: string;
   category: 'CORE' | 'BANKING' | 'IFRS9' | 'REPORTING' | 'ADMIN';
+  group_key?: string;
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   requiresApproval: boolean;
   requiredApprovalLevel?: number | null;
@@ -321,6 +322,23 @@ export const buildPermissionMatrixItem = (
   const aliasKey = `${moduleSegment}.${permission.resource.toLowerCase()}`;
   const actionSegment = permission.action.toLowerCase();
 
+  // Use explicit group_key from DB when available (most consistent)
+  const explicitGroupKey = permission.group_key;
+
+  if (explicitGroupKey) {
+    const finalAction = codeSegments.length > 0 && ACTION_KEYWORDS.has(codeSegments[codeSegments.length - 1])
+      ? codeSegments[codeSegments.length - 1]
+      : actionSegment;
+    const categorySegments = explicitGroupKey.split('.').filter(Boolean).slice(0, 2);
+    return {
+      permission,
+      fullKey: code || `${explicitGroupKey}.${finalAction}`,
+      categoryKey: categorySegments.join('.'),
+      groupKey: explicitGroupKey,
+      actionKey: finalAction,
+    };
+  }
+
   if (codeSegments.length >= 3) {
     const hasAction = ACTION_KEYWORDS.has(codeSegments[codeSegments.length - 1]);
     const groupSegments = hasAction ? codeSegments.slice(0, -1) : codeSegments;
@@ -328,7 +346,6 @@ export const buildPermissionMatrixItem = (
     const rawCategoryKey = groupSegments.length >= 2 ? groupSegments.slice(0, 2).join('.') : rawGroupKey;
     const finalAction = hasAction ? codeSegments[codeSegments.length - 1] : 'access';
 
-    // Remap approval permissions to their business counterpart groups
     const aliasedGroupKey = APPROVAL_GROUP_ALIASES[rawGroupKey] || rawGroupKey;
     const aliasedCategory = aliasedGroupKey !== rawGroupKey
       ? aliasedGroupKey.split('.').slice(0, 2).join('.')
