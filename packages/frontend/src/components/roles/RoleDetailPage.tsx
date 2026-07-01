@@ -582,9 +582,14 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
           </Card>
 
           <Card variant="outlined" sx={{ mb: 2 }}>
-            <CardContent>
-              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>Permission Summary</Typography>
-              <Typography variant="body2">Selected: <strong>{selectedPermissionIds.length}</strong></Typography>
+            <CardContent sx={{ py: 1.5 }}>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Permission Summary</Typography>
+              <Stack direction="row" spacing={1.5} alignItems="baseline">
+                <Typography variant="h5" sx={{ fontWeight: 700, color: selectedPermissionIds.length === permissions.length ? 'success.main' : 'primary.main' }}>
+                  {selectedPermissionIds.length}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">/ {permissions.length} selected</Typography>
+              </Stack>
             </CardContent>
           </Card>
 
@@ -680,38 +685,80 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
                 Permission groups are shown per menu. Select per permission or per menu section.
               </Typography>
 
-              <TextField
-                fullWidth
-                size="small"
-                label="Search permissions"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                sx={{ mb: 2 }}
-              />
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Search permissions..."
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                />
+                {search && (
+                  <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap', fontSize: 11 }}>
+                    {permissionSections.reduce((s, sec) => s + sec.groups.reduce((g, grp) => g + grp.permissions.length, 0), 0)} results
+                  </Typography>
+                )}
+              </Stack>
 
               {permissionSections.length === 0 ? (
                 <Alert severity="info">No permissions match current filters.</Alert>
               ) : (
-                <Box sx={{ maxHeight: '65vh', overflowY: 'auto' }}>
-                <Stack spacing={1.5}>
+                <Box sx={{ maxHeight: 'calc(100vh - 280px)', overflowY: 'auto', pr: 0.5 }}>
+                <Stack spacing={1}>
                   {permissionSections.map((section) => {
                     const catCollapsed = collapsedCategories.has(section.label);
+                    const sectionAllPerms = section.groups.flatMap((g) => g.permissions);
+                    const sectionIds = sectionAllPerms.map((p) => p.id);
+                    const sectionSelected = sectionIds.filter((id) => selectedPermissionSet.has(id)).length;
+                    const sectionAll = sectionIds.length > 0 && sectionSelected === sectionIds.length;
+                    const sectionSome = sectionSelected > 0 && sectionSelected < sectionIds.length;
+
                     return (
                     <Box key={section.label}>
                       <Box
-                        onClick={() => {
-                          const next = new Set(collapsedCategories);
-                          catCollapsed ? next.delete(section.label) : next.add(section.label);
-                          setCollapsedCategories(next);
+                        sx={{
+                          display: 'flex', alignItems: 'center', gap: 0.5, mb: catCollapsed ? 0 : 0.75,
+                          px: 1, py: 0.5, borderRadius: 1,
+                          bgcolor: catCollapsed ? 'transparent' : 'grey.100',
+                          '&:hover': { bgcolor: 'grey.200' },
+                          cursor: 'pointer', userSelect: 'none', transition: 'background 0.15s',
                         }}
-                        sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: catCollapsed ? 0 : 1, mt: 1, cursor: 'pointer', userSelect: 'none' }}
                       >
-                        <Typography variant="caption" color="text.disabled" sx={{ fontSize: 11 }}>
-                          {catCollapsed ? '▶' : '▼'}
+                        <Box
+                          onClick={() => {
+                            const next = new Set(collapsedCategories);
+                            catCollapsed ? next.delete(section.label) : next.add(section.label);
+                            setCollapsedCategories(next);
+                          }}
+                          sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flex: 1 }}
+                        >
+                          <Typography variant="body2" color="text.secondary" sx={{ fontSize: 11, width: 14, textAlign: 'center' }}>
+                            {catCollapsed ? '▶' : '▼'}
+                          </Typography>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.82rem', color: 'text.primary' }}>
+                            {section.label}
+                          </Typography>
+                        </Box>
+                        <Checkbox
+                          size="small"
+                          checked={sectionAll}
+                          indeterminate={sectionSome}
+                          onChange={(event) => {
+                            event.stopPropagation();
+                            const checked = event.target.checked;
+                            const ids = section.groups.flatMap((g) => g.permissions.map((p) => p.id));
+                            setSelectedPermissionIds((prev) => {
+                              if (checked) return Array.from(new Set([...prev, ...ids]));
+                              return prev.filter((id) => !ids.includes(id));
+                            });
+                          }}
+                          sx={{ p: 0.3 }}
+                        />
+                        <Typography variant="caption" color="text.secondary" sx={{ minWidth: 40, textAlign: 'right', fontSize: 10 }}>
+                          {sectionSelected}/{sectionIds.length}
                         </Typography>
-                        <Chip label={section.label} size="small" color="primary" variant="outlined" />
-                        <Divider sx={{ flex: 1 }} />
                       </Box>
+
                       {!catCollapsed && section.groups.map((group, gi) => {
                     const ids = group.permissions.map((permission) => permission.id);
                     const selectedCount = ids.filter((id) => selectedPermissionSet.has(id)).length;
@@ -720,16 +767,26 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
                     const grpCollapsed = collapsedGroups.has(group.key);
 
                     return (
-                      <Box key={group.key} sx={{ ml: 2, mb: 0.5, border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
+                      <Box key={group.key} sx={{
+                        ml: 1.5, mb: 0.5,
+                        borderLeft: '3px solid', borderLeftColor: allSelected ? 'primary.main' : someSelected ? 'warning.main' : 'divider',
+                        borderRadius: 0.5, overflow: 'hidden', transition: 'border-color 0.2s',
+                      }}>
                         <Box
                           onClick={() => {
                             const next = new Set(collapsedGroups);
                             grpCollapsed ? next.delete(group.key) : next.add(group.key);
                             setCollapsedGroups(next);
                           }}
-                          sx={{ display: 'flex', alignItems: 'center', px: 1.5, py: 0.75, bgcolor: 'grey.50', borderBottom: grpCollapsed ? 'none' : '1px solid', borderColor: 'divider', cursor: 'pointer', userSelect: 'none' }}
+                          sx={{
+                            display: 'flex', alignItems: 'center', px: 1.5, py: 0.6,
+                            cursor: 'pointer', userSelect: 'none',
+                            '&:hover': { bgcolor: 'grey.100' }, transition: 'background 0.15s',
+                          }}
                         >
-                          <Box sx={{ width: 16, mr: 0.5, color: 'text.disabled', fontSize: 11 }}>{grpCollapsed ? (gi === section.groups.length - 1 ? '└▶' : '├▶') : (gi === section.groups.length - 1 ? '└▼' : '├▼')}</Box>
+                          <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10, width: 14, mr: 0.5, textAlign: 'center' }}>
+                            {grpCollapsed ? '▶' : '▼'}
+                          </Typography>
                           <FormControlLabel
                             control={(
                               <Checkbox
@@ -737,41 +794,57 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
                                 checked={allSelected}
                                 indeterminate={someSelected}
                                 onChange={(event) => { event.stopPropagation(); toggleCategory(group.permissions, event.target.checked); }}
+                                sx={{ p: 0.3 }}
                               />
                             )}
-                            label={<Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.8rem' }}>{group.label}</Typography>}
+                            label={<Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.78rem' }}>{group.label}</Typography>}
                             sx={{ m: 0, flex: 1 }}
                           />
-                          <Chip size="small" label={`${selectedCount}/${ids.length}`} variant="outlined" sx={{ height: 18, fontSize: 10 }} />
+                          <Chip size="small" label={`${selectedCount}/${ids.length}`} variant="outlined" color={allSelected ? 'primary' : someSelected ? 'warning' : 'default'} sx={{ height: 18, fontSize: 10 }} />
                         </Box>
                         {!grpCollapsed && (
-                        <Box sx={{ px: 1.5, py: 0.5 }}>
-                          {group.permissions.map((permission, pi) => (
-                            <FormControlLabel
-                              key={permission.id}
-                              control={(
-                                <Checkbox
-                                  size="small"
-                                  checked={selectedPermissionSet.has(permission.id)}
-                                  onChange={(event) => togglePermission(permission.id, event.target.checked)}
-                                  disabled={role.isBuiltIn}
-                                  sx={{ p: 0.3 }}
-                                />
-                              )}
-                              label={(
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <Typography variant="caption" color="text.disabled" sx={{ fontFamily: 'monospace', fontSize: 10, minWidth: 20 }}>
-                                    {pi === group.permissions.length - 1 ? '└' : '├'}
-                                  </Typography>
-                                  <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.78rem' }}>
-                                    {toPermissionLabel(permission)}
-                                  </Typography>
-                                  {permission.code && <Chip size="small" label={permission.code.split('.').pop()} variant="outlined" sx={{ height: 16, fontSize: 9 }} />}
-                                </Box>
-                              )}
-                              sx={{ alignItems: 'center', m: 0, width: '100%', '& .MuiFormControlLabel-label': { flex: 1 } }}
-                            />
-                          ))}
+                        <Box sx={{ pl: 4, pr: 1.5, py: 0.25 }}>
+                          {group.permissions.map((permission) => {
+                        const action = permission.code?.split('.').pop() || '';
+                        const actionColor: Record<string, string> = {
+                          view: 'info.main', create: 'success.main', insert: 'success.main',
+                          update: 'warning.main', delete: 'error.main', approve: 'primary.main',
+                          manage: 'text.secondary', export: 'text.secondary', upload: 'text.secondary',
+                        };
+
+                        return (
+                          <FormControlLabel
+                            key={permission.id}
+                            control={(
+                              <Checkbox
+                                size="small"
+                                checked={selectedPermissionSet.has(permission.id)}
+                                onChange={(event) => togglePermission(permission.id, event.target.checked)}
+                                disabled={role.isBuiltIn}
+                                sx={{ p: 0.3 }}
+                              />
+                            )}
+                            label={(
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                <Typography
+                                  variant="caption"
+                                  sx={{ fontWeight: 600, fontSize: 10, color: actionColor[action] || 'text.secondary', minWidth: 40, textTransform: 'uppercase', letterSpacing: 0.3 }}
+                                >
+                                  {action}
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.78rem', color: role.isBuiltIn ? 'text.disabled' : 'text.primary' }}>
+                                  {toPermissionLabel(permission)}
+                                </Typography>
+                              </Box>
+                            )}
+                            sx={{
+                              alignItems: 'center', m: 0, width: '100%', borderRadius: 0.5, px: 0.5,
+                              '&:hover': { bgcolor: 'grey.50' }, transition: 'background 0.15s',
+                              '& .MuiFormControlLabel-label': { flex: 1 },
+                            }}
+                          />
+                        );
+                      })}
                         </Box>
                         )}
                       </Box>
