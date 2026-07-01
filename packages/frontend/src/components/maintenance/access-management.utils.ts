@@ -8,6 +8,7 @@ export interface AccessManagementPermission {
   description: string;
   category: 'CORE' | 'BANKING' | 'IFRS9' | 'REPORTING' | 'ADMIN';
   group_key?: string;
+  parent_group_key?: string;
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   requiresApproval: boolean;
   requiredApprovalLevel?: number | null;
@@ -329,11 +330,13 @@ export const buildPermissionMatrixItem = (
     const finalAction = codeSegments.length > 0 && ACTION_KEYWORDS.has(codeSegments[codeSegments.length - 1])
       ? codeSegments[codeSegments.length - 1]
       : actionSegment;
-    const categorySegments = explicitGroupKey.split('.').filter(Boolean).slice(0, 2);
+    // Use parent_group_key from DB when available, otherwise derive from group_key
+    const parentKey = permission.parent_group_key
+      || explicitGroupKey.split('.').slice(0, 2).join('.');
     return {
       permission,
       fullKey: code || `${explicitGroupKey}.${finalAction}`,
-      categoryKey: categorySegments.join('.'),
+      categoryKey: parentKey,
       groupKey: explicitGroupKey,
       actionKey: finalAction,
     };
