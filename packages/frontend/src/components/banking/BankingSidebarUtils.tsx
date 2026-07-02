@@ -101,7 +101,7 @@ export const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'parameter-management': 'banking.parameter',
     'product-parameters': 'banking.parameter.product.view',
     'accounting-parameters': 'banking.parameter.journal.view',
-    'segmentation-configuration': 'banking.parameter.segmentation.view',
+    'segmentation-configuration': 'banking.collective.segmentation.view',
     'collective-impairment': ['banking.collective', 'banking.collective.view', 'banking.collective.manage'],
     'rule-base-setting': 'banking.collective.rule_base.view',
     'bucket-parameter': 'banking.collective.bucket.view',
