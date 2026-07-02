@@ -498,9 +498,9 @@ export const normalizePermissionFromApi = (perm: Record<string, unknown>): Acces
     typeof perm.bankingSpecific === 'boolean'
       ? perm.bankingSpecific
       : perm.module === 'banking',
-  group_key: typeof perm.group_key === 'string' ? perm.group_key : undefined,
-  parent_group_key: typeof perm.parent_group_key === 'string' ? perm.parent_group_key : undefined,
-  sort_order: typeof perm.sort_order === 'number' ? perm.sort_order : undefined,
+  group_key: (typeof perm.group_key === 'string' ? perm.group_key : typeof perm.groupKey === 'string' ? perm.groupKey : undefined) as string | undefined,
+  parent_group_key: (typeof perm.parent_group_key === 'string' ? perm.parent_group_key : typeof perm.parentGroupKey === 'string' ? perm.parentGroupKey : undefined) as string | undefined,
+  sort_order: typeof perm.sort_order === 'number' ? perm.sort_order : typeof perm.sortOrder === 'number' ? perm.sortOrder : undefined,
 });
 
 export const normalizeRoleFromApi = (role: Record<string, unknown>): AccessManagementRole => {
