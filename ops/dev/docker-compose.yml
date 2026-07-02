@@ -63,7 +63,7 @@ services:
   # ============================================================================
   # 🚀 NEW BACKEND SERVICE (Development Server)
   # ============================================================================
-  new-backend:
+  backend:
     build:
       context: ../../packages/new-backend
       dockerfile: Dockerfile
@@ -185,13 +185,12 @@ services:
       NEXT_PUBLIC_BACKEND_API_URL: ${API_BASE_URL}
       NEXT_PUBLIC_R_ANALYTICS_BASE_URL: ${RAPI_BASE_URL}
       NEXT_PUBLIC_DOMAIN: ifrspro.id
-      BACKEND_INTERNAL_URL: http://new-backend:4232
     ports:
       - "4231:4231"
     networks:
       - ifrs9-dev
     depends_on:
-      - new-backend
+      - backend
     profiles:
       - app
       - full
