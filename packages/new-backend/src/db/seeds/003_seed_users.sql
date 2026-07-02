@@ -83,4 +83,6 @@ ORDER BY u.email;
 
 SELECT 'SUCCESS: IAF users and roles assigned!' as result;
 
+COMMIT;
+
 -- Note: Password hash for all users is "1019181716" (already hashed with bcrypt)

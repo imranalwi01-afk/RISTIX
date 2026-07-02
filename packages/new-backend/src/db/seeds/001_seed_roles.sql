@@ -12,6 +12,19 @@ BEGIN;
 -- Set session variables for consistency
 SET client_min_messages = WARNING;
 
+-- Ensure IAF Tenant exists in core.tenants to satisfy foreign key constraints
+INSERT INTO core.tenants (id, code, name, slug, description, banking_mode, is_active)
+VALUES (
+    'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'::uuid,
+    'IAF',
+    'Indonesia Airawata Finance',
+    'iaf',
+    'Implementation Tenant for IAF',
+    'dual',
+    true
+)
+ON CONFLICT (id) DO NOTHING;
+
 -- =====================================================================
 -- STEP 1: INSERT IAF ROLES
 -- =====================================================================
@@ -37,3 +50,5 @@ ON CONFLICT (role_code) DO NOTHING;
 SELECT 'Roles Created' as status, COUNT(*) as count FROM core.roles;
 
 SELECT 'SUCCESS: IAF essential data population completed!' as result;
+
+COMMIT;
