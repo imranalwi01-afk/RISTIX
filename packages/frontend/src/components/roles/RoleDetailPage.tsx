@@ -213,6 +213,10 @@ const groupByMenu = (permissions: Permission[], menuOrder: Map<string, number>):
     .map(([, group]) => ({
       ...group,
       permissions: group.permissions.sort((a, b) => {
+        // Prefer sort_order from DB when available
+        if (a.sort_order !== undefined && b.sort_order !== undefined) {
+          return (a.sort_order ?? 999) - (b.sort_order ?? 999);
+        }
         const aKey = getPermissionCanonicalKey(a);
         const bKey = getPermissionCanonicalKey(b);
         const aAction = aKey.split('.').pop() || '';

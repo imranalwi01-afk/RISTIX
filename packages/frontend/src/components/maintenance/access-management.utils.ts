@@ -9,6 +9,7 @@ export interface AccessManagementPermission {
   category: 'CORE' | 'BANKING' | 'IFRS9' | 'REPORTING' | 'ADMIN';
   group_key?: string;
   parent_group_key?: string;
+  sort_order?: number;
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   requiresApproval: boolean;
   requiredApprovalLevel?: number | null;
@@ -497,7 +498,9 @@ export const normalizePermissionFromApi = (perm: Record<string, unknown>): Acces
     typeof perm.bankingSpecific === 'boolean'
       ? perm.bankingSpecific
       : perm.module === 'banking',
-
+  group_key: typeof perm.group_key === 'string' ? perm.group_key : undefined,
+  parent_group_key: typeof perm.parent_group_key === 'string' ? perm.parent_group_key : undefined,
+  sort_order: typeof perm.sort_order === 'number' ? perm.sort_order : undefined,
 });
 
 export const normalizeRoleFromApi = (role: Record<string, unknown>): AccessManagementRole => {
