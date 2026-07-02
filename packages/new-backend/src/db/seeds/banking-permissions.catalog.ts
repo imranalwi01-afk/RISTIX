@@ -395,7 +395,7 @@ export const BANKING_PERMISSION_CATALOG: SeedPermissionDefinition[] = [
         'approvals',
         'approve',
         'approval',
-        'WORKFLOW'
+        'ADMINISTRATION'
     ),
     createPermission(
         'approval.all',
@@ -404,7 +404,7 @@ export const BANKING_PERMISSION_CATALOG: SeedPermissionDefinition[] = [
         'approvals',
         'approve_all',
         'approval',
-        'WORKFLOW'
+        'ADMINISTRATION'
     ),
     createPermission(
         'approval.requests.self_approve_override',
@@ -413,7 +413,7 @@ export const BANKING_PERMISSION_CATALOG: SeedPermissionDefinition[] = [
         'approvals',
         'self_approve_override',
         'approval',
-        'WORKFLOW'
+        'ADMINISTRATION'
     ),
     ...createResourcePermissions({
         stem: 'notifications',
