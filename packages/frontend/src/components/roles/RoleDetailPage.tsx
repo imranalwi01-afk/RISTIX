@@ -315,6 +315,7 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
   const [selectedPermissionIds, setSelectedPermissionIds] = useState<string[]>([]);
   const [initialPermissionIds, setInitialPermissionIds] = useState<string[]>([]);
   const [menuOrder, setMenuOrder] = useState<Map<string, number>>(new Map());
+  const [categoryOrder, setCategoryOrder] = useState<Map<string, number>>(new Map());
 
   const mode = searchParams.get('mode');
 
@@ -360,22 +361,27 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
         const menuRes = await api.client.get('/menu/flat', { params: { format: 'tree' } });
         const menuData = menuRes.data?.data || [];
         const order = new Map<string, number>();
+        const catOrder = new Map<string, number>();
         let idx = 0;
+        let catIdx = 0;
         const walk = (items: any[]) => {
           for (const item of items) {
             if (item.items) {
               for (const child of item.items) {
                 const title = child.title || child.label || child.name || '';
-                // Map menu item title to permission group key
                 const key = title.toLowerCase().replace(/[\s_]+/g, '_');
                 order.set(key, idx++);
                 if (child.children) walk(child.children);
               }
             }
+            if (item.name && !order.has(item.name.toLowerCase().replace(/[\s_]+/g, '_'))) {
+              catOrder.set(item.name.toLowerCase().replace(/[\s_]+/g, '_'), catIdx++);
+            }
           }
         };
         walk(menuData);
         setMenuOrder(order);
+        setCategoryOrder(catOrder);
       } catch {
         // menu ordering not available — fall back to alphabetical
       }
@@ -410,15 +416,11 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
   // Hierarchical grouping: category → sub-groups (sorted by menu order)
   const permissionSections = useMemo(() => {
     const catMap = new Map<string, { label: string; groups: typeof permissionGroups }>();
-    const catOrder = new Map<string, number>();
-    const catIdx: string[] = [];
 
     permissionGroups.forEach((g) => {
       const cat = g.categoryLabel || 'Other';
       if (!catMap.has(cat)) {
         catMap.set(cat, { label: cat, groups: [] });
-        if (!catIdx.includes(cat)) catIdx.push(cat);
-        catOrder.set(cat, catIdx.length);
       }
       catMap.get(cat)!.groups.push(g);
     });
@@ -434,12 +436,14 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
         }),
       }))
       .sort((a, b) => {
-        const aOrd = catOrder.get(a.label) ?? 9999;
-        const bOrd = catOrder.get(b.label) ?? 9999;
+        const keyA = a.label.toLowerCase().replace(/[\s_]+/g, '_');
+        const keyB = b.label.toLowerCase().replace(/[\s_]+/g, '_');
+        const aOrd = categoryOrder.get(keyA) ?? menuOrder.get(keyA) ?? 9999;
+        const bOrd = categoryOrder.get(keyB) ?? menuOrder.get(keyB) ?? 9999;
         if (aOrd !== bOrd) return aOrd - bOrd;
         return a.label.localeCompare(b.label);
       });
-  }, [permissionGroups, menuOrder]);
+  }, [permissionGroups, menuOrder, categoryOrder]);
 
   const selectedPermissionSet = useMemo(() => new Set(selectedPermissionIds), [selectedPermissionIds]);
 
