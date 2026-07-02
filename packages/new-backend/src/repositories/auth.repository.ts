@@ -73,6 +73,21 @@ export const AuthRepository = {
         }),
 
     /**
+     * Find a user by their username, optionally scoped to a tenant.
+     * 
+     * @param db - Drizzle database instance
+     * @param username - The username
+     * @param tenantId - Optional tenant ID for scoping
+     * @returns A promise that resolves to the User record or undefined
+     */
+    findUserByUsername: (db: DrizzleDB, username: string, tenantId?: string) =>
+        db.query.users.findFirst({
+            where: tenantId
+                ? and(eq(users.username, username), eq(users.tenantId, tenantId))
+                : eq(users.username, username),
+        }),
+
+    /**
      * Find a platform user by email (using platformUsers schema)
      */
     findPlatformUserByEmail: (db: DrizzleDB, email: string) =>

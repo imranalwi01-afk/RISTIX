@@ -35,6 +35,7 @@ const UserSchema = z.object({
     phone: z.string().optional().nullable().openapi({ example: '+1234567890' }),
     department: z.string().optional().nullable().openapi({ example: 'IT' }),
     position: z.string().optional().nullable().openapi({ example: 'Developer' }),
+    employeeId: z.string().optional().nullable().openapi({ example: 'EMP001' }),
     tenantId: z.string().optional().nullable(),
     isVerified: z.boolean().optional(),
     emailVerifiedAt: z.string().optional().nullable(),
@@ -55,12 +56,16 @@ const CreateUserSchema = z.object({
     phone: z.string().optional(),
     department: z.string().optional(),
     position: z.string().optional(),
+    employeeId: z.string().optional(),
     sendWelcomeEmail: z.boolean().optional(),
     sendWelcomeWhatsApp: z.boolean().optional(),
 }).openapi('CreateUserInput')
 
 const UpdateUserSchema = z.object({
     fullName: z.string().min(2).optional(),
+    email: z.string().email().optional(),
+    username: z.string().min(2).optional(),
+    employeeId: z.string().optional(),
     phone: z.string().optional(),
     department: z.string().optional(),
     position: z.string().optional(),
@@ -213,6 +218,7 @@ usersRoutes.openapi(
                         phone: u.phone ?? null,
                         department: u.department ?? null,
                         position: u.position ?? null,
+                        employeeId: u.employeeId ?? null,
                         tenantId: u.tenantId ?? null,
                         isActive: u.isActive ?? false,
                         isVerified: u.isVerified ?? false,
@@ -375,39 +381,11 @@ usersRoutes.openapi(
         const body = c.req.valid('json')
 
         // Define the actual user creation operation
-        const executeCreate = () => pipe(
+        const executeCreate = () =>
             usersService.createUser({
                 ...body,
                 tenantId,
-            }),
-            Effect.tap((user) => Effect.sync(() => {
-                if (body.sendWelcomeEmail) {
-                    import('../services/notification.service').then(({ sendEmailNotification }) => {
-                        import('../config/env').then(({ env: config }) => {
-                            const loginUrl = `${(config as any).FRONTEND_URL || 'http://localhost:4231'}/login`;
-                            const job = { template: 'welcome_email' } as any;
-                            Effect.runPromise(sendEmailNotification).then(sendFn => {
-                                sendFn(job, body.email, {
-                                    fullName: body.fullName,
-                                    username: body.username,
-                                    password: body.password,
-                                    loginUrl,
-                                }).catch(e => console.error('Failed to send welcome email', e));
-                            });
-                        });
-                    });
-                }
-                if (body.sendWelcomeWhatsApp && body.phone) {
-                    import('../services/notification.service').then(({ sendWhatsAppFonnte }) => {
-                        import('../config/env').then(({ env: config }) => {
-                            const loginUrl = `${(config as any).FRONTEND_URL || 'http://localhost:4231'}/login`;
-                            const message = `*Welcome to IFRS 9 Platform*\n\nHi *${body.fullName}*,\n\nYour account has been created. Here are your login credentials:\n\nUsername: *${body.username}*\nPassword: *${body.password}*\n\nLogin here: ${loginUrl}\n\nPlease change your password after logging in.`;
-                            sendWhatsAppFonnte(body.phone, message).catch(e => console.error('Failed to send welcome WhatsApp', e));
-                        });
-                    });
-                }
-            }))
-        )
+            })
 
         // Use approval interceptor
         const effect = pipe(
@@ -1151,6 +1129,7 @@ usersRoutes.openapi(
                     phone: user.phone ?? null,
                     department: user.department ?? null,
                     position: user.position ?? null,
+                    employeeId: user.employeeId ?? null,
                     tenantId: user.tenantId ?? null,
                     isVerified: user.isVerified ?? false,
                     emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
@@ -1232,6 +1211,7 @@ usersRoutes.openapi(
                     phone: currentUser.phone ?? null,
                     department: currentUser.department ?? null,
                     position: currentUser.position ?? null,
+                    employeeId: currentUser.employeeId ?? null,
                     tenantId: currentUser.tenantId ?? null,
                     isActive: currentUser.isActive ?? false,
                 }
@@ -1252,6 +1232,7 @@ usersRoutes.openapi(
                             phone: user.phone ?? null,
                             department: user.department ?? null,
                             position: user.position ?? null,
+                            employeeId: user.employeeId ?? null,
                             tenantId: user.tenantId ?? null,
                             isVerified: user.isVerified ?? false,
                             emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,

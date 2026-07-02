@@ -94,6 +94,8 @@ const UserFormDialog = memo(function UserFormDialog({
                 onChange={(value) => onChange({ ...formData, password: value })}
                 showValidation
                 policy={passwordPolicy}
+                showGenerate={true}
+                showCopy={true}
               />
             </Grid>
           )}
@@ -146,26 +148,12 @@ const UserFormDialog = memo(function UserFormDialog({
               </Select>
             </FormControl>
           </Grid>
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField
-              fullWidth
-              label="Phone Number"
-              value={formData.phone || ''}
-              onChange={(e) => onChange({ ...formData, phone: e.target.value })}
-            />
-          </Grid>
           {isCreate && (
             <>
               <Grid size={{ xs: 12 }}>
                 <FormControlLabel
                   control={<Switch checked={sendWelcomeEmail} onChange={(e) => onChange({ ...formData, sendWelcomeEmail: e.target.checked })} />}
                   label="Send welcome email with login credentials"
-                />
-              </Grid>
-              <Grid size={{ xs: 12 }}>
-                <FormControlLabel
-                  control={<Switch checked={formData.sendWelcomeWhatsApp ?? false} onChange={(e) => onChange({ ...formData, sendWelcomeWhatsApp: e.target.checked })} />}
-                  label="Send welcome WhatsApp with login credentials"
                 />
               </Grid>
             </>

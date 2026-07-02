@@ -1843,6 +1843,31 @@ async function notifyNextLevelApprovers(request: any): Promise<void> {
         userIds: candidates.map((candidate) => candidate.userId),
         roleRooms: buildRoleRoomsFromRequiredRoleCodes(currentLevel.requiredRoleCodes),
     })
+
+    // Queue email notifications for candidate approvers
+    import('./notification.service').then(({ notifyApprovalRequested }) => {
+        import('../config/env').then(({ env: config }) => {
+            const frontendUrl = (config as any).FRONTEND_URL || 'http://localhost:4231';
+            const approvalUrl = `${frontendUrl}/banking/maintenance/approval?requestId=${request.id}`;
+            const workflowName = getApprovalNotificationTitle(request);
+            const requesterName = request.requester?.fullName || 'System';
+            
+            for (const candidate of candidates) {
+                if (candidate.email) {
+                    notifyApprovalRequested(
+                        request.matrixId || request.workflowId || 'N/A',
+                        request.tenantId,
+                        request.id,
+                        candidate.userId,
+                        candidate.email,
+                        requesterName,
+                        workflowName,
+                        approvalUrl
+                    ).catch((err) => console.error('Failed to send pending approval email:', candidate.email, err));
+                }
+            }
+        });
+    });
 }
 
 /**
