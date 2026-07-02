@@ -67,8 +67,8 @@ const SIDEBAR_CATEGORY_LABELS: Record<string, string> = {
   'banking.reports': 'IFRS 9 Reports',
   'banking.reports.ifrs9': 'IFRS 9 Reports',
   'banking.analytics': 'Advanced Analytics',
-  'approval': 'Workflow Management',
-  'approval.requests': 'Workflow Management',
+  'approval': 'Admin & Maintenance',
+  'approval.requests': 'Admin & Maintenance',
   'banking.configuration': 'Tools',
   'admin.maintenance': 'Admin & Maintenance',
   'admin.roles': 'Admin & Maintenance',
@@ -172,11 +172,11 @@ const SIDEBAR_GROUP_LABELS: Record<string, { label: string; breadcrumb: string }
   },
   'approval.requests': {
     label: 'Approval System',
-    breadcrumb: 'Workflow Management > Approval System',
+    breadcrumb: 'Admin & Maintenance > Approval System',
   },
   'notifications': {
     label: 'Notifications',
-    breadcrumb: 'Workflow Management > Notifications',
+    breadcrumb: 'Admin & Maintenance > Notifications',
   },
   'banking.configuration.ifrs9': {
     label: 'Tools',
