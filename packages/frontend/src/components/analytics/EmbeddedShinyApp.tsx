@@ -706,26 +706,13 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
   }, [fullscreenSupport]);
 
   const handleOpenInNewTab = useCallback(() => {
-    if (!session) return;
-
-    let openUrl = session.domainUrl;
-
-    // If domainUrl is not set, try to construct it
-    if (!openUrl) {
-      if (API_CONFIG.IS_PRODUCTION) {
-        openUrl = API_CONFIG.R_DASHBOARD_URL;
-      } else {
-        openUrl = `http://localhost:${session.port || 4236}`;
-      }
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      searchParams.set('fullscreen', 'true');
+      const openUrl = `${window.location.origin}${window.location.pathname}?${searchParams.toString()}`;
+      window.open(openUrl, '_blank');
     }
-
-    // Append session params if needed
-    if (openUrl && !openUrl.includes('?')) {
-      openUrl += `/?session=${session.sessionId}&iframe=false`;
-    }
-
-    window.open(openUrl, '_blank');
-  }, [session]);
+  }, []);
 
   const handleIframeLoad = useCallback(() => {
     // Send initial configuration to R

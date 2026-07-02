@@ -214,6 +214,24 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
     );
   }
 
+  // Safe client-side check to avoid Suspense deoptimization issues in Next.js layouts
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsFullscreen(new URLSearchParams(window.location.search).get('fullscreen') === 'true');
+    }
+  }, []);
+
+  if (isFullscreen) {
+    return (
+      <NotificationProvider>
+        <Box sx={{ width: '100%', height: '100vh', overflow: 'hidden' }}>
+          {children}
+        </Box>
+      </NotificationProvider>
+    );
+  }
+
   return (
     <NotificationProvider>
       <Box sx={{ display: 'flex', minHeight: '100vh', width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
