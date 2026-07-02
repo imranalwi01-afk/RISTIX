@@ -138,6 +138,8 @@ export const permissions = coreSchema.table(
         module: varchar('module', { length: 50 }).notNull().default('core'),
         category: varchar('category', { length: 100 }),
         impactLevel: varchar('impact_level', { length: 20 }).default('low'), // low, medium, high
+        groupKey: varchar('group_key', { length: 255 }),
+        parentGroupKey: varchar('parent_group_key', { length: 255 }),
         sortOrder: integer('sort_order').default(0),
         isActive: boolean('is_active').notNull().default(true),
         createdAt: timestamp('created_at').notNull().defaultNow(),
