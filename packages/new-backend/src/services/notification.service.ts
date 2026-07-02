@@ -219,9 +219,9 @@ function buildTemplate(
 
         case 'forgot_password':
             return {
-                subject: `🔑 Reset Your Password`,
+                subject: `Reset Your Password - IFRS 9 Platform`,
                 body: `Hi ${context.userName || 'there'},\n\nWe received a request to reset your password. Please click the link below to set a new password:\n\n${context.resetUrl}\n\nIf you did not request this, please ignore this email.\nThis link will expire in 30 minutes.`,
-                htmlBody: `<p>Hi <strong>${context.userName || 'there'}</strong>,</p><p>We received a request to reset your password. Please click the link below to set a new password:</p><p><a href="${context.resetUrl}" style="display:inline-block;padding:10px 20px;background-color:#0055FF;color:#fff;text-decoration:none;border-radius:5px;">Reset Password</a></p><p>If you did not request this, please ignore this email.<br>This link will expire in 30 minutes.</p>`,
+                htmlBody: `<p>Hi <strong>${context.userName || 'there'}</strong>,</p><p>We received a request to reset your password. Please click the link below to set a new password:</p><p><a href="${context.resetUrl}" style="display:inline-block;padding:10px 20px;background-color:#0055FF;color:#fff;text-decoration:none;border-radius:5px;">Reset Password</a></p><p>If you did not request this, please ignore this email.<br>This link will expire in 30 minutes.</p><br><hr style="border:none;border-top:1px solid #eee;margin:20px 0;" /><p style="font-size:12px;color:#888;">This is an automated security notification from the IFRS 9 Platform. Please do not reply directly to this email.</p>`,
             }
 
         case 'welcome_email':
