@@ -93,6 +93,7 @@ const envSchema = z.object({
     ALERT_DISCORD_TIMEOUT_MS: z.coerce.number().default(5000),
     ALERT_MIN_LEVEL: z.enum(['info', 'warn', 'error', 'critical']).default('error'),
     ALERT_THROTTLE_MS: z.coerce.number().default(60000),
+    FRONTEND_URL: z.string().url().default('http://localhost:4231'),
 })
 
 export type Env = z.infer<typeof envSchema>
