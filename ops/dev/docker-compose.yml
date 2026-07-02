@@ -185,6 +185,7 @@ services:
       NEXT_PUBLIC_BACKEND_API_URL: ${API_BASE_URL}
       NEXT_PUBLIC_R_ANALYTICS_BASE_URL: ${RAPI_BASE_URL}
       NEXT_PUBLIC_DOMAIN: ifrspro.id
+      BACKEND_INTERNAL_URL: http://new-backend:4232
     ports:
       - "4231:4231"
     networks:
