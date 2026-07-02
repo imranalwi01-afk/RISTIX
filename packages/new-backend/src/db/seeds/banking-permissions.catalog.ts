@@ -347,15 +347,6 @@ export const BANKING_PERMISSION_CATALOG: SeedPermissionDefinition[] = [
         'BANKING_CONFIGURATION'
     ),
     createPermission(
-        'banking.tools.manage',
-        'Manage Tools',
-        'Manage banking tools and utilities',
-        'tools',
-        'manage',
-        'banking',
-        'BANKING_TOOLS'
-    ),
-    createPermission(
         'admin.maintenance.access',
         'Maintenance Access',
         'Access banking maintenance menu and pages',
@@ -729,7 +720,6 @@ const IFRS9_REPORT_DETAIL_VIEWS = [
 const IFRS9_TOOLS_MANAGE = [
     'banking.configuration.ifrs9',
     'banking.configuration.ifrs9.manage',
-    'banking.tools.manage',
 ]
 
 const MAINTENANCE_BASE_VIEW = ['admin.maintenance.access']
@@ -976,5 +966,5 @@ export const DEFAULT_ROLE_PERMISSION_MAP: Record<string, string[]> = {
 
 // Legacy aliases intentionally not seeded here:
 // banking.application_config, banking.business_config, banking.product_params,
-// banking.accounting_params, banking.collective.fl, banking.portfolio.loans.*,
+// banking.accounting_params, banking.collective.fl,
 // approval.requests, admin.users, admin.roles, admin.maintenance
