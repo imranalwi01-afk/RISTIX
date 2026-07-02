@@ -485,8 +485,8 @@ export const MAKER_CHECKER_FRONTEND_PERMISSION_CODES = [
     'banking.parameter.product.view',
     'banking.parameter.journal',
     'banking.parameter.journal.view',
-    'banking.parameter.segmentation',
-    'banking.parameter.segmentation.view',
+    'banking.collective.segmentation',
+    'banking.collective.segmentation.view',
     'banking.collective',
     'banking.collective.view',
     'banking.collective.rule_base.view',
@@ -582,16 +582,16 @@ const JOURNAL_PARAMETER_MANAGE = [
 ]
 
 const SEGMENTATION_PARAMETER_VIEW = [
-    'banking.parameter.segmentation',
-    'banking.parameter.segmentation.view',
+    'banking.collective.segmentation',
+    'banking.collective.segmentation.view',
 ]
 const SEGMENTATION_PARAMETER_MANAGE = [
     ...SEGMENTATION_PARAMETER_VIEW,
-    'banking.parameter.segmentation.create',
-    'banking.parameter.segmentation.update',
-    'banking.parameter.segmentation.delete',
-    'banking.parameter.segmentation.manage',
-    'banking.parameter.segmentation.export',
+    'banking.collective.segmentation.create',
+    'banking.collective.segmentation.update',
+    'banking.collective.segmentation.delete',
+    'banking.collective.segmentation.manage',
+    'banking.collective.segmentation.export',
 ]
 
 const PARAMETER_MANAGE = [

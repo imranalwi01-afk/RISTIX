@@ -214,7 +214,7 @@ export const buildOperationPermission = (
         parameter: 'parameter',
         product_parameter: 'parameter.product',
         journal_parameter: 'parameter.journal',
-        segmentation: 'parameter.segmentation',
+        segmentation: 'collective.segmentation',
         rule_base_setting: 'collective.rule_base',
         bucket_parameter: 'collective.bucket',
         pd_configuration: 'collective.pd',
