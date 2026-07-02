@@ -25,9 +25,9 @@ const ROUTE_PERMISSION_RULES: RoutePermissionRule[] = [
     { prefix: '/api/v1/banking/parameters/product', base: 'banking.parameter.product' },
     { prefix: '/api/v1/banking/parameters/journal', base: 'banking.parameter.journal' },
     { prefix: '/api/v1/banking/parameters/app-settings', base: 'banking.setup.application' },
-    { prefix: '/api/v1/banking/parameters/segmentation', base: 'banking.parameter.segmentation' },
-    { prefix: '/api/v1/banking/parameters/population-segments', base: 'banking.parameter.segmentation' },
-    { prefix: '/api/v1/banking/parameters/product-segments', base: 'banking.parameter.segmentation' },
+    { prefix: '/api/v1/banking/parameters/segmentation', base: 'banking.collective.segmentation' },
+    { prefix: '/api/v1/banking/parameters/population-segments', base: 'banking.collective.segmentation' },
+    { prefix: '/api/v1/banking/parameters/product-segments', base: 'banking.collective.segmentation' },
     { prefix: '/api/v1/banking/parameters', base: 'banking.parameter' },
 
     { prefix: '/api/v1/banking/collective/rule-base', base: 'banking.collective.rule_base' },
