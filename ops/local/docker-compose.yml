@@ -21,14 +21,14 @@ services:
   # ============================================================================
   postgres:
     image: postgres:16-alpine
-    container_name: ifrs9-postgres-dev
+    container_name: ristix-postgres-dev
     restart: ${IFRS9_RESTART_POLICY:-no}
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-ifrspro_platform_admin}
     ports:
-      - "5432:5432"
+      - "5434:5432"
     volumes:
       - postgres-dev-data:/var/lib/postgresql/data
     networks:
@@ -53,7 +53,7 @@ services:
   # ============================================================================
   db-init:
     image: postgres:16-alpine
-    container_name: ifrs9-db-init
+    container_name: ristix-db-init
     depends_on:
       postgres:
         condition: service_healthy
@@ -81,7 +81,7 @@ services:
   # ============================================================================
   platform-init:
     image: postgres:16-alpine
-    container_name: ifrs9-platform-init
+    container_name: ristix-platform-init
     depends_on:
       postgres:
         condition: service_healthy
@@ -175,7 +175,7 @@ services:
       context: ../../packages/new-backend
       dockerfile: Dockerfile
       target: builder
-    container_name: ifrs9-tenant-migrate
+    container_name: ristix-tenant-migrate
     depends_on:
       db-init:
         condition: service_completed_successfully
@@ -200,7 +200,7 @@ services:
   # ============================================================================
   tenant-seed:
     image: postgres:16-alpine
-    container_name: ifrs9-tenant-seed
+    container_name: ristix-tenant-seed
     depends_on:
       tenant-migrate:
         condition: service_completed_successfully
@@ -231,11 +231,11 @@ services:
   # ============================================================================
   redis:
     image: redis:7-alpine
-    container_name: ifrs9-redis-dev
+    container_name: ristix-redis-dev
     restart: ${IFRS9_RESTART_POLICY:-no}
     command: redis-server --appendonly yes
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - redis-dev-data:/data
     networks:
@@ -265,7 +265,7 @@ services:
       context: ../../packages/new-backend
       dockerfile: Dockerfile
       target: builder
-    container_name: ifrs9-new-backend-dev
+    container_name: ristix-new-backend-dev
     env_file:
       - ${BACKEND_SERVICE_ENV_FILE:-backend.env}
     environment:
@@ -281,7 +281,7 @@ services:
       # R Analytics API URL mapped to docker service
       R_SERVICE_URL: http://r-analytics:4241
     ports:
-      - "4232:4232"
+      - "5232:4232"
     networks:
       - ifrs9-dev
       - ifrs9-observability
@@ -325,7 +325,7 @@ services:
       context: ../../packages/new-backend
       dockerfile: Dockerfile
       target: builder
-    container_name: ifrs9-new-backend-legacy-vpn
+    container_name: ristix-new-backend-legacy-vpn
     env_file:
       - ${BACKEND_SERVICE_ENV_FILE:-backend.env}
     environment:
@@ -346,7 +346,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
-      - "4232:4232"
+      - "5232:4232"
     networks:
       - ifrs9-dev
       - ifrs9-observability
@@ -387,7 +387,7 @@ services:
       context: ../../packages/new-backend
       dockerfile: Dockerfile
       target: builder
-    container_name: ifrs9-new-backend-vpn
+    container_name: ristix-new-backend-vpn
     environment:
       NODE_ENV: development
       PORT: 4232
@@ -433,7 +433,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
-      - "4232:4232"
+      - "5232:4232"
     networks:
       - ifrs9-dev
       - ifrs9-observability
@@ -463,17 +463,17 @@ services:
     build:
       context: ../../packages/frontend
       dockerfile: Dockerfile
-    container_name: ifrs9-frontend-dev
+    container_name: ristix-frontend-dev
     env_file:
       - frontend.env.example
     environment:
       NODE_ENV: development
       HOSTNAME: "0.0.0.0"
-      BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://host.docker.internal:4232}
+      BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://new-backend-vpn:4232}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
-      - "4231:4231"
+      - "5231:4231"
     networks:
       - ifrs9-dev
       - ifrs9-observability
@@ -490,13 +490,13 @@ services:
     build:
       context: ../../packages/frontend
       dockerfile: Dockerfile.dev
-    container_name: ifrs9-frontend-dev-hot
+    container_name: ristix-frontend-dev-hot
     env_file:
       - frontend.env.example
     environment:
       - NODE_ENV=development
       - PORT=4231
-      - BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL:-http://host.docker.internal:4232}
+      - BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL:-http://new-backend-vpn:4232}
       # Server-side env vars (for Next.js server)
       # Client-side uses .env file which has localhost URLs
       - NEXT_TELEMETRY_DISABLED=1
@@ -514,7 +514,7 @@ services:
       - ../../packages/frontend/tsconfig.json:/app/tsconfig.json:ro
       - frontend-next-cache:/app/.next
     ports:
-      - "4231:4231"
+      - "5231:4231"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -535,11 +535,11 @@ services:
     build:
       context: ../../packages/docs
       dockerfile: Dockerfile
-    container_name: ifrs9-docs-dev
+    container_name: ristix-docs-dev
     environment:
       NODE_ENV: production
     ports:
-      - "4235:3000"
+      - "5235:3000"
     networks:
       - ifrs9-dev
     profiles:
@@ -551,10 +551,10 @@ services:
 # ============================================================================
 volumes:
   postgres-dev-data:
-    name: ifrs9-iaf_postgres-dev-data
+    name: ristix-iaf_postgres-dev-data
     driver: local
   redis-dev-data:
-    name: ifrs9-iaf_redis-dev-data
+    name: ristix-iaf_redis-dev-data
     driver: local
   new-backend-node-modules:
     driver: local
