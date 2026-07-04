@@ -195,6 +195,23 @@ services:
       - app
       - full
 
+  # ============================================================================
+  # 📈 R ANALYTICS (Development Server)
+  # ============================================================================
+  r-analytics:
+    build:
+      context: ../../packages/r-analytics
+      dockerfile: Dockerfile
+    container_name: ifrs9-r-analytics-dev
+    restart: unless-stopped
+    ports:
+      - "4236:3838"
+      - "4241:4241"
+    networks:
+      - ifrs9-dev
+    profiles:
+      - analytics
+      - full
 # ============================================================================
 # 📁 VOLUMES
 # ============================================================================
