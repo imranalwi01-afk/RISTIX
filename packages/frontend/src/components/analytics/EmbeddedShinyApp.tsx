@@ -638,8 +638,23 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       console.error('❌ R Analytics Dashboard URL is NOT set in environment variables (NEXT_PUBLIC_R_ANALYTICS_URL)');
     }
 
-    const domainBase = currentDashboardUrl || '';
+    let domainBase = currentDashboardUrl || '';
 
+    // If domainBase inherited from RAPI_BASE_URL, it might have /api/v1 and port 4241
+    if (domainBase.includes('/api/v1')) {
+      domainBase = domainBase.replace('/api/v1', '');
+    } else if (domainBase.endsWith('/api')) {
+      domainBase = domainBase.replace('/api', '');
+    }
+    try {
+      const url = new URL(domainBase);
+      if (url.port === '4241') {
+        url.port = '4236';
+      }
+      domainBase = url.toString().replace(/\/$/, '');
+    } catch (e) {
+      // ignore
+    }
 
     // Mark as initialized to prevent loops
     isInitialized.current = true;
