@@ -207,6 +207,17 @@ services:
     ports:
       - "4236:4236"
       - "4241:4241"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ifrspro_tenant_iaf
+      FRS9_DB_HOST: postgres
+      FRS9_DB_PORT: 5432
+      FRS9_DB_USER: ${DB_USER:-postgres}
+      FRS9_DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      FRS9_DB_NAME: FRS9PRO
     networks:
       - ifrs9-dev
     profiles:
