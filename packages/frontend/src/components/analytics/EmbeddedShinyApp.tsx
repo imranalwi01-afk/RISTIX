@@ -467,9 +467,10 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
         sessionData.iframeUrl = `${domainBase}/?session=${sessionData.sessionId}&iframe=true&access_token=${encodeURIComponent(token)}`;
         sessionData.domainUrl = domainBase;
       } else {
-        // Local development
-        sessionData.iframeUrl = `http://localhost:${actualPort}/?session=${sessionData.sessionId}&iframe=true&access_token=${encodeURIComponent(token)}`;
-        sessionData.domainUrl = `http://localhost:${actualPort}`;
+        // Local development - use window.location.hostname to support both local and VPN deployment
+        const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+        sessionData.iframeUrl = `http://${host}:${actualPort}/?session=${sessionData.sessionId}&iframe=true&access_token=${encodeURIComponent(token)}`;
+        sessionData.domainUrl = `http://${host}:${actualPort}`;
       }
 
       setSession(sessionData);
