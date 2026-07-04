@@ -563,7 +563,18 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
           API_CONFIG.FRONTEND_URL
         ];
 
-        if (!allowedOrigins.includes(event.origin)) {
+        // Also allow the actual iframe base URL we derived
+        let actualIframeOrigin = API_CONFIG.R_DASHBOARD_URL;
+        try {
+           const parsed = new URL(API_CONFIG.R_DASHBOARD_URL);
+           if (parsed.port === '4241') {
+             parsed.port = '4236';
+             actualIframeOrigin = parsed.origin;
+           }
+        } catch(e) {}
+        allowedOrigins.push(actualIframeOrigin);
+
+        if (!allowedOrigins.includes(event.origin) && event.origin !== actualIframeOrigin) {
           console.warn('🚨 Blocked message from untrusted origin:', event.origin);
           return;
         }
