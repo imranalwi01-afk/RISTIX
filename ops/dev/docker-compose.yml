@@ -205,7 +205,7 @@ services:
     container_name: ifrs9-r-analytics-dev
     restart: unless-stopped
     ports:
-      - "4236:3838"
+      - "4236:4236"
       - "4241:4241"
     networks:
       - ifrs9-dev
