@@ -75,6 +75,7 @@ export interface ECLCalculationJob {
     tenantId: string
     entityId: string // e.g., loan ID, portfolio ID
     eclRunId?: string
+    attempts?: number // from job definition maxRetries, overrides env default
     parameters?: Record<string, unknown> // ECL calculation params
     storedProcedure?: string // name of SP to run (e.g., 'calculate_expected_credit_loss')
 }
@@ -180,7 +181,7 @@ export async function queueECLCalculation(job: ECLCalculationJob): Promise<strin
         `ecl-${job.storedProcedure || 'default'}`,
         job,
         {
-            attempts: queueDefaults.ecl.attempts,
+            attempts: job.attempts ?? queueDefaults.ecl.attempts,
             backoff: queueDefaults.ecl.backoff,
             removeOnComplete: false, // keep for audit trail
             removeOnFail: false,
