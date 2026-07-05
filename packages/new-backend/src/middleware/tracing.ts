@@ -12,10 +12,14 @@ export const otelTracingMiddleware = createMiddleware<AppContext>(async (c, next
     const spanName = `${c.req.method} ${c.req.path}`
 
     await tracer.startActiveSpan(spanName, async (span) => {
+        const requestId = crypto.randomUUID()
+        c.set('requestId', requestId)
+
         span.setAttributes({
             'http.method': c.req.method,
             'http.url': c.req.url,
             'http.path': c.req.path,
+            'request_id': requestId,
             'tenant_id': (c.get('tenantId') as string) || '',
             'user_id': (c.get('userId') as string) || '',
         })

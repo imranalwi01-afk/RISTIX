@@ -8,7 +8,8 @@ import { logAuditEvent, runAuditSafely } from '../services/audit.service'
  */
 export const auditMiddleware = async (c: Context<AppContext>, next: Next) => {
     const startTime = Date.now()
-    const requestId = crypto.randomUUID()
+    const requestId = c.get('requestId') || crypto.randomUUID()
+    c.set('requestId', requestId)
 
     // Get request details
     const method = c.req.method
