@@ -137,8 +137,8 @@ export default function BusinessClient() {
     const { user } = useAuth();
     const { hasAnyPermission } = usePermission();
     const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all']);
-    const canViewBusiness = hasAnyPermission(['banking.setup.business.view', 'banking.setup.business.manage', 'banking.setup.business']);
-    const canManageBusiness = hasAnyPermission(['banking.setup.business.manage', 'banking.setup.business.create', 'banking.setup.business.update', 'banking.setup.business.delete']);
+    const canViewBusiness = hasAnyPermission(['banking.setup.business.view']);
+    const canManageBusiness = hasAnyPermission(['banking.setup.business.create', 'banking.setup.business.update', 'banking.setup.business.delete']);
 
     const [businessParameters, setBusinessParameters] = useState<BusinessParameter[]>([]);
     const [totalCount, setTotalCount] = useState(0);

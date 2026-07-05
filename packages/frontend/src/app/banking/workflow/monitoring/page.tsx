@@ -91,7 +91,7 @@ export default function ProcessMonitoringPage() {
               </Alert>
 
               <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-                <Can permission={['banking.processing.manage', 'banking.processing']}>
+                <Can permission={['banking.processing.view']}>
                   <Button
                     variant="contained"
                     startIcon={<PageIcon />}

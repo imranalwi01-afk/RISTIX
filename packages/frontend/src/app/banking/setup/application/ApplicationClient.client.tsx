@@ -82,8 +82,8 @@ export default function PageContent() {
   const [data, setData] = useState<ApplicationSettingDataTable[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [pendingApprovalRequests, setPendingApprovalRequests] = useState<any[]>([]);
-  const canViewApplication = hasAnyPermission(['banking.setup.application.view', 'banking.setup.application.manage', 'banking.setup.application']);
-  const canManageApplication = hasAnyPermission(['banking.setup.application.manage', 'banking.setup.application.create', 'banking.setup.application.update', 'banking.setup.application.delete']);
+  const canViewApplication = hasAnyPermission(['banking.setup.application.view']);
+  const canManageApplication = hasAnyPermission(['banking.setup.application.create', 'banking.setup.application.update', 'banking.setup.application.delete']);
   
   // Explicit check for admin / superadmin for display setting
   const userRole = String(user?.role || user?.roles?.[0] || user?.userRole || '').toLowerCase();

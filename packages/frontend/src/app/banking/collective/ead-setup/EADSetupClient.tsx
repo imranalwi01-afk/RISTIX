@@ -73,8 +73,8 @@ const createEmptyFormData = (): Partial<EADConfiguration> => ({
 
 export default function EADSetupPage() {
   const { hasAnyPermission } = usePermission();
-  const canViewEadSetup = hasAnyPermission(['banking.collective.ead_setup.view', 'banking.collective.ead_setup.manage', 'banking.collective.manage', 'banking.collective']);
-  const canManageEadSetup = hasAnyPermission(['banking.collective.ead_setup.manage', 'banking.collective.ead_setup.create', 'banking.collective.ead_setup.update', 'banking.collective.ead_setup.delete', 'banking.collective.manage']);
+  const canViewEadSetup = hasAnyPermission(['banking.collective.ead_setup.view']);
+  const canManageEadSetup = hasAnyPermission(['banking.collective.ead_setup.create', 'banking.collective.ead_setup.update', 'banking.collective.ead_setup.delete']);
   const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all']);
   const router = useRouter();
 

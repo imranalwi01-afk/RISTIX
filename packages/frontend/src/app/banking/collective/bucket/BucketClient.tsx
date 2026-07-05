@@ -253,8 +253,8 @@ const BucketDetailsPanel = ({
 
 export default function BucketParameterPage() {
   const { hasAnyPermission } = usePermission();
-  const canViewBucket = hasAnyPermission(['banking.collective.bucket.view', 'banking.collective.bucket.manage', 'banking.collective.manage', 'banking.collective']);
-  const canManageBucket = hasAnyPermission(['banking.collective.bucket.manage', 'banking.collective.bucket.create', 'banking.collective.bucket.update', 'banking.collective.bucket.delete', 'banking.collective.manage']);
+  const canViewBucket = hasAnyPermission(['banking.collective.bucket.view']);
+  const canManageBucket = hasAnyPermission(['banking.collective.bucket.create', 'banking.collective.bucket.update', 'banking.collective.bucket.delete']);
   const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all']);
 
   const router = useRouter();

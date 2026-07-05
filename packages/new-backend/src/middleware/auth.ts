@@ -28,13 +28,12 @@ const ROUTE_PERMISSION_RULES: RoutePermissionRule[] = [
     { prefix: '/api/v1/banking/parameters/segmentation', base: 'banking.collective.segmentation' },
     { prefix: '/api/v1/banking/parameters/population-segments', base: 'banking.collective.segmentation' },
     { prefix: '/api/v1/banking/parameters/product-segments', base: 'banking.collective.segmentation' },
-    { prefix: '/api/v1/banking/parameters', base: 'banking.parameter' },
 
     { prefix: '/api/v1/banking/collective/rule-base', base: 'banking.collective.rule_base' },
     { prefix: '/api/v1/banking/collective/bucket', base: 'banking.collective.bucket' },
-    { prefix: '/api/v1/banking/collective/pd-configurations', base: 'banking.collective.pd' },
-    { prefix: '/api/v1/banking/collective/lgd-configurations', base: 'banking.collective.lgd' },
-    { prefix: '/api/v1/banking/collective/ead-configurations', base: 'banking.collective.ead' },
+    { prefix: '/api/v1/banking/collective/pd-configurations', base: 'banking.collective.pd_setup' },
+    { prefix: '/api/v1/banking/collective/lgd-configurations', base: 'banking.collective.lgd_setup' },
+    { prefix: '/api/v1/banking/collective/ead-configurations', base: 'banking.collective.ead_setup' },
     { prefix: '/api/v1/banking/collective/ecl-config', base: 'banking.collective.ecl' },
         { prefix: '/api/v1/banking/collective', base: 'banking.collective' },
     { prefix: '/api/v1/banking/individual', base: 'banking.individual' },
@@ -42,8 +41,8 @@ const ROUTE_PERMISSION_RULES: RoutePermissionRule[] = [
     { prefix: '/api/v1/banking/dashboard', base: 'banking.dashboard' },
     { prefix: '/api/v1/banking', base: 'banking.processing' },
 
-    { prefix: '/api/v1/ifrs9/reports/debug-config', fixed: ['admin.system.manage', 'admin.maintenance.access', 'admin.super_admin'] },
-    { prefix: '/api/v1/reports/debug-config', fixed: ['admin.system.manage', 'admin.maintenance.access', 'admin.super_admin'] },
+    { prefix: '/api/v1/ifrs9/reports/debug-config', fixed: ['admin.maintenance.access', 'admin.super_admin'] },
+    { prefix: '/api/v1/reports/debug-config', fixed: ['admin.maintenance.access', 'admin.super_admin'] },
     { prefix: '/api/v1/ifrs9/reports', base: 'banking.reports.ifrs9' },
     { prefix: '/api/v1/reports', base: 'banking.reports.ifrs9' },
     { prefix: '/api/v1/ifrs9', base: 'banking.processing' },
@@ -56,9 +55,9 @@ const ROUTE_PERMISSION_RULES: RoutePermissionRule[] = [
     { prefix: '/api/v1/roles', base: 'admin.roles' },
     { prefix: '/api/v1/approvals', fixed: ['approval.requests.approve', 'approval.all'] },
     { prefix: '/api/v1/approval', fixed: ['approval.requests.approve', 'approval.all'] },
-    { prefix: '/api/v1/notifications/preferences', fixed: ['notifications.preferences.manage', 'notifications.manage', 'notifications.view', 'banking.processing.view', 'admin.super_admin', 'approval.all'] },
-    { prefix: '/api/v1/notifications/read-status', fixed: ['notifications.manage', 'notifications.view', 'banking.processing.view', 'approval.requests.approve', 'approval.all', 'admin.super_admin'] },
-    { prefix: '/api/v1/notifications', fixed: ['notifications.view', 'notifications.manage', 'banking.processing.view', 'approval.requests.approve', 'approval.all', 'admin.super_admin'] },
+    { prefix: '/api/v1/notifications/preferences', fixed: ['notifications.view', 'banking.processing.view', 'admin.super_admin', 'approval.all'] },
+    { prefix: '/api/v1/notifications/read-status', fixed: ['notifications.view', 'banking.processing.view', 'approval.requests.approve', 'approval.all', 'admin.super_admin'] },
+    { prefix: '/api/v1/notifications', fixed: ['notifications.view', 'banking.processing.view', 'approval.requests.approve', 'approval.all', 'admin.super_admin'] },
     { prefix: '/api/v1/workflow', fixed: ['approval.requests.approve', 'approval.all'] },
     { prefix: '/api/v1/forms', base: 'admin.system' },
     { prefix: '/api/v1/security', base: 'admin.system' },
@@ -117,7 +116,6 @@ const getRequiredPermissionCandidates = (path: string, method: string): string[]
     const action = toPermissionAction(method)
     const candidates = new Set<string>([
         `${matchedRule.base}.${action}`,
-        `${matchedRule.base}.manage`,
         `${matchedRule.base}.access`,
         matchedRule.base,
     ])

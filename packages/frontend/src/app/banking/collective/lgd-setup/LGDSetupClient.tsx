@@ -83,8 +83,8 @@ const createEmptyFormData = (): Partial<LGDConfiguration> => ({
 
 export default function LGDSetupPage() {
   const { hasAnyPermission } = usePermission();
-  const canViewLgdSetup = hasAnyPermission(['banking.collective.lgd_setup.view', 'banking.collective.lgd_setup.manage', 'banking.collective.manage', 'banking.collective']);
-  const canManageLgdSetup = hasAnyPermission(['banking.collective.lgd_setup.manage', 'banking.collective.lgd_setup.create', 'banking.collective.lgd_setup.update', 'banking.collective.lgd_setup.delete', 'banking.collective.manage']);
+  const canViewLgdSetup = hasAnyPermission(['banking.collective.lgd_setup.view']);
+  const canManageLgdSetup = hasAnyPermission(['banking.collective.lgd_setup.create', 'banking.collective.lgd_setup.update', 'banking.collective.lgd_setup.delete']);
   const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all']);
 
   const router = useRouter();

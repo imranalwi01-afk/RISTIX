@@ -97,8 +97,8 @@ function AccessManagementPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { hasAnyPermission } = usePermission();
-  const canManageRoles = hasAnyPermission(['admin.roles.manage', 'admin.roles.create']);
-  const canViewRoles = hasAnyPermission(['admin.roles.view', 'admin.roles.manage']);
+  const canManageRoles = hasAnyPermission(['admin.roles.create']);
+  const canViewRoles = hasAnyPermission(['admin.roles.view']);
 
   const [currentTab, setCurrentTab] = useState(0);
   const [permissionGroupingMode, setPermissionGroupingMode] = useState<PermissionGroupingMode>('resource');

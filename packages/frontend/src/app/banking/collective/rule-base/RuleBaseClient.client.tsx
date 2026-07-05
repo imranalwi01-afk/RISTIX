@@ -150,8 +150,8 @@ const DEFAULT_RULE_BASE_COLUMN_VISIBILITY = RULE_BASE_COLUMNS.reduce(
 
 export default function PageContent() {
   const { hasAnyPermission } = usePermission();
-  const canViewRuleBase = hasAnyPermission(['banking.collective.rule_base.view', 'banking.collective.rule_base.manage', 'banking.collective.manage', 'banking.collective']);
-  const canManageRuleBase = hasAnyPermission(['banking.collective.rule_base.manage', 'banking.collective.rule_base.create', 'banking.collective.rule_base.update', 'banking.collective.rule_base.delete', 'banking.collective.manage']);
+  const canViewRuleBase = hasAnyPermission(['banking.collective.rule_base.view']);
+  const canManageRuleBase = hasAnyPermission(['banking.collective.rule_base.create', 'banking.collective.rule_base.update', 'banking.collective.rule_base.delete']);
   const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all']);
 
   // State Management - Live Database Integration

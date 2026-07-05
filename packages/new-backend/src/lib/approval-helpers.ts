@@ -211,7 +211,6 @@ export const buildOperationPermission = (
 ): string => {
     const entity = entityType.toLowerCase().replace(/[^a-z0-9_]/g, '_')
     const entityPathMap: Record<string, string> = {
-        parameter: 'parameter',
         product_parameter: 'parameter.product',
         journal_parameter: 'parameter.journal',
         segmentation: 'collective.segmentation',
@@ -342,7 +341,6 @@ export const shouldAutoApprove = (
 }
 
 const STRICT_FOUR_EYES_ENTITIES = new Set([
-    'parameter',
     'segmentation',
     'user',
     'role',

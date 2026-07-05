@@ -36,8 +36,8 @@ import { PDConfigUI } from './types';
 
 const PdSetupPage = () => {
   const { hasAnyPermission } = usePermission();
-  const canViewPdSetup = hasAnyPermission(['banking.collective.pd_setup.view', 'banking.collective.pd_setup.manage', 'banking.collective.manage', 'banking.collective']);
-  const canManagePdSetup = hasAnyPermission(['banking.collective.pd_setup.manage', 'banking.collective.pd_setup.create', 'banking.collective.pd_setup.update', 'banking.collective.pd_setup.delete', 'banking.collective.manage']);
+  const canViewPdSetup = hasAnyPermission(['banking.collective.pd_setup.view']);
+  const canManagePdSetup = hasAnyPermission(['banking.collective.pd_setup.create', 'banking.collective.pd_setup.update', 'banking.collective.pd_setup.delete']);
   const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all']);
 
   const router = useRouter();
