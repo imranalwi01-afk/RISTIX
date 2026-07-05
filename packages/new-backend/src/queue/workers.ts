@@ -86,7 +86,7 @@ export function setupApprovalNotificationWorker(db: PostgresJsDatabase<typeof sc
                 throw err
             }
         }),
-        { connection: connectionOptions as any, concurrency: 5 }
+        { connection: connectionOptions as any, concurrency: 5, lockDuration: 60000 }
     )
 
     worker.on('completed', (job) => {
@@ -174,7 +174,7 @@ export function setupECLCalculationWorker(db: PostgresJsDatabase<typeof schema>)
                 throw err
             }
         }),
-        { connection: connectionOptions as any, concurrency: 2 } // Lower concurrency for heavy calculations
+        { connection: connectionOptions as any, concurrency: 2, lockDuration: 120000 } // Lower concurrency for heavy calculations
     )
 
     worker.on('completed', (job) => {
