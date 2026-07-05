@@ -17,7 +17,7 @@ const connectionOptions = getRedisConnectionOptions(parseInt(env.REDIS_QUEUE_DB)
 // Default queue options (env-tunable)
 const queueDefaults = {
     approval: {
-        attempts: parseInt(process.env.BULL_APPROVAL_ATTEMPTS || '3'),
+        attempts: parseInt(process.env.BULL_APPROVAL_ATTEMPTS || '0'),
         backoff: {
             type: 'exponential' as const,
             delay: parseInt(process.env.BULL_APPROVAL_BACKOFF_MS || '2000'),
@@ -25,7 +25,7 @@ const queueDefaults = {
         timeout: parseInt(process.env.BULL_APPROVAL_TIMEOUT_MS || '30000'),
     },
     ecl: {
-        attempts: parseInt(process.env.BULL_ECL_ATTEMPTS || '5'),
+        attempts: parseInt(process.env.BULL_ECL_ATTEMPTS || '0'),
         backoff: {
             type: 'exponential' as const,
             delay: parseInt(process.env.BULL_ECL_BACKOFF_MS || '5000'),
