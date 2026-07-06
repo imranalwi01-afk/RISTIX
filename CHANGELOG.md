@@ -1,5 +1,17 @@
 # Changelog
 
+## [v2.14.22] - 2026-07-05
+
+### Added
+- Export buttons (Excel) for all IFRS9 report pages: Lifetime PD, Lifetime LGD, EAD Model, ECL Movement, GCA Movement
+- Export permissions for all report types (6 new `.export` codes added to DB + catalog)
+- `r_analytics_comprehensive` approval matrix in DB
+
+### Fixed
+- Report sub-pages no longer reference deleted `banking.reports.ifrs9.view` fallback
+- Sidebar entries use specific permissions instead of fallback
+- Overview page export buttons use per-report permissions
+
 ## [v2.14.21] - 2026-07-05
 
 ### Added
