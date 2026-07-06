@@ -25,7 +25,8 @@ import {
   Switch,
   CircularProgress,
   FormHelperText,
-  Snackbar
+  Snackbar,
+  IconButton,
 } from '@mui/material';
 import {
   ApprovalNotification,
@@ -36,11 +37,13 @@ import {
   type ApprovalNotificationState,
 } from '@/components/approval';
 import { bankingAPI } from '@/services/api';
+import * as XLSX from 'xlsx';
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Search as SearchIcon,
+  FileDownload as FileDownloadIcon,
 } from '@mui/icons-material';
 import PageHeader from '@/components/banking/shared/PageHeader';
 import { GridColDef } from '@mui/x-data-grid';
@@ -326,6 +329,26 @@ export default function LGDSetupPage() {
     }
   ];
 
+  const handleExportExcel = useCallback(() => {
+    const exportData = filteredConfigs.map(r => ({
+      ID: r.id,
+      'Model Name': r.model_name,
+      Segment: r.segment_name,
+      Method: r.method_name,
+      'Pop Type': r.population_type_name,
+      'Observation Period': r.observation_period,
+      'Observation Start': r.observation_start_date ? dayjs(r.observation_start_date).format('DD MMM YYYY') : '',
+      'Workout Period': r.workout_period,
+      'Max Recovery': r.max_recovery_period,
+      'LGD Rate (%)': r.lgd_rate,
+      Status: r.is_active ? 'Active' : 'Inactive',
+    }));
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'LGDConfigs');
+    XLSX.writeFile(wb, `lgd-configs-${new Date().toISOString().split('T')[0]}.xlsx`);
+  }, [filteredConfigs]);
+
   return (
     <Container
       maxWidth={false}
@@ -346,15 +369,22 @@ export default function LGDSetupPage() {
         title="LGD Setup Management"
         onRefresh={() => lgdRefetch()}
         loading={lgdLoading}
-        extraActions={canManageLgdSetup && (
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
-            setSelectedConfig(null);
-            setFormData(createEmptyFormData());
-            setFormErrors({});
-            setIsEditing(false);
-            setIsDialogOpen(true);
-          }} data-testid="add-lgd-config-btn">Add Configuration</Button>
-        )}
+        extraActions={
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <IconButton onClick={handleExportExcel} disabled={loading || lgdLoading} data-testid="export-excel-btn">
+              <FileDownloadIcon />
+            </IconButton>
+            {canManageLgdSetup && (
+              <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
+                setSelectedConfig(null);
+                setFormData(createEmptyFormData());
+                setFormErrors({});
+                setIsEditing(false);
+                setIsDialogOpen(true);
+              }} data-testid="add-lgd-config-btn">Add Configuration</Button>
+            )}
+          </Box>
+        }
       />
 
       {snackbar.open && (

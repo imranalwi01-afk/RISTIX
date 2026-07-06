@@ -26,7 +26,8 @@ import {
   FormHelperText,
   Checkbox,
   CircularProgress,
-  Snackbar
+  Snackbar,
+  IconButton,
 } from '@mui/material';
 import {
   ApprovalNotification,
@@ -41,12 +42,14 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Search as SearchIcon,
+  FileDownload as FileDownloadIcon,
 } from '@mui/icons-material';
 import PageHeader from '@/components/banking/shared/PageHeader';
 import { GridColDef } from '@mui/x-data-grid';
 import { useRouter } from 'next/navigation';
 import { api } from '../../../../services/api';
 import { bankingAPI } from '@/services/api';
+import * as XLSX from 'xlsx';
 import { EADConfiguration } from '../../../../services/api/ead-configurations.api';
 
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
@@ -283,6 +286,22 @@ export default function EADSetupPage() {
     }
   ];
 
+  const handleExportExcel = useCallback(() => {
+    const exportData = filteredConfigs.map(r => ({
+      ID: r.id,
+      'Model Name': r.model_name,
+      'Segment ID': r.segment_id,
+      Segment: r.segment_name,
+      'EAD Method': r.ead_method,
+      'Calc Method': r.calc_method,
+      Status: r.is_active ? 'Active' : 'Inactive',
+    }));
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'EADConfigs');
+    XLSX.writeFile(wb, `ead-configs-${new Date().toISOString().split('T')[0]}.xlsx`);
+  }, [filteredConfigs]);
+
   return (
     <Container
       maxWidth={false}
@@ -303,15 +322,22 @@ export default function EADSetupPage() {
         title="EAD Setup Management"
         onRefresh={() => eadRefetch()}
         loading={loading}
-        extraActions={canManageEadSetup && (
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
-            setSelectedConfig(null);
-            setFormData(createEmptyFormData());
-            setFormErrors({});
-            setIsEditing(false);
-            setIsDialogOpen(true);
-          }} data-testid="add-ead-config-btn">Add Configuration</Button>
-        )}
+        extraActions={
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <IconButton onClick={handleExportExcel} disabled={loading || eadLoading} data-testid="export-excel-btn">
+              <FileDownloadIcon />
+            </IconButton>
+            {canManageEadSetup && (
+              <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
+                setSelectedConfig(null);
+                setFormData(createEmptyFormData());
+                setFormErrors({});
+                setIsEditing(false);
+                setIsDialogOpen(true);
+              }} data-testid="add-ead-config-btn">Add Configuration</Button>
+            )}
+          </Box>
+        }
       />
 
       {snackbar.open && (

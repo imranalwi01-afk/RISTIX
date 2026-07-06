@@ -27,13 +27,13 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   '/banking/setup': 'banking.setup.view',
   '/banking/parameters': 'banking.parameter.product.view',
   '/banking/maintenance/approval': 'approval.requests.approve',
-  '/banking/maintenance/user-activity': 'admin.maintenance.view',
-  '/banking/maintenance/access-management': ['admin.maintenance.view'],
-  '/banking/maintenance/menu-matrix': 'admin.maintenance.view',
-  '/banking/maintenance/smtp': ['admin.maintenance.view', 'admin.super_admin'],
+  '/banking/maintenance/user-activity': 'admin.maintenance.access',
+  '/banking/maintenance/access-management': ['admin.maintenance.access'],
+  '/banking/maintenance/menu-matrix': 'admin.maintenance.access',
+  '/banking/maintenance/smtp': ['admin.maintenance.access', 'admin.super_admin'],
   '/banking/maintenance/impersonate': 'admin.super_admin',
   '/banking/maintenance/job-monitoring': ['jobs.view', 'admin.system.view'],
-  '/banking/maintenance': 'admin.maintenance.view',
+  '/banking/maintenance': 'admin.maintenance.access',
 };
 
 // ✅ SURGICAL ENHANCEMENT: Banking mode URL patterns

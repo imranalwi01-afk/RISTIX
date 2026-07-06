@@ -7,7 +7,9 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
 import TextField from '@mui/material/TextField';
-import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Refresh as RefreshIcon, Search as SearchIcon, Assessment as ResultsIcon } from '@mui/icons-material';
+import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Refresh as RefreshIcon, Search as SearchIcon, Assessment as ResultsIcon, FileDownload as FileDownloadIcon } from '@mui/icons-material';
+import * as XLSX from 'xlsx';
+import IconButton from '@mui/material/IconButton';
 import { GridColDef } from '@mui/x-data-grid';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { ApprovalStatusBadge } from '@/components/approval';
@@ -40,6 +42,31 @@ export const PDConfigGrid = memo(function PDConfigGrid({
   onDelete,
   onViewResults,
 }: PDConfigGridProps) {
+  const handleExportExcel = React.useCallback(() => {
+    const exportData = rows.map(r => ({
+      ID: r.id,
+      'Model Name': r.model_name,
+      'Segment ID': r.population_segment_id,
+      Segment: r.segment_name,
+      'Method ID': r.selected_method,
+      Method: r.method_name,
+      'Migration Interval': r.migration_interval,
+      'Pop Type ID': r.population_type,
+      'Pop Type': r.population_type_desc,
+      'Historical Month': r.historical_month,
+      'First Historical Date': r.first_historical_date,
+      Multiplication: r.multiplication,
+      'IA Flag': r.ia_flag ? 'Yes' : 'No',
+      'Bucket Group': r.bucket,
+      'Bucket Desc': r.bucket_desc,
+      Seq: r.seq,
+      Status: r.is_active ? 'Active' : 'Inactive',
+    }));
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'PDConfigs');
+    XLSX.writeFile(wb, `pd-configs-${new Date().toISOString().split('T')[0]}.xlsx`);
+  }, [rows]);
   const columns: GridColDef[] = [
     { field: 'id', headerName: 'ID', width: 90 },
     { field: 'model_name', headerName: 'Model Name', width: 250 },
@@ -111,7 +138,10 @@ export const PDConfigGrid = memo(function PDConfigGrid({
     <Box sx={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: 0 }}>
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box />
-        <Box>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <IconButton onClick={handleExportExcel} disabled={loading} data-testid="export-excel-btn">
+            <FileDownloadIcon />
+          </IconButton>
           <Button startIcon={<RefreshIcon />} onClick={onRefresh} disabled={loading} sx={{ mr: 1 }} data-testid="refresh-btn">
             Refresh
           </Button>

@@ -79,7 +79,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   const { user } = useAuth();
   const { hasAnyPermission } = usePermission();
   const { bankingMode } = useBankingTheme();
-  const canManageReportDebug = hasAnyPermission(['admin.maintenance.view']);
+  const canManageReportDebug = hasAnyPermission(['admin.maintenance.access']);
 
   const tenant = React.useMemo(() => {
     return user?.tenantId ? { id: user.tenantId, slug: user.tenantSlug } : null;
