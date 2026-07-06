@@ -28,7 +28,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   '/banking/parameters': 'banking.parameter.product.view',
   '/banking/maintenance/approval': 'approval.requests.approve',
   '/banking/maintenance/user-activity': 'admin.system.view',
-  '/banking/maintenance/access-management': ['admin.users.manage', 'admin.roles.manage'],
+  '/banking/maintenance/access-management': ['admin.users.view', 'admin.roles.view'],
   '/banking/maintenance/menu-matrix': 'admin.system.view',
   '/banking/maintenance/smtp': ['admin.system.view', 'admin.super_admin'],
   '/banking/maintenance/impersonate': 'admin.super_admin',

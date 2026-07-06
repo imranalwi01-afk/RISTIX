@@ -300,7 +300,7 @@ usersRoutes.openapi(
         const canResetPassword =
             isSystemUser ||
             userPermissions.includes('admin.super_admin') ||
-            userPermissions.includes('admin.users.manage')
+            userPermissions.includes('admin.users.view')
 
         if (!canResetPassword) {
             return c.json(
