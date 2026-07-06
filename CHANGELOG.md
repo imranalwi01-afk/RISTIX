@@ -1,5 +1,15 @@
 # Changelog
 
+## [v2.14.20-21] - 2026-07-05
+
+### Fixed
+- Re-added `banking.processing.impairment.view` and `banking.processing.amortization.view` to DB after accidental deletion
+- Cleaned up dead `banking.processing.view`, `banking.processing` (standalone), `banking.analytics.view`
+
+### Changed
+- Sidebar impairment/amortization now uses specific permissions instead of `banking.reports.ifrs9.view`
+- Default BullMQ `attempts` set to 0 (user configures via job definition `maxRetries`)
+
 ## [v2.14.15-18] - 2026-07-05
 
 ### Fixed

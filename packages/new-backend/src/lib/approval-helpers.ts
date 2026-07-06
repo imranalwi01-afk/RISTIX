@@ -358,6 +358,7 @@ const STRICT_FOUR_EYES_ENTITIES = new Set([
     'journal_parameter',
     'app_setting',
     'business_setting',
+    'r_analytics_comprehensive',
 ])
 
 export interface ApprovalRoutingLevel {
