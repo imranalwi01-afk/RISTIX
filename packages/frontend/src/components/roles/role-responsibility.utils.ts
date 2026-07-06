@@ -29,12 +29,6 @@ const RESPONSIBILITY_BY_CODE: Record<string, RoleResponsibility> = {
     approvalLane: 'Level 2',
     color: 'success',
   },
-  IAF_DATA_ADMIN: {
-    label: 'Data Maker',
-    summary: 'Maintains setup and master data.',
-    scope: 'Business maintenance',
-    color: 'secondary',
-  },
   IAF_RISK_ANALYST: {
     label: 'Risk Maker',
     summary: 'Prepares collective impairment and analysis changes.',
@@ -68,24 +62,6 @@ const RESPONSIBILITY_BY_CODE: Record<string, RoleResponsibility> = {
     scope: 'Admin approval',
     approvalLane: 'Level 2',
     color: 'error',
-  },
-  IAF_REPORT_ANALYST: {
-    label: 'Report Analyst',
-    summary: 'Consumes and exports IFRS 9 reporting outputs.',
-    scope: 'Reporting',
-    color: 'default',
-  },
-  IAF_AUDITOR: {
-    label: 'Auditor',
-    summary: 'Read-only oversight for audit and control review.',
-    scope: 'Audit oversight',
-    color: 'default',
-  },
-  IAF_VIEWER: {
-    label: 'Viewer',
-    summary: 'Read-only access to business features.',
-    scope: 'Read only',
-    color: 'default',
   },
 };
 
