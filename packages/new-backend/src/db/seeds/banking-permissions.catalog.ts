@@ -110,38 +110,10 @@ export const BANKING_PERMISSION_CATALOG: SeedPermissionDefinition[] = [
         actions: ['view'],
     }),
     ...createResourcePermissions({
-        stem: 'banking.analytics',
-        label: 'Advanced Analytics',
-        resource: 'analytics',
-        category: 'BANKING_ANALYTICS',
-        actions: ['view'],
-    }),
-    ...createResourcePermissions({
         stem: 'banking.analytics.r',
         label: 'R Analytics',
         resource: 'analytics.r',
         category: 'BANKING_ANALYTICS',
-        actions: ['view'],
-    }),
-    ...createResourcePermissions({
-        stem: 'banking.processing',
-        label: 'IFRS 9 Processing',
-        resource: 'processing',
-        category: 'BANKING_PROCESSING',
-        actions: ['view'],
-    }),
-    ...createResourcePermissions({
-        stem: 'banking.processing.impairment',
-        label: 'Impairment Module',
-        resource: 'processing.impairment',
-        category: 'BANKING_PROCESSING',
-        actions: ['view'],
-    }),
-    ...createResourcePermissions({
-        stem: 'banking.processing.amortization',
-        label: 'Amortization Module',
-        resource: 'processing.amortization',
-        category: 'BANKING_PROCESSING',
         actions: ['view'],
     }),
     ...createResourcePermissions({
@@ -157,6 +129,20 @@ export const BANKING_PERMISSION_CATALOG: SeedPermissionDefinition[] = [
         resource: 'setup.application',
         category: 'BANKING_SETUP',
         actions: ['view', 'create', 'update', 'delete'],
+    }),
+    ...createResourcePermissions({
+        stem: 'banking.processing.impairment',
+        label: 'Impairment Module',
+        resource: 'processing.impairment',
+        category: 'BANKING_PROCESSING',
+        actions: ['view'],
+    }),
+    ...createResourcePermissions({
+        stem: 'banking.processing.amortization',
+        label: 'Amortization Module',
+        resource: 'processing.amortization',
+        category: 'BANKING_PROCESSING',
+        actions: ['view'],
     }),
     ...createResourcePermissions({
         stem: 'banking.setup.business',
@@ -414,11 +400,9 @@ export const MAKER_CHECKER_FRONTEND_PERMISSION_CODES = [
     'banking.collective.ead_setup.view',
     'banking.collective.ecl.view',
     'banking.individual.view',
-    'banking.processing.view',
     'banking.processing.impairment.view',
     'banking.processing.amortization.view',
     'banking.reports.ifrs9.view',
-    'banking.analytics.view',
     'banking.analytics.r.view',
     'admin.maintenance.access',
     'admin.users.view',
@@ -437,11 +421,7 @@ const DASHBOARD_AND_ANALYTICS_VIEW = [
     'banking.analytics.r.view',
 ]
 
-const PROCESSING_VIEW = [
-    'banking.processing.view',
-    'banking.processing.impairment.view',
-    'banking.processing.amortization.view',
-]
+const PROCESSING_VIEW: string[] = []
 
 const SETUP_APPLICATION_VIEW = ['banking.setup.application.view']
 
@@ -544,7 +524,6 @@ export const DEFAULT_ROLE_PERMISSION_MAP: Record<string, string[]> = {
     ),
     IAF_TENANT_ADMIN: dedupe(
         DASHBOARD_AND_ANALYTICS_VIEW,
-        PROCESSING_VIEW,
         SETUP_APPLICATION_VIEW,
         SETUP_BUSINESS_VIEW,
         PRODUCT_PARAMETER_VIEW,
@@ -567,7 +546,6 @@ export const DEFAULT_ROLE_PERMISSION_MAP: Record<string, string[]> = {
     ),
     IAF_BANK_CRO: dedupe(
         DASHBOARD_AND_ANALYTICS_VIEW,
-        PROCESSING_VIEW,
         COLLECTIVE_BASE_VIEW,
         RULE_BASE_VIEW,
         BUCKET_VIEW,
@@ -584,7 +562,6 @@ export const DEFAULT_ROLE_PERMISSION_MAP: Record<string, string[]> = {
     ),
     IAF_IFRS_MANAGER: dedupe(
         DASHBOARD_AND_ANALYTICS_VIEW,
-        PROCESSING_VIEW,
         SETUP_APPLICATION_VIEW,
         SETUP_BUSINESS_VIEW,
         PRODUCT_PARAMETER_VIEW,
@@ -607,7 +584,6 @@ export const DEFAULT_ROLE_PERMISSION_MAP: Record<string, string[]> = {
     ),
     IAF_RISK_ANALYST: dedupe(
         DASHBOARD_AND_ANALYTICS_VIEW,
-        PROCESSING_VIEW,
         SEGMENTATION_PARAMETER_VIEW,
         COLLECTIVE_BASE_VIEW,
         RULE_BASE_VIEW,
@@ -623,7 +599,6 @@ export const DEFAULT_ROLE_PERMISSION_MAP: Record<string, string[]> = {
     ),
     IAF_PORTFOLIO_MANAGER: dedupe(
         DASHBOARD_AND_ANALYTICS_VIEW,
-        PROCESSING_VIEW,
         INDIVIDUAL_VIEW,
         IFRS9_REPORTS_VIEW,
         IFRS9_REPORT_DETAIL_VIEWS,
@@ -631,7 +606,6 @@ export const DEFAULT_ROLE_PERMISSION_MAP: Record<string, string[]> = {
     ),
     IAF_DATA_ADMIN: dedupe(
         DASHBOARD_AND_ANALYTICS_VIEW,
-        PROCESSING_VIEW,
         SETUP_APPLICATION_VIEW,
         SETUP_BUSINESS_VIEW,
         PRODUCT_PARAMETER_VIEW,
@@ -668,7 +642,6 @@ export const DEFAULT_ROLE_PERMISSION_MAP: Record<string, string[]> = {
     ),
     MAKER: dedupe(
         DASHBOARD_AND_ANALYTICS_VIEW,
-        PROCESSING_VIEW,
         SETUP_APPLICATION_VIEW,
         SETUP_BUSINESS_VIEW,
         PRODUCT_PARAMETER_VIEW,

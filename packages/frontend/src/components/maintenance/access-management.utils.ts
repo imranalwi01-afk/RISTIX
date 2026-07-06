@@ -62,7 +62,6 @@ const SIDEBAR_CATEGORY_LABELS: Record<string, string> = {
   'banking.setup': 'System Setup',
   'banking.collective': 'Collective Impairment',
   'banking.individual': 'Individual Impairment',
-  'banking.processing': 'IFRS 9',
   'banking.reports': 'IFRS 9 Reports',
   'banking.reports.ifrs9': 'IFRS 9 Reports',
   'banking.analytics': 'Advanced Analytics',

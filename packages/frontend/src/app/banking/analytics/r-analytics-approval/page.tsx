@@ -138,7 +138,7 @@ export default function RAnalyticsApprovalPage() {
 
   return (
     <Can
-      permission={['banking.analytics.r.view', 'banking.analytics.view']}
+      permission={['banking.analytics.r.view']}
       fallback={<Box sx={{ p: 3 }}><Alert severity="error">You do not have permission to access R Analytics.</Alert></Box>}
     >
       <Container maxWidth="lg" sx={{ py: 4 }}>
