@@ -1,6 +1,12 @@
 # Changelog
 
-## [v2.14.20-21] - 2026-07-05
+## [v2.14.21] - 2026-07-05
+
+### Added
+- R Analytics Model Approval matrix (Checker → Approver) for model_status updates
+- `r_analytics_comprehensive` added to strict four-eyes entities
+
+## [v2.14.20] - 2026-07-05
 
 ### Fixed
 - Re-added `banking.processing.impairment.view` and `banking.processing.amortization.view` to DB after accidental deletion
