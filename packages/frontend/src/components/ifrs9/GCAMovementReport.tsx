@@ -17,13 +17,16 @@ import {
   Paper,
   Chip,
   LinearProgress,
+  IconButton,
+  Tooltip as MuiTooltip,
   alpha
 } from '@mui/material';
 import {
   AccountBalance as BalanceIcon,
   TrendingUp as GrowthIcon,
   SwapVert as TransferIcon,
-  Assessment as ReportIcon
+  Assessment as ReportIcon,
+  FileDownload as ExportIcon
 } from '@mui/icons-material';
 import {
   ComposedChart,
@@ -36,6 +39,7 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
+import * as XLSX from 'xlsx';
 import BaseIfrs9Report from './BaseIfrs9Report';
 import ReportSummaryGrid, { KPIItem } from './ReportSummaryGrid';
 
@@ -657,7 +661,10 @@ const GCAMovementReport: React.FC = () => {
     movementTrend: []
   });
 
+  const [rawData, setRawData] = useState<Record<string, unknown>[]>([]);
+
   const handleDataLoaded = React.useCallback((data: Record<string, unknown>[]) => {
+    setRawData(data);
     if (data && data.length > 0) {
       const initialStats: SummaryStats = {
         openingGCA: 0,
@@ -762,6 +769,14 @@ const GCAMovementReport: React.FC = () => {
     }
   }, []);
 
+  const handleExportExcel = React.useCallback(() => {
+    if (rawData.length === 0) return;
+    const ws = XLSX.utils.json_to_sheet(rawData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'GCA Movement');
+    XLSX.writeFile(wb, `GCA_Movement_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  }, [rawData]);
+
   const requiredParams = useMemo(() => ['prc_date'], []);
   const optionalParams = useMemo(() => ['segment_id', 'group_segment', 'stage'], []);
 
@@ -776,9 +791,18 @@ const GCAMovementReport: React.FC = () => {
       supportsCharts={true}
       onDataLoaded={handleDataLoaded}
     >
-      <SummaryCards stats={summaryStats} />
-      <StageTransferMatrix stats={summaryStats} />
-      <GCACharts stats={summaryStats} />
+      <Box>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <MuiTooltip title="Export Excel">
+            <IconButton onClick={handleExportExcel} disabled={rawData.length === 0} size="small">
+              <ExportIcon />
+            </IconButton>
+          </MuiTooltip>
+        </Box>
+        <SummaryCards stats={summaryStats} />
+        <StageTransferMatrix stats={summaryStats} />
+        <GCACharts stats={summaryStats} />
+      </Box>
     </BaseIfrs9Report>
   );
 };

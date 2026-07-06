@@ -16,13 +16,16 @@ import {
   TableRow,
   Paper,
   Chip,
+  IconButton,
+  Tooltip as MuiTooltip,
   alpha
 } from '@mui/material';
 import {
   Timeline as TimelineIcon,
   TrendingUp as TrendingUpIcon,
   AccountBalance as BalanceIcon,
-  Analytics as AnalyticsIcon
+  Analytics as AnalyticsIcon,
+  FileDownload as ExportIcon
 } from '@mui/icons-material';
 import {
   Line,
@@ -35,6 +38,7 @@ import {
   AreaChart,
   Area
 } from 'recharts';
+import * as XLSX from 'xlsx';
 import { useBankingTheme } from '../../providers/BankingThemeProvider';
 import BaseIfrs9Report from './BaseIfrs9Report';
 import ReportSummaryGrid, { KPIItem } from './ReportSummaryGrid';
@@ -303,8 +307,10 @@ const EADModelReport: React.FC = () => {
 
   const [pivotRows, setPivotRows] = useState<EADMatrixRow[]>([]);
   const [pivotMonths, setPivotMonths] = useState<string[]>([]);
+  const [rawData, setRawData] = useState<Record<string, unknown>[]>([]);
 
   const handleDataLoaded = React.useCallback((data: Record<string, unknown>[], summary?: any) => {
+    setRawData(data);
     const { rows, monthColumns } = processEADPivotData(data);
     setPivotRows(rows);
     setPivotMonths(monthColumns);
@@ -371,6 +377,14 @@ const EADModelReport: React.FC = () => {
     }
   }, []);
 
+  const handleExportExcel = React.useCallback(() => {
+    if (rawData.length === 0) return;
+    const ws = XLSX.utils.json_to_sheet(rawData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'EAD Model');
+    XLSX.writeFile(wb, `EAD_Model_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  }, [rawData]);
+
   const requiredParams = useMemo(() => ['prc_date'], []);
   const optionalParams = useMemo(() => ['ead_config_id'], []);
 
@@ -386,10 +400,18 @@ const EADModelReport: React.FC = () => {
       hideDataGrid={true}
       onDataLoaded={handleDataLoaded}
     >
-      <SummaryCards stats={summaryStats} />
-      <EADCharts stats={summaryStats} />
+      <Box>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <MuiTooltip title="Export Excel">
+            <IconButton onClick={handleExportExcel} disabled={rawData.length === 0} size="small">
+              <ExportIcon />
+            </IconButton>
+          </MuiTooltip>
+        </Box>
+        <SummaryCards stats={summaryStats} />
+        <EADCharts stats={summaryStats} />
 
-      <Card sx={{ mt: 4, borderRadius: 4, boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)', width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
+        <Card sx={{ mt: 4, borderRadius: 4, boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)', width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
         <CardContent sx={{ p: 4, minWidth: 0, overflowX: 'hidden' }}>
           <Typography variant="h6" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
             Payment Average by Tenor (Pivoted)
@@ -479,6 +501,7 @@ const EADModelReport: React.FC = () => {
           </Box>
         </CardContent>
       </Card>
+      </Box>
     </BaseIfrs9Report>
   );
 };

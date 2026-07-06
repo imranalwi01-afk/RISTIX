@@ -231,7 +231,7 @@ const IFRS9ReportsPage: React.FC = () => {
         >
           View Report
         </Button>
-        <Can permission={['banking.reports.ifrs9.export']}>
+        <Can permission={[`banking.reports.ifrs9.${report.id.replace(/-/g, '_')}.export`]}>
           <Button size="small" color="inherit">
             Export
           </Button>

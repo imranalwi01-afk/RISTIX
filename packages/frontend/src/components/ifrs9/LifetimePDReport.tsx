@@ -40,7 +40,8 @@ import {
   AccessTime as AccessTimeIcon,
   ExpandMore as ExpandMoreIcon,
   Tune as TuneIcon,
-  Search as SearchIcon
+  Search as SearchIcon,
+  FileDownload as ExportIcon
 } from '@mui/icons-material';
 
 import { Grid } from '@mui/material';
@@ -53,6 +54,7 @@ import MarginalPDChart from './LifetimePDCharts/MarginalPDChart';
 import BaseIfrs9Report from './BaseIfrs9Report';
 import api from '@/services/api';
 import { format } from 'date-fns';
+import * as XLSX from 'xlsx';
 import { pdConfigurationsApi } from '../../services/api/pd-configurations.api';
 import { productSegmentsApi, type ProductSegment } from '../../services/api/product-segments.api';
 
@@ -584,6 +586,27 @@ const LifetimePDReport: React.FC = () => {
     return { rows: out, truncated }
   }, [currentFilters.isForwardLooking, currentFilters.pdConfigId, currentFilters.pdMethod, currentFilters.prcDate, currentFilters.scalarId, currentFilters.selectedSegmentId, effectivePrcDate])
 
+  const handleExportExcel = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { rows, truncated } = await fetchAccountDetailsForExport();
+      if (rows.length === 0) {
+        setError('No data available for export');
+        return;
+      }
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Lifetime PD');
+      const dateStr = effectivePrcDate ?? currentFilters.prcDate;
+      XLSX.writeFile(wb, `Lifetime_PD_${dateStr}.xlsx`);
+    } catch (err) {
+      console.error('Export failed:', err);
+      setError('Export failed');
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchAccountDetailsForExport, effectivePrcDate, currentFilters.prcDate])
+
   return (
     <Box sx={{ p: 0 }}>
       {/* Hero Panel & Toolbar */}
@@ -665,6 +688,11 @@ const LifetimePDReport: React.FC = () => {
             <Tooltip title="Reset Filter">
               <IconButton color="primary" onClick={handleResetFilters} disabled={loading} aria-label="Reset filters">
                 <ClearAllIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Export Excel">
+              <IconButton color="primary" onClick={handleExportExcel} disabled={loading || (!yearlyData.length && !monthlyData.length)} aria-label="Export Excel">
+                <ExportIcon />
               </IconButton>
             </Tooltip>
           </Stack>
