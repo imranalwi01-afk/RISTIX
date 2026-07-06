@@ -565,12 +565,12 @@ menuRoutes.openapi(
         const tenantId = await resolveTenantId(c)
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
 
-        // Permission guard: only users with admin.maintenance.access can modify menu permissions
+        // Permission guard: only users with admin.system.view can modify menu permissions
         const userPermissions = c.get('permissions') || []
-        if (!userPermissions.includes('admin.maintenance.access') && !userPermissions.includes('admin.super_admin')) {
+        if (!userPermissions.includes('admin.system.view') && !userPermissions.includes('admin.super_admin')) {
             return c.json(buildErrorResponse(c, {
                 error: 'Forbidden',
-                message: 'You do not have permission to modify menu permissions. Requires admin.maintenance.access.',
+                message: 'You do not have permission to modify menu permissions. Requires admin.system.view.',
                 code: 'FORBIDDEN',
             }), 403)
         }

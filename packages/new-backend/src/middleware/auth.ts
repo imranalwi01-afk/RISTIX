@@ -39,8 +39,8 @@ const ROUTE_PERMISSION_RULES: RoutePermissionRule[] = [
     { prefix: '/api/v1/banking/individual', base: 'banking.individual' },
     { prefix: '/api/v1/banking/dashboard', base: 'banking.dashboard' },
 
-    { prefix: '/api/v1/ifrs9/reports/debug-config', fixed: ['admin.maintenance.access', 'admin.super_admin'] },
-    { prefix: '/api/v1/reports/debug-config', fixed: ['admin.maintenance.access', 'admin.super_admin'] },
+    { prefix: '/api/v1/ifrs9/reports/debug-config', fixed: ['admin.system.view', 'admin.super_admin'] },
+    { prefix: '/api/v1/reports/debug-config', fixed: ['admin.system.view', 'admin.super_admin'] },
     { prefix: '/api/v1/ifrs9/reports', base: 'banking.reports.ifrs9' },
     { prefix: '/api/v1/reports', base: 'banking.reports.ifrs9' },
     { prefix: '/api/v1/ifrs9', base: 'banking.reports.ifrs9' },

@@ -175,11 +175,6 @@ const SIDEBAR_GROUP_LABELS: Record<string, { label: string; breadcrumb: string }
     label: 'Notifications',
     breadcrumb: 'Admin & Maintenance > Notifications',
   },
-  'admin.maintenance.access': {
-    label: 'Access Management',
-    breadcrumb: 'Admin & Maintenance > Access Management',
-  },
-
   'admin.users': {
     label: 'User Management',
     breadcrumb: 'Admin & Maintenance > User Management',

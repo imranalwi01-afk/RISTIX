@@ -353,7 +353,7 @@ const canManageReportDebug = (c: Context): boolean => {
     const permissions = getPermissions(c)
     return permissions.includes('*')
         || permissions.includes('admin.system.manage')
-        || permissions.includes('admin.maintenance.access')
+        || permissions.includes('admin.system.view')
         || permissions.includes('admin.super_admin')
 }
 
