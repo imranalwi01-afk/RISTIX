@@ -142,7 +142,7 @@ export default function HomePage() {
               fontWeight: 800,
               mb: 3,
               lineHeight: 1.1,
-              fontSize: { xs: '2.5rem', md: '4.5rem' },
+              fontSize: { xs: '2.5rem !important', md: '4.5rem !important' },
               textShadow: '0 10px 30px rgba(0,0,0,0.2)'
             }}>
               IFRS 9<br />
@@ -155,7 +155,8 @@ export default function HomePage() {
               maxWidth: 600,
               mx: 'auto',
               lineHeight: 1.6,
-              fontWeight: 400
+              fontWeight: 400,
+              fontSize: { xs: '1.25rem !important', md: '1.5rem !important' }
             }}>
               A comprehensive and compliance-ready solution that simplifies automated impairment calculation, statistical modeling, and regulatory reporting.
             </Typography>

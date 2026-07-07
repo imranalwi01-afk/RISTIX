@@ -34,7 +34,7 @@ import { BankingAppBar } from '../../components/banking/layout/BankingAppBar';
 import ImpersonationBanner from '../../components/common/ImpersonationBanner';
 import { BankingBreadcrumbs } from '../../components/banking/layout/BankingBreadcrumbs';
 import { NotificationProvider } from '../../providers/NotificationProvider';
-import { clearAuthTokens } from '../../utils/auth-token';
+import { clearAuthTokens, getAuthToken } from '../../utils/auth-token';
 
 const DRAWER_WIDTH = 280;
 const DRAWER_WIDTH_COLLAPSED = 60;
@@ -118,8 +118,8 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
       return;
     }
 
-    const storedToken = localStorage.getItem('auth_token');
-    const storedRefreshToken = localStorage.getItem('refresh_token');
+    const storedToken = getAuthToken();
+    const storedRefreshToken = localStorage.getItem('refresh_token'); // Fallback check
     const hasStoredSession = Boolean(storedToken || storedRefreshToken);
 
     if (!hasStoredSession) {
@@ -183,6 +183,14 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
   const handleSidebarToggle = () => setSidebarCollapsed(!sidebarCollapsed);
 
+  // Safe client-side check to avoid Suspense deoptimization issues in Next.js layouts
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsFullscreen(new URLSearchParams(window.location.search).get('fullscreen') === 'true');
+    }
+  }, []);
+
   // Block if no session evidence exists OR if Redux explicitly initialized and determined unauthenticated
   if ((hasSessionEvidence === false && !authState?.user && !authState?.token) ||
       (isAuthReady && !isActuallyAuthenticated)) {
@@ -214,13 +222,6 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
     );
   }
 
-  // Safe client-side check to avoid Suspense deoptimization issues in Next.js layouts
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setIsFullscreen(new URLSearchParams(window.location.search).get('fullscreen') === 'true');
-    }
-  }, []);
 
   if (isFullscreen) {
     return (

@@ -78,7 +78,7 @@ export default function PublicLayout({
           }}
         />
 
-        <Box sx={{ position: 'relative', zIndex: 2, maxWidth: 600 }}>
+        <Box sx={{ position: 'relative', zIndex: 2, maxWidth: 800 }}>
           <Fade in timeout={1000}>
             <Box>
               {badgeText && (
@@ -104,7 +104,12 @@ export default function PublicLayout({
               )}
               <Typography
                 variant="h2"
-                sx={{ fontWeight: 800, lineHeight: 1.1, mb: 3 }}
+                sx={{
+                  fontWeight: 800,
+                  lineHeight: 1.1,
+                  mb: 3,
+                  fontSize: { xs: '2.5rem !important', md: '4.5rem !important' },
+                }}
               >
                 {leftTitle}
               </Typography>
@@ -116,6 +121,7 @@ export default function PublicLayout({
                     fontWeight: 400,
                     lineHeight: 1.6,
                     maxWidth: 500,
+                    fontSize: { xs: '1rem !important', md: '1.25rem !important' },
                   }}
                 >
                   {leftSubtitle}

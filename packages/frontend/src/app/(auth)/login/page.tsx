@@ -518,7 +518,7 @@ function LoginPage() {
           <>
             {isPlatformAdmin ? 'System' : 'Next Generation'}
             <br />
-            <span style={{ color: '#90CAF9' }}>
+            <span style={{ color: '#90CAF9', whiteSpace: 'nowrap' }}>
               {isPlatformAdmin
                 ? 'Control Center'
                 : 'Risk Management'}

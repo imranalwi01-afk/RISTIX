@@ -227,18 +227,28 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
 
   // URL Override logic
   const [customUrl, setCustomUrl] = useState<string>(() => {
+    let url = config.rAnalytics.dashboard;
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('r_analytics_custom_url') || config.rAnalytics.dashboard;
+      url = localStorage.getItem('r_analytics_custom_url') || url;
+      // Auto-fix localhost for remote VPN access
+      if (url.includes('localhost') || url.includes('127.0.0.1')) {
+        url = url.replace(/localhost|127\.0\.0\.1/g, window.location.hostname);
+      }
     }
-    return config.rAnalytics.dashboard;
+    return url;
   });
   const [customApiUrl, setCustomApiUrl] = useState<string>(() => {
     const defaultApi = config.rAnalytics.api;
+    let url = defaultApi;
     if (typeof window !== 'undefined') {
-      const raw = localStorage.getItem('r_analytics_api_url') || defaultApi;
-      return normalizeAnalyticsApiBaseUrl(raw);
+      url = localStorage.getItem('r_analytics_api_url') || defaultApi;
+      // Auto-fix localhost for remote VPN access
+      if (url.includes('localhost') || url.includes('127.0.0.1')) {
+        url = url.replace(/localhost|127\.0\.0\.1/g, window.location.hostname);
+      }
+      return normalizeAnalyticsApiBaseUrl(url);
     }
-    return normalizeAnalyticsApiBaseUrl(defaultApi);
+    return normalizeAnalyticsApiBaseUrl(url);
   });
   const [showUrlConfig, setShowUrlConfig] = useState<boolean>(false);
   const [connectionMode, setConnectionMode] = useState<ConnectionMode>(() => {
