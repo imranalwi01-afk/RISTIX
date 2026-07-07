@@ -1,5 +1,4 @@
 {
-  "name": "ifrs9-iaf",
-  "version": "2.14.18",
-  "instructions": "AGENTS.md"
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": ["AGENTS.md"]
 }

@@ -463,7 +463,8 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 label: 'Amortization Module',
                 href: '/banking/ifrs9/amortization-module',
                 icon: <Schedule />,
-                description: '/IFRS9N/LeaseContract'
+                description: '/IFRS9N/LeaseContract',
+                status: 'disabled'
             },
             {
                 id: 'ecl-calculations',
@@ -536,7 +537,8 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 label: 'EAD Model',
                 href: '/banking/ifrs9-reports/ead-model',
                 icon: <Functions />,
-                description: 'Exposure at Default model results'
+                description: 'Exposure at Default model results',
+                status: 'disabled'
             },
             {
                 id: 'ecl-result',
