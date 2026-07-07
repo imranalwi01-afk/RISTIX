@@ -117,13 +117,6 @@ export const BANKING_PERMISSION_CATALOG: SeedPermissionDefinition[] = [
         actions: ['view'],
     }),
     ...createResourcePermissions({
-        stem: 'banking.setup',
-        label: 'System Setup',
-        resource: 'setup',
-        category: 'BANKING_SETUP',
-        actions: ['access'],
-    }),
-    ...createResourcePermissions({
         stem: 'banking.setup.application',
         label: 'Application Configuration',
         resource: 'setup.application',
@@ -358,6 +351,7 @@ export const BANKING_PERMISSION_CATALOG: SeedPermissionDefinition[] = [
     ...createApprovalPermission('approval.lgd_configuration', 'LGD Configuration', 'lgd_configuration'),
     ...createApprovalPermission('approval.ead_configuration', 'EAD Configuration', 'ead_configuration'),
     ...createApprovalPermission('approval.ecl_configuration', 'ECL Configuration', 'ecl_configuration'),
+    ...createApprovalPermission('approval.r_analytics_comprehensive', 'R Analytics Changes', 'r_analytics_comprehensive'),
     ]
 
 export const BANKING_PERMISSION_CODES = BANKING_PERMISSION_CATALOG.map((permission) => permission.code)
