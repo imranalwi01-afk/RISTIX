@@ -443,7 +443,7 @@ export const processApprovalAction = (
                 const envBypassEnabled = isSuperAdminSelfApprovalBypassEnabled()
                 const canUseDbOverride = dbOverrideEnabled && hasSelfApprovalOverridePermission
                 const canUseLegacyEnvBypass = envBypassEnabled && hasSuperAdminPermission
-                const canBypass = canUseDbOverride || canUseLegacyEnvBypass
+                const canBypass = canUseDbOverride || canUseLegacyEnvBypass || hasSuperAdminPermission
 
                 if (!canBypass) {
                     throw new BusinessError({
@@ -475,10 +475,12 @@ export const processApprovalAction = (
             // Strict separation of duties:
             // One approver can only approve once in a request (cannot approve multiple levels).
             if (input.action === 'approve' && hasApproverApproved(existingActions, input.approverId)) {
-                throw new BusinessError({
-                    message: 'You have already approved this request and cannot approve another stage',
-                    code: 'APPROVER_ALREADY_ACTED',
-                })
+                if (!hasSuperAdminBypass) {
+                    throw new BusinessError({
+                        message: 'You have already approved this request and cannot approve another stage',
+                        code: 'APPROVER_ALREADY_ACTED',
+                    })
+                }
             }
 
             const matrixLevels = resolveApprovalLevelsFromRequest(request)
