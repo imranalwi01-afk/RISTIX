@@ -374,7 +374,6 @@ export const MAKER_CHECKER_FRONTEND_PERMISSION_CODES = [
     'banking.collective.ecl.view',
     'banking.individual.view',
     'banking.processing.impairment.view',
-    'banking.reports.ifrs9.view',
     'banking.analytics.r.view',
     'admin.users.view',
     'admin.roles.view',
@@ -428,7 +427,7 @@ const ECL_VIEW = ['banking.collective.ecl.view']
 
 const INDIVIDUAL_VIEW = ['banking.individual.view']
 
-const IFRS9_REPORTS_VIEW = ['banking.reports.ifrs9.view']
+const IFRS9_REPORTS_VIEW: string[] = []
 
 const IFRS9_REPORT_DETAIL_VIEWS = [
     'banking.reports.ifrs9.nominative',
