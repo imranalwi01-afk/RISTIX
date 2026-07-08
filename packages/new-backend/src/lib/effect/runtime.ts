@@ -172,6 +172,20 @@ export function handleEffectError(c: Context, cause: unknown): Response {
             )
 
         default:
+            // Unwrap FiberFailure to check for known error types
+            const cause2 = (error as any)?.cause ?? error
+            const errorName = (cause2 as any)?.name || (cause2 as any)?.constructor?.name || ''
+            const errorMessage = String((cause2 as any)?.message || (error as any)?.message || '')
+            
+            if (errorName.includes('ConflictError') || errorMessage.includes('already pending')) {
+                const msg = (cause2 as any)?.message || (error as any)?.message || 'Conflict'
+                void maybeSendDiscordAlert(c, error as any, 409, { code: 'CONFLICT' })
+                return c.json(
+                    buildErrorResponse(c, { success: false, error: msg, message: msg, code: 'CONFLICT' }) as any,
+                    409
+                )
+            }
+            
             console.error('Unhandled error:', error)
             void maybeSendDiscordAlert(c, error as any, 500, { code: 'INTERNAL_ERROR' })
             return c.json(buildErrorResponse(c, { success: false, error: 'Internal server error', message: 'Internal server error' }) as any, 500)
