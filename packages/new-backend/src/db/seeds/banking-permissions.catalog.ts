@@ -347,6 +347,8 @@ export const BANKING_PERMISSION_CATALOG: SeedPermissionDefinition[] = [
     ...createApprovalPermission('approval.segmentation', 'Segmentation', 'segmentation'),
     ...createApprovalPermission('approval.rule_base_setting', 'Rule Base Setting', 'rule_base_setting'),
     ...createApprovalPermission('approval.bucket_parameter', 'Bucket Parameter', 'bucket_parameter'),
+    ...createApprovalPermission('approval.app_setting', 'Application Changes', 'app_setting'),
+    ...createApprovalPermission('approval.business_setting', 'Business Changes', 'business_setting'),
     ...createApprovalPermission('approval.pd_configuration', 'PD Configuration', 'pd_configuration'),
     ...createApprovalPermission('approval.lgd_configuration', 'LGD Configuration', 'lgd_configuration'),
     ...createApprovalPermission('approval.ead_configuration', 'EAD Configuration', 'ead_configuration'),
