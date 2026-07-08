@@ -46,10 +46,8 @@ function buildHasAccess(userPermissions: string[], userRoles: string[], perms: a
     return (itemId: string) => {
         if (userPermissions.includes('admin.super_admin')) return true
         const itemPerms = perms.filter((p: any) => p.menuItemId === itemId)
-        if (itemPerms.length === 0) return false
-        const allowedRoles = itemPerms.filter((p: any) => p.isAllowed).map((p: any) => p.roleCode)
-        if (allowedRoles.length === 0) return false
-        return allowedRoles.some((roleCode: string) => userRoles.includes(roleCode))
+        if (itemPerms.length === 0) return true // No config → visible to all
+        return itemPerms.some((p: any) => p.isAllowed && userRoles.includes(p.roleCode))
     }
 }
 
