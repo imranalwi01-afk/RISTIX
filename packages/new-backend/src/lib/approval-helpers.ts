@@ -311,10 +311,6 @@ export const shouldAutoApprove = (
     operation: 'create' | 'update' | 'delete',
     impactLevel?: string
 ): boolean => {
-    if (requiresStrictFourEyes(entityType)) {
-        return false
-    }
-
     // No matrix means no approval required
     if (!matrix) return true
 
@@ -340,75 +336,7 @@ export const shouldAutoApprove = (
     return hasApprovalPermission(userPermissions, entityType, operation)
 }
 
-const STRICT_FOUR_EYES_ENTITIES = new Set([
-    'segmentation',
-    'user',
-    'role',
-    'role_permission',
-    'role_permissions',
-    'role_assignment',
-    'user_status',
-    'pd_configuration',
-    'lgd_configuration',
-    'ead_configuration',
-    'ecl_configuration',
-    'bucket_parameter',
-    'rule_base_setting',
-    'product_parameter',
-    'journal_parameter',
-    'app_setting',
-    'business_setting',
-    'r_analytics_comprehensive',
-])
 
-export interface ApprovalRoutingLevel {
-    level: number
-    name: string
-    requiredRoleCodes: string[]
-    requiredPermissionCodes: string[]
-    roleMatchMode: 'ANY' | 'ALL'
-    permissionMatchMode: 'ANY' | 'ALL'
-    requiredCount: number
-    timeoutHours?: number
-}
-
-/**
- * Strict 4-eyes mode can be disabled explicitly for lower environments.
- * By default it is enabled to prevent self-approval bypass for privileged entities.
- */
-export const requiresStrictFourEyes = (entityType: string): boolean => {
-    const strictModeEnabled = (process.env.APPROVAL_STRICT_FOUR_EYES ?? 'true').toLowerCase() !== 'false'
-    if (!strictModeEnabled) return false
-    const normalized = String(entityType || '').trim().toLowerCase()
-    return STRICT_FOUR_EYES_ENTITIES.has(normalized)
-}
-
-/**
- * Default fallback routing for strict entities when matrix data is missing.
- * This keeps approval eligibility deterministic and visible.
- */
-export const buildDefaultFourEyesRouting = (_entityType: string): ApprovalRoutingLevel[] => ([
-    {
-        level: 1,
-        name: 'Checker Review',
-        requiredRoleCodes: ['USERCHECKER'],
-        requiredPermissionCodes: ['approval.requests.approve'],
-        roleMatchMode: 'ANY',
-        permissionMatchMode: 'ANY',
-        requiredCount: 1,
-        timeoutHours: 24,
-    },
-    {
-        level: 2,
-        name: 'Final Approval',
-        requiredRoleCodes: ['ACCOUNTING_APPROVER', 'SUPER_ADMIN', 'IAF_TENANT_SUPERADMIN'],
-        requiredPermissionCodes: ['approval.requests.approve', 'approval.all', 'admin.super_admin'],
-        roleMatchMode: 'ANY',
-        permissionMatchMode: 'ANY',
-        requiredCount: 1,
-        timeoutHours: 24,
-    },
-])
 
 /**
  * Get required approval level for operation

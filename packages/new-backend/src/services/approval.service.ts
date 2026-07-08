@@ -14,7 +14,6 @@ import { ConflictError, DatabaseError, NotFoundError, BusinessError, Authorizati
 import { dbOperation } from '@/lib/effect'
 import { userRolesRepository } from '@/repositories/rbac.repository'
 import { getDatabase } from '@/config/database'
-import { buildDefaultFourEyesRouting } from '@/lib/approval-helpers'
 import { 
     INDIVIDUAL_IMPAIRMENT_V2_ENTITY_TYPE, 
     INDIVIDUAL_IMPAIRMENT_V2_SUBTYPES,
@@ -1805,7 +1804,7 @@ async function notifyApprovalCompletion(request: any, outcome: 'approved' | 'rej
 
     await safeEmitNotification(request.tenantId, notification, {
         userIds: [request.requestedBy],
-        roleRooms: ['USERCHECKER', 'ACCOUNTING_APPROVER', 'SUPER_ADMIN'],
+        roleRooms: ['approval.requests.approve'],
         excludeUserId: actorUserId,
     })
 }
@@ -2387,11 +2386,7 @@ function buildRoleRoomsFromRequiredRoleCodes(requiredRoleCodes: unknown): string
             .filter(Boolean)
         : []
 
-    if (normalized.length > 0) {
-        return Array.from(new Set(normalized))
-    }
-
-    return ['USERCHECKER', 'ACCOUNTING_APPROVER', 'SUPER_ADMIN']
+    return Array.from(new Set(normalized))
 }
 
 const resolveNotificationSeverity = (severity: string): 'info' | 'warning' | 'success' | 'error' => {
@@ -2645,36 +2640,7 @@ export const getApprovalRoutingOverview = (input: {
         })
 
         if (!filteredMatrices.length && entityType) {
-            const fallbackLevels = buildDefaultFourEyesRouting(entityType)
-            const levels = await Promise.all(fallbackLevels.map(async (level) => {
-                const candidates = await findApproverCandidatesForLevel(
-                    tenantId,
-                    level.requiredRoleCodes,
-                    level.requiredPermissionCodes,
-                    level.roleMatchMode,
-                    level.permissionMatchMode,
-                    { department }
-                )
-                return {
-                    level: level.level,
-                    name: level.name,
-                    requiredRoleCodes: level.requiredRoleCodes,
-                    requiredPermissionCodes: level.requiredPermissionCodes,
-                    requiredCount: level.requiredCount,
-                    timeoutHours: level.timeoutHours,
-                    candidateCount: candidates.length,
-                    candidates,
-                }
-            }))
-
-            return [{
-                entityType,
-                operationType: operation || 'create,update,delete',
-                matrixId: null,
-                matrixName: 'Strict 4-Eyes Fallback',
-                isActive: true,
-                levels,
-            }]
+            return []
         }
 
         const overview: ApprovalRoutingOverview[] = []
