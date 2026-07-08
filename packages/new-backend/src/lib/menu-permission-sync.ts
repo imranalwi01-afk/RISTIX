@@ -45,7 +45,7 @@ const MENU_TO_PERMISSION_STEM: Record<string, string> = {
   'Menu Matrix': 'admin.system',
   'SMTP': 'admin.system',
   'Job Monitoring': 'jobs',
-  'Impersonate': 'admin.super_admin',
+  'Impersonate': 'admin.maintenance.impersonate',
 }
 
 /**

@@ -131,7 +131,7 @@ export const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'job-monitoring': ['jobs.view', 'admin.system.view'],
     'smtp-settings': 'admin.maintenance.smtp.view',
     'menu-matrix': 'admin.maintenance.menu_matrix.view',
-    'impersonate-user': 'admin.super_admin',
+    'impersonate-user': 'admin.maintenance.impersonate.view',
     'assessment-workspace': 'banking.individual.view',
     'assessment-workspace-v1': 'banking.individual.view',
     'assessment-workspace-v2': 'banking.individual.view',
