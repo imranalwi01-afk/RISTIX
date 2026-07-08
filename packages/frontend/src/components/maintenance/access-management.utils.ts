@@ -187,6 +187,22 @@ const SIDEBAR_GROUP_LABELS: Record<string, { label: string; breadcrumb: string }
     label: 'System Administration',
     breadcrumb: 'Admin & Maintenance > System Administration',
   },
+  'admin.maintenance.impersonate': {
+    label: 'Impersonate',
+    breadcrumb: 'Admin & Maintenance > Impersonate',
+  },
+  'admin.maintenance.menu_matrix': {
+    label: 'Menu Matrix',
+    breadcrumb: 'Admin & Maintenance > Menu Matrix',
+  },
+  'admin.maintenance.smtp': {
+    label: 'SMTP Settings',
+    breadcrumb: 'Admin & Maintenance > SMTP Settings',
+  },
+  'admin.maintenance.user_activity': {
+    label: 'User Activity',
+    breadcrumb: 'Admin & Maintenance > User Activity',
+  },
   'jobs': {
     label: 'Job Monitoring',
     breadcrumb: 'Admin & Maintenance > Job Monitoring',

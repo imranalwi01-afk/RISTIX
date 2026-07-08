@@ -137,7 +137,6 @@ const REFRESH_TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
  */
 const JWT_PERMISSION_KEEP = new Set([
     'admin.super_admin', 'approval.all', 'approval.requests.approve',
-    'admin.system.manage', 'admin.users.manage', 'admin.roles.manage',
 ])
 
 const trimPermissions = (perms: string[]): string[] => {
