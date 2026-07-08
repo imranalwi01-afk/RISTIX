@@ -10,6 +10,20 @@ import { roles } from '@/db/schema/rbac.schema'
 const ACCESS_TOKEN_EXPIRY_MS = 60 * 60 * 1000 // 1h
 const REFRESH_TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000 // 7d
 
+const JWT_PERMISSION_KEEP = new Set([
+    'admin.super_admin', 'approval.all', 'approval.requests.approve',
+    'admin.system.manage', 'admin.users.manage', 'admin.roles.manage',
+])
+
+const trimPermissions = (perms: string[]): string[] => {
+    const trimmed = perms.filter(p => JWT_PERMISSION_KEEP.has(p))
+    if (trimmed.includes('admin.super_admin')) return trimmed
+    if (perms.includes('*') || perms.includes('PLATFORM_ADMIN') || perms.includes('SUPER_ADMIN')) {
+        trimmed.push('admin.super_admin')
+    }
+    return trimmed
+}
+
 const generateAccessToken = async (
     user: any, tokenId: string, tenantId: string | undefined,
     roles: string[], permissions: string[], stakeholderType: string
@@ -83,8 +97,8 @@ export async function impersonateUser(
     }
 
     const [accessToken, refreshToken] = await Promise.all([
-        generateAccessToken(user, accessTokenId, tenantId, targetRoles, permissions, 'banking'),
-        generateRefreshToken(user, refreshTokenId, tenantId, targetRoles, permissions, 'banking'),
+        generateAccessToken(user, accessTokenId, tenantId, targetRoles, trimPermissions(permissions), 'banking'),
+        generateRefreshToken(user, refreshTokenId, tenantId, targetRoles, trimPermissions(permissions), 'banking'),
     ])
 
     await Promise.all([
