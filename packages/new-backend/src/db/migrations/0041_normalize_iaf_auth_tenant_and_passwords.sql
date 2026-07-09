@@ -10,7 +10,7 @@ insert into tmp_iaf_auth_users (email, role_code) values
     ('checker@iaf.co.id', 'CHECKER'),
     ('approver@iaf.co.id', 'APPROVER'),
     ('admin@iaf.co.id', 'IAF_TENANT_ADMIN'),
-    ('superadmin@iaf.co.id', 'IAF_TENANT_SUPERADMIN'),
+    ('demo@ristix.pro', 'IAF_TENANT_SUPERADMIN'),
     ('data.admin@iaf.co.id', 'IAF_DATA_ADMIN'),
     ('risk.analyst@iaf.co.id', 'IAF_RISK_ANALYST'),
     ('ifrs.manager@iaf.co.id', 'IAF_IFRS_MANAGER'),

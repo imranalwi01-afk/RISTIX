@@ -34,7 +34,7 @@ insert into tmp_iaf_role_users (
     ('checker@iaf.co.id', 'checker_iaf', 'IAF Checker User', 'Risk Management', 'Checker', 'IAF-CHECKER', 'CHECKER'),
     ('approver@iaf.co.id', 'approver_iaf', 'IAF Business Approver', 'Risk Management', 'Business Approver', 'IAF-APPROVER', 'APPROVER'),
     ('admin@iaf.co.id', 'admin_iaf', 'IAF Tenant Administrator', 'Information Technology', 'Tenant Administrator', 'IAF-TENANT-ADMIN', 'IAF_TENANT_ADMIN'),
-    ('superadmin@iaf.co.id', 'superadmin_iaf', 'IAF Tenant Super Administrator', 'Information Technology', 'Tenant Super Administrator', 'IAF-TENANT-SUPERADMIN', 'IAF_TENANT_SUPERADMIN'),
+    ('demo@ristix.pro', 'superadmin_iaf', 'IAF Tenant Super Administrator', 'Information Technology', 'Tenant Super Administrator', 'IAF-TENANT-SUPERADMIN', 'IAF_TENANT_SUPERADMIN'),
     ('data.admin@iaf.co.id', 'data_admin_iaf', 'IAF Data Administrator', 'Data Management', 'Data Administrator', 'IAF-DATA-ADMIN', 'IAF_DATA_ADMIN'),
     ('risk.analyst@iaf.co.id', 'risk_analyst_iaf', 'IAF Risk Analyst', 'Risk Management', 'Risk Analyst', 'IAF-RISK-ANALYST', 'IAF_RISK_ANALYST'),
     ('ifrs.manager@iaf.co.id', 'ifrs_manager_iaf', 'IAF IFRS 9 Manager', 'Risk Management', 'IFRS 9 Manager', 'IAF-IFRS-MANAGER', 'IAF_IFRS_MANAGER'),
