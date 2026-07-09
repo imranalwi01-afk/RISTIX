@@ -122,6 +122,7 @@ export const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'gca-movement': 'banking.reports.ifrs9.gca_movement.view',
     'advanced-analytics': 'banking.analytics.r.view',
     'r-analytics': 'banking.analytics.r.view',
+                'maintenance': 'admin.system.view',
     approval: 'approval.requests.approve',
     'audit-logs': 'admin.maintenance.user_activity.view',
     'access-management': ['admin.users.view', 'admin.roles.view'],
