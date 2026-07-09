@@ -1293,11 +1293,46 @@ export class Ifrs9ReportsService {
             const startIndex = (page - 1) * limit;
             const paginatedData = sortedData.slice(startIndex, startIndex + limit);
 
+            const summaryStats = sortedData.reduce((acc, row) => {
+                const outstanding = Number(row.outstanding) || 0;
+                const eclFinalAmt = Number(row.ecl_final_amt) || 0;
+                const stageRaw = String(row.stage ?? '1').trim().toLowerCase();
+                
+                acc.totalOutstanding += outstanding;
+                acc.totalECL += eclFinalAmt;
+                
+                if (stageRaw.includes('1')) {
+                    acc.stage1Outstanding += outstanding;
+                    acc.stage1ECL += eclFinalAmt;
+                } else if (stageRaw.includes('2')) {
+                    acc.stage2Outstanding += outstanding;
+                    acc.stage2ECL += eclFinalAmt;
+                } else if (stageRaw.includes('3')) {
+                    acc.stage3Outstanding += outstanding;
+                    acc.stage3ECL += eclFinalAmt;
+                }
+                
+                return acc;
+            }, {
+                totalOutstanding: 0,
+                totalECL: 0,
+                stage1Outstanding: 0,
+                stage1ECL: 0,
+                stage2Outstanding: 0,
+                stage2ECL: 0,
+                stage3Outstanding: 0,
+                stage3ECL: 0
+            });
+
             return {
                 data: paginatedData,
                 total: sortedData.length,
                 page,
                 totalPages: Math.ceil(sortedData.length / limit),
+                summary: {
+                    ...summaryStats,
+                    detailRows: sortedData
+                },
                 effectivePrcDate,
                 debug: {
                     sourceTables: ['public.frs9_ecl_summary'],

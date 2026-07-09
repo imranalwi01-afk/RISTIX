@@ -591,8 +591,10 @@ const ECLResultReport: React.FC = () => {
     stageDistribution: []
   });
 
-  const handleDataLoaded = React.useCallback((data: Record<string, unknown>[]) => {
-    if (!data || data.length === 0) {
+  const handleDataLoaded = React.useCallback((data: Record<string, unknown>[], summary?: Record<string, unknown> | null) => {
+    const detailRows = Array.isArray(summary?.detailRows) ? summary.detailRows : data;
+
+    if (!detailRows || detailRows.length === 0) {
       setSummaryStats({
         totalECL: 0,
         stage1ECL: 0,
@@ -625,7 +627,7 @@ const ECLResultReport: React.FC = () => {
       return 0;
     };
 
-    const aggregatedStats = data.reduce((acc: Partial<SummaryStats>, row: Record<string, unknown>) => {
+    const aggregatedStats = detailRows.reduce((acc: Partial<SummaryStats>, row: Record<string, unknown>) => {
       const eclAmount = getMetric(row, [
         'ecl_final',
         'eclFinal',
@@ -697,7 +699,7 @@ const ECLResultReport: React.FC = () => {
     ];
 
     const segmentMap = new Map<string, Omit<SegmentBreakdownItem, 'eclRatio'>>();
-    data.forEach(row => {
+    detailRows.forEach(row => {
       const segmentLabel = String(
         row.segment ||
         row.group_segment ||
