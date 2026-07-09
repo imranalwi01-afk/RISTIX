@@ -172,6 +172,7 @@ services:
       args:
         - NEXT_PUBLIC_API_URL=${API_BASE_URL}
         - NEXT_PUBLIC_R_API_URL=${RAPI_BASE_URL}
+        - NEXT_PUBLIC_R_ANALYTICS_URL=${R_DASHBOARD_URL}
         - NEXT_PUBLIC_ENVIRONMENT=development
     container_name: ifrs9-frontend-dev-server
     restart: unless-stopped
@@ -184,6 +185,7 @@ services:
       NEXT_PUBLIC_API_URL: ${API_BASE_URL}
       NEXT_PUBLIC_BACKEND_API_URL: ${API_BASE_URL}
       NEXT_PUBLIC_R_API_URL: ${RAPI_BASE_URL}
+      NEXT_PUBLIC_R_ANALYTICS_URL: ${R_DASHBOARD_URL}
       NEXT_PUBLIC_DOMAIN: ifrspro.id
     ports:
       - "4231:4231"
