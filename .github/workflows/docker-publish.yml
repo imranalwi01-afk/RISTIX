@@ -140,3 +140,18 @@ jobs:
           labels: ${{ steps.meta-backend.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=min
+
+  # ==============================================================================
+  # AUTO DEPLOY TO SERVER (DEV/STAGING)
+  # ==============================================================================
+  deploy_to_server:
+    needs: [frontend, backend]
+    runs-on: [self-hosted, X64, Linux, iaf-prod]
+    steps:
+      - name: Pull Latest Code and Restart Server
+        run: |
+          cd /home/admin/RISTIX
+          git fetch origin
+          git reset --hard origin/develop
+          cd ops/dev
+          sudo docker compose up -d --build frontend backend
