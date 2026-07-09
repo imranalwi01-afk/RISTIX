@@ -184,7 +184,7 @@ services:
       NEXT_PUBLIC_API_URL: ${API_BASE_URL}
       NEXT_PUBLIC_BACKEND_API_URL: ${API_BASE_URL}
       NEXT_PUBLIC_R_ANALYTICS_BASE_URL: ${RAPI_BASE_URL}
-      NEXT_PUBLIC_DOMAIN: ifrspro.id
+      NEXT_PUBLIC_DOMAIN: ${NEXT_PUBLIC_DOMAIN:-ristix.bdo-ki.com}
     ports:
       - "4231:4231"
     networks:
