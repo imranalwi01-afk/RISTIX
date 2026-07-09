@@ -22,7 +22,7 @@ const LifetimePDReport = dynamic(() => import('@/components/ifrs9/LifetimePDRepo
 export default function LifetimePDReportsPage() {
   return (
     <Can
-      permission={['banking.reports.ifrs9.lifetime_pd.view', 'banking.reports.ifrs9.view']}
+      permission={['banking.reports.ifrs9.lifetime_pd.view']}
       fallback={
         <Container maxWidth="xl">
           <Alert severity="error">You do not have permission to access Lifetime PD Reports.</Alert>

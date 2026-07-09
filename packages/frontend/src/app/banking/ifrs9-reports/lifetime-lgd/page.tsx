@@ -22,7 +22,7 @@ const LifetimeLGDReport = dynamic(() => import('@/components/ifrs9/LifetimeLGDRe
 export default function LifetimeLGDReportsPage() {
   return (
     <Can
-      permission={['banking.reports.ifrs9.lifetime_lgd.view', 'banking.reports.ifrs9.view']}
+      permission={['banking.reports.ifrs9.lifetime_lgd.view']}
       fallback={
         <Container maxWidth="xl">
           <Alert severity="error">You do not have permission to access Lifetime LGD Reports.</Alert>

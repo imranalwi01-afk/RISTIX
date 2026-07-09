@@ -35,7 +35,7 @@ function ECLMovementReportsPage() {
 
   return (
     <Can
-      permission={['banking.reports.ifrs9.ecl_movement.view', 'banking.reports.ifrs9.view']}
+      permission={['banking.reports.ifrs9.ecl_movement.view']}
       fallback={
         <Container maxWidth="xl">
           <Alert severity="error">You do not have permission to access ECL Movement Reports.</Alert>

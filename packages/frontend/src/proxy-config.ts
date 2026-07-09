@@ -15,7 +15,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   '/banking/dashboard': 'banking.dashboard.view',
 
   // Impairment Modules
-  '/banking/collective': 'banking.collective.view',
+  '/banking/collective': 'banking.collective.bucket.view',
   '/banking/individual': 'banking.individual.view',
 
   // Analytics
