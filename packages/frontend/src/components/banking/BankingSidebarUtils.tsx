@@ -98,7 +98,7 @@ export const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'system-setup': 'banking.setup.application',
     'application-configuration': 'banking.setup.application.view',
     'business-configuration': 'banking.setup.business.view',
-    'parameter-management': 'banking.parameter',
+    'parameter-management': 'banking.parameter.product.view',
     'product-parameters': 'banking.parameter.product.view',
     'accounting-parameters': 'banking.parameter.journal.view',
     'segmentation-configuration': 'banking.collective.segmentation.view',
