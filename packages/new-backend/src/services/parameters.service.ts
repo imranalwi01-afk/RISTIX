@@ -354,7 +354,8 @@ export const ParametersService = {
                         })
                     )
                 })
-            ),
+            )
+            }),
             Effect.flatMap(updated =>
                 (updated
                     ? Effect.succeed(transformDetail(updated as any))
