@@ -22,12 +22,12 @@ export const getConfigValue = (key: string, defaultValue?: string): string => {
 
   // Default configuration values
   const defaults: Record<string, string> = {
-    APP_NAME: 'IFRS 9 Pro System',
+    APP_NAME: 'PSAK 413 Pro System',
     APP_VERSION: '2.0.0',
     ENVIRONMENT: 'development',
     API_URL: 'https://iaf-ifrs-be.danafin.com/api/v1',
     BANKING_MODE: 'conventional',
-    PLATFORM_NAME: 'IFRS 9 Platform',
+    PLATFORM_NAME: 'PSAK 413 Platform',
     COMPANY_NAME: 'Banking Institution'
   };
 
@@ -106,7 +106,7 @@ export interface EnvironmentConfig {
 export const getEnvironmentConfig = (): EnvironmentConfig => {
   return {
     app: {
-      name: getConfigValue('APP_NAME', 'IFRS 9 Pro System'),
+      name: getConfigValue('APP_NAME', 'PSAK 413 Pro System'),
       version: getConfigValue('APP_VERSION', '2.0.0'),
       environment: getConfigValue('ENVIRONMENT', 'development') as any,
       baseUrl: getConfigValue('BASE_URL', 'https://iaf-ifrs.danafin.com')

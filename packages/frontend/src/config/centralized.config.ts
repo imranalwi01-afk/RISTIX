@@ -260,7 +260,7 @@ class CentralizedConfigManager {
         },
 
         app: {
-          name: this.getEnvVar('APP_NAME', 'IFRS9 IAF Platform'),
+          name: this.getEnvVar('APP_NAME', 'PSAK 413 IAF Platform'),
           version: this.getEnvVar('APP_VERSION', '1.0.0'),
           debug: this.getEnvVar('APP_DEBUG', 'false') === 'true'
         },

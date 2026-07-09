@@ -5,7 +5,7 @@ import CollectiveLoading from '../loading'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Collective Parameters | IFRS 9 Platform',
+  title: 'Collective Parameters | PSAK 413 Platform',
   description: 'Manage collective impairment parameters and module orchestration.',
 }
 

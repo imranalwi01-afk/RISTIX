@@ -5,8 +5,8 @@ import CollectiveLoading from '../loading'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'EAD Setup | IFRS 9 Platform',
-  description: 'Configure Exposure at Default (EAD) parameters for IFRS 9 calculations.',
+  title: 'EAD Setup | PSAK 413 Platform',
+  description: 'Configure Exposure at Default (EAD) parameters for PSAK 413 calculations.',
 }
 
 export default function EADSetupPage() {

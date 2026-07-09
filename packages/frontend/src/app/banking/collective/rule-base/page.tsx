@@ -5,8 +5,8 @@ import CollectiveLoading from '../loading'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Rule Base Configuration | IFRS 9 Platform',
-  description: 'Configure staging rules and migration logic for IFRS 9 calculations.',
+  title: 'Rule Base Configuration | PSAK 413 Platform',
+  description: 'Configure staging rules and migration logic for PSAK 413 calculations.',
 }
 
 export default function RuleBasePage() {

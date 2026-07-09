@@ -5,8 +5,8 @@ import SetupLoading from '../loading'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Business Setup | IFRS 9 Platform',
-  description: 'Configure business settings and parameters for IFRS 9 calculations.',
+  title: 'Business Setup | PSAK 413 Platform',
+  description: 'Configure business settings and parameters for PSAK 413 calculations.',
 }
 
 export default function BusinessSetupPage() {

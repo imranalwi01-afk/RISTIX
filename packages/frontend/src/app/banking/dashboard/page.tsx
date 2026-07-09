@@ -13,8 +13,8 @@ import type { Metadata } from 'next'
 
 // SEO Metadata (runs on server)
 export const metadata: Metadata = {
-  title: 'Banking Dashboard | IFRS 9 Platform',
-  description: 'Real-time ECL calculations, portfolio metrics, and risk management dashboard for IFRS 9 compliance.',
+  title: 'Banking Dashboard | PSAK 413 Platform',
+  description: 'Real-time ECL calculations, portfolio metrics, and risk management dashboard for PSAK 413 compliance.',
 }
 
 // Server Component - renders instantly on navigation

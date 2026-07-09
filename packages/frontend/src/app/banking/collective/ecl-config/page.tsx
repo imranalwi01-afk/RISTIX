@@ -5,7 +5,7 @@ import CollectiveLoading from '../loading'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'ECL Configuration | IFRS 9 Platform',
+  title: 'ECL Configuration | PSAK 413 Platform',
   description: 'Configure Expected Credit Loss (ECL) calculation parameters.',
 }
 

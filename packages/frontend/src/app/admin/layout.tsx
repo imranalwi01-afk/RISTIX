@@ -2,8 +2,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'IFRS 9 MODELLING PLATFORM | i9model | A1',
-  description: 'Banking Administration Interface for IFRS 9 Modelling Platform',
+  title: 'PSAK 413 MODELLING PLATFORM | i9model | A1',
+  description: 'Banking Administration Interface for PSAK 413 Modelling Platform',
 };
 
 export default function AdminLayout({

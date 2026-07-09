@@ -16,10 +16,10 @@ import './globals.css'
 // METADATA CONFIGURATION
 // ============================================================================
 export const metadata: Metadata = {
-  title: 'IFRS9 Banking Platform',
-  description: 'Multi-Tenant Banking IFRS 9 Compliance Platform',
+  title: 'PSAK 413 Banking Platform',
+  description: 'Multi-Tenant Banking PSAK 413 Compliance Platform',
   keywords: [
-    'IFRS 9',
+    'PSAK 413',
     'Banking Platform',
     'Platform Admin',
     'Consultant',
@@ -27,26 +27,26 @@ export const metadata: Metadata = {
     'Financial Compliance',
     'ECL Calculation'
   ],
-  authors: [{ name: 'IFRS9 Platform Team' }],
-  creator: 'IFRS9 Platform Team',
-  publisher: 'IFRS9 Platform',
+  authors: [{ name: 'PSAK 413 Platform Team' }],
+  creator: 'PSAK 413 Platform Team',
+  publisher: 'PSAK 413 Platform',
   robots: process.env.NODE_ENV === 'production' ? 'index, follow' : 'noindex, nofollow',
   manifest: '/manifest.json',
   
   // Open Graph
   openGraph: {
-    title: 'IFRS9 Pro Platform',
-    description: 'Multi-Tenant Islamic Banking IFRS 9 Compliance Platform',
+    title: 'PSAK 413 Pro Platform',
+    description: 'Multi-Tenant Islamic Banking PSAK 413 Compliance Platform',
     type: 'website',
     locale: 'en_US',
-    siteName: 'IFRS9 Platform',
+    siteName: 'PSAK 413 Platform',
   },
   
   // Twitter Card
   twitter: {
     card: 'summary_large_image',
-    title: 'IFRS9 Pro Platform',
-    description: 'Multi-Tenant Islamic Banking IFRS 9 Compliance Platform',
+    title: 'PSAK 413 Pro Platform',
+    description: 'Multi-Tenant Islamic Banking PSAK 413 Compliance Platform',
   },
   
   // Icons

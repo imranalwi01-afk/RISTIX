@@ -5,8 +5,8 @@ import CollectiveLoading from '../loading'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Bucket Parameters | IFRS 9 Platform',
-  description: 'Configure staging bucket parameters for IFRS 9 impairment calculations.',
+  title: 'Bucket Parameters | PSAK 413 Platform',
+  description: 'Configure staging bucket parameters for PSAK 413 impairment calculations.',
 }
 
 export default function BucketPage() {

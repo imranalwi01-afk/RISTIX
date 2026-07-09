@@ -13,8 +13,8 @@ import type { Metadata } from 'next'
 
 // SEO Metadata (runs on server)
 export const metadata: Metadata = {
-  title: 'Segmentation Configuration | IFRS 9 Platform',
-  description: 'Configure population segmentation rules for IFRS 9 ECL calculations.',
+  title: 'Segmentation Configuration | PSAK 413 Platform',
+  description: 'Configure population segmentation rules for PSAK 413 ECL calculations.',
 }
 
 // Server Component - renders instantly on navigation

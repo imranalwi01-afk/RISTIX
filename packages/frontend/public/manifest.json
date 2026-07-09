@@ -1,7 +1,7 @@
 {
-  "name": "IFRS 9 Pro Platform",
-  "short_name": "IFRS9 Pro",
-  "description": "Multi-Tenant Islamic Banking IFRS 9 Compliance Platform",
+  "name": "PSAK 413 Pro Platform",
+  "short_name": "PSAK 413 Pro",
+  "description": "Multi-Tenant Islamic Banking PSAK 413 Compliance Platform",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

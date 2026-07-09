@@ -596,8 +596,9 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   // ✅ SURGICAL FIX: Dynamic banking mode functions
   const getBankingModeLabel = () => {
     switch (bankingMode) {
-      case 'dual': return 'Dual Banking';
-      default: return 'Conventional Banking';
+      case 'dual': return 'Dual Banking (Conv & Syariah)';
+      case 'syariah': return 'Syariah Banking';
+      default: return 'Syariah Banking';
     }
   };
 
@@ -662,7 +663,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
               <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '0.875rem' }}>IAF</Typography>
             </Box>
           ) : (
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>IAF IFRS 9 Platform</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>RISTIX PSAK 413 Platform</Typography>
           )}
         </Box>
 
@@ -739,7 +740,8 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
                   style={{ 
                     height: '28px', 
                     width: 'auto',
-                    filter: 'brightness(0) invert(1)' 
+                    filter: 'brightness(0) invert(1)',
+                    display: 'none'
                   }} 
                 />
                  <Typography 
@@ -752,12 +754,12 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
                     color: '#ffffff'
                   }}
                 >
-                  Indonesia Airawata Finance
+                  RISTIX.PRO
                 </Typography>
               </Box>
             </Link>
             <Typography variant="caption" align="center" display="block" sx={{ fontSize: '0.65rem', color: alpha('#fff', 0.7) }}>
-              IFRS 9 Platform v2.0
+              Ristix PSAK 413 Platform
             </Typography>
             <Typography variant="caption" align="center" display="block" sx={{ fontSize: '0.6rem', color: alpha('#fff', 0.7), mb: 0.5 }}>
               {getBankingModeLabel()}
@@ -804,7 +806,8 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
                    style={{ 
                      height: '24px', 
                      width: 'auto',
-                     filter: 'brightness(0) invert(1)'
+                     filter: 'brightness(0) invert(1)',
+                     display: 'none'
                   }} 
                 />
              </Box>

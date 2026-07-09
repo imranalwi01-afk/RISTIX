@@ -159,16 +159,16 @@ function LoginPage() {
           error
         );
         const iafTenant: TenantOption = {
-          id: 'iaf-fallback',
-          slug: 'iaf',
-          name: 'Indonesia Airawata Finance',
-          displayName: 'Indonesia Airawata Finance (IAF)',
-          bankingType: 'conventional',
+          id: 'bjb-fallback',
+          slug: 'bjb',
+          name: 'BJB Syariah',
+          displayName: 'BJB Syariah',
+          bankingType: 'syariah',
           status: 'active',
           isActive: true,
         };
         setTenants([iafTenant]);
-        setSelectedTenantId('iaf');
+        setSelectedTenantId('bjb');
       } finally {
         setTenantsLoading(false);
       }
@@ -512,7 +512,7 @@ function LoginPage() {
         badgeText={
           isPlatformAdmin
             ? 'PLATFORM ADMINISTRATION'
-            : 'IFRS 9 ENGINE v2.0'
+            : 'PSAK 413 ENGINE V2.0'
         }
         leftTitle={
           <>
@@ -532,9 +532,7 @@ function LoginPage() {
         }
         footer={
           <Typography variant="caption" color="text.secondary">
-            © 2026 {settings.platformName} Platform & Airawata
-            Framework. <br /> Secured by Enterprise Grade
-            Encryption.
+            @ Ristix <br /> Platform Secured by Enterprise Grade Encryption
           </Typography>
         }
       >

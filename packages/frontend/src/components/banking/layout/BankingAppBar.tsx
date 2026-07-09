@@ -130,7 +130,7 @@ export const BankingAppBar: React.FC<BankingAppBarProps> = ({
                                 color: colorMode === 'dark' ? 'inherit' : '#1565C0'
                             }}
                         >
-                            IFRS 9 | i9 model platform
+                            PSAK 413 | Ristix model platform
                         </Typography>
                     </Box>
 

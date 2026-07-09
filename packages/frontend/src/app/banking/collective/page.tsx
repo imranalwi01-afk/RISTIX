@@ -9,7 +9,7 @@ import type { Metadata } from 'next';
 import CollectiveLandingClient from '@/app/banking/collective/CollectiveLandingClient';
 
 export const metadata: Metadata = {
-    title: 'Collective Impairment | IFRS 9 Platform',
+    title: 'Collective Impairment | PSAK 413 Platform',
     description: 'Manage Collective Impairment configurations including PD, LGD, EAD setup, segmentation, and ECL calculations.',
 };
 

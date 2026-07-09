@@ -76,7 +76,8 @@ export default function HomePage() {
             bgcolor: settings.logoUrl ? 'transparent' : 'white',
             p: settings.logoUrl ? 0 : 1,
             borderRadius: 2,
-            boxShadow: settings.logoUrl ? 'none' : '0 4px 20px rgba(0,0,0,0.1)'
+            boxShadow: settings.logoUrl ? 'none' : '0 4px 20px rgba(0,0,0,0.1)',
+            display: 'none'
           }}>
             {settings.logoUrl ? (
               <img
@@ -105,7 +106,7 @@ export default function HomePage() {
               </Box>
             )}
           </Box>
-          <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: 0.5, display: { xs: 'none', md: 'block' } }}>
+          <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: 0.5, display: 'none' }}>
             {settings.platformName}
           </Typography>
         </Box>
@@ -145,7 +146,7 @@ export default function HomePage() {
               fontSize: { xs: '2.5rem !important', md: '4.5rem !important' },
               textShadow: '0 10px 30px rgba(0,0,0,0.2)'
             }}>
-              IFRS 9<br />
+              PSAK 413<br />
               <span style={{ color: '#90CAF9' }}> Expected Credit Loss</span>
             </Typography>
 

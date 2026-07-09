@@ -4,9 +4,9 @@
 import type { Metadata, Viewport } from 'next'
 
 export const metadata: Metadata = {
-  title: 'IFRS9 Platform - Login',
-  description: 'Secure login for Multi-Tenant Islamic Banking IFRS 9 Platform',
-  keywords: 'IFRS 9, Islamic Banking, Login, Authentication, Dual Banking',
+  title: 'PSAK 413 Platform - Login',
+  description: 'Secure login for Multi-Tenant Islamic Banking PSAK 413 Platform',
+  keywords: 'PSAK 413, Islamic Banking, Login, Authentication, Dual Banking',
   robots: 'noindex, nofollow',
   manifest: '/manifest.json',
   icons: {

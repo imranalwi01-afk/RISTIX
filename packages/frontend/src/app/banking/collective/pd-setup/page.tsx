@@ -5,8 +5,8 @@ import CollectiveLoading from '../loading'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'PD Setup | IFRS 9 Platform',
-  description: 'Configure Probability of Default (PD) parameters for IFRS 9 calculations.',
+  title: 'PD Setup | PSAK 413 Platform',
+  description: 'Configure Probability of Default (PD) parameters for PSAK 413 calculations.',
 }
 
 export default function PDSetupPage() {

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Simple IFRS9 Test',
+  title: 'Simple PSAK 413 Test',
   description: 'Testing React functionality',
 }
 

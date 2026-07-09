@@ -740,7 +740,7 @@ function DashboardClient() {
                             {bankingContext.icon} {selectedDate === 'all' ? 'Cumulative Grand Total' : 'Banking Dashboard'}
                         </Typography>
                         <Typography variant="subtitle1" sx={{ color: 'rgba(255,255,255,0.9)' }}>
-                            {selectedDate === 'all' ? 'IFRS 9 All-Time Aggregate Summary' : `IFRS 9 ${bankingContext.name} Interface`}
+                            {selectedDate === 'all' ? 'PSAK 413 All-Time Aggregate Summary' : `PSAK 413 ${bankingContext.name} Interface`}
                         </Typography>
                         <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', mt: 1 }}>
                             {bankingContext.greeting}, {user.fullName || user.email} • {selectedDate === 'all' ? 'Displaying System-wide Historical Aggregate' : (selectedDate && !isNaN(new Date(selectedDate).getTime()) ? `Process Date: ${new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }).format(new Date(selectedDate))}` : 'Initializing...')}
@@ -1025,7 +1025,7 @@ function DashboardClient() {
                 icon={<Info />}
             >
                 <Typography variant="body2">
-                    <strong>{bankingContext.name} Interface Active</strong> - You are accessing the IFRS 9 system as a banking institution user.
+                    <strong>{bankingContext.name} Interface Active</strong> - You are accessing the PSAK 413 system as a banking institution user.
                     {user.tenantSlug && ` Connected to tenant: ${user.tenantSlug}`}
                 </Typography>
             </Alert>
