@@ -1225,16 +1225,12 @@ export class Ifrs9ReportsService {
 
             const accountStatus = params?.account_status;
             if (accountStatus) {
-                const statusList = (Array.isArray(accountStatus) ? accountStatus : [accountStatus])
-                    .map((s) => `'${this.escapeSqlLiteral(String(s))}'`)
-                    .join(',');
-                whereClause += ` AND account_status IN (${statusList})`;
+                // frs9_ecl_summary does not have account_status, ignore filter
             }
 
             const rawData = await legacyDb.execute(sql.raw(`
                 SELECT 
                     prc_date AS period,
-                    account_status,
                     branch_code,
                     segment_id,
                     group_segment,
@@ -1260,7 +1256,6 @@ export class Ifrs9ReportsService {
                 WHERE ${whereClause}
                 GROUP BY 
                     prc_date,
-                    account_status,
                     branch_code,
                     segment_id,
                     group_segment,
