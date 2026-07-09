@@ -266,9 +266,7 @@ mock.module(configDatabaseAliasPath, () => ({
   }),
 }))
 
-mock.module(approvalHelpersPath, () => ({
-  buildDefaultFourEyesRouting: () => [],
-}))
+mock.module(approvalHelpersPath, () => ({}))
 
 mock.module(notificationSocketPath, () => ({
   getNotificationSocket: () => ({

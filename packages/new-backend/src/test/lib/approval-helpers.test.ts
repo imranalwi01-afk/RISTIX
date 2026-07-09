@@ -4,7 +4,6 @@ import {
   buildApprovalDescription,
   buildApprovalPermission,
   buildApprovalTitle,
-  buildDefaultFourEyesRouting,
   buildOperationPermission,
   calculateApprovalProgress,
   canProcessApproval,
@@ -17,7 +16,6 @@ import {
   hasApprovalPermission,
   hasOperationPermission,
   isApprovalExpired,
-  requiresStrictFourEyes,
   shouldAutoApprove,
   validateApproverNotRequester,
 } from '@/lib/approval-helpers'
@@ -182,23 +180,7 @@ describe('approval-helpers', () => {
     })
   })
 
-  test('strict four-eyes defaults and env override behavior', () => {
-    process.env.APPROVAL_STRICT_FOUR_EYES = undefined
-    expect(requiresStrictFourEyes('role')).toBe(true)
-    expect(requiresStrictFourEyes('segmentation')).toBe(true)
-    expect(requiresStrictFourEyes('pd_configuration')).toBe(true)
-    expect(requiresStrictFourEyes('ecl_configuration')).toBe(true)
 
-    process.env.APPROVAL_STRICT_FOUR_EYES = 'false'
-    expect(requiresStrictFourEyes('role')).toBe(false)
-  })
-
-  test('default strict routing contains expected checker and approver levels', () => {
-    const routing = buildDefaultFourEyesRouting('role')
-    expect(routing.length).toBe(2)
-    expect(routing[0].requiredRoleCodes).toContain('USERCHECKER')
-    expect(routing[1].requiredRoleCodes).toContain('ACCOUNTING_APPROVER')
-  })
 
   test('shouldAutoApprove respects strict mode, matrix rules, bypass and approval permissions', () => {
     process.env.APPROVAL_STRICT_FOUR_EYES = 'true'

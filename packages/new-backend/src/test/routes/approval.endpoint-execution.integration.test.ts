@@ -266,9 +266,7 @@ mock.module(dbSchemaAliasPath, () => ({
   approvalRequests: schema.approvalRequests,
 }))
 
-mock.module(approvalHelpersPath, () => ({
-  buildDefaultFourEyesRouting: () => [],
-}))
+mock.module(approvalHelpersPath, () => ({}))
 
 mock.module(notificationSocketPath, () => ({
   getNotificationSocket: () => ({
