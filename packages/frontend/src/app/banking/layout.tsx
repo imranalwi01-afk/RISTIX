@@ -183,6 +183,14 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
   const handleSidebarToggle = () => setSidebarCollapsed(!sidebarCollapsed);
 
+  // Safe client-side check to avoid Suspense deoptimization issues in Next.js layouts
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsFullscreen(new URLSearchParams(window.location.search).get('fullscreen') === 'true');
+    }
+  }, []);
+
   // Block if no session evidence exists OR if Redux explicitly initialized and determined unauthenticated
   if ((hasSessionEvidence === false && !authState?.user && !authState?.token) ||
       (isAuthReady && !isActuallyAuthenticated)) {
@@ -213,14 +221,6 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
       </Box>
     );
   }
-
-  // Safe client-side check to avoid Suspense deoptimization issues in Next.js layouts
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setIsFullscreen(new URLSearchParams(window.location.search).get('fullscreen') === 'true');
-    }
-  }, []);
 
   if (isFullscreen) {
     return (
