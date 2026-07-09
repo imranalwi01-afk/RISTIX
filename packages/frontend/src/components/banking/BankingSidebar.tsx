@@ -597,7 +597,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   const getBankingModeLabel = () => {
     switch (bankingMode) {
       case 'dual': return 'Dual Banking (Conv & Syariah)';
-      case 'syariah': return 'Syariah Banking';
+      case 'conventional': return 'Syariah Banking';
       default: return 'Syariah Banking';
     }
   };

@@ -163,7 +163,7 @@ function LoginPage() {
           slug: 'bjb',
           name: 'BJB Syariah',
           displayName: 'BJB Syariah',
-          bankingType: 'syariah',
+          bankingType: 'conventional',
           status: 'active',
           isActive: true,
         };
