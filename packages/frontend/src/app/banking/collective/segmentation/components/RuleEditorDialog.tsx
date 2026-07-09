@@ -14,7 +14,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  CircularProgress
 } from '@mui/material';
 import { api } from '@/services/api';
 
@@ -26,7 +25,7 @@ interface RuleEditorDialogProps {
 }
 
 export default function RuleEditorDialog({ open, onClose, onSave, initialRule }: RuleEditorDialogProps) {
-  const [loading, setLoading] = useState(false);
+  // loading state removed (unused)
   const [tables, setTables] = useState<any[]>([]);
   const [columns, setColumns] = useState<any[]>([]);
   const [operators, setOperators] = useState<any[]>([]);

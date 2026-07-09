@@ -61,7 +61,6 @@ import {
   ApprovalMatrix,
   ApprovalRequest,
   ApprovalRoutingItem,
-  ApprovalStatistics,
   ApprovalOperation,
   RequestRoutingMatch,
 } from './types';

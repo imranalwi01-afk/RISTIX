@@ -18,7 +18,6 @@ import {
   Typography,
   Box,
   IconButton,
-  Stack,
   FormHelperText
 } from '@mui/material';
 import { Close as CloseIcon, Save as SaveIcon } from '@mui/icons-material';
@@ -50,7 +49,7 @@ export default function SegmentationHeaderDialog({
 
   const [segmentTypes, setSegmentTypes] = useState<any[]>([]);
   const [errors, setErrors] = useState<any>({});
-  const [loading, setLoading] = useState(false);
+  // loading state removed (unused)
 
   useEffect(() => {
     if (open) {

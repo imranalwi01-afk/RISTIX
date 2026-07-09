@@ -42,7 +42,7 @@ const reportColumns: GridColDef<IndividualReportHistoryRowViewModel>[] = [
     field: 'createdAt', headerName: 'Generated At', width: 200, valueFormatter: (value: unknown) => {
       try {
         return new Date(String(value)).toLocaleString();
-      } catch (e) {
+      } catch {
         return String(value ?? '');
       }
     }
