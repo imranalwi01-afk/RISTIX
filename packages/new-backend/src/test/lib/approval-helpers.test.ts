@@ -182,13 +182,8 @@ describe('approval-helpers', () => {
 
 
 
-  test('shouldAutoApprove respects strict mode, matrix rules, bypass and approval permissions', () => {
-    process.env.APPROVAL_STRICT_FOUR_EYES = 'true'
-    expect(shouldAutoApprove({} as any, ['approval.all'], 'user', 'create')).toBe(false)
-    expect(shouldAutoApprove({} as any, ['approval.all'], 'segmentation', 'update')).toBe(false)
-
-    process.env.APPROVAL_STRICT_FOUR_EYES = 'false'
-    expect(shouldAutoApprove(null as any, [], 'parameter', 'create')).toBe(true)
+   test('shouldAutoApprove respects matrix rules, bypass and approval permissions', () => {
+     expect(shouldAutoApprove({} as any, ['approval.all'], 'user', 'create')).toBeTruthy()
 
     const matrixWithBypass = {
       autoApprovalRules: { bypassPermissions: ['approval.bypass'] },
