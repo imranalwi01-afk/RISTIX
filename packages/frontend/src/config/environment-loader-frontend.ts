@@ -138,6 +138,7 @@ class FrontendEnvironmentLoader {
           const host = window.location.hostname;
           if (host.includes('danafin')) return 'https://iaf-ifrs-analytics.danafin.com';
           if (host.includes('ifrspro')) return 'https://iaf-ifrs-analytics.ifrspro.id';
+          if (host.includes('bdo-ki')) return 'https://analytics-ristix.bdo-ki.com';
           return 'http://' + host + ':4236';
         })(),
       },
