@@ -24,7 +24,15 @@ const toApiV1 = (value: string): string => {
 };
 
 const resolveBackendOrigin = (): string => {
-  const candidates = [
+  const isServer = typeof window === 'undefined';
+  const candidates = isServer ? [
+    process.env.BACKEND_INTERNAL_URL,
+    process.env.NEXT_PUBLIC_BACKEND_URL,
+    process.env.BACKEND_URL,
+    process.env.NEXT_PUBLIC_API_BASE_URL,
+    process.env.NEXT_PUBLIC_BACKEND_API_URL,
+    process.env.API_BASE_URL,
+  ] : [
     process.env.NEXT_PUBLIC_BACKEND_URL,
     process.env.BACKEND_URL,
     process.env.BACKEND_INTERNAL_URL,

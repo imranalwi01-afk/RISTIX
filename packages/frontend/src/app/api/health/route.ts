@@ -9,7 +9,7 @@ export async function GET() {
   // Fire-and-forget: warm up routes on first health check
   prewarmApp();
 
-  const backendPort = 4232; // Known backend port
+  const backendPort = 5232; // Known backend port
   // Try localhost first, then 127.0.0.1 as fallback
   const candidates = [
     `http://localhost:3000/api/v1/health`, // Docker default
@@ -46,7 +46,7 @@ export async function GET() {
     {
       status: 'unhealthy',
       error: 'Backend unreachable on all candidates',
-      details: 'Evaluated localhost and 127.0.0.1 on port 4232',
+      details: 'Evaluated localhost and 127.0.0.1 on port 5232',
       timestamp: new Date().toISOString()
     },
     { status: 503 }

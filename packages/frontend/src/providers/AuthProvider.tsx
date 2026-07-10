@@ -340,7 +340,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               if (typeof window !== 'undefined') {
                 // Check for localhost
                 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                  backendUrl = 'http://localhost:4232';
+                  backendUrl = 'http://localhost:5232';
                 } else {
                   // Try process.env first (for server-side rendering), then hostname detection
                   backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ||
