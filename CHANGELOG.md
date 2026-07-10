@@ -1,5 +1,15 @@
 # Changelog
 
+## [v2.14.50] - 2026-07-10
+
+### Fixed
+- Fixed bug in `parameters.service.ts` where system settings (like `CURRDSPLY`) could not be saved due to an incorrect duplicate sequence check.
+- Dropped deprecated `frs9pro` lowercase database to consolidate instances.
+
+### Changed
+- Configured local environment variables to explicitly use uppercase `FRS9PRO` database.
+- Routed NGINX intercept configuration to direct analytics traffic to Shiny.
+
 ## [v2.14.22] - 2026-07-05
 
 ### Added
