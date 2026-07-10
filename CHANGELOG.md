@@ -1,5 +1,10 @@
 # Changelog
 
+## [v2.14.57] - 2026-07-11
+
+### Fixed
+- Fixed deployment paths for docker compose to trigger properly on server.
+
 ## [v2.14.52] - 2026-07-10
 
 ### Fixed
