@@ -488,7 +488,7 @@ export const login = (
                 Effect.catchAll((error) => {
                     const causeCode = (error as any)?.cause?.code
                     const causeMessage = String((error as any)?.cause?.message || '')
-                    const isRbacMissing = causeCode === '42P01' || causeMessage.includes('relation') || causeMessage.includes('does not exist')
+                    const isRbacMissing = causeCode === '42P01' || causeMessage.includes('relation') || causeMessage.includes('does not exist') || causeMessage.includes('undefined is not an object') || causeMessage.includes('userRoles')
 
                     if (!isRbacMissing) {
                         return Effect.fail(error)

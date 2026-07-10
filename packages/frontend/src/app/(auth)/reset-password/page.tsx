@@ -139,8 +139,14 @@ export default function ResetPasswordPage() {
       leftSubtitle="Make sure it's at least 8 characters long, including a number and a symbol."
       footer={
         <Typography variant="caption" color="text.secondary">
-          © 2026 {settings.platformName} Platform & Airawata Framework.{' '}
-          <br /> Secured by Enterprise Grade Encryption.
+          {settings.footerText ? (
+            <span dangerouslySetInnerHTML={{ __html: settings.footerText }} />
+          ) : (
+            <>
+              © 2026 {settings.platformName} Platform & Airawata Framework.{' '}
+              <br /> Secured by Enterprise Grade Encryption.
+            </>
+          )}
         </Typography>
       }
     >

@@ -34,6 +34,7 @@ import {
     Dashboard as DashboardIcon,
     ChevronLeft as ChevronLeftIcon,
     Close as CloseIcon,
+    Brush as BrushIcon,
 } from '@mui/icons-material';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
@@ -62,6 +63,7 @@ const menuItems = [
     { text: 'Tenant Users', icon: <UsersIcon />, path: '/platform/tenant-users' },
     { text: 'RBAC', icon: <SecurityIcon />, path: '/platform/rbac' },
     { text: 'Menus', icon: <MenuIcon />, path: '/platform/menus' },
+    { text: 'Branding Settings', icon: <BrushIcon />, path: '/platform/settings/branding' },
     { text: 'SMTP Settings', icon: <EmailIcon />, path: '/platform/settings/smtp' },
 
 ];

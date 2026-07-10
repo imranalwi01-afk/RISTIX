@@ -99,6 +99,7 @@ import { useMenuState } from '@/hooks/useMenuState';
 import { getAuthToken } from '@/utils/auth-token'; // ✅ Import token utility
 import { MenuSkeleton } from '../common/MenuSkeleton'; // ✅ Import Skeleton loader
 import { usePendingApprovalCount } from '@/hooks/usePendingApprovalCount'; // ✅ Approval badge
+import { usePlatformSettings } from '@/providers/PlatformSettingsProvider';
 
 // Database menu item structure (from API)
 
@@ -393,8 +394,10 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   const theme = useTheme();
   const pathname = usePathname();
   const router = useRouter();
+  const { settings } = usePlatformSettings();
 
-  // ✅ Pending approval badge count (polling every 30s)
+  // 🔴 Local state
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const { count: pendingApprovalCount } = usePendingApprovalCount();
 
   // 🔽 FLYOUT MENU STATE
@@ -479,7 +482,13 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
 
     const stripMenuItems = (items: HierarchicalMenuItem[]): HierarchicalMenuItem[] => {
       return items
-        .filter((item) => !idsToRemove.has(item.id))
+        .filter((item) => 
+          !idsToRemove.has(item.id) && 
+          item.title !== 'Financial Reports' && 
+          item.title !== 'Executive Dashboard' && 
+          item.title !== 'Advanced Export' &&
+          item.title !== 'Individual Impairment'
+        )
         .map((item) => ({
           ...item,
           children: item.children ? stripMenuItems(item.children) : item.children
@@ -654,13 +663,15 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
             borderBottom: `1px solid ${alpha('#fff', 0.1)}`
           }}
         >
-          {collapsed ? (
-            <Box sx={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: alpha(theme.palette.common.white, 0.2), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '0.875rem' }}>IAF</Typography>
-            </Box>
-          ) : (
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>IAF IFRS 9 Platform</Typography>
-          )}
+          <Box sx={{ flex: 1, overflow: 'hidden' }}>
+            {collapsed ? (
+              <Box sx={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: alpha(theme.palette.common.white, 0.2), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '0.875rem' }}>IAF</Typography>
+              </Box>
+            ) : (
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{settings.sidebarText || 'IAF IFRS 9 Platform'}</Typography>
+            )}
+          </Box>
         </Box>
 
         {/* Navigation Menu */}
@@ -729,15 +740,11 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
                 transition: 'transform 0.2s'
               }}>
                 <Image 
-                  src="/images/logo-iaf.png" 
-                  alt="IAF Logo" 
-                  height={28}
-                  width={120}
-                  style={{ 
-                    height: '28px', 
-                    width: 'auto',
-                    filter: 'brightness(0) invert(1)' 
-                  }} 
+                  src={settings.logoUrl || "/images/logo-ristix.png"}
+                  alt="Ristix Logo" 
+                  height={56}
+                  width={56}
+                  style={{ objectFit: 'contain', filter: 'drop-shadow(0px 0px 6px rgba(255,255,255,0.8))' }}
                 />
                  <Typography 
                   variant="caption" 
@@ -749,12 +756,12 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
                     color: '#ffffff'
                   }}
                 >
-                  Indonesia Airawata Finance
+                  {settings.sidebarTenant || 'Indonesia Airawata Finance'}
                 </Typography>
               </Box>
             </Link>
             <Typography variant="caption" align="center" display="block" sx={{ fontSize: '0.65rem', color: alpha('#fff', 0.7) }}>
-              IFRS 9 Platform v2.0
+              {settings.sidebarVersion || 'IFRS 9 Platform v2.0'}
             </Typography>
             <Typography variant="caption" align="center" display="block" sx={{ fontSize: '0.6rem', color: alpha('#fff', 0.7), mb: 0.5 }}>
               {getBankingModeLabel()}
@@ -794,16 +801,12 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
           <Link href={getTopLevelRoute()} style={{ textDecoration: 'none' }}>
              <Box sx={{ display: 'flex', justifyContent: 'center', cursor: 'pointer' }}>
                  <Image 
-                   src="/images/logo-iaf.png" 
-                   alt="IAF" 
-                   height={24}
-                   width={24}
-                   style={{ 
-                     height: '24px', 
-                     width: 'auto',
-                     filter: 'brightness(0) invert(1)'
-                  }} 
-                />
+                   src={settings.logoUrl || "/images/logo-ristix.png"}
+                   alt="Ristix" 
+                   height={32}
+                   width={32}
+                   style={{ objectFit: 'contain', filter: 'drop-shadow(0px 0px 4px rgba(255,255,255,0.8))' }}
+                 />
              </Box>
           </Link>
         )}

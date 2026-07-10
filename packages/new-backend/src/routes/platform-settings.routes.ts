@@ -1,7 +1,8 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import { eq } from 'drizzle-orm'
-import { getDatabase } from '@/config/database'
-import { platformEmailTemplates, platformSettings } from '@/db/schema'
+import { getDatabase, legacyDb } from '@/config/database'
+import { platformEmailTemplates, platformSettings, frs9ParamCommonh } from '@/db/schema'
+import { inArray } from 'drizzle-orm'
 import type { AppContext } from '@/app'
 import { buildErrorResponse } from '@/lib/http/error-response'
 
@@ -20,13 +21,40 @@ platformSettingsRoutes.openapi(
     }),
     async (c) => {
         try {
+            // Fetch platform settings (logo and name)
             const [branding] = await platformDb.select().from(platformSettings)
                 .where(eq(platformSettings.key, 'branding')).limit(1)
+            
+            // Fetch landing title and subtitle from Business Parameters (legacyDb)
+            const businessParams = await legacyDb.select().from(frs9ParamCommonh)
+                .where(inArray(frs9ParamCommonh.paramCode, ['LND_TITLE', 'LND_SUB', 'BADGE_TXT', 'FOOTER_TXT', 'SIDE_TXT', 'NAV_TXT', 'DASH_SUB', 'SB_TENANT', 'SB_VER', 'TAB_TITLE']))
+            
+            const titleParam = businessParams.find(p => p.paramCode === 'LND_TITLE')
+            const subtitleParam = businessParams.find(p => p.paramCode === 'LND_SUB')
+            const badgeParam = businessParams.find(p => p.paramCode === 'BADGE_TXT')
+            const footerParam = businessParams.find(p => p.paramCode === 'FOOTER_TXT')
+            const sidebarParam = businessParams.find(p => p.paramCode === 'SIDE_TXT')
+            const navbarParam = businessParams.find(p => p.paramCode === 'NAV_TXT')
+            const dashSubParam = businessParams.find(p => p.paramCode === 'DASH_SUB')
+            const sbTenantParam = businessParams.find(p => p.paramCode === 'SB_TENANT')
+            const sbVerParam = businessParams.find(p => p.paramCode === 'SB_VER')
+            const tabTitleParam = businessParams.find(p => p.paramCode === 'TAB_TITLE')
+
             return c.json({
                 success: true,
                 data: {
                     platformName: (branding?.value as any)?.platformName ?? null,
                     logoUrl: (branding?.value as any)?.logoUrl ?? null,
+                    landingTitle: titleParam?.paramUsage ?? (branding?.value as any)?.landingTitle ?? null,
+                    landingSubtitle: subtitleParam?.paramUsage ?? (branding?.value as any)?.landingSubtitle ?? null,
+                    badgeText: badgeParam?.paramUsage ?? null,
+                    footerText: footerParam?.paramUsage ?? null,
+                    sidebarText: sidebarParam?.paramUsage ?? null,
+                    navbarText: navbarParam?.paramUsage ?? null,
+                    dashSubtitle: dashSubParam?.paramUsage ?? null,
+                    sidebarTenant: sbTenantParam?.paramUsage ?? null,
+                    sidebarVersion: sbVerParam?.paramUsage ?? null,
+                    tabTitleSuffix: tabTitleParam?.paramUsage ?? null,
                 },
             })
         } catch (error) {
@@ -36,6 +64,15 @@ platformSettingsRoutes.openapi(
                 data: {
                     platformName: null,
                     logoUrl: null,
+                    landingTitle: null,
+                    landingSubtitle: null,
+                    badgeText: null,
+                    footerText: null,
+                    sidebarText: null,
+                    navbarText: null,
+                    dashSubtitle: null,
+                    sidebarTenant: null,
+                    sidebarVersion: null,
                 },
             })
         }
@@ -57,6 +94,95 @@ platformSettingsRoutes.openapi(
             return c.json({ success: true, data: templates })
         } catch (error) {
             return c.json(buildErrorResponse(c, { error: 'Failed to fetch email templates' }), 500)
+        }
+    }
+)
+
+// GET /platform/settings/branding - Get platform branding settings
+platformSettingsRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/branding',
+        tags: ['Platform Settings'],
+        summary: 'Get platform branding settings',
+        responses: {
+            200: {
+                description: 'Successful response',
+            }
+        }
+    }),
+    async (c) => {
+        try {
+            const platformDb = getDatabase(null)
+            const [branding] = await platformDb.select().from(platformSettings)
+                .where(eq(platformSettings.key, 'branding')).limit(1)
+
+            return c.json({
+                success: true,
+                data: branding?.value || { platformName: null, logoUrl: null, landingTitle: null, landingSubtitle: null }
+            })
+        } catch (e: any) {
+            return c.json({ success: false, error: e.message }, 500)
+        }
+    }
+)
+
+// PUT /platform/settings/branding - Update platform branding settings
+platformSettingsRoutes.openapi(
+    createRoute({
+        method: 'put',
+        path: '/branding',
+        tags: ['Platform Settings'],
+        summary: 'Update platform branding settings',
+        request: {
+            body: {
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            platformName: z.string().nullable().optional(),
+                            logoUrl: z.string().nullable().optional(),
+                            landingTitle: z.string().nullable().optional(),
+                            landingSubtitle: z.string().nullable().optional(),
+                        })
+                    }
+                }
+            }
+        },
+        responses: {
+            200: {
+                description: 'Settings updated successfully',
+            }
+        }
+    }),
+    async (c) => {
+        try {
+            const body = await c.req.json()
+            const platformDb = getDatabase(null)
+
+            const [existing] = await platformDb.select().from(platformSettings)
+                .where(eq(platformSettings.key, 'branding')).limit(1)
+
+            if (existing) {
+                const [updated] = await platformDb.update(platformSettings)
+                    .set({
+                        value: { ...existing.value, ...body },
+                        updatedAt: new Date()
+                    })
+                    .where(eq(platformSettings.key, 'branding'))
+                    .returning()
+                return c.json({ success: true, data: updated.value })
+            } else {
+                const [created] = await platformDb.insert(platformSettings)
+                    .values({
+                        key: 'branding',
+                        value: body,
+                        description: 'Platform branding settings'
+                    } as any)
+                    .returning()
+                return c.json({ success: true, data: created.value })
+            }
+        } catch (e: any) {
+            return c.json({ success: false, error: e.message }, 500)
         }
     }
 )

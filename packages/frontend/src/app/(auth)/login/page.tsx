@@ -512,7 +512,7 @@ function LoginPage() {
         badgeText={
           isPlatformAdmin
             ? 'PLATFORM ADMINISTRATION'
-            : 'IFRS 9 ENGINE v2.0'
+            : (settings.badgeText || 'IFRS 9 ENGINE v2.0')
         }
         leftTitle={
           <>
@@ -532,9 +532,15 @@ function LoginPage() {
         }
         footer={
           <Typography variant="caption" color="text.secondary">
-            © 2026 {settings.platformName} Platform & Airawata
-            Framework. <br /> Secured by Enterprise Grade
-            Encryption.
+            {settings.footerText ? (
+              <span dangerouslySetInnerHTML={{ __html: settings.footerText }} />
+            ) : (
+              <>
+                © 2026 {settings.platformName} Platform & Airawata
+                Framework. <br /> Secured by Enterprise Grade
+                Encryption.
+              </>
+            )}
           </Typography>
         }
       >

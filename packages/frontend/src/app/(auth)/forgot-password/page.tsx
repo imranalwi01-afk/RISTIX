@@ -81,8 +81,14 @@ export default function ForgotPasswordPage() {
       leftSubtitle="Enter your email address and we'll send you a link to reset your password."
       footer={
         <Typography variant="caption" color="text.secondary">
-          © 2026 {settings.platformName} Platform & Airawata Framework.{' '}
-          <br /> Secured by Enterprise Grade Encryption.
+          {settings.footerText ? (
+            <span dangerouslySetInnerHTML={{ __html: settings.footerText }} />
+          ) : (
+            <>
+              © 2026 {settings.platformName} Platform & Airawata Framework.{' '}
+              <br /> Secured by Enterprise Grade Encryption.
+            </>
+          )}
         </Typography>
       }
     >

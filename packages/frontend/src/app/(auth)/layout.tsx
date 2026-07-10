@@ -4,13 +4,13 @@
 import type { Metadata, Viewport } from 'next'
 
 export const metadata: Metadata = {
-  title: 'IFRS9 Platform - Login',
-  description: 'Secure login for Multi-Tenant Islamic Banking IFRS 9 Platform',
-  keywords: 'IFRS 9, Islamic Banking, Login, Authentication, Dual Banking',
+  title: 'PSAK 413 Platform - Login',
+  description: 'Secure login for Multi-Tenant Islamic Banking PSAK 413 Platform',
+  keywords: 'PSAK 413, Islamic Banking, Login, Authentication, Dual Banking',
   robots: 'noindex, nofollow',
   manifest: '/manifest.json',
   icons: {
-    icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIGZpbGw9IiMxOTc2RDIiIHJ4PSI0Ii8+PHRleHQgeD0iMTYiIHk9IjIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSI+STk8L3RleHQ+PC9zdmc+",
+    icon: "/images/logo-ristix.png",
   },
 }
 

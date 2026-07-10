@@ -71,7 +71,7 @@ export default function HomePage() {
         zIndex: 10
       }}>
         {/* Brand Logo - Dynamic Platform Settings */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ display: 'none', alignItems: 'center', gap: 2 }}>
           <Box sx={{
             bgcolor: settings.logoUrl ? 'transparent' : 'white',
             p: settings.logoUrl ? 0 : 1,
@@ -145,8 +145,8 @@ export default function HomePage() {
               fontSize: { xs: '2.5rem', md: '4.5rem' },
               textShadow: '0 10px 30px rgba(0,0,0,0.2)'
             }}>
-              IFRS 9<br />
-              <span style={{ color: '#90CAF9' }}> Expected Credit Loss</span>
+              {settings.landingTitle}<br />
+              <span style={{ color: '#90CAF9' }}> {settings.landingSubtitle}</span>
             </Typography>
 
             <Typography variant="h5" sx={{

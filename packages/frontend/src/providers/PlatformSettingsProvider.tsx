@@ -1,11 +1,22 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { frontendEnvironmentLoader } from '@/config/environment-loader-frontend';
 
 interface PlatformSettings {
     platformName: string | null;
     logoUrl: string | null;
+    landingTitle: string | null;
+    landingSubtitle: string | null;
+    badgeText: string | null;
+    footerText: string | null;
+    sidebarText: string | null;
+    navbarText: string | null;
+    dashSubtitle: string | null;
+    sidebarTenant: string | null;
+    sidebarVersion: string | null;
+    tabTitleSuffix: string | null;
 }
 
 interface PlatformSettingsContextType {
@@ -16,6 +27,16 @@ interface PlatformSettingsContextType {
 const defaultSettings: PlatformSettings = {
     platformName: process.env.NEXT_PUBLIC_PLATFORM_NAME || 'IFRSPro',
     logoUrl: process.env.NEXT_PUBLIC_PLATFORM_LOGO || null,
+    landingTitle: 'IFRS 9',
+    landingSubtitle: 'Expected Credit Loss',
+    badgeText: 'IFRS 9 ENGINE v2.0',
+    footerText: null, // We'll compute the default in the component or set it here if we want a static fallback
+    sidebarText: 'IAF IFRS 9 Platform',
+    navbarText: 'IFRS 9 | i9 model platform',
+    dashSubtitle: null,
+    sidebarTenant: 'Indonesia Airawata Finance',
+    sidebarVersion: 'IFRS 9 Platform v2.0',
+    tabTitleSuffix: 'IFRS 9 Platform',
 };
 
 const PlatformSettingsContext = createContext<PlatformSettingsContextType>({
@@ -26,6 +47,7 @@ const PlatformSettingsContext = createContext<PlatformSettingsContextType>({
 export function PlatformSettingsProvider({ children }: { children: React.ReactNode }) {
     const [settings, setSettings] = useState<PlatformSettings>(defaultSettings);
     const [loading, setLoading] = useState(true);
+    const pathname = usePathname();
 
     useEffect(() => {
         let mounted = true;
@@ -41,6 +63,16 @@ export function PlatformSettingsProvider({ children }: { children: React.ReactNo
                         setSettings({
                             platformName: result.data.platformName || process.env.NEXT_PUBLIC_PLATFORM_NAME || 'IFRSPro',
                             logoUrl: result.data.logoUrl || process.env.NEXT_PUBLIC_PLATFORM_LOGO || null,
+                            landingTitle: result.data.landingTitle || 'IFRS 9',
+                            landingSubtitle: result.data.landingSubtitle || 'Expected Credit Loss',
+                            badgeText: result.data.badgeText || 'IFRS 9 ENGINE v2.0',
+                            footerText: result.data.footerText || null,
+                            sidebarText: result.data.sidebarText || 'IAF IFRS 9 Platform',
+                            navbarText: result.data.navbarText || 'IFRS 9 | i9 model platform',
+                            dashSubtitle: result.data.dashSubtitle || null,
+                            sidebarTenant: result.data.sidebarTenant || 'Indonesia Airawata Finance',
+                            sidebarVersion: result.data.sidebarVersion || 'IFRS 9 Platform v2.0',
+                            tabTitleSuffix: result.data.tabTitleSuffix || 'IFRS 9 Platform',
                         });
                     }
                 }
@@ -57,6 +89,29 @@ export function PlatformSettingsProvider({ children }: { children: React.ReactNo
             mounted = false;
         };
     }, []);
+
+    // Update document title dynamically based on tabTitleSuffix
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            if (!loading && settings.tabTitleSuffix) {
+                const currentTitle = document.title;
+                if (currentTitle.includes('|')) {
+                    document.title = currentTitle.replace(/\|.*/, `| ${settings.tabTitleSuffix}`);
+                } else if (currentTitle) {
+                    document.title = `${currentTitle} | ${settings.tabTitleSuffix}`;
+                }
+            }
+        }, 50);
+
+        // Force favicon update to bypass aggressive browser caching
+        const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement || document.createElement('link');
+        link.type = 'image/png';
+        link.rel = 'icon';
+        link.href = settings.logoUrl || `/icon.png?v=${new Date().getTime()}`;
+        document.getElementsByTagName('head')[0].appendChild(link);
+
+        return () => clearTimeout(timeout);
+    }, [settings.tabTitleSuffix, settings.logoUrl, loading, pathname]);
 
     return (
         <PlatformSettingsContext.Provider value={{ settings, loading }}>
