@@ -11,7 +11,8 @@ on:
 jobs:
   deploy:
     name: Build & Deploy to Development
-    runs-on: [self-hosted, X64, Windows, badak]
+    # Gunakan runner Linux (pastikan tag runner di server Anda sesuai dengan ini)
+    runs-on: [self-hosted, linux]
 
     steps:
       - uses: actions/checkout@v4
@@ -34,70 +35,38 @@ jobs:
 
       - name: Set services to rebuild
         id: services
-        shell: powershell
+        shell: bash
         run: |
-          $frontend = "${{ steps.filter.outputs.frontend }}"
-          $backend  = "${{ steps.filter.outputs.backend }}"
-          $event    = "${{ github.event_name }}"
-
-          # Dev server uses tag :develop (not :production)
-          $services = @()
-          if ($event -eq "workflow_dispatch") {
-            $services = @("frontend", "backend")
-          } else {
-            if ($frontend -eq "true")  { $services += "frontend" }
-            if ($backend -eq "true")   { $services += "backend" }
-          }
-
-          $output = "services=$($services -join ',')"
-          Write-Output $output
-          Add-Content -Path $env:GITHUB_OUTPUT -Value $output
+          frontend="${{ steps.filter.outputs.frontend }}"
+          backend="${{ steps.filter.outputs.backend }}"
+          event="${{ github.event_name }}"
+          
+          services=()
+          if [ "$event" == "workflow_dispatch" ]; then
+            services=("frontend" "backend")
+          else
+            if [ "$frontend" == "true" ]; then services+=("frontend"); fi
+            if [ "$backend" == "true" ]; then services+=("backend"); fi
+          fi
+          
+          # Join array dengan koma untuk logging
+          svc_joined=$(IFS=, ; echo "${services[*]}")
+          echo "services=$svc_joined" >> $GITHUB_OUTPUT
+          echo "Services to build: $svc_joined"
 
       - name: Build and Deploy changed services
-        shell: powershell
+        shell: bash
         run: |
-          $services = "${{ steps.services.outputs.services }}".Split(',', [StringSplitOptions]::RemoveEmptyEntries)
-          if ($services.Count -eq 0) {
-            Write-Output "No services to rebuild"
+          services_str="${{ steps.services.outputs.services }}"
+          if [ -z "$services_str" ]; then
+            echo "No services to rebuild"
             exit 0
-          }
-          Write-Output "Rebuilding: $($services -join ', ')"
-          $CHECKOUT_DIR = "${{ github.workspace }}"
-          $COMPOSE_DIR = "C:\opt\ifrspro"
-
-          foreach ($svc in $services) {
-            switch ($svc) {
-              "frontend" {
-                $tag = "ghcr.io/ifrspro/ifrs9-iaf/frontend:develop"
-                $ctx = "$CHECKOUT_DIR/packages/frontend"
-                $df = "$CHECKOUT_DIR/packages/frontend/Dockerfile"
-                $buildArgs = @("--build-arg", "BACKEND_INTERNAL_URL=http://backend:4232")
-              }
-              "backend" {
-                $tag = "ghcr.io/ifrspro/ifrs9-iaf/backend:develop"
-                $ctx = "$CHECKOUT_DIR/packages/new-backend"
-                $df = "$CHECKOUT_DIR/packages/new-backend/Dockerfile"
-                $buildArgs = @()
-              }
-            }
-            Write-Output "Building $svc -> $tag"
-            if ($buildArgs.Count -gt 0) {
-              docker build $buildArgs -t $tag -f $df $ctx
-            } else {
-              docker build -t $tag -f $df $ctx
-            }
-            if ($LASTEXITCODE -ne 0) { throw "Build failed for $svc" }
-          }
-
-          Set-Location $COMPOSE_DIR
-          # Restart backend first (if changed), wait, then frontend
-          if ($services -contains "backend") {
-            Write-Output "Restarting backend..."
-            docker compose up -d --force-recreate --no-deps backend
-            Write-Output "Waiting 15s for backend to start..."
-            Start-Sleep 15
-          }
-          if ($services -contains "frontend") {
-            Write-Output "Restarting frontend..."
-            docker compose up -d --force-recreate --no-deps frontend
-          }
+          fi
+          
+          # Ubah koma menjadi spasi untuk argumen docker compose
+          services_args=$(echo $services_str | tr ',' ' ')
+          
+          echo "Rebuilding and deploying: $services_args"
+          
+          # Eksekusi docker compose (sama persis dengan yang dijalankan manual di server)
+          docker compose -f ops/dev/docker-compose.yml up -d --build $services_args
