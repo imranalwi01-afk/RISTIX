@@ -1,5 +1,10 @@
 # Changelog
 
+## [v2.14.52] - 2026-07-10
+
+### Fixed
+- Hidden the Advanced Analytics tabs and header when R Analytics is opened in a new tab (fullscreen mode).
+
 ## [v2.14.51] - 2026-07-10
 
 ### Changed
@@ -32,7 +37,7 @@
 ## [v2.14.21] - 2026-07-05
 
 ### Added
-- R Analytics Model Approval matrix (Checker â†’ Approver) for model_status updates
+- R Analytics Model Approval matrix (Checker Ã¢â€ â€™ Approver) for model_status updates
 - `r_analytics_comprehensive` added to strict four-eyes entities
 
 ## [v2.14.20] - 2026-07-05
@@ -56,15 +61,15 @@
 - OTel spans now tagged with `request_id` matching API error response `requestId`
 
 ### Changed
-- Replaced `banking.configuration.ifrs9` permission (Tools) with dead config â€” deleted from DB and code
-- Consolidated `banking.collective.{pd,lgd,ead}` â†’ `banking.collective.{pd,lgd,ead}_setup` to eliminate duplicate permission groups
-- Removed all `.manage` permissions from DB (34 codes) â€” simplified to view/create/update/delete/approve only
+- Replaced `banking.configuration.ifrs9` permission (Tools) with dead config Ã¢â‚¬â€ deleted from DB and code
+- Consolidated `banking.collective.{pd,lgd,ead}` Ã¢â€ â€™ `banking.collective.{pd,lgd,ead}_setup` to eliminate duplicate permission groups
+- Removed all `.manage` permissions from DB (34 codes) Ã¢â‚¬â€ simplified to view/create/update/delete/approve only
 - Removed all standalone parent permissions (e.g. `banking.collective.bucket`, `banking.reports.ifrs9.nominative`)
 - Updated test to match removed `parameter` from strict four-eyes entities
 
 ### Removed
-- `banking.parameter.{view,create,update,delete,manage}` â€” dead parent permissions
-- `banking.configuration.*` â€” dead Tools section
-- `site:` tools/ directory â€” dead pages
+- `banking.parameter.{view,create,update,delete,manage}` Ã¢â‚¬â€ dead parent permissions
+- `banking.configuration.*` Ã¢â‚¬â€ dead Tools section
+- `site:` tools/ directory Ã¢â‚¬â€ dead pages
 - Dead `IFRS9_TOOLS_MANAGE`, `PARAMETER_BASE_VIEW`, and 14 other unused permission array constants
-- Standalone report parent entries (`ead_model`, `ecl_movement`, etc.) â€” consolidated to only `.view`/`.export`
+- Standalone report parent entries (`ead_model`, `ecl_movement`, etc.) Ã¢â‚¬â€ consolidated to only `.view`/`.export`
