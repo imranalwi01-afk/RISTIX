@@ -14,7 +14,6 @@ import { ConflictError, DatabaseError, NotFoundError, BusinessError, Authorizati
 import { dbOperation } from '@/lib/effect'
 import { userRolesRepository } from '@/repositories/rbac.repository'
 import { getDatabase } from '@/config/database'
-import { buildDefaultFourEyesRouting } from '@/lib/approval-helpers'
 import { 
     INDIVIDUAL_IMPAIRMENT_V2_ENTITY_TYPE, 
     INDIVIDUAL_IMPAIRMENT_V2_SUBTYPES,
@@ -400,6 +399,7 @@ export const processApprovalAction = (
             let selfApprovalBypassMetadata: Record<string, unknown> | undefined
             let levelRoutingBypassMetadata: Record<string, unknown> | undefined
             let approvalCountBypassMetadata: Record<string, unknown> | undefined
+            let canBypassLevelRouting = false
 
             if (input.action === 'approve') {
                 approverContext = await loadApproverContext(input.approverId, request.tenantId)
@@ -407,6 +407,8 @@ export const processApprovalAction = (
 
             const isDev = String(process.env.NODE_ENV || '').toLowerCase() !== 'production'
             const hasSuperAdminBypass = Boolean(approverContext?.permissions.has(SUPER_ADMIN_PERMISSION_CODE))
+            canBypassLevelRouting = isSuperAdminLevelRoutingBypassEnabled()
+                && (hasSuperAdminBypass || isDev)
 
             const canBypassApprovalCount = input.action === 'approve'
                 && isSuperAdminApprovalCountBypassEnabled()
@@ -474,13 +476,11 @@ export const processApprovalAction = (
 
             // Strict separation of duties:
             // One approver can only approve once in a request (cannot approve multiple levels).
-            if (input.action === 'approve' && hasApproverApproved(existingActions, input.approverId)) {
-                if (!hasSuperAdminBypass) {
-                    throw new BusinessError({
-                        message: 'You have already approved this request and cannot approve another stage',
-                        code: 'APPROVER_ALREADY_ACTED',
-                    })
-                }
+            if (input.action === 'approve' && hasApproverApproved(existingActions, input.approverId) && !canBypassLevelRouting) {
+                throw new BusinessError({
+                    message: 'You have already approved this request and cannot approve another stage',
+                    code: 'APPROVER_ALREADY_ACTED',
+                })
             }
 
             const matrixLevels = resolveApprovalLevelsFromRequest(request)
@@ -505,7 +505,7 @@ export const processApprovalAction = (
                     currentLevelConfig.permissionMatchMode
                 )
 
-                const canBypassLevelRouting = isSuperAdminLevelRoutingBypassEnabled()
+                canBypassLevelRouting = isSuperAdminLevelRoutingBypassEnabled()
                     && resolvedApproverContext.permissions.has(SUPER_ADMIN_PERMISSION_CODE)
 
                 if (!eligibleByRouting && !canBypassLevelRouting) {
@@ -549,10 +549,12 @@ export const processApprovalAction = (
 
                 if (input.action === 'approve') {
                     if (hasApproverApprovedAtLevel(existingActions, input.approverId, request.currentLevel)) {
-                        throw new BusinessError({
-                            message: `You already approved level ${request.currentLevel}`,
-                            code: 'APPROVER_ALREADY_APPROVED_LEVEL',
-                        })
+                        if (!canBypassLevelRouting) {
+                            throw new BusinessError({
+                                message: `You already approved level ${request.currentLevel}`,
+                                code: 'APPROVER_ALREADY_APPROVED_LEVEL',
+                            })
+                        }
                     }
 
                     currentLevelRequiredCount = Math.max(1, currentLevelConfig.requiredCount || 1)
@@ -1802,7 +1804,7 @@ async function notifyApprovalCompletion(request: any, outcome: 'approved' | 'rej
 
     await safeEmitNotification(request.tenantId, notification, {
         userIds: [request.requestedBy],
-        roleRooms: ['USERCHECKER', 'ACCOUNTING_APPROVER', 'SUPER_ADMIN'],
+        roleRooms: ['approval.requests.approve'],
         excludeUserId: actorUserId,
     })
 }
@@ -2384,11 +2386,7 @@ function buildRoleRoomsFromRequiredRoleCodes(requiredRoleCodes: unknown): string
             .filter(Boolean)
         : []
 
-    if (normalized.length > 0) {
-        return Array.from(new Set(normalized))
-    }
-
-    return ['USERCHECKER', 'ACCOUNTING_APPROVER', 'SUPER_ADMIN']
+    return Array.from(new Set(normalized))
 }
 
 const resolveNotificationSeverity = (severity: string): 'info' | 'warning' | 'success' | 'error' => {
@@ -2642,36 +2640,7 @@ export const getApprovalRoutingOverview = (input: {
         })
 
         if (!filteredMatrices.length && entityType) {
-            const fallbackLevels = buildDefaultFourEyesRouting(entityType)
-            const levels = await Promise.all(fallbackLevels.map(async (level) => {
-                const candidates = await findApproverCandidatesForLevel(
-                    tenantId,
-                    level.requiredRoleCodes,
-                    level.requiredPermissionCodes,
-                    level.roleMatchMode,
-                    level.permissionMatchMode,
-                    { department }
-                )
-                return {
-                    level: level.level,
-                    name: level.name,
-                    requiredRoleCodes: level.requiredRoleCodes,
-                    requiredPermissionCodes: level.requiredPermissionCodes,
-                    requiredCount: level.requiredCount,
-                    timeoutHours: level.timeoutHours,
-                    candidateCount: candidates.length,
-                    candidates,
-                }
-            }))
-
-            return [{
-                entityType,
-                operationType: operation || 'create,update,delete',
-                matrixId: null,
-                matrixName: 'Strict 4-Eyes Fallback',
-                isActive: true,
-                levels,
-            }]
+            return []
         }
 
         const overview: ApprovalRoutingOverview[] = []

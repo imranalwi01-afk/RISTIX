@@ -294,67 +294,71 @@ export const ParametersService = {
             Effect.flatMap(current => {
                 if (!current) return Effect.fail(new NotFoundError({ message: 'App Setting Detail not found', resource: 'App Setting Detail', id: String(id) })) as any
 
+                const paramCode = current.paramCode
+
                 return pipe(
-                    ParametersRepository.findHeaderByCode(current.paramCode),
+                    ParametersRepository.findHeaderByCode(paramCode),
                     Effect.flatMap(header => {
-                        const paramCode = current.paramCode
                         const checks = []
 
                         // Check duplicate sequence if updated
                         if (data.paramSeq !== undefined && data.paramSeq !== current.paramSeq) {
                             checks.push(
-                        pipe(
-                            ParametersRepository.findDetailBySeq(paramCode, data.paramSeq),
-                            Effect.flatMap(existing => {
-                                if (existing && BigInt(existing.pkid) !== BigInt(id)) {
-                                    return Effect.fail(new ValidationError({ message: 'Sequence already exists', errors: ['Sequence already assigned to another record'] })) as any
-                                }
-                                return Effect.succeed(null)
-                            })
-                        )
-                    )
-                }
-
-                // Check duplicate values if updated
-                const v1 = data.value1 !== undefined ? data.value1 : current.value1
-                const v2 = data.value2 !== undefined ? data.value2 : current.value2
-                const v3 = data.value3 !== undefined ? data.value3 : current.value3
-
-                if (header && header.paramType === 'B' && (data.value1 !== undefined || data.value2 !== undefined || data.value3 !== undefined)) {
-                    checks.push(
-                        pipe(
-                            ParametersRepository.findDetailByValues(paramCode, v1 || '', v2 || '', v3 || ''),
-                            Effect.flatMap(existing => {
-                                if (existing && BigInt(existing.pkid) !== BigInt(id)) {
-                                    return Effect.fail(new ValidationError({ message: 'data already exist', errors: ['Combination already assigned to another record'] })) as any
-                                }
-                                return Effect.succeed(null)
-                            })
-                        )
-                    )
-                }
-
-                return pipe(
-                    Effect.all(checks),
-                    Effect.flatMap(() => {
-                        const now = new Date().toISOString()
-                        const payload: any = {
-                            updatedby: userId,
-                            updatedhost: 'localhost',
-                            updateddate: now,
+                                pipe(
+                                    ParametersRepository.findDetailBySeq(paramCode, data.paramSeq),
+                                    Effect.flatMap(existing => {
+                                        if (existing && BigInt(existing.pkid) !== BigInt(id)) {
+                                            return Effect.fail(new ValidationError({ message: 'Sequence already exists', errors: ['Sequence already assigned to another record'] })) as any
+                                        }
+                                        return Effect.succeed(null)
+                                    })
+                                )
+                            )
                         }
 
-                            if (data.paramSeq !== undefined) payload.paramSeq = data.paramSeq
-                            if (data.value1 !== undefined) payload.value1 = data.value1
-                            if (data.value2 !== undefined) payload.value2 = data.value2
-                            if (data.value3 !== undefined) payload.value3 = data.value3
-                            if (data.paramdesc !== undefined) payload.paramdesc = data.paramdesc
+                        // Check duplicate values if updated ONLY for Business parameters (paramType='B')
+                        if (header && header.paramType === 'B') {
+                            const v1 = data.value1 !== undefined ? data.value1 : current.value1
+                            const v2 = data.value2 !== undefined ? data.value2 : current.value2
+                            const v3 = data.value3 !== undefined ? data.value3 : current.value3
 
-                            return ParametersRepository.updateDetail(id, payload)
-                        })
-                    )
-                })
-            )
+                            if (data.value1 !== undefined || data.value2 !== undefined || data.value3 !== undefined) {
+                                checks.push(
+                                    pipe(
+                                        ParametersRepository.findDetailByValues(paramCode, v1 || '', v2 || '', v3 || ''),
+                                        Effect.flatMap(existing => {
+                                            if (existing && BigInt(existing.pkid) !== BigInt(id)) {
+                                                return Effect.fail(new ValidationError({ message: 'data already exist', errors: ['Combination already assigned to another record'] })) as any
+                                            }
+                                            return Effect.succeed(null)
+                                        })
+                                    )
+                                )
+                            }
+                        }
+
+                        return pipe(
+                            Effect.all(checks),
+                            Effect.flatMap(() => {
+                                const now = new Date().toISOString()
+                                const payload: any = {
+                                    updatedby: userId,
+                                    updatedhost: 'localhost',
+                                    updateddate: now,
+                                }
+
+                                if (data.paramSeq !== undefined) payload.paramSeq = data.paramSeq
+                                if (data.value1 !== undefined) payload.value1 = data.value1
+                                if (data.value2 !== undefined) payload.value2 = data.value2
+                                if (data.value3 !== undefined) payload.value3 = data.value3
+                                if (data.paramdesc !== undefined) payload.paramdesc = data.paramdesc
+
+                                return ParametersRepository.updateDetail(id, payload)
+                            }),
+                            Effect.map(d => transformDetail(d as any))
+                        )
+                    })
+                )
             }),
             Effect.flatMap(updated =>
                 (updated

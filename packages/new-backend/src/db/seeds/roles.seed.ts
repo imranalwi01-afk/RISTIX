@@ -46,46 +46,6 @@ const SYSTEM_ROLES = [
         hierarchyLevel: 50,
         isSystemRole: false,
     },
-    {
-        id: '550e8400-1111-2222-3333-444455555006',
-        roleCode: 'IAF_PORTFOLIO_MANAGER',
-        roleName: 'IAF Portfolio Manager',
-        description: 'Portfolio management and monitoring',
-        hierarchyLevel: 60,
-        isSystemRole: false,
-    },
-    {
-        id: '550e8400-1111-2222-3333-444455555007',
-        roleCode: 'IAF_DATA_ADMIN',
-        roleName: 'IAF Data Administrator',
-        description: 'Data management and validation',
-        hierarchyLevel: 40,
-        isSystemRole: false,
-    },
-    {
-        id: '550e8400-1111-2222-3333-444455555008',
-        roleCode: 'IAF_REPORT_ANALYST',
-        roleName: 'IAF Report Analyst',
-        description: 'Report generation and analysis',
-        hierarchyLevel: 30,
-        isSystemRole: false,
-    },
-    {
-        id: '550e8400-1111-2222-3333-444455555009',
-        roleCode: 'IAF_AUDITOR',
-        roleName: 'IAF Internal Auditor',
-        description: 'Internal audit and compliance',
-        hierarchyLevel: 20,
-        isSystemRole: false,
-    },
-    {
-        id: '550e8400-1111-2222-3333-444455555010',
-        roleCode: 'IAF_VIEWER',
-        roleName: 'IAF Viewer',
-        description: 'Read-only access to IAF features',
-        hierarchyLevel: 10,
-        isSystemRole: false,
-    },
 ]
 
 export async function seedRoles() {

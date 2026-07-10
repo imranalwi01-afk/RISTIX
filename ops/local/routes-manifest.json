@@ -1,0 +1,823 @@
+{
+  "version": 3,
+  "pages404": true,
+  "appType": "app",
+  "caseSensitive": false,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "internal": true,
+      "priority": true,
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    },
+    {
+      "source": "/banking/individual/impairment",
+      "destination": "/banking/individual/assessment",
+      "statusCode": 307,
+      "regex": "^(?!/_next)/banking/individual/impairment(?:/)?$"
+    },
+    {
+      "source": "/banking/individual/impairment/:path*",
+      "destination": "/banking/individual/:path*",
+      "statusCode": 307,
+      "regex": "^(?!/_next)/banking/individual/impairment(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains; preload"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' wss: ws: http://localhost:* http://127.0.0.1:* https://*.ifrspro.id https://*.danafin.com https://*.danafin.id; frame-ancestors 'self'; frame-src 'self' http://localhost:* https://*.ifrspro.id https://*.danafin.com https://*.danafin.id"
+        }
+      ],
+      "regex": "^(?:/(.*))(?:/)?$"
+    },
+    {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/javascript; charset=utf-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ],
+      "regex": "^/sw\\.js(?:/)?$"
+    }
+  ],
+  "onMatchHeaders": [],
+  "rewrites": {
+    "beforeFiles": [],
+    "afterFiles": [
+      {
+        "source": "/api/v1/:path*",
+        "destination": "http://localhost:4332/api/v1/:path*",
+        "regex": "^/api/v1(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$"
+      },
+      {
+        "source": "/api/:path*",
+        "destination": "http://localhost:4332/api/:path*",
+        "regex": "^/api(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$"
+      },
+      {
+        "source": "/socket.io/:path*",
+        "destination": "http://localhost:4332/socket.io/:path*",
+        "regex": "^/socket\\.io(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$"
+      }
+    ],
+    "fallback": []
+  },
+  "dynamicRoutes": [
+    {
+      "page": "/banking/individual/dcf-uploads/[id]",
+      "regex": "^/banking/individual/dcf\\-uploads/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/banking/individual/dcf\\-uploads/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/banking/individual/impairment/[...slug]",
+      "regex": "^/banking/individual/impairment/(.+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPslug": "nxtPslug"
+      },
+      "namedRegex": "^/banking/individual/impairment/(?<nxtPslug>.+?)(?:/)?$"
+    },
+    {
+      "page": "/banking/individual/review/ia-dcf-detail/[accountId]",
+      "regex": "^/banking/individual/review/ia\\-dcf\\-detail/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPaccountId": "nxtPaccountId"
+      },
+      "namedRegex": "^/banking/individual/review/ia\\-dcf\\-detail/(?<nxtPaccountId>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/banking/maintenance/access-management/roles/[roleId]",
+      "regex": "^/banking/maintenance/access\\-management/roles/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtProleId": "nxtProleId"
+      },
+      "namedRegex": "^/banking/maintenance/access\\-management/roles/(?<nxtProleId>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/banking/maintenance/access-management/[tab]",
+      "regex": "^/banking/maintenance/access\\-management/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPtab": "nxtPtab"
+      },
+      "namedRegex": "^/banking/maintenance/access\\-management/(?<nxtPtab>[^/]+?)(?:/)?$"
+    }
+  ],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    },
+    {
+      "page": "/_global-error",
+      "regex": "^/_global\\-error(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_global\\-error(?:/)?$"
+    },
+    {
+      "page": "/_not-found",
+      "regex": "^/_not\\-found(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/admin",
+      "regex": "^/admin(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin(?:/)?$"
+    },
+    {
+      "page": "/admin/assignments",
+      "regex": "^/admin/assignments(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/assignments(?:/)?$"
+    },
+    {
+      "page": "/admin/audit",
+      "regex": "^/admin/audit(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/audit(?:/)?$"
+    },
+    {
+      "page": "/admin/roles",
+      "regex": "^/admin/roles(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/roles(?:/)?$"
+    },
+    {
+      "page": "/admin/security",
+      "regex": "^/admin/security(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/security(?:/)?$"
+    },
+    {
+      "page": "/admin/users",
+      "regex": "^/admin/users(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/users(?:/)?$"
+    },
+    {
+      "page": "/api/health",
+      "regex": "^/api/health(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/health(?:/)?$"
+    },
+    {
+      "page": "/banking/analytics",
+      "regex": "^/banking/analytics(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/analytics(?:/)?$"
+    },
+    {
+      "page": "/banking/analytics/access-matrix",
+      "regex": "^/banking/analytics/access\\-matrix(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/analytics/access\\-matrix(?:/)?$"
+    },
+    {
+      "page": "/banking/analytics/r-analytics",
+      "regex": "^/banking/analytics/r\\-analytics(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/analytics/r\\-analytics(?:/)?$"
+    },
+    {
+      "page": "/banking/analytics/r-analytics-approval",
+      "regex": "^/banking/analytics/r\\-analytics\\-approval(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/analytics/r\\-analytics\\-approval(?:/)?$"
+    },
+    {
+      "page": "/banking/analytics/r-analytics-detail",
+      "regex": "^/banking/analytics/r\\-analytics\\-detail(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/analytics/r\\-analytics\\-detail(?:/)?$"
+    },
+    {
+      "page": "/banking/collective",
+      "regex": "^/banking/collective(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/collective(?:/)?$"
+    },
+    {
+      "page": "/banking/collective/bucket",
+      "regex": "^/banking/collective/bucket(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/collective/bucket(?:/)?$"
+    },
+    {
+      "page": "/banking/collective/collective-parameter",
+      "regex": "^/banking/collective/collective\\-parameter(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/collective/collective\\-parameter(?:/)?$"
+    },
+    {
+      "page": "/banking/collective/ead-setup",
+      "regex": "^/banking/collective/ead\\-setup(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/collective/ead\\-setup(?:/)?$"
+    },
+    {
+      "page": "/banking/collective/ecl-config",
+      "regex": "^/banking/collective/ecl\\-config(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/collective/ecl\\-config(?:/)?$"
+    },
+    {
+      "page": "/banking/collective/lgd-setup",
+      "regex": "^/banking/collective/lgd\\-setup(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/collective/lgd\\-setup(?:/)?$"
+    },
+    {
+      "page": "/banking/collective/pd-setup",
+      "regex": "^/banking/collective/pd\\-setup(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/collective/pd\\-setup(?:/)?$"
+    },
+    {
+      "page": "/banking/collective/rule-base",
+      "regex": "^/banking/collective/rule\\-base(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/collective/rule\\-base(?:/)?$"
+    },
+    {
+      "page": "/banking/collective/segmentation",
+      "regex": "^/banking/collective/segmentation(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/collective/segmentation(?:/)?$"
+    },
+    {
+      "page": "/banking/dashboard",
+      "regex": "^/banking/dashboard(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/dashboard(?:/)?$"
+    },
+    {
+      "page": "/banking/data",
+      "regex": "^/banking/data(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/data(?:/)?$"
+    },
+    {
+      "page": "/banking/data/upload",
+      "regex": "^/banking/data/upload(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/data/upload(?:/)?$"
+    },
+    {
+      "page": "/banking/data/validation",
+      "regex": "^/banking/data/validation(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/data/validation(?:/)?$"
+    },
+    {
+      "page": "/banking/ifrs9",
+      "regex": "^/banking/ifrs9(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/ifrs9(?:/)?$"
+    },
+    {
+      "page": "/banking/ifrs9/amortization-module",
+      "regex": "^/banking/ifrs9/amortization\\-module(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/ifrs9/amortization\\-module(?:/)?$"
+    },
+    {
+      "page": "/banking/ifrs9/calculations",
+      "regex": "^/banking/ifrs9/calculations(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/ifrs9/calculations(?:/)?$"
+    },
+    {
+      "page": "/banking/ifrs9/impairment-module",
+      "regex": "^/banking/ifrs9/impairment\\-module(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/ifrs9/impairment\\-module(?:/)?$"
+    },
+    {
+      "page": "/banking/ifrs9/models",
+      "regex": "^/banking/ifrs9/models(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/ifrs9/models(?:/)?$"
+    },
+    {
+      "page": "/banking/ifrs9/scenarios",
+      "regex": "^/banking/ifrs9/scenarios(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/ifrs9/scenarios(?:/)?$"
+    },
+    {
+      "page": "/banking/ifrs9/staging",
+      "regex": "^/banking/ifrs9/staging(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/ifrs9/staging(?:/)?$"
+    },
+    {
+      "page": "/banking/ifrs9-reports",
+      "regex": "^/banking/ifrs9\\-reports(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/ifrs9\\-reports(?:/)?$"
+    },
+    {
+      "page": "/banking/ifrs9-reports/ead-model",
+      "regex": "^/banking/ifrs9\\-reports/ead\\-model(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/ifrs9\\-reports/ead\\-model(?:/)?$"
+    },
+    {
+      "page": "/banking/ifrs9-reports/ecl-movement",
+      "regex": "^/banking/ifrs9\\-reports/ecl\\-movement(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/ifrs9\\-reports/ecl\\-movement(?:/)?$"
+    },
+    {
+      "page": "/banking/ifrs9-reports/ecl-result",
+      "regex": "^/banking/ifrs9\\-reports/ecl\\-result(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/ifrs9\\-reports/ecl\\-result(?:/)?$"
+    },
+    {
+      "page": "/banking/ifrs9-reports/gca-movement",
+      "regex": "^/banking/ifrs9\\-reports/gca\\-movement(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/ifrs9\\-reports/gca\\-movement(?:/)?$"
+    },
+    {
+      "page": "/banking/ifrs9-reports/lifetime-lgd",
+      "regex": "^/banking/ifrs9\\-reports/lifetime\\-lgd(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/ifrs9\\-reports/lifetime\\-lgd(?:/)?$"
+    },
+    {
+      "page": "/banking/ifrs9-reports/lifetime-pd",
+      "regex": "^/banking/ifrs9\\-reports/lifetime\\-pd(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/ifrs9\\-reports/lifetime\\-pd(?:/)?$"
+    },
+    {
+      "page": "/banking/ifrs9-reports/nominative",
+      "regex": "^/banking/ifrs9\\-reports/nominative(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/ifrs9\\-reports/nominative(?:/)?$"
+    },
+    {
+      "page": "/banking/individual",
+      "regex": "^/banking/individual(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/individual(?:/)?$"
+    },
+    {
+      "page": "/banking/individual/assessment",
+      "regex": "^/banking/individual/assessment(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/individual/assessment(?:/)?$"
+    },
+    {
+      "page": "/banking/individual/assessment-new",
+      "regex": "^/banking/individual/assessment\\-new(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/individual/assessment\\-new(?:/)?$"
+    },
+    {
+      "page": "/banking/individual/assessment-override",
+      "regex": "^/banking/individual/assessment\\-override(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/individual/assessment\\-override(?:/)?$"
+    },
+    {
+      "page": "/banking/individual/customer-list",
+      "regex": "^/banking/individual/customer\\-list(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/individual/customer\\-list(?:/)?$"
+    },
+    {
+      "page": "/banking/individual/dcf-uploads",
+      "regex": "^/banking/individual/dcf\\-uploads(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/individual/dcf\\-uploads(?:/)?$"
+    },
+    {
+      "page": "/banking/individual/history",
+      "regex": "^/banking/individual/history(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/individual/history(?:/)?$"
+    },
+    {
+      "page": "/banking/individual/history/collateral",
+      "regex": "^/banking/individual/history/collateral(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/individual/history/collateral(?:/)?$"
+    },
+    {
+      "page": "/banking/individual/history/customer",
+      "regex": "^/banking/individual/history/customer(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/individual/history/customer(?:/)?$"
+    },
+    {
+      "page": "/banking/individual/history/dcf-upload",
+      "regex": "^/banking/individual/history/dcf\\-upload(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/individual/history/dcf\\-upload(?:/)?$"
+    },
+    {
+      "page": "/banking/individual/history/provision",
+      "regex": "^/banking/individual/history/provision(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/individual/history/provision(?:/)?$"
+    },
+    {
+      "page": "/banking/individual/ia-detail",
+      "regex": "^/banking/individual/ia\\-detail(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/individual/ia\\-detail(?:/)?$"
+    },
+    {
+      "page": "/banking/individual/impairment",
+      "regex": "^/banking/individual/impairment(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/individual/impairment(?:/)?$"
+    },
+    {
+      "page": "/banking/individual/override-trigger",
+      "regex": "^/banking/individual/override\\-trigger(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/individual/override\\-trigger(?:/)?$"
+    },
+    {
+      "page": "/banking/individual/provision",
+      "regex": "^/banking/individual/provision(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/individual/provision(?:/)?$"
+    },
+    {
+      "page": "/banking/individual/reports",
+      "regex": "^/banking/individual/reports(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/individual/reports(?:/)?$"
+    },
+    {
+      "page": "/banking/individual/review/dcf-upload-report",
+      "regex": "^/banking/individual/review/dcf\\-upload\\-report(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/individual/review/dcf\\-upload\\-report(?:/)?$"
+    },
+    {
+      "page": "/banking/individual/review/ia-dcf-detail",
+      "regex": "^/banking/individual/review/ia\\-dcf\\-detail(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/individual/review/ia\\-dcf\\-detail(?:/)?$"
+    },
+    {
+      "page": "/banking/individual/review/scenario",
+      "regex": "^/banking/individual/review/scenario(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/individual/review/scenario(?:/)?$"
+    },
+    {
+      "page": "/banking/individual/scenarios",
+      "regex": "^/banking/individual/scenarios(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/individual/scenarios(?:/)?$"
+    },
+    {
+      "page": "/banking/individual/watchlist",
+      "regex": "^/banking/individual/watchlist(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/individual/watchlist(?:/)?$"
+    },
+    {
+      "page": "/banking/maintenance",
+      "regex": "^/banking/maintenance(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/maintenance(?:/)?$"
+    },
+    {
+      "page": "/banking/maintenance/access-management",
+      "regex": "^/banking/maintenance/access\\-management(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/maintenance/access\\-management(?:/)?$"
+    },
+    {
+      "page": "/banking/maintenance/access-management/roles",
+      "regex": "^/banking/maintenance/access\\-management/roles(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/maintenance/access\\-management/roles(?:/)?$"
+    },
+    {
+      "page": "/banking/maintenance/access-management/security",
+      "regex": "^/banking/maintenance/access\\-management/security(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/maintenance/access\\-management/security(?:/)?$"
+    },
+    {
+      "page": "/banking/maintenance/access-management/users",
+      "regex": "^/banking/maintenance/access\\-management/users(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/maintenance/access\\-management/users(?:/)?$"
+    },
+    {
+      "page": "/banking/maintenance/approval",
+      "regex": "^/banking/maintenance/approval(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/maintenance/approval(?:/)?$"
+    },
+    {
+      "page": "/banking/maintenance/impersonate",
+      "regex": "^/banking/maintenance/impersonate(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/maintenance/impersonate(?:/)?$"
+    },
+    {
+      "page": "/banking/maintenance/job-monitoring",
+      "regex": "^/banking/maintenance/job\\-monitoring(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/maintenance/job\\-monitoring(?:/)?$"
+    },
+    {
+      "page": "/banking/maintenance/menu-matrix",
+      "regex": "^/banking/maintenance/menu\\-matrix(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/maintenance/menu\\-matrix(?:/)?$"
+    },
+    {
+      "page": "/banking/maintenance/smtp",
+      "regex": "^/banking/maintenance/smtp(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/maintenance/smtp(?:/)?$"
+    },
+    {
+      "page": "/banking/maintenance/user-activity",
+      "regex": "^/banking/maintenance/user\\-activity(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/maintenance/user\\-activity(?:/)?$"
+    },
+    {
+      "page": "/banking/maintenance/user-management",
+      "regex": "^/banking/maintenance/user\\-management(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/maintenance/user\\-management(?:/)?$"
+    },
+    {
+      "page": "/banking/maintenance/users",
+      "regex": "^/banking/maintenance/users(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/maintenance/users(?:/)?$"
+    },
+    {
+      "page": "/banking/mode/compliance",
+      "regex": "^/banking/mode/compliance(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/mode/compliance(?:/)?$"
+    },
+    {
+      "page": "/banking/mode/conventional",
+      "regex": "^/banking/mode/conventional(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/mode/conventional(?:/)?$"
+    },
+    {
+      "page": "/banking/notifications",
+      "regex": "^/banking/notifications(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/notifications(?:/)?$"
+    },
+    {
+      "page": "/banking/parameters",
+      "regex": "^/banking/parameters(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/parameters(?:/)?$"
+    },
+    {
+      "page": "/banking/parameters/journal",
+      "regex": "^/banking/parameters/journal(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/parameters/journal(?:/)?$"
+    },
+    {
+      "page": "/banking/parameters/product",
+      "regex": "^/banking/parameters/product(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/parameters/product(?:/)?$"
+    },
+    {
+      "page": "/banking/parameters/product/segment",
+      "regex": "^/banking/parameters/product/segment(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/parameters/product/segment(?:/)?$"
+    },
+    {
+      "page": "/banking/settings/preferences",
+      "regex": "^/banking/settings/preferences(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/settings/preferences(?:/)?$"
+    },
+    {
+      "page": "/banking/settings/profile",
+      "regex": "^/banking/settings/profile(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/settings/profile(?:/)?$"
+    },
+    {
+      "page": "/banking/setup",
+      "regex": "^/banking/setup(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/setup(?:/)?$"
+    },
+    {
+      "page": "/banking/setup/application",
+      "regex": "^/banking/setup/application(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/setup/application(?:/)?$"
+    },
+    {
+      "page": "/banking/setup/business",
+      "regex": "^/banking/setup/business(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/setup/business(?:/)?$"
+    },
+    {
+      "page": "/banking/workflow",
+      "regex": "^/banking/workflow(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/workflow(?:/)?$"
+    },
+    {
+      "page": "/banking/workflow/approval",
+      "regex": "^/banking/workflow/approval(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/workflow/approval(?:/)?$"
+    },
+    {
+      "page": "/banking/workflow/business",
+      "regex": "^/banking/workflow/business(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/workflow/business(?:/)?$"
+    },
+    {
+      "page": "/banking/workflow/configuration",
+      "regex": "^/banking/workflow/configuration(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/workflow/configuration(?:/)?$"
+    },
+    {
+      "page": "/banking/workflow/monitoring",
+      "regex": "^/banking/workflow/monitoring(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/workflow/monitoring(?:/)?$"
+    },
+    {
+      "page": "/banking/workflow/staging",
+      "regex": "^/banking/workflow/staging(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/banking/workflow/staging(?:/)?$"
+    },
+    {
+      "page": "/forgot-password",
+      "regex": "^/forgot\\-password(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/forgot\\-password(?:/)?$"
+    },
+    {
+      "page": "/login",
+      "regex": "^/login(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/login(?:/)?$"
+    },
+    {
+      "page": "/manifest.webmanifest",
+      "regex": "^/manifest\\.webmanifest(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/manifest\\.webmanifest(?:/)?$"
+    },
+    {
+      "page": "/offline",
+      "regex": "^/offline(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/offline(?:/)?$"
+    },
+    {
+      "page": "/platform",
+      "regex": "^/platform(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/platform(?:/)?$"
+    },
+    {
+      "page": "/platform/login",
+      "regex": "^/platform/login(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/platform/login(?:/)?$"
+    },
+    {
+      "page": "/platform/menus",
+      "regex": "^/platform/menus(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/platform/menus(?:/)?$"
+    },
+    {
+      "page": "/platform/rbac",
+      "regex": "^/platform/rbac(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/platform/rbac(?:/)?$"
+    },
+    {
+      "page": "/platform/settings/smtp",
+      "regex": "^/platform/settings/smtp(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/platform/settings/smtp(?:/)?$"
+    },
+    {
+      "page": "/platform/tenant-users",
+      "regex": "^/platform/tenant\\-users(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/platform/tenant\\-users(?:/)?$"
+    },
+    {
+      "page": "/platform/tenants",
+      "regex": "^/platform/tenants(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/platform/tenants(?:/)?$"
+    },
+    {
+      "page": "/platform/users",
+      "regex": "^/platform/users(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/platform/users(?:/)?$"
+    },
+    {
+      "page": "/profile",
+      "regex": "^/profile(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/profile(?:/)?$"
+    },
+    {
+      "page": "/reset-password",
+      "regex": "^/reset\\-password(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/reset\\-password(?:/)?$"
+    },
+    {
+      "page": "/system/health",
+      "regex": "^/system/health(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/system/health(?:/)?$"
+    }
+  ],
+  "dataRoutes": [],
+  "rsc": {
+    "header": "rsc",
+    "varyHeader": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "prefetchHeader": "next-router-prefetch",
+    "didPostponeHeader": "x-nextjs-postponed",
+    "contentTypeHeader": "text/x-component",
+    "suffix": ".rsc",
+    "prefetchSegmentHeader": "next-router-segment-prefetch",
+    "prefetchSegmentSuffix": ".segment.rsc",
+    "prefetchSegmentDirSuffix": ".segments",
+    "clientParamParsing": false,
+    "dynamicRSCPrerender": false
+  },
+  "rewriteHeaders": {
+    "pathHeader": "x-nextjs-rewritten-path",
+    "queryHeader": "x-nextjs-rewritten-query"
+  }
+}

@@ -58,7 +58,7 @@ export const AccessFilters: React.FC<AccessFiltersProps> = ({
           >
             Refresh
           </Button>
-          <Can permission={['admin.roles.create', 'admin.roles.manage']}>
+          <Can permission={['admin.roles.create']}>
             <Button
               variant="contained"
               startIcon={<AddIcon />}

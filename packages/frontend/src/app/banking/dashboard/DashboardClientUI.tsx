@@ -70,6 +70,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import type { RootState } from '../../../store'
 import { api, handleAPIError } from '../../../services/api'
 import { usePendingApprovalCount } from '@/hooks/usePendingApprovalCount'
+import { usePlatformSettings } from '@/providers/PlatformSettingsProvider'
 import {
     fetchDashboardPersonalization,
     saveDashboardPersonalization,
@@ -293,6 +294,7 @@ function DashboardClient() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const dispatch = useDispatch()
+    const { settings } = usePlatformSettings()
     const { hasAnyPermission } = usePermission()
     const { formatMoney, showCurrencySymbol } = useCurrencyDisplay()
 
@@ -663,7 +665,7 @@ function DashboardClient() {
         )
     }
 
-    if (!hasAnyPermission(['banking', 'banking.dashboard.view', 'banking.dashboard.manage'])) {
+    if (!hasAnyPermission(['banking.dashboard.view'])) {
         return (
             <Box sx={{ p: 3 }}>
                 <Alert severity="error" sx={{ mb: 3 }}>
@@ -726,7 +728,7 @@ function DashboardClient() {
             titleTooltip: renderDebugTooltipContent('High Risk (Stage 3)', summaryDebug),
         }
     ];
-    const canViewDashboardDebug = hasAnyPermission(['banking.dashboard.manage']);
+    const canViewDashboardDebug = hasAnyPermission(['banking.dashboard.view']);
     const summarySourceChip = resolveSummarySourceChip();
 
     return (
@@ -740,7 +742,7 @@ function DashboardClient() {
                             {bankingContext.icon} {selectedDate === 'all' ? 'Cumulative Grand Total' : 'Banking Dashboard'}
                         </Typography>
                         <Typography variant="subtitle1" sx={{ color: 'rgba(255,255,255,0.9)' }}>
-                            {selectedDate === 'all' ? 'PSAK 413 All-Time Aggregate Summary' : `PSAK 413 ${bankingContext.name} Interface`}
+                            {selectedDate === 'all' ? 'IFRS 9 All-Time Aggregate Summary' : (settings.dashSubtitle || `IFRS 9 ${bankingContext.name} Interface`)}
                         </Typography>
                         <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', mt: 1 }}>
                             {bankingContext.greeting}, {user.fullName || user.email} • {selectedDate === 'all' ? 'Displaying System-wide Historical Aggregate' : (selectedDate && !isNaN(new Date(selectedDate).getTime()) ? `Process Date: ${new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }).format(new Date(selectedDate))}` : 'Initializing...')}
@@ -1326,7 +1328,7 @@ function DashboardClient() {
             {/* System Status Footer */}
             <Alert severity="success" sx={{ mt: 3 }}>
                 <Typography variant="body2">
-                    <strong>✅ Banking System Online:</strong> IFRS 9 calculation engine operational.
+                    <strong>✅ Banking System Online:</strong> PSAK 413 calculation engine operational.
                     {eclSummary && ` Last calculation: ${eclSummary.lastUpdated || 'Never'}`} • Portfolio health: Excellent
                 </Typography>
             </Alert>

@@ -21,6 +21,7 @@ import {
 import { useBankingTheme } from '../../../providers/BankingThemeProvider'; // Adjust path
 import { BankingProfileMenu } from './BankingProfileMenu';
 import { NotificationBell } from '../NotificationBell';
+import { usePlatformSettings } from '@/providers/PlatformSettingsProvider';
 
 
 interface BankingAppBarProps {
@@ -44,6 +45,7 @@ export const BankingAppBar: React.FC<BankingAppBarProps> = ({
 }) => {
     const theme = useTheme();
     const { colorMode, toggleColorMode } = useBankingTheme();
+    const { settings } = usePlatformSettings();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
     const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -130,7 +132,7 @@ export const BankingAppBar: React.FC<BankingAppBarProps> = ({
                                 color: colorMode === 'dark' ? 'inherit' : '#1565C0'
                             }}
                         >
-                            PSAK 413 | Ristix model platform
+                            {settings.navbarText || 'IFRS 9 | i9 model platform'}
                         </Typography>
                     </Box>
 

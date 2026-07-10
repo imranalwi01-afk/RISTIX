@@ -72,9 +72,9 @@ const JOURNAL_EXPORT_COLUMNS = [
 export default function JournalParametersPage() {
   const { user } = useAuth();
   const { hasAnyPermission } = usePermission();
-  const canViewJournal = hasAnyPermission(['banking.parameter.journal.view', 'banking.parameter.journal.manage', 'banking.parameter.journal']);
-  const canManageJournal = hasAnyPermission(['banking.parameter.journal.manage', 'banking.parameter.journal.create', 'banking.parameter.journal.update', 'banking.parameter.journal.delete']);
-  const canExportJournal = hasAnyPermission(['banking.parameter.journal.export', 'banking.parameter.journal.manage']);
+  const canViewJournal = hasAnyPermission(['banking.parameter.journal.view']);
+  const canManageJournal = hasAnyPermission(['banking.parameter.journal.create', 'banking.parameter.journal.update', 'banking.parameter.journal.delete']);
+  const canExportJournal = hasAnyPermission(['banking.parameter.journal.export']);
   const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all']);
 
   const router = useRouter();

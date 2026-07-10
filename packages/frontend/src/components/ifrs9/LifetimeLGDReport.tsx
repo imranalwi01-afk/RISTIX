@@ -9,15 +9,19 @@ import {
   CardContent,
   Grid,
   Chip,
+  IconButton,
+  Tooltip,
   alpha
 } from '@mui/material';
 import {
   TrendingDown as TrendingDownIcon,
   Assessment as AssessmentIcon,
   AccountBalance as BankIcon,
-  PieChart as PieIcon
+  PieChart as PieIcon,
+  FileDownload as ExportIcon
 } from '@mui/icons-material';
 import { api } from '@/services/api';
+import * as XLSX from 'xlsx';
 import BaseIfrs9Report from './BaseIfrs9Report';
 
 interface LGDDistributionItem {
@@ -220,6 +224,7 @@ const LifetimeLGDReport: React.FC = () => {
     lgdDistribution: []
   });
   const [riskLevels, setRiskLevels] = useState<any[]>([]);
+  const [rawData, setRawData] = useState<Record<string, unknown>[]>([]);
 
   useEffect(() => {
     api.banking.businessSetup.getHeaderDetails('BLGD01')
@@ -234,6 +239,7 @@ const LifetimeLGDReport: React.FC = () => {
   }, []);
 
   const handleDataLoaded = React.useCallback((data: any[], summary?: Record<string, unknown> | null) => {
+    setRawData(data);
     const detailRows: any[] = Array.isArray((summary as any)?.detailRows) ? (summary as any).detailRows : data;
     if (detailRows && detailRows.length > 0) {
       let totalEad = 0;
@@ -310,7 +316,13 @@ const LifetimeLGDReport: React.FC = () => {
     });
   }, []);
 
-
+  const handleExportExcel = React.useCallback(() => {
+    if (rawData.length === 0) return;
+    const ws = XLSX.utils.json_to_sheet(rawData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Lifetime LGD');
+    XLSX.writeFile(wb, `Lifetime_LGD_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  }, [rawData]);
 
   const requiredParams = useMemo(() => ['prc_date'], []);
   const optionalParams = useMemo(() => ['lgd_config_id', 'segment_id', 'fl_flag'], []);
@@ -326,7 +338,16 @@ const LifetimeLGDReport: React.FC = () => {
       supportsCharts={true}
       onDataLoaded={handleDataLoaded}
     >
-      <SummaryCards stats={summaryStats} riskLevels={riskLevels} />
+      <Box>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <Tooltip title="Export Excel">
+            <IconButton onClick={handleExportExcel} disabled={rawData.length === 0} size="small">
+              <ExportIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
+        <SummaryCards stats={summaryStats} riskLevels={riskLevels} />
+      </Box>
     </BaseIfrs9Report>
   );
 };

@@ -31,7 +31,7 @@ export const TenantSwitcher: React.FC = () => {
     const isPlatformAdmin =
         user?.stakeholderType === 'platform' ||
         userPermissions.includes('admin.super_admin') ||
-        userPermissions.includes('admin.system.manage') ||
+        userPermissions.includes('admin.system.view') ||
         userPermissions.includes('PLATFORM_ADMIN') ||
         !!user?.isPlatformAdmin;
 

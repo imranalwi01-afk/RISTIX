@@ -6,37 +6,34 @@
 // ✅ Route to Permission Mapping (Strictly Permission-Based)
 export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   // Module Access
-  '/platform': 'admin.system.manage',
+  '/platform': 'admin.system.view',
   '/consultant': 'consultant.access',
   '/regulator': 'regulator.access',
 
   // Dashboard
   // Dashboard should be accessible to any banking user with at least one banking.* permission.
-  '/banking/dashboard': 'banking',
+  '/banking/dashboard': 'banking.dashboard.view',
 
   // Impairment Modules
-  '/banking/collective': 'banking.collective.view',
+  '/banking/collective': 'banking.collective.bucket.view',
   '/banking/individual': 'banking.individual.view',
 
   // Analytics
   '/banking/analytics': 'banking.analytics.r.view',
 
   // System Setup (Strictly Protected)
-  '/banking/setup/application': 'banking.setup.application',
-  '/banking/setup/business': 'banking.setup.business',
-  '/banking/setup': 'banking.setup',
-  '/banking/parameters': 'banking.parameter',
+  '/banking/setup/application': 'banking.setup.application.view',
+  '/banking/setup/business': 'banking.setup.business.view',
+  '/banking/setup': 'banking.setup.view',
+  '/banking/parameters': 'banking.parameter.product.view',
   '/banking/maintenance/approval': 'approval.requests.approve',
-  '/banking/maintenance/user-activity': 'admin.maintenance.view',
-  '/banking/maintenance/access-management': ['admin.users.manage', 'admin.roles.manage', 'admin.maintenance.view'],
-  '/banking/maintenance/menu-matrix': 'admin.maintenance.view',
-  '/banking/maintenance/smtp': ['admin.maintenance.view', 'admin.super_admin'],
+  '/banking/maintenance/user-activity': 'admin.maintenance.user_activity.view',
+  '/banking/maintenance/access-management': ['admin.users.view', 'admin.roles.view'],
+  '/banking/maintenance/menu-matrix': 'admin.maintenance.menu_matrix.view',
+  '/banking/maintenance/smtp': ['admin.maintenance.smtp.view', 'admin.super_admin'],
   '/banking/maintenance/impersonate': 'admin.super_admin',
-  '/banking/maintenance/job-monitoring': ['jobs.view', 'jobs.manage', 'admin.system.manage'],
-  '/banking/maintenance': 'admin.users.manage', // Often includes role management
-
-  // Tools
-  '/banking/tools': 'banking.configuration.ifrs9.manage'
+  '/banking/maintenance/job-monitoring': ['jobs.view', 'admin.system.view'],
+  '/banking/maintenance': 'admin.system.view',
 };
 
 // ✅ SURGICAL ENHANCEMENT: Banking mode URL patterns

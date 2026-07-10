@@ -60,16 +60,13 @@ export interface PermissionSelectionSection {
 const SIDEBAR_CATEGORY_LABELS: Record<string, string> = {
   'banking.dashboard': 'Dashboard',
   'banking.setup': 'System Setup',
-  'banking.parameter': 'Parameter Management',
   'banking.collective': 'Collective Impairment',
   'banking.individual': 'Individual Impairment',
-  'banking.processing': 'IFRS 9',
   'banking.reports': 'IFRS 9 Reports',
   'banking.reports.ifrs9': 'IFRS 9 Reports',
   'banking.analytics': 'Advanced Analytics',
   'approval': 'Admin & Maintenance',
   'approval.requests': 'Admin & Maintenance',
-  'banking.configuration': 'Tools',
   'admin.maintenance': 'Admin & Maintenance',
   'admin.roles': 'Admin & Maintenance',
   'admin.users': 'Admin & Maintenance',
@@ -114,15 +111,15 @@ const SIDEBAR_GROUP_LABELS: Record<string, { label: string; breadcrumb: string }
     label: 'Bucket Parameter',
     breadcrumb: 'Collective Impairment > Bucket Parameter',
   },
-  'banking.collective.pd': {
+  'banking.collective.pd_setup': {
     label: 'PD Setup Management',
     breadcrumb: 'Collective Impairment > PD Setup Management',
   },
-  'banking.collective.lgd': {
+  'banking.collective.lgd_setup': {
     label: 'LGD Setup Management',
     breadcrumb: 'Collective Impairment > LGD Setup Management',
   },
-  'banking.collective.ead': {
+  'banking.collective.ead_setup': {
     label: 'EAD Setup Management',
     breadcrumb: 'Collective Impairment > EAD Setup Management',
   },
@@ -178,18 +175,6 @@ const SIDEBAR_GROUP_LABELS: Record<string, { label: string; breadcrumb: string }
     label: 'Notifications',
     breadcrumb: 'Admin & Maintenance > Notifications',
   },
-  'banking.configuration.ifrs9': {
-    label: 'Tools',
-    breadcrumb: 'Tools',
-  },
-  'admin.maintenance.access': {
-    label: 'Access Management',
-    breadcrumb: 'Admin & Maintenance > Access Management',
-  },
-  'admin.maintenance.view': {
-    label: 'Maintenance Pages',
-    breadcrumb: 'Admin & Maintenance',
-  },
   'admin.users': {
     label: 'User Management',
     breadcrumb: 'Admin & Maintenance > User Management',
@@ -201,6 +186,22 @@ const SIDEBAR_GROUP_LABELS: Record<string, { label: string; breadcrumb: string }
   'admin.system': {
     label: 'System Administration',
     breadcrumb: 'Admin & Maintenance > System Administration',
+  },
+  'admin.maintenance.impersonate': {
+    label: 'Impersonate',
+    breadcrumb: 'Admin & Maintenance > Impersonate',
+  },
+  'admin.maintenance.menu_matrix': {
+    label: 'Menu Matrix',
+    breadcrumb: 'Admin & Maintenance > Menu Matrix',
+  },
+  'admin.maintenance.smtp': {
+    label: 'SMTP Settings',
+    breadcrumb: 'Admin & Maintenance > SMTP Settings',
+  },
+  'admin.maintenance.user_activity': {
+    label: 'User Activity',
+    breadcrumb: 'Admin & Maintenance > User Activity',
   },
   'jobs': {
     label: 'Job Monitoring',
@@ -243,16 +244,14 @@ const RESOURCE_GROUP_ALIASES: Record<string, string> = {
 // shows under "Segmentation Configuration" instead of a separate "Approval" group)
 const APPROVAL_GROUP_ALIASES: Record<string, string> = {
   'approval.segmentation': 'banking.collective.segmentation',
-  'approval.parameter': 'banking.parameter',
   'approval.product_parameter': 'banking.parameter.product',
   'approval.journal_parameter': 'banking.parameter.journal',
   'approval.bucket_parameter': 'banking.collective.bucket',
   'approval.rule_base_setting': 'banking.collective.rule_base',
-  'approval.pd_configuration': 'banking.collective.pd',
-  'approval.lgd_configuration': 'banking.collective.lgd',
-  'approval.ead_configuration': 'banking.collective.ead',
+  'approval.pd_configuration': 'banking.collective.pd_setup',
+  'approval.lgd_configuration': 'banking.collective.lgd_setup',
+  'approval.ead_configuration': 'banking.collective.ead_setup',
   'approval.ecl_configuration': 'banking.collective.ecl',
-  'approval.configuration': 'banking.configuration.ifrs9',
   'approval.user': 'admin.users',
 };
 

@@ -78,7 +78,7 @@ export function ApplicationToolbar({
           Export
         </Button>
 
-        <Can permission={['banking.setup.application.create', 'banking.setup.application.manage']}>
+        <Can permission={['banking.setup.application.create']}>
           <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreate}>
             Add Application Setting
           </Button>

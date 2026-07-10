@@ -108,6 +108,7 @@ export const EclConfigurationsService = {
         const detailsData = (data.details || []).map((d: any) => ({
             pfSegmentId: d.pfSegmentId,
             stageRuleId: d.stageRuleId,
+            defaultRuleId: d.defaultRuleId ?? d.stageRuleId,
             pdModelId: d.pdModelId,
             lgdModelId: d.lgdModelId,
             eadModelId: d.eadModelId,

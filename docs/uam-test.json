@@ -1,0 +1,178 @@
+{
+  "version": "UAM_FRS9PRO_v.1.1",
+  "tenant_id": "f7b3a087-8a42-40c4-baca-9dc92cc0a2be",
+  "roles": {
+    "ACCOUNTING_MAKER": {
+      "expected_view_menus": 19,
+      "menus": {
+        "Overview": ["view", "export"],
+        "Application Configuration": ["view", "export"],
+        "Business Configuration": ["view", "insert", "update", "delete", "export", "approve"],
+        "Product Parameters": ["view", "insert", "update", "delete", "export", "approve"],
+        "Accounting Parameters": ["view", "insert", "update", "delete", "export", "approve"],
+        "Segmentation Configuration": ["view", "insert", "update", "delete", "export", "approve"],
+        "Rule Base Setting": ["view", "insert", "update", "delete", "export", "approve"],
+        "Bucket Parameter": ["view", "insert", "update", "delete", "export", "approve"],
+        "PD Setup": ["view", "insert", "update", "delete", "export", "approve"],
+        "LGD Setup": ["view", "insert", "update", "delete", "export", "approve"],
+        "EAD Setup": ["view", "insert", "update", "delete", "export", "approve"],
+        "ECL Configuration": ["view", "insert", "update", "delete", "export", "approve"],
+        "Impairment Module": ["view", "export"],
+        "ECL Movement": ["view", "export"],
+        "GCA Movement": ["view", "export"],
+        "Lifetime PD": ["view", "export"],
+        "Lifetime LGD": ["view", "export"],
+        "ECL Result": ["view", "export"],
+        "Nominative Report": ["view", "export"]
+      }
+    },
+    "ACCOUNTING_APPROVER": {
+      "expected_view_menus": 19,
+      "menus": {
+        "Overview": ["view", "export"],
+        "Application Configuration": ["view", "export"],
+        "Business Configuration": ["view", "export", "approve"],
+        "Product Parameters": ["view", "export", "approve"],
+        "Accounting Parameters": ["view", "export", "approve"],
+        "Segmentation Configuration": ["view", "export", "approve"],
+        "Rule Base Setting": ["view", "export", "approve"],
+        "Bucket Parameter": ["view", "export", "approve"],
+        "PD Setup": ["view", "export", "approve"],
+        "LGD Setup": ["view", "export", "approve"],
+        "EAD Setup": ["view", "export", "approve"],
+        "ECL Configuration": ["view", "export", "approve"],
+        "Impairment Module": ["view", "export"],
+        "ECL Movement": ["view", "export"],
+        "GCA Movement": ["view", "export"],
+        "Lifetime PD": ["view", "export"],
+        "Lifetime LGD": ["view", "export"],
+        "ECL Result": ["view", "export"],
+        "Nominative Report": ["view", "export"]
+      }
+    },
+    "USERCHECKER": {
+      "expected_view_menus": 20,
+      "menus": {
+        "Overview": ["view", "export"],
+        "Application Configuration": ["view", "export"],
+        "Business Configuration": ["view", "export"],
+        "Product Parameters": ["view", "export"],
+        "Accounting Parameters": ["view", "export"],
+        "Segmentation Configuration": ["view", "export"],
+        "Rule Base Setting": ["view", "export"],
+        "Bucket Parameter": ["view", "export"],
+        "PD Setup": ["view", "export"],
+        "LGD Setup": ["view", "export"],
+        "EAD Setup": ["view", "export"],
+        "ECL Configuration": ["view", "export"],
+        "Impairment Module": ["view", "export"],
+        "ECL Movement": ["view", "export"],
+        "GCA Movement": ["view", "export"],
+        "Lifetime PD": ["view", "export"],
+        "Lifetime LGD": ["view", "export"],
+        "ECL Result": ["view", "export"],
+        "Nominative Report": ["view", "export"],
+        "R Analytics": ["view", "export"]
+      }
+    },
+    "MODELER_MAKER": {
+      "expected_view_menus": 20,
+      "menus": {
+        "Overview": ["view", "export"],
+        "Application Configuration": ["view", "export"],
+        "Business Configuration": ["view", "export"],
+        "Product Parameters": ["view", "export"],
+        "Accounting Parameters": ["view", "export"],
+        "Segmentation Configuration": ["view", "export"],
+        "Rule Base Setting": ["view", "export"],
+        "Bucket Parameter": ["view", "export"],
+        "PD Setup": ["view", "export"],
+        "LGD Setup": ["view", "export"],
+        "EAD Setup": ["view", "export"],
+        "ECL Configuration": ["view", "export"],
+        "Impairment Module": ["view", "export"],
+        "ECL Movement": ["view", "export"],
+        "GCA Movement": ["view", "export"],
+        "Lifetime PD": ["view", "export"],
+        "Lifetime LGD": ["view", "export"],
+        "ECL Result": ["view", "export"],
+        "Nominative Report": ["view", "export"],
+        "R Analytics": ["view", "insert", "update", "delete", "export", "upload", "approve"]
+      }
+    },
+    "MODELER_APPROVER": {
+      "expected_view_menus": 20,
+      "menus": {
+        "Overview": ["view", "export"],
+        "Application Configuration": ["view", "export"],
+        "Business Configuration": ["view", "export"],
+        "Product Parameters": ["view", "export"],
+        "Accounting Parameters": ["view", "export"],
+        "Segmentation Configuration": ["view", "export"],
+        "Rule Base Setting": ["view", "export"],
+        "Bucket Parameter": ["view", "export"],
+        "PD Setup": ["view", "export"],
+        "LGD Setup": ["view", "export"],
+        "EAD Setup": ["view", "export"],
+        "ECL Configuration": ["view", "export"],
+        "Impairment Module": ["view", "export"],
+        "ECL Movement": ["view", "export"],
+        "GCA Movement": ["view", "export"],
+        "Lifetime PD": ["view", "export"],
+        "Lifetime LGD": ["view", "export"],
+        "ECL Result": ["view", "export"],
+        "Nominative Report": ["view", "export"],
+        "R Analytics": ["view", "export", "approve"]
+      }
+    },
+    "ACCESS_MANAGEMENT_OPERATOR": {
+      "expected_view_menus": 6,
+      "menus": {
+        "Access Management": ["view", "insert", "update", "delete", "export", "approve"],
+        "Approval": ["view", "export"],
+        "Audit Log": ["view", "export"],
+        "Job Monitoring": ["view", "export"],
+        "SMTP": ["view", "export"],
+        "User Activity": ["view", "export"]
+      }
+    },
+    "IAF_TENANT_SUPERADMIN": {
+      "expected_view_menus": 29,
+      "note": "Full access to all 29 active menus"
+    },
+    "IT_OPERATOR": {
+      "expected_view_menus": 29,
+      "note": "Full access to all 29 active menus"
+    },
+    "IAF_BANK_CRO": {
+      "expected_view_menus": 29,
+      "note": "Full access to all 29 active menus"
+    }
+  },
+  "negative_tests": {
+    "ACCOUNTING_MAKER_no_access": [
+      "R Analytics",
+      "Access Management", "Approval", "Audit Log", "Job Monitoring",
+      "Menu Matrix", "SMTP", "User Activity", "Users", "Impersonate"
+    ],
+    "ACCOUNTING_APPROVER_no_access": [
+      "R Analytics",
+      "Access Management", "Approval", "Audit Log", "Job Monitoring",
+      "Menu Matrix", "SMTP", "User Activity", "Users", "Impersonate"
+    ],
+    "ACCESS_MANAGEMENT_OPERATOR_no_access": [
+      "Overview", "Application Configuration", "Business Configuration",
+      "Product Parameters", "Accounting Parameters",
+      "Segmentation Configuration", "Rule Base Setting", "Bucket Parameter",
+      "PD Setup", "LGD Setup", "EAD Setup", "ECL Configuration",
+      "Impairment Module",
+      "ECL Movement", "GCA Movement", "Lifetime PD", "Lifetime LGD",
+      "ECL Result", "Nominative Report", "R Analytics"
+    ]
+  },
+  "test_sql": {
+    "verify_role": "SELECT r.role_code, mp.permission_type\nFROM core.roles r\nJOIN core.menu_permissions mp ON mp.role_id = r.id AND mp.is_allowed = true\nWHERE r.role_code = '{ROLE}'\nAND mp.menu_item_id = (SELECT id FROM ifrspro_platform_admin.menu.menu_items WHERE name = '{MENU}' LIMIT 1)\nORDER BY mp.permission_type;",
+    "count_role_menus": "SELECT r.role_code, COUNT(*) as total_perms\nFROM core.roles r\nJOIN core.menu_permissions mp ON mp.role_id = r.id AND mp.is_allowed = true\nWHERE r.role_code = '{ROLE}'\nGROUP BY r.role_code;",
+    "check_no_access": "SELECT COUNT(*) as should_be_zero\nFROM core.roles r\nJOIN core.menu_permissions mp ON mp.role_id = r.id AND mp.is_allowed = true\nWHERE r.role_code = '{ROLE}'\nAND mp.menu_item_id = (SELECT id FROM ifrspro_platform_admin.menu.menu_items WHERE name = '{MENU}' LIMIT 1);"
+  }
+}

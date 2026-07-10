@@ -23,7 +23,7 @@ const NominativeReport = dynamic(() => import('@/components/ifrs9/NominativeRepo
 export default function NominativeReportsPage() {
   return (
     <Can
-      permission={['banking.reports.ifrs9.nominative.view', 'banking.reports.ifrs9.view']}
+      permission={['banking.reports.ifrs9.nominative.view']}
       fallback={
         <Container maxWidth="xl">
           <Alert severity="error">You do not have permission to access Nominative Report.</Alert>

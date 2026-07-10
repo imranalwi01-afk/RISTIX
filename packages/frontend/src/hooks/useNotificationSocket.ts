@@ -46,7 +46,7 @@ const normalizeLocalSocketPort = (rawUrl: string): string => {
         const url = new URL(rawUrl)
         const isLocalHost = url.hostname === 'localhost' || url.hostname === '127.0.0.1'
         if (isLocalHost && url.port === '4231') {
-            url.port = '4232'
+            url.port = '5232'
             return trimTrailingSlashes(url.toString())
         }
     } catch {

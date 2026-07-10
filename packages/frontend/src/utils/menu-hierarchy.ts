@@ -287,11 +287,11 @@ export const filterHierarchicalMenu = (
             return true;
           }
 
-          if (debugPermissionFiltering) {
-            const evaluations = requiredPerms.map((requiredPerm) =>
-              evaluatePermission(requiredPerm, permissionContext)
-            );
+          // Don't block parent/group items — they pass through so children can be evaluated
+          if (item.children && item.children.length > 0) {
+            return true;
           }
+
           return false;
         } else if (item.permissions && item.permissions.length > 0) {
           // Treat legacy item.permissions as permission codes (not roles)
@@ -300,11 +300,11 @@ export const filterHierarchicalMenu = (
           );
           if (hasPermissionMatch) return true;
 
-          if (debugPermissionFiltering) {
-            const evaluations = item.permissions.map((perm) =>
-              evaluatePermission(perm, permissionContext)
-            );
+          // Don't block parent/group items
+          if (item.children && item.children.length > 0) {
+            return true;
           }
+
           return false;
         }
 

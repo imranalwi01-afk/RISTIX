@@ -46,10 +46,8 @@ function buildHasAccess(userPermissions: string[], userRoles: string[], perms: a
     return (itemId: string) => { return true;
         if (userPermissions.includes('admin.super_admin')) return true
         const itemPerms = perms.filter((p: any) => p.menuItemId === itemId)
-        if (itemPerms.length === 0) return false
-        const allowedRoles = itemPerms.filter((p: any) => p.isAllowed).map((p: any) => p.roleCode)
-        if (allowedRoles.length === 0) return false
-        return allowedRoles.some((roleCode: string) => userRoles.includes(roleCode))
+        if (itemPerms.length === 0) return true // No config → visible to all
+        return itemPerms.some((p: any) => p.isAllowed && userRoles.includes(p.roleCode))
     }
 }
 
@@ -181,13 +179,14 @@ menuRoutes.openapi(
             // Tools
             
             // Admin & Maintenance
-            { cat: 'Admin & Maintenance', name: 'Access Management', path: '/banking/maintenance/access-management', icon: 'ManageAccounts', sortOrder: 1 },
+            { cat: 'Admin & Maintenance', name: 'Access Management', path: '/banking/maintenance/user-management', icon: 'ManageAccounts', sortOrder: 1 },
             { cat: 'Admin & Maintenance', name: 'Approval', path: '/banking/maintenance/approval', icon: 'Approval', sortOrder: 2 },
             { cat: 'Admin & Maintenance', name: 'Job Monitoring', path: '/banking/maintenance/job-monitoring', icon: 'Monitor', sortOrder: 3 },
-            { cat: 'Admin & Maintenance', name: 'Audit Log', path: '/banking/maintenance/audit', icon: 'History', sortOrder: 5 },
-            { cat: 'Admin & Maintenance', name: 'User Activity', path: '/banking/maintenance/user-activity', icon: 'People', sortOrder: 6 },
-            { cat: 'Admin & Maintenance', name: 'Assignments', path: '/banking/maintenance/assignments', icon: 'Assignment', sortOrder: 7 },
-            { cat: 'Admin & Maintenance', name: 'Users', path: '/banking/maintenance/users', icon: 'Group', sortOrder: 8 },
+            { cat: 'Admin & Maintenance', name: 'Audit Log', path: '/banking/maintenance/audit', icon: 'History', sortOrder: 4 },
+            { cat: 'Admin & Maintenance', name: 'User Activity', path: '/banking/maintenance/user-activity', icon: 'People', sortOrder: 5 },
+            { cat: 'Admin & Maintenance', name: 'SMTP', path: '/banking/maintenance/smtp', icon: 'Email', sortOrder: 6 },
+            { cat: 'Admin & Maintenance', name: 'Menu Matrix', path: '/banking/maintenance/menu-matrix', icon: 'TableChart', sortOrder: 7 },
+            { cat: 'Admin & Maintenance', name: 'Impersonate', path: '/banking/maintenance/impersonate', icon: 'PersonSearch', sortOrder: 8 },
         ]
 
         for (const item of items) {
@@ -565,12 +564,12 @@ menuRoutes.openapi(
         const tenantId = await resolveTenantId(c)
         if (!tenantId) return c.json({ success: false, error: 'No tenant context' }, 400)
 
-        // Permission guard: only users with admin.maintenance.access can modify menu permissions
+        // Permission guard: only users with admin.system.view can modify menu permissions
         const userPermissions = c.get('permissions') || []
-        if (!userPermissions.includes('admin.maintenance.access') && !userPermissions.includes('admin.super_admin')) {
+        if (!userPermissions.includes('admin.system.view') && !userPermissions.includes('admin.super_admin')) {
             return c.json(buildErrorResponse(c, {
                 error: 'Forbidden',
-                message: 'You do not have permission to modify menu permissions. Requires admin.maintenance.access.',
+                message: 'You do not have permission to modify menu permissions. Requires admin.system.view.',
                 code: 'FORBIDDEN',
             }), 403)
         }

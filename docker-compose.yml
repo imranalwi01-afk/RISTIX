@@ -1,0 +1,97 @@
+name: ristix
+
+services:
+  redis:
+    image: redis:alpine
+    container_name: ristix-redis
+    ports:
+      - "7379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - ristix-network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./packages/new-backend
+      dockerfile: Dockerfile
+      target: builder
+    container_name: ristix-backend
+    env_file:
+      - ops/local/backend.env
+    environment:
+      NODE_ENV: development
+      PORT: 5232
+      HOST: 0.0.0.0
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5231,http://127.0.0.1:5231}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "5232:5232"
+    networks:
+      - ristix-network
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./packages/new-backend/src:/app/src:ro
+      - ./packages/new-backend/package.json:/app/package.json
+      - ./packages/new-backend/bunfig.toml:/app/bunfig.toml
+      - backend-node-modules:/app/node_modules
+    healthcheck:
+      test: [ "CMD", "bun", "-e", "fetch('http://localhost:5232/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    command: sh -c "bun install && bun run src/index.ts"
+
+  frontend:
+    build:
+      context: ./packages/frontend
+      dockerfile: Dockerfile.dev
+    container_name: ristix-frontend
+    env_file:
+      - packages/frontend/.env.local
+    environment:
+      - NODE_ENV=development
+      - PORT=5231
+      - BACKEND_INTERNAL_URL=http://host.docker.internal:5232
+      - NEXT_TELEMETRY_DISABLED=1
+      - NODE_OPTIONS=--max-old-space-size=4096
+      - WSS_PORT=5231
+      - WATCHPACK_POLLING=false
+      - CHOKIDAR_USEPOLLING=false
+    volumes:
+      - ./packages/frontend/src:/app/src
+      - ./packages/frontend/public:/app/public
+      - ./packages/frontend/next.config.mjs:/app/next.config.mjs
+      - ./packages/frontend/.env.local:/app/.env.local
+      - ./packages/frontend/package.json:/app/package.json
+      - ./packages/frontend/tsconfig.json:/app/tsconfig.json:ro
+      - frontend-next-cache:/app/.next
+    ports:
+      - "5231:5231"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - ristix-network
+    depends_on:
+      - backend
+
+volumes:
+  redis-data:
+    driver: local
+  backend-node-modules:
+    driver: local
+  frontend-next-cache:
+    driver: local
+
+networks:
+  ristix-network:
+    driver: bridge

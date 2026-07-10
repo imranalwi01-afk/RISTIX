@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const backendPort = process.env.BACKEND_PORT || '4232';
+  const backendPort = process.env.BACKEND_PORT || '5232';
 
   // Primary source of truth: environment-provided backend origins.
   const baseCandidates = [

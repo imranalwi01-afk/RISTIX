@@ -80,8 +80,8 @@ export const menuQueryApi = createApi({
                 }
             },
             providesTags: ['Menu'],
-            // Keep unused data for 5 minutes
-            keepUnusedDataFor: 300,
+            // No cache — always fetch fresh menu from backend
+            keepUnusedDataFor: 0,
         }),
         getUserMenu: builder.query<any, void>({
             query: () => '/system/menu/user-menu',

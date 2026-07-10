@@ -180,7 +180,7 @@ export default function SegmentationClient() {
 
   // Permissions
   const { hasPermission, hasAnyPermission } = usePermission();
-  const canManageSegmentation = hasPermission('banking.collective.segmentation.manage');
+  const canManageSegmentation = hasPermission('banking.collective.segmentation.create') || hasPermission('banking.collective.segmentation.update') || hasPermission('banking.collective.segmentation.delete');
   const canViewSegmentation = hasPermission('banking.collective.segmentation.view');
   const canExportSegmentation = hasPermission('banking.collective.segmentation.export');
   const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all']);

@@ -83,7 +83,7 @@ export const BankingProfileMenu: React.FC<BankingProfileMenuProps> = ({
 
     const displayRole = (Array.isArray(userRole) ? userRole[0] : String(userRole || ''))
         .replace(/_/g, ' ')
-        .replace(/IAF/g, 'PSAK 413');
+        .replace(/\bIAF\b/g, 'PSAK 413');
 
     return (
         <Menu

@@ -6,7 +6,7 @@ import { runEffect } from '../lib/effect'
 import { parsePaginationParams, parseFilterParams } from '../lib/react-admin'
 import * as usersService from '../services/users.service'
 import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
-import { buildDefaultFourEyesRouting, type ApprovalResponse } from '../lib/approval-helpers'
+import { type ApprovalResponse } from '../lib/approval-helpers'
 import { createApprovalRequest } from '../services/approval.service'
 import * as auditService from '../services/audit.service'
 import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
@@ -300,7 +300,7 @@ usersRoutes.openapi(
         const canResetPassword =
             isSystemUser ||
             userPermissions.includes('admin.super_admin') ||
-            userPermissions.includes('admin.users.manage')
+            userPermissions.includes('admin.users.view')
 
         if (!canResetPassword) {
             return c.json(
@@ -1385,7 +1385,6 @@ usersRoutes.openapi(
                                 isActive: true,
                                 tenantId,
                             },
-                            approvalRouting: { levels: buildDefaultFourEyesRouting('user_status') },
                         },
                         requestedBy,
                         impactLevel: 'high',
@@ -1492,7 +1491,6 @@ usersRoutes.openapi(
                                 isActive: false,
                                 tenantId,
                             },
-                            approvalRouting: { levels: buildDefaultFourEyesRouting('user_status') },
                         },
                         requestedBy,
                         impactLevel: 'high',

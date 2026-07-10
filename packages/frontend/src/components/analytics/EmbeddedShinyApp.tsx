@@ -472,8 +472,10 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       const actualPort = sessionData.port;
 
       // Construct URL based on environment
-      if (API_CONFIG.IS_PRODUCTION) {
-        const domainBase = API_CONFIG.R_DASHBOARD_URL;
+      const domainBase = API_CONFIG.R_DASHBOARD_URL;
+      const isExternalUrl = domainBase && (domainBase.startsWith('https://') || !domainBase.includes('localhost'));
+
+      if (API_CONFIG.IS_PRODUCTION || isExternalUrl) {
         sessionData.iframeUrl = `${domainBase}/?session=${sessionData.sessionId}&iframe=true&access_token=${encodeURIComponent(token)}`;
         sessionData.domainUrl = domainBase;
       } else {

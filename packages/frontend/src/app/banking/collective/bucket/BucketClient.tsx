@@ -37,12 +37,14 @@ import {
   Search as SearchIcon,
   Refresh as RefreshIcon,
   Home as HomeIcon,
-  Layers as BucketIcon
+  Layers as BucketIcon,
+  FileDownload as FileDownloadIcon
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import type { GridColDef } from '@mui/x-data-grid';
 import { bucketParameterAPI, BucketParameterHeader, BucketParameterDetail } from '../../../../services/api.bucketparameter';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
+import IconButton from '@mui/material/IconButton';
 import {
   ApprovalNotification,
   ApprovalStatusBadge,
@@ -56,6 +58,7 @@ import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/utils/error-message';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import PageHeader from '@/components/banking/shared/PageHeader';
+import * as XLSX from 'xlsx'
 import { SearchBar } from '@/components/shared/SearchBar';
 import { BucketHeaderDialog } from './components/BucketHeaderDialog';
 import { BucketDetailDialog } from './components/BucketDetailDialog';
@@ -253,8 +256,8 @@ const BucketDetailsPanel = ({
 
 export default function BucketParameterPage() {
   const { hasAnyPermission } = usePermission();
-  const canViewBucket = hasAnyPermission(['banking.collective.bucket.view', 'banking.collective.bucket.manage', 'banking.collective.manage', 'banking.collective']);
-  const canManageBucket = hasAnyPermission(['banking.collective.bucket.manage', 'banking.collective.bucket.create', 'banking.collective.bucket.update', 'banking.collective.bucket.delete', 'banking.collective.manage']);
+  const canViewBucket = hasAnyPermission(['banking.collective.bucket.view']);
+  const canManageBucket = hasAnyPermission(['banking.collective.bucket.create', 'banking.collective.bucket.update', 'banking.collective.bucket.delete']);
   const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all']);
 
   const router = useRouter();
@@ -668,6 +671,21 @@ export default function BucketParameterPage() {
     },
   ], [canManageBucket, getBasisDescription, handleDeleteHeader, handleEditHeader, pendingRequests]);
 
+  const handleExportExcel = useCallback(() => {
+    const exportData = bucketHeaders.map(h => ({
+      'Bucket Group': h.bucket_group,
+      Description: h.bucket_group_desc || h.bucket_desc || '',
+      Basis: getBasisDescription(h.basis || ''),
+      'Include Closed': h.include_close ? 'Yes' : 'No',
+      'Include WO': h.include_wo ? 'Yes' : 'No',
+      Status: h.active_flag ? 'Active' : 'Inactive',
+    }));
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Buckets');
+    XLSX.writeFile(wb, `buckets-${new Date().toISOString().split('T')[0]}.xlsx`);
+  }, [bucketHeaders, getBasisDescription]);
+
   // ============================================================================
   // EFFECTS
   // ============================================================================
@@ -706,11 +724,16 @@ export default function BucketParameterPage() {
         onRefresh={handleRefresh}
         loading={loading}
         extraActions={
-          canManageBucket ? (
-            <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddHeader} data-testid="add-bucket-btn">
-              Add Bucket Group
-            </Button>
-          ) : undefined
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <IconButton onClick={handleExportExcel} disabled={loading} data-testid="export-excel-btn">
+              <FileDownloadIcon />
+            </IconButton>
+            {canManageBucket ? (
+              <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddHeader} data-testid="add-bucket-btn">
+                Add Bucket Group
+              </Button>
+            ) : null}
+          </Box>
         }
       />
 

@@ -32,7 +32,7 @@ const API_BASE = typeof window !== 'undefined'
   ? '/api/v1'
   : process.env.BACKEND_INTERNAL_URL
     ? `${process.env.BACKEND_INTERNAL_URL}/api/v1`
-    : 'http://backend:4232/api/v1';
+    : 'http://backend:5232/api/v1';
 
 const authHeaders = {
   'Content-Type': 'application/json',

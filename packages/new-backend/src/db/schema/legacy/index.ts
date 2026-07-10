@@ -247,6 +247,7 @@ export const frs9ImpCaEclConfigd = pgTable("frs9_imp_ca_ecl_configd", {
 	eclModelId: smallint("ecl_model_id"),
 	pfSegmentId: smallint("pf_segment_id"),
 	stageRuleId: smallint("stage_rule_id"),
+	defaultRuleId: smallint("default_rule_id"),
 	pdModelId: smallint("pd_model_id"),
 	lgdModelId: smallint("lgd_model_id"),
 	eadModelId: smallint("ead_model_id"),

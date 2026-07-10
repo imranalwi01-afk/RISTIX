@@ -15,13 +15,16 @@ import {
   TableHead,
   TableRow,
   Chip,
+  IconButton,
+  Tooltip as MuiTooltip,
   alpha
 } from '@mui/material';
 import {
   SwapHoriz as MovementIcon,
   TrendingUp as IncreaseIcon,
   TrendingDown as DecreaseIcon,
-  Timeline as TimelineIcon
+  Timeline as TimelineIcon,
+  FileDownload as ExportIcon
 } from '@mui/icons-material';
 import {
   BarChart,
@@ -35,6 +38,7 @@ import {
   Cell,
   LabelList
 } from 'recharts';
+import * as XLSX from 'xlsx';
 import BaseIfrs9Report from './BaseIfrs9Report';
 
 interface MovementBreakdownItem {
@@ -344,7 +348,10 @@ const ECLMovementReport: React.FC = () => {
     movementBreakdown: []
   });
 
+  const [rawData, setRawData] = useState<Record<string, unknown>[]>([]);
+
   const handleDataLoaded = React.useCallback((data: Record<string, unknown>[]) => {
+    setRawData(data);
     if (data && data.length > 0) {
       const aggregated = new Map<number, MovementMatrixRow>();
       data.forEach((row) => {
@@ -422,6 +429,14 @@ const ECLMovementReport: React.FC = () => {
     }
   }, []);
 
+  const handleExportExcel = React.useCallback(() => {
+    if (rawData.length === 0) return;
+    const ws = XLSX.utils.json_to_sheet(rawData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'ECL Movement');
+    XLSX.writeFile(wb, `ECL_Movement_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  }, [rawData]);
+
   const requiredParams = useMemo(() => ['prc_date'], []);
   const optionalParams = useMemo(() => ['segment_id', 'group_segment', 'stage'], []);
 
@@ -436,7 +451,15 @@ const ECLMovementReport: React.FC = () => {
       supportsCharts={true}
       onDataLoaded={handleDataLoaded}
     >
-      <Box sx={{ mb: 4, mt: 2 }}>
+      <Box>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <MuiTooltip title="Export Excel">
+            <IconButton onClick={handleExportExcel} disabled={rawData.length === 0} size="small">
+              <ExportIcon />
+            </IconButton>
+          </MuiTooltip>
+        </Box>
+        <Box sx={{ mb: 4, mt: 2 }}>
         <Typography 
           variant="h5" 
           sx={{ 
@@ -457,6 +480,7 @@ const ECLMovementReport: React.FC = () => {
       
       <SummaryCards stats={summaryStats} />
       <MovementWaterfallChart stats={summaryStats} />
+      </Box>
     </BaseIfrs9Report>
   );
 };

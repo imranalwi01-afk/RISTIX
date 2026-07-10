@@ -167,9 +167,9 @@ const productColumnFilterDefinitions: Record<string, EnterpriseFilterDefinition>
 function ProductParametersPage() {
   const { user } = useAuth();
   const { hasAnyPermission } = usePermission();
-  const canViewProduct = hasAnyPermission(['banking.parameter.product.view', 'banking.parameter.product.manage', 'banking.parameter.product']);
-  const canManageProduct = hasAnyPermission(['banking.parameter.product.manage', 'banking.parameter.product.create', 'banking.parameter.product.update', 'banking.parameter.product.delete']);
-  const canExportProduct = hasAnyPermission(['banking.parameter.product.export', 'banking.parameter.product.manage']);
+  const canViewProduct = hasAnyPermission(['banking.parameter.product.view']);
+  const canManageProduct = hasAnyPermission(['banking.parameter.product.create', 'banking.parameter.product.update', 'banking.parameter.product.delete']);
+  const canExportProduct = hasAnyPermission(['banking.parameter.product.export']);
   const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all']);
 
   const searchParams = useSearchParams();

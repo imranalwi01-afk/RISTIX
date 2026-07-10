@@ -7,7 +7,6 @@ import * as rbacService from '../services/rbac.service'
 import * as auditService from '../services/audit.service'
 import { createApprovalRequest } from '../services/approval.service'
 import * as userService from '../services/users.service'
-import { buildDefaultFourEyesRouting } from '../lib/approval-helpers'
 import { openApiValidationHook } from '../lib/http/openapi-validation-hook'
 
 export const rbacRoutes: any = new OpenAPIHono<AppContext>({ defaultHook: openApiValidationHook })
@@ -261,7 +260,7 @@ const createStrictApprovalRequest = async (input: {
                 entityType: input.entityType,
                 oldValues: input.oldValues,
                 data: input.payload,
-                approvalRouting: { levels: buildDefaultFourEyesRouting(input.entityType) },
+
             },
             requestedBy: input.userId,
             impactLevel: input.impactLevel ?? 'high',
@@ -1015,7 +1014,7 @@ rbacRoutes.openapi(
                             permissionCodes: resolvedPermissionCodes,
                             diff: { added, removed },
                         },
-                        approvalRouting: { levels: buildDefaultFourEyesRouting('role_permission') },
+
                     },
                     requestedBy: userId,
                     impactLevel: added.length + removed.length > 10 ? 'high' : 'medium',

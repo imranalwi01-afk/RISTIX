@@ -1,0 +1,10 @@
+version: '3.8'
+services:
+  r-proxy:
+    image: nginx:alpine
+    container_name: ifrs9-r-proxy
+    ports:
+      - "4236:8080"
+    volumes:
+      - ./nginx.r-proxy.conf:/etc/nginx/conf.d/default.conf
+    restart: always

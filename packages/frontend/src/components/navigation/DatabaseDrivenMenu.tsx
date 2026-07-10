@@ -55,8 +55,7 @@ import {
   selectMenuState,
   logMenuAccess
 } from '@/store/slices/menuSlice';
-import { selectAuthState, RootState } from '@/store';
-import { menuApi } from '@/services/api/menu.api';
+import { RootState } from '@/store';
 
 // Icon mapping for menu items
 const ICON_MAP: Record<string, React.ComponentType<any>> = {
@@ -145,7 +144,6 @@ export const DatabaseDrivenMenu: React.FC<DatabaseDrivenMenuProps> = ({
     menuItems,
     loading,
     error,
-    lastFetched
   } = menuState || {};
 
   // Local state

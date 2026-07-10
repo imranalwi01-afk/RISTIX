@@ -110,7 +110,6 @@ const createApprovalRequestMock = mock((input: any) =>
 )
 
 const logApprovalRequestedMock = mock(async () => undefined)
-const buildDefaultFourEyesRoutingMock = mock(() => [{ level: 1, name: 'Checker', requiredCount: 1 }])
 
 const authMiddleware = async (c: any, next: any) => {
   c.set('tenantId', 'tenant-rbac-1')
@@ -158,13 +157,7 @@ mock.module('../../services/audit.service', () => ({
   },
 }))
 
-mock.module('@/lib/approval-helpers', () => ({
-  buildDefaultFourEyesRouting: buildDefaultFourEyesRoutingMock,
-}))
 
-mock.module('../../lib/approval-helpers', () => ({
-  buildDefaultFourEyesRouting: buildDefaultFourEyesRoutingMock,
-}))
 
 mock.module('@/middleware', () => ({
   authMiddleware,
@@ -195,7 +188,6 @@ describe('rbac routes response contracts', () => {
     hasPermissionMock.mockClear()
     createApprovalRequestMock.mockClear()
     logApprovalRequestedMock.mockClear()
-    buildDefaultFourEyesRoutingMock.mockClear()
   })
 
   test('GET /api/v1/roles returns list envelope', async () => {

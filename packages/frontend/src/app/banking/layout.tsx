@@ -222,7 +222,6 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
     );
   }
 
-
   if (isFullscreen) {
     return (
       <NotificationProvider>

@@ -66,7 +66,7 @@ const resolveApiBaseUrl = (): string => {
   }
 
   if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-    return 'http://localhost:4232/api/v1';
+    return 'http://localhost:5232/api/v1';
   }
 
   return '/api/v1';

@@ -40,7 +40,9 @@ import SearchIcon from '@mui/icons-material/Search'
 import FilterIcon from '@mui/icons-material/FilterAlt'
 import ClearIcon from '@mui/icons-material/Clear'
 import ViewColumnIcon from '@mui/icons-material/ViewColumn'
+import FileDownloadIcon from '@mui/icons-material/FileDownload'
 import type { GridColDef } from '@mui/x-data-grid';
+import * as XLSX from 'xlsx'
 
 import { bankingAPI } from '../../../../services/api';
 import { useRuleBaseHeadersQuery } from '@/features/rule-base/hooks/useRuleBaseQueries';
@@ -150,8 +152,8 @@ const DEFAULT_RULE_BASE_COLUMN_VISIBILITY = RULE_BASE_COLUMNS.reduce(
 
 export default function PageContent() {
   const { hasAnyPermission } = usePermission();
-  const canViewRuleBase = hasAnyPermission(['banking.collective.rule_base.view', 'banking.collective.rule_base.manage', 'banking.collective.manage', 'banking.collective']);
-  const canManageRuleBase = hasAnyPermission(['banking.collective.rule_base.manage', 'banking.collective.rule_base.create', 'banking.collective.rule_base.update', 'banking.collective.rule_base.delete', 'banking.collective.manage']);
+  const canViewRuleBase = hasAnyPermission(['banking.collective.rule_base.view']);
+  const canManageRuleBase = hasAnyPermission(['banking.collective.rule_base.create', 'banking.collective.rule_base.update', 'banking.collective.rule_base.delete']);
   const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all']);
 
   // State Management - Live Database Integration
@@ -887,6 +889,23 @@ export default function PageContent() {
     }
   }, [canManageRuleBase, detailFormData, detailValidationMessage, ruleRefetch, loadPendingApprovals, selectedDetail, selectedHeaderId, showApprovalConflict, triggerRefresh]);
 
+  const handleExportExcel = useCallback(() => {
+    const exportData = filteredHeaders.map(h => ({
+      ID: h.id,
+      'Rule Name': h.rule_name,
+      Type: h.rule_type,
+      'Updated Table': h.updated_table,
+      'Updated Column': h.updated_column,
+      Value: h.value,
+      Seq: h.seq,
+      Status: h.active_flag ? 'Active' : 'Inactive',
+    }));
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'RuleBase');
+    XLSX.writeFile(wb, `rule-base-${new Date().toISOString().split('T')[0]}.xlsx`);
+  }, [filteredHeaders]);
+
   // Clear all filters
   const handleClearFilters = useCallback(() => {
     setSearchTerm('');
@@ -956,6 +975,9 @@ export default function PageContent() {
         loading={ruleLoading}
         extraActions={
           <>
+            <IconButton onClick={handleExportExcel} disabled={loading} data-testid="export-excel-btn">
+              <FileDownloadIcon />
+            </IconButton>
             {canManageRuleBase && (
               <Button
                 variant="contained"

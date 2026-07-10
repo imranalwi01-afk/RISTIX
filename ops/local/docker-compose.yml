@@ -28,7 +28,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-ifrspro_platform_admin}
     ports:
-      - "5434:5432"
+      - "6432:5432"
     volumes:
       - postgres-dev-data:/var/lib/postgresql/data
     networks:
@@ -235,7 +235,7 @@ services:
     restart: ${IFRS9_RESTART_POLICY:-no}
     command: redis-server --appendonly yes
     ports:
-      - "6380:6379"
+      - "7379:6379"
     volumes:
       - redis-dev-data:/data
     networks:
@@ -271,7 +271,7 @@ services:
     environment:
       # Only set what needs to be different from .env
       NODE_ENV: development
-      PORT: 4232
+      PORT: 5232
       HOST: 0.0.0.0
       LOG_LEVEL: debug
       # Redis uses docker service name when running in docker network
@@ -281,7 +281,7 @@ services:
       # R Analytics API URL mapped to docker service
       R_SERVICE_URL: http://r-analytics:4241
     ports:
-      - "5232:4232"
+      - "5232:5232"
     networks:
       - ifrs9-dev
       - ifrs9-observability
@@ -330,7 +330,7 @@ services:
       - ${BACKEND_SERVICE_ENV_FILE:-backend.env}
     environment:
       NODE_ENV: development
-      PORT: 4232
+      PORT: 5232
       HOST: 0.0.0.0
       LOG_LEVEL: debug
       REDIS_HOST: redis
@@ -346,7 +346,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
-      - "5232:4232"
+      - "5232:5232"
     networks:
       - ifrs9-dev
       - ifrs9-observability
@@ -390,10 +390,10 @@ services:
     container_name: ristix-new-backend-vpn
     environment:
       NODE_ENV: development
-      PORT: 4232
+      PORT: 5232
       HOST: 0.0.0.0
       LOG_LEVEL: ${LOG_LEVEL:-debug}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:4231,http://127.0.0.1:4231}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5231,http://127.0.0.1:5231}
 
       JWT_SECRET: ${JWT_SECRET:-dev-local-jwt-secret-please-change-000000}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev-local-jwt-refresh-secret-please-change-000000}
@@ -433,7 +433,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
-      - "5232:4232"
+      - "5232:5232"
     networks:
       - ifrs9-dev
       - ifrs9-observability
@@ -469,7 +469,7 @@ services:
     environment:
       NODE_ENV: development
       HOSTNAME: "0.0.0.0"
-      BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://new-backend-vpn:4232}
+      BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://host.docker.internal:5232}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
@@ -495,13 +495,13 @@ services:
       - frontend.env.example
     environment:
       - NODE_ENV=development
-      - PORT=4231
-      - BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL:-http://new-backend-vpn:4232}
+      - PORT=5231
+      - BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL:-http://host.docker.internal:5232}
       # Server-side env vars (for Next.js server)
       # Client-side uses .env file which has localhost URLs
       - NEXT_TELEMETRY_DISABLED=1
       - NODE_OPTIONS=--max-old-space-size=4096
-      - WSS_PORT=4231
+      - WSS_PORT=5231
       # Polling is reliable on every Docker setup, but very slow on macOS bind mounts.
       # Override with WATCHPACK_POLLING=true only if file changes are not detected.
       - WATCHPACK_POLLING=${WATCHPACK_POLLING:-false}
@@ -511,10 +511,11 @@ services:
       - ../../packages/frontend/public:/app/public
       - ../../packages/frontend/next.config.mjs:/app/next.config.mjs
       - ../../packages/frontend/.env.local:/app/.env.local
+      - ../../packages/frontend/package.json:/app/package.json
       - ../../packages/frontend/tsconfig.json:/app/tsconfig.json:ro
       - frontend-next-cache:/app/.next
     ports:
-      - "5231:4231"
+      - "5231:5231"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:

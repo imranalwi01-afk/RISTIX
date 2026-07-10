@@ -10,6 +10,8 @@ import { roles } from '@/db/schema/rbac.schema'
 const ACCESS_TOKEN_EXPIRY_MS = 60 * 60 * 1000 // 1h
 const REFRESH_TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000 // 7d
 
+
+
 const generateAccessToken = async (
     user: any, tokenId: string, tenantId: string | undefined,
     roles: string[], permissions: string[], stakeholderType: string

@@ -266,9 +266,7 @@ mock.module(configDatabaseAliasPath, () => ({
   }),
 }))
 
-mock.module(approvalHelpersPath, () => ({
-  buildDefaultFourEyesRouting: () => [],
-}))
+mock.module(approvalHelpersPath, () => ({}))
 
 mock.module(notificationSocketPath, () => ({
   getNotificationSocket: () => ({
@@ -366,7 +364,7 @@ mock.module(rbacServicePath, () => ({
   getAvailablePermissions: () =>
     Effect.succeed([
       { id: 'perm-approve', code: 'approval.requests.approve' },
-      { id: 'perm-audit', code: 'admin.maintenance.access' },
+      { id: 'perm-audit', code: 'admin.system.view' },
     ]),
   updateRolePermissions: (roleId: string, permissionIds: string[]) =>
     Effect.sync(() => {
@@ -603,7 +601,7 @@ describe('approval executor integration with mocked live stores', () => {
     expect(stores.roleAssignments).toContainEqual({ userId: 'user-1', roleId: 'role-1', tenantId: 'tenant-1' })
 
     await approvalService.replayApprovedRequestSideEffect(
-      makeRequest('role_permission', 'update', { roleId: 'role-1', permissions: ['approval.requests.approve', 'admin.maintenance.access'] }),
+      makeRequest('role_permission', 'update', { roleId: 'role-1', permissions: ['approval.requests.approve', 'admin.system.view'] }),
       'approver-1'
     )
     expect(stores.rolePermissions.get('role-1')).toEqual(['perm-approve', 'perm-audit'])

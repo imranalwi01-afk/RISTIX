@@ -9,7 +9,7 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { useSelector, useDispatch, shallowEqual } from 'react-redux';
+import { useSelector, shallowEqual } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { useRouter, usePathname } from 'next/navigation';
 import { Box, CircularProgress, Alert } from '@mui/material';
@@ -119,8 +119,6 @@ const selectAuthData = createSelector(
 const StakeholderRouter: React.FC<StakeholderRouterProps> = ({ children }) => {
   const router = useRouter();
   const pathname = usePathname() || '/';
-  const dispatch = useDispatch();
-
   const authData = useSelector(selectAuthData, shallowEqual);
   const { user, isAuthenticated, loading } = authData;
 

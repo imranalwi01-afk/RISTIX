@@ -215,3 +215,39 @@ When uncertain: **prefer Tenant DB over Platform DB.**
 
 The tenant database should always be considered the primary source of truth.
 ```
+
+## Required Workflow Before Completing Any Session
+
+### 1. Version Tagging Convention
+- **Never force-push or delete-and-recreate tags.** Bump to the next version instead.
+- Tags follow `vX.Y.Z` semver. If `v2.14.15` fails, fix and push `v2.14.16`, never reuse `v2.14.15`.
+
+### 2. Changelog
+- Update `CHANGELOG.md` at repository root with every deployed change.
+- Format: one `## [version] - YYYY-MM-DD` header per release, with bullet points under `### Added`, `### Fixed`, `### Changed`, `### Removed`.
+
+### 3. Incident Reports
+- Every bug or outage that required debugging must be documented in `docs/incident-reports/YYYY-MM-DD-short-description.md`.
+- Template:
+  ```
+  # YYYY-MM-DD: Title
+  
+  ## Summary
+  One-line description.
+  
+  ## Root Cause
+  What caused it.
+  
+  ## Impact
+  Who/what was affected and for how long.
+  
+  ## Fix
+  What was changed to resolve it.
+  
+  ## Prevention
+  How to avoid this in the future.
+  ```
+
+### 4. opencode.json
+- `opencode.jsonc` at repository root configures agent behavior. It must reference this AGENTS.md as instructions.
+

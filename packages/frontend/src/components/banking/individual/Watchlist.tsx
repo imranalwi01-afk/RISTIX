@@ -13,8 +13,6 @@ import {
   DialogContent,
   DialogActions,
   Chip,
-  IconButton,
-  Tooltip,
   Alert,
   Snackbar,
   Breadcrumbs,
@@ -29,14 +27,12 @@ import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeD
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
-  Visibility as ViewIcon,
   Search as SearchIcon,
   Assessment as AssessmentIcon,
   Home as HomeIcon,
   List as ListIcon,
   Person as PersonIcon,
   Warning as WarningIcon,
-  CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
 import { usePathname, useRouter } from 'next/navigation';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';

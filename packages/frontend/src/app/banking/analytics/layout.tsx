@@ -10,7 +10,7 @@
 // Features: Compact tab navigation, smaller icons, narrow height
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Box,
@@ -64,6 +64,14 @@ export default function AnalyticsLayout({ children }: AnalyticsLayoutProps) {
   // Local state
   const [settingsAnchor, setSettingsAnchor] = useState<null | HTMLElement>(null);
   const [filtersAnchor, setFiltersAnchor] = useState<null | HTMLElement>(null);
+  
+  // Safe client-side check to avoid Suspense deoptimization issues in Next.js layouts
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsFullscreen(new URLSearchParams(window.location.search).get('fullscreen') === 'true');
+    }
+  }, []);
 
   // ✅ Navigation tabs configuration with smaller icons
   const analyticsNavigations = [
@@ -162,6 +170,10 @@ export default function AnalyticsLayout({ children }: AnalyticsLayoutProps) {
   };
 
   const bankingInfo = getBankingModeInfo();
+
+  if (isFullscreen) {
+    return <>{children}</>;
+  }
 
   return (
     <Box>

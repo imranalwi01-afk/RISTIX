@@ -10,8 +10,6 @@ import {
     formatDirectExecutionResponse,
     buildApprovalTitle,
     buildApprovalDescription,
-    buildDefaultFourEyesRouting,
-    requiresStrictFourEyes,
     type ApprovalCheckResult,
     type ApprovalResponse,
 } from '@/lib/approval-helpers'
@@ -67,14 +65,6 @@ export const checkApprovalRequired = (
 
             // No matrix = no approval required
             if (!matrix) {
-                if (requiresStrictFourEyes(entityType)) {
-                    return {
-                        requiresApproval: true,
-                        canSelfApprove: false,
-                        reason: 'Strict four-eyes policy enforced (matrix fallback)',
-                    }
-                }
-
                 return {
                     requiresApproval: false,
                     canSelfApprove: true,
@@ -183,9 +173,7 @@ export const interceptCRUDOperation = <T>(
                         entityType: context.entityType,
                         oldValues: context.oldValues,
                         data: context.data,
-                        approvalRouting: !checkResult.matrix && requiresStrictFourEyes(context.entityType)
-                            ? { levels: buildDefaultFourEyesRouting(context.entityType) }
-                            : undefined,
+                        approvalRouting: undefined,
                     },
                     requestedBy: context.userId,
                     impactLevel: context.impactLevel || 'medium',
