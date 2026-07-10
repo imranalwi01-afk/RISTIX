@@ -165,7 +165,7 @@ platformSettingsRoutes.openapi(
             if (existing) {
                 const [updated] = await platformDb.update(platformSettings)
                     .set({
-                        value: { ...existing.value, ...body },
+                        value: { ...(existing.value as Record<string, unknown>), ...body },
                         updatedAt: new Date()
                     })
                     .where(eq(platformSettings.key, 'branding'))
