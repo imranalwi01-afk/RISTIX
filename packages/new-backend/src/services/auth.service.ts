@@ -135,20 +135,6 @@ const REFRESH_TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
  * @param stakeholderType - The persona hint for the frontend
  * @returns A signed JWT string
  */
-const JWT_PERMISSION_KEEP = new Set([
-    'admin.super_admin', 'approval.all', 'approval.requests.approve',
-])
-
-const trimPermissions = (perms: string[]): string[] => {
-    const trimmed = perms.filter(p => JWT_PERMISSION_KEEP.has(p))
-    // Always include admin.super_admin if any superadmin-like permission exists
-    if (trimmed.includes('admin.super_admin')) return trimmed
-    if (perms.includes('*') || perms.includes('PLATFORM_ADMIN') || perms.includes('SUPER_ADMIN')) {
-        trimmed.push('admin.super_admin')
-    }
-    return trimmed
-}
-
 const generateAccessToken = async (
     user: User,
     tokenId: string,
@@ -165,7 +151,6 @@ const generateAccessToken = async (
         type: 'access',
         roles,
         role: roles[0],
-        permissions: trimPermissions(permissions),
         stakeholderType,
     })
         .setProtectedHeader({ alg: 'HS256' })
@@ -201,7 +186,6 @@ const generateRefreshToken = async (
         type: 'refresh',
         roles,
         role: roles[0],
-        permissions: trimPermissions(permissions),
         stakeholderType,
     })
         .setProtectedHeader({ alg: 'HS256' })
