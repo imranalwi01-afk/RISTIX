@@ -76,6 +76,6 @@ jobs:
 
       - name: Deploy R Analytics with Docker Compose
         run: |
-          cd /opt/ifrspro
+          cd /home/admin/RISTIX
           docker compose --profile analytics pull
           docker compose --profile analytics up -d
