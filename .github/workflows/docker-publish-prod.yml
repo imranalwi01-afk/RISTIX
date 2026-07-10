@@ -383,6 +383,6 @@ jobs:
 
       - name: Deploy with Docker Compose
         run: |
-          cd /home/admin/RISTIX
+          cd /opt/ifrspro
           docker compose --profile app pull
           docker compose --profile app up -d
