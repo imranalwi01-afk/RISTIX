@@ -207,7 +207,7 @@ R_ANALYTICS_DEV_BYPASS_AUTH=true
 - **Local**: http://localhost:4236
 
 ### Production (iafecs):
-- **Dashboard**: https://iaf-ifrs-analytics.danafin.com
+- **Dashboard**: https://analytics-ristix.bdo-ki.com
 - **Local**: http://10.18.11.35:4236
 
 ## 🔧 **Quick Start Commands**

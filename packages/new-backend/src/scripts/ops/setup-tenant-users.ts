@@ -14,7 +14,7 @@ import { randomUUID } from 'node:crypto'
 //   ./ops setup-tenant-users <tenantCode> [password]
 //
 // Example:
-//   ./ops setup-tenant-users DANAFIN MySecurePass123
+//   ./ops setup-tenant-users RISTIX MySecurePass123
 //
 // Creates:
 //   - Roles: SUPERADMIN, MAKER, CHECKER, APPROVER (if missing)
@@ -75,7 +75,7 @@ export async function run(args: string[] = []) {
 
     if (!tenantCode) {
         console.error('❌ Usage: setup-tenant-users <tenantCode> [password]')
-        console.error('   Example: setup-tenant-users DANAFIN MySecurePass123')
+        console.error('   Example: setup-tenant-users RISTIX MySecurePass123')
         process.exit(1)
     }
 

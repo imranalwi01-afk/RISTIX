@@ -85,7 +85,7 @@ program.command('sync-permissions')
 
 program.command('setup-tenant-users')
     .description('Create roles (SUPERADMIN, MAKER, CHECKER, APPROVER) + users for any tenant')
-    .argument('<tenantCode>', 'Tenant code (e.g., DANAFIN)')
+    .argument('<tenantCode>', 'Tenant code (e.g., RISTIX)')
     .argument('[password]', 'Password for all users (default: ChangeMe123!)')
     .action(setupTenantUsers);
 

@@ -2,4 +2,4 @@ User-agent: *
 Disallow: /api/
 Allow: /
 
-Sitemap: https://iaf-ifrs.danafin.com/sitemap.xml
+Sitemap: https://ristix.bdo-ki.com/sitemap.xml

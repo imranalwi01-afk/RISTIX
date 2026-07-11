@@ -25,7 +25,7 @@ export const getConfigValue = (key: string, defaultValue?: string): string => {
     APP_NAME: 'PSAK 413 Pro System',
     APP_VERSION: '2.0.0',
     ENVIRONMENT: 'development',
-    API_URL: 'https://iaf-ifrs-be.danafin.com/api/v1',
+    API_URL: 'https://api-ristix.bdo-ki.com/api/v1',
     BANKING_MODE: 'conventional',
     PLATFORM_NAME: 'PSAK 413 Platform',
     COMPANY_NAME: 'Banking Institution'
@@ -109,10 +109,10 @@ export const getEnvironmentConfig = (): EnvironmentConfig => {
       name: getConfigValue('APP_NAME', 'PSAK 413 Pro System'),
       version: getConfigValue('APP_VERSION', '2.0.0'),
       environment: getConfigValue('ENVIRONMENT', 'development') as any,
-      baseUrl: getConfigValue('BASE_URL', 'https://iaf-ifrs.danafin.com')
+      baseUrl: getConfigValue('BASE_URL', 'https://ristix.bdo-ki.com')
     },
     api: {
-      baseUrl: getConfigValue('API_URL', 'https://iaf-ifrs-be.danafin.com/api/v1'),
+      baseUrl: getConfigValue('API_URL', 'https://api-ristix.bdo-ki.com/api/v1'),
       timeout: parseInt(getConfigValue('API_TIMEOUT', '30000')),
       retries: parseInt(getConfigValue('API_RETRIES', '3'))
     },
@@ -254,7 +254,7 @@ export const isConventionalBankingEnabled = (): boolean => {
 export const isDualBankingEnabled = (): boolean => getConfigValue('BANKING_MODE') === 'dual';
 
 // ✅ API Configuration Helpers
-export const getApiBaseUrl = (): string => getConfigValue('API_URL', 'http://iaf-ifrs-be.danafin.com/api/v1');
+export const getApiBaseUrl = (): string => getConfigValue('API_URL', 'http://api-ristix.bdo-ki.com/api/v1');
 export const getApiTimeout = (): number => parseInt(getConfigValue('API_TIMEOUT', '30000'));
 export const getApiRetries = (): number => parseInt(getConfigValue('API_RETRIES', '3'));
 

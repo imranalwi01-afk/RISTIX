@@ -98,7 +98,7 @@ Trigger: manual (`workflow_dispatch`)
 Trigger: tag `v*.*.*` atau manual
 ```yaml
 # docker-publish-prod.yml
-# Build + push ke GHCR + deploy ke danafin.com
+# Build + push ke GHCR + deploy ke ristix.bdo-ki.com
 ```
 
 ## Build Commands

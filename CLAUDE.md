@@ -56,9 +56,9 @@ IFRS 9 Multi-Tenant Dual Banking Platform - a comprehensive banking solution sup
     ./ifrs9-iaf/ root@10.18.11.35:~/projects/ifrs9-iaf/
   ```
 - **Production URLs**:
-  - Frontend: https://iaf-ifrs.danafin.com
-  - Backend: https://iaf-ifrs-be.danafin.com
-  - R Analytics: https://iaf-ifrs-analytics.danafin.com
+  - Frontend: https://ristix.bdo-ki.com
+  - Backend: https://api-ristix.bdo-ki.com
+  - R Analytics: https://analytics-ristix.bdo-ki.com
 - **Authentication**: Password.2025! for IAF ECS Server
 
 ## 🔄 SEAMLESS LOCAL/IAFECS ENVIRONMENT SWITCHING
@@ -122,10 +122,10 @@ rsync -avz --progress \
 - **PM2**: NOT CURRENTLY USED - Do not use PM2 commands
 
 #### **Step 4: Validation**
-- **Frontend**: Test at https://iaf-ifrs.danafin.com
-- **Backend API**: Test endpoints at https://iaf-ifrs-be.danafin.com/api/v1
-- **R Analytics**: Test at https://iaf-ifrs-analytics.danafin.com
-- **Health Check**: `curl -k https://iaf-ifrs-be.danafin.com/health`
+- **Frontend**: Test at https://ristix.bdo-ki.com
+- **Backend API**: Test endpoints at https://api-ristix.bdo-ki.com/api/v1
+- **R Analytics**: Test at https://analytics-ristix.bdo-ki.com
+- **Health Check**: `curl -k https://api-ristix.bdo-ki.com/health`
 
 ### **Environment Detection Logic**
 ```bash
@@ -139,7 +139,7 @@ rsync -avz --progress \
 # Frontend Auto-Detection Priority:
 1. NEXT_PUBLIC_DEPLOYMENT_TARGET environment variable
 2. Window hostname detection:
-   - iaf-ifrs.danafin.com → iafecs
+   - ristix.bdo-ki.com → iafecs
    - ifrs9-iaf.ifrspro.id → localdev
 3. NODE_ENV=production → iafecs
 4. Default: localdev
@@ -191,9 +191,9 @@ const backendUrl = config.api.backend;
 - R Analytics: 4236 → https://iaf-ifrs-analytics.ifrspro.id
 
 **IAF ECS Production**:
-- Frontend: 4231 → https://iaf-ifrs.danafin.com
-- Backend: 4232 → https://iaf-ifrs-be.danafin.com
-- R Analytics: 4236 → https://iaf-ifrs-analytics.danafin.com
+- Frontend: 4231 → https://ristix.bdo-ki.com
+- Backend: 4232 → https://api-ristix.bdo-ki.com
+- R Analytics: 4236 → https://analytics-ristix.bdo-ki.com
 
 **Technology Stack:**
 - Frontend: Next.js 16.1.x + Material UI v7 + React Admin v4
@@ -385,7 +385,7 @@ DS2 Analytics Server:
 ✅ ALL ENVIRONMENT VARIABLES MUST BE: DB_SSL=false, PLATFORM_DB_SSL=false, TENANT_DB_SSL=false
 ```
 
-#### **IAF ECS PRODUCTION (iaf-ifrs.danafin.com):**
+#### **IAF ECS PRODUCTION (ristix.bdo-ki.com):**
 ```bash
 # IAF ECS Production Database Connections (NO SSL - MANDATORY)
 RDS Alibaba Cloud:
@@ -430,7 +430,7 @@ const dbConfig = {
 // Local Development: HTTP via Cloudflare Zero Trust
 const backendUrl = isLocalDevelopment
   ? 'https://iaf-ifrs-be.ifrspro.id'  // Cloudflare Zero Trust
-  : 'https://iaf-ifrs-be.danafin.com'; // IAF ECS Production
+  : 'https://api-ristix.bdo-ki.com'; // IAF ECS Production
 
 // NO hardcoded localhost URLs
 // NO direct IP:port combinations
@@ -456,7 +456,7 @@ const backendUrl = isLocalDevelopment
 1. DEPLOYMENT_TARGET environment variable (localdev|iafecs)
 2. Hostname detection:
    - ifrs9-iaf.ifrspro.id → localdev
-   - iaf-ifrs.danafin.com → iafecs
+   - ristix.bdo-ki.com → iafecs
 3. Default: localdev
 
 # SSL Configuration Based on Environment:
@@ -483,28 +483,28 @@ const backendUrl = isLocalDevelopment
 
 ### **HTTPS DEPLOYMENT ON IAF ECS SERVER**
 **Server**: IAF ECS Server (10.18.11.35)
-**SSL**: danafin.com wildcard certificates
+**SSL**: ristix.bdo-ki.com wildcard certificates
 **Deployment Date**: January 2025
 
 **HTTPS DOMAINS:**
-- **Frontend**: `https://iaf-ifrs.danafin.com` (Port 4231 → 443)
-- **Backend**: `https://iaf-ifrs-be.danafin.com` (Port 4232 → 443)
-- **R Analytics Dashboard**: `https://iaf-ifrs-analytics.danafin.com` (Port 4236 → 443)
-- **R Analytics API**: `https://iaf-ifrs-analytics-calc.danafin.com` (Port 4241 → 443)
+- **Frontend**: `https://ristix.bdo-ki.com` (Port 4231 → 443)
+- **Backend**: `https://api-ristix.bdo-ki.com` (Port 4232 → 443)
+- **R Analytics Dashboard**: `https://analytics-ristix.bdo-ki.com` (Port 4236 → 443)
+- **R Analytics API**: `https://analytics-calc-ristix.bdo-ki.com` (Port 4241 → 443)
 
 ### **HTTPS CONFIGURATION FILES**
 **nginx Configuration**: `/etc/nginx/sites-available/iaf-complete-https`
-- SSL certificate: `/root/projects/ifrs9-iaf/danafin.com/danafin.com.pem`
-- SSL private key: `/root/projects/ifrs9-iaf/danafin.com/danafin.com.key`
+- SSL certificate: `/root/projects/ifrs9-iaf/ristix.bdo-ki.com/ristix.bdo-ki.com.pem`
+- SSL private key: `/root/projects/ifrs9-iaf/ristix.bdo-ki.com/ristix.bdo-ki.com.key`
 - CORS handling: Backend-only (nginx headers removed to prevent duplicates)
 
 **Frontend Configuration**: `packages/frontend/.env`
 ```bash
 NEXT_PUBLIC_ENABLE_HTTPS=true
 NEXT_PUBLIC_SECURE_COOKIES=true
-NEXT_PUBLIC_BACKEND_HOST=iaf-ifrs-be.danafin.com
+NEXT_PUBLIC_BACKEND_HOST=api-ristix.bdo-ki.com
 NEXT_PUBLIC_BACKEND_PORT=443
-BACKEND_URL=https://iaf-ifrs-be.danafin.com
+BACKEND_URL=https://api-ristix.bdo-ki.com
 ```
 
 **Centralized Config**: `packages/frontend/src/config/centralized.config.ts`
@@ -580,7 +580,7 @@ Any use of mock/fallback data or development configurations violates user requir
 
 # FRONTEND DETECTION (environment-loader-frontend.ts):
 1. Window hostname detection:
-   - iaf-ifrs.danafin.com → iafecs (Production)
+   - ristix.bdo-ki.com → iafecs (Production)
    - ifrs9-iaf.ifrspro.id → localdev (Development)
 2. NEXT_PUBLIC_DEPLOYMENT_TARGET environment variable
 3. NODE_ENV=production → iafecs
@@ -601,7 +601,7 @@ Any use of mock/fallback data or development configurations violates user requir
 - **Purpose**: Browser-based environment detection and URL resolution
 - **Auto-Switching**:
   - **Development**: `ifrs9-iaf.ifrspro.id` domains + local databases
-  - **Production**: `iaf-ifrs.danafin.com` domains + RDS databases
+  - **Production**: `ristix.bdo-ki.com` domains + RDS databases
 
 #### **Backend Configuration**
 - **File**: `packages/backend/src/config/environment-loader-backend.ts`
@@ -643,10 +643,10 @@ R Analytics API: 4241
 #### **IAF Production Environment (IAFECS)**
 ```bash
 # Frontend URLs
-Frontend: https://iaf-ifrs.danafin.com
-Backend API: https://iaf-ifrs-be.danafin.com
-R Analytics: https://iaf-ifrs-analytics.danafin.com
-R Analytics API: https://iaf-ifrs-analytics-calc.danafin.com
+Frontend: https://ristix.bdo-ki.com
+Backend API: https://api-ristix.bdo-ki.com
+R Analytics: https://analytics-ristix.bdo-ki.com
+R Analytics API: https://analytics-calc-ristix.bdo-ki.com
 
 # Database Connections (Alibaba Cloud RDS)
 All DBs: pgm-d9j5id443p7876n9.pgsql.ap-southeast-5.rds.aliyuncs.com:5432
@@ -753,15 +753,15 @@ cd packages/r-analytics/shiny-app && ./start.sh
 
 # STEP 6: Verify Deployment
 # Check if services are running (use ps aux | grep node or netstat -tlnp)
-curl -k https://iaf-ifrs-be.danafin.com/health
-curl -k https://iaf-ifrs-analytics.danafin.com/health
+curl -k https://api-ristix.bdo-ki.com/health
+curl -k https://analytics-ristix.bdo-ki.com/health
 ```
 
 #### **AUTOMATIC ENVIRONMENT SWITCHING**
 **No configuration changes required!** The system automatically detects:
 
 - **Local Development**: When accessing `ifrs9-iaf.ifrspro.id` → uses local databases and dev URLs
-- **IAF Production**: When accessing `iaf-ifrs.danafin.com` → uses RDS databases and production URLs
+- **IAF Production**: When accessing `ristix.bdo-ki.com` → uses RDS databases and production URLs
 
 #### **DEPLOYMENT VALIDATION CHECKLIST**
 ```bash
@@ -773,9 +773,9 @@ curl -k https://iaf-ifrs-analytics.danafin.com/health
 ✅ Database connections use environment variables
 
 # Post-Deployment Verification
-✅ Frontend loads: https://iaf-ifrs.danafin.com
-✅ Backend API responds: https://iaf-ifrs-be.danafin.com/health
-✅ R Analytics works: https://iaf-ifrs-analytics.danafin.com
+✅ Frontend loads: https://ristix.bdo-ki.com
+✅ Backend API responds: https://api-ristix.bdo-ki.com/health
+✅ R Analytics works: https://analytics-ristix.bdo-ki.com
 ✅ Database connections established (RDS)
 ✅ Authentication system functional
 ✅ All services running: Check process status with ps aux | grep node

@@ -109,8 +109,8 @@ export function createApp() {
                     'http://localhost:4231',
                     'http://[::1]:4231',
                     'http://host.docker.internal:4231',
-                    'https://iaf-ifrs.danafin.com',
-                    'https://iaf-ifrs-be.danafin.com'
+                    'https://ristix.bdo-ki.com',
+                    'https://api-ristix.bdo-ki.com'
                 )
                 const normalizedOrigins = Array.from(new Set(allowedOrigins))
                 const normalizedOrigin = origin ? origin.trim().replace(/\/+$/, '') : origin

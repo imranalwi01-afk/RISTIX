@@ -70,7 +70,7 @@ const syncTokenToCookie = (token: string | null, user: any = null, refreshToken?
         // Set cookies for middleware and SSR access
         const isSecure = window.location.protocol === 'https:';
 
-        // ✅ Get cookie config with domain detection (supports localhost, ifrspro.id, danafin.com)
+        // ✅ Get cookie config with domain detection (supports localhost, ifrspro.id, ristix.bdo-ki.com)
         const cookieConfig = getCookieConfig(7);
 
         // Store auth_token (matches middleware.ts expectation)
@@ -344,8 +344,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 } else {
                   // Try process.env first (for server-side rendering), then hostname detection
                   backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ||
-                    (window.location.hostname.includes('danafin.com')
-                      ? 'https://iaf-ifrs-be.danafin.com'
+                    (window.location.hostname.includes('ristix.bdo-ki.com')
+                      ? 'https://api-ristix.bdo-ki.com'
                       : 'https://iaf-ifrs-be.ifrspro.id');
                 }
               } else {
@@ -768,8 +768,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (typeof window !== 'undefined') {
           // Try process.env first (for server-side rendering), then hostname detection
           backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ||
-            (window.location.hostname.includes('danafin.com')
-              ? 'https://iaf-ifrs-be.danafin.com'
+            (window.location.hostname.includes('ristix.bdo-ki.com')
+              ? 'https://api-ristix.bdo-ki.com'
               : 'https://iaf-ifrs-be.ifrspro.id');
         } else {
           // Server-side fallback

@@ -64,11 +64,11 @@ RAFSEnvironmentLoader <- R6Class("RAFSEnvironmentLoader",
 
           # Service URLs (Production HTTPS)
           urls = list(
-            frontend = "https://iaf-ifrs.danafin.com",
-            backend = "https://iaf-ifrs-be.danafin.com",
-            api = "https://iaf-ifrs-be.danafin.com/api",
-            r_analytics = "https://iaf-ifrs-analytics.danafin.com",
-            r_analytics_api = "https://iaf-ifrs-analytics-calc.danafin.com"
+            frontend = "https://ristix.bdo-ki.com",
+            backend = "https://api-ristix.bdo-ki.com",
+            api = "https://api-ristix.bdo-ki.com/api",
+            r_analytics = "https://analytics-ristix.bdo-ki.com",
+            r_analytics_api = "https://analytics-calc-ristix.bdo-ki.com"
           ),
 
           # Service Configuration
@@ -91,7 +91,7 @@ RAFSEnvironmentLoader <- R6Class("RAFSEnvironmentLoader",
           security = list(
             enable_ssl = TRUE,
             secure_cookies = TRUE,
-            cors_origins = c("https://iaf-ifrs.danafin.com")
+            cors_origins = c("https://ristix.bdo-ki.com")
           ),
 
           # Feature Flags

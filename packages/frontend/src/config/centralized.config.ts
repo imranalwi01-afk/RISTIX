@@ -158,9 +158,9 @@ class CentralizedConfigManager {
    * Auto-detect deployment type
    */
   private detectDeploymentType(): DeploymentConfig['deploymentType'] {
-    const backendHost = this.getEnvVar('BACKEND_HOST', 'iaf-ifrs-be.danafin.com');
+    const backendHost = this.getEnvVar('BACKEND_HOST', 'api-ristix.bdo-ki.com');
     
-    if (backendHost === '10.18.11.35' || backendHost.includes('danafin.com')) {
+    if (backendHost === '10.18.11.35' || backendHost.includes('ristix.bdo-ki.com')) {
       return 'ecs'; // Alibaba ECS
     } else if (backendHost.includes('amazonaws.com')) {
       return 'aws';
@@ -199,26 +199,26 @@ class CentralizedConfigManager {
 
         servers: {
           frontend: {
-            host: this.getEnvVar('NEXT_PUBLIC_FRONTEND_HOST', 'iaf-ifrs.danafin.com'),
+            host: this.getEnvVar('NEXT_PUBLIC_FRONTEND_HOST', 'ristix.bdo-ki.com'),
             port: parseInt(this.getEnvVar('NEXT_PUBLIC_FRONTEND_PORT', '4231')),
             url: this.getEnvVar('NEXT_PUBLIC_FRONTEND_URL', this.detectEnvironment() === 'iaf' ?
-              `https://iaf-ifrs.danafin.com` : `https://iaf-ifrs.ifrspro.id`)
+              `https://ristix.bdo-ki.com` : `https://iaf-ifrs.ifrspro.id`)
           },
           backend: {
-            host: this.getEnvVar('NEXT_PUBLIC_BACKEND_HOST', 'iaf-ifrs-be.danafin.com'),
+            host: this.getEnvVar('NEXT_PUBLIC_BACKEND_HOST', 'api-ristix.bdo-ki.com'),
             port: parseInt(this.getEnvVar('NEXT_PUBLIC_BACKEND_PORT', '443')),
             url: this.getEnvVar('NEXT_PUBLIC_BACKEND_URL', this.detectEnvironment() === 'iaf' ?
-              `https://iaf-ifrs-be.danafin.com` : `https://iaf-ifrs-be.ifrspro.id`),
+              `https://api-ristix.bdo-ki.com` : `https://iaf-ifrs-be.ifrspro.id`),
             apiUrl: this.getEnvVar('NEXT_PUBLIC_BACKEND_API_URL', this.detectEnvironment() === 'iaf' ?
-              `https://iaf-ifrs-be.danafin.com/api/v1` : `https://iaf-ifrs-be.ifrspro.id/api/v1`)
+              `https://api-ristix.bdo-ki.com/api/v1` : `https://iaf-ifrs-be.ifrspro.id/api/v1`)
           },
           rAnalytics: {
-            host: this.getEnvVar('NEXT_PUBLIC_R_ANALYTICS_HOST', 'iaf-ifrs-analytics.danafin.com'),
+            host: this.getEnvVar('NEXT_PUBLIC_R_ANALYTICS_HOST', 'analytics-ristix.bdo-ki.com'),
             port: parseInt(this.getEnvVar('NEXT_PUBLIC_R_ANALYTICS_PORT', '4236')),
             url: this.getEnvVar('NEXT_PUBLIC_R_ANALYTICS_URL', this.detectEnvironment() === 'iaf' ?
-              `https://iaf-ifrs-analytics.danafin.com` : `https://iaf-ifrs-analytics.ifrspro.id`),
+              `https://analytics-ristix.bdo-ki.com` : `https://iaf-ifrs-analytics.ifrspro.id`),
             apiUrl: this.getEnvVar('NEXT_PUBLIC_R_API_URL', this.detectEnvironment() === 'iaf' ?
-              `https://iaf-ifrs-analytics-calc.danafin.com/api` : `https://iaf-ifrs-analytics-calc.ifrspro.id/api`)
+              `https://analytics-calc-ristix.bdo-ki.com/api` : `https://iaf-ifrs-analytics-calc.ifrspro.id/api`)
           }
         },
 
@@ -248,14 +248,14 @@ class CentralizedConfigManager {
 
         rShiny: {
           conventional: {
-            host: this.getEnvVar('R_SHINY_HOST', this.getEnvVar('R_ANALYTICS_HOST', 'iaf-ifrs-analytics.danafin.com')),
+            host: this.getEnvVar('R_SHINY_HOST', this.getEnvVar('R_ANALYTICS_HOST', 'analytics-ristix.bdo-ki.com')),
             port: parseInt(this.getEnvVar('R_SHINY_CONVENTIONAL_PORT', '4236')),
-            url: this.getEnvVar('R_SHINY_CONVENTIONAL_URL', `https://${this.getEnvVar('R_SHINY_HOST', this.getEnvVar('R_ANALYTICS_HOST', 'iaf-ifrs-analytics.danafin.com'))}`)
+            url: this.getEnvVar('R_SHINY_CONVENTIONAL_URL', `https://${this.getEnvVar('R_SHINY_HOST', this.getEnvVar('R_ANALYTICS_HOST', 'analytics-ristix.bdo-ki.com'))}`)
           },
           dana: {
-            host: this.getEnvVar('R_SHINY_HOST', this.getEnvVar('R_ANALYTICS_HOST', 'iaf-ifrs-analytics.danafin.com')),
+            host: this.getEnvVar('R_SHINY_HOST', this.getEnvVar('R_ANALYTICS_HOST', 'analytics-ristix.bdo-ki.com')),
             port: parseInt(this.getEnvVar('R_SHINY_DANA_PORT', '4240')),
-            url: this.getEnvVar('R_SHINY_DANA_URL', `https://${this.getEnvVar('R_SHINY_HOST', this.getEnvVar('R_ANALYTICS_HOST', 'iaf-ifrs-analytics.danafin.com'))}:${this.getEnvVar('R_SHINY_DANA_PORT', '4240')}`)
+            url: this.getEnvVar('R_SHINY_DANA_URL', `https://${this.getEnvVar('R_SHINY_HOST', this.getEnvVar('R_ANALYTICS_HOST', 'analytics-ristix.bdo-ki.com'))}:${this.getEnvVar('R_SHINY_DANA_PORT', '4240')}`)
           }
         },
 
@@ -276,7 +276,7 @@ class CentralizedConfigManager {
           // 🚨 SECURITY NOTICE: JWT secrets are NOT exposed to frontend
           // JWT tokens are handled entirely server-side for security
           encryptionKey: this.getEnvVar('ENCRYPTION_KEY', '3bbd7f579ca87a9ec95abf240248ad9a4e12e1524984845625372279f9c7937c'),
-          corsOrigins: this.getEnvVar('CORS_ORIGINS', `${this.getEnvVar('FRONTEND_URL', 'https://iaf-ifrs.danafin.com')},${this.getEnvVar('BACKEND_URL', 'https://iaf-ifrs-be.danafin.com')}`).split(',')
+          corsOrigins: this.getEnvVar('CORS_ORIGINS', `${this.getEnvVar('FRONTEND_URL', 'https://ristix.bdo-ki.com')},${this.getEnvVar('BACKEND_URL', 'https://api-ristix.bdo-ki.com')}`).split(',')
         }
       };
 

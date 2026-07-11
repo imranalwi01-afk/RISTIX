@@ -207,7 +207,7 @@ server.listen(PROXY_PORT, '0.0.0.0', () => {
   console.log(`   ✅ Proxy Port: ${PROXY_PORT}`);
   console.log(`   ✅ R Shiny Target: ${R_SHINY_HOST}:${R_SHINY_PORT}`);
   console.log(`   ✅ CORS: Enabled for all origins`);
-  console.log(`   ✅ Domain: http://iaf-ifrs-analytics-calc.danafin.com (no port needed)`);
+  console.log(`   ✅ Domain: http://analytics-calc-ristix.bdo-ki.com (no port needed)`);
   console.log(`   ✅ Internal: http://10.18.11.35:${PROXY_PORT}`);
   console.log(`   ✅ Tenant: IAF (Indonesia Airawata Finance)`);
   console.log(`   ✅ Mode: Conventional Banking`);

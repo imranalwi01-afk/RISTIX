@@ -14,7 +14,7 @@ Tujuan: aplikasi bisa diakses dari luar dengan hostname tetap, contoh:
 Di tunnel `ifrs9pro` → Public Hostname:
 
 - Subdomain: `ifrs9pro`
-- Domain: pilih domain yang kamu miliki di Cloudflare (mis. `ifrspro.id` / `danafin.com` / dst.)
+- Domain: pilih domain yang kamu miliki di Cloudflare (mis. `ifrspro.id` / `ristix.bdo-ki.com` / dst.)
 - Service type: `HTTP`
 - URL: `http://frontend-dev:4231`
 

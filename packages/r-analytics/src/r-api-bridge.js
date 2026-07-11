@@ -74,7 +74,7 @@ console.log(`🌍 R-API Bridge detected environment: ${environment}`);
 app.use(cors({
     origin: getEnvVar('CORS_ORIGINS',
         environment === 'iafecs' ?
-        'https://iaf-ifrs.danafin.com,https://iaf-ifrs-be.danafin.com,https://iaf-ifrs-analytics.danafin.com,https://iaf-ifrs-analytics-calc.danafin.com' :
+        'https://ristix.bdo-ki.com,https://api-ristix.bdo-ki.com,https://analytics-ristix.bdo-ki.com,https://analytics-calc-ristix.bdo-ki.com' :
         'https://iaf-ifrs.ifrspro.id,https://iaf-ifrs-be.ifrspro.id,https://iaf-ifrs-analytics.ifrspro.id,https://iaf-ifrs-analytics-calc.ifrspro.id,http://localhost:4231,http://192.168.0.85:4231'
     ).split(',').map(origin => origin.trim()),
     credentials: true
@@ -97,12 +97,12 @@ const TENANT_CONFIG = {
         banking_type: 'conventional',
         domain: getEnvVar('TENANT_IAF_URL',
             environment === 'iafecs' ?
-            'https://iaf-ifrs-analytics.danafin.com' :
+            'https://analytics-ristix.bdo-ki.com' :
             'https://ifrs9-iaf-analytics.ifrspro.id'
         ),
         internal_url: getEnvVar('TENANT_IAF_INTERNAL',
             environment === 'iafecs' ?
-            'https://iaf-ifrs-analytics.danafin.com' :
+            'https://analytics-ristix.bdo-ki.com' :
             'http://192.168.0.85:4236'
         )
     }
@@ -486,7 +486,7 @@ app.listen(PORT, HOST, () => {
     
     // ✅ ENVIRONMENT-AWARE SERVICE URLS: Use centralized configuration
     const serviceHost = getEnvVar('SERVICE_HOST',
-        environment === 'iafecs' ? 'iaf-ifrs-analytics.danafin.com' : 'ifrs9-iaf-analytics.ifrspro.id');
+        environment === 'iafecs' ? 'analytics-ristix.bdo-ki.com' : 'ifrs9-iaf-analytics.ifrspro.id');
     const serviceUrl = `https://${serviceHost}`;
 
     console.log(`🔗 Health Check: ${serviceUrl}/health`);

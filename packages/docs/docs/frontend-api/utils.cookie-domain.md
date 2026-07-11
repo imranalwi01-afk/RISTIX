@@ -11,7 +11,7 @@
 Defined in: [utils/cookie-domain.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/bb1ac57ad2b5d07ecfce33a99f28955a8c25940f/packages/frontend/src/utils/cookie-domain.ts#L7)
 
 Utility for determining the correct cookie domain based on current hostname
-Supports: localhost, ifrspro.id, danafin.com, and other domains
+Supports: localhost, ifrspro.id, ristix.bdo-ki.com, and other domains
 
 #### Properties
 
@@ -111,7 +111,7 @@ Defined in: [utils/cookie-domain.ts:18](https://github.com/ifrspro/ifrs9-iaf/blo
 
 Get the appropriate cookie domain for the current hostname
 Returns undefined for localhost (cookies default to exact host)
-Returns parent domain for production domains (.ifrspro.id, .danafin.com, etc.)
+Returns parent domain for production domains (.ifrspro.id, .ristix.bdo-ki.com, etc.)
 
 #### Returns
 

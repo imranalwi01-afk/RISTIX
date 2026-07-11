@@ -56,7 +56,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' wss: ws: http://localhost:* http://127.0.0.1:* https://*.ifrspro.id https://*.danafin.com https://*.danafin.id; frame-ancestors 'self'; frame-src 'self' http://localhost:* https://*.ifrspro.id https://*.danafin.com https://*.danafin.id"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' wss: ws: http://localhost:* http://127.0.0.1:* https://*.ifrspro.id https://*.ristix.bdo-ki.com https://*.ristix.id; frame-ancestors 'self'; frame-src 'self' http://localhost:* https://*.ifrspro.id https://*.ristix.bdo-ki.com https://*.ristix.id"
         }
       ],
       "regex": "^(?:/(.*))(?:/)?$"

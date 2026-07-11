@@ -273,7 +273,7 @@ sudo tee /etc/nginx/sites-available/iaf-complete-https << 'EOF'
 # Frontend HTTP Redirect
 server {
     listen 80;
-    server_name iaf-ifrs.danafin.com;
+    server_name ristix.bdo-ki.com;
 
     # Force HTTPS redirect
     return 301 https://$server_name$request_uri;
@@ -282,7 +282,7 @@ server {
 # Backend API HTTP Redirect
 server {
     listen 80;
-    server_name iaf-ifrs-be.danafin.com;
+    server_name api-ristix.bdo-ki.com;
 
     # Force HTTPS redirect
     return 301 https://$server_name$request_uri;
@@ -291,7 +291,7 @@ server {
 # R Analytics Dashboard HTTP Redirect
 server {
     listen 80;
-    server_name iaf-ifrs-analytics.danafin.com;
+    server_name analytics-ristix.bdo-ki.com;
 
     # Force HTTPS redirect
     return 301 https://$server_name$request_uri;
@@ -300,7 +300,7 @@ server {
 # R Analytics Calculation API HTTP Redirect
 server {
     listen 80;
-    server_name iaf-ifrs-analytics-calc.danafin.com;
+    server_name analytics-calc-ristix.bdo-ki.com;
 
     # Force HTTPS redirect
     return 301 https://$server_name$request_uri;
@@ -313,10 +313,10 @@ server {
 # Frontend Application with WebSocket support
 server {
     listen 443 ssl http2;
-    server_name iaf-ifrs.danafin.com;
+    server_name ristix.bdo-ki.com;
 
-    ssl_certificate /root/projects/ifrs9-iaf/danafin.com/danafin.com.pem;
-    ssl_certificate_key /root/projects/ifrs9-iaf/danafin.com/danafin.com.key;
+    ssl_certificate /root/projects/ifrs9-iaf/ristix.bdo-ki.com/ristix.bdo-ki.com.pem;
+    ssl_certificate_key /root/projects/ifrs9-iaf/ristix.bdo-ki.com/ristix.bdo-ki.com.key;
 
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_prefer_server_ciphers on;
@@ -355,10 +355,10 @@ server {
 # Backend API
 server {
     listen 443 ssl http2;
-    server_name iaf-ifrs-be.danafin.com;
+    server_name api-ristix.bdo-ki.com;
 
-    ssl_certificate /root/projects/ifrs9-iaf/danafin.com/danafin.com.pem;
-    ssl_certificate_key /root/projects/ifrs9-iaf/danafin.com/danafin.com.key;
+    ssl_certificate /root/projects/ifrs9-iaf/ristix.bdo-ki.com/ristix.bdo-ki.com.pem;
+    ssl_certificate_key /root/projects/ifrs9-iaf/ristix.bdo-ki.com/ristix.bdo-ki.com.key;
 
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_prefer_server_ciphers on;
@@ -387,10 +387,10 @@ server {
 # R Analytics Dashboard
 server {
     listen 443 ssl http2;
-    server_name iaf-ifrs-analytics.danafin.com;
+    server_name analytics-ristix.bdo-ki.com;
 
-    ssl_certificate /root/projects/ifrs9-iaf/danafin.com/danafin.com.pem;
-    ssl_certificate_key /root/projects/ifrs9-iaf/danafin.com/danafin.com.key;
+    ssl_certificate /root/projects/ifrs9-iaf/ristix.bdo-ki.com/ristix.bdo-ki.com.pem;
+    ssl_certificate_key /root/projects/ifrs9-iaf/ristix.bdo-ki.com/ristix.bdo-ki.com.key;
 
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_prefer_server_ciphers on;
@@ -409,10 +409,10 @@ server {
 # R Analytics Calculation API
 server {
     listen 443 ssl http2;
-    server_name iaf-ifrs-analytics-calc.danafin.com;
+    server_name analytics-calc-ristix.bdo-ki.com;
 
-    ssl_certificate /root/projects/ifrs9-iaf/danafin.com/danafin.com.pem;
-    ssl_certificate_key /root/projects/ifrs9-iaf/danafin.com/danafin.com.key;
+    ssl_certificate /root/projects/ifrs9-iaf/ristix.bdo-ki.com/ristix.bdo-ki.com.pem;
+    ssl_certificate_key /root/projects/ifrs9-iaf/ristix.bdo-ki.com/ristix.bdo-ki.com.key;
 
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_prefer_server_ciphers on;

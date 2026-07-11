@@ -127,8 +127,8 @@ export API_BASE_URL=$(get_config "API_BASE_URL" "https://iaf-ifrs-be.ifrspro.id/
 
 # R Analytics URLs
 if [ "$DEPLOYMENT_TARGET" = "iafecs" ]; then
-    export R_ANALYTICS_URL="https://iaf-ifrs-analytics.danafin.com"
-    export R_API_URL="https://iaf-ifrs-analytics-calc.danafin.com"
+    export R_ANALYTICS_URL="https://analytics-ristix.bdo-ki.com"
+    export R_API_URL="https://analytics-calc-ristix.bdo-ki.com"
 else
     export R_ANALYTICS_URL="https://iaf-ifrs-analytics.ifrspro.id"
     export R_API_URL="https://iaf-ifrs-analytics-calc.ifrspro.id"

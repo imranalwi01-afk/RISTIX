@@ -11,7 +11,7 @@ const client = new Client({
 async function createTable() {
   try {
     await client.connect();
-    console.log('Connected to Danafin PostgreSQL database.');
+    console.log('Connected to Ristix PostgreSQL database.');
 
     const createTableQuery = `
       CREATE TABLE IF NOT EXISTS public.frs9_r_pd_afl (
@@ -30,7 +30,7 @@ async function createTable() {
     `;
 
     await client.query(createTableQuery);
-    console.log('Successfully created frs9_r_pd_afl table in Danafin database!');
+    console.log('Successfully created frs9_r_pd_afl table in Ristix database!');
   } catch (err) {
     console.error('Error creating table:', err);
   } finally {

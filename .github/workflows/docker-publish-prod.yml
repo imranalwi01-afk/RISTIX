@@ -240,10 +240,10 @@ jobs:
           echo "✅ Approval matrices seeding completed!"
 
   # =============================================================================
-  # 👥 SETUP DANAFIN USERS (workflow_dispatch only)
+  # 👥 SETUP RISTIX USERS (workflow_dispatch only)
   # =============================================================================
-  setup-danafin-users:
-    name: Setup DANAFIN Users (Production)
+  setup-ristix-users:
+    name: Setup RISTIX Users (Production)
     if: github.event_name == 'workflow_dispatch' && inputs.setup_danafin_users
     runs-on: [self-hosted, X64, Linux, iaf-prod]
 
@@ -305,13 +305,13 @@ jobs:
           labels: ${{ steps.meta-frontend.outputs.labels }}
           build-args: |
             NEXT_PUBLIC_ENVIRONMENT=production
-            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL || 'https://iaf-ifrs-be.danafin.com/api/v1' }}
-            NEXT_PUBLIC_BACKEND_API_URL=${{ vars.NEXT_PUBLIC_BACKEND_API_URL || 'https://iaf-ifrs-be.danafin.com/api/v1' }}
-            NEXT_PUBLIC_WS_URL=${{ vars.NEXT_PUBLIC_WS_URL || 'https://iaf-ifrs-be.danafin.com' }}
-            NEXT_PUBLIC_R_ANALYTICS_URL=${{ vars.NEXT_PUBLIC_R_ANALYTICS_URL || 'https://iaf-ifrs-analytics.danafin.com' }}
-            NEXT_PUBLIC_R_ANALYTICS_BASE_URL=${{ vars.NEXT_PUBLIC_R_ANALYTICS_BASE_URL || 'https://iaf-ifrs-analytics.danafin.com' }}
-            NEXT_PUBLIC_RAPI_BASE_URL=${{ vars.NEXT_PUBLIC_RAPI_BASE_URL || 'https://iaf-ifrs-analytics-calc.danafin.com/api' }}
-            NEXT_PUBLIC_DOMAIN=${{ vars.NEXT_PUBLIC_DOMAIN || 'danafin' }}
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL || 'https://api-ristix.bdo-ki.com/api/v1' }}
+            NEXT_PUBLIC_BACKEND_API_URL=${{ vars.NEXT_PUBLIC_BACKEND_API_URL || 'https://api-ristix.bdo-ki.com/api/v1' }}
+            NEXT_PUBLIC_WS_URL=${{ vars.NEXT_PUBLIC_WS_URL || 'https://api-ristix.bdo-ki.com' }}
+            NEXT_PUBLIC_R_ANALYTICS_URL=${{ vars.NEXT_PUBLIC_R_ANALYTICS_URL || 'https://analytics-ristix.bdo-ki.com' }}
+            NEXT_PUBLIC_R_ANALYTICS_BASE_URL=${{ vars.NEXT_PUBLIC_R_ANALYTICS_BASE_URL || 'https://analytics-ristix.bdo-ki.com' }}
+            NEXT_PUBLIC_RAPI_BASE_URL=${{ vars.NEXT_PUBLIC_RAPI_BASE_URL || 'https://analytics-calc-ristix.bdo-ki.com/api' }}
+            NEXT_PUBLIC_DOMAIN=${{ vars.NEXT_PUBLIC_DOMAIN || 'ristix' }}
             NEXT_PUBLIC_APP_NAME=${{ vars.NEXT_PUBLIC_APP_NAME || 'IFRS9 Platform' }}
             BACKEND_INTERNAL_URL=${{ vars.BACKEND_INTERNAL_URL || 'http://backend:4232' }}
           cache-from: type=gha

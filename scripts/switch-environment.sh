@@ -77,9 +77,9 @@ show_status() {
         echo "   R Analytics: https://iaf-ifrs-analytics.ifrspro.id"
     else
         echo "🏭 IAF ECS Production Environment"
-        echo "   Frontend: https://iaf-ifrs.danafin.com"
-        echo "   Backend:  https://iaf-ifrs-be.danafin.com"
-        echo "   R Analytics: https://iaf-ifrs-analytics.danafin.com"
+        echo "   Frontend: https://ristix.bdo-ki.com"
+        echo "   Backend:  https://api-ristix.bdo-ki.com"
+        echo "   R Analytics: https://analytics-ristix.bdo-ki.com"
     fi
 
     echo ""
@@ -185,9 +185,9 @@ EOF
         echo "   3. Restart R Analytics: cd packages/r-analytics && ./start-iaf-analytics.sh"
     else
         echo "🏭 IAF ECS Production Environment Activated"
-        echo "   Frontend: https://iaf-ifrs.danafin.com"
-        echo "   Backend:  https://iaf-ifrs-be.danafin.com"
-        echo "   R Analytics: https://iaf-ifrs-analytics.danafin.com"
+        echo "   Frontend: https://ristix.bdo-ki.com"
+        echo "   Backend:  https://api-ristix.bdo-ki.com"
+        echo "   R Analytics: https://analytics-ristix.bdo-ki.com"
         echo ""
         echo "📝 Next steps:"
         echo "   1. Sync to IAF server: rsync -avz --progress ./ifrs9-iaf/ root@10.18.11.35:~/projects/ifrs9-iaf/"

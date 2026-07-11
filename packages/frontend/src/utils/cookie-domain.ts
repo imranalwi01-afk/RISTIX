@@ -1,7 +1,7 @@
 // packages/frontend/src/utils/cookie-domain.ts
 /**
  * Utility for determining the correct cookie domain based on current hostname
- * Supports: localhost, ifrspro.id, danafin.com, and other domains
+ * Supports: localhost, ifrspro.id, ristix.bdo-ki.com, and other domains
  */
 
 export interface CookieDomainConfig {
@@ -13,7 +13,7 @@ export interface CookieDomainConfig {
 /**
  * Get the appropriate cookie domain for the current hostname
  * Returns undefined for localhost (cookies default to exact host)
- * Returns parent domain for production domains (.ifrspro.id, .danafin.com, etc.)
+ * Returns parent domain for production domains (.ifrspro.id, .ristix.bdo-ki.com, etc.)
  */
 export const getCookieDomain = (): string | undefined => {
   if (typeof window === 'undefined') return undefined;
@@ -30,9 +30,9 @@ export const getCookieDomain = (): string | undefined => {
     return '.ifrspro.id';
   }
 
-  // danafin.com: Use parent domain for cross-subdomain support
-  if (hostname.includes('danafin.com')) {
-    return '.danafin.com';
+  // ristix.bdo-ki.com: Use parent domain for cross-subdomain support
+  if (hostname.includes('ristix.bdo-ki.com')) {
+    return '.ristix.bdo-ki.com';
   }
 
   // Other domains: Extract parent domain (e.g., app.example.com -> .example.com)

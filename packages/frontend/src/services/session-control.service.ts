@@ -962,7 +962,7 @@ export class SessionControlService {
   private getEnvironment(): string {
     if (typeof window !== 'undefined') {
       const hostname = window.location.hostname;
-      if (hostname.includes('iaf-ifrs.danafin.com')) return 'iafecs';
+      if (hostname.includes('ristix.bdo-ki.com')) return 'iafecs';
       if (hostname.includes('iaf-ifrs.ifrspro.id')) return 'development';
     }
     return process.env.NODE_ENV || 'development';

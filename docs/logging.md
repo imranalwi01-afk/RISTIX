@@ -75,7 +75,7 @@ BullMQ workers wrapped by `traceJobProcessor()` adds:
 
 ## Querying
 
-**Grafana**: `https://iaf-ifrs.danafin.com/monitoring/`
+**Grafana**: `https://ristix.bdo-ki.com/monitoring/`
 
 ### Loki (Logs)
 | Query | Finds |

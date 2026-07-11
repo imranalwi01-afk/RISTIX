@@ -9,25 +9,25 @@ exports.ECS_PRODUCTION_CONFIG = {
         environment: 'production'
     },
     frontend: {
-        host: 'iaf-ifrs.danafin.com',
+        host: 'ristix.bdo-ki.com',
         port: 4231,
-        url: 'https://iaf-ifrs.danafin.com',
-        apiBaseUrl: 'https://iaf-ifrs.danafin.com/api'
+        url: 'https://ristix.bdo-ki.com',
+        apiBaseUrl: 'https://ristix.bdo-ki.com/api'
     },
     backend: {
-        host: 'iaf-ifrs-be.danafin.com',
+        host: 'api-ristix.bdo-ki.com',
         port: 4232,
-        url: 'https://iaf-ifrs-be.danafin.com',
-        apiUrl: 'https://iaf-ifrs-be.danafin.com/api/v1',
-        wsUrl: 'wss://iaf-ifrs.danafin.com'
+        url: 'https://api-ristix.bdo-ki.com',
+        apiUrl: 'https://api-ristix.bdo-ki.com/api/v1',
+        wsUrl: 'wss://ristix.bdo-ki.com'
     },
     rAnalytics: {
-        dashboardHost: 'iaf-ifrs-analytics.danafin.com',
+        dashboardHost: 'analytics-ristix.bdo-ki.com',
         dashboardPort: 4236,
-        dashboardUrl: 'https://iaf-ifrs-analytics.danafin.com',
-        apiHost: 'iaf-ifrs-analytics-calc.danafin.com',
+        dashboardUrl: 'https://analytics-ristix.bdo-ki.com',
+        apiHost: 'analytics-calc-ristix.bdo-ki.com',
         apiPort: 4241,
-        apiUrl: 'https://iaf-ifrs-analytics-calc.danafin.com/api'
+        apiUrl: 'https://analytics-calc-ristix.bdo-ki.com/api'
     },
     database: {
         host: 'pgm-d9j5id443p7876n9.pgsql.ap-southeast-5.rds.aliyuncs.com',
@@ -41,10 +41,10 @@ exports.ECS_PRODUCTION_CONFIG = {
     },
     cors: {
         origins: [
-            'https://iaf-ifrs.danafin.com',
-            'https://iaf-ifrs-be.danafin.com',
-            'https://iaf-ifrs-analytics.danafin.com',
-            'https://iaf-ifrs-analytics-calc.danafin.com',
+            'https://ristix.bdo-ki.com',
+            'https://api-ristix.bdo-ki.com',
+            'https://analytics-ristix.bdo-ki.com',
+            'https://analytics-calc-ristix.bdo-ki.com',
             'http://10.18.11.35:4231',
             'http://10.18.11.35:4232',
             'http://10.18.11.35:4236'
@@ -53,7 +53,7 @@ exports.ECS_PRODUCTION_CONFIG = {
         headers: ['Content-Type', 'Authorization', 'X-Tenant-ID', 'X-Requested-With']
     },
     websocket: {
-        url: 'wss://iaf-ifrs.danafin.com',
+        url: 'wss://ristix.bdo-ki.com',
         port: 4231
     },
     security: {

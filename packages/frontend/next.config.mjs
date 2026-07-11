@@ -18,9 +18,9 @@ const nextConfig = {
     '*.ifrspro.id',
     'iaf-ifrs.ifrspro.id',
     'iaf-ifrs-be.ifrspro.id',
-    '*.danafin.com',
-    'iaf-ifrs.danafin.com',
-    '*.danafin.id',
+    '*.ristix.bdo-ki.com',
+    'ristix.bdo-ki.com',
+    '*.ristix.id',
   ],
 
   // Force transpilation of MUI packages to fix Turbopack bundling issues
@@ -101,8 +101,8 @@ const nextConfig = {
     remotePatterns: [
       { protocol: 'http', hostname: 'localhost' },
       { protocol: 'https', hostname: 'iaf-ifrs.ifrspro.id' },
-      { protocol: 'https', hostname: 'danafin.com' },
-      { protocol: 'https', hostname: 'iaf-ifrs.danafin.com' },
+      { protocol: 'https', hostname: 'ristix.bdo-ki.com' },
+      { protocol: 'https', hostname: 'ristix.bdo-ki.com' },
     ],
     formats: ['image/webp', 'image/avif']
   },
@@ -136,9 +136,9 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data:",
-              "connect-src 'self' wss: ws: http://localhost:* http://127.0.0.1:* http://172.25.0.25:* http://ristix.bdo-ki.com:* https://*.ifrspro.id https://*.danafin.com https://*.danafin.id https://*.bdo-ki.com",
+              "connect-src 'self' wss: ws: http://localhost:* http://127.0.0.1:* http://172.25.0.25:* http://ristix.bdo-ki.com:* https://*.ifrspro.id https://*.ristix.bdo-ki.com https://*.ristix.id https://*.bdo-ki.com",
               "frame-ancestors 'self'",
-              "frame-src 'self' http://localhost:* http://172.25.0.25:* http://ristix.bdo-ki.com:* https://*.ifrspro.id https://*.danafin.com https://*.danafin.id https://*.bdo-ki.com",
+              "frame-src 'self' http://localhost:* http://172.25.0.25:* http://ristix.bdo-ki.com:* https://*.ifrspro.id https://*.ristix.bdo-ki.com https://*.ristix.id https://*.bdo-ki.com",
             ].join('; '),
           },
         ],

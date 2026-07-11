@@ -1,5 +1,13 @@
 # Changelog
 
+## [v2.14.60] - 2026-07-12
+
+### Changed
+- Replaced all legacy `danafin.com` domain configurations with the new `ristix.bdo-ki.com` domains across frontend, backend, analytics, and deployment scripts to prevent connection fallback errors.
+
+### Fixed
+- Fixed an issue where the `Individual Impairment` menu was hardcoded to be hidden from the sidebar navigation.
+- Fixed a state desync issue where uploading an avatar did not immediately update the avatar displayed in the top application bar until a page refresh.
 ## [v2.14.59] - 2026-07-11
 
 ### Added

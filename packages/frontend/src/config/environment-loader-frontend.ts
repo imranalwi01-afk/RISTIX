@@ -144,7 +144,7 @@ class FrontendEnvironmentLoader {
         dashboard: process.env.NEXT_PUBLIC_R_ANALYTICS_URL || process.env.NEXT_PUBLIC_R_DASHBOARD_URL || process.env.NEXT_PUBLIC_R_ANALYTICS_BASE_URL || (() => {
           if (typeof window === 'undefined') return '';
           const host = window.location.hostname;
-          if (host.includes('danafin')) return 'https://iaf-ifrs-analytics.danafin.com';
+          if (host.includes('ristix')) return 'https://analytics-ristix.bdo-ki.com';
           if (host.includes('ifrspro')) return 'https://iaf-ifrs-analytics.ifrspro.id';
           if (host.includes('bdo-ki')) return 'https://analytics-ristix.bdo-ki.com';
           return 'http://' + host + ':4236';

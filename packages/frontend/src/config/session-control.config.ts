@@ -511,7 +511,7 @@ export class SessionControlConfigManager {
     if (typeof window !== 'undefined') {
       const hostname = window.location.hostname;
 
-      if (hostname.includes('iaf-ifrs.danafin.com')) {
+      if (hostname.includes('ristix.bdo-ki.com')) {
         return 'iafecs';
       } else if (hostname.includes('iaf-ifrs.ifrspro.id')) {
         return 'development';

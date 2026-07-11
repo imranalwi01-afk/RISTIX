@@ -15,10 +15,10 @@ The authentication system now supports multiple domains and localhost developmen
 - Cookie behavior: Shared across all subdomains
 - Works for: `iaf-ifrs.ifrspro.id` ↔ `iaf-ifrs-be.ifrspro.id`
 
-### 3. **danafin.com (Future)**
-- Domain: `.danafin.com`
+### 3. **ristix.bdo-ki.com (Future)**
+- Domain: `.ristix.bdo-ki.com`
 - Cookie behavior: Shared across all subdomains
-- Works for: `app.danafin.com` ↔ `api.danafin.com`
+- Works for: `app.ristix.bdo-ki.com` ↔ `api.ristix.bdo-ki.com`
 
 ### 4. **Any Other Domain**
 - Automatically extracts parent domain
@@ -52,7 +52,7 @@ The authentication system now supports multiple domains and localhost developmen
 Returns the appropriate domain for cookies:
 - `undefined` for localhost
 - `.ifrspro.id` for ifrspro.id hosts
-- `.danafin.com` for danafin.com hosts
+- `.ristix.bdo-ki.com` for ristix.bdo-ki.com hosts
 - Auto-detected for other domains
 
 ### `getCookieConfig(expiryDays)`
@@ -104,11 +104,11 @@ document.cookie = buildCookieRemovalString('auth_token');
 # Cookies: domain=.ifrspro.id
 ```
 
-### Future (danafin.com)
+### Future (ristix.bdo-ki.com)
 ```bash
-# Frontend: https://app.danafin.com
-# Backend: https://api.danafin.com
-# Cookies: domain=.danafin.com (automatic)
+# Frontend: https://app.ristix.bdo-ki.com
+# Backend: https://api.ristix.bdo-ki.com
+# Cookies: domain=.ristix.bdo-ki.com (automatic)
 ```
 
 ## Security Notes
@@ -146,7 +146,7 @@ To add a new domain (e.g., `example.com`):
 
 ### Cookies not working between subdomains?
 - Check domain attribute in DevTools → Application → Cookies
-- Should be `.ifrspro.id` or `.danafin.com`
+- Should be `.ifrspro.id` or `.ristix.bdo-ki.com`
 
 ### Cookies not working on localhost?
 - Domain should be empty/undefined

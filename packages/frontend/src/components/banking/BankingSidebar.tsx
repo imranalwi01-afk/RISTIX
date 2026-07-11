@@ -486,8 +486,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
           !idsToRemove.has(item.id) && 
           item.title !== 'Financial Reports' && 
           item.title !== 'Executive Dashboard' && 
-          item.title !== 'Advanced Export' &&
-          item.title !== 'Individual Impairment'
+          item.title !== 'Advanced Export'
         )
         .map((item) => ({
           ...item,

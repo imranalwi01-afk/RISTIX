@@ -72,7 +72,7 @@ console.log(`🌍 Health Check Service detected environment: ${environment}`);
 // R-API Bridge configuration - CENTRALIZED
 const R_API_BRIDGE_URL = getEnvVar('R_ANALYTICS_URL',
     environment === 'iafecs' ?
-    'https://iaf-ifrs-analytics.danafin.com' :
+    'https://analytics-ristix.bdo-ki.com' :
     'https://iaf-ifrs-analytics.ifrspro.id'
 );
 
@@ -82,7 +82,7 @@ const TENANT_SERVICES = {
         port: getEnvVar('TENANT_IAF_PORT', '4236'),
         url: getEnvVar('TENANT_IAF_URL',
             environment === 'iafecs' ?
-            'https://iaf-ifrs-analytics.danafin.com' :
+            'https://analytics-ristix.bdo-ki.com' :
             'https://ifrs9-iaf-analytics.ifrspro.id'
         )
     }

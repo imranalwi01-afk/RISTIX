@@ -615,9 +615,9 @@ EOF
    \`\`\`
 
 5. **Validate deployment:**
-   - Frontend: https://iaf-ifrs.danafin.com
-   - Backend: https://iaf-ifrs-be.danafin.com/health
-   - R Analytics: https://iaf-ifrs-analytics.danafin.com
+   - Frontend: https://ristix.bdo-ki.com
+   - Backend: https://api-ristix.bdo-ki.com/health
+   - R Analytics: https://analytics-ristix.bdo-ki.com
 
 ## Environment Configuration
 

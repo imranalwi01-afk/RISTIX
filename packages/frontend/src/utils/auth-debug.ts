@@ -36,8 +36,8 @@ export const authDebugger = {
       hasToken: false,
       hasUserData: false,
       hasRefreshToken: false,
-      backendUrl: typeof window !== 'undefined' && window.location.hostname.includes('danafin.com')
-        ? 'https://iaf-ifrs-be.danafin.com'
+      backendUrl: typeof window !== 'undefined' && window.location.hostname.includes('ristix.bdo-ki.com')
+        ? 'https://api-ristix.bdo-ki.com'
         : 'https://iaf-ifrs-be.ifrspro.id'
     };
 
@@ -93,8 +93,8 @@ export const authDebugger = {
       return { valid: false, error: 'No token found' };
     }
 
-    const backendUrl = typeof window !== 'undefined' && window.location.hostname.includes('danafin.com')
-      ? 'https://iaf-ifrs-be.danafin.com'
+    const backendUrl = typeof window !== 'undefined' && window.location.hostname.includes('ristix.bdo-ki.com')
+      ? 'https://api-ristix.bdo-ki.com'
       : 'https://iaf-ifrs-be.ifrspro.id';
 
     try {
