@@ -92,8 +92,9 @@ import {
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../../providers/AuthProvider';
 import { useUserProfileQuery, useUpdateProfileMutation, useUserActivitiesQuery } from '@/features/profile/hooks/useProfileQueries';
-import { useSelector } from 'react-redux';
-import type { RootState } from "../../../../store";
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '../../../../store';
+import { updateUser } from '../../../../store/slices/authSlice';
 import { getAuthToken } from '@/utils/auth-token';
 import { useQuery } from '@tanstack/react-query';
 import { securityConfigAPI } from '@/services/api/security-config.api';
@@ -259,6 +260,8 @@ export default function ProfileSettingsPage() {
     'Authorization': `Bearer ${getAuthTokenValue()}`
   }), [getAuthTokenValue]);
 
+  const dispatch = useDispatch();
+
   // ✅ Profile loaded via React Query (useUserProfileQuery)
 
   // ✅ Update Profile via React Query
@@ -287,7 +290,7 @@ export default function ProfileSettingsPage() {
       const formData = new FormData();
       formData.append('avatar', file);
 
-      const response = await fetch(`${API_BASE}/user/${profile.id}/avatar`, {
+      const response = await fetch(`${API_BASE}/users/${profile.id}/avatar`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${getAuthToken()}`
@@ -297,7 +300,25 @@ export default function ProfileSettingsPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setProfile(prev => prev ? { ...prev, avatar: data.data.avatar } : null);
+        const avatarUrl = data.data.avatar;
+        setProfile(prev => prev ? { ...prev, avatar: avatarUrl } : null);
+        
+        // Update Redux
+        dispatch(updateUser({ avatarUrl: avatarUrl } as any));
+        
+        // Update LocalStorage
+        const userDataStr = localStorage.getItem('user_data');
+        if (userDataStr) {
+          try {
+            const userData = JSON.parse(userDataStr);
+            userData.avatar = avatarUrl;
+            userData.avatarUrl = avatarUrl;
+            localStorage.setItem('user_data', JSON.stringify(userData));
+          } catch (e) {
+            console.error('Failed to update localStorage user_data', e);
+          }
+        }
+        
         setSnackbar({
           open: true,
           message: 'Avatar updated successfully',

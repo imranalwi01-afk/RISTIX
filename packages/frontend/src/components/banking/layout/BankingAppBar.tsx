@@ -32,6 +32,7 @@ interface BankingAppBarProps {
     onDrawerToggle: () => void;
     userName: string;
     userRole: string | string[];
+    userAvatar?: string | null;
 }
 
 export const BankingAppBar: React.FC<BankingAppBarProps> = ({
@@ -41,7 +42,8 @@ export const BankingAppBar: React.FC<BankingAppBarProps> = ({
     onSidebarToggle,
     onDrawerToggle,
     userName,
-    userRole
+    userRole,
+    userAvatar
 }) => {
     const theme = useTheme();
     const { colorMode, toggleColorMode } = useBankingTheme();
@@ -154,7 +156,9 @@ export const BankingAppBar: React.FC<BankingAppBarProps> = ({
                             color="inherit"
                             onClick={handleProfileMenuOpen}
                         >
-                            <Avatar sx={{
+                            <Avatar 
+                                src={userAvatar || undefined}
+                                sx={{
                                 width: 28,
                                 height: 28,
                                 bgcolor: alpha(theme.palette.primary.main, 0.1),
@@ -162,7 +166,7 @@ export const BankingAppBar: React.FC<BankingAppBarProps> = ({
                                 fontWeight: 600,
                                 fontSize: '0.875rem'
                             }}>
-                                {userName.charAt(0).toUpperCase()}
+                                {!userAvatar && userName.charAt(0).toUpperCase()}
                             </Avatar>
                         </IconButton>
                     </Tooltip>
@@ -175,6 +179,7 @@ export const BankingAppBar: React.FC<BankingAppBarProps> = ({
                 onClose={handleProfileMenuClose}
                 userName={userName}
                 userRole={userRole}
+                userAvatar={userAvatar}
             />
         </>
     );

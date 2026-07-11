@@ -258,7 +258,7 @@ export const uploadUserAvatar = createAsyncThunk(
       const formData = new FormData();
       formData.append('avatar', file);
 
-      const response = await fetch(`${API_BASE}/user/${userId}/avatar`, {
+      const response = await fetch(`${API_BASE}/users/${userId}/avatar`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${getAuthToken() || ''}`

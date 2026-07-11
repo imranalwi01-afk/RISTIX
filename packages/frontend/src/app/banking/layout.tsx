@@ -49,6 +49,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
 
   // Redux auth state
   const authState = useSelector((state: RootState) => state.auth);
+  const userSettingsState = useSelector((state: RootState) => state.userSettings);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -57,6 +58,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
   const { enqueueSnackbar } = useSnackbar();
   const [userRole, setUserRole] = useState<string>('');
   const [userName, setUserName] = useState<string>('');
+  const [userAvatar, setUserAvatar] = useState<string>('');
 
   const currentDrawerWidth = sidebarCollapsed ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH;
 
@@ -79,6 +81,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
 
       setUserRole(role);
       setUserName(authState.user.fullName || authState.user.email || authState.user.username || 'User');
+      setUserAvatar((userSettingsState?.profile as any)?.avatar || (authState.user as any).avatarUrl || (authState.user as any).avatar || '');
       return;
     }
 
@@ -103,12 +106,13 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
 
           setUserRole(role);
           setUserName(parsedUser.fullName || parsedUser.email || parsedUser.username || 'User');
+          setUserAvatar(parsedUser.avatarUrl || parsedUser.avatar || '');
         } catch (error) {
           console.warn('Could not parse user data from localStorage:', error);
         }
       }
     }
-  }, [authState]);
+  }, [authState, userSettingsState?.profile]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -244,6 +248,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
         onDrawerToggle={handleDrawerToggle}
         userName={userName}
         userRole={userRole}
+        userAvatar={userAvatar}
       />
 
       {/* Breadcrumbs */}

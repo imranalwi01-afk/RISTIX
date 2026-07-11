@@ -1,5 +1,14 @@
 # Changelog
 
+## [v2.14.59] - 2026-07-11
+
+### Added
+- Added custom User Avatar Upload functionality. Users can now upload their avatars via Profile Settings.
+- Images are correctly encoded and stored into PostgreSQL database (`avatar_url`) eliminating the need for Docker volumes.
+- Frontend App Bar and Profile Menu now dynamically retrieve and display user avatars in real-time.
+
+### Changed
+- Replaced login screen logo and side-bar logo with the transparent RISTIX PRO logo.
 ## [v2.14.58] - 2026-07-11
 
 ### Added

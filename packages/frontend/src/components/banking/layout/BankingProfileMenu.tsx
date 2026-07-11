@@ -30,6 +30,7 @@ interface BankingProfileMenuProps {
     onClose: () => void;
     userName: string;
     userRole: string | string[]; // layout uses string | string[] logic
+    userAvatar?: string | null;
 }
 
 export const BankingProfileMenu: React.FC<BankingProfileMenuProps> = ({
@@ -37,7 +38,8 @@ export const BankingProfileMenu: React.FC<BankingProfileMenuProps> = ({
     open,
     onClose,
     userName,
-    userRole
+    userRole,
+    userAvatar
 }) => {
     const theme = useTheme();
     const router = useRouter();
@@ -120,7 +122,9 @@ export const BankingProfileMenu: React.FC<BankingProfileMenuProps> = ({
                 borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`
             }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-                    <Avatar sx={{
+                    <Avatar 
+                        src={userAvatar || undefined}
+                        sx={{
                         width: 48,
                         height: 48,
                         bgcolor: theme.palette.primary.main,
@@ -129,7 +133,7 @@ export const BankingProfileMenu: React.FC<BankingProfileMenuProps> = ({
                         fontWeight: 700,
                         boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.4)}`
                     }}>
-                        {userName.charAt(0).toUpperCase()}
+                        {!userAvatar && userName.charAt(0).toUpperCase()}
                     </Avatar>
                     <Box sx={{ ml: 2 }}>
                         <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>

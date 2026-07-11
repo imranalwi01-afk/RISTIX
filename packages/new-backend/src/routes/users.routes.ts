@@ -1537,3 +1537,58 @@ usersRoutes.openapi(
         )
     }
 )
+
+usersRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/{id}/avatar',
+        tags: ['Users'],
+        summary: 'Upload user avatar',
+        request: {
+            params: z.object({ id: z.string().uuid() })
+        },
+        responses: {
+            200: {
+                description: 'Avatar uploaded successfully',
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            data: z.object({ avatar: z.string() })
+                        })
+                    }
+                }
+            }
+        }
+    }),
+    async (c: any) => {
+        const { id } = c.req.valid('param')
+        const tenantId = c.get('tenantId')
+        
+        try {
+            const body = await c.req.parseBody()
+            const avatar = body['avatar']
+            
+            if (!avatar || typeof avatar === 'string') {
+                return c.json({ success: false, error: 'Invalid avatar file' }, 400)
+            }
+            
+            const arrayBuffer = await avatar.arrayBuffer()
+            const buffer = Buffer.from(arrayBuffer)
+            const mimeType = avatar.type || 'image/png'
+            const base64Str = `data:${mimeType};base64,${buffer.toString('base64')}`
+            
+            const { getDatabase } = await import('../config/database')
+            const { users } = await import('../db/schema/core')
+            const { eq } = await import('drizzle-orm')
+            
+            const db = getDatabase(tenantId)
+            await db.update(users).set({ avatarUrl: base64Str }).where(eq(users.id, id))
+            
+            return c.json({ success: true, data: { avatar: base64Str } })
+        } catch (e) {
+            console.error('Failed to upload avatar', e)
+            return c.json({ success: false, error: 'Failed to upload avatar' }, 500)
+        }
+    }
+)

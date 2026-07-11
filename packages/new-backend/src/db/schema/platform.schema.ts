@@ -141,6 +141,7 @@ export const platformUsers = platformSchema.table(
 
         employeeId: varchar('employee_id', { length: 50 }),
         role: varchar('role', { length: 100 }).notNull(),
+        avatarUrl: text('avatar_url'),
 
         // Security
         isActive: boolean('is_active').default(true),

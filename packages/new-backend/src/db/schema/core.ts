@@ -45,6 +45,7 @@ export const users = coreSchema.table(
         position: varchar('position', { length: 100 }),
         employeeId: varchar('employee_id', { length: 50 }),
         bankId: varchar('bank_id', { length: 50 }),
+        avatarUrl: text('avatar_url'),
 
         // Status & Perms
         isActive: boolean('is_active').default(true),
