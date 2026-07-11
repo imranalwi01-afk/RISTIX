@@ -278,16 +278,24 @@ function LoginPage() {
             <img
               src={settings.logoUrl}
               alt={settings.platformName || 'Platform Logo'}
-              style={{ height: 40, objectFit: 'contain' }}
+              style={{
+                height: 60,
+                maxWidth: '100%',
+                objectFit: 'contain',
+              }}
               loading="lazy"
             />
           ) : (
-            <Typography
-              variant="h5"
-              sx={{ fontWeight: 800, color: '#1976D2' }}
-            >
-              {settings.platformName}
-            </Typography>
+            <img
+              src="/images/logo-ristix-pro.png"
+              alt="Ristix Logo"
+              style={{
+                height: 60,
+                maxWidth: '100%',
+                objectFit: 'contain',
+              }}
+              loading="lazy"
+            />
           )}
         </Box>
 

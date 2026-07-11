@@ -740,12 +740,10 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
                 '&:hover': { transform: 'scale(1.02)' },
                 transition: 'transform 0.2s'
               }}>
-                <Image 
-                  src={settings.logoUrl || "/images/logo-ristix.png"}
+                <img
+                  src={settings.logoUrl || "/images/logo-ristix-pro.png"}
                   alt="Ristix Logo" 
-                  height={56}
-                  width={56}
-                  style={{ objectFit: 'contain', filter: 'drop-shadow(0px 0px 6px rgba(255,255,255,0.8))' }}
+                  style={{ height: 48, maxWidth: '100%', objectFit: 'contain', filter: 'drop-shadow(0px 0px 6px rgba(255,255,255,0.8))' }}
                 />
                  <Typography 
                   variant="caption" 
@@ -801,12 +799,10 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
          {collapsed && (
           <Link href={getTopLevelRoute()} style={{ textDecoration: 'none' }}>
              <Box sx={{ display: 'flex', justifyContent: 'center', cursor: 'pointer' }}>
-                 <Image 
+                 <img
                    src={settings.logoUrl || "/images/logo-ristix.png"}
                    alt="Ristix" 
-                   height={32}
-                   width={32}
-                   style={{ objectFit: 'contain', filter: 'drop-shadow(0px 0px 4px rgba(255,255,255,0.8))' }}
+                   style={{ height: 32, width: 32, objectFit: 'contain', filter: 'drop-shadow(0px 0px 4px rgba(255,255,255,0.8))' }}
                  />
              </Box>
           </Link>
