@@ -290,7 +290,7 @@ function LoginPage() {
               src="/images/logo-ristix-pro.png"
               alt="Ristix Logo"
               style={{
-                height: 60,
+                height: 64,
                 maxWidth: '100%',
                 objectFit: 'contain',
               }}

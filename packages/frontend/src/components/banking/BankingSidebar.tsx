@@ -741,9 +741,9 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
                 transition: 'transform 0.2s'
               }}>
                 <img
-                  src={settings.logoUrl || "/images/logo-ristix-pro.png"}
+                  src={settings.logoUrl || "/images/logo-ristix-pro-transparent.png"}
                   alt="Ristix Logo" 
-                  style={{ height: 48, maxWidth: '100%', objectFit: 'contain', filter: 'drop-shadow(0px 0px 6px rgba(255,255,255,0.8))' }}
+                  style={{ height: 64, maxWidth: '200px', objectFit: 'contain' }}
                 />
                  <Typography 
                   variant="caption" 
