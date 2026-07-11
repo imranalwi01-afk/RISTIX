@@ -68,5 +68,13 @@ jobs:
           
           echo "Rebuilding and deploying: $services_args"
           
-          # Eksekusi docker compose (sama persis dengan yang dijalankan manual di server)
+          # Copy file .env dari folder utama server agar container tidak error karena variabel kosong
+          if [ -f "/home/admin/RISTIX/.env" ]; then
+            echo "Menyalin file .env dari server..."
+            cp /home/admin/RISTIX/.env .env
+          else
+            echo "WARNING: File /home/admin/RISTIX/.env tidak ditemukan di server!"
+          fi
+          
+          # Eksekusi docker compose
           docker compose -f ops/dev/docker-compose.yml up -d --build $services_args
