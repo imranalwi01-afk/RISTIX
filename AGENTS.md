@@ -251,3 +251,9 @@ The tenant database should always be considered the primary source of truth.
 ### 4. opencode.json
 - `opencode.jsonc` at repository root configures agent behavior. It must reference this AGENTS.md as instructions.
 
+
+
+## Known Pitfalls
+
+### ❌ PowerShell File Appends
+Do NOT use echo or >> in PowerShell to append text to files. PowerShell uses UTF-16LE encoding by default, which corrupts JSON files and shell scripts. Use New-Item to create empty files, or modify files via Node.js/dedicated tools.
