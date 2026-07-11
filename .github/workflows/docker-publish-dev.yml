@@ -11,8 +11,8 @@ on:
 jobs:
   deploy:
     name: Build & Deploy to Development
-    # Memaksa menggunakan runner bernama "ristix"
-    runs-on: [self-hosted, ristix]
+    # Gunakan label iaf-prod yang ada di server
+    runs-on: [self-hosted, iaf-prod]
 
     steps:
       - uses: actions/checkout@v4
