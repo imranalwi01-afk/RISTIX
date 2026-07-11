@@ -1,5 +1,13 @@
 # Changelog
 
+## [v2.14.58] - 2026-07-11
+
+### Added
+- Added visibility toggle in the Platform Control Center to easily hide and unhide menus per tenant.
+
+### Fixed
+- Fixed an issue where hidden menus were entirely filtered out by the backend and could not be seen or managed from the Platform Control Center.
+
 ## [v2.14.57] - 2026-07-11
 
 ### Fixed
