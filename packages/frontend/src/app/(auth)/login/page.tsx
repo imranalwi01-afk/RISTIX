@@ -290,7 +290,7 @@ function LoginPage() {
               src="/images/logo-ristix-pro.png"
               alt="Ristix Logo"
               style={{
-                height: 64,
+                height: 80,
                 maxWidth: '100%',
                 objectFit: 'contain',
               }}
@@ -298,6 +298,7 @@ function LoginPage() {
             />
           )}
         </Box>
+
 
         <Typography
           variant="h4"

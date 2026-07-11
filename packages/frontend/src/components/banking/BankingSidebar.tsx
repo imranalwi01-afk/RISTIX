@@ -743,7 +743,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
                 <img
                   src={settings.logoUrl || "/images/logo-ristix-pro-transparent.png"}
                   alt="Ristix Logo" 
-                  style={{ height: 64, maxWidth: '200px', objectFit: 'contain' }}
+                  style={{ height: 90, maxWidth: '220px', objectFit: 'contain', marginTop: 8 }}
                 />
                  <Typography 
                   variant="caption" 
