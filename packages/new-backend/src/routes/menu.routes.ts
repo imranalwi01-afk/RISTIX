@@ -698,7 +698,7 @@ menuRoutes.openapi(
         // When format=tree, return the same structure as the old /menu/hierarchy
         if (format === 'tree') {
             const visibleItems = items.filter((item) =>
-                item.isVisible !== false && hasAccess(item.id)
+                (includeInactive || item.isVisible !== false) && hasAccess(item.id)
             )
             const tree = buildTree(categories, visibleItems, hasAccess)
                     c.header("Cache-Control", "public, max-age=30")
@@ -707,7 +707,7 @@ menuRoutes.openapi(
 
         // Default: flat + hierarchical structure used by BankingSidebar
         const visibleItems = items.filter((item) =>
-            item.isVisible !== false &&
+            (includeInactive || item.isVisible !== false) &&
             (!bankingMode || !item.bankingType || item.bankingType === 'both' || item.bankingType === bankingMode) &&
             hasAccess(item.id)
         )

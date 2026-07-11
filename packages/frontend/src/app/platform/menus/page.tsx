@@ -122,7 +122,7 @@ export default function PlatformMenuManagementPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.client.get('/menu/flat', { params: { format: 'tree', tenantId } });
+      const res = await api.client.get('/menu/flat', { params: { format: 'tree', tenantId, includeInactive: true } });
       const payload = res.data;
       if (payload?.success && payload?.data) {
         const cats: MenuCategory[] = [];
