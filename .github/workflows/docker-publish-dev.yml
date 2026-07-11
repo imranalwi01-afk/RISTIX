@@ -69,11 +69,11 @@ jobs:
           echo "Rebuilding and deploying: $services_args"
           
           # Copy file .env dari folder utama server agar container tidak error karena variabel kosong
-          if [ -f "/home/admin/RISTIX/.env" ]; then
+          if [ -f "/home/admin/RISTIX/ops/dev/.env" ]; then
             echo "Menyalin file .env dari server..."
-            cp /home/admin/RISTIX/.env .env
+            cp /home/admin/RISTIX/ops/dev/.env ops/dev/.env
           else
-            echo "WARNING: File /home/admin/RISTIX/.env tidak ditemukan di server!"
+            echo "WARNING: File /home/admin/RISTIX/ops/dev/.env tidak ditemukan di server!"
           fi
           
           # Eksekusi docker compose
