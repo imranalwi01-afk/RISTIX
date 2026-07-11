@@ -1,5 +1,9 @@
 # Changelog
 
+## [v2.14.61] - 2026-07-12
+
+### Fixed
+- Fixed an issue where the `Individual Impairment` menu did not render because it was missing a proper legacy mapping and permission override in `BankingSidebarUtils.tsx`, causing the menu generation to drop it due to lack of standard `banking.individual.view` permission checks.
 ## [v2.14.60] - 2026-07-12
 
 ### Changed
