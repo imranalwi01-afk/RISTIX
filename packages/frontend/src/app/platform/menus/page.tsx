@@ -37,6 +37,7 @@ interface MenuItem {
   icon: string;
   sort_order: number;
   is_active: boolean;
+  is_visible: boolean;
   parent_id?: string;
 }
 
@@ -64,6 +65,8 @@ interface MenuItemApi {
   sort_order?: number | null;
   isActive?: boolean | null;
   is_active?: boolean | null;
+  isVisible?: boolean | null;
+  is_visible?: boolean | null;
   children?: MenuItemApi[];
 }
 
@@ -72,6 +75,9 @@ const readSortOrder = (value: { sortOrder?: number | null; sort_order?: number |
 
 const readIsActive = (value: { isActive?: boolean | null; is_active?: boolean | null }) =>
   value.isActive ?? value.is_active ?? true;
+
+const readIsVisible = (value: { isVisible?: boolean | null; is_visible?: boolean | null }) =>
+  value.isVisible ?? value.is_visible ?? true;
 
 export default function PlatformMenuManagementPage() {
   const dispatch = useAppDispatch();
@@ -130,6 +136,7 @@ export default function PlatformMenuManagementPage() {
             icon: item.icon ?? '',
             sort_order: readSortOrder(item),
             is_active: readIsActive(item),
+            is_visible: readIsVisible(item),
             parent_id: item.parentId ?? item.parent_id ?? parentId ?? undefined,
           });
           for (const child of item.children || []) appendItem(child, categoryId, item.id);
@@ -166,6 +173,15 @@ export default function PlatformMenuManagementPage() {
       invalidateRuntimeMenu();
       setSnackbar({ open: true, message: 'Menu item updated', severity: 'success' });
     } catch { setSnackbar({ open: true, message: 'Failed to update', severity: 'error' }); }
+  };
+
+  const toggleItemVisible = async (item: MenuItem) => {
+    try {
+      await menuApi.updateMenuItem(item.id, { isVisible: !item.is_visible }, tenantId);
+      setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_visible: !i.is_visible } : i));
+      invalidateRuntimeMenu();
+      setSnackbar({ open: true, message: 'Menu item visibility updated', severity: 'success' });
+    } catch { setSnackbar({ open: true, message: 'Failed to update visibility', severity: 'error' }); }
   };
 
   const deleteItem = async (item: MenuItem) => {
@@ -284,6 +300,7 @@ export default function PlatformMenuManagementPage() {
               icon: '',
               sort_order: 0,
               is_active: true,
+              is_visible: true,
             },
           })}
             disabled={!tenantId}>
@@ -352,6 +369,7 @@ export default function PlatformMenuManagementPage() {
                     <TableCell>Path</TableCell>
                     <TableCell>Order</TableCell>
                     <TableCell>Status</TableCell>
+                    <TableCell>Visibility</TableCell>
                     <TableCell align="right">Actions</TableCell>
                   </TableRow>
                 </TableHead>
@@ -372,6 +390,11 @@ export default function PlatformMenuManagementPage() {
                         <Chip size="small" label={item.is_active ? 'Active' : 'Inactive'}
                           color={item.is_active ? 'success' : 'default'} variant="outlined"
                           onClick={() => toggleItemActive(item)} />
+                      </TableCell>
+                      <TableCell>
+                        <Chip size="small" label={item.is_visible ? 'Visible' : 'Hidden'}
+                          color={item.is_visible ? 'primary' : 'default'} variant="outlined"
+                          onClick={() => toggleItemVisible(item)} />
                       </TableCell>
                       <TableCell align="right">
                           <Tooltip title="Permissions"><IconButton size="small" color="info" onClick={async () => {
