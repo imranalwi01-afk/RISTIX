@@ -348,12 +348,12 @@ export default function PlatformMenuManagementPage() {
               />
               <Box sx={{ ml: 'auto', mr: 1 }} onClick={(event) => event.stopPropagation()}>
                 <Tooltip title="Edit category">
-                  <IconButton size="small" onClick={() => setCategoryDialog({ open: true, category: { ...cat } })}>
+                  <IconButton component="div" size="small" onClick={() => setCategoryDialog({ open: true, category: { ...cat } })}>
                     <EditIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
                 <Tooltip title="Delete category">
-                  <IconButton size="small" color="error" onClick={() => deleteCategory(cat)}>
+                  <IconButton component="div" size="small" color="error" onClick={() => deleteCategory(cat)}>
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
