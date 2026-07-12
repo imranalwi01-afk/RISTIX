@@ -1,5 +1,11 @@
 # Changelog
 
+## [v2.14.65] - 2026-07-12
+
+### Fixed
+- Fixed hardcoded fallback texts in the frontend to correctly display "RISTIX" instead of legacy "IAF" and "IFRS 9" branding on the login page and global settings provider.
+
+
 ## [v2.14.62] - 2026-07-12
 
 ### Fixed

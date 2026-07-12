@@ -521,7 +521,7 @@ function LoginPage() {
         badgeText={
           isPlatformAdmin
             ? 'PLATFORM ADMINISTRATION'
-            : (settings.badgeText || 'IFRS 9 ENGINE v2.0')
+            : (settings.badgeText || 'RISTIX ENGINE v2.0')
         }
         leftTitle={
           <>
@@ -545,7 +545,7 @@ function LoginPage() {
               <span dangerouslySetInnerHTML={{ __html: settings.footerText }} />
             ) : (
               <>
-                © 2026 {settings.platformName} Platform & Airawata
+                © 2026 {settings.platformName} Platform & RISTIX
                 Framework. <br /> Secured by Enterprise Grade
                 Encryption.
               </>

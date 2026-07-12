@@ -143,7 +143,7 @@ export default function ResetPasswordPage() {
             <span dangerouslySetInnerHTML={{ __html: settings.footerText }} />
           ) : (
             <>
-              © 2026 {settings.platformName} Platform & Airawata Framework.{' '}
+              © 2026 {settings.platformName} Platform & RISTIX Framework.{' '}
               <br /> Secured by Enterprise Grade Encryption.
             </>
           )}

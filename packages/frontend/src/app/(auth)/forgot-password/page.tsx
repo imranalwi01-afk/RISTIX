@@ -84,10 +84,10 @@ export default function ForgotPasswordPage() {
           {settings.footerText ? (
             <span dangerouslySetInnerHTML={{ __html: settings.footerText }} />
           ) : (
-            <>
-              © 2026 {settings.platformName} Platform & Airawata Framework.{' '}
-              <br /> Secured by Enterprise Grade Encryption.
-            </>
+              <>
+                © 2026 {settings.platformName} Platform & RISTIX Framework.{' '}
+                <br /> Secured by Enterprise Grade Encryption.
+              </>
           )}
         </Typography>
       }

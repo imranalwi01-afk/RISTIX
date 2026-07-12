@@ -25,18 +25,18 @@ interface PlatformSettingsContextType {
 }
 
 const defaultSettings: PlatformSettings = {
-    platformName: process.env.NEXT_PUBLIC_PLATFORM_NAME || 'IFRSPro',
+    platformName: process.env.NEXT_PUBLIC_PLATFORM_NAME || 'RISTIX',
     logoUrl: process.env.NEXT_PUBLIC_PLATFORM_LOGO || null,
-    landingTitle: 'IFRS 9',
-    landingSubtitle: 'Expected Credit Loss',
-    badgeText: 'IFRS 9 ENGINE v2.0',
+    landingTitle: 'RISTIX',
+    landingSubtitle: 'Enterprise Risk Management Platform',
+    badgeText: 'RISTIX ENGINE v2.0',
     footerText: null, // We'll compute the default in the component or set it here if we want a static fallback
-    sidebarText: 'IAF IFRS 9 Platform',
-    navbarText: 'IFRS 9 | i9 model platform',
+    sidebarText: 'RISTIX Platform',
+    navbarText: 'RISTIX | Risk Management Platform',
     dashSubtitle: null,
-    sidebarTenant: 'Indonesia Airawata Finance',
-    sidebarVersion: 'IFRS 9 Platform v2.0',
-    tabTitleSuffix: 'IFRS 9 Platform',
+    sidebarTenant: 'RISTIX System',
+    sidebarVersion: 'RISTIX Platform v2.0',
+    tabTitleSuffix: 'RISTIX Platform',
 };
 
 const PlatformSettingsContext = createContext<PlatformSettingsContextType>({
@@ -61,18 +61,18 @@ export function PlatformSettingsProvider({ children }: { children: React.ReactNo
                     const result = await response.json();
                     if (result.success && result.data && mounted) {
                         setSettings({
-                            platformName: result.data.platformName || process.env.NEXT_PUBLIC_PLATFORM_NAME || 'IFRSPro',
+                            platformName: result.data.platformName || process.env.NEXT_PUBLIC_PLATFORM_NAME || 'RISTIX',
                             logoUrl: result.data.logoUrl || process.env.NEXT_PUBLIC_PLATFORM_LOGO || null,
-                            landingTitle: result.data.landingTitle || 'IFRS 9',
-                            landingSubtitle: result.data.landingSubtitle || 'Expected Credit Loss',
-                            badgeText: result.data.badgeText || 'IFRS 9 ENGINE v2.0',
+                            landingTitle: result.data.landingTitle || 'RISTIX',
+                            landingSubtitle: result.data.landingSubtitle || 'Enterprise Risk Management Platform',
+                            badgeText: result.data.badgeText || 'RISTIX ENGINE v2.0',
                             footerText: result.data.footerText || null,
-                            sidebarText: result.data.sidebarText || 'IAF IFRS 9 Platform',
-                            navbarText: result.data.navbarText || 'IFRS 9 | i9 model platform',
+                            sidebarText: result.data.sidebarText || 'RISTIX Platform',
+                            navbarText: result.data.navbarText || 'RISTIX | Risk Management Platform',
                             dashSubtitle: result.data.dashSubtitle || null,
-                            sidebarTenant: result.data.sidebarTenant || 'Indonesia Airawata Finance',
-                            sidebarVersion: result.data.sidebarVersion || 'IFRS 9 Platform v2.0',
-                            tabTitleSuffix: result.data.tabTitleSuffix || 'IFRS 9 Platform',
+                            sidebarTenant: result.data.sidebarTenant || 'RISTIX System',
+                            sidebarVersion: result.data.sidebarVersion || 'RISTIX Platform v2.0',
+                            tabTitleSuffix: result.data.tabTitleSuffix || 'RISTIX Platform',
                         });
                     }
                 }
