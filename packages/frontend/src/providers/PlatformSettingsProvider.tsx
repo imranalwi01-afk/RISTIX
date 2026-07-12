@@ -27,8 +27,8 @@ interface PlatformSettingsContextType {
 const defaultSettings: PlatformSettings = {
     platformName: process.env.NEXT_PUBLIC_PLATFORM_NAME || 'RISTIX',
     logoUrl: process.env.NEXT_PUBLIC_PLATFORM_LOGO || null,
-    landingTitle: 'RISTIX',
-    landingSubtitle: 'Enterprise Risk Management Platform',
+    landingTitle: 'PSAK 413',
+    landingSubtitle: 'Expected Credit Loss',
     badgeText: 'RISTIX ENGINE v2.0',
     footerText: null, // We'll compute the default in the component or set it here if we want a static fallback
     sidebarText: 'RISTIX Platform',
@@ -63,8 +63,8 @@ export function PlatformSettingsProvider({ children }: { children: React.ReactNo
                         setSettings({
                             platformName: result.data.platformName || process.env.NEXT_PUBLIC_PLATFORM_NAME || 'RISTIX',
                             logoUrl: result.data.logoUrl || process.env.NEXT_PUBLIC_PLATFORM_LOGO || null,
-                            landingTitle: result.data.landingTitle || 'RISTIX',
-                            landingSubtitle: result.data.landingSubtitle || 'Enterprise Risk Management Platform',
+                            landingTitle: result.data.landingTitle || 'PSAK 413',
+                            landingSubtitle: result.data.landingSubtitle || 'Expected Credit Loss',
                             badgeText: result.data.badgeText || 'RISTIX ENGINE v2.0',
                             footerText: result.data.footerText || null,
                             sidebarText: result.data.sidebarText || 'RISTIX Platform',
