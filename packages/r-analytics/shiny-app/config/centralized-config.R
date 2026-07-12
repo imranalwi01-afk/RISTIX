@@ -83,7 +83,7 @@ CentralizedConfiguration <- R6Class("CentralizedConfiguration",
         urls = list(
           analytics_dashboard = Sys.getenv("ANALYTICS_DASHBOARD_URL", "https://analytics-ristix.bdo-ki.com"),
           analytics_api = Sys.getenv("ANALYTICS_API_URL", "https://analytics-calc-ristix.bdo-ki.com"),
-          backend_api = Sys.getenv("BACKEND_API_URL", "https://api-ristix.bdo-ki.com"),
+          backend_api = Sys.getenv("BACKEND_API_URL", "https://ristix.bdo-ki.com/api/v1"),
           frontend = Sys.getenv("FRONTEND_URL", "https://ristix.bdo-ki.com")
         ),
         security = list(

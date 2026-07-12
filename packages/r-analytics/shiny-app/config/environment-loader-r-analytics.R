@@ -65,8 +65,8 @@ RAFSEnvironmentLoader <- R6Class("RAFSEnvironmentLoader",
           # Service URLs (Production HTTPS)
           urls = list(
             frontend = "https://ristix.bdo-ki.com",
-            backend = "https://api-ristix.bdo-ki.com",
-            api = "https://api-ristix.bdo-ki.com/api",
+    backend = "https://ristix.bdo-ki.com",
+    api = "https://ristix.bdo-ki.com/api",
             r_analytics = "https://analytics-ristix.bdo-ki.com",
             r_analytics_api = "https://analytics-calc-ristix.bdo-ki.com"
           ),

@@ -305,9 +305,9 @@ jobs:
           labels: ${{ steps.meta-frontend.outputs.labels }}
           build-args: |
             NEXT_PUBLIC_ENVIRONMENT=production
-            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL || 'https://api-ristix.bdo-ki.com/api/v1' }}
-            NEXT_PUBLIC_BACKEND_API_URL=${{ vars.NEXT_PUBLIC_BACKEND_API_URL || 'https://api-ristix.bdo-ki.com/api/v1' }}
-            NEXT_PUBLIC_WS_URL=${{ vars.NEXT_PUBLIC_WS_URL || 'https://api-ristix.bdo-ki.com' }}
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL || 'https://ristix.bdo-ki.com/api/v1' }}
+            NEXT_PUBLIC_BACKEND_API_URL=${{ vars.NEXT_PUBLIC_BACKEND_API_URL || 'https://ristix.bdo-ki.com/api/v1' }}
+            NEXT_PUBLIC_WS_URL=${{ vars.NEXT_PUBLIC_WS_URL || 'https://ristix.bdo-ki.com' }}
             NEXT_PUBLIC_R_ANALYTICS_URL=${{ vars.NEXT_PUBLIC_R_ANALYTICS_URL || 'https://analytics-ristix.bdo-ki.com' }}
             NEXT_PUBLIC_R_ANALYTICS_BASE_URL=${{ vars.NEXT_PUBLIC_R_ANALYTICS_BASE_URL || 'https://analytics-ristix.bdo-ki.com' }}
             NEXT_PUBLIC_RAPI_BASE_URL=${{ vars.NEXT_PUBLIC_RAPI_BASE_URL || 'https://analytics-calc-ristix.bdo-ki.com/api' }}
