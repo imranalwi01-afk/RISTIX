@@ -206,12 +206,12 @@ class RAnalyticsEnvironmentLoader {
               'https://analytics-calc-ristix.bdo-ki.com' : 'https://iaf-ifrs-analytics-calc.ifrspro.id')
           },
           backend: {
-            host: this.getEnvVar('BACKEND_HOST', 'api-ristix.bdo-ki.com'),
+            host: this.getEnvVar('BACKEND_HOST', 'ristix.bdo-ki.com'),
             port: parseInt(this.getEnvVar('BACKEND_PORT', '443')),
             url: this.getEnvVar('BACKEND_URL', environment === 'iafecs' ?
-              'https://api-ristix.bdo-ki.com' : 'https://iaf-ifrs-be.ifrspro.id'),
+              'https://ristix.bdo-ki.com' : 'https://iaf-ifrs-be.ifrspro.id'),
             apiUrl: this.getEnvVar('BACKEND_API_URL', environment === 'iafecs' ?
-              'https://api-ristix.bdo-ki.com/api/v1' : 'https://iaf-ifrs-be.ifrspro.id/api/v1')
+              'https://ristix.bdo-ki.com/api/v1' : 'https://iaf-ifrs-be.ifrspro.id/api/v1')
           },
           frontend: {
             host: this.getEnvVar('FRONTEND_HOST', 'ristix.bdo-ki.com'),
@@ -219,7 +219,7 @@ class RAnalyticsEnvironmentLoader {
             url: this.getEnvVar('FRONTEND_URL', environment === 'iafecs' ?
               'https://ristix.bdo-ki.com' : 'https://iaf-ifrs.ifrspro.id'),
             apiUrl: this.getEnvVar('FRONTEND_API_URL', environment === 'iafecs' ?
-              'https://api-ristix.bdo-ki.com/api/v1' : 'https://iaf-ifrs-be.ifrspro.id/api/v1')
+              'https://ristix.bdo-ki.com/api/v1' : 'https://iaf-ifrs-be.ifrspro.id/api/v1')
           }
         },
 
@@ -253,9 +253,9 @@ class RAnalyticsEnvironmentLoader {
 
         urls: {
           backend: this.getEnvVar('BACKEND_URL', environment === 'iafecs' ?
-            'https://api-ristix.bdo-ki.com' : 'https://iaf-ifrs-be.ifrspro.id'),
+            'https://ristix.bdo-ki.com' : 'https://iaf-ifrs-be.ifrspro.id'),
           api: this.getEnvVar('BACKEND_API_URL', environment === 'iafecs' ?
-            'https://api-ristix.bdo-ki.com/api/v1' : 'https://iaf-ifrs-be.ifrspro.id/api/v1'),
+            'https://ristix.bdo-ki.com/api/v1' : 'https://iaf-ifrs-be.ifrspro.id/api/v1'),
           frontend: this.getEnvVar('FRONTEND_URL', environment === 'iafecs' ?
             'https://ristix.bdo-ki.com' : 'https://iaf-ifrs.ifrspro.id'),
           rAnalytics: this.getEnvVar('R_ANALYTICS_URL', environment === 'iafecs' ?
@@ -267,7 +267,7 @@ class RAnalyticsEnvironmentLoader {
         cors: {
           origins: this.getEnvVar('CORS_ORIGINS',
             environment === 'iafecs' ?
-              'https://ristix.bdo-ki.com,https://api-ristix.bdo-ki.com,https://analytics-ristix.bdo-ki.com' :
+              'https://ristix.bdo-ki.com,https://ristix.bdo-ki.com,https://analytics-ristix.bdo-ki.com' :
               'https://iaf-ifrs.ifrspro.id,https://iaf-ifrs-be.ifrspro.id,https://iaf-ifrs-analytics.ifrspro.id,http://localhost:3000,http://localhost:4231,http://localhost:4236'
           ).split(',').map(origin => origin.trim())
         },

@@ -158,7 +158,7 @@ class CentralizedConfigManager {
    * Auto-detect deployment type
    */
   private detectDeploymentType(): DeploymentConfig['deploymentType'] {
-    const backendHost = this.getEnvVar('BACKEND_HOST', 'api-ristix.bdo-ki.com');
+    const backendHost = this.getEnvVar('BACKEND_HOST', 'ristix.bdo-ki.com');
     
     if (backendHost === '10.18.11.35' || backendHost.includes('ristix.bdo-ki.com')) {
       return 'ecs'; // Alibaba ECS
@@ -205,12 +205,12 @@ class CentralizedConfigManager {
               `https://ristix.bdo-ki.com` : `https://iaf-ifrs.ifrspro.id`)
           },
           backend: {
-            host: this.getEnvVar('NEXT_PUBLIC_BACKEND_HOST', 'api-ristix.bdo-ki.com'),
+            host: this.getEnvVar('NEXT_PUBLIC_BACKEND_HOST', 'ristix.bdo-ki.com'),
             port: parseInt(this.getEnvVar('NEXT_PUBLIC_BACKEND_PORT', '443')),
             url: this.getEnvVar('NEXT_PUBLIC_BACKEND_URL', this.detectEnvironment() === 'iaf' ?
-              `https://api-ristix.bdo-ki.com` : `https://iaf-ifrs-be.ifrspro.id`),
+              `https://ristix.bdo-ki.com` : `https://iaf-ifrs-be.ifrspro.id`),
             apiUrl: this.getEnvVar('NEXT_PUBLIC_BACKEND_API_URL', this.detectEnvironment() === 'iaf' ?
-              `https://api-ristix.bdo-ki.com/api/v1` : `https://iaf-ifrs-be.ifrspro.id/api/v1`)
+              `https://ristix.bdo-ki.com/api/v1` : `https://iaf-ifrs-be.ifrspro.id/api/v1`)
           },
           rAnalytics: {
             host: this.getEnvVar('NEXT_PUBLIC_R_ANALYTICS_HOST', 'analytics-ristix.bdo-ki.com'),
@@ -276,7 +276,7 @@ class CentralizedConfigManager {
           // 🚨 SECURITY NOTICE: JWT secrets are NOT exposed to frontend
           // JWT tokens are handled entirely server-side for security
           encryptionKey: this.getEnvVar('ENCRYPTION_KEY', '3bbd7f579ca87a9ec95abf240248ad9a4e12e1524984845625372279f9c7937c'),
-          corsOrigins: this.getEnvVar('CORS_ORIGINS', `${this.getEnvVar('FRONTEND_URL', 'https://ristix.bdo-ki.com')},${this.getEnvVar('BACKEND_URL', 'https://api-ristix.bdo-ki.com')}`).split(',')
+          corsOrigins: this.getEnvVar('CORS_ORIGINS', `${this.getEnvVar('FRONTEND_URL', 'https://ristix.bdo-ki.com')},${this.getEnvVar('BACKEND_URL', 'https://ristix.bdo-ki.com')}`).split(',')
         }
       };
 

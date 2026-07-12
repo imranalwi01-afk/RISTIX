@@ -231,7 +231,7 @@ export default function PreferencesPage() {
       // Fallback to hostname detection
       const isProductionDomain = typeof window !== 'undefined' && window.location.hostname.includes('ristix.bdo-ki.com');
       const fallbackUrl = process.env.NEXT_PUBLIC_API_URL ||
-        (isProductionDomain ? 'https://api-ristix.bdo-ki.com/api/v1' : 'https://iaf-ifrs-be.ifrspro.id/api/v1');
+        (isProductionDomain ? 'https://ristix.bdo-ki.com/api/v1' : 'https://iaf-ifrs-be.ifrspro.id/api/v1');
 
 
       return fallbackUrl;

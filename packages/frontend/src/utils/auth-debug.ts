@@ -37,7 +37,7 @@ export const authDebugger = {
       hasUserData: false,
       hasRefreshToken: false,
       backendUrl: typeof window !== 'undefined' && window.location.hostname.includes('ristix.bdo-ki.com')
-        ? 'https://api-ristix.bdo-ki.com'
+        ? 'https://ristix.bdo-ki.com'
         : 'https://iaf-ifrs-be.ifrspro.id'
     };
 
@@ -94,7 +94,7 @@ export const authDebugger = {
     }
 
     const backendUrl = typeof window !== 'undefined' && window.location.hostname.includes('ristix.bdo-ki.com')
-      ? 'https://api-ristix.bdo-ki.com'
+      ? 'https://ristix.bdo-ki.com'
       : 'https://iaf-ifrs-be.ifrspro.id';
 
     try {

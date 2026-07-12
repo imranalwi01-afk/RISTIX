@@ -110,7 +110,7 @@ export function createApp() {
                     'http://[::1]:4231',
                     'http://host.docker.internal:4231',
                     'https://ristix.bdo-ki.com',
-                    'https://api-ristix.bdo-ki.com'
+                    'https://ristix.bdo-ki.com'
                 )
                 const normalizedOrigins = Array.from(new Set(allowedOrigins))
                 const normalizedOrigin = origin ? origin.trim().replace(/\/+$/, '') : origin

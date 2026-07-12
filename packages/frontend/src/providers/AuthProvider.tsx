@@ -345,7 +345,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                   // Try process.env first (for server-side rendering), then hostname detection
                   backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ||
                     (window.location.hostname.includes('ristix.bdo-ki.com')
-                      ? 'https://api-ristix.bdo-ki.com'
+                      ? 'https://ristix.bdo-ki.com'
                       : 'https://iaf-ifrs-be.ifrspro.id');
                 }
               } else {
@@ -769,7 +769,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // Try process.env first (for server-side rendering), then hostname detection
           backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ||
             (window.location.hostname.includes('ristix.bdo-ki.com')
-              ? 'https://api-ristix.bdo-ki.com'
+              ? 'https://ristix.bdo-ki.com'
               : 'https://iaf-ifrs-be.ifrspro.id');
         } else {
           // Server-side fallback
