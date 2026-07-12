@@ -2,11 +2,11 @@
 # ============================================================================
 # 🐳 R ANALYTICS APP CONTAINER
 # ============================================================================
-# Extends: ghcr.io/ifrspro/ifrs9-iaf/r-analytics-base
+# Extends: ghcr.io/imranalwi01-afk/ristix/r-analytics-base
 # Contains: Application code ONLY (fast builds)
 # ============================================================================
 
-FROM ghcr.io/ifrspro/ifrs9-iaf/r-analytics-base:latest
+FROM ghcr.io/imranalwi01-afk/ristix/r-analytics-base:latest
 
 # Metadata
 LABEL maintainer="IFRS9 Platform Team"
