@@ -1,5 +1,11 @@
 # Changelog
 
+## [v2.14.66] - 2026-07-12
+
+### Fixed
+- Reverted GitHub Actions runner labels from `ristix-prod` back to `iaf-prod` to unblock deployment queues on the self-hosted runner.
+
+
 ## [v2.14.65] - 2026-07-12
 
 ### Fixed
