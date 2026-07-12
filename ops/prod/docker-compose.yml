@@ -108,7 +108,11 @@ services:
 # ============================================================================
 volumes:
   postgres-prod-data:
+    name: ifrs9_postgres-prod-data
+    external: true
   redis-prod-data:
+    name: ifrs9_redis-prod-data
+    external: true
 
     # ============================================================================
     # 🌐 NETWORKS
