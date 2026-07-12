@@ -14,7 +14,7 @@ jobs:
   # FRONTEND BUILD JOB
   # ==============================================================================
   frontend:
-    runs-on: [self-hosted, X64, Linux, ristix-prod]
+    runs-on: [self-hosted, X64, Linux, iaf-prod]
     permissions:
       contents: read
       packages: write
@@ -85,7 +85,7 @@ jobs:
   # BACKEND BUILD JOB
   # ==============================================================================
   backend:
-    runs-on: [self-hosted, X64, Linux, ristix-prod]
+    runs-on: [self-hosted, X64, Linux, iaf-prod]
     permissions:
       contents: read
       packages: write
@@ -146,7 +146,7 @@ jobs:
   # ==============================================================================
   deploy_to_server:
     needs: [frontend, backend]
-    runs-on: [self-hosted, X64, Linux, ristix-prod]
+    runs-on: [self-hosted, X64, Linux, iaf-prod]
     steps:
       - name: Pull Latest Code and Restart Server
         run: |

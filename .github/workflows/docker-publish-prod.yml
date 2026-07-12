@@ -36,7 +36,7 @@ jobs:
   # =============================================================================
   test:
     if: github.event_name != 'workflow_dispatch' || inputs.rebuild
-    runs-on: [self-hosted, X64, Linux, ristix-prod]
+    runs-on: [self-hosted, X64, Linux, iaf-prod]
     permissions:
       contents: read
 
@@ -81,7 +81,7 @@ jobs:
   seed-menu:
     name: Seed Menu (Production)
     if: github.event_name == 'workflow_dispatch' && inputs.seed_menu
-    runs-on: [self-hosted, X64, Linux, ristix-prod]
+    runs-on: [self-hosted, X64, Linux, iaf-prod]
     env:
       SEED_TENANT_ID: 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
 
@@ -201,7 +201,7 @@ jobs:
   sync-permissions:
     name: Sync Permissions (Production)
     if: github.event_name == 'workflow_dispatch' && inputs.sync_permissions
-    runs-on: [self-hosted, X64, Linux, ristix-prod]
+    runs-on: [self-hosted, X64, Linux, iaf-prod]
 
     steps:
       - name: Sync all permissions and assign to SUPERADMIN role
@@ -223,7 +223,7 @@ jobs:
   seed-approval-matrices:
     name: Seed Approval Matrices (Production)
     if: github.event_name == 'workflow_dispatch' && inputs.seed_approval_matrices
-    runs-on: [self-hosted, X64, Linux, ristix-prod]
+    runs-on: [self-hosted, X64, Linux, iaf-prod]
 
     steps:
       - name: Seed approval matrices and assign permissions
@@ -245,7 +245,7 @@ jobs:
   setup-ristix-users:
     name: Setup RISTIX Users (Production)
     if: github.event_name == 'workflow_dispatch' && inputs.setup_danafin_users
-    runs-on: [self-hosted, X64, Linux, ristix-prod]
+    runs-on: [self-hosted, X64, Linux, iaf-prod]
 
     steps:
       - name: Create roles and users for RISTIX tenant
@@ -266,7 +266,7 @@ jobs:
   # ==============================================================================
   frontend:
     if: github.event_name != 'workflow_dispatch' || inputs.rebuild
-    runs-on: [self-hosted, X64, Linux, ristix-prod]
+    runs-on: [self-hosted, X64, Linux, iaf-prod]
     needs: [test]
     permissions:
       contents: read
@@ -323,7 +323,7 @@ jobs:
   # ==============================================================================
   backend:
     if: github.event_name != 'workflow_dispatch' || inputs.rebuild
-    runs-on: [self-hosted, X64, Linux, ristix-prod]
+    runs-on: [self-hosted, X64, Linux, iaf-prod]
     needs: [test]
     permissions:
       contents: read
@@ -368,7 +368,7 @@ jobs:
   deploy:
     name: Deploy to Production Server
     if: github.event_name != 'workflow_dispatch' || inputs.rebuild
-    runs-on: [self-hosted, X64, Linux, ristix-prod]
+    runs-on: [self-hosted, X64, Linux, iaf-prod]
     needs: [frontend, backend]
 
     permissions:

@@ -17,7 +17,7 @@ jobs:
   # R ANALYTICS BUILD JOB
   # ==============================================================================
   r-analytics:
-    runs-on: [self-hosted, X64, Linux, ristix-prod]
+    runs-on: [self-hosted, X64, Linux, iaf-prod]
     permissions:
       contents: read
       packages: write
@@ -61,7 +61,7 @@ jobs:
   # ==============================================================================
   deploy-r:
     name: Deploy R Analytics to Production
-    runs-on: [self-hosted, X64, Linux, ristix-prod]
+    runs-on: [self-hosted, X64, Linux, iaf-prod]
     needs: [r-analytics]
 
     permissions:

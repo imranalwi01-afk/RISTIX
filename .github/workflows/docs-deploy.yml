@@ -14,7 +14,7 @@ on:
 jobs:
   deploy:
     name: Build and Deploy Docs
-    runs-on: [self-hosted, X64, Linux, ristix-prod]
+    runs-on: [self-hosted, X64, Linux, iaf-prod]
     defaults:
       run:
         working-directory: packages/docs

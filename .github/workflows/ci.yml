@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    runs-on: [self-hosted, X64, Linux, ristix-prod]
+    runs-on: [self-hosted, X64, Linux, iaf-prod]
 
     steps:
       - uses: actions/checkout@v4
