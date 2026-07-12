@@ -6,7 +6,7 @@ services:
   # ============================================================================
   postgres:
     image: postgres:16-alpine
-    container_name: ifrs9-postgres-prod
+    container_name: ristix-postgres-prod
     restart: always
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
@@ -15,7 +15,7 @@ services:
     volumes:
       - postgres-prod-data:/var/lib/postgresql/data
     networks:
-      - ifrs9-prod
+      - ristix-prod
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}" ]
       interval: 10s
@@ -28,13 +28,13 @@ services:
   # ============================================================================
   redis:
     image: redis:7-alpine
-    container_name: ifrs9-redis-prod
+    container_name: ristix-redis-prod
     restart: always
     command: redis-server --appendonly yes
     volumes:
       - redis-prod-data:/data
     networks:
-      - ifrs9-prod
+      - ristix-prod
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
@@ -46,15 +46,15 @@ services:
   # 🚀 BACKEND (PRODUCTION IMAGE)
   # ============================================================================
   backend:
-    image: ghcr.io/ifrspro/ifrs9-iaf/backend:production
-    container_name: ifrs9-backend-prod
+    image: ghcr.io/imranalwi01-afk/ristix/backend:production
+    container_name: ristix-backend-prod
     restart: always
     env_file:
       - ./env/backend.env
     ports:
       - "4232:4232"
     networks:
-      ifrs9-prod:
+      ristix-prod:
         aliases:
           - new-backend
     profiles: [ "app", "full" ]
@@ -63,8 +63,8 @@ services:
   # 🌐 FRONTEND (PRODUCTION IMAGE)
   # ============================================================================
   frontend:
-    image: ghcr.io/ifrspro/ifrs9-iaf/frontend:production
-    container_name: ifrs9-frontend-prod
+    image: ghcr.io/imranalwi01-afk/ristix/frontend:production
+    container_name: ristix-frontend-prod
     restart: always
     env_file:
       - ./env/frontend.env
@@ -73,7 +73,7 @@ services:
     ports:
       - "4231:4231"
     networks:
-      - ifrs9-prod
+      - ristix-prod
     depends_on:
       - backend
     profiles: [ "app", "full" ]
@@ -85,8 +85,8 @@ services:
     build:
       context: ../../packages/r-analytics
       dockerfile: Dockerfile
-    image: ghcr.io/ifrspro/ifrs9-iaf/r-analytics:production
-    container_name: ifrs9-r-analytics-prod
+    image: ghcr.io/imranalwi01-afk/ristix/r-analytics:production
+    container_name: ristix-r-analytics-prod
     restart: always
     env_file:
       - ./env/r-analytics.env
@@ -100,7 +100,7 @@ services:
       retries: 3
       start_period: 60s
     networks:
-      - ifrs9-prod
+      - ristix-prod
     profiles: [ "analytics", "full" ]
 
 # ============================================================================
@@ -114,5 +114,5 @@ volumes:
     # 🌐 NETWORKS
     # ============================================================================
 networks:
-  ifrs9-prod:
+  ristix-prod:
     driver: bridge

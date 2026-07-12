@@ -32,7 +32,7 @@ services:
     volumes:
       - postgres-dev-data:/var/lib/postgresql/data
     networks:
-      - ifrs9-dev
+      - ristix-dev
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}" ]
       interval: 10s
@@ -66,7 +66,7 @@ services:
         createdb -h postgres -p 5432 -U ${DB_USER:-postgres} ifrspro_shared_services 2>/dev/null || true;
       "
     networks:
-      - ifrs9-dev
+      - ristix-dev
     profiles:
       - bootstrap
       - full
@@ -157,7 +157,7 @@ services:
         \";
       "
     networks:
-      - ifrs9-dev
+      - ristix-dev
     profiles:
       - bootstrap
       - full
@@ -185,7 +185,7 @@ services:
       DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${TENANT_DB_NAME:-ifrspro_tenant_iaf}
     command: sh -c "bun run db:migrate"
     networks:
-      - ifrs9-dev
+      - ristix-dev
     profiles:
       - bootstrap
       - full
@@ -216,7 +216,7 @@ services:
         psql -h postgres -p 5432 -U ${DB_USER:-postgres} -d ${TENANT_DB_NAME:-ifrspro_tenant_iaf} -v ON_ERROR_STOP=1 -f /seeds/003_seed_users.sql;
       "
     networks:
-      - ifrs9-dev
+      - ristix-dev
     profiles:
       - bootstrap
       - full
@@ -239,7 +239,7 @@ services:
     volumes:
       - redis-dev-data:/data
     networks:
-      - ifrs9-dev
+      - ristix-dev
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
@@ -283,7 +283,7 @@ services:
     ports:
       - "5232:5232"
     networks:
-      - ifrs9-dev
+      - ristix-dev
       - ifrs9-observability
     depends_on:
       db-init:
@@ -348,7 +348,7 @@ services:
     ports:
       - "5232:5232"
     networks:
-      - ifrs9-dev
+      - ristix-dev
       - ifrs9-observability
     depends_on:
       db-init:
@@ -435,7 +435,7 @@ services:
     ports:
       - "5232:5232"
     networks:
-      - ifrs9-dev
+      - ristix-dev
       - ifrs9-observability
     depends_on:
       redis:
@@ -475,7 +475,7 @@ services:
     ports:
       - "5231:4231"
     networks:
-      - ifrs9-dev
+      - ristix-dev
       - ifrs9-observability
     profiles:
       - app
@@ -519,7 +519,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - ifrs9-dev
+      - ristix-dev
       - ifrs9-observability
     profiles:
       - dev-frontend
@@ -542,7 +542,7 @@ services:
     ports:
       - "5235:3000"
     networks:
-      - ifrs9-dev
+      - ristix-dev
     profiles:
       - full
       - docs
@@ -570,7 +570,7 @@ volumes:
 # 🌐 NETWORKS
 # ============================================================================
 networks:
-  ifrs9-dev:
+  ristix-dev:
     driver: bridge
   ifrs9-observability:
     external: true

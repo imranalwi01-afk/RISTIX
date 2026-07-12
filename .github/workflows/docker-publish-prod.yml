@@ -18,7 +18,7 @@ on:
         type: boolean
         default: false
       setup_danafin_users:
-        description: 'Create roles (SUPERADMIN/MAKER/CHECKER/APPROVER) + users for IAF tenant'
+        description: 'Create roles (SUPERADMIN/MAKER/CHECKER/APPROVER) + users for RISTIX tenant'
         type: boolean
         default: false
       rebuild:
@@ -36,7 +36,7 @@ jobs:
   # =============================================================================
   test:
     if: github.event_name != 'workflow_dispatch' || inputs.rebuild
-    runs-on: [self-hosted, X64, Linux, iaf-prod]
+    runs-on: [self-hosted, X64, Linux, ristix-prod]
     permissions:
       contents: read
 
@@ -81,7 +81,7 @@ jobs:
   seed-menu:
     name: Seed Menu (Production)
     if: github.event_name == 'workflow_dispatch' && inputs.seed_menu
-    runs-on: [self-hosted, X64, Linux, iaf-prod]
+    runs-on: [self-hosted, X64, Linux, ristix-prod]
     env:
       SEED_TENANT_ID: 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
 
@@ -94,9 +94,9 @@ jobs:
           set -euo pipefail
 
           # Get DATABASE_URL from running backend container
-          DATABASE_URL=$(docker inspect ifrs9-backend-prod --format '{{range .Config.Env}}{{println .}}{{end}}' | grep '^DATABASE_URL=' | sed 's/^DATABASE_URL=//')
+          DATABASE_URL=$(docker inspect ristix-backend-prod --format '{{range .Config.Env}}{{println .}}{{end}}' | grep '^DATABASE_URL=' | sed 's/^DATABASE_URL=//')
           if [ -z "$DATABASE_URL" ]; then
-            echo "❌ Could not read DATABASE_URL from running ifrs9-backend-prod container"
+            echo "❌ Could not read DATABASE_URL from running ristix-backend-prod container"
             exit 1
           fi
 
@@ -149,7 +149,7 @@ jobs:
           set -euo pipefail
 
           # Get DATABASE_URL from running backend container
-          DATABASE_URL=$(docker inspect ifrs9-backend-prod --format '{{range .Config.Env}}{{println .}}{{end}}' | grep '^DATABASE_URL=' | sed 's/^DATABASE_URL=//')
+          DATABASE_URL=$(docker inspect ristix-backend-prod --format '{{range .Config.Env}}{{println .}}{{end}}' | grep '^DATABASE_URL=' | sed 's/^DATABASE_URL=//')
 
           # Parse connection components
           DB_HOST=$(echo "$DATABASE_URL" | sed -n 's|.*@\([^:/]*\).*|\1|p')
@@ -201,7 +201,7 @@ jobs:
   sync-permissions:
     name: Sync Permissions (Production)
     if: github.event_name == 'workflow_dispatch' && inputs.sync_permissions
-    runs-on: [self-hosted, X64, Linux, iaf-prod]
+    runs-on: [self-hosted, X64, Linux, ristix-prod]
 
     steps:
       - name: Sync all permissions and assign to SUPERADMIN role
@@ -209,10 +209,10 @@ jobs:
           set -euo pipefail
 
           echo "🔄 Syncing permissions catalog to production DB..."
-          echo "   Running: docker exec ifrs9-backend-prod ./ops sync-permissions"
+          echo "   Running: docker exec ristix-backend-prod ./ops sync-permissions"
           echo ""
 
-          docker exec ifrs9-backend-prod ./ops sync-permissions
+          docker exec ristix-backend-prod ./ops sync-permissions
 
           echo ""
           echo "✅ Permissions sync completed!"
@@ -223,7 +223,7 @@ jobs:
   seed-approval-matrices:
     name: Seed Approval Matrices (Production)
     if: github.event_name == 'workflow_dispatch' && inputs.seed_approval_matrices
-    runs-on: [self-hosted, X64, Linux, iaf-prod]
+    runs-on: [self-hosted, X64, Linux, ristix-prod]
 
     steps:
       - name: Seed approval matrices and assign permissions
@@ -231,10 +231,10 @@ jobs:
           set -euo pipefail
 
           echo "🌱 Seeding approval matrices for production..."
-          echo "   Running: docker exec ifrs9-backend-prod ./ops seed-approval-matrices"
+          echo "   Running: docker exec ristix-backend-prod ./ops seed-approval-matrices"
           echo ""
 
-          docker exec ifrs9-backend-prod ./ops seed-approval-matrices
+          docker exec ristix-backend-prod ./ops seed-approval-matrices
 
           echo ""
           echo "✅ Approval matrices seeding completed!"
@@ -245,28 +245,28 @@ jobs:
   setup-ristix-users:
     name: Setup RISTIX Users (Production)
     if: github.event_name == 'workflow_dispatch' && inputs.setup_danafin_users
-    runs-on: [self-hosted, X64, Linux, iaf-prod]
+    runs-on: [self-hosted, X64, Linux, ristix-prod]
 
     steps:
-      - name: Create roles and users for IAF tenant
+      - name: Create roles and users for RISTIX tenant
         run: |
           set -euo pipefail
 
-          echo "👥 Setting up IAF tenant users..."
-          echo "   Running: docker exec ifrs9-backend-prod ./ops setup-tenant-users IAF"
+          echo "👥 Setting up RISTIX tenant users..."
+          echo "   Running: docker exec ristix-backend-prod ./ops setup-tenant-users RISTIX"
           echo ""
 
-          docker exec ifrs9-backend-prod ./ops setup-tenant-users IAF ChangeMe123!
+          docker exec ristix-backend-prod ./ops setup-tenant-users RISTIX ChangeMe123!
 
           echo ""
-          echo "✅ IAF users setup completed!"
+          echo "✅ RISTIX users setup completed!"
 
   # ==============================================================================
   # FRONTEND BUILD JOB
   # ==============================================================================
   frontend:
     if: github.event_name != 'workflow_dispatch' || inputs.rebuild
-    runs-on: [self-hosted, X64, Linux, iaf-prod]
+    runs-on: [self-hosted, X64, Linux, ristix-prod]
     needs: [test]
     permissions:
       contents: read
@@ -323,7 +323,7 @@ jobs:
   # ==============================================================================
   backend:
     if: github.event_name != 'workflow_dispatch' || inputs.rebuild
-    runs-on: [self-hosted, X64, Linux, iaf-prod]
+    runs-on: [self-hosted, X64, Linux, ristix-prod]
     needs: [test]
     permissions:
       contents: read
@@ -368,7 +368,7 @@ jobs:
   deploy:
     name: Deploy to Production Server
     if: github.event_name != 'workflow_dispatch' || inputs.rebuild
-    runs-on: [self-hosted, X64, Linux, iaf-prod]
+    runs-on: [self-hosted, X64, Linux, ristix-prod]
     needs: [frontend, backend]
 
     permissions:
@@ -383,6 +383,6 @@ jobs:
 
       - name: Deploy with Docker Compose
         run: |
-          cd /opt/ifrspro
+          cd /opt/ristix
           docker compose --profile app pull
           docker compose --profile app up -d

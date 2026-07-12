@@ -17,7 +17,7 @@ jobs:
   # R ANALYTICS BUILD JOB
   # ==============================================================================
   r-analytics:
-    runs-on: [self-hosted, X64, Linux, iaf-prod]
+    runs-on: [self-hosted, X64, Linux, ristix-prod]
     permissions:
       contents: read
       packages: write
@@ -61,7 +61,7 @@ jobs:
   # ==============================================================================
   deploy-r:
     name: Deploy R Analytics to Production
-    runs-on: [self-hosted, X64, Linux, iaf-prod]
+    runs-on: [self-hosted, X64, Linux, ristix-prod]
     needs: [r-analytics]
 
     permissions:
@@ -76,6 +76,6 @@ jobs:
 
       - name: Deploy R Analytics with Docker Compose
         run: |
-          cd /opt/ifrspro
+          cd /opt/ristix
           docker compose --profile analytics pull
           docker compose --profile analytics up -d

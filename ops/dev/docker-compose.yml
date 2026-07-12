@@ -16,7 +16,7 @@ services:
   # ============================================================================
   postgres:
     image: postgres:16-alpine
-    container_name: ifrs9-postgres-dev-server
+    container_name: ristix-postgres-dev-server
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
@@ -27,7 +27,7 @@ services:
     volumes:
       - postgres-dev-data:/var/lib/postgresql/data
     networks:
-      - ifrs9-dev
+      - ristix-dev
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}" ]
       interval: 10s
@@ -42,7 +42,7 @@ services:
   # ============================================================================
   redis:
     image: redis:7-alpine
-    container_name: ifrs9-redis-dev-server
+    container_name: ristix-redis-dev-server
     restart: unless-stopped
     command: redis-server --appendonly yes
     ports:
@@ -50,7 +50,7 @@ services:
     volumes:
       - redis-dev-data:/data
     networks:
-      - ifrs9-dev
+      - ristix-dev
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
@@ -146,7 +146,7 @@ services:
     ports:
       - "4232:4232"
     networks:
-      - ifrs9-dev
+      - ristix-dev
     depends_on:
       postgres:
         condition: service_healthy
@@ -174,7 +174,7 @@ services:
         - NEXT_PUBLIC_R_API_URL=${RAPI_BASE_URL}
         - NEXT_PUBLIC_R_ANALYTICS_URL=${R_DASHBOARD_URL}
         - NEXT_PUBLIC_ENVIRONMENT=development
-    container_name: ifrs9-frontend-dev-server
+    container_name: ristix-frontend-dev-server
     restart: unless-stopped
     environment:
       NODE_ENV: development
@@ -190,7 +190,7 @@ services:
     ports:
       - "4231:4231"
     networks:
-      - ifrs9-dev
+      - ristix-dev
     depends_on:
       - backend
     profiles:
@@ -204,7 +204,7 @@ services:
     build:
       context: ../../packages/r-analytics
       dockerfile: Dockerfile
-    container_name: ifrs9-r-analytics-dev
+    container_name: ristix-r-analytics-dev
     restart: unless-stopped
     ports:
       - "4236:4236"
@@ -221,7 +221,7 @@ services:
       FRS9_DB_PASSWORD: ${DB_PASSWORD:-postgres}
       FRS9_DB_NAME: FRS9PRO
     networks:
-      - ifrs9-dev
+      - ristix-dev
     profiles:
       - analytics
       - full
@@ -238,5 +238,5 @@ volumes:
 # 🌐 NETWORKS
 # ============================================================================
 networks:
-  ifrs9-dev:
+  ristix-dev:
     driver: bridge
