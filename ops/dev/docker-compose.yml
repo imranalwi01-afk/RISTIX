@@ -23,7 +23,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-ifrspro_platform_admin}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres-dev-data:/var/lib/postgresql/data
     networks:
@@ -46,7 +46,7 @@ services:
     restart: unless-stopped
     command: redis-server --appendonly yes
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - redis-dev-data:/data
     networks:
@@ -144,7 +144,7 @@ services:
       # Logging
       LOG_LEVEL: ${LOG_LEVEL:-debug}
     ports:
-      - "4232:4232"
+      - "4332:4232"
     networks:
       - ristix-dev
     depends_on:
@@ -188,7 +188,7 @@ services:
       NEXT_PUBLIC_R_ANALYTICS_URL: ${R_DASHBOARD_URL}
       NEXT_PUBLIC_DOMAIN: ifrspro.id
     ports:
-      - "4231:4231"
+      - "4331:4231"
     networks:
       - ristix-dev
     depends_on:
@@ -207,8 +207,8 @@ services:
     container_name: ristix-r-analytics-dev
     restart: unless-stopped
     ports:
-      - "4236:4236"
-      - "4241:4241"
+      - "4336:4236"
+      - "4341:4241"
     environment:
       DB_HOST: postgres
       DB_PORT: 5432

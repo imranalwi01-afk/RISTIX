@@ -11,8 +11,7 @@ on:
 jobs:
   deploy:
     name: Build & Deploy to Development
-    # Gunakan label iaf-prod yang ada di server
-    runs-on: [self-hosted, X64, Windows, badak]
+    runs-on: [self-hosted, iaf-prod]
 
     steps:
       - uses: actions/checkout@v4
