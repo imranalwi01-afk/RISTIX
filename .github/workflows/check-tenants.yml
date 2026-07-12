@@ -14,7 +14,7 @@ on:
 
 jobs:
   check-tenants:
-    runs-on: [self-hosted, X64, Linux, iaf-prod]
+    runs-on: [self-hosted, X64, Linux, ristix-prod]
     steps:
       - name: List all tenants from Platform DB
         env:
