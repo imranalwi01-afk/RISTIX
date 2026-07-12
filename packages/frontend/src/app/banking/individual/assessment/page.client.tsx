@@ -478,7 +478,7 @@ function IndividualAssessmentWizardPage() {
     }
 
     const id = Number(accountId);
-    if (Number.isFinite(id)) {
+    if (!isNaN(id) && id >= 0) {
       const match = watchlist.find((w) => w.account_id === id);
       if (match) setSelectedAccount(match);
     }

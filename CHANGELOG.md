@@ -1,5 +1,11 @@
 # Changelog
 
+## [v2.14.62] - 2026-07-12
+
+### Fixed
+- Fixed an issue in the Individual Impairment Watchlist where the "View Details" and "Edit Assessment" icons were unclickable for accounts with a zero or falsy account_id due to strict truthiness checks.
+
+
 ## [v2.14.61] - 2026-07-12
 
 ### Fixed

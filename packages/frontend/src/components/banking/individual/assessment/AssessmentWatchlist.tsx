@@ -407,7 +407,7 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
                               event.stopPropagation();
                               handleOpen();
                             }}
-                            disabled={!account.account_id}
+                            disabled={account.account_id == null}
                             sx={{ 
                               color: theme.palette.primary.main,
                               backgroundColor: alpha(theme.palette.primary.main, 0.05),
@@ -424,7 +424,7 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
                               event.stopPropagation();
                               onEditAssessment(account);
                             }}
-                            disabled={!account.account_id}
+                            disabled={account.account_id == null}
                             sx={{ 
                               color: theme.palette.info.main,
                               backgroundColor: alpha(theme.palette.info.main, 0.05),
