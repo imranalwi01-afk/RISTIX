@@ -5,7 +5,7 @@ export interface BaseIfrs9ReportProps {
   title: string;
   description?: string;
   reportType: 'nominative-report' | 'lifetime-pd-yearly' | 'lifetime-pd-monthly' | 'lifetime-pd-account-details' |
-  'lifetime-lgd' | 'ead-model' | 'ecl-result' | 'ecl-movement' | 'gca-movement';
+  'lifetime-lgd' | 'ead-model' | 'ecl-result' | 'ecl-movement' | 'gca-movement' | 'gl-outbound';
   requiredParams: string[];
   optionalParams?: string[];
   supportsPagination?: boolean;
