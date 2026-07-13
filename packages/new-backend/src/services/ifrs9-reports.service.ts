@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { sql, desc, eq, and, lte } from 'drizzle-orm';
+import { sql, desc, eq, and, lte, or, isNull } from 'drizzle-orm';
 // Use the centralized schema export
 import {
     frs9ImpIaHeader,
@@ -18,6 +18,8 @@ import {
     frs9MasterAccount,
     frs9ImpCaResultD,
     frs9ParamSegmenth,
+    vwFrs9PdMigrationDetail,
+    vwFrs9GlOutbound,
 } from '../db/schema';
 import { legacyDb } from '@/config';
 import { decodeCursor, encodeCursor } from '@/lib/http/list-query';
@@ -552,11 +554,11 @@ export class Ifrs9ReportsService {
         }
 
         if (params?.pd_method !== undefined) {
-            conditions.push(`model_id = ${Number(params.pd_method)}`);
+            conditions.push(`(pd_model_id = ${Number(params.pd_method)} OR pd_model_id IS NULL)`);
         }
 
         if (params?.scalar_id !== undefined) {
-            conditions.push(`scenario_id = ${Number(params.scalar_id)}`);
+            conditions.push(`(scenario_id = ${Number(params.scalar_id)} OR scenario_id IS NULL)`);
         }
 
         return this.resolveLatestPrcDate(
@@ -574,7 +576,7 @@ export class Ifrs9ReportsService {
         }
 
         return this.resolveLatestPrcDate(
-            'public.frs9_imp_ca_result_d',
+            'public.vw_frs9_pd_migration_detail',
             params?.prc_date,
             conditions,
         );
@@ -1011,10 +1013,10 @@ export class Ifrs9ReportsService {
             ];
 
             if (modelId !== undefined && modelId !== null) {
-                conditions.push(eq(vwPdStructureYearly.modelId, modelId));
+                conditions.push(or(eq(vwPdStructureYearly.modelId, modelId), isNull(vwPdStructureYearly.modelId)) as any);
             }
             if (scenarioId !== undefined && scenarioId !== null) {
-                conditions.push(eq(vwPdStructureYearly.scenarioId, scenarioId));
+                conditions.push(or(eq(vwPdStructureYearly.scenarioId, scenarioId), isNull(vwPdStructureYearly.scenarioId)) as any);
             }
 
             // Query view
@@ -1080,10 +1082,10 @@ export class Ifrs9ReportsService {
             ];
 
             if (modelId !== undefined && modelId !== null) {
-                conditions.push(eq(vwPdStructureMonthly.pdModelId, modelId));
+                conditions.push(or(eq(vwPdStructureMonthly.pdModelId, modelId), isNull(vwPdStructureMonthly.pdModelId)) as any);
             }
             if (scenarioId !== undefined && scenarioId !== null) {
-                conditions.push(eq(vwPdStructureMonthly.scenarioId, scenarioId));
+                conditions.push(or(eq(vwPdStructureMonthly.scenarioId, scenarioId), isNull(vwPdStructureMonthly.scenarioId)) as any);
             }
 
             // Query view
@@ -1135,25 +1137,23 @@ export class Ifrs9ReportsService {
             }
 
             const conditions = [
-                eq(frs9ImpCaResultD.prcDate, effectivePrcDate)
+                eq(vwFrs9PdMigrationDetail.prcDate, effectivePrcDate)
             ];
 
             if (pdConfigId !== undefined) {
-                conditions.push(eq(frs9ImpCaResultD.pdConfigId, pdConfigId));
+                conditions.push(eq(vwFrs9PdMigrationDetail.pdConfigId, pdConfigId));
             }
 
             const rawData = await legacyDb
                 .select({
-                    account_number: frs9AccountId.accountNumber,
-                    cif_name: frs9AccountId.cifName,
-                    facility_number: frs9AccountId.facilityNumber,
-                    stage: frs9ImpCaResultD.stage,
-                    outstanding: frs9ImpCaResultD.eqvOutstanding,
-                    pd_rate: frs9ImpCaResultD.pd,
-                    ecl_amount: frs9ImpCaResultD.eclBfl
+                    account_number: vwFrs9PdMigrationDetail.accountNumber,
+                    period_from: vwFrs9PdMigrationDetail.periodFrom,
+                    period_to: vwFrs9PdMigrationDetail.periodTo,
+                    bucket_from: vwFrs9PdMigrationDetail.bucketFrom,
+                    bucket_to: vwFrs9PdMigrationDetail.bucketTo,
+                    noa: vwFrs9PdMigrationDetail.noa
                 })
-                .from(frs9ImpCaResultD)
-                .innerJoin(frs9AccountId, eq(frs9ImpCaResultD.accountId, frs9AccountId.accountId))
+                .from(vwFrs9PdMigrationDetail)
                 .where(and(...conditions))
                 .limit(limit)
                 .offset((page - 1) * limit);
@@ -1161,7 +1161,7 @@ export class Ifrs9ReportsService {
             // Get total count (simple count query is faster)
             const countResult = await legacyDb
                 .select({ count: sql<number>`count(*)` })
-                .from(frs9ImpCaResultD)
+                .from(vwFrs9PdMigrationDetail)
                 .where(and(...conditions));
             
             const total = Number(countResult[0]?.count || 0);
@@ -2068,6 +2068,70 @@ export class Ifrs9ReportsService {
         });
 
         return Array.from(tenorMap.values()).sort((a, b) => a.tenor - b.tenor);
+    }
+
+    /**
+     * Get GL Outbound Report Data
+     */
+    async getGlOutbound(tenantId: string, page: number, limit: number, prcDate: string) {
+        try {
+            console.log('📊 [GL Outbound] Fetching with prc_date:', prcDate);
+
+            if (!prcDate) {
+                return { data: [], total: 0, page, totalPages: 0, prcDate: null };
+            }
+
+            const conditions = [
+                eq(vwFrs9GlOutbound.tanggal, prcDate)
+            ];
+
+            const rawData = await legacyDb
+                .select({
+                    tanggal: vwFrs9GlOutbound.tanggal,
+                    noledg: vwFrs9GlOutbound.noledg,
+                    kdvalt: vwFrs9GlOutbound.kdvalt,
+                    ketegori: vwFrs9GlOutbound.ketegori,
+                    nocabg: vwFrs9GlOutbound.nocabg,
+                    nmledg: vwFrs9GlOutbound.nmledg,
+                    drcr: vwFrs9GlOutbound.drcr,
+                    salsek: vwFrs9GlOutbound.salsek,
+                    ekvsek: vwFrs9GlOutbound.ekvsek
+                })
+                .from(vwFrs9GlOutbound)
+                .where(and(...conditions))
+                .orderBy(
+                    vwFrs9GlOutbound.tanggal,
+                    vwFrs9GlOutbound.noledg,
+                    vwFrs9GlOutbound.kdvalt,
+                    vwFrs9GlOutbound.ketegori,
+                    vwFrs9GlOutbound.nocabg,
+                    vwFrs9GlOutbound.nmledg,
+                    vwFrs9GlOutbound.drcr
+                )
+                .limit(limit)
+                .offset((page - 1) * limit);
+
+            // Get total count
+            const countResult = await legacyDb
+                .select({ count: sql<number>`count(*)` })
+                .from(vwFrs9GlOutbound)
+                .where(and(...conditions));
+            
+            const total = Number(countResult[0]?.count || 0);
+            
+            console.log(`📊 [GL Outbound] Retrieved ${rawData.length} records of ${total} total`);
+
+            return {
+                data: rawData,
+                total,
+                page,
+                totalPages: Math.ceil(total / limit),
+                prcDate
+            };
+        } catch (error) {
+            console.error('❌ Error in getGlOutbound service:', error);
+            return { data: [], total: 0, page, totalPages: 0, prcDate: null };
+        }
     }
 
     /**

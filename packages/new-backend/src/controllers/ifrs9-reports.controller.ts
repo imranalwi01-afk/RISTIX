@@ -21,6 +21,7 @@ type ReportKey =
     | 'ecl-movement'
     | 'gca-movement'
     | 'nominative-report'
+    | 'gl-outbound'
 
 type ReportDebugCatalogEntry = {
     title: string
@@ -343,6 +344,12 @@ const REPORT_DEBUG_CATALOG: Record<ReportKey, ReportDebugCatalogEntry> = {
         filterKeys: ['prc_date', 'download_start_date', 'download_end_date', 'segment', 'stage', 'branch_code', 'page', 'limit'],
         sqlPreview: 'SELECT n.* FROM public.frs9_nominative_output n WHERE n.prc_date = :effectivePrcDate',
     },
+    'gl-outbound': {
+        title: 'GL Outbound',
+        sourceTables: ['public.vw_frs9_gl_outbound'],
+        filterKeys: ['prc_date', 'page', 'limit'],
+        sqlPreview: 'SELECT * FROM public.vw_frs9_gl_outbound WHERE tanggal = :effectivePrcDate',
+    },
 }
 
 const getPermissions = (c: Context): string[] =>
@@ -431,7 +438,7 @@ export const ifrs9ReportsController = {
             // Extract filter parameters
             const prc_date = c.req.query('prc_date') || '2022-10-31';
             const pd_config_id = c.req.query('pd_config_id') ? Number(c.req.query('pd_config_id')) : 1;
-            const pd_method = c.req.query('pd_method') ? Number(c.req.query('pd_method')) : 1;
+            const pd_method = c.req.query('pd_method') ? Number(c.req.query('pd_method')) : undefined;
             const scalar_id = c.req.query('scalar_id') ? Number(c.req.query('scalar_id')) : undefined;
             const fl_flag = c.req.query('fl_flag') === 'true';
 
@@ -470,7 +477,7 @@ export const ifrs9ReportsController = {
             // Extract filter parameters
             const prc_date = c.req.query('prc_date') || '2022-10-31';
             const pd_config_id = c.req.query('pd_config_id') ? Number(c.req.query('pd_config_id')) : 1;
-            const pd_method = c.req.query('pd_method') ? Number(c.req.query('pd_method')) : 1;
+            const pd_method = c.req.query('pd_method') ? Number(c.req.query('pd_method')) : undefined;
             const scalar_id = c.req.query('scalar_id') ? Number(c.req.query('scalar_id')) : undefined;
             const fl_flag = c.req.query('fl_flag') === 'true';
 
@@ -505,8 +512,9 @@ export const ifrs9ReportsController = {
             const tenantId = (c as any).get('tenantId');
             const query = parseListQuery(c, LIFETIME_PD_DETAIL_QUERY_CONFIG);
             const prc_date = getFilterText(query.filters, 'prc_date') || c.req.query('prc_date') || '2022-10-31';
-            const pd_config_id = getFilterNumber(query.filters, 'pd_config_id')
-                ?? (c.req.query('pd_config_id') ? Number(c.req.query('pd_config_id')) : undefined);
+            const rawPdQuery = c.req.query('pd_config_id');
+            const parsedPdQuery = rawPdQuery && rawPdQuery !== 'undefined' && rawPdQuery !== 'null' ? Number(rawPdQuery) : undefined;
+            const pd_config_id = getFilterNumber(query.filters, 'pd_config_id') ?? (Number.isFinite(parsedPdQuery) ? parsedPdQuery : undefined);
 
             const result = await ifrs9ReportsService.getLifetimePDAccountDetails(
                 tenantId,
@@ -527,6 +535,39 @@ export const ifrs9ReportsController = {
                 meta: await buildReportMeta(c, startedAt, 'lifetime-pd-account-details', { prc_date, pd_config_id, page: query.page, limit: query.limit, sort: query.sort }, { effectivePrcDate: result.effectivePrcDate, rowCount: result.total }),
                 effectivePrcDate: result.effectivePrcDate,
                 message: result.total === 0 ? "No Lifetime PD Account Details available" : undefined
+            });
+        } catch (error: any) {
+            if (error instanceof ListQueryValidationError) return listQueryBadRequest(c, error)
+            return ifrs9ReportsController.handleError(c, error);
+        }
+    },
+
+    getGlOutbound: async (c: Context) => {
+        try {
+            const startedAt = Date.now();
+            const tenantId = (c as any).get('tenantId');
+            const query = parseListQuery(c, { ...LIFETIME_PD_DETAIL_QUERY_CONFIG, defaultLimit: 20 });
+            const prc_date = getFilterText(query.filters, 'prc_date') || c.req.query('prc_date') || '';
+
+            const result = await ifrs9ReportsService.getGlOutbound(
+                tenantId,
+                query.page ?? 1,
+                query.limit,
+                prc_date
+            );
+
+            const response = buildListResponse(
+                result.data,
+                query,
+                toPagination(query, result),
+                { filterDefinitions: LIFETIME_PD_DETAIL_QUERY_CONFIG.filterDefinitions },
+            );
+
+            return c.json({
+                ...response,
+                meta: await buildReportMeta(c, startedAt, 'gl-outbound', { prc_date, page: query.page, limit: query.limit, sort: query.sort }, { effectivePrcDate: result.prcDate, rowCount: result.total }),
+                prcDate: result.prcDate,
+                message: result.total === 0 ? "No GL Outbound Data available" : undefined
             });
         } catch (error: any) {
             if (error instanceof ListQueryValidationError) return listQueryBadRequest(c, error)
@@ -1042,10 +1083,15 @@ export const ifrs9ReportsController = {
                     data = result.data || [];
                     break;
                 }
+                case 'gl-outbound': {
+                    const result = await ifrs9ReportsService.getGlOutbound(tenantId, 1, EXPORT_LIMIT, prc_date);
+                    data = result.data || [];
+                    break;
+                }
                 default:
                     return c.json({
                         success: false,
-                        message: `Unknown report type: ${reportType}. Valid types: lifetime-pd-yearly, lifetime-pd-monthly, lifetime-pd-account-details, ecl-result, nominative-report`,
+                        message: `Unknown report type: ${reportType}. Valid types: lifetime-pd-yearly, lifetime-pd-monthly, lifetime-pd-account-details, ecl-result, nominative-report, gl-outbound`,
                     }, 400);
             }
 

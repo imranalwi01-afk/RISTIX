@@ -1,6 +1,6 @@
 # Changelog
 
-## [v2.14.76] - 2026-07-13
+## [v2.14.77] - 2026-07-13
 
 ### Added
 - Added GL Outbound report menu directly below Nominative Report in the Banking Sidebar.

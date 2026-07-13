@@ -90,6 +90,8 @@ export async function fetchIfrs9Report(input: Ifrs9ReportQueryInput): Promise<Re
   switch (input.reportType) {
     case 'nominative-report':
       return api.banking.ifrs9Reports.nominativeReport.get(params);
+    case 'gl-outbound':
+      return api.banking.ifrs9Reports.glOutbound.get(params);
     case 'lifetime-pd-yearly':
       return api.banking.ifrs9Reports.lifetimePD.getYearly(params);
     case 'lifetime-pd-monthly':
