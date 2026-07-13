@@ -114,6 +114,7 @@ export const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'amortization-module': 'banking.processing.amortization.view',
     'ifrs9-report': 'banking.reports.ifrs9.nominative.view',
     'nominative-report': 'banking.reports.ifrs9.nominative.view',
+    'gl-outbound': 'banking.reports.ifrs9.nominative.view',
     'lifetime-pd-reports': 'banking.reports.ifrs9.lifetime_pd.view',
     'lifetime-lgd-reports': 'banking.reports.ifrs9.lifetime_lgd.view',
     'ead-model-reports': 'banking.reports.ifrs9.ead_model.view',
@@ -166,6 +167,7 @@ export const URL_TO_LEGACY_ID_MAP: Record<string, string> = {
     '/banking/ifrs9/models': 'model-management',
     '/banking/ifrs9/scenarios': 'forecast',
     '/banking/ifrs9-reports/nominative': 'nominative-report',
+    '/banking/ifrs9-reports/gl-outbound': 'gl-outbound',
     '/banking/ifrs9-reports/lifetime-pd': 'lifetime-pd',
     '/banking/ifrs9-reports/lifetime-lgd': 'lifetime-lgd',
     '/banking/ifrs9-reports/ead-model': 'ead-model',
@@ -519,6 +521,13 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 href: '/banking/ifrs9-reports/nominative',
                 icon: <TableView />,
                 description: 'Detailed account-level IFRS 9 report'
+            },
+            {
+                id: 'gl-outbound',
+                label: 'GL Outbound',
+                href: '/banking/ifrs9-reports/gl-outbound',
+                icon: <TableView />,
+                description: 'General Ledger Outbound Report'
             },
             {
                 id: 'lifetime-pd',
@@ -920,6 +929,7 @@ export const getIconForMenuItem = (code: string, level: number): React.ReactElem
         'model-management': <ViewModule />,
         'stress-testing': <AutoGraph />,
         'nominative-report': <TableView />,
+        'gl-outbound': <TableView />,
         'lifetime-pd': <TrendingUp />,
         'lifetime-lgd': <MonetizationOn />,
         'ead-model': <Functions />,
@@ -980,6 +990,7 @@ const MENU_ICON_MAP: Record<string, string> = {
     'forecast': 'auto_graph',
     'ifrs9-report': 'table_chart',
     'nominative-report': 'table_view',
+    'gl-outbound': 'table_view',
     'lifetime-pd': 'trending_up',
     'lifetime-lgd': 'monetization_on',
     'ead-model': 'functions',

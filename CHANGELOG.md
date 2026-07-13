@@ -1,5 +1,14 @@
 # Changelog
 
+## [v2.14.75] - 2026-07-13
+
+### Added
+- Added GL Outbound report menu directly below Nominative Report in the Banking Sidebar.
+
+### Fixed
+- Fixed visual layout in BaseIfrs9Report where the sticky toolbar would slice through the report header banner. The banner now properly resides above the toolbar and scrolls away naturally.
+- Adjusted root container padding on BaseIfrs9Report to prevent content from going under the floating action buttons on the right side.
+
 ## [v2.14.66] - 2026-07-12
 
 ### Fixed

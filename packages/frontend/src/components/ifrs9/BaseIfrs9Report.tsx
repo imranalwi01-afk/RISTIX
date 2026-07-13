@@ -71,7 +71,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   onDataLoaded,
   children,
   hideHeader = false,
-  headerAtTop = false,
+  headerAtTop = true,
   hideFilters = false,
   hideDataGrid = false,
   externalFilters
@@ -389,7 +389,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box sx={{ p: 0, position: 'relative', minHeight: '60vh' }}>
+      <Box sx={{ p: 0, pr: { xs: 0, md: 7 }, position: 'relative', minHeight: '60vh' }}>
         <ModernLoader
           open={loading}
           message={`Loading ${title}`}

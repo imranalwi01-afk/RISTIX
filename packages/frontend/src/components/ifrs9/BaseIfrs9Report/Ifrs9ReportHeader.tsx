@@ -65,7 +65,7 @@ const Ifrs9ReportHeader: React.FC<Ifrs9ReportHeaderProps> = ({
     }}
   >
     <Box sx={{ position: 'relative', zIndex: 1 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <Box
             sx={{
@@ -107,7 +107,7 @@ const Ifrs9ReportHeader: React.FC<Ifrs9ReportHeaderProps> = ({
             )}
           </Box>
         </Box>
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'flex-start' }}>
           <Chip
             icon={<AssessmentIcon sx={{ color: 'white !important', fontSize: '1.2rem' }} />}
             label={statusLabel}
@@ -119,18 +119,6 @@ const Ifrs9ReportHeader: React.FC<Ifrs9ReportHeaderProps> = ({
               border: '1px solid rgba(255, 255, 255, 0.3)',
               display: { xs: 'none', sm: 'flex' },
               px: 1
-            }}
-          />
-          <Chip
-            label="Live Production Data"
-            size="small"
-            sx={{
-              fontWeight: 700,
-              bgcolor: 'rgba(255, 255, 255, 0.18)',
-              color: 'white',
-              border: '1px solid rgba(255, 255, 255, 0.28)',
-              boxShadow: '0 2px 8px rgba(13, 71, 161, 0.28)',
-              display: { xs: 'none', md: 'flex' }
             }}
           />
         </Box>

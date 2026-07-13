@@ -54,9 +54,13 @@ const Ifrs9ReportToolbar: React.FC<Ifrs9ReportToolbarProps> = ({
     flexWrap: 'wrap',
     position: headerAtTop ? 'relative' : 'sticky',
     top: headerAtTop ? undefined : 74,
-    zIndex: headerAtTop ? 1 : 2,
-    py: 1,
-    bgcolor: 'background.default'
+    zIndex: headerAtTop ? 1 : 10,
+    py: 2,
+    bgcolor: 'rgba(250, 250, 250, 0.85)',
+    backdropFilter: 'blur(12px)',
+    borderBottom: headerAtTop ? 'none' : '1px solid rgba(0,0,0,0.06)',
+    mx: -2,
+    px: 2,
   }}>
     <TextField
       placeholder="Search data..."
