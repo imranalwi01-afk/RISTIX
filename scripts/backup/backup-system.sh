@@ -51,7 +51,7 @@ load_environment() {
     DB_USER="${DS1_USER:-postgres}"
     
     DB2_HOST="${DS2_HOST:-192.168.0.106}"
-    DB2_PORT="${DS2_PORT:-5433}"
+    DB2_PORT="${DS2_PORT:-5432}"
     DB2_USER="${DS2_USER:-postgres}"
 }
 

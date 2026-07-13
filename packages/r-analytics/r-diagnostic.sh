@@ -110,7 +110,7 @@ if command -v psql &> /dev/null; then
 
     # Test DS2 connection (if configured)
     legacy_db_host=${LEGACY_DB_HOST:-"192.168.0.106"}
-    legacy_db_port=${LEGACY_DB_PORT:-"5433"}
+    legacy_db_port=${LEGACY_DB_PORT:-"5432"}
     legacy_db_name=${LEGACY_DB_NAME:-"FRS9PRO"}
 
     echo "Testing DS2 (${legacy_db_host}:${legacy_db_port}):"

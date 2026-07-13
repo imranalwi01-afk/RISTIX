@@ -378,7 +378,7 @@ const IFRS9ReportsPage: React.FC = () => {
                 Database Server:
               </Typography>
               <Typography variant="body2">
-                DS2 FRS9PRO (192.168.0.106:5433)
+                DS2 FRS9PRO (192.168.0.106:5432)
               </Typography>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>

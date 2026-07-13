@@ -2,7 +2,7 @@ import pg from 'pg';
 const { Client } = pg;
 
 const client = new Client({
-    connectionString: 'postgresql://postgres:postgres@10.8.0.2:5433/ifrspro_tenant_iaf'
+    connectionString: 'postgresql://postgres:postgres@172.25.0.25:5432/ifrspro_tenant_iaf'
 });
 
 async function run() {

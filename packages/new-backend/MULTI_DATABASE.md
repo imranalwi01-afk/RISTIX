@@ -14,22 +14,22 @@ The new-backend now supports a multi-database architecture with four separate da
 ### Available Database Instances
 
 ```typescript
-import { platformDb, sharedDb, tenantDb, legacyDb, db } from '@/config/database'
+import { platformDb, sharedDb, tenantDb, legacyDb, db } from '@/config/database';
 
 // Platform Admin DB - for users, roles, platform config
-await platformDb.query.users.findMany()
+await platformDb.query.users.findMany();
 
 // Shared Services DB - for shared resources
-await sharedDb.query.sharedResources.findMany()
+await sharedDb.query.sharedResources.findMany();
 
 // Tenant DB - for tenant-specific data
-await tenantDb.query.tenantData.findMany()
+await tenantDb.query.tenantData.findMany();
 
 // Legacy DB - for legacy FRS9 data
-await legacyDb.query.legacyTables.findMany()
+await legacyDb.query.legacyTables.findMany();
 
 // Default DB (points to platformDb for backward compatibility)
-await db.query.users.findMany()
+await db.query.users.findMany();
 ```
 
 ## Environment Variables
@@ -37,11 +37,13 @@ await db.query.users.findMany()
 ### Required Variables
 
 All databases use the following fallback structure:
+
 - Specific DB variables (e.g., `PLATFORM_DB_HOST`) take precedence
 - Generic DB variables (e.g., `DB_HOST`) are used as fallback
 - Default values are provided for development
 
 ### Platform Database
+
 ```bash
 PLATFORM_DB_HOST=localhost          # Defaults to DB_HOST
 PLATFORM_DB_PORT=5432              # Defaults to DB_PORT
@@ -52,6 +54,7 @@ PLATFORM_DB_SSL=false
 ```
 
 ### Shared Services Database
+
 ```bash
 SHARED_DB_HOST=localhost
 SHARED_DB_PORT=5432
@@ -62,6 +65,7 @@ SHARED_DB_SSL=false
 ```
 
 ### Tenant Database
+
 ```bash
 TENANT_DB_HOST=localhost
 TENANT_DB_PORT=5432
@@ -72,9 +76,10 @@ TENANT_DB_SSL=false
 ```
 
 ### Legacy Database
+
 ```bash
 LEGACY_DB_HOST=192.168.0.106
-LEGACY_DB_PORT=5433
+LEGACY_DB_PORT=5432
 LEGACY_DB_USER=postgres
 LEGACY_DB_PASSWORD=postgres
 LEGACY_DB_NAME=FRS9PRO
@@ -84,9 +89,10 @@ LEGACY_DB_SSL=false
 ### Backward Compatibility
 
 For backward compatibility, you can still use:
+
 ```bash
 DATABASE_URL=postgresql://user:pass@host:5432/ifrspro_platform_admin
-LEGACY_DATABASE_URL=postgresql://user:pass@host:5433/FRS9PRO
+LEGACY_DATABASE_URL=postgresql://user:pass@host:5432/FRS9PRO
 ```
 
 If `DATABASE_URL` is provided, it will be used instead of constructing from individual parameters.
@@ -96,46 +102,47 @@ If `DATABASE_URL` is provided, it will be used instead of constructing from indi
 ### 1. User Authentication (Platform DB)
 
 ```typescript
-import { platformDb } from '@/config/database'
+import { platformDb } from '@/config/database';
 
 // Find user by email
 const user = await platformDb.query.users.findFirst({
-    where: eq(users.email, email)
-})
+  where: eq(users.email, email),
+});
 ```
 
 ### 2. Shared Resources (Shared Services DB)
 
 ```typescript
-import { sharedDb } from '@/config/database'
+import { sharedDb } from '@/config/database';
 
 // Get shared configuration
-const config = await sharedDb.query.sharedConfig.findMany()
+const config = await sharedDb.query.sharedConfig.findMany();
 ```
 
 ### 3. Tenant Data (Tenant DB)
 
 ```typescript
-import { tenantDb } from '@/config/database'
+import { tenantDb } from '@/config/database';
 
 // Get tenant-specific data
 const tenantData = await tenantDb.query.tenantSpecificTable.findMany({
-    where: eq(tenantSpecificTable.tenantId, 'iaf')
-})
+  where: eq(tenantSpecificTable.tenantId, 'iaf'),
+});
 ```
 
 ### 4. Legacy Data (Legacy DB)
 
 ```typescript
-import { legacyDb } from '@/config/database'
+import { legacyDb } from '@/config/database';
 
 // Access legacy FRS9 data
-const legacyData = await legacyDb.query.frs9_legacy_table.findMany()
+const legacyData = await legacyDb.query.frs9_legacy_table.findMany();
 ```
 
 ## Migration Strategy
 
 ### Current State
+
 - All existing code using `db` will continue to work (points to `platformDb`)
 - Legacy code using `legacyDb` will continue to work
 
@@ -148,21 +155,23 @@ const legacyData = await legacyDb.query.frs9_legacy_table.findMany()
    - Legacy FRS9 → Use `legacyDb`
 
 2. **Update repositories**:
+
 ```typescript
 // Before
-import { db } from '@/config/database'
+import { db } from '@/config/database';
 
 // After (for tenant data)
-import { tenantDb } from '@/config/database'
+import { tenantDb } from '@/config/database';
 ```
 
 3. **Update queries**:
+
 ```typescript
 // Before
-const data = await db.query.someTable.findMany()
+const data = await db.query.someTable.findMany();
 
 // After
-const data = await tenantDb.query.someTable.findMany()
+const data = await tenantDb.query.someTable.findMany();
 ```
 
 ## Database Schema Organization
@@ -188,6 +197,7 @@ packages/new-backend/src/db/schema/
 ## Testing
 
 ### Local Development
+
 ```bash
 # Start all databases
 make db
@@ -197,26 +207,27 @@ make logs-backend
 ```
 
 ### Connection Testing
+
 ```typescript
 // Test all database connections
-import { platformDb, sharedDb, tenantDb, legacyDb } from '@/config/database'
+import { platformDb, sharedDb, tenantDb, legacyDb } from '@/config/database';
 
 async function testConnections() {
-    try {
-        await platformDb.execute('SELECT 1')
-        console.log('✅ Platform DB connected')
-        
-        await sharedDb.execute('SELECT 1')
-        console.log('✅ Shared DB connected')
-        
-        await tenantDb.execute('SELECT 1')
-        console.log('✅ Tenant DB connected')
-        
-        await legacyDb.execute('SELECT 1')
-        console.log('✅ Legacy DB connected')
-    } catch (error) {
-        console.error('❌ Database connection failed:', error)
-    }
+  try {
+    await platformDb.execute('SELECT 1');
+    console.log('✅ Platform DB connected');
+
+    await sharedDb.execute('SELECT 1');
+    console.log('✅ Shared DB connected');
+
+    await tenantDb.execute('SELECT 1');
+    console.log('✅ Tenant DB connected');
+
+    await legacyDb.execute('SELECT 1');
+    console.log('✅ Legacy DB connected');
+  } catch (error) {
+    console.error('❌ Database connection failed:', error);
+  }
 }
 ```
 
@@ -225,27 +236,30 @@ async function testConnections() {
 ### Connection Issues
 
 1. **Check environment variables**:
+
 ```bash
 # In backend container
 docker exec -it ifrs9-new-backend-dev env | grep DB
 ```
 
 2. **Verify database URLs**:
-```typescript
-import { 
-    getPlatformDatabaseUrl, 
-    getSharedDatabaseUrl, 
-    getTenantDatabaseUrl, 
-    getLegacyDatabaseUrl 
-} from '@/config/env'
 
-console.log('Platform:', getPlatformDatabaseUrl())
-console.log('Shared:', getSharedDatabaseUrl())
-console.log('Tenant:', getTenantDatabaseUrl())
-console.log('Legacy:', getLegacyDatabaseUrl())
+```typescript
+import {
+  getPlatformDatabaseUrl,
+  getSharedDatabaseUrl,
+  getTenantDatabaseUrl,
+  getLegacyDatabaseUrl,
+} from '@/config/env';
+
+console.log('Platform:', getPlatformDatabaseUrl());
+console.log('Shared:', getSharedDatabaseUrl());
+console.log('Tenant:', getTenantDatabaseUrl());
+console.log('Legacy:', getLegacyDatabaseUrl());
 ```
 
 3. **Test individual connections**:
+
 ```bash
 # Test Platform DB
 psql postgresql://postgres:postgres@localhost:5432/ifrspro_platform_admin
@@ -257,7 +271,7 @@ psql postgresql://postgres:postgres@localhost:5432/ifrspro_shared_services
 psql postgresql://postgres:postgres@localhost:5432/ifrspro_tenant_iaf
 
 # Test Legacy DB
-psql postgresql://postgres:postgres@192.168.0.106:5433/FRS9PRO
+psql postgresql://postgres:postgres@192.168.0.106:5432/FRS9PRO
 
 ---
 

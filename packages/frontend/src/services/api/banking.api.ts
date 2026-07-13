@@ -1002,6 +1002,18 @@ export const bankingAPI = {
       }
     },
 
+    // GL Outbound Report
+    glOutbound: {
+      get: async (params: {
+        prc_date: string;
+        page?: number;
+        limit?: number;
+      }) => {
+        const response = await apiClient.get('/ifrs9/reports/gl-outbound', { params });
+        return response.data;
+      }
+    },
+
     // Export functionality for all report types
     export: async (reportType: string, params: any) => {
       try {

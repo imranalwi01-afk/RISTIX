@@ -257,9 +257,9 @@ check_database_services() {
     
     # PostgreSQL Legacy
     local legacy_status="healthy"
-    if ! PGPASSWORD="postgres" psql -h "$SECONDARY_SERVER" -p 5433 -U postgres -d postgres -c "SELECT 1;" &> /dev/null; then
+    if ! PGPASSWORD="postgres" psql -h "$SECONDARY_SERVER" -p 5432 -U postgres -d postgres -c "SELECT 1;" &> /dev/null; then
         legacy_status="unreachable"
-        log_warning "Legacy PostgreSQL is unreachable: $SECONDARY_SERVER:5433"
+        log_warning "Legacy PostgreSQL is unreachable: $SECONDARY_SERVER:5432"
         log_alert "Legacy PostgreSQL unreachable" "WARNING"
     else
         log_success "Legacy PostgreSQL is healthy"
@@ -289,7 +289,7 @@ check_database_services() {
     
     db_results+=("{
         \"name\": \"postgresql_legacy\",
-        \"host\": \"$SECONDARY_SERVER:5433\",
+        \"host\": \"$SECONDARY_SERVER:5432\",
         \"status\": \"$legacy_status\"
     }")
     

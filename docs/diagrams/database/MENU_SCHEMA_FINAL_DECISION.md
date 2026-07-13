@@ -15,6 +15,7 @@ export const menuItems = coreSchema.table('menu_items', { ... })
 ```
 
 **Active Usage:**
+
 ```typescript
 // packages/new-backend/src/services/menu.service.ts
 import { menuItems, roleMenuAccess } from '@/db/schema/menu.schema'
@@ -26,23 +27,26 @@ const items = await db.query.menuItems.findMany({ ... })
 ## 📊 Current State
 
 ### LOCAL (localhost:5432)
-| Schema | Table | Columns | Status |
-|--------|-------|---------|--------|
-| **core** | menu_items | 31 | ✅ **ACTIVE IN BACKEND** |
-| **core** | menu_categories | 10 | ✅ **ACTIVE IN BACKEND** |
 
-### REMOTE (10.8.0.2:5433)
-| Schema | Table | Columns | Rows | Status |
-|--------|-------|---------|------|--------|
-| **core** | menu_items | 31 | 21 | ✅ Backend uses this |
-| **core** | menu_categories | 10 | 0 | ⚠️ Empty |
-| **menu** | menu_items | 21 | 28 | ❌ Not used by backend |
-| **menu** | menu_categories | 12 | 6 | ❌ Not used by backend |
-| **platform_admin** | menu_items | 27 | 41 | ❌ Not used by backend |
+| Schema   | Table           | Columns | Status                   |
+| -------- | --------------- | ------- | ------------------------ |
+| **core** | menu_items      | 31      | ✅ **ACTIVE IN BACKEND** |
+| **core** | menu_categories | 10      | ✅ **ACTIVE IN BACKEND** |
+
+### REMOTE (172.25.0.25:5432)
+
+| Schema             | Table           | Columns | Rows | Status                 |
+| ------------------ | --------------- | ------- | ---- | ---------------------- |
+| **core**           | menu_items      | 31      | 21   | ✅ Backend uses this   |
+| **core**           | menu_categories | 10      | 0    | ⚠️ Empty               |
+| **menu**           | menu_items      | 21      | 28   | ❌ Not used by backend |
+| **menu**           | menu_categories | 12      | 6    | ❌ Not used by backend |
+| **platform_admin** | menu_items      | 27      | 41   | ❌ Not used by backend |
 
 ## ✅ Decision: Keep `core` Schema
 
 ### Reasons:
+
 1. ✅ **Backend already uses it** - `coreSchema.table('menu_items')`
 2. ✅ **Most comprehensive** - 31 columns with all features
 3. ✅ **Drizzle schemas defined** - Full type safety
@@ -52,6 +56,7 @@ const items = await db.query.menuItems.findMany({ ... })
 ### What to Do:
 
 #### 1. **Keep `core` schema tables** ✅
+
 - `core.menu_items` (31 columns)
 - `core.menu_categories` (10 columns)
 - `core.role_menu_access`
@@ -59,6 +64,7 @@ const items = await db.query.menuItems.findMany({ ... })
 - `core.menu_access_log`
 
 #### 2. **Migrate data TO `core` schema**
+
 Since `core.menu_categories` is empty and `menu.menu_categories` has 6 rows:
 
 ```sql
@@ -68,7 +74,7 @@ INSERT INTO core.menu_categories (
     description, icon_name, display_order, is_active,
     created_at, updated_at
 )
-SELECT 
+SELECT
     id,
     'cat_' || id::text as category_key,
     name as category_name,
@@ -88,7 +94,9 @@ WHERE id NOT IN (SELECT id FROM core.menu_categories);
 ```
 
 #### 3. **Drop unused schemas** ❌
+
 After migration:
+
 ```sql
 -- Drop menu schema (not used by backend)
 DROP SCHEMA IF EXISTS menu CASCADE;
@@ -100,12 +108,14 @@ DROP TABLE IF EXISTS platform_admin.menu_items CASCADE;
 ## 🔧 Action Plan
 
 ### Step 1: Verify Backend Usage ✅ CONFIRMED
+
 - ✅ Backend uses `core.menu_items`
 - ✅ Drizzle schema defined in `menu.schema.ts`
 - ✅ Service layer uses it
 - ✅ Routes active
 
 ### Step 2: Migrate Missing Data
+
 ```sql
 -- Check what's in each table
 SELECT 'core.menu_items' as source, COUNT(*) FROM core.menu_items;          -- 21
@@ -113,19 +123,20 @@ SELECT 'menu.menu_items' as source, COUNT(*) FROM menu.menu_items;          -- 2
 SELECT 'platform_admin.menu_items' as source, COUNT(*) FROM platform_admin.menu_items; -- 41
 
 -- Find unique items in menu schema
-SELECT m.* 
+SELECT m.*
 FROM menu.menu_items m
 LEFT JOIN core.menu_items c ON c.title = m.name
 WHERE c.id IS NULL;
 
 -- Find unique items in platform_admin schema
-SELECT p.* 
+SELECT p.*
 FROM platform_admin.menu_items p
 LEFT JOIN core.menu_items c ON c.title = p.title
 WHERE c.id IS NULL;
 ```
 
 ### Step 3: Migrate Data
+
 ```sql
 -- Migrate from menu.menu_items → core.menu_items
 -- Migrate from platform_admin.menu_items → core.menu_items
@@ -133,6 +144,7 @@ WHERE c.id IS NULL;
 ```
 
 ### Step 4: Clean Up
+
 ```sql
 -- Drop unused schemas
 DROP SCHEMA IF EXISTS menu CASCADE;

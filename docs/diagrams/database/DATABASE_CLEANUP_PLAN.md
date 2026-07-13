@@ -3,59 +3,64 @@
 ## Overview
 
 Comparison between:
+
 - **LOCAL** (localhost:5432) - New development database
-- **REMOTE** (10.8.0.2:5433) - Legacy production database
+- **REMOTE** (172.25.0.25:5432) - Legacy production database
 
 ## Database: ifrspro_platform_admin
 
 ### Schema Comparison
 
-| Schema | Local (New) | Remote (Legacy) | Status |
-|--------|-------------|-----------------|--------|
-| **approval** | ✅ 4 tables | ✅ 6 tables | Remote has more |
-| **audit** | ✅ 4 tables | ❌ 0 tables | Local only |
-| **auth** | ✅ 3 tables | ✅ 1 table | Local has more |
-| **configuration** | ❌ 0 tables | ✅ 4 tables | Remote only |
-| **core** | ✅ 11 tables | ✅ 9 tables | Local has more |
-| **drizzle** | ✅ 1 table | ✅ 1 table | Same |
-| **etl_designer** | ❌ 0 tables | ✅ 14 tables | Remote only |
-| **etl_processing** | ❌ 0 tables | ✅ 5 tables | Remote only |
-| **ifrs9** | ✅ 97 tables | ✅ 5 tables | **OVERLAP - Local has WAY more** |
-| **individual** | ❌ 0 tables | ✅ 7 tables | Remote only |
-| **menu** | ❌ 0 tables | ✅ 10 tables | Remote only |
-| **monitoring** | ❌ 0 tables | ✅ 8 tables | Remote only |
-| **platform_admin** | ❌ 0 tables | ✅ 12 tables | Remote only |
-| **platform_analytics** | ❌ 0 tables | ✅ 1 table | Remote only |
-| **platform_audit** | ✅ 1 table | ✅ 1 table | Same |
-| **platform_billing** | ❌ 0 tables | ✅ 2 tables | Remote only |
-| **platform_integration** | ❌ 0 tables | ✅ 1 table | Remote only |
-| **platform_monitoring** | ❌ 0 tables | ✅ 2 tables | Remote only |
-| **public** | ✅ 80 tables | ✅ 26 tables | **MASSIVE OVERLAP** |
-| **workflow** | ❌ 0 tables | ✅ 8 tables | Remote only |
+| Schema                   | Local (New)  | Remote (Legacy) | Status                           |
+| ------------------------ | ------------ | --------------- | -------------------------------- |
+| **approval**             | ✅ 4 tables  | ✅ 6 tables     | Remote has more                  |
+| **audit**                | ✅ 4 tables  | ❌ 0 tables     | Local only                       |
+| **auth**                 | ✅ 3 tables  | ✅ 1 table      | Local has more                   |
+| **configuration**        | ❌ 0 tables  | ✅ 4 tables     | Remote only                      |
+| **core**                 | ✅ 11 tables | ✅ 9 tables     | Local has more                   |
+| **drizzle**              | ✅ 1 table   | ✅ 1 table      | Same                             |
+| **etl_designer**         | ❌ 0 tables  | ✅ 14 tables    | Remote only                      |
+| **etl_processing**       | ❌ 0 tables  | ✅ 5 tables     | Remote only                      |
+| **ifrs9**                | ✅ 97 tables | ✅ 5 tables     | **OVERLAP - Local has WAY more** |
+| **individual**           | ❌ 0 tables  | ✅ 7 tables     | Remote only                      |
+| **menu**                 | ❌ 0 tables  | ✅ 10 tables    | Remote only                      |
+| **monitoring**           | ❌ 0 tables  | ✅ 8 tables     | Remote only                      |
+| **platform_admin**       | ❌ 0 tables  | ✅ 12 tables    | Remote only                      |
+| **platform_analytics**   | ❌ 0 tables  | ✅ 1 table      | Remote only                      |
+| **platform_audit**       | ✅ 1 table   | ✅ 1 table      | Same                             |
+| **platform_billing**     | ❌ 0 tables  | ✅ 2 tables     | Remote only                      |
+| **platform_integration** | ❌ 0 tables  | ✅ 1 table      | Remote only                      |
+| **platform_monitoring**  | ❌ 0 tables  | ✅ 2 tables     | Remote only                      |
+| **public**               | ✅ 80 tables | ✅ 26 tables    | **MASSIVE OVERLAP**              |
+| **workflow**             | ❌ 0 tables  | ✅ 8 tables     | Remote only                      |
 
 ### Table Count Summary
 
-| Database | Schemas | Tables | SQL Lines | Purpose |
-|----------|---------|--------|-----------|---------|
-| **Local (New)** | 8 | 201 | 19,188 | New development with legacy data |
-| **Remote (Legacy)** | 20 | 123 | 8,647 | Production legacy system |
+| Database            | Schemas | Tables | SQL Lines | Purpose                          |
+| ------------------- | ------- | ------ | --------- | -------------------------------- |
+| **Local (New)**     | 8       | 201    | 19,188    | New development with legacy data |
+| **Remote (Legacy)** | 20      | 123    | 8,647     | Production legacy system         |
 
 ## 🚨 Critical Issues Identified
 
 ### 1. **IFRS9 Schema Overlap**
-- **Local**: 97 tables (mostly legacy frs9_* tables)
+
+- **Local**: 97 tables (mostly legacy frs9\_\* tables)
 - **Remote**: 5 tables (clean, new structure)
 - **Issue**: Local has ALL legacy IFRS9 tables in ifrs9 schema
 - **Impact**: Confusion, data duplication, migration complexity
 
 ### 2. **Public Schema Pollution**
-- **Local**: 80 tables (mostly frs9_* tables + duplicates)
-- **Remote**: 26 tables (legacy frs9_* tables only)
+
+- **Local**: 80 tables (mostly frs9\_\* tables + duplicates)
+- **Remote**: 26 tables (legacy frs9\_\* tables only)
 - **Issue**: Local public schema has duplicates of ifrs9 schema tables
 - **Impact**: Severe data duplication, query confusion
 
 ### 3. **Missing Modern Schemas in Local**
+
 Local is missing these important schemas from remote:
+
 - `configuration` (4 tables) - App settings, feature flags
 - `etl_designer` (14 tables) - ETL orchestration
 - `etl_processing` (5 tables) - File processing
@@ -85,7 +90,7 @@ ifrspro_platform_admin (LOCAL - NEW)
 └── public (80 tables)            🚨 DUPLICATE LEGACY TABLES
 ```
 
-### Remote Database Structure (10.8.0.2:5433)
+### Remote Database Structure (172.25.0.25:5432)
 
 ```
 ifrspro_platform_admin (REMOTE - LEGACY)
@@ -108,12 +113,14 @@ ifrspro_platform_admin (REMOTE - LEGACY)
 ### Phase 1: Identify Table Ownership ✅
 
 **Legacy IFRS9 Tables** (should be in separate legacy DB):
+
 ```sql
 -- Tables with frs9_* prefix (177 total across ifrs9 + public schemas)
 -- These belong in FRS9PRO database, NOT platform_admin
 ```
 
 **New Platform Tables** (should stay in platform_admin):
+
 ```sql
 -- approval, audit, auth, core, drizzle, platform_audit schemas
 -- Clean, modern structure
@@ -124,6 +131,7 @@ ifrspro_platform_admin (REMOTE - LEGACY)
 #### Option A: Clean Separation (RECOMMENDED)
 
 **Step 1: Create Separate Legacy Database**
+
 ```sql
 -- Create dedicated legacy database
 CREATE DATABASE ifrspro_legacy_ifrs9;
@@ -135,6 +143,7 @@ CREATE DATABASE ifrspro_legacy_ifrs9;
 ```
 
 **Step 2: Sync Modern Schemas from Remote**
+
 ```sql
 -- Import missing schemas from remote to local:
 -- - configuration
@@ -152,6 +161,7 @@ CREATE DATABASE ifrspro_legacy_ifrs9;
 ```
 
 **Step 3: Clean Public Schema**
+
 ```sql
 -- Remove all frs9_* tables from public schema in local
 -- Keep only:
@@ -186,15 +196,17 @@ ifrspro_platform_admin (LOCAL - REORGANIZED)
 ## 📋 Detailed Cleanup Plan
 
 ### Step 1: Backup Everything
+
 ```bash
 # Backup local database
 pg_dump -h localhost -p 5432 -U postgres ifrspro_platform_admin > backup_local_platform_admin_$(date +%Y%m%d).sql
 
 # Backup remote database
-pg_dump -h 10.8.0.2 -p 5433 -U postgres ifrspro_platform_admin > backup_remote_platform_admin_$(date +%Y%m%d).sql
+pg_dump -h 172.25.0.25 -p 5432 -U postgres ifrspro_platform_admin > backup_remote_platform_admin_$(date +%Y%m%d).sql
 ```
 
 ### Step 2: Analyze Table Dependencies
+
 ```sql
 -- Find all foreign key relationships
 SELECT
@@ -217,24 +229,28 @@ ORDER BY tc.table_schema, tc.table_name;
 ### Step 3: Create Migration Scripts
 
 **3.1: Extract Legacy Tables**
+
 ```sql
 -- Script to move frs9_* tables to legacy database
 -- See: migration_scripts/01_extract_legacy_tables.sql
 ```
 
 **3.2: Import Modern Schemas**
+
 ```sql
 -- Script to import missing schemas from remote
 -- See: migration_scripts/02_import_modern_schemas.sql
 ```
 
 **3.3: Clean Public Schema**
+
 ```sql
 -- Script to remove duplicate tables
 -- See: migration_scripts/03_clean_public_schema.sql
 ```
 
 **3.4: Update References**
+
 ```sql
 -- Script to update any code/views referencing moved tables
 -- See: migration_scripts/04_update_references.sql
@@ -275,7 +291,7 @@ ORDER BY t.table_schema, t.table_name;
 ### Short Term (Next 2 Weeks)
 
 1. ⏳ **Create `ifrspro_legacy_ifrs9` database** on localhost
-2. ⏳ **Move all frs9_* tables** from platform_admin to legacy DB
+2. ⏳ **Move all frs9\_\* tables** from platform_admin to legacy DB
 3. ⏳ **Import modern schemas** from remote to local
 4. ⏳ **Clean public schema** of duplicates
 5. ⏳ **Update backend code** to use correct databases
@@ -291,6 +307,7 @@ ORDER BY t.table_schema, t.table_name;
 ## 📁 Files to Create
 
 ### Migration Scripts
+
 1. `migration_scripts/01_extract_legacy_tables.sql`
 2. `migration_scripts/02_import_modern_schemas.sql`
 3. `migration_scripts/03_clean_public_schema.sql`
@@ -298,24 +315,26 @@ ORDER BY t.table_schema, t.table_name;
 5. `migration_scripts/05_verify_migration.sql`
 
 ### Documentation
+
 1. ✅ `docs/diagrams/database/DATABASE_CLEANUP_PLAN.md` (this file)
 2. ⏳ `docs/diagrams/database/MIGRATION_GUIDE.md`
 3. ⏳ `docs/diagrams/database/TABLE_OWNERSHIP.md`
 
 ### Backend Updates
+
 1. ⏳ Update `packages/new-backend/src/config/database.ts`
 2. ⏳ Update Drizzle schemas
 3. ⏳ Update repositories
 
 ## 🚨 Risks & Mitigation
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Data loss during migration | HIGH | Full backups before any changes |
-| Broken foreign keys | HIGH | Analyze dependencies first |
-| Application downtime | MEDIUM | Migrate in phases, test thoroughly |
-| Code references to old tables | MEDIUM | Update all references, use search |
-| Performance degradation | LOW | Monitor query performance |
+| Risk                          | Impact | Mitigation                         |
+| ----------------------------- | ------ | ---------------------------------- |
+| Data loss during migration    | HIGH   | Full backups before any changes    |
+| Broken foreign keys           | HIGH   | Analyze dependencies first         |
+| Application downtime          | MEDIUM | Migrate in phases, test thoroughly |
+| Code references to old tables | MEDIUM | Update all references, use search  |
+| Performance degradation       | LOW    | Monitor query performance          |
 
 ## ✅ Success Criteria
 
@@ -350,6 +369,7 @@ localhost:5432
 ## Next Steps
 
 **Please review this plan and confirm:**
+
 1. ✅ Do you want to create separate `ifrspro_legacy_ifrs9` database?
 2. ✅ Should we import all modern schemas from remote?
 3. ✅ Any specific tables you want to keep in platform_admin?

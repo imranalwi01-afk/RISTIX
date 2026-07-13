@@ -14,23 +14,26 @@ Successfully cleaned up duplicate IFRS9 tables and established a clean multi-dat
 ## ✅ What Was Accomplished
 
 ### 1. Database Cleanup
+
 - ❌ Deleted `ifrs9` schema from LOCAL (97 duplicate tables removed)
 - ❌ Deleted `ifrs9` schema from REMOTE (5 duplicate tables removed)
-- 🧹 Cleaned `public` schema in LOCAL (77 frs9_* tables removed)
+- 🧹 Cleaned `public` schema in LOCAL (77 frs9\_\* tables removed)
 - **Total**: 179 duplicate tables eliminated
 
 ### 2. Local Database Setup
+
 Created and imported 3 databases to localhost:5432:
 
-| Database | Schemas | Tables | Status |
-|----------|---------|--------|--------|
-| **ifrspro_platform_admin** | 8 | 27 | ✅ Clean |
-| **ifrspro_shared_services** | 12 | 26 | ✅ Imported |
-| **ifrspro_tenant_iaf** | 11 | 20 | ✅ Imported |
+| Database                    | Schemas | Tables | Status      |
+| --------------------------- | ------- | ------ | ----------- |
+| **ifrspro_platform_admin**  | 8       | 27     | ✅ Clean    |
+| **ifrspro_shared_services** | 12      | 26     | ✅ Imported |
+| **ifrspro_tenant_iaf**      | 11      | 20     | ✅ Imported |
 
 ### 3. Data Organization
 
 **Platform Admin Database** (localhost:5432)
+
 - approval (4 tables)
 - audit (4 tables)
 - auth (3 tables)
@@ -40,6 +43,7 @@ Created and imported 3 databases to localhost:5432:
 - public (3 tables: job_definitions, job_executions, upload_history)
 
 **Shared Services Database** (localhost:5432)
+
 - audit
 - calculation_engine
 - data_science
@@ -53,6 +57,7 @@ Created and imported 3 databases to localhost:5432:
 - shared_services
 
 **Tenant IAF Database** (localhost:5432)
+
 - analytics
 - audit
 - calculation
@@ -64,7 +69,8 @@ Created and imported 3 databases to localhost:5432:
 - staging
 - workflow
 
-**Legacy Database** (10.8.0.2:5433)
+**Legacy Database** (172.25.0.25:5432)
+
 - FRS9PRO - All legacy IFRS9 calculation data
 
 ---
@@ -72,6 +78,7 @@ Created and imported 3 databases to localhost:5432:
 ## 📊 Before & After
 
 ### Before Cleanup
+
 ```
 LOCAL (localhost:5432)
 └── ifrspro_platform_admin
@@ -80,7 +87,7 @@ LOCAL (localhost:5432)
     └── ifrs9 schema: 97 duplicate tables
     └── public schema: 80 duplicate tables
 
-REMOTE (10.8.0.2:5433)
+REMOTE (172.25.0.25:5432)
 ├── ifrspro_platform_admin (20 schemas, 123 tables)
 ├── ifrspro_shared_services (11 schemas, 26 tables)
 ├── ifrspro_tenant_iaf (10 schemas, 20 tables)
@@ -88,6 +95,7 @@ REMOTE (10.8.0.2:5433)
 ```
 
 ### After Cleanup
+
 ```
 LOCAL (localhost:5432) - CLEAN!
 ├── ifrspro_platform_admin
@@ -101,7 +109,7 @@ LOCAL (localhost:5432) - CLEAN!
     ├── 11 schemas
     └── 20 tables
 
-REMOTE (10.8.0.2:5433) - CLEAN!
+REMOTE (172.25.0.25:5432) - CLEAN!
 ├── ifrspro_platform_admin (19 schemas, 118 tables)
 ├── ifrspro_shared_services (11 schemas, 26 tables)
 ├── ifrspro_tenant_iaf (10 schemas, 20 tables)
@@ -115,6 +123,7 @@ REMOTE (10.8.0.2:5433) - CLEAN!
 ### Update Your `.env` Files
 
 **For Local Development** (`ops/local/.env`):
+
 ```bash
 # Platform Admin Database
 PLATFORM_DB_HOST=localhost
@@ -141,8 +150,8 @@ TENANT_DB_NAME=ifrspro_tenant_iaf
 TENANT_DB_SSL=false
 
 # Legacy Database (REMOTE)
-LEGACY_DB_HOST=10.8.0.2
-LEGACY_DB_PORT=5433
+LEGACY_DB_HOST=172.25.0.25
+LEGACY_DB_PORT=5432
 LEGACY_DB_USER=postgres
 LEGACY_DB_PASSWORD=postgres
 LEGACY_DB_NAME=FRS9PRO
@@ -150,22 +159,24 @@ LEGACY_DB_SSL=false
 
 # Backward Compatibility
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ifrspro_platform_admin
-LEGACY_DATABASE_URL=postgresql://postgres:postgres@10.8.0.2:5433/FRS9PRO
+LEGACY_DATABASE_URL=postgresql://postgres:postgres@172.25.0.25:5432/FRS9PRO
 ```
 
 **For Dev Server** (`ops/dev/.env`):
+
 ```bash
 # Use remote databases
-PLATFORM_DB_HOST=10.8.0.2
-PLATFORM_DB_PORT=5433
+PLATFORM_DB_HOST=172.25.0.25
+PLATFORM_DB_PORT=5432
 # ... etc
 ```
 
 **For Production** (`ops/prod/.env`):
+
 ```bash
 # Use production databases
-PLATFORM_DB_HOST=10.8.0.2
-PLATFORM_DB_PORT=5433
+PLATFORM_DB_HOST=172.25.0.25
+PLATFORM_DB_PORT=5432
 # ... etc
 ```
 
@@ -178,19 +189,19 @@ Your backend is already configured! The connections are ready:
 ```typescript
 // packages/new-backend/src/config/database.ts
 
-import { platformDb, sharedDb, tenantDb, legacyDb } from '@/config/database'
+import { platformDb, sharedDb, tenantDb, legacyDb } from '@/config/database';
 
 // Platform Admin - users, roles, permissions
-const users = await platformDb.query.core.users.findMany()
+const users = await platformDb.query.core.users.findMany();
 
 // Shared Services - reference data, notifications
-const countries = await sharedDb.query.reference_data.countries.findMany()
+const countries = await sharedDb.query.reference_data.countries.findMany();
 
 // Tenant - customer data, accounts
-const customers = await tenantDb.query.core.customers.findMany()
+const customers = await tenantDb.query.core.customers.findMany();
 
 // Legacy - IFRS9 calculations
-const frs9Data = await legacyDb.query.frs9_table.findMany()
+const frs9Data = await legacyDb.query.frs9_table.findMany();
 ```
 
 ---
@@ -210,7 +221,7 @@ PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d ifrspro_shared_serv
 PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d ifrspro_tenant_iaf -c "SELECT current_database();"
 
 # Test Legacy (Remote)
-PGPASSWORD=postgres psql -h 10.8.0.2 -p 5433 -U postgres -d FRS9PRO -c "SELECT current_database();"
+PGPASSWORD=postgres psql -h 172.25.0.25 -p 5432 -U postgres -d FRS9PRO -c "SELECT current_database();"
 ```
 
 ### Test Backend
@@ -230,6 +241,7 @@ make logs-backend
 ## 📁 Files Created
 
 ### Documentation
+
 - ✅ `docs/diagrams/database/DATABASE_ARCHITECTURE.md` - Master architecture
 - ✅ `docs/diagrams/database/PLATFORM_ADMIN_README.md` - Platform admin docs
 - ✅ `docs/diagrams/database/SHARED_SERVICES_README.md` - Shared services docs
@@ -237,12 +249,14 @@ make logs-backend
 - ✅ `docs/diagrams/database/DATABASE_CLEANUP_PLAN.md` - Cleanup strategy
 
 ### SQL Dumps
+
 - ✅ `docs/diagrams/database/ifrspro_platform_admin_complete.sql` (8,647 lines)
 - ✅ `docs/diagrams/database/ifrspro_shared_services_complete.sql` (1,711 lines)
 - ✅ `docs/diagrams/database/ifrspro_tenant_iaf_complete.sql` (1,569 lines)
 - ✅ `docs/diagrams/database/local_platform_admin_complete.sql` (19,188 lines - before cleanup)
 
 ### Migration Scripts
+
 - ✅ `migration_scripts/01_cleanup_local_ifrs9_schema.sql`
 - ✅ `migration_scripts/02_cleanup_remote_ifrs9_schema.sql`
 - ✅ `migration_scripts/03_cleanup_public_schema.sql`
@@ -254,6 +268,7 @@ make logs-backend
 - ✅ `migration_scripts/FINAL_SUMMARY.md` (this file)
 
 ### Backend Configuration
+
 - ✅ `packages/new-backend/src/config/env.ts` - Multi-DB env vars
 - ✅ `packages/new-backend/src/config/database.ts` - Multi-DB connections
 - ✅ `packages/new-backend/MULTI_DATABASE.md` - Implementation guide
@@ -264,17 +279,20 @@ make logs-backend
 ## 🎯 Next Steps
 
 ### Immediate (Now)
+
 1. ✅ **Update `.env` files** with localhost database connections
 2. ✅ **Test backend** - `make dev`
 3. ✅ **Verify all connections** work
 
 ### Short Term (This Week)
+
 1. ⏳ **Create Drizzle schemas** for all tables
 2. ⏳ **Update repositories** to use correct database instances
 3. ⏳ **Remove old ifrs9 schema references** from code
 4. ⏳ **Test all features** with new database structure
 
 ### Medium Term (Next 2 Weeks)
+
 1. ⏳ **Import modern schemas** to local platform_admin (if needed)
 2. ⏳ **Sync data** from remote to local for development
 3. ⏳ **Performance testing**
@@ -285,10 +303,12 @@ make logs-backend
 ## 🔒 Backups
 
 Backups were created before all changes:
+
 - `backups/local_platform_admin_YYYYMMDD_HHMMSS.sql`
 - `backups/remote_platform_admin_YYYYMMDD_HHMMSS.sql`
 
 To rollback if needed:
+
 ```bash
 psql -h localhost -p 5432 -U postgres -d ifrspro_platform_admin < backup_file.sql
 ```
@@ -312,6 +332,7 @@ psql -h localhost -p 5432 -U postgres -d ifrspro_platform_admin < backup_file.sq
 **The database migration and cleanup is COMPLETE!**
 
 You now have:
+
 - ✅ Clean, organized database structure
 - ✅ No duplicate IFRS9 tables
 - ✅ Multi-database architecture working
@@ -328,6 +349,7 @@ Your development environment is ready to use! 🚀
 ## 📞 Support
 
 For questions:
+
 1. Review individual database README files
 2. Check `packages/new-backend/MULTI_DATABASE.md`
 3. Review `ops/DATABASE_CONFIG.md`

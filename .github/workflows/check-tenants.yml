@@ -6,11 +6,11 @@ on:
       host:
         description: 'Database host'
         required: false
-        default: '10.8.0.2'
+        default: '172.25.0.25'
       port:
         description: 'Database port'
         required: false
-        default: '5433'
+        default: '5432'
 
 jobs:
   check-tenants:

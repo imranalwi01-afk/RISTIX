@@ -41,7 +41,7 @@ IF %ERRORLEVEL% NEQ 0 (
 :FOUND_R
 ECHO [*] R Detected!
 ECHO [*] Installing missing dependencies and starting services...
-ECHO [*] Database Target: 10.8.0.2 (VPN Required)
+ECHO [*] Database Target: 172.25.0.25 (VPN Required)
 ECHO [*] Dashboard Port: 4236
 ECHO [*] API Port: 4241
 ECHO.

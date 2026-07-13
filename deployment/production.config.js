@@ -69,7 +69,7 @@ const productionConfig = {
       ip: '192.168.0.106',
       role: 'legacy_analytics',
       services: ['postgresql_legacy', 'postgresql_analytics'],
-      ports: [5433, 5434],
+      ports: [5432, 5434],
       specs: {
         cpu: '20_cores',
         memory: '48GB',
@@ -179,7 +179,7 @@ const productionConfig = {
       environment: {
         R_HOME: '/usr/lib/R',
         R_LIBS_USER: '/opt/ifrs9/r-packages',
-        IFRS9_DATA_SOURCE: 'postgresql://192.168.0.106:5433/IFRS9_pro',
+        IFRS9_DATA_SOURCE: 'postgresql://192.168.0.106:5432/IFRS9_pro',
         R_SERVICE_PORT: '4236',
         R_MAX_MEMORY: '8G'
       },
@@ -239,7 +239,7 @@ const productionConfig = {
     // Legacy PostgreSQL (FRS9PRO Migration)
     postgresql_legacy: {
       host: '192.168.0.106',
-      port: 5433,
+      port: 5432,
       version: '16.0',
       databases: ['FRS9PRO'],
       role: 'migration_source',

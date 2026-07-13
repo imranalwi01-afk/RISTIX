@@ -1,7 +1,8 @@
 # IFRSPRO Tenant IAF Database - Schema Documentation
 
 ## Database Information
-- **Host**: 10.8.0.2:5433
+
+- **Host**: 172.25.0.25:5432
 - **Database**: ifrspro_tenant_iaf
 - **Tenant**: Indonesia Airawata Finance (IAF)
 - **Total Schemas**: 10
@@ -11,88 +12,103 @@
 ## Schema Structure
 
 ### 1. analytics (0 tables)
+
 **Purpose**: Analytics and reporting (tables to be added)
 
 ### 2. audit (3 tables)
+
 **Purpose**: Tenant-specific audit trail
 
-| Table | Description |
-|-------|-------------|
-| `audit_logs` | General audit logs |
-| `data_change_history` | Data change tracking |
-| `user_activity_logs` | User activity tracking |
+| Table                 | Description            |
+| --------------------- | ---------------------- |
+| `audit_logs`          | General audit logs     |
+| `data_change_history` | Data change tracking   |
+| `user_activity_logs`  | User activity tracking |
 
 ### 3. calculation (0 tables)
+
 **Purpose**: IFRS9 calculation results (tables to be added)
 
 ### 4. cms (0 tables)
+
 **Purpose**: Content Management System (tables to be added)
 
 ### 5. configuration (0 tables)
+
 **Purpose**: Tenant-specific configuration (tables to be added)
 
 ### 6. core (14 tables)
+
 **Purpose**: Core tenant entities and data
 
-| Table | Description |
-|-------|-------------|
-| `app_settings` | Application settings |
-| `banking_products` | Banking product catalog |
-| `customers` | Customer master data |
-| `menu_categories` | Menu category definitions |
-| `menu_configurations` | Menu configuration |
-| `menu_items` | Menu item definitions |
-| `portfolio_accounts` | Portfolio account data |
+| Table                  | Description                  |
+| ---------------------- | ---------------------------- |
+| `app_settings`         | Application settings         |
+| `banking_products`     | Banking product catalog      |
+| `customers`            | Customer master data         |
+| `menu_categories`      | Menu category definitions    |
+| `menu_configurations`  | Menu configuration           |
+| `menu_items`           | Menu item definitions        |
+| `portfolio_accounts`   | Portfolio account data       |
 | `restricted_databases` | Database access restrictions |
-| `role_menu_access` | Role-based menu access |
-| `roles` | Role definitions |
-| `tenant_info` | Tenant information |
-| `user_roles` | User role assignments |
-| `user_sessions` | User session management |
-| `users` | User accounts |
+| `role_menu_access`     | Role-based menu access       |
+| `roles`                | Role definitions             |
+| `tenant_info`          | Tenant information           |
+| `user_roles`           | User role assignments        |
+| `user_sessions`        | User session management      |
+| `users`                | User accounts                |
 
 ### 7. ifrs9 (0 tables)
+
 **Purpose**: IFRS9 specific data (tables to be added)
 
 ### 8. public (0 tables)
+
 **Purpose**: Default schema (currently empty)
 
 ### 9. staging (0 tables)
+
 **Purpose**: Data staging area (tables to be added)
 
 ### 10. workflow (3 tables)
+
 **Purpose**: Tenant-specific workflows
 
-| Table | Description |
-|-------|-------------|
+| Table         | Description          |
+| ------------- | -------------------- |
 | `definitions` | Workflow definitions |
-| `instances` | Workflow instances |
-| `tasks` | Workflow tasks |
+| `instances`   | Workflow instances   |
+| `tasks`       | Workflow tasks       |
 
 ## Key Features
 
 ### Tenant Isolation
+
 - Dedicated database per tenant (IAF)
 - Tenant-specific users, roles, and permissions
 - Isolated audit trail and activity logs
 
 ### Core Entities
+
 - **Users & Roles**: Complete RBAC system
 - **Customers**: Customer master data
 - **Portfolio Accounts**: Account management
 - **Banking Products**: Product catalog
 
 ### Menu System
+
 - Tenant-specific menu configuration
 - Role-based menu access control
 - Menu categories and items
 
 ### Audit & Compliance
+
 - Comprehensive audit logging
 - Data change history tracking
 - User activity monitoring
 
 ### Workflow Management
+
 - Workflow definitions and instances
 - Task management
 
@@ -125,8 +141,8 @@ Update your `.env` files:
 
 ```bash
 # Tenant Database (IAF)
-TENANT_DB_HOST=10.8.0.2
-TENANT_DB_PORT=5433
+TENANT_DB_HOST=172.25.0.25
+TENANT_DB_PORT=5432
 TENANT_DB_USER=postgres
 TENANT_DB_PASSWORD=postgres
 TENANT_DB_NAME=ifrspro_tenant_iaf
@@ -144,25 +160,25 @@ SINGLE_TENANT_MODE=true
 ## Backend Integration
 
 ```typescript
-import { tenantDb } from '@/config/database'
+import { tenantDb } from '@/config/database';
 
 // Access tenant users
-const users = await tenantDb.query.core.users.findMany()
+const users = await tenantDb.query.core.users.findMany();
 
 // Access customers
-const customers = await tenantDb.query.core.customers.findMany()
+const customers = await tenantDb.query.core.customers.findMany();
 
 // Access portfolio accounts
-const accounts = await tenantDb.query.core.portfolio_accounts.findMany()
+const accounts = await tenantDb.query.core.portfolio_accounts.findMany();
 
 // Access banking products
-const products = await tenantDb.query.core.banking_products.findMany()
+const products = await tenantDb.query.core.banking_products.findMany();
 
 // Access audit logs
-const auditLogs = await tenantDb.query.audit.audit_logs.findMany()
+const auditLogs = await tenantDb.query.audit.audit_logs.findMany();
 
 // Access workflows
-const workflows = await tenantDb.query.workflow.definitions.findMany()
+const workflows = await tenantDb.query.workflow.definitions.findMany();
 ```
 
 ## Drizzle Schema Organization
@@ -194,6 +210,7 @@ export const workflowTasks = pgTable('tasks', { ... }, { schema: 'workflow' })
 ## Multi-Tenant Architecture
 
 ### Database Strategy
+
 The platform uses a **database-per-tenant** approach:
 
 - **Platform Admin DB**: Platform-wide administration
@@ -202,6 +219,7 @@ The platform uses a **database-per-tenant** approach:
 - **Tenant DB (Other)**: Other tenant databases (e.g., ifrspro_tenant_xyz)
 
 ### Benefits
+
 - ✅ Complete data isolation
 - ✅ Independent scaling per tenant
 - ✅ Easier backup and restore per tenant
@@ -209,6 +227,7 @@ The platform uses a **database-per-tenant** approach:
 - ✅ Custom schema per tenant if needed
 
 ### Considerations
+
 - Connection pooling per tenant database
 - Database registry for tenant discovery
 - Migration management across tenant databases
@@ -225,14 +244,14 @@ The platform uses a **database-per-tenant** approach:
 
 ## Comparison with Platform Admin
 
-| Aspect | Platform Admin | Tenant IAF |
-|--------|---------------|------------|
-| Schemas | 20 | 10 |
-| Tables | 123 | 20 |
-| Purpose | Platform-wide | Tenant-specific |
-| Users | Platform admins | Tenant users |
-| Scope | All tenants | Single tenant (IAF) |
-| Data | Shared metadata | Isolated tenant data |
+| Aspect  | Platform Admin  | Tenant IAF           |
+| ------- | --------------- | -------------------- |
+| Schemas | 20              | 10                   |
+| Tables  | 123             | 20                   |
+| Purpose | Platform-wide   | Tenant-specific      |
+| Users   | Platform admins | Tenant users         |
+| Scope   | All tenants     | Single tenant (IAF)  |
+| Data    | Shared metadata | Isolated tenant data |
 
 ## Database Relationships
 

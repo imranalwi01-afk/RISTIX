@@ -7,7 +7,7 @@
 -- ✅ TYPE: Business parameters (param_type = 'B')
 -- ============================================================================
 
--- Connect to FRS9PRO database (DS2: 192.168.0.106:5433)
+-- Connect to FRS9PRO database (DS2: 192.168.0.106:5432)
 \c FRS9PRO;
 
 -- ==========================================

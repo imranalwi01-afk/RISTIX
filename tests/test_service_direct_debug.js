@@ -3,7 +3,7 @@ import postgres from 'postgres';
 
 async function testServiceDirect() {
     console.log('=== Test Service Direct Debug ===');
-    const sql = postgres('postgresql://postgres:postgres@10.8.0.2:5433/ifrspro_platform_admin', { max: 1 });
+    const sql = postgres('postgresql://postgres:postgres@172.25.0.25:5432/ifrspro_platform_admin', { max: 1 });
     
     try {
         const tenantId = 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be';

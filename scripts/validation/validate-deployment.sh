@@ -119,7 +119,7 @@ validate_database_connectivity() {
     
     # Secondary database server (DS2) 
     validate_check "Secondary Database Server (DS2)" \
-        "pg_isready -h ${DS2_HOST:-192.168.0.106} -p ${DS2_PORT:-5433} -U ${DS2_USER:-postgres}" "false"
+        "pg_isready -h ${DS2_HOST:-192.168.0.106} -p ${DS2_PORT:-5432} -U ${DS2_USER:-postgres}" "false"
     
     # Platform admin database
     validate_check "Platform Admin Database" \

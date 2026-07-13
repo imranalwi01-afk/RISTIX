@@ -27,7 +27,7 @@ The IFRS9 IAF platform uses a **multi-database, multi-tenant** architecture with
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    PostgreSQL Server                     │
-│                      (Port 5433)                         │
+│                      (Port 5432)                         │
 ├─────────────────────────────────────────────────────────┤
 │                                                          │
 │  ┌────────────────────────────────────────────┐         │
@@ -67,12 +67,12 @@ The IFRS9 IAF platform uses a **multi-database, multi-tenant** architecture with
 
 ## Database List
 
-| Database Name | Purpose | Owner | Size Est. |
-|---------------|---------|-------|-----------|
-| `ifrspro_platform_admin` | Tenant registry (core.tenants), menu management | postgres | ~20MB |
-| `ifrspro_shared_services` | Shared services across all tenants (audit, notifications) | postgres | ~100MB |
-| `ifrspro_tenant_iaf` | **All IAF data:** users, roles, permissions, RBAC, IFRS9, portfolio | postgres | ~500MB |
-| `FRS9PRO` | Legacy IFRS9 system (migration source, read-only) | postgres | ~2GB |
+| Database Name             | Purpose                                                             | Owner    | Size Est. |
+| ------------------------- | ------------------------------------------------------------------- | -------- | --------- |
+| `ifrspro_platform_admin`  | Tenant registry (core.tenants), menu management                     | postgres | ~20MB     |
+| `ifrspro_shared_services` | Shared services across all tenants (audit, notifications)           | postgres | ~100MB    |
+| `ifrspro_tenant_iaf`      | **All IAF data:** users, roles, permissions, RBAC, IFRS9, portfolio | postgres | ~500MB    |
+| `FRS9PRO`                 | Legacy IFRS9 system (migration source, read-only)                   | postgres | ~2GB      |
 
 ---
 
@@ -81,11 +81,13 @@ The IFRS9 IAF platform uses a **multi-database, multi-tenant** architecture with
 ### Platform Admin Database (`ifrspro_platform_admin`)
 
 #### Schemas:
+
 - `core` - Tenant registry only
 
 #### Key Tables:
 
 **`core.tenants`**
+
 ```sql
 CREATE TABLE core.tenants (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -119,6 +121,7 @@ CREATE TABLE core.tenants (
 ### Tenant Database (`ifrspro_tenant_iaf`)
 
 #### Schemas:
+
 - `core` - Core entities (users, roles, permissions, RBAC)
 - `ifrs9` - IFRS9 business logic and calculations
 - `portfolio` - Loan portfolio and accounts
@@ -128,12 +131,13 @@ CREATE TABLE core.tenants (
 #### Key Tables:
 
 **`core.users`** (Tenant-level)
-```sql
+
+````sql
 CREATE TABLE core.users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username VARCHAR(100) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
-> **Important:** This database contains **ALL** users, roles, and permissions for IAF.  
+> **Important:** This database contains **ALL** users, roles, and permissions for IAF.
 > There is NO separate platform-level user management.
 
 #### Schemas:
@@ -144,7 +148,7 @@ CREATE TABLE core.users (
 - `ifrs9` - IFRS9 business logic and calculations (legacy, 50+ tables)
 - Standard schema (public) - Job definitions and executions
 
-> **Note:** Some tables like `workflows`, `menu_items` use `coreSchema = pgSchema('core')` in Drizzle ORM,  
+> **Note:** Some tables like `workflows`, `menu_items` use `coreSchema = pgSchema('core')` in Drizzle ORM,
 > while approval system uses `approvalSchema = pgSchema('approval')` for logical separation.
 
 #### Core Schema Tables
@@ -175,13 +179,14 @@ CREATE UNIQUE INDEX users_username_idx ON core.users(username);
 CREATE UNIQUE INDEX users_email_idx ON core.users(email);
 CREATE INDEX users_tenant_idx ON core.users(tenant_id);
 CREATE INDEX users_active_idx ON core.users(is_active);
-```
+````
 
 **Purpose:** **ALL** users for the IAF tenant (including admins, analysts, etc.)  
 **Scope:** IAF users only  
 **Authentication:** Users login and are authenticated against this table
 
 **`core.roles`** ([rbac.schema.ts](../packages/new-backend/src/db/schema/rbac.schema.ts))
+
 ```sql
 CREATE TABLE core.roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -217,6 +222,7 @@ CREATE INDEX roles_system_role_idx ON core.roles(is_system_role);
 **Current Roles:** IAF_TENANT_SUPERADMIN, IAF_TENANT_ADMIN, IAF_DATA_ADMIN, IAF_RISK_ANALYST
 
 **`core.permissions`** ([rbac.schema.ts](../packages/new-backend/src/db/schema/rbac.schema.ts))
+
 ```sql
 CREATE TABLE core.permissions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -252,6 +258,7 @@ CREATE UNIQUE INDEX permissions_code_idx ON core.permissions(code);
 **Count:** 16 permissions (as of Jan 26, 2026)
 
 **`core.role_permissions`**
+
 ```sql
 CREATE TABLE core.role_permissions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -269,6 +276,7 @@ CREATE INDEX role_permissions_permission_idx ON core.role_permissions(permission
 **Purpose:** Maps permissions to roles (many-to-many)
 
 **`core.user_roles`** ([rbac.schema.ts](../packages/new-backend/src/db/schema/rbac.schema.ts))
+
 ```sql
 CREATE TABLE core.user_roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -301,6 +309,7 @@ CREATE INDEX user_roles_valid_until_idx ON core.user_roles(valid_until);
 **Purpose:** Maps users to roles with temporal validity
 
 **`core.permission_approval_policies`** ([rbac.schema.ts](../packages/new-backend/src/db/schema/rbac.schema.ts))
+
 ```sql
 CREATE TABLE core.permission_approval_policies (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -321,6 +330,7 @@ CREATE TABLE core.permission_approval_policies (
 #### Menu System Tables
 
 **`core.menu_categories`** ([menu.schema.ts](../packages/new-backend/src/db/schema/menu.schema.ts))
+
 ```sql
 CREATE TABLE core.menu_categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -339,6 +349,7 @@ CREATE UNIQUE INDEX menu_categories_key_idx ON core.menu_categories(category_key
 ```
 
 **`core.menu_items`** ([menu.schema.ts](../packages/new-backend/src/db/schema/menu.schema.ts))
+
 ```sql
 CREATE TABLE core.menu_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -384,6 +395,7 @@ CREATE INDEX idx_menu_items_active ON core.menu_items(is_active);
 **Purpose:** Hierarchical menu structure with role-based permissions and banking mode support
 
 **`core.role_menu_access`** ([menu.schema.ts](../packages/new-backend/src/db/schema/menu.schema.ts))
+
 ```sql
 CREATE TABLE core.role_menu_access (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -405,6 +417,7 @@ CREATE UNIQUE INDEX role_menu_unique_idx ON core.role_menu_access(role_id, menu_
 #### Audit Schema Tables
 
 **`audit.audit_logs`** ([audit.schema.ts](../packages/new-backend/src/db/schema/audit.schema.ts))
+
 ```sql
 CREATE TABLE audit.audit_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -436,6 +449,7 @@ CREATE INDEX audit_logs_entity_idx ON audit.audit_logs(entity_type, entity_id);
 **Purpose:** Comprehensive audit trail with old/new value tracking for compliance
 
 **`audit.user_activity_logs`** ([audit.schema.ts](../packages/new-backend/src/db/schema/audit.schema.ts))
+
 ```sql
 CREATE TABLE audit.user_activity_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -462,6 +476,7 @@ CREATE INDEX user_activity_created_at_idx ON audit.user_activity_logs(created_at
 #### Auth Schema Tables
 
 **`auth.sessions`** ([auth.schema.ts](../packages/new-backend/src/db/schema/auth.schema.ts))
+
 ```sql
 CREATE TABLE auth.sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -487,6 +502,7 @@ CREATE INDEX sessions_expires_at_idx ON auth.sessions(expires_at);
 **Purpose:** JWT session management with access/refresh token tracking
 
 **`auth.password_reset_tokens`** ([auth.schema.ts](../packages/new-backend/src/db/schema/auth.schema.ts))
+
 ```sql
 CREATE TABLE auth.password_reset_tokens (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -508,6 +524,7 @@ CREATE INDEX password_reset_token_idx ON auth.password_reset_tokens(token);
 #### Approval Schema Tables
 
 **`approval.approval_matrices`** ([approval.schema.ts](../packages/new-backend/src/db/schema/approval.schema.ts))
+
 ```sql
 CREATE TABLE approval.approval_matrices (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -535,6 +552,7 @@ CREATE INDEX approval_matrices_active_idx ON approval.approval_matrices(is_activ
 **Purpose:** Approval rule definitions per entity type with banking-specific requirements
 
 **`approval.approval_levels`** ([approval.schema.ts](../packages/new-backend/src/db/schema/approval.schema.ts))
+
 ```sql
 CREATE TABLE approval.approval_levels (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -558,6 +576,7 @@ CREATE INDEX approval_levels_level_idx ON approval.approval_levels(level);
 **Purpose:** Multi-level approval hierarchy with role requirements
 
 **`approval.approval_requests`** ([approval.schema.ts](../packages/new-backend/src/db/schema/approval.schema.ts))
+
 ```sql
 CREATE TABLE approval.approval_requests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -586,6 +605,7 @@ CREATE INDEX approval_requests_requested_by_idx ON approval.approval_requests(re
 **Purpose:** Pending and completed approval items
 
 **`approval.approval_actions`** ([approval.schema.ts](../packages/new-backend/src/db/schema/approval.schema.ts))
+
 ```sql
 CREATE TABLE approval.approval_actions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -608,6 +628,7 @@ CREATE INDEX approval_actions_approver_idx ON approval.approval_actions(approver
 #### Workflow Schema Tables
 
 **`core.workflows`** ([workflows.schema.ts](../packages/new-backend/src/db/schema/workflows.schema.ts))
+
 ```sql
 CREATE TABLE core.workflows (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -639,6 +660,7 @@ CREATE INDEX workflows_created_idx ON core.workflows(created_at);
 **Purpose:** State machine for approval/ECL workflows
 
 **`core.workflow_transitions`** ([workflows.schema.ts](../packages/new-backend/src/db/schema/workflows.schema.ts))
+
 ```sql
 CREATE TABLE core.workflow_transitions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -663,6 +685,7 @@ CREATE INDEX workflow_transitions_triggered_at_idx ON core.workflow_transitions(
 **Purpose:** State change audit trail for workflows
 
 **`core.workflow_jobs`** ([workflows.schema.ts](../packages/new-backend/src/db/schema/workflows.schema.ts))
+
 ```sql
 CREATE TABLE core.workflow_jobs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -685,6 +708,7 @@ CREATE INDEX workflow_jobs_workflow_idx ON core.workflow_jobs(workflow_id);
 #### Jobs Schema Tables (Public/Standard Schema)
 
 **`job_definitions`** ([jobs.schema.ts](../packages/new-backend/src/db/schema/jobs.schema.ts))
+
 ```sql
 CREATE TABLE job_definitions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -714,6 +738,7 @@ CREATE TABLE job_definitions (
 **Purpose:** Scheduled job configurations with approval integration
 
 **`job_executions`** ([jobs.schema.ts](../packages/new-backend/src/db/schema/jobs.schema.ts))
+
 ```sql
 CREATE TABLE job_executions (
     id VARCHAR(255) PRIMARY KEY, -- BullMQ Job ID
@@ -744,6 +769,7 @@ CREATE TABLE job_executions (
 #### IFRS9 Schema Tables (Legacy)
 
 **50+ Tables** ([introspected/schema.ts](../packages/new-backend/src/db/schema/introspected/schema.ts))
+
 - `ifrs9.frs9_account_id` - Account master data
 - `ifrs9.frs9_amort_journal_data` - Amortization journal entries
 - `ifrs9.frs9_ecl_model_mapping` - ECL model configurations
@@ -756,6 +782,7 @@ CREATE TABLE job_executions (
 #### Portfolio/Business Tables
 
 **❌ `core.portfolio_accounts` (UNUSED - Flagged for Cleanup)**
+
 ```sql
 -- This table exists in migration 002-create-tenant-database.sql
 -- but is NOT defined in Drizzle ORM schemas
@@ -782,60 +809,67 @@ CREATE TABLE core.portfolio_accounts (
 ## Complete Table Inventory
 
 ### Platform Admin Database Tables
-| Schema | Table | Purpose | Key Columns |
-|--------|-------|---------|-------------|
+
+| Schema | Table     | Purpose         | Key Columns                        |
+| ------ | --------- | --------------- | ---------------------------------- |
 | `core` | `tenants` | Tenant registry | id, code, name, slug, banking_mode |
 
 ### Tenant Database Tables (ifrspro_tenant_iaf)
 
 #### Core Schema (Active - In Use)
-| Table | Purpose | Key Columns | Status |
-|-------|---------|-------------|--------|
-| `users` | All user accounts | id, email, username, tenant_id | ✅ Active |
-| `roles` | Role definitions | id, role_code, role_name, hierarchy_level | ✅ Active |
-| `permissions` | Granular permissions | id, code, resource, action, module | ✅ Active |
-| `user_roles` | User-role mappings | user_id, role_id, tenant_id, valid_from/until | ✅ Active |
-| `role_permissions` | Role-permission mappings | role_id, permission_id | ✅ Active |
-| `permission_approval_policies` | Permission approval rules | permission_id, requires_approval | ✅ Active |
-| `menu_categories` | Menu category definitions | id, category_key, display_order | ✅ Active |
-| `menu_items` | Hierarchical menu structure | id, parent_id, menu_key, required_permissions | ✅ Active |
-| `role_menu_access` | Role-based menu access | role_id, menu_item_id, can_view/edit/delete | ✅ Active |
-| `workflows` | Workflow state machines | id, workflow_type, current_state, entity_id | ✅ Active |
-| `workflow_transitions` | State change history | workflow_id, from_state, to_state | ✅ Active |
-| `workflow_jobs` | Background jobs for workflows | workflow_id, job_type, job_status | ✅ Active |
+
+| Table                          | Purpose                       | Key Columns                                   | Status    |
+| ------------------------------ | ----------------------------- | --------------------------------------------- | --------- |
+| `users`                        | All user accounts             | id, email, username, tenant_id                | ✅ Active |
+| `roles`                        | Role definitions              | id, role_code, role_name, hierarchy_level     | ✅ Active |
+| `permissions`                  | Granular permissions          | id, code, resource, action, module            | ✅ Active |
+| `user_roles`                   | User-role mappings            | user_id, role_id, tenant_id, valid_from/until | ✅ Active |
+| `role_permissions`             | Role-permission mappings      | role_id, permission_id                        | ✅ Active |
+| `permission_approval_policies` | Permission approval rules     | permission_id, requires_approval              | ✅ Active |
+| `menu_categories`              | Menu category definitions     | id, category_key, display_order               | ✅ Active |
+| `menu_items`                   | Hierarchical menu structure   | id, parent_id, menu_key, required_permissions | ✅ Active |
+| `role_menu_access`             | Role-based menu access        | role_id, menu_item_id, can_view/edit/delete   | ✅ Active |
+| `workflows`                    | Workflow state machines       | id, workflow_type, current_state, entity_id   | ✅ Active |
+| `workflow_transitions`         | State change history          | workflow_id, from_state, to_state             | ✅ Active |
+| `workflow_jobs`                | Background jobs for workflows | workflow_id, job_type, job_status             | ✅ Active |
 
 #### Audit Schema (Active - In Use)
-| Table | Purpose | Key Columns | Status |
-|-------|---------|-------------|--------|
-| `audit_logs` | Comprehensive audit trail | id, user_id, event_type, old_values, new_values | ✅ Active |
-| `user_activity_logs` | User action tracking | user_id, activity_type, module, session_id | ✅ Active |
+
+| Table                | Purpose                   | Key Columns                                     | Status    |
+| -------------------- | ------------------------- | ----------------------------------------------- | --------- |
+| `audit_logs`         | Comprehensive audit trail | id, user_id, event_type, old_values, new_values | ✅ Active |
+| `user_activity_logs` | User action tracking      | user_id, activity_type, module, session_id      | ✅ Active |
 
 #### Auth Schema (Active - In Use)
-| Table | Purpose | Key Columns | Status |
-|-------|---------|-------------|--------|
-| `sessions` | JWT session tracking | id, user_id, access_token_id, refresh_token_id | ✅ Active |
-| `password_reset_tokens` | Password reset tokens | user_id, token, expires_at, is_used | ✅ Active |
+
+| Table                   | Purpose               | Key Columns                                    | Status    |
+| ----------------------- | --------------------- | ---------------------------------------------- | --------- |
+| `sessions`              | JWT session tracking  | id, user_id, access_token_id, refresh_token_id | ✅ Active |
+| `password_reset_tokens` | Password reset tokens | user_id, token, expires_at, is_used            | ✅ Active |
 
 #### Approval Schema (Active - In Use)
-| Table | Purpose | Key Columns | Status |
-|-------|---------|-------------|--------|
-| `approval_matrices` | Approval rule definitions | id, entity_type, operation_type, banking_mode | ✅ Active |
-| `approval_levels` | Multi-level approval hierarchy | matrix_id, level, required_roles, required_count | ✅ Active |
-| `approval_requests` | Pending/completed approvals | id, status, requested_by, current_level | ✅ Active |
-| `approval_actions` | Individual approval actions | request_id, approver_id, action, comments | ✅ Active |
+
+| Table               | Purpose                        | Key Columns                                      | Status    |
+| ------------------- | ------------------------------ | ------------------------------------------------ | --------- |
+| `approval_matrices` | Approval rule definitions      | id, entity_type, operation_type, banking_mode    | ✅ Active |
+| `approval_levels`   | Multi-level approval hierarchy | matrix_id, level, required_roles, required_count | ✅ Active |
+| `approval_requests` | Pending/completed approvals    | id, status, requested_by, current_level          | ✅ Active |
+| `approval_actions`  | Individual approval actions    | request_id, approver_id, action, comments        | ✅ Active |
 
 #### Jobs Schema (Public/Standard) (Active - In Use)
-| Table | Purpose | Key Columns | Status |
-|-------|---------|-------------|--------|
+
+| Table             | Purpose                      | Key Columns                                      | Status    |
+| ----------------- | ---------------------------- | ------------------------------------------------ | --------- |
 | `job_definitions` | Scheduled job configurations | id, job_type, cron_expression, requires_approval | ✅ Active |
-| `job_executions` | Job execution history | id, job_definition_id, status, result, error | ✅ Active |
+| `job_executions`  | Job execution history        | id, job_definition_id, status, result, error     | ✅ Active |
 
 #### IFRS9 Schema (Legacy - 50+ tables) (Active - In Use)
-| Table Prefix | Purpose | Count | Status |
-|--------------|---------|-------|--------|
-| `frs9_*` | Legacy IFRS9 calculations | 50+ tables | ✅ Active (Legacy) |
+
+| Table Prefix    | Purpose                                | Count      | Status             |
+| --------------- | -------------------------------------- | ---------- | ------------------ |
+| `frs9_*`        | Legacy IFRS9 calculations              | 50+ tables | ✅ Active (Legacy) |
 | `frs9_imp_ca_*` | Impairment calculations (EAD, PD, LGD) | 15+ tables | ✅ Active (Legacy) |
-| `frs9_ecl_*` | ECL model mappings and configurations | 10+ tables | ✅ Active (Legacy) |
+| `frs9_ecl_*`    | ECL model mappings and configurations  | 10+ tables | ✅ Active (Legacy) |
 
 ### ⚠️ Unused Tables (Flagged for Cleanup)
 
@@ -845,49 +879,57 @@ CREATE TABLE core.portfolio_accounts (
 > **Action Required:** Review and remove after confirming no dependencies.
 
 #### Core Schema (Unused)
-| Table | Status | Migration Source | Notes |
-|-------|--------|------------------|-------|
+
+| Table                     | Status      | Migration Source                 | Notes                                                 |
+| ------------------------- | ----------- | -------------------------------- | ----------------------------------------------------- |
 | `core.portfolio_accounts` | ❌ NOT USED | `002-create-tenant-database.sql` | Replaced by ifrs9.frs9_account_id or pending redesign |
 
 #### Calculation Schema (Unused)
-| Table | Status | Migration Source | Notes |
-|-------|--------|------------------|-------|
-| `calculation.ecl_jobs` | ❌ NOT USED | `002-create-tenant-database.sql` | Replaced by public.job_definitions/job_executions |
-| `calculation.ecl_result_nominative` | ❌ NOT USED | `002-create-tenant-database.sql` | Legacy calculation results |
+
+| Table                               | Status      | Migration Source                 | Notes                                             |
+| ----------------------------------- | ----------- | -------------------------------- | ------------------------------------------------- |
+| `calculation.ecl_jobs`              | ❌ NOT USED | `002-create-tenant-database.sql` | Replaced by public.job_definitions/job_executions |
+| `calculation.ecl_result_nominative` | ❌ NOT USED | `002-create-tenant-database.sql` | Legacy calculation results                        |
 
 #### Staging Schema (Unused)
-| Table | Status | Migration Source | Notes |
-|-------|--------|------------------|-------|
-| `staging.upload_batches` | ❌ NOT USED | `002-create-tenant-database.sql` | Old file upload tracking |
+
+| Table                          | Status      | Migration Source                 | Notes                        |
+| ------------------------------ | ----------- | -------------------------------- | ---------------------------- |
+| `staging.upload_batches`       | ❌ NOT USED | `002-create-tenant-database.sql` | Old file upload tracking     |
 | `staging.portfolio_data_stage` | ❌ NOT USED | `002-create-tenant-database.sql` | Old staging area for imports |
 
 #### Workflow Schema (Unused)
-| Table | Status | Migration Source | Notes |
-|-------|--------|------------------|-------|
+
+| Table                     | Status      | Migration Source                 | Notes                                                   |
+| ------------------------- | ----------- | -------------------------------- | ------------------------------------------------------- |
 | `workflow.approval_tasks` | ❌ NOT USED | `002-create-tenant-database.sql` | Replaced by approval.approval_requests + core.workflows |
 
 #### Configuration Schema (Unused)
-| Table | Status | Migration Source | Notes |
-|-------|--------|------------------|-------|
-| `configuration.app_settings` | ❌ NOT USED | `002-create-tenant-database.sql` | May need to implement in future |
+
+| Table                                | Status      | Migration Source                 | Notes                           |
+| ------------------------------------ | ----------- | -------------------------------- | ------------------------------- |
+| `configuration.app_settings`         | ❌ NOT USED | `002-create-tenant-database.sql` | May need to implement in future |
 | `configuration.model_configurations` | ❌ NOT USED | `002-create-tenant-database.sql` | May need to implement in future |
 
 #### Analytics Schema (Unused)
-| Table | Status | Migration Source | Notes |
-|-------|--------|------------------|-------|
-| `analytics.r_models` | ❌ NOT USED | `002-create-tenant-database.sql` | R integration pending |
+
+| Table                        | Status      | Migration Source                 | Notes                 |
+| ---------------------------- | ----------- | -------------------------------- | --------------------- |
+| `analytics.r_models`         | ❌ NOT USED | `002-create-tenant-database.sql` | R integration pending |
 | `analytics.model_executions` | ❌ NOT USED | `002-create-tenant-database.sql` | R integration pending |
 
 #### Platform Admin Database (Unused)
-| Table | Status | Migration Source | Notes |
-|-------|--------|------------------|-------|
-| `platform_admin.platform_users` | ❌ NOT USED | `001-create-platform-tables.sql` | All users moved to tenant databases |
-| `platform_billing.subscriptions` | ❌ NOT USED | `001-create-platform-tables.sql` | Billing not implemented |
-| `platform_audit.tenant_audit_logs` | ❌ NOT USED | `001-create-platform-tables.sql` | Audit in tenant DBs |
-| `platform_audit.system_audit_logs` | ❌ NOT USED | `001-create-platform-tables.sql` | Audit in tenant DBs |
-| `platform_monitoring.tenant_performance_metrics` | ❌ NOT USED | `001-create-platform-tables.sql` | Monitoring not implemented |
+
+| Table                                            | Status      | Migration Source                 | Notes                               |
+| ------------------------------------------------ | ----------- | -------------------------------- | ----------------------------------- |
+| `platform_admin.platform_users`                  | ❌ NOT USED | `001-create-platform-tables.sql` | All users moved to tenant databases |
+| `platform_billing.subscriptions`                 | ❌ NOT USED | `001-create-platform-tables.sql` | Billing not implemented             |
+| `platform_audit.tenant_audit_logs`               | ❌ NOT USED | `001-create-platform-tables.sql` | Audit in tenant DBs                 |
+| `platform_audit.system_audit_logs`               | ❌ NOT USED | `001-create-platform-tables.sql` | Audit in tenant DBs                 |
+| `platform_monitoring.tenant_performance_metrics` | ❌ NOT USED | `001-create-platform-tables.sql` | Monitoring not implemented          |
 
 **Cleanup Recommendation:**
+
 ```sql
 -- After confirming no dependencies, run:
 DROP TABLE IF EXISTS core.portfolio_accounts CASCADE;
@@ -950,7 +992,7 @@ Platform Admin DB                    Tenant DB (IAF)
 │ id           │                    │ tenant_id    │
 │ slug: 'iaf'  │◄───────references──│ (VARCHAR)    │
 │ name         │                    └──────────────┘
-└──────────────┘                    
+└──────────────┘
       │                             ┌──────────────┐
       │                             │ user_roles   │
       │                             │──────────────│
@@ -961,14 +1003,14 @@ Platform Admin DB                    Tenant DB (IAF)
 │ id (UUID)    │                    │  ALL IAF users   │
 │ slug: 'iaf'  │◄────references─────│  (admins, etc)   │
 │ name         │                    └──────────────────┘
-└──────────────┘                    
+└──────────────┘
       │                             ┌──────────────────┐
       │                             │  core.roles      │
       │                             │──────────────────│
       └─────────references──────────│  ALL IAF roles   │
                                     │  tenant_id       │
                                     └──────────────────┘
-                                    
+
                                     ┌──────────────────┐
                                     │ core.permissions │
                                     │──────────────────│
@@ -977,45 +1019,51 @@ Platform Admin DB                    Tenant DB (IAF)
                                     └──────────────────┘
 ```
 
-**Important:** 
+**Important:**
+
 - Platform DB **ONLY** has tenant registry (`core.tenants`)
 - **ALL users, roles, and permissions** are in the tenant database
 - Each tenant database is completely isolated
 - `user_roles.tenant_id` (UUID) references `platform_admin.d()` |
-| `VARCHAR(n)` | Short strings with length limit | Email (255), codes (50) |
-| `TEXT` | Unlimited text | Descriptions, JSON strings |
-| `TIMESTAMP` | Date and time (no timezone) | `created_at`, `updated_at` |
-| `BOOLEAN` | True/false flags | `is_active`, `is_deleted` |
-| `NUMERIC(p,s)` | Precise decimals | Money (20,2), rates (8,4) |
-| `JSONB` | JSON documents (binary) | Settings, metadata |
-| `INET` | IP addresses | `ip_address` in audit logs |
-| `INTEGER` | Whole numbers | `sort_order`, `level` |
+  | `VARCHAR(n)` | Short strings with length limit | Email (255), codes (50) |
+  | `TEXT` | Unlimited text | Descriptions, JSON strings |
+  | `TIMESTAMP` | Date and time (no timezone) | `created_at`, `updated_at` |
+  | `BOOLEAN` | True/false flags | `is_active`, `is_deleted` |
+  | `NUMERIC(p,s)` | Precise decimals | Money (20,2), rates (8,4) |
+  | `JSONB` | JSON documents (binary) | Settings, metadata |
+  | `INET` | IP addresses | `ip_address` in audit logs |
+  | `INTEGER` | Whole numbers | `sort_order`, `level` |
 
 ### Common Constraints
 
 **Primary Keys:**
+
 ```sql
 id UUID PRIMARY KEY DEFAULT gen_random_uuid()
 ```
 
 **Unique Constraints:**
+
 ```sql
 email VARCHAR(255) NOT NULL UNIQUE
 UNIQUE(user_id, role_id)
 ```
 
 **Foreign Keys:**
+
 ```sql
 user_id UUID REFERENCES core.users(id) ON DELETE CASCADE
 role_id UUID REFERENCES core.roles(id) ON DELETE CASCADE
 ```
 
 **Check Constraints:**
+
 ```sql
 stage INTEGER CHECK (stage IN (1, 2, 3))
 ```
 
 **Default Values:**
+
 ```sql
 is_active BOOLEAN DEFAULT true
 created_at TIMESTAMP DEFAULT NOW()
@@ -1029,10 +1077,12 @@ permissions JSONB DEFAULT '{}'::jsonb
 ### Index Strategy
 
 **Primary Indexes (Automatic):**
+
 - All primary keys (UUID)
 - All unique constraints
 
 **Foreign Key Indexes:**
+
 ```sql
 CREATE INDEX user_roles_user_idx ON core.user_roles(user_id);
 CREATE INDEX user_roles_role_idx ON core.user_roles(role_id);
@@ -1040,6 +1090,7 @@ CREATE INDEX role_permissions_role_idx ON core.role_permissions(role_id);
 ```
 
 **Query Optimization Indexes:**
+
 ```sql
 -- For active record queries
 CREATE INDEX roles_active_idx ON core.roles(is_active);
@@ -1055,6 +1106,7 @@ CREATE INDEX accounts_stage_idx ON portfolio.accounts(stage);
 ```
 
 **Composite Indexes:**
+
 ```sql
 CREATE INDEX user_roles_user_tenant_idx ON core.user_roles(user_id, tenant_id);
 ```
@@ -1066,10 +1118,12 @@ CREATE INDEX user_roles_user_tenant_idx ON core.user_roles(user_id, tenant_id);
 ### Approach: Database-per-Tenant
 
 **Advantages:**
+
 - ✅ Strong data isolation
-Each tenant has its own complete database with **all** users, roles, and permissions.
+  Each tenant has its own complete database with **all** users, roles, and permissions.
 
 **Advantages:**
+
 - ✅ Strong data isolation (complete database separation)
 - ✅ Independent scaling per tenant
 - ✅ Easier backup/restore per tenant
@@ -1077,10 +1131,12 @@ Each tenant has its own complete database with **all** users, roles, and permiss
 - ✅ No risk of data leakage between tenants
 
 **Architecture:**
+
 - Platform DB: **Only tenant registry** (`core.tenants`)
 - Tenant DB: **Complete application data** (users, roles, permissions, business data)
 
 **Challenges:**
+
 - ⚠️ Connection pool management
 - ⚠️ No cross-tenant queries (by design - this is a feature for security)
 - ⚠️ Schema migration coordination across multiple databases
@@ -1097,7 +1153,7 @@ Each tenant has its own complete database with **all** users, roles, and permiss
 
 ```typescript
 // Backend uses dynamic database connection
-const db = getDatabase(tenantId) // Returns DrizzleDB for tenant
+const db = getDatabase(tenantId); // Returns DrizzleDB for tenant
 ```
 
 ---
@@ -1106,11 +1162,11 @@ const db = getDatabase(tenantId) // Returns DrizzleDB for tenant
 
 ### Recent Migrations (January 2026)
 
-| Date | File | Description |
-|------|------|-------------|
-| 2026-01-26 | `add_missing_roles_columns.sql` | Added RBAC columns to roles and user_roles tables |
-| 2026-01-26 | `grant_admin_dashboard_access.sql` | Created 16 permissions and granted to admin roles |
-| 2026-01-26 | `fix_iaf_tenant_uuid.sql` | Fixed tenant_id mismatches to use correct IAF UUID |
+| Date       | File                               | Description                                        |
+| ---------- | ---------------------------------- | -------------------------------------------------- |
+| 2026-01-26 | `add_missing_roles_columns.sql`    | Added RBAC columns to roles and user_roles tables  |
+| 2026-01-26 | `grant_admin_dashboard_access.sql` | Created 16 permissions and granted to admin roles  |
+| 2026-01-26 | `fix_iaf_tenant_uuid.sql`          | Fixed tenant_id mismatches to use correct IAF UUID |
 
 ### Migration Tool
 
@@ -1130,7 +1186,7 @@ docker exec ifrs9-new-backend-dev bun run /app/run-migration.ts /app/migration.s
 ```env
 # Tenant Database
 TENANT_DB_HOST=host.docker.internal
-TENANT_DB_PORT=5433
+TENANT_DB_PORT=5432
 TENANT_DB_USER=postgres
 TENANT_DB_PASSWORD=postgres
 TENANT_DB_NAME=ifrspro_tenant_iaf
@@ -1138,7 +1194,7 @@ TENANT_DB_SSL=false
 
 # Platform Database
 PLATFORM_DB_HOST=host.docker.internal
-PLATFORM_DB_PORT=5433
+PLATFORM_DB_PORT=5432
 PLATFORM_DB_USER=postgres
 PLATFORM_DB_PASSWORD=postgres
 PLATFORM_DB_NAME=ifrspro_platform_admin
@@ -1146,7 +1202,7 @@ PLATFORM_DB_SSL=false
 
 # Shared Services Database
 SHARED_DB_HOST=host.docker.internal
-SHARED_DB_PORT=5433
+SHARED_DB_PORT=5432
 SHARED_DB_USER=postgres
 SHARED_DB_PASSWORD=postgres
 SHARED_DB_NAME=ifrspro_shared_services
@@ -1194,7 +1250,7 @@ VACUUM ANALYZE;
 REINDEX DATABASE ifrspro_tenant_iaf;
 
 -- Check table sizes
-SELECT 
+SELECT
     schemaname,
     tablename,
     pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size
@@ -1207,13 +1263,13 @@ ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
 
 ```bash
 # Full database backup
-pg_dump -h localhost -p 5433 -U postgres -d ifrspro_tenant_iaf > iaf_backup_$(date +%Y%m%d).sql
+pg_dump -h localhost -p 5432 -U postgres -d ifrspro_tenant_iaf > iaf_backup_$(date +%Y%m%d).sql
 
 # Schema only
-pg_dump -h localhost -p 5433 -U postgres -d ifrspro_tenant_iaf --schema-only > iaf_schema.sql
+pg_dump -h localhost -p 5432 -U postgres -d ifrspro_tenant_iaf --schema-only > iaf_schema.sql
 
 # Specific table
-pg_dump -h localhost -p 5433 -U postgres -d ifrspro_tenant_iaf -t core.users > users_backup.sql
+pg_dump -h localhost -p 5432 -U postgres -d ifrspro_tenant_iaf -t core.users > users_backup.sql
 ```
 
 ---
@@ -1221,6 +1277,7 @@ pg_dump -h localhost -p 5433 -U postgres -d ifrspro_tenant_iaf -t core.users > u
 ## Support & References
 
 **Drizzle ORM Schemas:** [`packages/new-backend/src/db/schema/`](../packages/new-backend/src/db/schema/)
+
 - [`core.ts`](../packages/new-backend/src/db/schema/core.ts) - Users, tenants
 - [`rbac.schema.ts`](../packages/new-backend/src/db/schema/rbac.schema.ts) - Roles, permissions, RBAC
 - [`menu.schema.ts`](../packages/new-backend/src/db/schema/menu.schema.ts) - Menu system
@@ -1232,14 +1289,16 @@ pg_dump -h localhost -p 5433 -U postgres -d ifrspro_tenant_iaf -t core.users > u
 - [`introspected/schema.ts`](../packages/new-backend/src/db/schema/introspected/schema.ts) - IFRS9 legacy tables
 
 **Database Schema Files:** [`docs/diagrams/database/`](./diagrams/database/)  
-**Migration Scripts:** [`database/migrations/`](../database/migrations/)  
+**Migration Scripts:** [`database/migrations/`](../database/migrations/)
 
 **Related Documentation:**
+
 - [RBAC Documentation](./RBAC_DOCUMENTATION.md)
 - [API Documentation](./api/)
 - [Setup Guide](./setup/)
 
 **Key Database Design Decisions:**
+
 1. **Multi-Database Architecture**: Platform registry separate from tenant data
 2. **Database-per-Tenant**: Complete data isolation for security and scalability
 3. **Drizzle ORM with pgSchema**: Type-safe queries with schema namespacing
@@ -1255,7 +1314,7 @@ pg_dump -h localhost -p 5433 -U postgres -d ifrspro_tenant_iaf -t core.users > u
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | 2026-01-26 | Initial database design documentation |
-| 1.1 | 2026-01-26 | Added complete schema inventory from codebase analysis |
+| Version | Date       | Changes                                                |
+| ------- | ---------- | ------------------------------------------------------ |
+| 1.0     | 2026-01-26 | Initial database design documentation                  |
+| 1.1     | 2026-01-26 | Added complete schema inventory from codebase analysis |

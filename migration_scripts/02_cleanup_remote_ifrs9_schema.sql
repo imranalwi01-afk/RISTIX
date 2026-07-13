@@ -1,7 +1,7 @@
 -- ============================================================================
 -- CLEANUP SCRIPT 2: Remove IFRS9 Schema from REMOTE
 -- ============================================================================
--- Database: ifrspro_platform_admin (10.8.0.2:5433)
+-- Database: ifrspro_platform_admin (172.25.0.25:5432)
 -- Purpose: Remove duplicate ifrs9 schema (data exists in FRS9PRO database)
 -- Tables to remove: 5 tables in ifrs9 schema
 -- ============================================================================
@@ -32,7 +32,7 @@ ORDER BY table_name;
 -- BACKUP FIRST (IMPORTANT!)
 -- ============================================================================
 -- Run this BEFORE executing the cleanup:
--- pg_dump -h 10.8.0.2 -p 5433 -U postgres -n ifrs9 ifrspro_platform_admin > backup_remote_ifrs9_schema_$(date +%Y%m%d).sql
+-- pg_dump -h 172.25.0.25 -p 5432 -U postgres -n ifrs9 ifrspro_platform_admin > backup_remote_ifrs9_schema_$(date +%Y%m%d).sql
 
 -- ============================================================================
 -- STEP 1: Check for dependencies
@@ -90,4 +90,4 @@ ORDER BY schema_name;
 -- ROLLBACK PLAN (if needed)
 -- ============================================================================
 -- If something goes wrong, restore from backup:
--- psql -h 10.8.0.2 -p 5433 -U postgres -d ifrspro_platform_admin < backup_remote_ifrs9_schema_YYYYMMDD.sql
+-- psql -h 172.25.0.25 -p 5432 -U postgres -d ifrspro_platform_admin < backup_remote_ifrs9_schema_YYYYMMDD.sql

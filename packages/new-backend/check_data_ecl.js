@@ -1,5 +1,5 @@
 import pg from 'pg';
-const pool = new pg.Pool({ connectionString: 'postgresql://postgres:postgres@10.8.0.2:5433/FRS9PRO' });
+const pool = new pg.Pool({ connectionString: 'postgresql://postgres:postgres@172.25.0.25:5432/FRS9PRO' });
 async function checkData() {
   try {
     // 1. Cek semua record di bulan Mei 2026

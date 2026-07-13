@@ -2,8 +2,8 @@
 import postgres from 'postgres';
 
 async function main() {
-    const DB_HOST = '10.8.0.2';
-    const DB_PORT = '5433';
+    const DB_HOST = '172.25.0.25';
+    const DB_PORT = '5432';
     const DB_USER = 'postgres';
     const DB_PASSWORD = 'postgres';
     const DB_NAME = 'ifrspro_tenant_iaf';

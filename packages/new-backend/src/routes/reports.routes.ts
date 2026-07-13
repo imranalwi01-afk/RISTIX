@@ -401,6 +401,24 @@ reportsRoutes.openapi(
     (c: any) => ifrs9ReportsController.getNominativeReport(c)
 )
 
+// GET /gl-outbound
+reportsRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/gl-outbound',
+        tags: ['Reports'],
+        summary: 'Get GL Outbound Report',
+        request: {
+            query: NominativeReportQuerySchema // Re-use the schema since it only needs prc_date, page, limit
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: GenericListResponse(ReportDataSchema) } }, description: 'Report Data' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c: any) => ifrs9ReportsController.getGlOutbound(c)
+)
+
 // GET /nominative-report/available-dates
 reportsRoutes.openapi(
     createRoute({

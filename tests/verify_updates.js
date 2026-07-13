@@ -1,6 +1,6 @@
 
 const postgres = require('postgres');
-const sql = postgres('postgres://postgres:postgres@10.8.0.2:5433/ifrspro_tenant_iaf');
+const sql = postgres('postgres://postgres:postgres@172.25.0.25:5432/ifrspro_tenant_iaf');
 
 async function verify() {
   try {

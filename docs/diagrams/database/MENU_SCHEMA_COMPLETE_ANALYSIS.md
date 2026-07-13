@@ -3,9 +3,11 @@
 ## 🔍 Complete Backend Analysis
 
 ### Old Backend (packages/backend)
+
 **Uses**: `platform_admin.menu_items`
 
 **Evidence**:
+
 ```typescript
 // packages/backend/src/api/routes/menu.routes.ts (Line 623-624)
 const query = includeInactive
@@ -14,17 +16,20 @@ const query = includeInactive
 ```
 
 **Also uses**:
+
 ```typescript
 // Line 68: INSERT INTO platform_admin.menu_items
-// Line 150: UPDATE platform_admin.menu_items  
+// Line 150: UPDATE platform_admin.menu_items
 // Line 217: SELECT COUNT(*) FROM platform_admin.menu_items
 // Line 285: SELECT * FROM platform_admin.menu_items
 ```
 
 ### New Backend (packages/new-backend)
+
 **Uses**: `core.menu_items`
 
 **Evidence**:
+
 ```typescript
 // packages/new-backend/src/db/schema/menu.schema.ts
 export const coreSchema = pgSchema('core')
@@ -36,17 +41,19 @@ const items = await db.query.menuItems.findMany({ ... })
 
 ## 📊 Current Database State
 
-### REMOTE (10.8.0.2:5433)
-| Schema | Table | Columns | Rows | Old Backend | New Backend |
-|--------|-------|---------|------|-------------|-------------|
-| **platform_admin** | menu_items | 27 | 41 | ✅ **ACTIVE** | ❌ |
-| **menu** | menu_items | 21 | 28 | ❌ | ❌ |
-| **core** | menu_items | 31 | 21 | ❌ | ✅ **ACTIVE** |
+### REMOTE (172.25.0.25:5432)
+
+| Schema             | Table      | Columns | Rows | Old Backend   | New Backend   |
+| ------------------ | ---------- | ------- | ---- | ------------- | ------------- |
+| **platform_admin** | menu_items | 27      | 41   | ✅ **ACTIVE** | ❌            |
+| **menu**           | menu_items | 21      | 28   | ❌            | ❌            |
+| **core**           | menu_items | 31      | 21   | ❌            | ✅ **ACTIVE** |
 
 ### LOCAL (localhost:5432)
-| Schema | Table | Columns | Rows | Old Backend | New Backend |
-|--------|-------|---------|------|-------------|-------------|
-| **core** | menu_items | 31 | ? | ❌ | ✅ **ACTIVE** |
+
+| Schema   | Table      | Columns | Rows | Old Backend | New Backend   |
+| -------- | ---------- | ------- | ---- | ----------- | ------------- |
+| **core** | menu_items | 31      | ?    | ❌          | ✅ **ACTIVE** |
 
 ## 🎯 THE PROBLEM
 
@@ -58,18 +65,23 @@ const items = await db.query.menuItems.findMany({ ... })
 ## ✅ SOLUTION: Migrate to Single Schema
 
 ### Option A: Use `platform_admin` (Recommended for Old Backend)
+
 **Pros:**
+
 - ✅ Old backend already uses it
 - ✅ Most data (41 rows)
 - ✅ No changes needed to old backend
 - ❌ Need to update new backend
 
 **Cons:**
+
 - ❌ New backend needs schema changes
 - ❌ Less comprehensive (27 columns vs 31)
 
 ### Option B: Use `core` (Recommended for New Backend)
+
 **Pros:**
+
 - ✅ New backend already uses it
 - ✅ Most comprehensive (31 columns)
 - ✅ Better schema design
@@ -77,14 +89,18 @@ const items = await db.query.menuItems.findMany({ ... })
 - ❌ Need to update old backend
 
 **Cons:**
+
 - ❌ Old backend needs query changes
 - ❌ Less data currently (21 rows vs 41)
 
 ### Option C: Keep Both (NOT RECOMMENDED)
+
 **Pros:**
+
 - ✅ No immediate changes needed
 
 **Cons:**
+
 - ❌ Data duplication
 - ❌ Sync issues
 - ❌ Maintenance nightmare
@@ -95,6 +111,7 @@ const items = await db.query.menuItems.findMany({ ... })
 ### **Use `core` schema as single source of truth**
 
 **Why:**
+
 1. ✅ New backend is the future
 2. ✅ Most comprehensive schema (31 columns)
 3. ✅ Better design (dedicated schema)
@@ -104,6 +121,7 @@ const items = await db.query.menuItems.findMany({ ... })
 ### Migration Steps:
 
 #### Step 1: Migrate Data
+
 ```sql
 -- Migrate from platform_admin.menu_items → core.menu_items
 INSERT INTO core.menu_items (
@@ -114,7 +132,7 @@ INSERT INTO core.menu_items (
     opens_in_new_tab, description, tags, created_at, updated_at,
     created_by, tenant_id, version, last_modified_by
 )
-SELECT 
+SELECT
     id,
     parent_id,
     menu_config_id as category_id,
@@ -131,13 +149,13 @@ SELECT
     NULL as badge_text,
     NULL as badge_color,
     NULL as module_name,
-    CASE 
-        WHEN permissions IS NOT NULL THEN 
+    CASE
+        WHEN permissions IS NOT NULL THEN
             ARRAY(SELECT jsonb_array_elements_text(permissions))
         ELSE NULL
     END as required_permissions,
-    CASE 
-        WHEN banking_types IS NOT NULL THEN 
+    CASE
+        WHEN banking_types IS NOT NULL THEN
             ARRAY(SELECT jsonb_array_elements_text(banking_types))
         ELSE ARRAY['conventional', 'syariah']::text[]
     END as banking_types,
@@ -164,7 +182,7 @@ INSERT INTO core.menu_items (
     banking_types, is_active, is_visible, created_at, updated_at,
     created_by, tenant_id
 )
-SELECT 
+SELECT
     id,
     parent_id,
     category_id,
@@ -189,6 +207,7 @@ WHERE id NOT IN (SELECT id FROM core.menu_items);
 ```
 
 #### Step 2: Update Old Backend
+
 ```typescript
 // packages/backend/src/api/routes/menu.routes.ts
 
@@ -200,6 +219,7 @@ const query = 'SELECT * FROM core.menu_items ORDER BY sort_order';
 ```
 
 Update all references:
+
 - Line 623-624: Query
 - Line 68: INSERT
 - Line 150: UPDATE
@@ -207,6 +227,7 @@ Update all references:
 - Line 285: SELECT
 
 #### Step 3: Drop Unused Tables
+
 ```sql
 -- After migration and verification
 DROP TABLE IF EXISTS platform_admin.menu_items CASCADE;
@@ -214,6 +235,7 @@ DROP SCHEMA IF EXISTS menu CASCADE;
 ```
 
 #### Step 4: Verify
+
 ```sql
 -- Check data
 SELECT 'core.menu_items' as source, COUNT(*) FROM core.menu_items;
@@ -235,12 +257,12 @@ SELECT 'core.menu_items' as source, COUNT(*) FROM core.menu_items;
 
 ## 🚨 Risk Assessment
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Data loss | HIGH | Full backup before migration |
-| Old backend breaks | HIGH | Test thoroughly, rollback plan |
-| Duplicate data | MEDIUM | Use WHERE NOT EXISTS in migration |
-| Missing columns | LOW | Map JSONB to arrays carefully |
+| Risk               | Impact | Mitigation                        |
+| ------------------ | ------ | --------------------------------- |
+| Data loss          | HIGH   | Full backup before migration      |
+| Old backend breaks | HIGH   | Test thoroughly, rollback plan    |
+| Duplicate data     | MEDIUM | Use WHERE NOT EXISTS in migration |
+| Missing columns    | LOW    | Map JSONB to arrays carefully     |
 
 ## ✅ Benefits
 

@@ -3,7 +3,7 @@ import postgres from 'postgres';
 
 const sql = postgres({
   host: 'localhost',
-  port: 5433,
+  port: 5432,
   database: 'ifrspro_tenant_iaf',
   username: 'ifrs9_user',
   password: 'ifrs9_secure_password_2024'

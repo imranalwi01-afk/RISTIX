@@ -2,7 +2,7 @@ import postgres from 'postgres';
 
 async function testResultsData() {
     console.log('=== Test Results Data ===');
-    const sql = postgres('postgresql://postgres:postgres@10.8.0.2:5433/FRS9PRO', { max: 1 });
+    const sql = postgres('postgresql://postgres:postgres@172.25.0.25:5432/FRS9PRO', { max: 1 });
     
     try {
         // Test the exact same query as service

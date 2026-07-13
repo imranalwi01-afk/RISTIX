@@ -39,7 +39,7 @@ Modul ini adalah pusat kontrol utama untuk _Super Admin_ guna memantau _health_ 
 Fitur untuk memantau proses _End of Day_ (EOD) dan job _background_ lainnya, seperti yang ditampilkan di Widget "End of Day Status".
 
 - **Repository Utama:** `jobs.repository.ts`
-- **Koneksi Engine:** Menggunakan koneksi _direct PostgreSQL client_ secara eksplisit (Drizzle _bypassed_) ke `postgresql://postgres:postgres@10.8.0.2:5433/ifrspro_platform_admin`.
+- **Koneksi Engine:** Menggunakan koneksi _direct PostgreSQL client_ secara eksplisit (Drizzle _bypassed_) ke `postgresql://postgres:postgres@172.25.0.25:5432/ifrspro_platform_admin`.
 - **Tabel yang Diakses:**
   - `core.job_executions`
   - `core.job_definitions`

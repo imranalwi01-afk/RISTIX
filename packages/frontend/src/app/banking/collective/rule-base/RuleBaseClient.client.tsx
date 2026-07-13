@@ -5,7 +5,7 @@
 // ============================================================================
 // Purpose: Collective Impairment - Rule Based Setting with Application Setup UI/UX
 // Database: FRS9_PARAM_SCENARIO_RULESH (Header) + FRS9_PARAM_SCENARIO_RULESD (Detail)
-// Live DB: DS2 FRS9PRO (192.168.0.106:5433) - ACTUAL DATA, NO MOCK DATA
+// Live DB: DS2 FRS9PRO (192.168.0.106:5432) - ACTUAL DATA, NO MOCK DATA
 // UI Pattern: Matches /banking/setup/application with master-detail expandable rows
 // ============================================================================
 

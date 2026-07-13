@@ -139,6 +139,10 @@ const SIDEBAR_GROUP_LABELS: Record<string, { label: string; breadcrumb: string }
     label: 'Nominative Report',
     breadcrumb: 'IFRS 9 Reports > Nominative Report',
   },
+  'banking.reports.ifrs9.gl_outbound': {
+    label: 'GL Outbound',
+    breadcrumb: 'IFRS 9 Reports > GL Outbound',
+  },
   'banking.reports.ifrs9.lifetime_pd': {
     label: 'Lifetime PD',
     breadcrumb: 'IFRS 9 Reports > Lifetime PD',

@@ -8,11 +8,13 @@
 ### ✅ LOCAL Database (localhost:5432) - CLEANED
 
 **Before:**
+
 - 8 schemas, 201 tables
 - ifrs9 schema: 97 tables
 - public schema: 80 tables
 
 **After:**
+
 - 7 schemas, 27 tables
 - ❌ ifrs9 schema: DELETED
 - ✅ public schema: 3 tables (job_definitions, job_executions, upload_history)
@@ -31,13 +33,15 @@
 **Total**: 27 tables (was 201)
 **Deleted**: 174 duplicate tables
 
-### ✅ REMOTE Database (10.8.0.2:5433) - CLEANED
+### ✅ REMOTE Database (172.25.0.25:5432) - CLEANED
 
 **Before:**
+
 - 20 schemas, 123 tables
 - ifrs9 schema: 5 tables
 
 **After:**
+
 - 19 schemas, 118 tables
 - ❌ ifrs9 schema: DELETED
 
@@ -77,14 +81,15 @@
    - Command: `DROP SCHEMA IF EXISTS ifrs9 CASCADE;`
 
 3. ✅ **Cleaned public schema in LOCAL**
-   - Removed ~77 frs9_* tables
+   - Removed ~77 frs9\_\* tables
    - Removed 3 frs9 views
    - Kept: job_definitions, job_executions, upload_history
 
 ## Data Location
 
 All IFRS9 calculation data now resides in:
-- **Database**: FRS9PRO (10.8.0.2:5433)
+
+- **Database**: FRS9PRO (172.25.0.25:5432)
 - **Purpose**: Legacy IFRS9 calculations
 - **Access**: Via `legacyDb` connection in backend
 
@@ -93,6 +98,7 @@ All IFRS9 calculation data now resides in:
 ### 1. Import Modern Schemas to LOCAL ⏳
 
 LOCAL is missing 12 schemas from REMOTE:
+
 - approval_system
 - configuration
 - etl_designer
@@ -112,17 +118,19 @@ LOCAL is missing 12 schemas from REMOTE:
 ### 2. Update Backend Configuration ⏳
 
 Update `.env` files:
+
 ```bash
 # Remove ifrs9 schema references
 # Use FRS9PRO database for legacy data
-LEGACY_DB_HOST=10.8.0.2
-LEGACY_DB_PORT=5433
+LEGACY_DB_HOST=172.25.0.25
+LEGACY_DB_PORT=5432
 LEGACY_DB_NAME=FRS9PRO
 ```
 
 ### 3. Update Drizzle Schemas ⏳
 
 Remove ifrs9 schema files:
+
 ```bash
 # Delete or archive
 rm packages/new-backend/src/db/schema/ifrs9.schema.ts
@@ -138,6 +146,7 @@ make logs-backend
 ## Verification
 
 ### LOCAL Database
+
 ```bash
 # Should show 7 schemas
 PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d ifrspro_platform_admin -c "\dn"
@@ -150,9 +159,10 @@ PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d ifrspro_platform_ad
 ```
 
 ### REMOTE Database
+
 ```bash
 # Should show 19 schemas (no ifrs9)
-PGPASSWORD=postgres psql -h 10.8.0.2 -p 5433 -U postgres -d ifrspro_platform_admin -c "\dn"
+PGPASSWORD=postgres psql -h 172.25.0.25 -p 5432 -U postgres -d ifrspro_platform_admin -c "\dn"
 ```
 
 ## Success Metrics
@@ -166,16 +176,18 @@ PGPASSWORD=postgres psql -h 10.8.0.2 -p 5433 -U postgres -d ifrspro_platform_adm
 ## Rollback Available
 
 Backups were created before cleanup:
+
 - `backups/local_platform_admin_YYYYMMDD_HHMMSS.sql`
 - `backups/remote_platform_admin_YYYYMMDD_HHMMSS.sql`
 
 To rollback if needed:
+
 ```bash
 # Restore LOCAL
 psql -h localhost -p 5432 -U postgres -d ifrspro_platform_admin < backup_file.sql
 
 # Restore REMOTE
-psql -h 10.8.0.2 -p 5433 -U postgres -d ifrspro_platform_admin < backup_file.sql
+psql -h 172.25.0.25 -p 5432 -U postgres -d ifrspro_platform_admin < backup_file.sql
 ```
 
 ## Conclusion

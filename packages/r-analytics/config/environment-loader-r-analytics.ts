@@ -235,7 +235,7 @@ class RAnalyticsEnvironmentLoader {
           },
           legacy: {
             host: this.getEnvVar('LEGACY_HOST', '192.168.0.106'),
-            port: parseInt(this.getEnvVar('LEGACY_PORT', '5433')),
+            port: parseInt(this.getEnvVar('LEGACY_PORT', '5432')),
             user: this.getEnvVar('LEGACY_USER', 'postgres'),
             password: this.getEnvVar('LEGACY_PASSWORD', 'postgres'),
             database: this.getEnvVar('LEGACY_DB_NAME', 'FRS9PRO'),

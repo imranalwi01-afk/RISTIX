@@ -182,7 +182,7 @@ test_all_databases() {
     test_database_connection \
         "${FRS9_DB_NAME:-FRS9PRO}" \
         "${FRS9_DB_HOST:-192.168.0.106}" \
-        "${FRS9_DB_PORT:-5433}" \
+        "${FRS9_DB_PORT:-5432}" \
         "${FRS9_DB_USER:-postgres}" \
         "${FRS9_DB_PASSWORD:-postgres}" \
         "FRS9 Database (Analytics)"
@@ -236,7 +236,7 @@ test_environment_specific_databases() {
             test_database_connection \
                 "${FRS9_DB_NAME:-FRS9PRO}" \
                 "$RDS_ENDPOINT" \
-                "${FRS9_DB_PORT:-5433}" \
+                "${FRS9_DB_PORT:-5432}" \
                 "${FRS9_DB_USER:-postgres}" \
                 "${FRS_DB_PASSWORD:-postgres}" \
                 "RDS FRS9 Database (Production)"
@@ -264,7 +264,7 @@ test_environment_specific_databases() {
         test_database_connection \
             "${FRS9_DB_NAME:-FRS9PRO}" \
             "${FRS9_DB_HOST:-192.168.0.106}" \
-            "${FRS9_DB_PORT:-5433}" \
+            "${FRS9_DB_PORT:-5432}" \
             "${FRS9_DB_USER:-postgres}" \
             "${FRS9_DB_PASSWORD:-postgres}" \
             "Local FRS9 Database (Analytics)"
@@ -333,7 +333,7 @@ validate_database_structure() {
         echo -e "${BLUE}Checking FRS9 database structure...${NC}"
         local frs9_tables=("frs9_param_commonh" "frs9_param_commond" "frs9_param_product" "frs9_param_journal")
         for table in "${frs9_tables[@]}"; do
-            if PGPASSWORD="$FRS9_DB_PASSWORD" psql -h "${FRS9_DB_HOST:-192.168.0.106}" -p "${FRS9_DB_PORT:-5433}" -U "${FRS9_DB_USER:-postgres}" -d "${FRS9_DB_NAME:-FRS9PRO}" -c "\dt ${table}" 2>>"$VALIDATION_LOG" 2>&1; then
+            if PGPASSWORD="$FRS9_DB_PASSWORD" psql -h "${FRS9_DB_HOST:-192.168.0.106}" -p "${FRS9_DB_PORT:-5432}" -U "${FRS9_DB_USER:-postgres}" -d "${FRS9_DB_NAME:-FRS9PRO}" -c "\dt ${table}" 2>>"$VALIDATION_LOG" 2>&1; then
                 print_result "PASS" "FRS9 Table exists: ${table}"
             else
                 print_result "WARN" "FRS9 Table not found: ${table}" "May need migration"

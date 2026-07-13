@@ -1,7 +1,7 @@
 import { readFileSync } from "fs";
 import postgres from "postgres";
 
-const sql = postgres("postgresql://postgres:postgres@host.docker.internal:5433/ifrspro_tenant_iaf");
+const sql = postgres("postgresql://postgres:postgres@host.docker.internal:5432/ifrspro_tenant_iaf");
 
 try {
   const migrationSQL = readFileSync("/tmp/migration.sql", "utf-8");

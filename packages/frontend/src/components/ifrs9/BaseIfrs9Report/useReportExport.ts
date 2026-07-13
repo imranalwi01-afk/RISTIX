@@ -50,6 +50,7 @@ export function useReportExport({
       const fetchReportPage = async (params: any) => {
         switch (reportType) {
           case 'nominative-report': return api.banking.ifrs9Reports.nominativeReport.get(params);
+          case 'gl-outbound': return api.banking.ifrs9Reports.glOutbound.get(params);
           case 'lifetime-pd-yearly': return api.banking.ifrs9Reports.lifetimePD.getYearly(params);
           case 'lifetime-pd-monthly': return api.banking.ifrs9Reports.lifetimePD.getMonthly(params);
           case 'lifetime-pd-account-details': return api.banking.ifrs9Reports.lifetimePD.getAccountDetails(params);

@@ -425,7 +425,7 @@ validate_database() {
 
         # Test legacy database if configured
         local legacy_host=${LEGACY_DB_HOST:-"192.168.0.106"}
-        local legacy_port=${LEGACY_DB_PORT:-"5433"}
+        local legacy_port=${LEGACY_DB_PORT:-"5432"}
         local legacy_name=${LEGACY_DB_NAME:-"FRS9PRO"}
 
         if PGPASSWORD="$db_password" psql -h "$legacy_host" -p "$legacy_port" -U "$db_user" -d "$legacy_name" -c "SELECT 1;" >/dev/null 2>&1; then

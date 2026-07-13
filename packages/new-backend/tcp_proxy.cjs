@@ -1,8 +1,8 @@
 const net = require('net');
 
-const LOCAL_PORT = 15433;
-const REMOTE_HOST = '10.8.0.2';
-const REMOTE_PORT = 5433;
+const LOCAL_PORT = 15432;
+const REMOTE_HOST = '172.25.0.25';
+const REMOTE_PORT = 5432;
 
 const server = net.createServer((localSocket) => {
   const remoteSocket = new net.Socket();

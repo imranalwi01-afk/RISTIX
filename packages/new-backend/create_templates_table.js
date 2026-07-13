@@ -3,7 +3,7 @@ const { Client } = pg;
 
 async function main() {
     const client = new Client({
-        connectionString: 'postgresql://postgres:postgres@10.8.0.2:5433/ifrspro_platform_admin'
+        connectionString: 'postgresql://postgres:postgres@172.25.0.25:5432/ifrspro_platform_admin'
     });
     
     await client.connect();

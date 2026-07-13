@@ -36,8 +36,8 @@ if (!exists("ra_log_info")) {
 # DATABASE CONNECTION (matches app34.R pattern exactly)
 # =============================================================================
 
-db_host     <- get_preferred_env("FRS9_DB_HOST", "DB_HOST", "10.8.0.2")
-db_port     <- as.integer(get_preferred_env("FRS9_DB_PORT", "DB_PORT", "5433"))
+db_host     <- get_preferred_env("FRS9_DB_HOST", "DB_HOST", "172.25.0.25")
+db_port     <- as.integer(get_preferred_env("FRS9_DB_PORT", "DB_PORT", "5432"))
 db_name     <- get_preferred_env("FRS9_DB_NAME", "DB_NAME", "FRS9PRO")
 db_schema   <- get_preferred_env("FRS9_DB_SCHEMA", "DB_SCHEMA", "public")
 db_user     <- get_preferred_env("FRS9_DB_USER", "DB_USER", "postgres")

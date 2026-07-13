@@ -2374,3 +2374,26 @@ export const frs9RPdAfl = pgTable("frs9_r_pd_afl", {
 	createdBy: varchar("created_by", { length: 100 }),
 	updatedBy: varchar("updated_by", { length: 100 }),
 });
+
+export const vwFrs9PdMigrationDetail = pgTable('vw_frs9_pd_migration_detail', {
+	pdConfigId: smallint('pd_config_id'),
+	prcDate: date('prc_date'),
+	accountNumber: varchar('account_number', { length: 100 }),
+	periodFrom: date('period_from'),
+	periodTo: date('period_to'),
+	bucketFrom: smallint('bucket_from'),
+	bucketTo: smallint('bucket_to'),
+	noa: numeric('noa')
+});
+
+export const vwFrs9GlOutbound = pgTable('vw_frs9_gl_outbound', {
+	tanggal: date('tanggal'),
+	noledg: varchar('noledg', { length: 255 }),
+	kdvalt: varchar('kdvalt', { length: 50 }),
+	ketegori: varchar('ketegori', { length: 255 }),
+	nocabg: varchar('nocabg', { length: 255 }),
+	nmledg: varchar('nmledg', { length: 255 }),
+	drcr: varchar('drcr', { length: 10 }),
+	salsek: numeric('salsek'),
+	ekvsek: numeric('ekvsek')
+});

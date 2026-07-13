@@ -1,6 +1,7 @@
 # Database Architecture Configuration
 
 ## Overview
+
 The IFRS9 platform uses a multi-database architecture to separate concerns:
 
 1. **Platform Admin DB** (`ifrspro_platform_admin`) - Platform-wide administration
@@ -13,6 +14,7 @@ The IFRS9 platform uses a multi-database architecture to separate concerns:
 All docker-compose files now support the following environment variables:
 
 ### Database Configuration (Generic)
+
 ```bash
 DB_HOST=localhost
 DB_PORT=5432
@@ -21,6 +23,7 @@ DB_PASSWORD=postgres
 ```
 
 ### Platform Database
+
 ```bash
 PLATFORM_DB_HOST=localhost
 PLATFORM_DB_PORT=5432
@@ -31,6 +34,7 @@ PLATFORM_DB_SSL=false
 ```
 
 ### Shared Services Database
+
 ```bash
 SHARED_DB_HOST=localhost
 SHARED_DB_PORT=5432
@@ -41,6 +45,7 @@ SHARED_DB_SSL=false
 ```
 
 ### Tenant Database
+
 ```bash
 TENANT_DB_HOST=localhost
 TENANT_DB_PORT=5432
@@ -51,9 +56,10 @@ TENANT_DB_SSL=false
 ```
 
 ### Legacy Database
+
 ```bash
 LEGACY_DB_HOST=192.168.0.106
-LEGACY_DB_PORT=5433
+LEGACY_DB_PORT=5432
 LEGACY_DB_USER=postgres
 LEGACY_DB_PASSWORD=postgres
 LEGACY_DB_NAME=FRS9PRO
@@ -61,6 +67,7 @@ LEGACY_DB_SSL=false
 ```
 
 ### Tenant Configuration
+
 ```bash
 TENANT_ID=iaf
 TENANT_NAME=Indonesia Airawata Finance
@@ -80,14 +87,17 @@ For backward compatibility, the following URLs are automatically constructed:
 ## Environment-Specific Configuration
 
 ### Local Development (`ops/local/.env`)
+
 - All databases point to `localhost` or Docker container names
-- Legacy DB points to external server (192.168.0.106:5433)
+- Legacy DB points to external server (192.168.0.106:5432)
 
 ### Dev Server (`ops/dev/.env`)
+
 - Update database hosts to point to your dev server
 - Example: `PLATFORM_DB_HOST=dev-db.ifrspro.id`
 
 ### Production (`ops/prod/.env`)
+
 - Update database hosts to point to your production RDS/database servers
 - Example: `PLATFORM_DB_HOST=pgm-d9j5id443p7876n9.pgsql.ap-southeast-5.rds.aliyuncs.com`
 - Enable SSL: `PLATFORM_DB_SSL=true`
@@ -102,6 +112,7 @@ For backward compatibility, the following URLs are automatically constructed:
 ## Testing
 
 Test the configuration:
+
 ```bash
 # Local
 make dev

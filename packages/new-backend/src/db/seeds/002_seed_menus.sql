@@ -65,6 +65,7 @@ INSERT INTO menu.menu_items (id, tenant_id, category_id, name, path, icon, sort_
     ('b1000000-0007-4000-8000-000000000005', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000007', 'EAD Model', '/banking/ifrs9-reports/ead-model', 'Functions', 5, 0, true, false, true, 'both', '550e8400-1111-2222-3333-444455555201'),
     ('b1000000-0007-4000-8000-000000000006', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000007', 'ECL Result', '/banking/ifrs9-reports/ecl-result', 'Calculate', 6, 0, true, true, true, 'both', '550e8400-1111-2222-3333-444455555201'),
     ('b1000000-0007-4000-8000-000000000007', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000007', 'Nominative Report', '/banking/ifrs9-reports/nominative', 'TableChart', 7, 0, true, true, true, 'both', '550e8400-1111-2222-3333-444455555201'),
+    ('b1000000-0007-4000-8000-000000000008', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000007', 'GL Outbound', '/banking/ifrs9-reports/gl-outbound', 'TableChart', 8, 0, true, true, true, 'both', '550e8400-1111-2222-3333-444455555201'),
 
     -- Advanced Analytics
     ('b1000000-0008-4000-8000-000000000001', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'a0000000-1000-4000-8000-000000000008', 'R Analytics', '/banking/analytics/r-analytics', 'DataUsage', 1, 0, true, true, true, 'both', '550e8400-1111-2222-3333-444455555201'),

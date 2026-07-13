@@ -2,7 +2,7 @@
 
 ## Overview
 
-The IFRSPRO platform uses a **multi-database architecture** with three primary databases on server **10.8.0.2:5433**:
+The IFRSPRO platform uses a **multi-database architecture** with three primary databases on server **172.25.0.25:5432**:
 
 1. **ifrspro_platform_admin** - Platform-wide administration
 2. **ifrspro_shared_services** - Shared services across tenants
@@ -10,19 +10,19 @@ The IFRSPRO platform uses a **multi-database architecture** with three primary d
 
 ## Database Summary
 
-| Database | Schemas | Tables | SQL Lines | Purpose |
-|----------|---------|--------|-----------|---------|
-| **ifrspro_platform_admin** | 20 | 123 | 8,647 | Platform administration, users, roles, ETL, workflows |
-| **ifrspro_shared_services** | 11 | 26 | 1,711 | Shared resources, notifications, reference data |
-| **ifrspro_tenant_iaf** | 10 | 20 | 1,569 | Tenant-specific customers, accounts, workflows |
-| **TOTAL** | **41** | **169** | **11,927** | |
+| Database                    | Schemas | Tables  | SQL Lines  | Purpose                                               |
+| --------------------------- | ------- | ------- | ---------- | ----------------------------------------------------- |
+| **ifrspro_platform_admin**  | 20      | 123     | 8,647      | Platform administration, users, roles, ETL, workflows |
+| **ifrspro_shared_services** | 11      | 26      | 1,711      | Shared resources, notifications, reference data       |
+| **ifrspro_tenant_iaf**      | 10      | 20      | 1,569      | Tenant-specific customers, accounts, workflows        |
+| **TOTAL**                   | **41**  | **169** | **11,927** |                                                       |
 
 ## Architecture Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    PostgreSQL Server                         │
-│                    10.8.0.2:5433                            │
+│                    172.25.0.25:5432                            │
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
 │  ┌────────────────────────────────────────────────────┐    │
@@ -63,9 +63,11 @@ The IFRSPRO platform uses a **multi-database architecture** with three primary d
 ## Database Responsibilities
 
 ### 1. Platform Admin Database
+
 **Purpose**: Platform-wide administration and orchestration
 
 **Key Responsibilities**:
+
 - ✅ User authentication and authorization
 - ✅ Tenant management and registry
 - ✅ Role-based access control (RBAC)
@@ -76,15 +78,18 @@ The IFRSPRO platform uses a **multi-database architecture** with three primary d
 - ✅ Business process workflows
 
 **Who Uses It**:
+
 - Platform administrators
 - System operators
 - ETL processes
 - Monitoring systems
 
 ### 2. Shared Services Database
+
 **Purpose**: Shared resources and services across all tenants
 
 **Key Responsibilities**:
+
 - ✅ Shared menu system
 - ✅ Reference data (countries, currencies, products)
 - ✅ Cross-tenant notifications
@@ -94,15 +99,18 @@ The IFRSPRO platform uses a **multi-database architecture** with three primary d
 - ✅ System audit logs
 
 **Who Uses It**:
+
 - All tenants (read-only for reference data)
 - Notification service
 - R analytics engine
 - Calculation engine
 
 ### 3. Tenant IAF Database
+
 **Purpose**: Tenant-specific data for Indonesia Airawata Finance
 
 **Key Responsibilities**:
+
 - ✅ Customer master data
 - ✅ Portfolio accounts
 - ✅ Banking products
@@ -113,6 +121,7 @@ The IFRSPRO platform uses a **multi-database architecture** with three primary d
 - ⏳ Analytics and reporting (to be populated)
 
 **Who Uses It**:
+
 - IAF tenant users
 - IAF-specific processes
 - IAF workflows
@@ -127,46 +136,46 @@ The IFRSPRO platform uses a **multi-database architecture** with three primary d
 # =============================================================================
 
 # Generic Database Configuration (Fallback)
-DB_HOST=10.8.0.2
-DB_PORT=5433
+DB_HOST=172.25.0.25
+DB_PORT=5432
 DB_USER=postgres
 DB_PASSWORD=postgres
 
 # Platform Admin Database
-PLATFORM_DB_HOST=10.8.0.2
-PLATFORM_DB_PORT=5433
+PLATFORM_DB_HOST=172.25.0.25
+PLATFORM_DB_PORT=5432
 PLATFORM_DB_USER=postgres
 PLATFORM_DB_PASSWORD=postgres
 PLATFORM_DB_NAME=ifrspro_platform_admin
 PLATFORM_DB_SSL=false
 
 # Shared Services Database
-SHARED_DB_HOST=10.8.0.2
-SHARED_DB_PORT=5433
+SHARED_DB_HOST=172.25.0.25
+SHARED_DB_PORT=5432
 SHARED_DB_USER=postgres
 SHARED_DB_PASSWORD=postgres
 SHARED_DB_NAME=ifrspro_shared_services
 SHARED_DB_SSL=false
 
 # Tenant Database (IAF)
-TENANT_DB_HOST=10.8.0.2
-TENANT_DB_PORT=5433
+TENANT_DB_HOST=172.25.0.25
+TENANT_DB_PORT=5432
 TENANT_DB_USER=postgres
 TENANT_DB_PASSWORD=postgres
 TENANT_DB_NAME=ifrspro_tenant_iaf
 TENANT_DB_SSL=false
 
 # Legacy Database (FRS9PRO)
-LEGACY_DB_HOST=10.8.0.2
-LEGACY_DB_PORT=5433
+LEGACY_DB_HOST=172.25.0.25
+LEGACY_DB_PORT=5432
 LEGACY_DB_USER=postgres
 LEGACY_DB_PASSWORD=postgres
 LEGACY_DB_NAME=FRS9PRO
 LEGACY_DB_SSL=false
 
 # Backward Compatibility URLs
-DATABASE_URL=postgresql://postgres:postgres@10.8.0.2:5433/ifrspro_platform_admin
-LEGACY_DATABASE_URL=postgresql://postgres:postgres@10.8.0.2:5433/FRS9PRO
+DATABASE_URL=postgresql://postgres:postgres@172.25.0.25:5432/ifrspro_platform_admin
+LEGACY_DATABASE_URL=postgresql://postgres:postgres@172.25.0.25:5432/FRS9PRO
 
 # Tenant Configuration
 TENANT_ID=iaf
@@ -184,65 +193,65 @@ SINGLE_TENANT_MODE=true
 ```typescript
 // packages/new-backend/src/config/database.ts
 
-import { drizzle } from 'drizzle-orm/postgres-js'
-import postgres from 'postgres'
-import { 
-    getPlatformDatabaseUrl, 
-    getSharedDatabaseUrl, 
-    getTenantDatabaseUrl, 
-    getLegacyDatabaseUrl 
-} from './env'
-import * as schema from '../db/schema'
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import {
+  getPlatformDatabaseUrl,
+  getSharedDatabaseUrl,
+  getTenantDatabaseUrl,
+  getLegacyDatabaseUrl,
+} from './env';
+import * as schema from '../db/schema';
 
 // Platform Admin Database
-const platformConnection = postgres(getPlatformDatabaseUrl(), connectionConfig)
-export const platformDb = drizzle(platformConnection, { schema })
+const platformConnection = postgres(getPlatformDatabaseUrl(), connectionConfig);
+export const platformDb = drizzle(platformConnection, { schema });
 
 // Shared Services Database
-const sharedConnection = postgres(getSharedDatabaseUrl(), connectionConfig)
-export const sharedDb = drizzle(sharedConnection, { schema })
+const sharedConnection = postgres(getSharedDatabaseUrl(), connectionConfig);
+export const sharedDb = drizzle(sharedConnection, { schema });
 
 // Tenant Database
-const tenantConnection = postgres(getTenantDatabaseUrl(), connectionConfig)
-export const tenantDb = drizzle(tenantConnection, { schema })
+const tenantConnection = postgres(getTenantDatabaseUrl(), connectionConfig);
+export const tenantDb = drizzle(tenantConnection, { schema });
 
 // Legacy Database
-const legacyConnection = postgres(getLegacyDatabaseUrl(), connectionConfig)
-export const legacyDb = drizzle(legacyConnection, { schema })
+const legacyConnection = postgres(getLegacyDatabaseUrl(), connectionConfig);
+export const legacyDb = drizzle(legacyConnection, { schema });
 
 // Default (backward compatibility)
-export const db = platformDb
+export const db = platformDb;
 ```
 
 ### Usage Examples
 
 ```typescript
-import { platformDb, sharedDb, tenantDb, legacyDb } from '@/config/database'
+import { platformDb, sharedDb, tenantDb, legacyDb } from '@/config/database';
 
 // Platform Admin - User authentication
 const user = await platformDb.query.core.users.findFirst({
-    where: eq(users.email, email)
-})
+  where: eq(users.email, email),
+});
 
 // Platform Admin - Tenant registry
-const tenants = await platformDb.query.core.tenants.findMany()
+const tenants = await platformDb.query.core.tenants.findMany();
 
 // Shared Services - Reference data
-const countries = await sharedDb.query.reference_data.countries.findMany()
+const countries = await sharedDb.query.reference_data.countries.findMany();
 
 // Shared Services - Notifications
 const notifications = await sharedDb.query.notification.queue.findMany({
-    where: eq(queue.status, 'pending')
-})
+  where: eq(queue.status, 'pending'),
+});
 
 // Tenant - Customer data
-const customers = await tenantDb.query.core.customers.findMany()
+const customers = await tenantDb.query.core.customers.findMany();
 
 // Tenant - Portfolio accounts
-const accounts = await tenantDb.query.core.portfolio_accounts.findMany()
+const accounts = await tenantDb.query.core.portfolio_accounts.findMany();
 
 // Legacy - FRS9 data
-const legacyData = await legacyDb.query.frs9_table.findMany()
+const legacyData = await legacyDb.query.frs9_table.findMany();
 ```
 
 ## Schema Organization
@@ -281,22 +290,26 @@ packages/new-backend/src/db/schema/
 ## Files Generated
 
 ### Documentation
+
 1. ✅ `docs/diagrams/database/PLATFORM_ADMIN_README.md`
 2. ✅ `docs/diagrams/database/SHARED_SERVICES_README.md`
 3. ✅ `docs/diagrams/database/TENANT_IAF_README.md`
 4. ✅ `docs/diagrams/database/DATABASE_ARCHITECTURE.md` (this file)
 
 ### SQL Schema Dumps
+
 1. ✅ `docs/diagrams/database/ifrspro_platform_admin_complete.sql` (8,647 lines)
 2. ✅ `docs/diagrams/database/ifrspro_shared_services_complete.sql` (1,711 lines)
 3. ✅ `docs/diagrams/database/ifrspro_tenant_iaf_complete.sql` (1,569 lines)
 
 ### Backend Configuration
+
 1. ✅ `packages/new-backend/src/config/env.ts` - Environment variables
 2. ✅ `packages/new-backend/src/config/database.ts` - Database connections
 3. ✅ `packages/new-backend/MULTI_DATABASE.md` - Implementation guide
 
 ### Docker Configuration
+
 1. ✅ `ops/local/docker-compose.yml` - Local development
 2. ✅ `ops/dev/docker-compose.yml` - Dev server
 3. ✅ `ops/prod/docker-compose.yml` - Production
@@ -305,6 +318,7 @@ packages/new-backend/src/db/schema/
 ## Migration Strategy
 
 ### Phase 1: Infrastructure ✅
+
 - [x] Extract database schemas
 - [x] Document architecture
 - [x] Update environment variables
@@ -312,24 +326,28 @@ packages/new-backend/src/db/schema/
 - [x] Update backend database connections
 
 ### Phase 2: Schema Definitions ⏳
+
 - [ ] Create Drizzle schema definitions for Platform Admin
 - [ ] Create Drizzle schema definitions for Shared Services
 - [ ] Create Drizzle schema definitions for Tenant
 - [ ] Update schema index files
 
 ### Phase 3: Repository Updates ⏳
+
 - [ ] Update repositories to use correct database instances
 - [ ] Add tenant context middleware
 - [ ] Implement database registry
 - [ ] Add connection pooling per database
 
 ### Phase 4: Testing ⏳
+
 - [ ] Test all database connections
 - [ ] Test cross-database queries
 - [ ] Test tenant isolation
 - [ ] Performance testing
 
 ### Phase 5: Deployment ⏳
+
 - [ ] Update production environment variables
 - [ ] Deploy backend with multi-database support
 - [ ] Monitor connection pools
@@ -338,6 +356,7 @@ packages/new-backend/src/db/schema/
 ## Best Practices
 
 ### 1. Database Selection
+
 ```typescript
 // ✅ Correct - Use appropriate database
 const user = await platformDb.query.core.users.findFirst(...)
@@ -349,14 +368,16 @@ const customer = await platformDb.query.core.customers.findFirst(...) // Won't w
 ```
 
 ### 2. Tenant Context
+
 ```typescript
 // Always include tenant context for tenant-specific queries
 const accounts = await tenantDb.query.core.portfolio_accounts.findMany({
-    where: eq(portfolio_accounts.tenant_id, tenantId)
-})
+  where: eq(portfolio_accounts.tenant_id, tenantId),
+});
 ```
 
 ### 3. Cross-Database Queries
+
 ```typescript
 // ❌ Avoid cross-database joins - not supported
 // Instead, fetch separately and join in application code
@@ -367,28 +388,31 @@ const customers = await tenantDb.query.core.customers.findMany(...)
 ```
 
 ### 4. Connection Pooling
+
 ```typescript
 // Each database has its own connection pool
 // Monitor pool usage per database
-const platformConnection = postgres(url, { max: 10 })
-const sharedConnection = postgres(url, { max: 10 })
-const tenantConnection = postgres(url, { max: 10 })
+const platformConnection = postgres(url, { max: 10 });
+const sharedConnection = postgres(url, { max: 10 });
+const tenantConnection = postgres(url, { max: 10 });
 ```
 
 ## Monitoring
 
 ### Connection Health
+
 ```typescript
 // Test all connections
 async function testConnections() {
-    await platformDb.execute('SELECT 1')  // Platform Admin
-    await sharedDb.execute('SELECT 1')    // Shared Services
-    await tenantDb.execute('SELECT 1')    // Tenant
-    await legacyDb.execute('SELECT 1')    // Legacy
+  await platformDb.execute('SELECT 1'); // Platform Admin
+  await sharedDb.execute('SELECT 1'); // Shared Services
+  await tenantDb.execute('SELECT 1'); // Tenant
+  await legacyDb.execute('SELECT 1'); // Legacy
 }
 ```
 
 ### Metrics to Track
+
 - Connection pool usage per database
 - Query performance per database
 - Database size growth
@@ -408,6 +432,7 @@ async function testConnections() {
 ## Support
 
 For questions or issues:
+
 1. Review the individual database README files
 2. Check the backend MULTI_DATABASE.md guide
 3. Review the ops/DATABASE_CONFIG.md for environment setup

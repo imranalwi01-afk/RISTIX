@@ -352,22 +352,27 @@ const LifetimePDReport: React.FC = () => {
       })
       .filter(Boolean) as Array<{ value: string; label: string }>;
 
-    if (allowlisted.length > 0) return allowlisted;
-
-    const excluded = new Set(['PD Before FL', 'PD Testing']);
+    const excluded = new Set([...PD_CONFIG_ALLOWLIST_ORDER, 'PD Before FL', 'PD Testing']);
     const fallback = pdConfigs
       .map((c: any) => {
         const name = String(c?.model_name || '').trim();
-        if (!name || !name.startsWith('PD ')) return null;
-        if (excluded.has(name)) return null;
+        if (!name || excluded.has(name)) return null;
         const id = c?.id ?? c?.pkid ?? c?.model_id ?? c?.modelId;
         const value = id === null || id === undefined ? '' : String(id);
         return value ? { value, label: name } : null;
       })
       .filter(Boolean) as Array<{ value: string; label: string }>;
 
-    fallback.sort((a, b) => a.label.localeCompare(b.label));
-    return fallback;
+    const uniqueFallback: Array<{ value: string; label: string }> = [];
+    const seen = new Set<string>();
+    for (const item of fallback) {
+      if (!seen.has(item.label)) {
+        seen.add(item.label);
+        uniqueFallback.push(item);
+      }
+    }
+
+    return [...allowlisted, ...uniqueFallback];
   }, [pdConfigs]);
 
   React.useEffect(() => {

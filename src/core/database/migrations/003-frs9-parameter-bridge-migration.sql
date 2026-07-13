@@ -14,7 +14,7 @@
 -- 4. Audit trails are properly configured
 
 -- ============================================================================
--- PART A: FRS9PRO DATABASE ENHANCEMENTS (Run on DS2: 192.168.0.106:5433)
+-- PART A: FRS9PRO DATABASE ENHANCEMENTS (Run on DS2: 192.168.0.106:5432)
 -- ============================================================================
 
 -- Connect to FRS9PRO database

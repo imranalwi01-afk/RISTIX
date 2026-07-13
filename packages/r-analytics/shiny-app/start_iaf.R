@@ -27,8 +27,8 @@ get_preferred_env <- function(primary, fallback, default = "") {
   default
 }
 
-db_host <- get_preferred_env("FRS9_DB_HOST", "DB_HOST", "10.8.0.2")
-db_port <- get_preferred_env("FRS9_DB_PORT", "DB_PORT", "5433")
+db_host <- get_preferred_env("FRS9_DB_HOST", "DB_HOST", "172.25.0.25")
+db_port <- get_preferred_env("FRS9_DB_PORT", "DB_PORT", "5432")
 db_user <- get_preferred_env("FRS9_DB_USER", "DB_USER", "postgres")
 db_password <- get_preferred_env("FRS9_DB_PASSWORD", "DB_PASSWORD", "postgres")
 db_name <- get_preferred_env("FRS9_DB_NAME", "DB_NAME", "FRS9PRO")

@@ -126,7 +126,7 @@ CentralizedConfiguration <- R6Class("CentralizedConfiguration",
             ),
             ds2 = list(
               host = Sys.getenv("DS2_HOST", "192.168.0.106"),
-              port = as.integer(Sys.getenv("DS2_PORT", "5433")),
+              port = as.integer(Sys.getenv("DS2_PORT", "5432")),
               user = Sys.getenv("DS2_USER", "postgres"),
               password = Sys.getenv("DS2_PASSWORD", "postgres"),
               ssl_mode = Sys.getenv("DS2_SSL_MODE", "disable")

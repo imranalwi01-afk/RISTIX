@@ -1,7 +1,7 @@
 const { Client } = require('pg');
 
 const client = new Client({
-  connectionString: 'postgresql://postgres:postgres@10.8.0.2:5433/FRS9PRO'
+  connectionString: 'postgresql://postgres:postgres@172.25.0.25:5432/FRS9PRO'
 });
 
 async function run() {

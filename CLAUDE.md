@@ -5,16 +5,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 🧠 Sesi Progress (17 Mei 2026)
 
 ### Yang sudah dilakukan:
-- **Backend container** (`new-backend-vpn`) berhasil jalan dengan profile `backend-remote-db`, connect ke database remote via VPN (`10.8.0.2:5433`)
+
+- **Backend container** (`new-backend-vpn`) berhasil jalan dengan profile `backend-remote-db`, connect ke database remote via VPN (`172.25.0.25:5432`)
 - **Frontend container** (`frontend-dev`) dibangun dengan image custom (`Dockerfile.dev`) yang pre-install dependencies, jadi container start cepat tanpa perlu `pnpm install` tiap kali
 - **Docker compose** di `ops/local/docker-compose.yml` sudah dimodifikasi:
   - `frontend-dev` menggunakan `build` (Dockerfile.dev) bukan `image: node:20-alpine`
   - Mount hanya `src/`, `public/`, file config — `node_modules` tetap dari image
   - `tsconfig.json` di-mount `:ro` (read-only) agar Next.js tidak override
 - **Fix `.env.local`** frontend: `BACKEND_URL` dan `BACKEND_INTERNAL_URL` dari `ifrs9-new-backend-vpn:4232` → `localhost:4232`
-- **Fix `ops/local/backend.env`**: Semua `DB_HOST=postgres` → `10.8.0.2`, port `5432` → `5433`, `LEGACY_DB_NAME=frs9pro` → `FRS9PRO`
+- **Fix `ops/local/backend.env`**: Semua `DB_HOST=postgres` → `172.25.0.25`, port `5432` → `5432`, `LEGACY_DB_NAME=frs9pro` → `FRS9PRO`
 
 ### Cara menjalankan (semua di Docker):
+
 ```bash
 cd D:\pro\ifrs9-new - Copy
 docker compose --env-file ops/local/backend.env -f ops/local/docker-compose.yml --profile backend-remote-db up -d
@@ -22,13 +24,15 @@ docker compose --env-file ops/local/frontend.env -f ops/local/docker-compose.yml
 ```
 
 Akses:
+
 - Frontend: http://localhost:4231
 - Backend API: http://localhost:4232/api/v1/health
 - Backend Reference: http://localhost:4232/reference
 - Backend OpenAPI: http://localhost:4232/doc
 
 ### Catatan penting:
-- 🔐 VPN harus aktif sebelum start container (konek ke `10.8.0.2:5433`)
+
+- 🔐 VPN harus aktif sebelum start container (konek ke `172.25.0.25:5432`)
 - Frontend container pakai image build local (`Dockerfile.dev`), rebuild dengan `--build` jika ada perubahan dependencies
 - Backend tidak tergantung local postgres (profile `backend-remote-db` hanya depends on Redis)
 - PostgreSQL case-sensitive untuk nama database: `FRS9PRO` (bukan `frs9pro`)
@@ -40,6 +44,7 @@ IFRS 9 Multi-Tenant Dual Banking Platform - a comprehensive banking solution sup
 ## 🚨 CRITICAL DEPLOYMENT NOTES
 
 **IAF ECS SERVER ENVIRONMENT:**
+
 - **Local Development**: Treat ifrs9-iaf/ folder as IAF ECS Server environment
 - **Deployment Process**: Fix locally, then user uploads via rsync to IAF ECS Server (10.18.11.35)
 - **🚨 IMPORTANT**: Claude AI cannot use rsync - User must deploy manually to avoid permission issues
@@ -64,14 +69,17 @@ IFRS 9 Multi-Tenant Dual Banking Platform - a comprehensive banking solution sup
 ## 🔄 SEAMLESS LOCAL/IAFECS ENVIRONMENT SWITCHING
 
 ### **Centralized Configuration Architecture**
+
 **PRINCIPLE**: Edit codes locally with centralized configuration, deploy via rsync, modify parameters on ECS, works seamlessly.
 
 **Environment Files**:
+
 - `.env.localdev` - Local development configuration (localhost databases, dev URLs)
 - `.env.iafecs` - IAF ECS production configuration (RDS databases, production URLs)
 - **Smart Detection**: Auto-detects deployment target based on environment variables and hostname
 
 **Configuration Loading**:
+
 - **Backend**: `packages/backend/src/config/environment-loader.ts` - Smart environment detection
 - **Frontend**: `packages/frontend/src/config/environment-loader-frontend.ts` - Browser-based detection
 - **R Analytics**: Environment variables passed via startup scripts
@@ -79,12 +87,14 @@ IFRS 9 Multi-Tenant Dual Banking Platform - a comprehensive banking solution sup
 ### **Enhanced Deployment Workflow**
 
 #### **Step 1: Local Development & Testing**
+
 1. **Work in ifrs9-iaf/**: Make code changes locally with centralized configuration
 2. **Local Testing**: Test endpoints locally with `npm run dev`
 3. **Environment Switching**: Rely on auto-detection or set DEPLOYMENT_TARGET
 4. **Validate**: Ensure all endpoints work before deployment
 
 #### **Step 2: Deploy to IAF ECS Server**
+
 ```bash
 # Deploy with enhanced rsync command (includes security exclusions)
 rsync -avz --progress \
@@ -99,9 +109,11 @@ rsync -avz --progress \
 ```
 
 #### **Step 3: ECS Server Configuration**
+
 1. **SSH to ECS**: `ssh root@10.18.11.35` (Password: Password.2025!)
 2. **Navigate**: `cd ~/projects/ifrs9-iaf`
 3. **Restart Services Using start.sh Scripts**:
+
    ```bash
    # Restart Frontend
    cd packages/frontend && ./start.sh
@@ -114,6 +126,7 @@ rsync -avz --progress \
    ```
 
 **🚨 IMPORTANT: NO PM2 USAGE**
+
 - **Current Process**: Services are managed using individual `start.sh` scripts
 - **Location**: Each package has its own `start.sh` script
 - **Frontend**: `packages/frontend/start.sh`
@@ -122,12 +135,14 @@ rsync -avz --progress \
 - **PM2**: NOT CURRENTLY USED - Do not use PM2 commands
 
 #### **Step 4: Validation**
+
 - **Frontend**: Test at https://ristix.bdo-ki.com
 - **Backend API**: Test endpoints at https://api-ristix.bdo-ki.com/api/v1
 - **R Analytics**: Test at https://analytics-ristix.bdo-ki.com
 - **Health Check**: `curl -k https://api-ristix.bdo-ki.com/health`
 
 ### **Environment Detection Logic**
+
 ```bash
 # Backend Auto-Detection Priority:
 1. DEPLOYMENT_TARGET environment variable (localdev|iafecs)
@@ -146,13 +161,16 @@ rsync -avz --progress \
 ```
 
 ### **Centralized Configuration Rules**
+
 ✅ **MANDATORY**: All configuration must be centralized - NO HARDCODED VALUES
+
 - Database connections: Use environment loader, not hardcoded hostnames
 - API URLs: Use smart configuration, not fixed endpoints
 - Feature flags: Environment-based configuration
 - Security settings: Centralized in environment files
 
 ❌ **FORBIDDEN**: Hardcoded values in frontend, backend, or R-analytics code
+
 - No "localhost:port" references in application code
 - No fixed database connection strings
 - No hardcoded API endpoints
@@ -161,6 +179,7 @@ rsync -avz --progress \
 ### **Configuration Examples**
 
 **Backend Configuration**:
+
 ```typescript
 // ❌ WRONG - Hardcoded
 const dbHost = 'localhost';
@@ -174,6 +193,7 @@ const apiUrl = config.urls.backend;
 ```
 
 **Frontend Configuration**:
+
 ```typescript
 // ❌ WRONG - Hardcoded
 const backendUrl = 'http://localhost:4232';
@@ -185,17 +205,21 @@ const backendUrl = config.api.backend;
 ```
 
 ### **Service Port Mappings**
+
 **Local Development**:
+
 - Frontend: 4231 → https://iaf-ifrs.ifrspro.id
 - Backend: 4232 → https://iaf-ifrs-be.ifrspro.id
 - R Analytics: 4236 → https://iaf-ifrs-analytics.ifrspro.id
 
 **IAF ECS Production**:
+
 - Frontend: 4231 → https://ristix.bdo-ki.com
 - Backend: 4232 → https://api-ristix.bdo-ki.com
 - R Analytics: 4236 → https://analytics-ristix.bdo-ki.com
 
 **Technology Stack:**
+
 - Frontend: Next.js 16.1.x + Material UI v7 + React Admin v4
 - Backend: Express.js + Node.js + TypeScript + Sequelize ORM
 - Database: PostgreSQL (multi-tenant with database-per-tenant isolation)
@@ -215,10 +239,8 @@ Use the current Material UI Grid API everywhere:
 import Grid from '@mui/material/Grid';
 
 <Grid container spacing={2}>
-  <Grid size={{ xs: 12, md: 6 }}>
-    ...
-  </Grid>
-</Grid>
+  <Grid size={{ xs: 12, md: 6 }}>...</Grid>
+</Grid>;
 ```
 
 ### Blocked Legacy Patterns
@@ -248,6 +270,7 @@ pnpm --dir packages/frontend run build
 ## Development Commands
 
 ### Root-level commands (run from project root):
+
 - `pnpm dev` - Start all services in development mode
 - `pnpm build` - Build all packages
 - `pnpm test` - Run tests for all packages
@@ -257,18 +280,21 @@ pnpm --dir packages/frontend run build
 - `pnpm clean` - Clean build artifacts
 
 ### Setup commands:
+
 - `pnpm run setup:full` - Complete environment setup (env + packages + db)
 - `pnpm run setup:env` - Environment setup only
 - `pnpm run setup:packages` - Install all package dependencies
 - `pnpm run setup:db` - Database setup and migrations
 
 ### Database operations:
+
 - `pnpm run db:migrate` - Run database migrations
 - `pnpm run db:seed` - Seed databases with sample data
 
 ### Package-specific development (run from package directories):
 
 **Backend** (`packages/backend/`):
+
 - `pnpm dev` - Start backend in development mode (ts-node)
 - `pnpm build` - Compile TypeScript to dist/
 - `pnpm start` - Start production server
@@ -277,6 +303,7 @@ pnpm --dir packages/frontend run build
 - `pnpm test:coverage` - Run tests with coverage
 
 **Frontend** (`packages/frontend/`):
+
 - `pnpm dev` - Start Next.js dev server on port 4231
 - `pnpm build` - Build for production
 - `pnpm start` - Start production server
@@ -286,18 +313,21 @@ pnpm --dir packages/frontend run build
 ## Architecture
 
 ### Monorepo Structure
+
 - `packages/backend/` - Express.js API server
 - `packages/frontend/` - Next.js web application
 - `packages/r-analytics/` - R analytics service
 - `packages/shared/` - Shared types, schemas, and utilities
 
 ### Multi-Tenant Architecture
+
 - **Database-per-tenant isolation** - Each tenant has dedicated PostgreSQL database
 - **Tenant context middleware** - Automatic tenant resolution from requests
 - **Dual banking support** - Conventional and Syariah banking modes
 - **RBAC system** - Role-based access control with audit trails
 
 ### Key Backend Components
+
 - **Authentication**: JWT-based auth with refresh tokens (`src/core/services/auth/`)
 - **Multi-tenancy**: Tenant management and context switching (`src/core/services/tenant/`)
 - **IFRS9 Calculations**: ECL, PD, LGD, EAD calculations (`src/core/services/ifrs9/`)
@@ -305,13 +335,15 @@ pnpm --dir packages/frontend run build
 - **ETL Pipeline**: Data transformation and processing (`src/core/services/etl/`)
 - **Configuration Management**: Feature flags and tenant-specific settings (`src/core/services/config/`)
 
-### Frontend Architecture  
+### Frontend Architecture
+
 - **React Admin**: Admin interface integrated with Material UI v7
 - **Dual Banking Themes**: Separate themes for conventional/Syariah banking
 - **Multi-stakeholder Support**: Different layouts for banking staff, consultants, regulators
 - **IFRS9 Dashboard**: Analytics and calculation monitoring
 
 ### R Analytics Integration
+
 - **R Service**: Dedicated R analytics service on port 4236
 - **IFRS9 Models**: PD, LGD, EAD statistical models
 - **API Integration**: RESTful endpoints for R script execution
@@ -319,6 +351,7 @@ pnpm --dir packages/frontend run build
 ## 🚨 CRITICAL PRODUCTION MODE POLICY 🚨
 
 ### **⚠️ MANDATORY PRODUCTION MODE REQUIREMENT**
+
 🏭 **THIS SYSTEM OPERATES IN PRODUCTION MODE ONLY!**
 **NEVER EVER CHANGE CONFIGURATIONS TO DEVELOPMENT MODE!**
 
@@ -337,7 +370,7 @@ pnpm --dir packages/frontend run build
 #
 # Database Connections (NO SSL - ALL ENVIRONMENTS):
 # ✅ DS1 Primary Server: 192.168.0.85:5432 (NO SSL)
-# ✅ DS2 Analytics Server: 192.168.0.106:5433 (NO SSL)
+# ✅ DS2 Analytics Server: 192.168.0.106:5432 (NO SSL)
 # ✅ RDS Alibaba Cloud: pgm-d9j5id443p7876n9.pgsql.ap-southeast-5.rds.aliyuncs.com:5432 (NO SSL)
 #
 # DATABASES WITH SSL = false:
@@ -365,6 +398,7 @@ pnpm --dir packages/frontend run build
 ```
 
 #### **LOCAL DEVELOPMENT (iaf-ifrs.ifrspro.id):**
+
 ```bash
 # Local Development Database Connections (NO SSL - MANDATORY)
 DS1 Primary Server:
@@ -375,7 +409,7 @@ DS1 Primary Server:
 
 DS2 Analytics Server:
 - Host: 192.168.0.106
-- Port: 5433
+- Port: 5432
 - SSL: false (MANDATORY - DISABLED)
 - Databases: FRS9PRO, IFRS9_pro
 
@@ -386,6 +420,7 @@ DS2 Analytics Server:
 ```
 
 #### **IAF ECS PRODUCTION (ristix.bdo-ki.com):**
+
 ```bash
 # IAF ECS Production Database Connections (NO SSL - MANDATORY)
 RDS Alibaba Cloud:
@@ -404,6 +439,7 @@ RDS Alibaba Cloud:
 ### **🔧 ENVIRONMENT-SPECIFIC SSL CONFIGURATION**
 
 #### **Backend Configuration Rules:**
+
 ```typescript
 // ✅ CORRECT: ALL DATABASES MUST USE SSL = false
 const isLocalDevelopment = process.env.DEPLOYMENT_TARGET === 'localdev';
@@ -414,7 +450,7 @@ const sslEnabled = false;
 
 // Environment-specific database hosts
 const dbHost = isLocalDevelopment
-  ? '192.168.0.85'  // Local DS1
+  ? '192.168.0.85' // Local DS1
   : 'pgm-d9j5id443p7876n9.pgsql.ap-southeast-5.rds.aliyuncs.com'; // RDS Production
 
 const dbConfig = {
@@ -426,10 +462,11 @@ const dbConfig = {
 ```
 
 #### **Frontend Configuration Rules:**
+
 ```typescript
 // Local Development: HTTP via Cloudflare Zero Trust
 const backendUrl = isLocalDevelopment
-  ? 'https://iaf-ifrs-be.ifrspro.id'  // Cloudflare Zero Trust
+  ? 'https://iaf-ifrs-be.ifrspro.id' // Cloudflare Zero Trust
   : 'https://api-ristix.bdo-ki.com'; // IAF ECS Production
 
 // NO hardcoded localhost URLs
@@ -439,18 +476,21 @@ const backendUrl = isLocalDevelopment
 ### **🚨 CRITICAL RULES SUMMARY**
 
 #### **❌ FORBIDDEN CONFIGURATIONS:**
+
 - Never use SSL connections for local development databases (192.168.0.x)
 - Never use RDS connections for local development without proper VPN
 - Never hardcode database connection strings
 - Never disable SSL for IAF ECS production connections
 
 #### **✅ REQUIRED CONFIGURATIONS:**
+
 - Local Development: SSL=false for 192.168.0.85/192.168.0.106 database connections
 - IAF ECS Production: SSL=true for RDS database connections
 - Always use environment variables: DEPLOYMENT_TARGET=localdev|iafecs
 - Always use centralized configuration system
 
 ### **🔄 AUTOMATIC DETECTION LOGIC**
+
 ```bash
 # Environment Auto-Detection Priority:
 1. DEPLOYMENT_TARGET environment variable (localdev|iafecs)
@@ -465,6 +505,7 @@ const backendUrl = isLocalDevelopment
 ```
 
 **PRODUCTION DATABASE SERVERS (ALIBABA CLOUD RDS):**
+
 - **IAF ECS Environment**: Uses Alibaba Cloud RDS (Relational Database Service)
 - **All Databases**: Connect via RDS service endpoints (not direct server IPs)
 - **RDS Configuration**: Multi-database setup on Alibaba Cloud RDS
@@ -473,6 +514,7 @@ const backendUrl = isLocalDevelopment
 - **❌ NEVER USE**: Development mode configurations or localhost references for IAF ECS
 
 **PRODUCTION ENFORCEMENT:**
+
 - ALL database operations MUST use Alibaba Cloud RDS service endpoints
 - ALL API calls MUST target production RDS endpoints
 - ALL configurations MUST remain in production mode
@@ -482,23 +524,28 @@ const backendUrl = isLocalDevelopment
 ## 🔒 HTTPS PRODUCTION DEPLOYMENT
 
 ### **HTTPS DEPLOYMENT ON IAF ECS SERVER**
+
 **Server**: IAF ECS Server (10.18.11.35)
 **SSL**: ristix.bdo-ki.com wildcard certificates
 **Deployment Date**: January 2025
 
 **HTTPS DOMAINS:**
+
 - **Frontend**: `https://ristix.bdo-ki.com` (Port 4231 → 443)
 - **Backend**: `https://api-ristix.bdo-ki.com` (Port 4232 → 443)
 - **R Analytics Dashboard**: `https://analytics-ristix.bdo-ki.com` (Port 4236 → 443)
 - **R Analytics API**: `https://analytics-calc-ristix.bdo-ki.com` (Port 4241 → 443)
 
 ### **HTTPS CONFIGURATION FILES**
+
 **nginx Configuration**: `/etc/nginx/sites-available/iaf-complete-https`
+
 - SSL certificate: `/root/projects/ifrs9-iaf/ristix.bdo-ki.com/ristix.bdo-ki.com.pem`
 - SSL private key: `/root/projects/ifrs9-iaf/ristix.bdo-ki.com/ristix.bdo-ki.com.key`
 - CORS handling: Backend-only (nginx headers removed to prevent duplicates)
 
 **Frontend Configuration**: `packages/frontend/.env`
+
 ```bash
 NEXT_PUBLIC_ENABLE_HTTPS=true
 NEXT_PUBLIC_SECURE_COOKIES=true
@@ -508,16 +555,19 @@ BACKEND_URL=https://api-ristix.bdo-ki.com
 ```
 
 **Centralized Config**: `packages/frontend/src/config/centralized.config.ts`
+
 - All URLs use HTTPS defaults
 - Environment-based fallbacks
 - Security headers enabled
 
 **API Service**: `packages/frontend/src/services/api.ts`
+
 - HTTPS URLs for all backend communication
 - Mixed Content Security Policy compliance
 - Secure cookie handling
 
 ### **DEPLOYMENT PROCESS**
+
 1. **File Sync**: `rsync -avz --exclude='node_modules' ./ifrs9-iaf/ root@10.18.11.35:~/projects/ifrs9-iaf/`
 2. **CORS Fix**: Executed `fix-cors-duplicate-headers.sh` to resolve header conflicts
 3. **Service Restart**:
@@ -530,6 +580,7 @@ BACKEND_URL=https://api-ristix.bdo-ki.com
 4. **SSL Verification**: All services accessible via HTTPS with valid certificates
 
 ### **SECURITY FEATURES**
+
 - **Mixed Content Security**: All HTTP requests upgraded to HTTPS
 - **Secure Cookies**: Authentication cookies with secure flag
 - **CORS Policy**: Backend-handled CORS to prevent duplicate headers
@@ -537,10 +588,12 @@ BACKEND_URL=https://api-ristix.bdo-ki.com
 - **Security Headers**: X-Frame-Options, X-Content-Type-Options, X-XSS-Protection
 
 ### **STRICT NO MOCKUP/FALLBACK DATA POLICY**
+
 ⚠️ **MANDATORY REQUIREMENT**: **NEVER EVER USE MOCKUP DATA, FALL BACK DATA, OR ASSUMPTIONS DATA!**
 
 **ALL data must come from REAL PRODUCTION DATABASE connections:**
-- ✅ **USE**: Live database queries from DS1 (192.168.0.85:5432) and DS2 (192.168.0.106:5433)
+
+- ✅ **USE**: Live database queries from DS1 (192.168.0.85:5432) and DS2 (192.168.0.106:5432)
 - ✅ **USE**: Real API endpoints with actual production database integration
 - ✅ **USE**: Authentic FRS9PRO table data with proper mapping
 - ❌ **NEVER USE**: Mock arrays, sample data, placeholder values, or fallback data
@@ -548,6 +601,7 @@ BACKEND_URL=https://api-ristix.bdo-ki.com
 - ❌ **NEVER USE**: localhost or development database connections
 
 **Database Integration Requirements:**
+
 - All controllers must connect to actual PostgreSQL production databases
 - Use actual table names: `frs9_imp_ca_fl_scalarh`, `frs9_imp_ca_fl_scalard`, etc. (lowercase)
 - Legacy tables are UPPERCASE in original system, use lowercase in PostgreSQL
@@ -562,6 +616,7 @@ Any use of mock/fallback data or development configurations violates user requir
 ## 🔄 DUAL ENVIRONMENT CONFIGURATION SYSTEM
 
 ### **CENTRALIZED CONFIGURATION ARCHITECTURE**
+
 **IMPLEMENTATION DATE**: January 2025
 **STATUS**: ✅ **FULLY IMPLEMENTED AND PRODUCTION READY**
 
@@ -570,6 +625,7 @@ Any use of mock/fallback data or development configurations violates user requir
 ### **🌍 ENVIRONMENT DETECTION SYSTEM**
 
 #### **Auto-Detection Priority Logic**
+
 ```bash
 # BACKEND DETECTION (environment-loader-backend.ts):
 1. DEPLOYMENT_TARGET environment variable (localdev|iafecs)
@@ -597,6 +653,7 @@ Any use of mock/fallback data or development configurations violates user requir
 ### **🏗️ CONFIGURATION LOADER FILES**
 
 #### **Frontend Configuration**
+
 - **File**: `packages/frontend/src/config/environment-loader-frontend.ts`
 - **Purpose**: Browser-based environment detection and URL resolution
 - **Auto-Switching**:
@@ -604,6 +661,7 @@ Any use of mock/fallback data or development configurations violates user requir
   - **Production**: `ristix.bdo-ki.com` domains + RDS databases
 
 #### **Backend Configuration**
+
 - **File**: `packages/backend/src/config/environment-loader-backend.ts`
 - **Purpose**: Server-side environment detection and service configuration
 - **Auto-Switching**:
@@ -611,6 +669,7 @@ Any use of mock/fallback data or development configurations violates user requir
   - **Production**: RDS databases (pgm-d9j5id443p7876n9) + production URLs
 
 #### **R-Analytics Configuration**
+
 - **File**: `packages/r-analytics/config/environment-loader-r-analytics.ts`
 - **Purpose**: R service environment detection and database configuration
 - **Auto-Switching**:
@@ -620,6 +679,7 @@ Any use of mock/fallback data or development configurations violates user requir
 ### **🔗 ENVIRONMENT URL MAPPINGS**
 
 #### **IAF Development Environment (LOCALDEV)**
+
 ```bash
 # Frontend URLs
 Frontend: https://iaf-ifrs.ifrspro.id
@@ -630,7 +690,7 @@ R Analytics API: https://iaf-ifrs-analytics-calc.ifrspro.id
 # Database Connections
 Platform DB: 192.168.0.85:5432 → ifrspro_platform_admin
 Shared DB: 192.168.0.85:5432 → ifrspro_shared_services
-FRS9 DB: 192.168.0.106:5433 → FRS9PRO
+FRS9 DB: 192.168.0.106:5432 → FRS9PRO
 Tenant DBs: 192.168.0.85:5432 → ifrspro_tenant_*
 
 # Service Ports (Internal)
@@ -641,6 +701,7 @@ R Analytics API: 4241
 ```
 
 #### **IAF Production Environment (IAFECS)**
+
 ```bash
 # Frontend URLs
 Frontend: https://ristix.bdo-ki.com
@@ -665,6 +726,7 @@ R Analytics API: 4241
 ### **📁 ENVIRONMENT FILES STRUCTURE**
 
 #### **Priority Loading Order**
+
 ```bash
 1. .env                    # Base configuration
 2. .env.localdev          # Local development overrides
@@ -673,6 +735,7 @@ R Analytics API: 4241
 ```
 
 #### **Environment Templates**
+
 - **Template**: `.env.dual-template` - Complete dual-environment configuration
 - **Local Dev**: `.env.localdev` - Development-specific settings
 - **ECS Production**: `.env.iafecs` - Production-specific settings
@@ -680,6 +743,7 @@ R Analytics API: 4241
 ### **🔧 CONFIGURATION USAGE EXAMPLES**
 
 #### **Backend Configuration Usage**
+
 ```typescript
 // ✅ CORRECT - Using centralized configuration
 import { backendEnvironmentLoader } from './config/environment-loader-backend';
@@ -695,6 +759,7 @@ const dbHost = 'localhost';
 ```
 
 #### **Frontend Configuration Usage**
+
 ```typescript
 // ✅ CORRECT - Using centralized configuration
 import { frontendEnvironmentLoader } from './config/environment-loader-frontend';
@@ -709,6 +774,7 @@ const rAnalyticsUrl = 'http://localhost:4236';
 ```
 
 #### **R-Analytics Configuration Usage**
+
 ```typescript
 // ✅ CORRECT - Using centralized configuration
 import { rAnalyticsEnvironmentLoader } from '../config/environment-loader-r-analytics';
@@ -725,6 +791,7 @@ const rServicePort = 4241;
 ### **🚀 RSYNC DEPLOYMENT PROCESS**
 
 #### **DEPLOYMENT WORKFLOW**
+
 ```bash
 # STEP 1: Local Development
 # Work in /home/doppelgaenger/ifrspro/ifrs9-iaf/ folder
@@ -758,12 +825,14 @@ curl -k https://analytics-ristix.bdo-ki.com/health
 ```
 
 #### **AUTOMATIC ENVIRONMENT SWITCHING**
+
 **No configuration changes required!** The system automatically detects:
 
 - **Local Development**: When accessing `ifrs9-iaf.ifrspro.id` → uses local databases and dev URLs
 - **IAF Production**: When accessing `ristix.bdo-ki.com` → uses RDS databases and production URLs
 
 #### **DEPLOYMENT VALIDATION CHECKLIST**
+
 ```bash
 # Pre-Deployment Validation
 ✅ Centralized configuration implemented in all packages
@@ -784,18 +853,21 @@ curl -k https://analytics-ristix.bdo-ki.com/health
 ### **🔒 SECURITY CONFIGURATIONS**
 
 #### **Database Security**
+
 - **Development**: Local PostgreSQL with basic authentication
 - **Production**: Alibaba Cloud RDS with SSL and secure credentials
 - **Credentials**: Environment-based, never hardcoded
 - **Connection Strings**: Built dynamically from configuration
 
 #### **API Security**
+
 - **CORS Origins**: Environment-specific origin validation
 - **Authentication**: JWT with environment-specific secrets
 - **HTTPS**: Enforced in production, optional in development
 - **Rate Limiting**: Configured per environment
 
 #### **R-Analytics Security**
+
 - **Package Installation**: Secure CRAN repositories
 - **Database Access**: Environment-based credentials
 - **API Endpoints**: Proper authentication and authorization
@@ -804,6 +876,7 @@ curl -k https://analytics-ristix.bdo-ki.com/health
 ### **📊 CONFIGURATION SYSTEM SUMMARY**
 
 #### **Files Created/Modified**
+
 ```bash
 # Frontend Configuration
 packages/frontend/src/config/environment-loader-frontend.ts ✅
@@ -829,6 +902,7 @@ packages/r-analytics/.env.dual-template ✅
 ```
 
 #### **Benefits Achieved**
+
 - ✅ **Zero Hardcoded Values**: All configurations externalized
 - ✅ **Automatic Environment Switching**: Smart detection based on hostname
 - ✅ **Single Codebase**: Same code works in both environments
@@ -852,6 +926,7 @@ cd packages/r-analytics/shiny-app && ./start.sh
 ```
 
 The **centralized dual-environment configuration system** ensures:
+
 - ✅ **Seamless switching** between local development and IAF production
 - ✅ **Automatic detection** of deployment environment
 - ✅ **Zero hardcoded values** in any component
@@ -863,7 +938,9 @@ The **centralized dual-environment configuration system** ensures:
 ## Configuration
 
 ### Environment Variables
+
 Key environment variables are defined in `src/config/app.ts`:
+
 - Database connections (per tenant)
 - JWT secrets for authentication
 - R Analytics service configuration
@@ -871,21 +948,26 @@ Key environment variables are defined in `src/config/app.ts`:
 - Banking-specific settings (Islamic compliance, AAOIFI standards)
 
 ### Multi-Tenant Configuration
+
 - Tenant databases configured in `config/tenant-databases.env`
 - Each tenant has isolated database schema
 - Tenant-specific configurations stored in tenant config service
 
 ### TypeScript Paths
+
 Workspace aliases defined in `tsconfig.json`:
+
 - `@ifrs9/shared` - Shared package
-- `@ifrs9/backend` - Backend package  
+- `@ifrs9/backend` - Backend package
 - `@ifrs9/frontend` - Frontend package
 - `@ifrs9/r-analytics` - R Analytics package
 
 ## Production Workflow
 
 ### Starting Production Environment
+
 🏭 **PRODUCTION MODE ONLY - NO DEVELOPMENT MODE ALLOWED**
+
 1. Run `pnpm run setup:full` for initial setup
 2. Use `pnpm dev` to start all services (connects to PRODUCTION databases)
 3. Frontend runs on https://ifrs9.ifrspro.id (PRODUCTION)
@@ -893,24 +975,28 @@ Workspace aliases defined in `tsconfig.json`:
 5. R Analytics on production ports per tenant
 
 ### PRODUCTION DATABASE CONNECTIONS (ALIBABA CLOUD RDS)
+
 - **RDS Service**: All databases hosted on Alibaba Cloud RDS
 - **Multi-Database**: Platform, Tenants, Legacy FRS9PRO, IFRS9 Analytics
 - **Connection Method**: Via RDS service endpoints (not direct IP connections)
 - **R Analytics**: Must connect to RDS for all IFRS9 calculations and data access
 
 ### Testing
+
 - Backend uses Jest for unit/integration testing
 - Frontend uses Next.js built-in testing
 - Run `pnpm test` from root for full test suite
 - Individual package tests: `cd packages/[package] && pnpm test`
 
-### Database Management  
+### Database Management
+
 - Migrations in `database/migrations/`
 - Use Sequelize ORM for database operations
 - Multi-tenant migrations handle schema creation per tenant
 - Seed data for demo conventional/Syariah tenants
 
 ### Code Organization
+
 - **Controllers**: Handle HTTP requests (`src/api/controllers/`)
 - **Services**: Business logic (`src/core/services/`)
 - **Models**: Database models (`src/core/models/`)
@@ -918,12 +1004,14 @@ Workspace aliases defined in `tsconfig.json`:
 - **Types**: TypeScript definitions (`src/types/`)
 
 ### Banking-Specific Features
+
 - **Dual Banking**: Support for conventional and Islamic banking
 - **Syariah Compliance**: AAOIFI standards compliance checking
 - **IFRS9 Calculations**: Expected Credit Loss calculations
 - **Regulatory Reporting**: Multi-jurisdiction reporting capabilities
 
 ### **Naming Pattern**:
+
 ```
 [000]-[000]-[00]-[file-name].md
 ```
@@ -940,30 +1028,35 @@ The comprehensive database architecture documentation is now available at:
 #### **Key Database Components Covered:**
 
 ##### **🏢 Multi-Database Architecture**
+
 - **Platform Admin Database** (`ifrspro_platform_admin`): Cross-tenant management
 - **Tenant Databases** (`ifrspro_tenant_{slug}`): Complete business isolation
 - **Shared Services Database** (`ifrspro_shared_services`): Common reference data
 - **Legacy Integration** (`FRS9PRO`): Legacy system bridge
 
 ##### **👥 User Management & Security**
+
 - **Roles System**: Hierarchical RBAC with 10 IAF-specific roles
 - **Permission Matrix**: Granular access control (view, create, edit, delete, approve)
 - **Multi-Factor Authentication**: Complete MFA support with backup codes
 - **Session Management**: Secure session tracking and device management
 
 ##### **📋 Menu Navigation System**
+
 - **Dynamic Menu Structure**: Database-driven navigation with 55+ menu items
 - **Role-Based Menu Access**: Context-aware menu display based on user permissions
 - **Banking Mode Support**: Separate conventional and Islamic banking menus
 - **Hierarchical Menu Organization**: Multi-level menu with parent-child relationships
 
 ##### **🏦 Banking Data Models**
+
 - **Portfolio Accounts**: Complete account management with IFRS 9 staging
 - **Customer Management**: Individual and corporate customer data
 - **Islamic Banking Compliance**: Syariah contract types and compliance tracking
 - **Risk Assessment**: Credit scoring, collateral management, and risk grading
 
 ##### **🔐 Audit & Compliance**
+
 - **Comprehensive Audit Trail**: Complete change tracking with user context
 - **User Activity Logging**: Detailed user action tracking
 - **Compliance Monitoring**: Regulatory compliance flags and risk assessment
@@ -971,22 +1064,23 @@ The comprehensive database architecture documentation is now available at:
 
 #### **IAF Tenant Role Hierarchy (Current Implementation):**
 
-| Level | Role Code | Role Name | Islamic Banking | Current Status |
-|-------|-----------|-----------|-----------------|----------------|
-| 10 | IAF_TENANT_SUPERADMIN | IAF Tenant Super Administrator | ✅ | ✅ **IMPLEMENTED** |
-| 9 | IAF_TENANT_ADMIN | IAF Tenant Administrator | ✅ | ✅ **IMPLEMENTED** |
-| 8 | IAF_BANK_CRO | IAF Chief Risk Officer | ✅ | ✅ **IMPLEMENTED** |
-| 7 | IAF_IFRS_MANAGER | IAF IFRS 9 Manager | ✅ | ✅ **IMPLEMENTED** |
-| 6 | IAF_RISK_ANALYST | IAF Risk Analyst | ✅ | ✅ **IMPLEMENTED** |
-| 6 | IAF_PORTFOLIO_MANAGER | IAF Portfolio Manager | ✅ | ✅ **IMPLEMENTED** |
-| 5 | IAF_DATA_ADMIN | IAF Data Administrator | ✅ | ✅ **IMPLEMENTED** |
-| 5 | IAF_REPORT_ANALYST | IAF Report Analyst | ✅ | ✅ **IMPLEMENTED** |
-| 4 | IAF_AUDITOR | IAF Internal Auditor | ✅ | ✅ **IMPLEMENTED** |
-| 1 | IAF_VIEWER | IAF Viewer | ✅ | ✅ **IMPLEMENTED** |
+| Level | Role Code             | Role Name                      | Islamic Banking | Current Status     |
+| ----- | --------------------- | ------------------------------ | --------------- | ------------------ |
+| 10    | IAF_TENANT_SUPERADMIN | IAF Tenant Super Administrator | ✅              | ✅ **IMPLEMENTED** |
+| 9     | IAF_TENANT_ADMIN      | IAF Tenant Administrator       | ✅              | ✅ **IMPLEMENTED** |
+| 8     | IAF_BANK_CRO          | IAF Chief Risk Officer         | ✅              | ✅ **IMPLEMENTED** |
+| 7     | IAF_IFRS_MANAGER      | IAF IFRS 9 Manager             | ✅              | ✅ **IMPLEMENTED** |
+| 6     | IAF_RISK_ANALYST      | IAF Risk Analyst               | ✅              | ✅ **IMPLEMENTED** |
+| 6     | IAF_PORTFOLIO_MANAGER | IAF Portfolio Manager          | ✅              | ✅ **IMPLEMENTED** |
+| 5     | IAF_DATA_ADMIN        | IAF Data Administrator         | ✅              | ✅ **IMPLEMENTED** |
+| 5     | IAF_REPORT_ANALYST    | IAF Report Analyst             | ✅              | ✅ **IMPLEMENTED** |
+| 4     | IAF_AUDITOR           | IAF Internal Auditor           | ✅              | ✅ **IMPLEMENTED** |
+| 1     | IAF_VIEWER            | IAF Viewer                     | ✅              | ✅ **IMPLEMENTED** |
 
 #### **✅ Current Implementation Status:**
 
 **Database Setup Verification (Latest Check):**
+
 ```
 ✅ Connected to tenant database (ifrspro_tenant_iaf)
 📋 Roles in tenant database:
@@ -1003,6 +1097,7 @@ The comprehensive database architecture documentation is now available at:
 ```
 
 **✅ Successfully Implemented:**
+
 - **10 IAF Tenant Roles** with proper hierarchy and permissions
 - **8+ Basic Menu Items** with role-based access control
 - **admin@iaf.co.id** assigned to **IAF_TENANT_SUPERADMIN** role

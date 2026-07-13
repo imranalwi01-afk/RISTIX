@@ -110,7 +110,7 @@ export NODE_ENV=$(get_config "NODE_ENV" "development")
 
 # Database configuration for R - Following IAF local production guide
 export DB_HOST=$(get_config "LEGACY_DB_HOST" "192.168.0.106")
-export DB_PORT=$(get_config "LEGACY_DB_PORT" "5433")
+export DB_PORT=$(get_config "LEGACY_DB_PORT" "5432")
 export DB_USER=$(get_config "LEGACY_DB_USER" "postgres")
 export DB_PASSWORD=$(get_config "LEGACY_DB_PASSWORD" "postgres")
 export DB_NAME=$(get_config "LEGACY_DB_NAME" "FRS9PRO")

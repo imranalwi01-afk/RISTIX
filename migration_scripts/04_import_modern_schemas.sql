@@ -1,7 +1,7 @@
 -- ============================================================================
 -- CLEANUP SCRIPT 4: Import Modern Schemas from Remote to Local
 -- ============================================================================
--- Source: ifrspro_platform_admin (10.8.0.2:5433)
+-- Source: ifrspro_platform_admin (172.25.0.25:5432)
 -- Target: ifrspro_platform_admin (localhost:5432)
 -- Purpose: Import missing modern schemas to local database
 -- ============================================================================
@@ -27,43 +27,43 @@
 -- Run these commands on your terminal:
 
 -- Export approval_system schema
--- pg_dump -h 10.8.0.2 -p 5433 -U postgres -n approval_system --schema-only ifrspro_platform_admin > /tmp/approval_system.sql
+-- pg_dump -h 172.25.0.25 -p 5432 -U postgres -n approval_system --schema-only ifrspro_platform_admin > /tmp/approval_system.sql
 
 -- Export configuration schema
--- pg_dump -h 10.8.0.2 -p 5433 -U postgres -n configuration --schema-only ifrspro_platform_admin > /tmp/configuration.sql
+-- pg_dump -h 172.25.0.25 -p 5432 -U postgres -n configuration --schema-only ifrspro_platform_admin > /tmp/configuration.sql
 
 -- Export etl_designer schema
--- pg_dump -h 10.8.0.2 -p 5433 -U postgres -n etl_designer --schema-only ifrspro_platform_admin > /tmp/etl_designer.sql
+-- pg_dump -h 172.25.0.25 -p 5432 -U postgres -n etl_designer --schema-only ifrspro_platform_admin > /tmp/etl_designer.sql
 
 -- Export etl_processing schema
--- pg_dump -h 10.8.0.2 -p 5433 -U postgres -n etl_processing --schema-only ifrspro_platform_admin > /tmp/etl_processing.sql
+-- pg_dump -h 172.25.0.25 -p 5432 -U postgres -n etl_processing --schema-only ifrspro_platform_admin > /tmp/etl_processing.sql
 
 -- Export individual schema
--- pg_dump -h 10.8.0.2 -p 5433 -U postgres -n individual --schema-only ifrspro_platform_admin > /tmp/individual.sql
+-- pg_dump -h 172.25.0.25 -p 5432 -U postgres -n individual --schema-only ifrspro_platform_admin > /tmp/individual.sql
 
 -- Export menu schema
--- pg_dump -h 10.8.0.2 -p 5433 -U postgres -n menu --schema-only ifrspro_platform_admin > /tmp/menu.sql
+-- pg_dump -h 172.25.0.25 -p 5432 -U postgres -n menu --schema-only ifrspro_platform_admin > /tmp/menu.sql
 
 -- Export monitoring schema
--- pg_dump -h 10.8.0.2 -p 5433 -U postgres -n monitoring --schema-only ifrspro_platform_admin > /tmp/monitoring.sql
+-- pg_dump -h 172.25.0.25 -p 5432 -U postgres -n monitoring --schema-only ifrspro_platform_admin > /tmp/monitoring.sql
 
 -- Export platform_admin schema
--- pg_dump -h 10.8.0.2 -p 5433 -U postgres -n platform_admin --schema-only ifrspro_platform_admin > /tmp/platform_admin.sql
+-- pg_dump -h 172.25.0.25 -p 5432 -U postgres -n platform_admin --schema-only ifrspro_platform_admin > /tmp/platform_admin.sql
 
 -- Export platform_analytics schema
--- pg_dump -h 10.8.0.2 -p 5433 -U postgres -n platform_analytics --schema-only ifrspro_platform_admin > /tmp/platform_analytics.sql
+-- pg_dump -h 172.25.0.25 -p 5432 -U postgres -n platform_analytics --schema-only ifrspro_platform_admin > /tmp/platform_analytics.sql
 
 -- Export platform_billing schema
--- pg_dump -h 10.8.0.2 -p 5433 -U postgres -n platform_billing --schema-only ifrspro_platform_admin > /tmp/platform_billing.sql
+-- pg_dump -h 172.25.0.25 -p 5432 -U postgres -n platform_billing --schema-only ifrspro_platform_admin > /tmp/platform_billing.sql
 
 -- Export platform_integration schema
--- pg_dump -h 10.8.0.2 -p 5433 -U postgres -n platform_integration --schema-only ifrspro_platform_admin > /tmp/platform_integration.sql
+-- pg_dump -h 172.25.0.25 -p 5432 -U postgres -n platform_integration --schema-only ifrspro_platform_admin > /tmp/platform_integration.sql
 
 -- Export platform_monitoring schema
--- pg_dump -h 10.8.0.2 -p 5433 -U postgres -n platform_monitoring --schema-only ifrspro_platform_admin > /tmp/platform_monitoring.sql
+-- pg_dump -h 172.25.0.25 -p 5432 -U postgres -n platform_monitoring --schema-only ifrspro_platform_admin > /tmp/platform_monitoring.sql
 
 -- Export workflow schema
--- pg_dump -h 10.8.0.2 -p 5433 -U postgres -n workflow --schema-only ifrspro_platform_admin > /tmp/workflow.sql
+-- pg_dump -h 172.25.0.25 -p 5432 -U postgres -n workflow --schema-only ifrspro_platform_admin > /tmp/workflow.sql
 
 -- ============================================================================
 -- STEP 2: Import schemas to local

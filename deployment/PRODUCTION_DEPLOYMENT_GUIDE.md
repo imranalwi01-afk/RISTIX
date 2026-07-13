@@ -5,6 +5,7 @@
 Complete production deployment guide for the IFRS9 Multi-Tenant Banking Platform using **native services** (NO Docker containers). This guide ensures a secure, scalable, and highly available deployment suitable for enterprise banking operations.
 
 ### **🏗️ Architecture**
+
 - **Multi-server deployment** with load balancing
 - **Database-per-tenant isolation** with PostgreSQL
 - **Native service deployment** (PM2 + Nginx + PostgreSQL + Redis + R)
@@ -18,6 +19,7 @@ Complete production deployment guide for the IFRS9 Multi-Tenant Banking Platform
 ### **Server Configuration**
 
 #### **Application Server (AS1)**
+
 - **IP**: `192.168.0.85`
 - **Role**: Primary application server
 - **Services**: Frontend, Backend, R Analytics
@@ -25,6 +27,7 @@ Complete production deployment guide for the IFRS9 Multi-Tenant Banking Platform
 - **OS**: Ubuntu 20.04+ LTS
 
 #### **Database Server (DS1)**
+
 - **IP**: `192.168.0.85` (same as AS1)
 - **Role**: Primary PostgreSQL + Redis
 - **Port**: 5432 (PostgreSQL), 6379 (Redis)
@@ -32,18 +35,21 @@ Complete production deployment guide for the IFRS9 Multi-Tenant Banking Platform
 - **Databases**: Platform, Shared Services, Tenant DBs
 
 #### **Legacy Database Server (DS2)**
+
 - **IP**: `192.168.0.106`
 - **Role**: Legacy FRS9PRO + Analytics
-- **Port**: 5433 (PostgreSQL Legacy), 5434 (Analytics)
+- **Port**: 5432 (PostgreSQL Legacy), 5434 (Analytics)
 - **Specs**: 20 cores, 48GB RAM, 1TB NVMe
 
-#### **Load Balancer Server (LB1)** *(Optional)*
+#### **Load Balancer Server (LB1)** _(Optional)_
+
 - **IP**: `192.168.0.88`
 - **Role**: Nginx reverse proxy + SSL termination
 - **Services**: Nginx, SSL certificates
 - **Specs**: 8 cores, 16GB RAM, 100GB SSD
 
 ### **Domain Configuration**
+
 - **Frontend**: `https://ifrs9.ifrspro.id`
 - **Backend API**: `https://bifrs9.ifrspro.id`
 - **R Analytics**: `https://rifrs9.ifrspro.id`
@@ -53,6 +59,7 @@ Complete production deployment guide for the IFRS9 Multi-Tenant Banking Platform
 ## 🔧 **Prerequisites Installation**
 
 ### **Step 1: System Updates**
+
 ```bash
 # Update system packages
 sudo apt update && sudo apt upgrade -y
@@ -62,6 +69,7 @@ sudo apt install -y curl wget git build-essential software-properties-common
 ```
 
 ### **Step 2: Node.js & pnpm Installation**
+
 ```bash
 # Install Node.js 20.x
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
@@ -80,6 +88,7 @@ pm2 --version   # Should be latest
 ```
 
 ### **Step 3: PostgreSQL Installation**
+
 ```bash
 # Install PostgreSQL 15
 sudo apt install -y postgresql-15 postgresql-contrib-15
@@ -97,6 +106,7 @@ EOF
 ```
 
 ### **Step 4: Redis Installation**
+
 ```bash
 # Install Redis
 sudo apt install -y redis-server
@@ -123,6 +133,7 @@ sudo systemctl enable redis-server
 ```
 
 ### **Step 5: R Installation**
+
 ```bash
 # Add R repository
 wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | sudo tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
@@ -139,6 +150,7 @@ install.packages(c('plumber', 'DBI', 'RPostgreSQL', 'jsonlite', 'survival', 'ran
 ```
 
 ### **Step 6: Nginx Installation**
+
 ```bash
 # Install Nginx
 sudo apt install -y nginx
@@ -156,6 +168,7 @@ sudo apt install -y certbot python3-certbot-nginx
 ## 🚀 **Deployment Process**
 
 ### **Step 1: Clone Repository**
+
 ```bash
 # Clone the IFRS9 platform repository
 cd /opt
@@ -168,6 +181,7 @@ git clone <repository-url> .
 ```
 
 ### **Step 2: Run Automated Deployment**
+
 ```bash
 # Navigate to project directory
 cd /home/doppelgaenger/ifrspro/ifrs9-platform
@@ -182,6 +196,7 @@ cd /home/doppelgaenger/ifrspro/ifrs9-platform
 ### **Step 3: Manual Configuration (if needed)**
 
 #### **Environment Configuration**
+
 ```bash
 # Generate production environment file
 node -e "
@@ -196,6 +211,7 @@ cp .env.production .env
 ```
 
 #### **Database Setup**
+
 ```bash
 # Create platform databases
 PGPASSWORD="postgres" createdb -h 192.168.0.85 -U postgres ifrspro_platform_admin
@@ -209,6 +225,7 @@ PGPASSWORD="postgres" createdb -h 192.168.0.85 -U postgres ifrspro_tenant_demo_s
 ```
 
 #### **Build Applications**
+
 ```bash
 # Install dependencies
 pnpm install --frozen-lockfile
@@ -225,6 +242,7 @@ cd ../..
 ```
 
 #### **Start Services with PM2**
+
 ```bash
 # Generate PM2 configuration
 node -e "
@@ -245,6 +263,7 @@ pm2 startup
 ## 🔒 **SSL Certificate Configuration**
 
 ### **Step 1: Obtain SSL Certificates**
+
 ```bash
 # Obtain SSL certificates for all domains
 sudo certbot --nginx -d ifrs9.ifrspro.id
@@ -453,6 +472,7 @@ sudo systemctl reload nginx
 ## 📊 **Monitoring Setup**
 
 ### **Step 1: System Monitoring**
+
 ```bash
 # Make monitoring script executable
 chmod +x ./scripts/monitoring/system-monitor.sh
@@ -465,6 +485,7 @@ chmod +x ./scripts/monitoring/system-monitor.sh
 ```
 
 ### **Step 2: Health Check Automation**
+
 ```bash
 # Create health check script
 sudo tee /usr/local/bin/ifrs9-health-check.sh << 'EOF'
@@ -481,6 +502,7 @@ crontab -e
 ```
 
 ### **Step 3: Log Rotation**
+
 ```bash
 # Setup log rotation
 sudo tee /etc/logrotate.d/ifrs9 << 'EOF'
@@ -501,6 +523,7 @@ EOF
 ## 🔧 **Post-Deployment Verification**
 
 ### **Step 1: Service Health Checks**
+
 ```bash
 # Check PM2 processes
 pm2 status
@@ -516,6 +539,7 @@ redis-cli -h 192.168.0.85 ping
 ```
 
 ### **Step 2: Functional Testing**
+
 ```bash
 # Test authentication endpoints
 curl -X POST https://bifrs9.ifrspro.id/api/v1/auth/login \
@@ -531,6 +555,7 @@ curl -X POST https://bifrs9.ifrspro.id/api/v1/auth/login \
 ```
 
 ### **Step 3: Performance Testing**
+
 ```bash
 # Install testing tools (optional)
 sudo apt install -y apache2-utils
@@ -545,6 +570,7 @@ ab -n 1000 -c 10 https://bifrs9.ifrspro.id/api/v1/health
 ## 🔄 **Backup & Recovery**
 
 ### **Step 1: Database Backup Setup**
+
 ```bash
 # Create backup script
 sudo tee /usr/local/bin/ifrs9-db-backup.sh << 'EOF'
@@ -574,6 +600,7 @@ crontab -e
 ```
 
 ### **Step 2: Application Backup**
+
 ```bash
 # Create application backup script
 sudo tee /usr/local/bin/ifrs9-app-backup.sh << 'EOF'
@@ -610,6 +637,7 @@ crontab -e
 ### **Common Issues & Solutions**
 
 #### **Issue 1: PM2 Processes Not Starting**
+
 ```bash
 # Check PM2 logs
 pm2 logs
@@ -625,6 +653,7 @@ free -h
 ```
 
 #### **Issue 2: Database Connection Issues**
+
 ```bash
 # Check PostgreSQL status
 sudo systemctl status postgresql
@@ -637,6 +666,7 @@ sudo tail -f /var/log/postgresql/postgresql-15-main.log
 ```
 
 #### **Issue 3: Nginx Configuration Issues**
+
 ```bash
 # Test Nginx configuration
 sudo nginx -t
@@ -649,6 +679,7 @@ sudo systemctl restart nginx
 ```
 
 #### **Issue 4: SSL Certificate Issues**
+
 ```bash
 # Check certificate status
 sudo certbot certificates
@@ -665,6 +696,7 @@ openssl x509 -in /etc/letsencrypt/live/ifrs9.ifrspro.id/cert.pem -text -noout | 
 ## 📈 **Performance Optimization**
 
 ### **Database Optimization**
+
 ```bash
 # PostgreSQL configuration tuning
 sudo tee -a /etc/postgresql/15/main/postgresql.conf << 'EOF'
@@ -686,6 +718,7 @@ sudo systemctl restart postgresql
 ```
 
 ### **Application Performance**
+
 ```bash
 # Node.js performance flags
 export NODE_OPTIONS="--max-old-space-size=4096"
@@ -699,6 +732,7 @@ pm2 start ecosystem.config.js --node-args="--max-old-space-size=4096"
 ## 📋 **Deployment Checklist**
 
 ### **Pre-Deployment**
+
 - [ ] Server requirements verified
 - [ ] Prerequisites installed (Node.js, pnpm, PostgreSQL, Redis, R, Nginx)
 - [ ] SSL certificates obtained
@@ -706,6 +740,7 @@ pm2 start ecosystem.config.js --node-args="--max-old-space-size=4096"
 - [ ] Firewall rules configured
 
 ### **During Deployment**
+
 - [ ] Repository cloned/updated
 - [ ] Dependencies installed
 - [ ] Applications built successfully
@@ -715,6 +750,7 @@ pm2 start ecosystem.config.js --node-args="--max-old-space-size=4096"
 - [ ] Nginx configured and reloaded
 
 ### **Post-Deployment**
+
 - [ ] Health checks passing
 - [ ] SSL certificates working
 - [ ] Application endpoints responding
@@ -733,9 +769,10 @@ After successful deployment, the platform will be accessible at:
 - **🏠 Frontend Application**: https://ifrs9.ifrspro.id
 - **🔗 Backend API**: https://bifrs9.ifrspro.id/api/v1
 - **📊 R Analytics**: https://rifrs9.ifrspro.id
-- **💻 Monitoring Dashboard**: https://ifrs9.ifrspro.id/monitoring *(if implemented)*
+- **💻 Monitoring Dashboard**: https://ifrs9.ifrspro.id/monitoring _(if implemented)_
 
 ### **Test Credentials**
+
 - **Platform Admin**: `admin@ifrspro.id` / `1019181716`
 - **Dana Bank**: `cro@dana.com` / `1019181716` (tenantId: `dana`)
 - **Syariah Bank**: `cro@syariahbank.com` / `1019181716` (tenantId: `syariah`)
@@ -745,12 +782,14 @@ After successful deployment, the platform will be accessible at:
 ## 📞 **Support & Maintenance**
 
 ### **Daily Operations**
+
 - Monitor system health via `/scripts/monitoring/system-monitor.sh`
 - Check PM2 process status: `pm2 status`
 - Review application logs: `pm2 logs`
 - Monitor database performance: `PGPASSWORD="postgres" psql -h 192.168.0.85 -U postgres -c "SELECT * FROM pg_stat_activity;"`
 
 ### **Weekly Maintenance**
+
 - Review backup integrity
 - Check SSL certificate expiration dates
 - Monitor disk space usage
@@ -758,6 +797,7 @@ After successful deployment, the platform will be accessible at:
 - Update system packages: `sudo apt update && sudo apt upgrade`
 
 ### **Monthly Maintenance**
+
 - Performance review and optimization
 - Security audit and updates
 - Database maintenance and optimization

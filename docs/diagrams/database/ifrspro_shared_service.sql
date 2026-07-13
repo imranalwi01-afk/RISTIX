@@ -3,7 +3,7 @@
 -- ============================================================================
 -- Database: ifrspro_shared_services
 -- Purpose: Shared services and resources across all tenants
--- Server: 10.8.0.2 (or as configured)
+-- Server: 172.25.0.25 (or as configured)
 -- ============================================================================
 
 -- Create database (run as superuser)

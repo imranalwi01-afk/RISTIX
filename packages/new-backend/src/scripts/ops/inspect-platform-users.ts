@@ -1,8 +1,8 @@
 import postgres from 'postgres';
 
 export async function run(args: string[] = []) {
-    const DB_HOST = process.env.DB_HOST || '10.8.0.2';
-    const DB_PORT = process.env.DB_PORT || '5433';
+    const DB_HOST = process.env.DB_HOST || '172.25.0.25';
+    const DB_PORT = process.env.DB_PORT || '5432';
     const DB_USER = process.env.DB_USER || 'postgres';
     const DB_PASSWORD = process.env.DB_PASSWORD || 'postgres';
     const DB_NAME = process.env.PLATFORM_DB_NAME || 'ifrspro_platform_admin';

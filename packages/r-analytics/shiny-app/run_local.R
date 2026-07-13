@@ -38,9 +38,9 @@ if (length(new_packages)) {
 }
 
 # 2. Environment Variables - KONEKSI DATABASE LUAR (VPN)
-# Mengarahkan koneksi ke server database eksternal 10.8.0.2
-Sys.setenv(DB_HOST = "10.8.0.2")
-Sys.setenv(DB_PORT = "5433")
+# Mengarahkan koneksi ke server database eksternal 172.25.0.25
+Sys.setenv(DB_HOST = "172.25.0.25")
+Sys.setenv(DB_PORT = "5432")
 Sys.setenv(DB_NAME = "FRS9PRO")
 Sys.setenv(DB_SCHEMA = "public")
 Sys.setenv(DB_USER = "postgres")
@@ -67,12 +67,12 @@ tryCatch(
         )
         # Test simple query and schema
         DBI::dbExecute(con_test, "SET search_path TO public;")
-        message("✅ KONEKSI BERHASIL: Terhubung ke database server luar (10.8.0.2)")
+        message("✅ KONEKSI BERHASIL: Terhubung ke database server luar (172.25.0.25)")
         DBI::dbDisconnect(con_test)
     },
     error = function(e) {
         message("❌ KONEKSI GAGAL: ", e$message)
-        message("⚠️  Pastikan VPN Anda aktif dan server 10.8.0.2 dapat diakses.")
+        message("⚠️  Pastikan VPN Anda aktif dan server 172.25.0.25 dapat diakses.")
         stop("Aplikasi tidak bisa dilanjutkan tanpa koneksi database.")
     }
 )

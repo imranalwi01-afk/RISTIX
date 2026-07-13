@@ -44,7 +44,7 @@ fi
 
 echo "[*] R Detected!"
 echo "[*] Installing missing dependencies and starting App..."
-echo "[*] Database Target: 10.8.0.2 (VPN Required)"
+echo "[*] Database Target: 172.25.0.25 (VPN Required)"
 echo "[*] Port: 4236"
 echo ""
 

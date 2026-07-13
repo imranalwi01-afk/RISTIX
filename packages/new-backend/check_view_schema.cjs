@@ -1,5 +1,5 @@
 const { Client } = require('pg');
-const client = new Client({ connectionString: 'postgresql://postgres:postgres@10.8.0.2:5433/ifrspro_tenant_iaf' });
+const client = new Client({ connectionString: 'postgresql://postgres:postgres@172.25.0.25:5432/ifrspro_tenant_iaf' });
 client.connect().then(() => {
     return client.query("SELECT relname, relkind FROM pg_class WHERE relname LIKE '%pd_structure%';");
 }).then(res => {

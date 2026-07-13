@@ -1,5 +1,5 @@
 import pg from 'pg';
-const pool = new pg.Pool({ connectionString: 'postgresql://postgres:postgres@10.8.0.2:5433/ifrspro_platform_admin' });
+const pool = new pg.Pool({ connectionString: 'postgresql://postgres:postgres@172.25.0.25:5432/ifrspro_platform_admin' });
 pool.query(`
   SELECT table_schema, table_name 
   FROM information_schema.columns 

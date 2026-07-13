@@ -23,7 +23,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-ifrspro_platform_admin}
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
       - postgres-dev-data:/var/lib/postgresql/data
     networks:
@@ -107,7 +107,7 @@ services:
 
       # Legacy Database
       LEGACY_DB_HOST: ${LEGACY_DB_HOST}
-      LEGACY_DB_PORT: ${LEGACY_DB_PORT:-5433}
+      LEGACY_DB_PORT: ${LEGACY_DB_PORT:-5432}
       LEGACY_DB_USER: ${LEGACY_DB_USER:-postgres}
       LEGACY_DB_PASSWORD: ${LEGACY_DB_PASSWORD:-postgres}
       LEGACY_DB_NAME: ${LEGACY_DB_NAME:-FRS9PRO}
@@ -115,7 +115,7 @@ services:
 
       # Backward compatibility - Primary DB URL (points to Platform DB)
       DATABASE_URL: ${DATABASE_URL:-postgresql://${PLATFORM_DB_USER:-postgres}:${PLATFORM_DB_PASSWORD:-postgres}@${PLATFORM_DB_HOST:-postgres}:${PLATFORM_DB_PORT:-5432}/${PLATFORM_DB_NAME:-ifrspro_platform_admin}}
-      LEGACY_DATABASE_URL: ${LEGACY_DATABASE_URL:-postgresql://${LEGACY_DB_USER:-postgres}:${LEGACY_DB_PASSWORD:-postgres}@${LEGACY_DB_HOST}:${LEGACY_DB_PORT:-5433}/${LEGACY_DB_NAME:-FRS9PRO}}
+      LEGACY_DATABASE_URL: ${LEGACY_DATABASE_URL:-postgresql://${LEGACY_DB_USER:-postgres}:${LEGACY_DB_PASSWORD:-postgres}@${LEGACY_DB_HOST}:${LEGACY_DB_PORT:-5432}/${LEGACY_DB_NAME:-FRS9PRO}}
 
       # Tenant Configuration
       TENANT_ID: ${TENANT_ID:-iaf}

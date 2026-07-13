@@ -1,6 +1,6 @@
 import postgres from "postgres";
 
-const sql = postgres("postgresql://postgres:postgres@host.docker.internal:5433/postgres");
+const sql = postgres("postgresql://postgres:postgres@host.docker.internal:5432/postgres");
 
 try {
   const dbs = await sql`SELECT datname FROM pg_database WHERE datistemplate = false ORDER BY datname`;
