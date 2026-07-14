@@ -62,6 +62,7 @@ const UserSchema = z.object({
     firstName: z.string().optional().nullable(),
     lastName: z.string().optional().nullable(),
     tenantId: z.string().optional().nullable(),
+    avatar: z.string().optional().nullable(),
     avatarUrl: z.string().optional().nullable(),
     permissions: z.array(z.string()),
     roles: z.array(z.string()),
@@ -98,7 +99,8 @@ const VerifyResponse = z.object({
 const MeResponse = z.object({
     id: z.string().optional(),
     email: z.string().optional(),
-    tenantId: z.string().optional(),
+    tenantId: z.string().optional().nullable(),
+    avatar: z.string().optional().nullable(),
     avatarUrl: z.string().optional().nullable(),
     roles: z.array(z.string()),
 }).openapi('MeResponse')
@@ -169,6 +171,7 @@ authRoutes.openapi(
                         firstName,
                         lastName,
                         tenantId: user.tenantId,
+                        avatar: (user as any).avatarUrl,
                         avatarUrl: (user as any).avatarUrl,
                         // authService.login returns roles/permissions mapped as strings
                         permissions: user.permissions,
@@ -616,6 +619,7 @@ authRoutes.openapi(
                     id: userId,
                     email: user?.email,
                     tenantId: undefined,
+                    avatar: (user as any)?.avatarUrl,
                     avatarUrl: (user as any)?.avatarUrl,
                     roles,
                     permissions: tokenPermissions,
@@ -629,6 +633,7 @@ authRoutes.openapi(
                 id: userId,
                 email: user?.email,
                 tenantId,
+                avatar: (user as any)?.avatarUrl,
                 avatarUrl: (user as any)?.avatarUrl,
                 roles: userRoles.map((ur: any) => ur.role?.roleName ?? 'UNKNOWN'),
             }))
