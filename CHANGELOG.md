@@ -3,7 +3,7 @@
 ## [v2.14.79] - 2026-07-14
 
 ### Fixed
-- Fixed backend database query crash for Lifetime PD Yearly due to incorrect column mapping (\`model_id\` -> \`pd_model_id\`) in Drizzle schema for \`vw_frs9_pd_structure_yearly\`.
+- Fixed backend database query crash for Lifetime PD Yearly due to incorrect column mapping (\`model_id\` -> \`pd_model_id\`, \`cumulative_afl\` -> \`cumulative_yearly\`, \`marginal_afl\` -> \`marginal_yearly\`) in Drizzle schema for \`vw_frs9_pd_structure_yearly\`.
 
 ## [v2.14.77] - 2026-07-13
 

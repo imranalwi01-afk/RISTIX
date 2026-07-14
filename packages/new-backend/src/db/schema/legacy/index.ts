@@ -655,8 +655,8 @@ export const vwPdStructureYearly = pgTable("vw_frs9_pd_structure_yearly", {
 	flYear: integer("fl_year"),
 	cumulativeBfl: doublePrecision("cumulative_bfl"),
 	marginalBfl: doublePrecision("marginal_bfl"),
-	cumulativeAfl: doublePrecision("cumulative_afl"),
-	marginalAfl: doublePrecision("marginal_afl"),
+	cumulativeAfl: doublePrecision("cumulative_yearly"),
+	marginalAfl: doublePrecision("marginal_yearly"),
 });
 
 /**
