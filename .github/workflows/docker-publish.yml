@@ -153,5 +153,6 @@ jobs:
           cd /home/admin/RISTIX
           git fetch origin
           git reset --hard origin/develop
+          git clean -fd packages/new-backend/src/ packages/frontend/src/
           cd ops/dev
-          sudo docker compose up -d --build frontend backend
+          docker compose up -d --build frontend backend
