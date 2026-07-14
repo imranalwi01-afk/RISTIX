@@ -1290,13 +1290,16 @@ server <- function(input, output, session) {
   rv_df <- reactiveVal() # Menyimpan df untuk digunakan ulang
   
   output$segmentationUI <- renderUI({
+    pd_source <- tryCatch(DBI::dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_config"), error = function(e) PD)
+    lgd_source <- tryCatch(DBI::dbGetQuery(con, "SELECT * FROM frs9_imp_ca_lgd_config"), error = function(e) LGD)
+    
     if (input$dependent == "PD") {
       selectInput("segment", "Segmentation:",
-                  choices = setNames(PD$pkid, PD$pd_model_name)
+                  choices = setNames(pd_source$pkid, pd_source$pd_model_name)
       )
     } else if (input$dependent == "lgd") {
       selectInput("segment", "Segmentation:",
-                  choices = setNames(LGD$pkid, LGD$lgd_model_name)
+                  choices = setNames(lgd_source$pkid, lgd_source$lgd_model_name)
       )
     }
   })
