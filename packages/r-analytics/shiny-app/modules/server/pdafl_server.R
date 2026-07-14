@@ -1085,7 +1085,8 @@ pdafl_server <- function(input, output, session, con, PD) {
 
   # Dynamic UI for PD-AFL segmentation
   output$segmentationPDAFLUI <- renderUI({
-    selectInput("segmentpd", "Segmentation:", choices = build_pd_segment_choices(PD))
+    pd_source <- tryCatch(DBI::dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_config"), error = function(e) PD)
+    selectInput("segmentpd", "Segmentation:", choices = build_pd_segment_choices(pd_source))
   })
 
   # FIXED: Load issuer data using direct dbGetQuery exactly like original working version

@@ -134,7 +134,7 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
   # Dynamic UI for segmentation based on dependent variable selection
   output$segmentationUI <- renderUI({
     if (input$dependent == "PD") {
-      pd_source <- if (is.data.frame(PD) && nrow(PD) > 0) PD else load_segment_config("PD")
+      pd_source <- load_segment_config("PD")
       pd_choices <- build_segment_choices(
         pd_source,
         id_candidates = c("pkid", "pd_config_id", "config_id", "id"),
@@ -144,7 +144,7 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
       selectInput("segment", "Segmentation:",
                   choices = pd_choices)
     } else if (input$dependent == "lgd") {
-      lgd_source <- if (is.data.frame(LGD) && nrow(LGD) > 0) LGD else load_segment_config("LGD")
+      lgd_source <- load_segment_config("LGD")
       lgd_choices <- build_segment_choices(
         lgd_source,
         id_candidates = c("pkid", "lgd_config_id", "config_id", "id"),
