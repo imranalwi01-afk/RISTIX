@@ -649,7 +649,7 @@ export const frs9ImpCaPdStructure = pgTable("frs9_imp_ca_pd_structure", {
 export const vwPdStructureYearly = pgTable("vw_frs9_pd_structure_yearly", {
 	prcDate: date("prc_date"),
 	pdConfigId: bigint("pd_config_id", { mode: "number" }),
-	modelId: integer("model_id"),
+	modelId: integer("pd_model_id"),
 	scenarioId: integer("scenario_id"),
 	bucketId: integer("bucket_id"),
 	flYear: integer("fl_year"),
