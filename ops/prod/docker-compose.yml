@@ -74,6 +74,14 @@ services:
       HOSTNAME: "0.0.0.0"
     ports:
       - "4231:4231"
+    healthcheck:
+      # Fix: use 127.0.0.1 explicitly — 'localhost' resolves to [::1] (IPv6)
+      # but Next.js only listens on 0.0.0.0 (IPv4), causing 771+ consecutive failures
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4231/ > /dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     networks:
       - ristix-prod
     depends_on:
@@ -92,11 +100,23 @@ services:
     restart: always
     env_file:
       - ./env/r-analytics.env
+    environment:
+      # Ensure R Analytics connects to host PostgreSQL at 172.25.0.25:5432
+      LEGACY_DB_HOST: "172.25.0.25"
+      LEGACY_DB_PORT: "5432"
+      FRS9_DB_HOST: "172.25.0.25"
+      FRS9_DB_PORT: "5432"
+      DB_HOST: "172.25.0.25"
+      DB_PORT: "5432"
+    extra_hosts:
+      # Allow container to reach host machine at 172.25.0.25 (PostgreSQL port 5432)
+      - "host.docker.internal:172.25.0.25"
     ports:
-      - "4236:3838"
+      - "4236:4236"
       - "4241:4241"
     healthcheck:
-      test: [ "CMD-SHELL", "(curl -fsS http://localhost:4236/ >/dev/null || curl -fsS http://localhost:3838/ >/dev/null) && curl -fsS http://localhost:4241/health >/dev/null" ]
+      # Use 127.0.0.1 to avoid IPv6 resolution issues
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:4236/ >/dev/null && curl -fsS http://127.0.0.1:4241/health >/dev/null"]
       interval: 30s
       timeout: 10s
       retries: 3

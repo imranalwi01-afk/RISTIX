@@ -191,6 +191,14 @@ services:
       - "4331:4231"
     networks:
       - ristix-dev
+    healthcheck:
+      # Fix: use 127.0.0.1 explicitly — 'localhost' resolves to [::1] (IPv6)
+      # but Next.js only listens on 0.0.0.0 (IPv4)
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4231/ > /dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     depends_on:
       - backend
     profiles:

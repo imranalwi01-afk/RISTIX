@@ -809,6 +809,7 @@ export const ifrs9ReportsController = {
                     rowCount: result.total,
                     ...(result as any).debug,
                 }),
+                summary: result.summary,
                 effectivePrcDate: result.effectivePrcDate,
                 message: result.total === 0
                     ? `No ECL Result data found in public.frs9_ecl_summary for snapshot ${result.effectivePrcDate ?? prc_date}.`
