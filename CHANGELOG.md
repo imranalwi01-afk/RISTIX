@@ -1,5 +1,10 @@
 # Changelog
 
+## [v2.14.90] - 2026-07-15
+
+### Fixed
+- Fixed an issue where uploaded user avatars disappeared after logging out due to missing `avatar` fields in the authentication and profile API endpoint responses.
+
 ## [v2.14.79] - 2026-07-14
 
 ### Fixed
