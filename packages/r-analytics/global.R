@@ -3416,12 +3416,7 @@ cap_upper <- function(df, upper = 1) {
 buat_bucket_sum <- function(data, k) {
   n_col <- ncol(data)
   
-  # cek apakah jumlah kolom habis dibagi k
-  if (n_col %% k != 0) {
-    stop("Jumlah kolom tidak habis dibagi k")
-  }
-  
-  n_group <- n_col / k
+  n_group <- floor(n_col / k)
   
   hasil <- data.frame(Bucket = 1:nrow(data))
   
