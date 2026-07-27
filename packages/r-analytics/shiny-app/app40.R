@@ -287,8 +287,8 @@ get_preferred_env <- function(primary, fallback, default = "") {
 
 # Koneksi database PostgreSQL
 # Database Configuration Logging
-db_host <- get_preferred_env("FRS9_DB_HOST", "DB_HOST", "172.25.0.25")
-db_port <- as.integer(get_preferred_env("FRS9_DB_PORT", "DB_PORT", "5432"))
+db_host <- get_preferred_env("FRS9_DB_HOST", "DB_HOST", "10.8.0.2")
+db_port <- as.integer(get_preferred_env("FRS9_DB_PORT", "DB_PORT", "5433"))
 db_name <- get_preferred_env("FRS9_DB_NAME", "DB_NAME", "FRS9PRO")
 db_schema <- get_preferred_env("FRS9_DB_SCHEMA", "DB_SCHEMA", "public")
 db_user <- get_preferred_env("FRS9_DB_USER", "DB_USER", "postgres")
@@ -957,6 +957,10 @@ ui <- dashboardPage(
                 title = "📊 Model yang Sudah Disimpan", width = 12, status = "primary", solidHeader = TRUE,
                 DT::DTOutput("model_summary_table_DB")
               )
+              #box(
+              #  title = "Download Model", width = 6, status = "primary", solidHeader = TRUE,
+              #  downloadButton("download_model_summary", "download model summary", class = "btn-success")
+              #)
             )
           )
         )
@@ -986,7 +990,7 @@ ui <- dashboardPage(
               width = 12, solidHeader = TRUE, status = "primary",
               title = "Options:",
               selectInput("backtransform", "Transformasi data Y sebelumnya", choices = c("logit", "log", "others")),
-              selectInput("replacenegatif", "Replace Negatif Forecast Boxplot", choices = c("0","Random")),
+              selectInput("replacenegatif", "Replace Negatif Forecast Boxplot", choices = c("0","Random","Absolute")),
               selectInput("outliermet", "Outlier Method", choices = c("boxplot", "sd")),
               selectInput("adjustforecastmet", "Adjust Forecast Method", choices = c("Adjust","Original","Order")),
               uiOutput("segmentationPDAFLUI"),
@@ -1290,16 +1294,13 @@ server <- function(input, output, session) {
   rv_df <- reactiveVal() # Menyimpan df untuk digunakan ulang
   
   output$segmentationUI <- renderUI({
-    pd_source <- tryCatch(DBI::dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_config"), error = function(e) PD)
-    lgd_source <- tryCatch(DBI::dbGetQuery(con, "SELECT * FROM frs9_imp_ca_lgd_config"), error = function(e) LGD)
-    
     if (input$dependent == "PD") {
       selectInput("segment", "Segmentation:",
-                  choices = setNames(pd_source$pkid, pd_source$pd_model_name)
+                  choices = setNames(PD$pkid, PD$pd_model_name)
       )
     } else if (input$dependent == "lgd") {
       selectInput("segment", "Segmentation:",
-                  choices = setNames(lgd_source$pkid, lgd_source$lgd_model_name)
+                  choices = setNames(LGD$pkid, LGD$lgd_model_name)
       )
     }
   })
@@ -1740,9 +1741,13 @@ server <- function(input, output, session) {
   
   
   data1 <- reactive({
-    req(datagabung(), input$train_start, input$train_split, input$test_end)
+    req(namay(),namax(),datagabung(), input$train_start, input$train_split, input$test_end)
+    namafull <- c(namay(), namax())
+    Date <- as.Date(datagabung()[, 1])
     
-    dataawal <- batasdata(datagabung(), bb = input$train_start, bt = input$train_split, ba = input$test_end)
+    datafull <- datagabung()[, namafull, drop = FALSE]
+    datafull <- data.frame(Date = Date, datafull)
+    dataawal <- batasdata(datafull, bb = input$train_start, bt = input$train_split, ba = input$test_end)
     datatrain <- dataawal$data1
     datatrain
   })
@@ -3256,7 +3261,7 @@ server <- function(input, output, session) {
   
   
   output$model_summary_table_DB <- DT::renderDT({
-    DT::datatable(model_summary_data_DB(), options = list(pageLength = 5, autoWidth = F), rownames = FALSE)
+    DT::datatable(model_summary_data_DB(), options = list(pageLength = 5, autoWidth = TRUE), rownames = FALSE)
   })
   
   
@@ -3273,7 +3278,7 @@ server <- function(input, output, session) {
   )
   
   output$model_summary_table_DB2 <- DT::renderDT({
-    DT::datatable(model_summary_data_DB2(), options = list(pageLength = 5, autoWidth = F, scrollX = TRUE), rownames = FALSE)
+    DT::datatable(model_summary_data_DB2(), options = list(pageLength = 5, autoWidth = TRUE, scrollX = TRUE), rownames = FALSE)
   })
   
   
@@ -3447,8 +3452,8 @@ server <- function(input, output, session) {
   
   
   dataydanfileexcelDB <- reactive({
-  req(input$choose_model)
-
+    req(input$choose_model)
+    
     result0 <- dbGetQuery(con, '
   SELECT "dependent_variable", "data_file"
   FROM frs9_r_model_summary
@@ -3466,45 +3471,45 @@ server <- function(input, output, session) {
   # Reactive: path file .xlsx
   reactive_excel_path <- reactiveVal(NULL)
   
-  observeEvent(dataydanfileexcelDB(),
-               {
-                 df0 <- dataydanfileexcelDB()
-                 
-                 # Validasi hasil query
-                 if (is.null(df0) || nrow(df0) == 0) {
-                   reactive_excel_path(NULL)
-                   showNotification("Model tidak ditemukan / tidak ada data_file.", type = "error")
-                   return()
-                 }
-                 
-                 bin <- df0$data_file[[1]]
-                 if (is.null(bin)) {
-                   reactive_excel_path(NULL)
-                   showNotification("Kolom data_file kosong.", type = "error")
-                   return()
-                 }
-                 
-                 
-                 # Tulis ke tempfile .xlsx
-                 path <- tempfile(fileext = ".xlsx")
-                 ok <- tryCatch(
-                   {
-                     writeBin(bin, path)
-                     TRUE
-                   },
-                   error = function(e) {
-                     showNotification(paste("Gagal menulis file:", e$message), type = "error")
-                     FALSE
-                   }
-                 )
-                 
-                 if (ok && file.exists(path)) {
-                   reactive_excel_path(path)
-                 } else {
-                   reactive_excel_path(NULL)
-                 }
-               },
-               ignoreInit = TRUE
+  observeEvent(dataydanfileexcelDB(),{
+    
+    df0 <- dataydanfileexcelDB()
+    
+    # Validasi hasil query
+    if (is.null(df0) || nrow(df0) == 0) {
+      reactive_excel_path(NULL)
+      showNotification("Model tidak ditemukan / tidak ada data_file.", type = "error")
+      return()
+    }
+    
+    bin <- df0$data_file[[1]]
+    if (is.null(bin)) {
+      reactive_excel_path(NULL)
+      showNotification("Kolom data_file kosong.", type = "error")
+      return()
+    }
+    
+    
+    # Tulis ke tempfile .xlsx
+    path <- tempfile(fileext = ".xlsx")
+    ok <- tryCatch(
+      {
+        writeBin(bin, path)
+        TRUE
+      },
+      error = function(e) {
+        showNotification(paste("Gagal menulis file:", e$message), type = "error")
+        FALSE
+      }
+    )
+    
+    if (ok && file.exists(path)) {
+      reactive_excel_path(path)
+    } else {
+      reactive_excel_path(NULL)
+    }
+  },
+  ignoreInit = TRUE
   )
   
   

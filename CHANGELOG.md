@@ -1,5 +1,12 @@
 # Changelog
 
+## [v2.14.91] - 2026-07-27
+
+### Changed
+- Updated R Analytics monolithic app to use `app40.R` instead of `app39.R`.
+- Updated R Analytics `global.R` to latest version while preserving existing database config inclusion patterns.
+- Adjusted local `proxy.js` to expose database on port 5432 to align with backend environment settings.
+
 ## [v2.14.90] - 2026-07-15
 
 ### Fixed

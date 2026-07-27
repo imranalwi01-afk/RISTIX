@@ -2795,9 +2795,6 @@ Boxplot_Scenario=function(x,intuisi,varmodel){
   Datey=x1[,1]
   x=x1[,-1]
   
-  library(dplyr)
-  library(purrr)
-  library(tidyr)
   
   
   klasifikasi_macro1 <- function(x) {
@@ -2831,12 +2828,10 @@ Boxplot_Scenario=function(x,intuisi,varmodel){
   }
   
   
-  
-  
   # Daftar kolom yang ingin diklasifikasikan
   cols_to_classify <- colnames(x)
   
-  intuisi <- ifelse(intuisi==0,1,intuisi)
+  intuisi <- ifelse(intuisi == 0, 1, intuisi)
   
   # Proses klasifikasi otomatis
   df_klasifikasi=c()
@@ -2852,8 +2847,6 @@ Boxplot_Scenario=function(x,intuisi,varmodel){
   colnames(df_klasifikasi) <- cols_to_classify
   df.klasifikasi=df_klasifikasi
   
-  library(dplyr)
-  library(tidyr)
   
   # Urutan variabel asli
   urutan_var <- colnames(df_klasifikasi)
@@ -2944,7 +2937,7 @@ Boxplot_Scenario=function(x,intuisi,varmodel){
   
   #########################RATA-RATA PERCENTAGE###########################
   #average_per_category <- rowMeans(pivot_table_percent[, -1])
-  average_per_category <- rowMeans(pivot_table_percent[,varmodel])
+  average_per_category <- rowMeans(pivot_table_percent[,varmodel],na.rm = T)
   names(average_per_category) <- pivot_table_percent$Category
   weighted.boxplot=average_per_category
   
@@ -2973,7 +2966,6 @@ Boxplot_Scenario=function(x,intuisi,varmodel){
                       diff.base=diff.base)
   boxplot_result
 }
-
 
 
 
@@ -3329,13 +3321,8 @@ forecast_mev_bxp=function(mev_base,datahistorical,db_boxplot,modely,z,coln,intui
   predict_best=predict(modely,mev_best)
   predict_worst=predict(modely,mev_worst)
   
-  # Fungsi pengganti nilai negatif
-  #replace_negative <- function(x) {
-  #  x[x < 0] <- runif(sum(x < 0), min = 0, max = 0.000009)
-  #  return(x)
-  #}
   
-  replace_negative <- function(x, method = c("0", "Random")) {
+  replace_negative <- function(x, method = c("0", "Random","Absolute")) {
     
     method <- match.arg(method)
     
@@ -3356,6 +3343,9 @@ forecast_mev_bxp=function(mev_base,datahistorical,db_boxplot,modely,z,coln,intui
         min = 0,
         max = 0.000009
       )
+    }else if (method == "Absolute") {
+      
+      x[idx] <- abs(x[idx])
     }
     x
   }
@@ -3363,34 +3353,85 @@ forecast_mev_bxp=function(mev_base,datahistorical,db_boxplot,modely,z,coln,intui
   
   
   # Terapkan ke hasil prediksi
-  predict_base  <- replace_negative(predict_base,method=penggantinegatif)
-  predict_best  <- replace_negative(predict_best,method=penggantinegatif)
-  predict_worst  <- replace_negative(predict_worst,method=penggantinegatif)
+  #predict_base  <- replace_negative(predict_base,method=penggantinegatif)
+  #predict_best  <- replace_negative(predict_best,method=penggantinegatif)
+  #predict_worst  <- replace_negative(predict_worst,method=penggantinegatif)
   
 
   
   #####back transform
-  back_trans=function(x,z,coln){
+  #back_trans=function(x,z,coln){
+  #  
+  #  if(z=="logit"){
+  #    hasil_trans=data.frame(y_trans=x,y=exp(x)/(1+exp(x)))
+  #    colnames(hasil_trans)=c(coln,paste0("BT_",coln))
+  #  } else if (z=="log") {
+  #    hasil_trans=data.frame(y_trans=x,y=exp(x))
+  #    colnames(hasil_trans)=c(coln,paste0("BT_",coln))
+  #  } else {
+  #    hasil_trans=data.frame(y_trans=x)
+  #    colnames(hasil_trans)=coln
+  #  }
+  #  return(hasil_trans)
+  #}
+  
+  
+  back_trans <- function(x, z, coln){
     
-    if(z=="logit"){
-      hasil_trans=data.frame(y_trans=x,y=exp(x)/(1+exp(x)))
-      colnames(hasil_trans)=c(coln,paste0("BT_",coln))
-    } else if (z=="log") {
-      hasil_trans=data.frame(y_trans=x,y=exp(x))
-      colnames(hasil_trans)=c(coln,paste0("BT_",coln))
+    if(z == "logit"){
+      
+      hasil_trans <- data.frame(y_trans = exp(x)/(1 + exp(x)))
+      if(grepl("^logit_", coln)){
+        coln <- sub("^logit_", "", coln)
+      }
+      
+      colnames(hasil_trans) <- coln
+      
+    } else if(z == "log") {
+      
+      hasil_trans <- data.frame(y_trans = exp(x))
+      
+      if(grepl("^log_", coln)){
+        coln <- sub("^log_", "", coln)
+      }
+      
+      colnames(hasil_trans) <- coln
+      
     } else {
-      hasil_trans=data.frame(y_trans=x)
-      colnames(hasil_trans)=coln
+      
+      hasil_trans <- data.frame(y_trans = x)
+      
+      if(grepl("^average_", coln)){
+        coln <- sub("^average_", "", coln)
+      }
+      
+      colnames(hasil_trans) <- coln
+      
     }
+    
     return(hasil_trans)
   }
   
-  f_base=cbind(mev_base,back_trans(predict_base,z,coln))
-  f_best=cbind(mev_best,back_trans(predict_best,z,coln))
-  f_worst=cbind(mev_worst,back_trans(predict_worst,z,coln))
+  
+  f_base=back_trans(predict_base,z,coln)
+  f_best=back_trans(predict_best,z,coln)
+  f_worst=back_trans(predict_worst,z,coln)
+  
+  # Terapkan ke hasil prediksi
+  odr_base <- setNames(as.data.frame(replace_negative(f_base[,1],method=penggantinegatif)),names(f_base))
+  odr_best <- setNames(as.data.frame(replace_negative(f_best[,1],method=penggantinegatif)), names(f_best))
+  odr_worst <-setNames(as.data.frame(replace_negative(f_worst[,1],method=penggantinegatif)), names(f_worst))
+  
+  f_base  <- cbind(mev_base,odr_base)
+  f_best  <- cbind(mev_best,odr_best)
+  f_worst  <- cbind(mev_worst,odr_worst)
+  
   f_yjoin=data.frame(f_base[,ncol(f_base)],
                      f_best[,ncol(f_best)],
                      f_worst[,ncol(f_worst)])
+  
+  coln <- names(odr_base)
+  
   colnames(f_yjoin)=c(paste0(coln," BASE"),
                       paste0(coln," BEST"),
                       paste0(coln," WORST"))

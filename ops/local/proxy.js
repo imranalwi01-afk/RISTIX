@@ -3,7 +3,7 @@ const net = require('net');
 const REMOTE_IP = '172.25.0.25';
 
 const proxies = [
-    { local: 15432, remote: 5432, name: 'Database' },
+    { local: 5432, remote: 5432, name: 'Database' },
     { local: 4236, remote: 4236, name: 'R Analytics Dashboard' },
     { local: 4241, remote: 4241, name: 'R Analytics API' }
 ];
