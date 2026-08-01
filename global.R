@@ -126,7 +126,7 @@ gen1varx <- function(data, target_var, independent_vars) {
 
 ###date otomate###
 convert_dates <- function(df, threshold = 0.9,
-                               date_formats = c("%Y-%m-%d", "%d-%m-%Y", "%m/%d/%Y", "%d/%m/%Y")) {
+                          date_formats = c("%Y-%m-%d", "%d-%m-%Y", "%m/%d/%Y", "%d/%m/%Y")) {
   
   is_date_col <- logical(length = ncol(df))
   best_formats <- character(length = ncol(df))
@@ -753,7 +753,7 @@ backtesting <- function(datatrain, datatest, target_var, regression_models) {
   # Data aktual untuk perhitungan metrik
   actual_train <- data[[target_var]]  
   actual_test <- datatest[[target_var]]
-
+  
   
   # Fungsi untuk menghitung MAPE
   calc_mape <- function(actual, predicted) {
@@ -870,7 +870,7 @@ backtesting2 <- function(datatrain, datatest,datagabung, target_var, regression_
     mape_test <- calc_mape(actual_test, predicted_test)
     rmse_test <- calc_rmse(actual_test, predicted_test)
     mape_gabung <- calc_mape(actual_fulldata,predicted_fulldata)
-        
+    
     # Simpan hasil dalam data frame
     results_list[[i]] <- data.frame(
       Model = paste(deparse(formula), collapse = " "),
@@ -895,7 +895,7 @@ runreg3models3 <- function(data, target_var, regression_models, chunk_size = 100
   
   # Data aktual untuk perhitungan metrik
   actual <- data[[target_var]]  
-
+  
   # Fungsi untuk menghitung MAPE
   calc_mape <- function(actual, predicted) {
     # Gabungkan jadi data frame
@@ -945,7 +945,7 @@ runreg3models3 <- function(data, target_var, regression_models, chunk_size = 100
     summary_model <- summary(model)
     r_squared <- summary_model$r.squared
     r_squared_adjusted <- summary_model$adj.r.squared
-
+    
     
     # Simpan hasil dalam data frame
     results_list[[i]] <- data.frame(
@@ -1248,7 +1248,7 @@ model23 <- function(model_reg2var, model_reg3var) {
 model_regnf <- function(fulldata, datax, namay, runmodel2faktor, 
                         paramkorelasi = 0.6, alpha = 0.05) {
   
-    tabkorel3 <- tabel_korelasi(datax)
+  tabkorel3 <- tabel_korelasi(datax)
   
   ## Gunakan tabel korelasi 3 variabel yang sudah disediakan
   if (is.null(tabkorel3)) {
@@ -1344,12 +1344,12 @@ transform_y <- function(df, transformations = c("logit", "average", "moving_aver
       df[[paste0("log_", col_name)]] <- log_transform(df[[col_name]])
     }
   }
-
+  
   # Data Quality Check & Sanitization
   quality_report <- check_data_quality(df)
   df <- sanitize_data(df)
   attr(df, "quality_report") <- quality_report
-
+  
   return(df)
 }
 
@@ -2991,18 +2991,18 @@ normalize_scenario_var_name <- function(x) {
 preflight_scenario_inputs <- function(base_df, intuition_df, sd_vec) {
   stopifnot(is.data.frame(base_df))
   stopifnot(is.data.frame(intuition_df))
-
+  
   if (!all(c("var", "sign") %in% names(intuition_df))) {
     stop("intuition_df wajib memiliki kolom: var dan sign")
   }
-
+  
   base_names <- colnames(base_df)
   core_names <- normalize_scenario_var_name(base_names)
-
+  
   intuition_keys <- normalize_scenario_var_name(intuition_df$var)
   intuition_map <- setNames(intuition_df$sign, intuition_keys)
   matched_intuition <- intuition_map[core_names]
-
+  
   if (is.data.frame(sd_vec)) {
     if (nrow(sd_vec) != 1) {
       stop("sd_vec data.frame harus 1 baris (row stdev)")
@@ -3013,12 +3013,12 @@ preflight_scenario_inputs <- function(base_df, intuition_df, sd_vec) {
     sd_raw <- as.numeric(sd_vec)
     names(sd_raw) <- normalize_scenario_var_name(names(sd_vec))
   }
-
+  
   matched_sd <- sd_raw[core_names]
-
+  
   missing_intuition <- base_names[is.na(matched_intuition)]
   missing_sd <- base_names[is.na(matched_sd)]
-
+  
   list(
     ok = length(missing_intuition) == 0 && length(missing_sd) == 0,
     base_names = base_names,
@@ -3357,7 +3357,7 @@ forecast_mev_bxp=function(mev_base,datahistorical,db_boxplot,modely,z,coln,intui
   #predict_best  <- replace_negative(predict_best,method=penggantinegatif)
   #predict_worst  <- replace_negative(predict_worst,method=penggantinegatif)
   
-
+  
   
   #####back transform
   #back_trans=function(x,z,coln){
@@ -3465,8 +3465,12 @@ buat_bucket_sum <- function(data, k) {
     start_col <- (i - 1) * k + 1
     end_col   <- i * k
     
-    hasil[[paste0("TTC.MPD.", i)]] <- rowSums(data[, start_col:end_col])
+    hasil[[paste0("TTC.MPD.", i)]] <- rowSums(
+      data[, start_col:end_col, drop = FALSE],
+      na.rm = TRUE
+    )
   }
+  hasil <- hasil[,1:3]  
   
   return(hasil)
 }
@@ -3481,7 +3485,7 @@ clean_row0 <- function(data) {
 
 
 
-PD_engine1=function(forecast_odr_boxplot,actual_odr,issuer,ympd){
+PD_engine1=function(forecast_odr_boxplot,actual_odr,issuer,ympd,intervalconfigid){
   
   name_FL_P_ODR=c("PIT PD +1","PIT PD +2","CPD+1","Marginal PD +1","Marginal PD +2")
   value_FL_P_ODR=c(mean(forecast_odr_boxplot[1:12]),mean(forecast_odr_boxplot[13:24]),
@@ -3521,7 +3525,7 @@ PD_engine1=function(forecast_odr_boxplot,actual_odr,issuer,ympd){
   }
   
   ympdx=cutoma(ympd)
-  ym_pd=buat_bucket_sum(ympdx,12)
+  ym_pd=buat_bucket_sum(ympdx,12/intervalconfigid)
   ympdx[5,2:ncol(ympdx)]=0
   
   
