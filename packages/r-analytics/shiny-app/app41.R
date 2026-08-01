@@ -3875,21 +3875,21 @@ server <- function(input, output, session) {
       datayndate <- datahisto[,c(date_colx,vary)]
       
       
-      datay <- datayndate[datayndate[[date_colx]] >= as.Date(input$ttcpd_date),vary]
+      datay2 <- datayndate[datayndate[[date_colx]] >= as.Date(input$ttcpd_date),vary]
       
       
       #datay <- datahisto[[vary]]
-      back_trans <- function(x, z) {
-        if (z == "logit") {
-          y <- exp(x) / (1 + exp(x))
-        } else if (z == "log") {
-          y <- exp(x)
-        } else {
-          y <- x
-        }
-        return(y)
-      }
-      datay2 <- back_trans(datay, input$backtransform)
+     #back_trans <- function(x, z) {
+     #  if (z == "logit") {
+     #    y <- exp(x) / (1 + exp(x))
+     #  } else if (z == "log") {
+     #    y <- exp(x)
+     #  } else {
+     #    y <- x
+     #  }
+     #  return(y)
+     #}
+     #datay2 <- back_trans(datay, input$backtransform)
       
       # dataissuer2=aggregate(CALC_AMOUNT~BUCKET_FROM,data=dataissuerrr01(),sum)
       # issuer=dataissuer2$calc_amount
