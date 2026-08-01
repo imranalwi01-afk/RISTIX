@@ -77,5 +77,6 @@ jobs:
       - name: Deploy R Analytics with Docker Compose
         run: |
           cd /opt/ristix
+          docker rm -f ristix-r-analytics-prod || true
           docker compose --profile analytics pull
           docker compose --profile analytics up -d
