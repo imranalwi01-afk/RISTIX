@@ -569,7 +569,6 @@ customHeader <- tags$head(
 )
 
 
-
 ui <- dashboardPage(
   skin = "blue",
   
@@ -3657,6 +3656,22 @@ server <- function(input, output, session) {
     df
   })
   
+  datahisto_pdfl2 <- reactive({
+    temp_xlsx <- reactive_excel_path()
+    req(!is.null(temp_xlsx), file.exists(temp_xlsx))
+    
+    df <- tryCatch(
+      {
+        openxlsx::read.xlsx(temp_xlsx, sheet = "Data Y awal", detectDates = T)
+      },
+      error = function(e) {
+        showNotification(paste("Gagal baca sheet 'Data Y awal':", e$message), type = "error")
+        return(NULL)
+      }
+    )
+    df
+  })
+  
   
   ################################## eksekusi mev boxplot######################################
   
@@ -3847,8 +3862,15 @@ server <- function(input, output, session) {
       
       req(fo_boxplot_pdafl())
       fo.y.boxplot <- fo_boxplot_pdafl()$f.yjoin
-      datahisto <- datahisto_pdfl()
+      datahisto <- datahisto_pdfl2()
       vary <- vary_pdafl()
+      
+      back_name <- function(coln) {
+        sub("^(logit_|log_|average_)", "", coln)
+      }
+      
+      vary <- back_name(vary) 
+      
       date_colx <- names(datahisto)[sapply(datahisto, inherits, "Date")]
       datayndate <- datahisto[,c(date_colx,vary)]
       
@@ -3889,9 +3911,12 @@ server <- function(input, output, session) {
       
       ym.pd <- clean_row0(ym.pd)
       
+      intervalconfigid <- PD %>%
+        dplyr::filter(pkid == as.numeric(input$segmentpd)) %>%
+        dplyr::pull(interval)
       
       PD.Base <- tryCatch(
-        PD_engine1(fo.y.boxplot[,1], datay2, issuer, ym.pd),
+        PD_engine1(fo.y.boxplot[,1], datay2, issuer, ym.pd,intervalconfigid),
         error = function(e) {
           print(paste("BASE ERROR:", e$message))
           NULL
@@ -3899,7 +3924,7 @@ server <- function(input, output, session) {
       )
       
       PD.Best <- tryCatch(
-        PD_engine1(fo.y.boxplot[,2], datay2, issuer, ym.pd),
+        PD_engine1(fo.y.boxplot[,2], datay2, issuer, ym.pd,intervalconfigid),
         error = function(e) {
           print(paste("BEST ERROR:", e$message))
           NULL
@@ -3907,7 +3932,7 @@ server <- function(input, output, session) {
       )
       
       PD.Worst <- tryCatch(
-        PD_engine1(fo.y.boxplot[,3], datay2, issuer, ym.pd),
+        PD_engine1(fo.y.boxplot[,3], datay2, issuer, ym.pd,intervalconfigid),
         error = function(e) {
           print(paste("WORST ERROR:", e$message))
           NULL
