@@ -3560,8 +3560,25 @@ server <- function(input, output, session) {
   
   
   
+  datahisto_pdfl0 <- reactive({
+    temp_xlsx <- reactive_excel_path()
+    req(!is.null(temp_xlsx), file.exists(temp_xlsx))
+    
+    df <- tryCatch(
+      {
+        openxlsx::read.xlsx(temp_xlsx, sheet = "Data full", detectDates = T)
+      },
+      error = function(e) {
+        showNotification(paste("Gagal baca sheet 'Data full':", e$message), type = "error")
+        return(NULL)
+      }
+    )
+    df
+  })
+  
+  
   observe({
-    df <- datacorex()
+    df <- datahisto_pdfl0()
     date_colx <- names(df)[sapply(df, inherits, "Date")]
     if (length(date_colx) == 0) {
       return(NULL)
@@ -3572,6 +3589,7 @@ server <- function(input, output, session) {
                     min = min(df[[date_colx]]), max = max(df[[date_colx]])
     )
   })
+  
   
   
   # Tempat menyimpan data yang bisa diedit
