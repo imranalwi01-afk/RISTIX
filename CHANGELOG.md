@@ -1,5 +1,11 @@
 # Changelog
 
+## [v2.14.92] - 2026-08-20
+
+### Changed
+- Updated R Analytics monolithic app to use `app44.R` instead of `app40.R`.
+- Updated R Analytics `global.R` to latest version.
+
 ## [v2.14.91] - 2026-07-27
 
 ### Changed
