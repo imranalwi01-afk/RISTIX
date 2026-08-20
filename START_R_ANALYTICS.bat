@@ -54,7 +54,7 @@ IF EXIST "%API_DIR%\start_api.R" (
     ECHO [WARNING] API service was not started.
 )
 
-ECHO [*] Starting R Analytics Dashboard (Monolithic app37.R)...
+ECHO [*] Starting R Analytics Dashboard (Monolithic app44.R)...
 set "R_PORT=4236"
 Rscript run_local.R
 

@@ -80,5 +80,5 @@ tryCatch(
 message("🚀 Memulai Shiny App di http://localhost:4236 ...")
 
 # 4. Run the App
-# Menjalankan aplikasi monolitik app40.R
-shiny::runApp("app40.R", host = "0.0.0.0", port = 4236, launch.browser = FALSE)
+# Menjalankan aplikasi monolitik app44.R
+shiny::runApp("app44.R", host = "0.0.0.0", port = 4236, launch.browser = FALSE)
