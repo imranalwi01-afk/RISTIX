@@ -112,7 +112,7 @@ run_shiny() {
   (
     cd /opt/r-analytics/shiny-app
     export R_ANALYTICS_SHINY_APP_DIR="/opt/r-analytics/shiny-app"
-    stdbuf -oL -eL Rscript -e "shiny::runApp('/opt/r-analytics/shiny-app/app41.R', host='0.0.0.0', port=as.integer(Sys.getenv('R_PORT','4236')), launch.browser=FALSE)"
+    stdbuf -oL -eL Rscript -e "shiny::runApp('/opt/r-analytics/shiny-app/app44.R', host='0.0.0.0', port=as.integer(Sys.getenv('R_PORT','4236')), launch.browser=FALSE)"
   ) > >(prefix_logs "[SHINY] ") 2> >(prefix_logs "[SHINY] " >&2)
 }
 
@@ -209,7 +209,7 @@ SHINY_SUPERVISOR_PID=$!
 monitor_endpoint "api" "http://127.0.0.1:${API_PORT}/health" "Rscript start_api.R" &
 API_MONITOR_PID=$!
 
-monitor_endpoint "shiny" "http://127.0.0.1:${DASHBOARD_PORT}/" "shiny::runApp('/opt/r-analytics/shiny-app/app41.R'" &
+monitor_endpoint "shiny" "http://127.0.0.1:${DASHBOARD_PORT}/" "shiny::runApp('/opt/r-analytics/shiny-app/app44.R'" &
 SHINY_MONITOR_PID=$!
 
 send_alert "container_started" "runtime" "R Analytics container started. dashboard_port=${DASHBOARD_PORT} api_port=${API_PORT}"

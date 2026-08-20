@@ -1,5 +1,10 @@
 # Changelog
 
+## [v2.14.93] - 2026-08-20
+
+### Fixed
+- Fixed Docker entrypoint for R Analytics still hardcoding `app41.R` instead of `app44.R`.
+
 ## [v2.14.92] - 2026-08-20
 
 ### Changed
