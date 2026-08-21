@@ -77,16 +77,16 @@ interface SummaryStats {
 }
 
 interface MovementMatrixRow {
+  id?: string;
+  prc_date?: string;
   movement_order?: number;
   movement?: string;
-  stage_1_collective?: number | string;
-  stage_2_collective?: number | string;
-  stage_3_collective?: number | string;
-  stage_1_individual?: number | string;
-  stage_2_individual?: number | string;
-  stage_3_individual?: number | string;
+  stage1?: number | string;
+  stage2?: number | string;
+  stage3?: number | string;
   poci?: number | string;
   total?: number | string;
+  [key: string]: unknown;
 }
 
 const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
@@ -685,30 +685,21 @@ const GCAMovementReport: React.FC = () => {
 
       const aggregated = new Map<number, MovementMatrixRow>();
       data.forEach((row) => {
-        const order = Number(row.movement_order || 0);
+        const order = Number(row.seq || row.movement_order || 0);
         if (!order) return;
 
         const current = aggregated.get(order) || {
           movement_order: order,
-          movement: String(row.movement || `Movement ${order}`),
-          stage_1_collective: 0,
-          stage_2_collective: 0,
-          stage_3_collective: 0,
-          stage_1_individual: 0,
-          stage_2_individual: 0,
-          stage_3_individual: 0,
-          poci: 0,
+          movement: String(row.descriptions || row.movement || `Movement ${order}`),
           total: 0,
         };
-
-        current.stage_1_collective = (parseFloat(String(current.stage_1_collective || 0)) || 0) + (parseFloat(String(row.stage_1_collective || 0)) || 0);
-        current.stage_2_collective = (parseFloat(String(current.stage_2_collective || 0)) || 0) + (parseFloat(String(row.stage_2_collective || 0)) || 0);
-        current.stage_3_collective = (parseFloat(String(current.stage_3_collective || 0)) || 0) + (parseFloat(String(row.stage_3_collective || 0)) || 0);
-        current.stage_1_individual = (parseFloat(String(current.stage_1_individual || 0)) || 0) + (parseFloat(String(row.stage_1_individual || 0)) || 0);
-        current.stage_2_individual = (parseFloat(String(current.stage_2_individual || 0)) || 0) + (parseFloat(String(row.stage_2_individual || 0)) || 0);
-        current.stage_3_individual = (parseFloat(String(current.stage_3_individual || 0)) || 0) + (parseFloat(String(row.stage_3_individual || 0)) || 0);
-        current.poci = (parseFloat(String(current.poci || 0)) || 0) + (parseFloat(String(row.poci || 0)) || 0);
-        current.total = (parseFloat(String(current.total || 0)) || 0) + (parseFloat(String(row.total || 0)) || 0);
+        const rowTotal = Number(row.stage1 || 0) + Number(row.stage2 || 0) + Number(row.stage3 || 0);
+        current.total = (parseFloat(current.total as string) || 0) + rowTotal;
+        
+        current.stage1 = (parseFloat(String(current.stage1 || 0)) || 0) + Number(row.stage1 || 0);
+        current.stage2 = (parseFloat(String(current.stage2 || 0)) || 0) + Number(row.stage2 || 0);
+        current.stage3 = (parseFloat(String(current.stage3 || 0)) || 0) + Number(row.stage3 || 0);
+        
         aggregated.set(order, current);
       });
 
@@ -745,12 +736,12 @@ const GCAMovementReport: React.FC = () => {
       const stage2 = stageMap.get('Stage 2')!;
       const stage3 = stageMap.get('Stage 3')!;
 
-      stage1.opening = (parseFloat(String(openingRow?.stage_1_collective || 0)) || 0) + (parseFloat(String(openingRow?.stage_1_individual || 0)) || 0);
-      stage2.opening = (parseFloat(String(openingRow?.stage_2_collective || 0)) || 0) + (parseFloat(String(openingRow?.stage_2_individual || 0)) || 0);
-      stage3.opening = (parseFloat(String(openingRow?.stage_3_collective || 0)) || 0) + (parseFloat(String(openingRow?.stage_3_individual || 0)) || 0);
-      stage1.closing = (parseFloat(String(closingRow?.stage_1_collective || 0)) || 0) + (parseFloat(String(closingRow?.stage_1_individual || 0)) || 0);
-      stage2.closing = (parseFloat(String(closingRow?.stage_2_collective || 0)) || 0) + (parseFloat(String(closingRow?.stage_2_individual || 0)) || 0);
-      stage3.closing = (parseFloat(String(closingRow?.stage_3_collective || 0)) || 0) + (parseFloat(String(closingRow?.stage_3_individual || 0)) || 0);
+      stage1.opening = parseFloat(String(openingRow?.stage1 || 0)) || 0;
+      stage2.opening = parseFloat(String(openingRow?.stage2 || 0)) || 0;
+      stage3.opening = parseFloat(String(openingRow?.stage3 || 0)) || 0;
+      stage1.closing = parseFloat(String(closingRow?.stage1 || 0)) || 0;
+      stage2.closing = parseFloat(String(closingRow?.stage2 || 0)) || 0;
+      stage3.closing = parseFloat(String(closingRow?.stage3 || 0)) || 0;
 
       const trendData: MovementTrendItem[] = [
         { period: 'Opening', gca: stats.openingGCA, cumulative: stats.openingGCA },
@@ -777,7 +768,7 @@ const GCAMovementReport: React.FC = () => {
     XLSX.writeFile(wb, `GCA_Movement_${new Date().toISOString().slice(0, 10)}.xlsx`);
   }, [rawData]);
 
-  const requiredParams = useMemo(() => ['prc_date'], []);
+  const requiredParams = useMemo(() => ['period_from', 'period_to'], []);
   const optionalParams = useMemo(() => ['segment_id', 'group_segment', 'stage'], []);
 
   return (

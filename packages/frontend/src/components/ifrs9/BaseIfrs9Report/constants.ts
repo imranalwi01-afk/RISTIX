@@ -52,17 +52,23 @@ export const GROUP_SEGMENT_ALLOWLIST_ORDER = [
   'LGD Repo',
 ] as const;
 
-export const getDefaultFilters = (reportType: BaseIfrs9ReportProps['reportType']): ReportFilters => ({
-  prc_date: null,
-  page: 1,
-  limit: 20,
-  segment_id: undefined,
-  segment_ids: [],
-  stage: [],
-  fl_flag: false,
-  group_segment: undefined,
-  ead_config_id: undefined,
-  pd_config_id: reportType.includes('pd') ? 1 : undefined,
-  pd_method: reportType.includes('pd') ? 1 : undefined,
-  lgd_config_id: undefined
-});
+export const getDefaultFilters = (reportType: BaseIfrs9ReportProps['reportType']): ReportFilters => {
+  const isMovement = reportType === 'ecl-movement' || reportType === 'gca-movement';
+  return {
+    prc_date: null,
+    period_from: isMovement ? null : undefined,
+    period_to: isMovement ? null : undefined,
+    page: 1,
+    limit: 20,
+    segment_id: undefined,
+    segment_ids: [],
+    stage: [],
+    fl_flag: false,
+    group_segment: undefined,
+    assessment_type: isMovement ? '' : undefined,
+    ead_config_id: undefined,
+    pd_config_id: reportType.includes('pd') ? 1 : undefined,
+    pd_method: reportType.includes('pd') ? 1 : undefined,
+    lgd_config_id: undefined
+  };
+};

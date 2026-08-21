@@ -96,31 +96,93 @@ const Ifrs9ReportFilters: React.FC<Ifrs9ReportFiltersProps> = ({
     </Box>
     <CardContent sx={{ p: 3 }}>
       <Grid container spacing={2.5}>
-        {/* Processing Date (Required) */}
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <DatePicker
-            label="Processing Date"
-            value={filters.prc_date}
-            onChange={(date: unknown) => {
-              const finalDate = date && (date as { toDate?: () => Date }).toDate
-                ? (date as { toDate: () => Date }).toDate()
-                : (date as Date | null);
-              onFilterChange('prc_date', finalDate);
-            }}
-            enableAccessibleFieldDOMStructure={false}
-            slots={{
-              textField: TextField
-            }}
-            slotProps={{
-              textField: {
-                fullWidth: true,
-                required: true,
-                size: 'small',
-                sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } }
-              }
-            }}
-          />
-        </Grid>
+        {/* Processing Date / Period Dates */}
+        {reportType === 'ecl-movement' || reportType === 'gca-movement' ? (
+          <>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <DatePicker
+                label="Period From"
+                value={filters.period_from}
+                onChange={(date: unknown) => {
+                  const finalDate = date && (date as { toDate?: () => Date }).toDate
+                    ? (date as { toDate: () => Date }).toDate()
+                    : (date as Date | null);
+                  onFilterChange('period_from', finalDate);
+                }}
+                enableAccessibleFieldDOMStructure={false}
+                slots={{ textField: TextField }}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    required: true,
+                    size: 'small',
+                    sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } }
+                  }
+                }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <DatePicker
+                label="Period To"
+                value={filters.period_to}
+                onChange={(date: unknown) => {
+                  const finalDate = date && (date as { toDate?: () => Date }).toDate
+                    ? (date as { toDate: () => Date }).toDate()
+                    : (date as Date | null);
+                  onFilterChange('period_to', finalDate);
+                }}
+                enableAccessibleFieldDOMStructure={false}
+                slots={{ textField: TextField }}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    required: true,
+                    size: 'small',
+                    sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } }
+                  }
+                }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Assessment Type</InputLabel>
+                <Select
+                  value={filters.assessment_type || ''}
+                  onChange={(e) => onFilterChange('assessment_type', e.target.value ? String(e.target.value) : undefined)}
+                  label="Assessment Type"
+                  sx={{ borderRadius: 2 }}
+                >
+                  <MenuItem value="">All / Combined</MenuItem>
+                  <MenuItem value="Collective">Collective</MenuItem>
+                  <MenuItem value="Individual">Individual</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </>
+        ) : (
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <DatePicker
+              label="Processing Date"
+              value={filters.prc_date}
+              onChange={(date: unknown) => {
+                const finalDate = date && (date as { toDate?: () => Date }).toDate
+                  ? (date as { toDate: () => Date }).toDate()
+                  : (date as Date | null);
+                onFilterChange('prc_date', finalDate);
+              }}
+              enableAccessibleFieldDOMStructure={false}
+              slots={{ textField: TextField }}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  required: true,
+                  size: 'small',
+                  sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } }
+                }
+              }}
+            />
+          </Grid>
+        )}
 
         {/* Optional parameters wrapped in Accordion */}
         {optionalParams.length > 0 && (

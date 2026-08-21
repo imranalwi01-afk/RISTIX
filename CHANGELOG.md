@@ -1,5 +1,10 @@
 # Changelog
 
+## [v2.14.94] - 2026-08-21
+
+### Added
+- Added "Assessment Type" filter (Collective / Individual) to ECL Movement and GCA Movement reports.
+
 ## [v2.14.93] - 2026-08-20
 
 ### Fixed

@@ -71,6 +71,8 @@ const EADModelQuerySchema = PaginationSchema.extend({
 
 const MovementQuerySchema = PaginationSchema.extend({
     prc_date: z.string().optional(),
+    period_from: z.string().optional(),
+    period_to: z.string().optional(),
     segment_id: z.string().optional(),
     stage: z.union([z.string(), z.array(z.string())]).optional(),
     group_segment: z.string().optional(),

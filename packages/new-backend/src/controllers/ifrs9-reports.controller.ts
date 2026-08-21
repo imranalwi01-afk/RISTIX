@@ -209,9 +209,10 @@ const MOVEMENT_QUERY_CONFIG: ListQueryConfig = {
     maxLimit: 200,
     paginationMode: 'cursor',
     defaultSort: [{ field: 'movement_order', direction: 'asc' }],
-    filterableColumns: ['prc_date', 'segment_id', 'stage', 'group_segment'],
+    filterableColumns: ['period_from', 'period_to', 'segment_id', 'stage', 'group_segment'],
     filterDefinitions: {
-        prc_date: { field: 'prc_date', label: 'Processing Date', type: 'date', operators: ['equals', 'from', 'to'] },
+        period_from: { field: 'period_from', label: 'Period From', type: 'date', operators: ['equals', 'from', 'to'] },
+        period_to: { field: 'period_to', label: 'Period To', type: 'date', operators: ['equals', 'from', 'to'] },
         segment_id: { field: 'segment_id', label: 'Segment', type: 'number', operators: ['equals', 'min', 'max'] },
         stage: {
             field: 'stage',
@@ -826,7 +827,8 @@ export const ifrs9ReportsController = {
             const startedAt = Date.now();
             const tenantId = (c as any).get('tenantId');
             const query = parseListQuery(c, MOVEMENT_QUERY_CONFIG);
-            const prc_date = getFilterText(query.filters, 'prc_date') || '2023-12-31';
+            const period_from = getFilterText(query.filters, 'period_from') || '2023-01-01';
+            const period_to = getFilterText(query.filters, 'period_to') || '2023-12-31';
             const segment_id = getFilterNumber(query.filters, 'segment_id');
             const stageFilter = query.filters.stage;
             const stage = Array.isArray(stageFilter)
@@ -835,11 +837,12 @@ export const ifrs9ReportsController = {
                     ? [String(stageFilter)]
                     : undefined;
             const group_segment = getFilterText(query.filters, 'group_segment') || undefined;
+            const assessment_type = getFilterText(query.filters, 'assessment_type') || undefined;
             const result = await ifrs9ReportsService.getECLMovement(
                 tenantId,
                 query.page ?? 1,
                 query.limit,
-                { prc_date, segment_id, stage, group_segment, search: query.search, sort: query.sort, detailFilters: query.filters }
+                { period_from, period_to, segment_id, stage, group_segment, assessment_type, search: query.search, sort: query.sort, detailFilters: query.filters }
             );
             const response = buildListResponse(
                 result.data,
@@ -849,7 +852,7 @@ export const ifrs9ReportsController = {
             );
             return c.json({
                 ...response,
-                meta: await buildReportMeta(c, startedAt, 'ecl-movement', { prc_date, segment_id, stage, group_segment, page: query.page, limit: query.limit, sort: query.sort }, { effectivePrcDate: (result as any).effectivePrcDate, rowCount: result.total ?? 0 }),
+                meta: await buildReportMeta(c, startedAt, 'ecl-movement', { period_from, period_to, segment_id, stage, group_segment, assessment_type, page: query.page, limit: query.limit, sort: query.sort }, { effectivePrcDate: (result as any).effectivePrcDate, rowCount: result.total ?? 0 }),
                 effectivePrcDate: (result as any).effectivePrcDate,
                 message: (result.total ?? 0) === 0 ? "No ECL Movement Data available" : undefined
             });
@@ -864,7 +867,8 @@ export const ifrs9ReportsController = {
             const startedAt = Date.now();
             const tenantId = (c as any).get('tenantId');
             const query = parseListQuery(c, MOVEMENT_QUERY_CONFIG);
-            const prc_date = getFilterText(query.filters, 'prc_date') || '2023-12-31';
+            const period_from = getFilterText(query.filters, 'period_from') || '2023-01-01';
+            const period_to = getFilterText(query.filters, 'period_to') || '2023-12-31';
             const segment_id = getFilterNumber(query.filters, 'segment_id');
             const stageFilter = query.filters.stage;
             const stage = Array.isArray(stageFilter)
@@ -873,11 +877,12 @@ export const ifrs9ReportsController = {
                     ? [String(stageFilter)]
                     : undefined;
             const group_segment = getFilterText(query.filters, 'group_segment') || undefined;
+            const assessment_type = getFilterText(query.filters, 'assessment_type') || undefined;
             const result = await ifrs9ReportsService.getGCAMovement(
                 tenantId,
                 query.page ?? 1,
                 query.limit,
-                { prc_date, segment_id, stage, group_segment, search: query.search, sort: query.sort, detailFilters: query.filters }
+                { period_from, period_to, segment_id, stage, group_segment, assessment_type, search: query.search, sort: query.sort, detailFilters: query.filters }
             );
             const response = buildListResponse(
                 result.data,
@@ -887,7 +892,7 @@ export const ifrs9ReportsController = {
             );
             return c.json({
                 ...response,
-                meta: await buildReportMeta(c, startedAt, 'gca-movement', { prc_date, segment_id, stage, group_segment, page: query.page, limit: query.limit, sort: query.sort }, { effectivePrcDate: (result as any).effectivePrcDate, rowCount: result.total ?? 0 }),
+                meta: await buildReportMeta(c, startedAt, 'gca-movement', { period_from, period_to, segment_id, stage, group_segment, assessment_type, page: query.page, limit: query.limit, sort: query.sort }, { effectivePrcDate: (result as any).effectivePrcDate, rowCount: result.total ?? 0 }),
                 effectivePrcDate: (result as any).effectivePrcDate,
                 message: (result.total ?? 0) === 0 ? "No GCA Movement Data available" : undefined
             });

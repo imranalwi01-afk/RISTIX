@@ -60,9 +60,16 @@ interface SummaryStats {
 }
 
 interface MovementMatrixRow {
+  id?: string;
+  prc_date?: string;
   movement_order?: number;
   movement?: string;
+  stage1?: number | string;
+  stage2?: number | string;
+  stage3?: number | string;
+  poci?: number | string;
   total?: number | string;
+  [key: string]: unknown;
 }
 
 const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
@@ -355,16 +362,17 @@ const ECLMovementReport: React.FC = () => {
     if (data && data.length > 0) {
       const aggregated = new Map<number, MovementMatrixRow>();
       data.forEach((row) => {
-        const order = Number(row.movement_order || 0);
+        const order = Number(row.seq || row.movement_order || 0);
         if (!order) return;
 
         const current = aggregated.get(order) || {
           movement_order: order,
-          movement: String(row.movement || `Movement ${order}`),
+          movement: String(row.descriptions || row.movement || `Movement ${order}`),
           total: 0,
         };
 
-        current.total = (parseFloat(current.total as string) || 0) + (parseFloat(row.total as string) || 0);
+        const rowTotal = Number(row.stage1 || 0) + Number(row.stage2 || 0) + Number(row.stage3 || 0);
+        current.total = (parseFloat(current.total as string) || 0) + rowTotal;
         aggregated.set(order, current);
       });
 
@@ -437,7 +445,7 @@ const ECLMovementReport: React.FC = () => {
     XLSX.writeFile(wb, `ECL_Movement_${new Date().toISOString().slice(0, 10)}.xlsx`);
   }, [rawData]);
 
-  const requiredParams = useMemo(() => ['prc_date'], []);
+  const requiredParams = useMemo(() => ['period_from', 'period_to'], []);
   const optionalParams = useMemo(() => ['segment_id', 'group_segment', 'stage'], []);
 
   return (

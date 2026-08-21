@@ -65,10 +65,12 @@ export interface ECLResultParams {
 }
 
 export interface MovementParams {
-    prc_date: string;
+    period_from: string;
+    period_to: string;
     segment_id?: number;
     stage?: string | string[];
     group_segment?: string;
+    assessment_type?: string;
     search?: string;
     sort?: Array<{ field: string; direction: 'asc' | 'desc' }>;
     detailFilters?: Record<string, unknown>;
@@ -582,120 +584,15 @@ export class Ifrs9ReportsService {
         );
     }
 
-    private async refreshMovementData(prcDate: string) {
+    private async refreshMovementData(periodFrom: string, periodTo: string) {
         try {
             await legacyDb.execute(sql`
-                CALL public.sp_frs9_imp_movement_data(${prcDate}::date, ${'M'}::char, ${0}::bigint)
+                CALL public.sp_frs9_imp_movement_data_v1(${periodFrom}::date, ${periodTo}::date)
             `);
         } catch (error) {
             // Procedure can fail for missing period snapshots; keep existing movement rows if available.
             console.warn('⚠️ Unable to refresh movement data via SP:', error);
         }
-    }
-
-    private async fetchMovementRows(
-        prcDate: string,
-        segmentId?: number,
-        groupSegment?: string,
-        valueKind?: 'ecl' | 'gca',
-    ) {
-        const requestedEom = this.endOfMonth(prcDate);
-        await this.refreshMovementData(requestedEom);
-
-        const resolvedGroupSegment = await this.resolveMovementGroupSegment(segmentId, groupSegment);
-        if (segmentId !== undefined && segmentId !== null && resolvedGroupSegment === null) {
-            return { effectiveDate: null as string | null, rows: [] as any[] };
-        }
-
-        const whereSegment = (resolvedGroupSegment && resolvedGroupSegment.trim())
-            ? sql`AND lower(group_segment) = lower(${resolvedGroupSegment.trim()})`
-            : sql``;
-
-        const sumAbsExpr = sql`
-            SUM(
-                abs(coalesce(stage1, 0))
-                + abs(coalesce(stage2, 0))
-                + abs(coalesce(stage3, 0))
-                + abs(coalesce(stage1_i, 0))
-                + abs(coalesce(stage2_i, 0))
-                + abs(coalesce(stage3_i, 0))
-                + abs(coalesce(gca_stage1, 0))
-                + abs(coalesce(gca_stage2, 0))
-                + abs(coalesce(gca_stage3, 0))
-                + abs(coalesce(gca_stage1_i, 0))
-                + abs(coalesce(gca_stage2_i, 0))
-                + abs(coalesce(gca_stage3_i, 0))
-                + abs(coalesce(poci, 0))
-            )
-        `;
-
-        const nonZeroBeforeResult = await legacyDb.execute(sql`
-            SELECT prc_date
-            FROM public.frs9_imp_movement_data
-            WHERE prc_date <= ${requestedEom}::date
-              AND NULLIF(trim(group_segment), '') IS NOT NULL
-              ${whereSegment}
-            GROUP BY prc_date
-            HAVING ${sumAbsExpr} > 0
-            ORDER BY prc_date DESC
-            LIMIT 1
-        `);
-        const nonZeroBefore = (nonZeroBeforeResult as any[])[0]?.prc_date;
-
-        const nonZeroAfterResult = !nonZeroBefore ? await legacyDb.execute(sql`
-            SELECT prc_date
-            FROM public.frs9_imp_movement_data
-            WHERE prc_date > ${requestedEom}::date
-              AND NULLIF(trim(group_segment), '') IS NOT NULL
-              ${whereSegment}
-            GROUP BY prc_date
-            HAVING ${sumAbsExpr} > 0
-            ORDER BY prc_date ASC
-            LIMIT 1
-        `) : [];
-        const nonZeroAfter = !nonZeroBefore ? (nonZeroAfterResult as any[])[0]?.prc_date : undefined;
-
-        const fallbackMaxResult = (!nonZeroBefore && !nonZeroAfter) ? await legacyDb.execute(sql`
-            SELECT MAX(prc_date) AS max_date
-            FROM public.frs9_imp_movement_data
-            WHERE prc_date <= ${requestedEom}::date
-        `) : [];
-        const fallbackMax = (!nonZeroBefore && !nonZeroAfter) ? (fallbackMaxResult as any[])[0]?.max_date : undefined;
-
-        const effectiveDate = nonZeroBefore || nonZeroAfter || fallbackMax;
-        if (!effectiveDate) {
-            return { effectiveDate: null as string | null, rows: [] as any[] };
-        }
-
-        const rows = await legacyDb.execute(sql`
-            SELECT
-                prc_date,
-                urut,
-                group_segment,
-                stage1,
-                stage2,
-                stage3,
-                stage1_i,
-                stage2_i,
-                stage3_i,
-                gca_stage1,
-                gca_stage2,
-                gca_stage3,
-                gca_stage1_i,
-                gca_stage2_i,
-                gca_stage3_i,
-                poci
-            FROM public.frs9_imp_movement_data
-            WHERE prc_date = ${effectiveDate}::date
-              AND NULLIF(trim(group_segment), '') IS NOT NULL
-              ${whereSegment}
-            ORDER BY group_segment, urut
-        `);
-
-        return {
-            effectiveDate: String(effectiveDate),
-            rows: Array.from(rows as any[]),
-        };
     }
 
     private async resolveMovementGroupSegment(
@@ -782,104 +679,6 @@ export class Ifrs9ReportsService {
         };
 
         return labels[urut] || `Movement ${urut}`;
-    }
-
-    private buildMovementMatrixRows(
-        rows: any[],
-        effectiveDate: string,
-        stageFilter: number[] | null,
-        valueKind: 'ecl' | 'gca',
-    ) {
-        const numericFields = [
-            'stage1', 'stage2', 'stage3',
-            'stage1_i', 'stage2_i', 'stage3_i',
-            'gca_stage1', 'gca_stage2', 'gca_stage3',
-            'gca_stage1_i', 'gca_stage2_i', 'gca_stage3_i',
-            'poci',
-        ];
-
-        const aggregatedRows = new Map<number, any>();
-        for (const row of rows) {
-            const urut = this.toNumber(row.urut);
-            if (urut <= 0) continue;
-
-            if (!aggregatedRows.has(urut)) {
-                aggregatedRows.set(urut, { urut, prc_date: effectiveDate });
-                for (const field of numericFields) {
-                    aggregatedRows.get(urut)[field] = 0;
-                }
-            }
-
-            const current = aggregatedRows.get(urut)!;
-            for (const field of numericFields) {
-                current[field] += this.toNumber(row[field]);
-            }
-        }
-
-        const selectedStages = stageFilter ?? [1, 2, 3];
-        const includesStage = (stage: number) => selectedStages.includes(stage);
-
-        let useStageFieldsForGca = false;
-        if (valueKind === 'gca') {
-            let sumAbsGca = 0;
-            let sumAbsStage = 0;
-            for (const row of aggregatedRows.values()) {
-                sumAbsGca += Math.abs(this.toNumber(row.gca_stage1))
-                    + Math.abs(this.toNumber(row.gca_stage2))
-                    + Math.abs(this.toNumber(row.gca_stage3))
-                    + Math.abs(this.toNumber(row.gca_stage1_i))
-                    + Math.abs(this.toNumber(row.gca_stage2_i))
-                    + Math.abs(this.toNumber(row.gca_stage3_i));
-                sumAbsStage += Math.abs(this.toNumber(row.stage1))
-                    + Math.abs(this.toNumber(row.stage2))
-                    + Math.abs(this.toNumber(row.stage3))
-                    + Math.abs(this.toNumber(row.stage1_i))
-                    + Math.abs(this.toNumber(row.stage2_i))
-                    + Math.abs(this.toNumber(row.stage3_i));
-            }
-            useStageFieldsForGca = sumAbsGca === 0 && sumAbsStage > 0;
-        }
-
-        return Array.from(aggregatedRows.values())
-            .sort((a, b) => this.toNumber(a.urut) - this.toNumber(b.urut))
-            .map((row) => {
-                const stage1Collective = valueKind === 'ecl'
-                    ? (includesStage(1) ? this.toNumber(row.stage1) : 0)
-                    : (includesStage(1) ? this.toNumber(useStageFieldsForGca ? row.stage1 : row.gca_stage1) : 0);
-                const stage2Collective = valueKind === 'ecl'
-                    ? (includesStage(2) ? this.toNumber(row.stage2) : 0)
-                    : (includesStage(2) ? this.toNumber(useStageFieldsForGca ? row.stage2 : row.gca_stage2) : 0);
-                const stage3Collective = valueKind === 'ecl'
-                    ? (includesStage(3) ? this.toNumber(row.stage3) : 0)
-                    : (includesStage(3) ? this.toNumber(useStageFieldsForGca ? row.stage3 : row.gca_stage3) : 0);
-                const stage1Individual = valueKind === 'ecl'
-                    ? (includesStage(1) ? this.toNumber(row.stage1_i) : 0)
-                    : (includesStage(1) ? this.toNumber(useStageFieldsForGca ? row.stage1_i : row.gca_stage1_i) : 0);
-                const stage2Individual = valueKind === 'ecl'
-                    ? (includesStage(2) ? this.toNumber(row.stage2_i) : 0)
-                    : (includesStage(2) ? this.toNumber(useStageFieldsForGca ? row.stage2_i : row.gca_stage2_i) : 0);
-                const stage3Individual = valueKind === 'ecl'
-                    ? (includesStage(3) ? this.toNumber(row.stage3_i) : 0)
-                    : (includesStage(3) ? this.toNumber(useStageFieldsForGca ? row.stage3_i : row.gca_stage3_i) : 0);
-                const poci = stageFilter ? 0 : this.toNumber(row.poci);
-                const total = stage1Collective + stage2Collective + stage3Collective
-                    + stage1Individual + stage2Individual + stage3Individual + poci;
-
-                return {
-                    id: `movement-${row.urut}`,
-                    prc_date: effectiveDate,
-                    movement_order: this.toNumber(row.urut),
-                    movement: this.getMovementLabel(this.toNumber(row.urut)),
-                    stage_1_collective: stage1Collective,
-                    stage_2_collective: stage2Collective,
-                    stage_3_collective: stage3Collective,
-                    stage_1_individual: stage1Individual,
-                    stage_2_individual: stage2Individual,
-                    stage_3_individual: stage3Individual,
-                    poci,
-                    total,
-                };
-            });
     }
 
     /**
@@ -2380,17 +2179,62 @@ export class Ifrs9ReportsService {
      */
     async getECLMovement(tenantId: string, page: number, limit: number, params?: MovementParams) {
         try {
-            const prcDate = params?.prc_date || '2023-12-31';
-            const stageFilter = this.normalizeStageFilter(params?.stage);
+            const periodFrom = params?.period_from || '2023-01-01';
+            const periodTo = params?.period_to || '2023-12-31';
             const groupSegment = params?.group_segment;
 
-            const { effectiveDate, rows } = await this.fetchMovementRows(prcDate, params?.segment_id, groupSegment, 'ecl');
-            if (!effectiveDate || rows.length === 0) {
-                return { data: [], total: 0, page, totalPages: 0, effectivePrcDate: null as string | null };
+            await this.refreshMovementData(periodFrom, periodTo);
+
+            const assessmentType = params?.assessment_type;
+            const includeCollective = assessmentType !== 'Individual';
+            const includeIndividual = assessmentType !== 'Collective';
+
+            const queries = [];
+            if (includeCollective) {
+                queries.push(sql`
+                    SELECT group_segment, period_from, period_to, seq, descriptions, stage1, stage2, stage3 
+                    FROM public.app_view_movement_ecl_stage_collective
+                    WHERE period_from = ${periodFrom}::date AND period_to = ${periodTo}::date
+                      ${groupSegment ? sql`AND (NULLIF(trim(group_segment), '') IS NULL OR group_segment = ${groupSegment})` : sql``}
+                `);
+            }
+            if (includeIndividual) {
+                queries.push(sql`
+                    SELECT group_segment, period_from, period_to, seq, descriptions, stage1, stage2, stage3 
+                    FROM public.app_view_movement_ecl_stage_individual
+                    WHERE period_from = ${periodFrom}::date AND period_to = ${periodTo}::date
+                      ${groupSegment ? sql`AND (NULLIF(trim(group_segment), '') IS NULL OR group_segment = ${groupSegment})` : sql``}
+                `);
             }
 
-            const matrixRows = this.buildMovementMatrixRows(rows, effectiveDate, stageFilter, 'ecl');
-            const filteredRows = this.filterMovementRows(matrixRows, params?.search, params?.detailFilters);
+            const unionQuery = sql.join(queries, sql` UNION ALL `);
+
+            const query = sql`
+                WITH combined AS (
+                    ${unionQuery}
+                )
+                SELECT 
+                    group_segment, 
+                    period_from, 
+                    period_to, 
+                    seq, 
+                    descriptions, 
+                    SUM(stage1) as stage1, 
+                    SUM(stage2) as stage2, 
+                    SUM(stage3) as stage3
+                FROM combined
+                GROUP BY group_segment, period_from, period_to, seq, descriptions
+                ORDER BY seq ASC
+            `;
+
+            const rows = await legacyDb.execute(query);
+            
+            const formattedRows = (rows as any[]).map((r: any) => ({
+                id: `movement-${r.seq}`,
+                ...r
+            }));
+
+            const filteredRows = this.filterMovementRows(formattedRows, params?.search, params?.detailFilters);
             const sortedRows = this.sortMovementRows(filteredRows, params?.sort);
             const startIndex = (page - 1) * limit;
             const paginatedRows = sortedRows.slice(startIndex, startIndex + limit);
@@ -2400,7 +2244,7 @@ export class Ifrs9ReportsService {
                 total: sortedRows.length,
                 page,
                 totalPages: Math.ceil(sortedRows.length / limit),
-                effectivePrcDate: effectiveDate,
+                effectivePrcDate: periodTo,
             };
         } catch (error) {
             console.error('❌ Error in getECLMovement service:', error);
@@ -2414,17 +2258,62 @@ export class Ifrs9ReportsService {
      */
     async getGCAMovement(tenantId: string, page: number, limit: number, params?: MovementParams) {
         try {
-            const prcDate = params?.prc_date || '2023-12-31';
-            const stageFilter = this.normalizeStageFilter(params?.stage);
+            const periodFrom = params?.period_from || '2023-01-01';
+            const periodTo = params?.period_to || '2023-12-31';
             const groupSegment = params?.group_segment;
 
-            const { effectiveDate, rows } = await this.fetchMovementRows(prcDate, params?.segment_id, groupSegment, 'gca');
-            if (!effectiveDate || rows.length === 0) {
-                return { data: [], total: 0, page, totalPages: 0, effectivePrcDate: null as string | null };
+            await this.refreshMovementData(periodFrom, periodTo);
+
+            const assessmentType = params?.assessment_type;
+            const includeCollective = assessmentType !== 'Individual';
+            const includeIndividual = assessmentType !== 'Collective';
+
+            const queries = [];
+            if (includeCollective) {
+                queries.push(sql`
+                    SELECT group_segment, period_from, period_to, seq, descriptions, stage1, stage2, stage3 
+                    FROM public.app_view_movement_gca_stage_collective
+                    WHERE period_from = ${periodFrom}::date AND period_to = ${periodTo}::date
+                      ${groupSegment ? sql`AND (NULLIF(trim(group_segment), '') IS NULL OR group_segment = ${groupSegment})` : sql``}
+                `);
+            }
+            if (includeIndividual) {
+                queries.push(sql`
+                    SELECT group_segment, period_from, period_to, seq, descriptions, stage1, stage2, stage3 
+                    FROM public.app_view_movement_gca_stage_individual
+                    WHERE period_from = ${periodFrom}::date AND period_to = ${periodTo}::date
+                      ${groupSegment ? sql`AND (NULLIF(trim(group_segment), '') IS NULL OR group_segment = ${groupSegment})` : sql``}
+                `);
             }
 
-            const matrixRows = this.buildMovementMatrixRows(rows, effectiveDate, stageFilter, 'gca');
-            const filteredRows = this.filterMovementRows(matrixRows, params?.search, params?.detailFilters);
+            const unionQuery = sql.join(queries, sql` UNION ALL `);
+
+            const query = sql`
+                WITH combined AS (
+                    ${unionQuery}
+                )
+                SELECT 
+                    group_segment, 
+                    period_from, 
+                    period_to, 
+                    seq, 
+                    descriptions, 
+                    SUM(stage1) as stage1, 
+                    SUM(stage2) as stage2, 
+                    SUM(stage3) as stage3
+                FROM combined
+                GROUP BY group_segment, period_from, period_to, seq, descriptions
+                ORDER BY seq ASC
+            `;
+
+            const rows = await legacyDb.execute(query);
+            
+            const formattedRows = (rows as any[]).map((r: any) => ({
+                id: `movement-${r.seq}`,
+                ...r
+            }));
+
+            const filteredRows = this.filterMovementRows(formattedRows, params?.search, params?.detailFilters);
             const sortedRows = this.sortMovementRows(filteredRows, params?.sort);
             const startIndex = (page - 1) * limit;
             const paginatedRows = sortedRows.slice(startIndex, startIndex + limit);
@@ -2434,7 +2323,7 @@ export class Ifrs9ReportsService {
                 total: sortedRows.length,
                 page,
                 totalPages: Math.ceil(sortedRows.length / limit),
-                effectivePrcDate: effectiveDate,
+                effectivePrcDate: periodTo,
             };
         } catch (error) {
             console.error('❌ Error in getGCAMovement service:', error);

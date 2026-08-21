@@ -26,6 +26,8 @@ export interface BaseIfrs9ReportProps {
 
 export interface ReportFilters {
   prc_date: Date | null;
+  period_from?: Date | null;
+  period_to?: Date | null;
   pd_config_id?: number;
   pd_method?: number;
   scalar_id?: number;
@@ -41,6 +43,7 @@ export interface ReportFilters {
   branch_code?: string;
   group_segment?: string;
   account_status?: string;
+  assessment_type?: string;
   page?: number;
   limit?: number;
 }

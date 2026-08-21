@@ -58,7 +58,9 @@ export function buildIfrs9ReportRequestParams(input: Ifrs9ReportQueryInput) {
   } : {};
 
   return {
-    prc_date: formatLocalDate(filters.prc_date!),
+    prc_date: filters.prc_date ? formatLocalDate(filters.prc_date) : undefined,
+    period_from: filters.period_from ? formatLocalDate(filters.period_from) : undefined,
+    period_to: filters.period_to ? formatLocalDate(filters.period_to) : undefined,
     pd_config_id: filters.pd_config_id,
     pd_method: filters.pd_method,
     scalar_id: filters.scalar_id,
@@ -81,27 +83,33 @@ export function buildIfrs9ReportRequestParams(input: Ifrs9ReportQueryInput) {
 }
 
 export async function fetchIfrs9Report(input: Ifrs9ReportQueryInput): Promise<ReportResponse> {
-  if (!input.filters.prc_date) {
+  const isMovement = input.reportType === 'ecl-movement' || input.reportType === 'gca-movement';
+  
+  if (!isMovement && !input.filters.prc_date) {
     throw new Error('Processing date is required');
+  }
+  
+  if (isMovement && (!input.filters.period_from || !input.filters.period_to)) {
+    throw new Error('Period From and Period To are required for movement reports');
   }
 
   const params = buildIfrs9ReportRequestParams(input);
 
   switch (input.reportType) {
     case 'nominative-report':
-      return api.banking.ifrs9Reports.nominativeReport.get(params);
+      return api.banking.ifrs9Reports.nominativeReport.get(params as any);
     case 'gl-outbound':
-      return api.banking.ifrs9Reports.glOutbound.get(params);
+      return api.banking.ifrs9Reports.glOutbound.get(params as any);
     case 'lifetime-pd-yearly':
-      return api.banking.ifrs9Reports.lifetimePD.getYearly(params);
+      return api.banking.ifrs9Reports.lifetimePD.getYearly(params as any);
     case 'lifetime-pd-monthly':
-      return api.banking.ifrs9Reports.lifetimePD.getMonthly(params);
+      return api.banking.ifrs9Reports.lifetimePD.getMonthly(params as any);
     case 'lifetime-pd-account-details':
-      return api.banking.ifrs9Reports.lifetimePD.getAccountDetails(params);
+      return api.banking.ifrs9Reports.lifetimePD.getAccountDetails(params as any);
     case 'lifetime-lgd': {
       try {
         const [summaryResult, detailData] = await Promise.all([
-          api.banking.ifrs9Reports.lifetimeLGD.getSummary(params)
+          api.banking.ifrs9Reports.lifetimeLGD.getSummary(params as any)
             .then((response) => ({ response, missing: false }))
             .catch((error: unknown) => {
               if (isNotFoundError(error)) {
@@ -110,7 +118,7 @@ export async function fetchIfrs9Report(input: Ifrs9ReportQueryInput): Promise<Re
 
               throw error;
             }),
-          api.banking.ifrs9Reports.lifetimeLGD.get(params),
+          api.banking.ifrs9Reports.lifetimeLGD.get(params as any),
         ]);
 
         const summaryData = summaryResult.response;
@@ -186,8 +194,8 @@ export async function fetchIfrs9Report(input: Ifrs9ReportQueryInput): Promise<Re
       }
     }
     case 'ead-model': {
-      const eadData = await api.banking.ifrs9Reports.eadModel.get(params);
-      const eadSummary = await api.banking.ifrs9Reports.eadModel.getSummary(params);
+      const eadData = await api.banking.ifrs9Reports.eadModel.get(params as any);
+      const eadSummary = await api.banking.ifrs9Reports.eadModel.getSummary(params as any);
       let summaryRow = eadSummary.data?.[0] ?? null;
 
       const summaryTotalAccounts =
@@ -200,7 +208,7 @@ export async function fetchIfrs9Report(input: Ifrs9ReportQueryInput): Promise<Re
           ...params,
           ead_config_id: undefined,
           segment_id: undefined,
-        });
+        } as any);
         summaryRow = fallbackSummary.data?.[0] ?? summaryRow;
       }
 
@@ -210,11 +218,11 @@ export async function fetchIfrs9Report(input: Ifrs9ReportQueryInput): Promise<Re
       };
     }
     case 'ecl-result':
-      return api.banking.ifrs9Reports.eclResult.get(params);
+      return api.banking.ifrs9Reports.eclResult.get(params as any);
     case 'ecl-movement':
-      return api.banking.ifrs9Reports.eclMovement.get(params);
+      return api.banking.ifrs9Reports.eclMovement.get(params as any);
     case 'gca-movement':
-      return api.banking.ifrs9Reports.gcaMovement.get(params);
+      return api.banking.ifrs9Reports.gcaMovement.get(params as any);
     default:
       throw new Error(`Unknown report type: ${input.reportType}`);
   }
