@@ -6503,7 +6503,7 @@ server <- function(input, output, session) {
                              prc_date = as.Date(prc_date),
                              model_id = model_id,
                              pd_config_id=pd_config_id,
-                             model_name = model_info$model_name[[1]],
+                             model_name = new_model_name,
                              model_status = 'draft',
                              dependent_variable = model_info$dependent_variable[[1]],
                              r_squared = model_info$r_squared[[1]],
