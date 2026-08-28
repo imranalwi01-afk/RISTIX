@@ -1,5 +1,10 @@
 # Changelog
 
+## [v2.14.95] - 2026-08-28
+
+### Changed
+- Updated model name in app44.R
+
 ## [v2.14.94] - 2026-08-21
 
 ### Added
