@@ -1,5 +1,12 @@
 # Changelog
 
+## [v2.14.96] - 2026-08-31
+
+### Fixed
+- Fixed approved PD models from R-Analytics not appearing in the ECL Configuration PD Model dropdown by updating `getPdModelOutputs` to include `ACTIVE` and `APPROVED` statuses.
+- Added fallback to record `id` when `model_id` is null or 0 in `frs9_r_pd_afl`.
+- Updated ECL configuration dialog FieldSource metadata and frontend options normalization.
+
 ## [v2.14.95] - 2026-08-28
 
 ### Changed

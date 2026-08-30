@@ -2722,7 +2722,10 @@ async function executeRAnalyticsComprehensiveAction(
 
         // Update frs9_r_pd_afl model_status based on Approval Result
         await db.update(schema.frs9RPdAfl)
-            .set({ modelStatus: status })
+            .set({ 
+                modelStatus: status,
+                updatedDate: new Date().toISOString()
+            })
             .where(eq(schema.frs9RPdAfl.id, Number(data.id)))
 
         console.log(`[ApprovalService] Successfully updated frs9_r_pd_afl ID ${data.id} to ${status}`)

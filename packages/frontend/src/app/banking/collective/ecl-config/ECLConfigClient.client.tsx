@@ -140,14 +140,21 @@ const normalizeModelOptions = (
     }))
     .filter((item: LookupOption) => item.value && item.label);
 
-// PD Model Outputs from frs9_r_pd_afl — flat model_id + model_name, filtered by model_status = 'active'
-const normalizePdModelOutputOptions = (outputs: any): LookupOption[] =>
-  getResponseRows(outputs)
+// PD Model Outputs from frs9_r_pd_afl — flat model_id + model_name, filtered by model_status IN ('active', 'APPROVED')
+const normalizePdModelOutputOptions = (outputs: any): LookupOption[] => {
+  const seen = new Set<string>();
+  return getResponseRows(outputs)
     .map((output: any) => ({
-      value: String(output.model_id ?? ''),
+      value: String(output.model_id ?? output.id ?? ''),
       label: String(output.model_name ?? '').trim(),
     }))
-    .filter((item: LookupOption) => item.value && item.label);
+    .filter((item: LookupOption) => {
+      if (!item.value || !item.label) return false;
+      if (seen.has(item.value)) return false;
+      seen.add(item.value);
+      return true;
+    });
+};
 
 const createLabelLookup = (options: LookupOption[]) =>
   new Map(options.map((option) => [String(option.value), option.label]));

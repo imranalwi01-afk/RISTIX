@@ -252,7 +252,7 @@ function ECLConfigDialogComponent({
                   </Box>
 
                   <Box>
-                    <FieldSource table="frs9_r_pd_afl" filter="model_status = 'active'" description="SELECT model_id, model_name FROM frs9_r_pd_afl WHERE model_status = 'active' ORDER BY model_name">
+                    <FieldSource table="frs9_r_pd_afl" filter="model_status IN ('active', 'APPROVED')" description="SELECT model_id, model_name FROM frs9_r_pd_afl WHERE UPPER(model_status) IN ('ACTIVE', 'APPROVED') ORDER BY model_name">
                       <FormControl fullWidth required error={!!formErrors.pd_model_id}>
                         <InputLabel>PD Model</InputLabel>
                         <Select

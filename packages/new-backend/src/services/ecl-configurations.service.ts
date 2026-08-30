@@ -211,14 +211,17 @@ export const EclConfigurationsService = {
         return Effect.tryPromise({
             try: async () => {
                 const rows: any[] = await legacyDb.execute(sql`
-                    SELECT model_id, model_name
+                    SELECT id, model_id, model_name
                     FROM frs9_r_pd_afl
-                    WHERE model_status = 'active'
+                    WHERE (UPPER(model_status) IN ('ACTIVE', 'APPROVED') OR model_status = '1')
+                      AND (is_deleted IS NULL OR is_deleted = false)
                     ORDER BY model_name
                 `)
-                const data = (rows as any).rows
-                    ? (rows as any).rows.map((r: any) => ({ model_id: Number(r.model_id), model_name: r.model_name }))
-                    : rows.map((r: any) => ({ model_id: Number(r.model_id), model_name: r.model_name }))
+                const rawRows = (rows as any).rows ? (rows as any).rows : rows
+                const data = rawRows.map((r: any) => ({
+                    model_id: r.model_id != null && Number(r.model_id) !== 0 ? Number(r.model_id) : Number(r.id),
+                    model_name: r.model_name
+                }))
                 return { success: true, data }
             },
             catch: (error) => new DatabaseError({ message: 'Failed to fetch PD model outputs', operation: 'query', cause: error })
